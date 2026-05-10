@@ -30,6 +30,7 @@ import {
   verifyAccessToken,
   type VerifiedAccessToken,
 } from "./token-verifier";
+import { hasMatchingRedirectUri } from "./redirect-uri";
 import type {
   AuthorizationServerMetadata,
   JwksResponse,
@@ -268,18 +269,26 @@ export class AuthService {
     }
     const path = new URL(request.url).pathname;
 
+    if (request.method === "OPTIONS" && isCorsMachineEndpoint(path)) {
+      return corsPreflightResponse();
+    }
+
     if (request.method === "GET") {
       if (path === "/.well-known/oauth-authorization-server") {
-        return jsonResponse(this.getAuthorizationServerMetadata(requestIssuer));
+        return withCors(
+          jsonResponse(this.getAuthorizationServerMetadata(requestIssuer)),
+        );
       }
 
       if (path === "/.well-known/jwks.json") {
-        return jsonResponse(await this.getJwks());
+        return withCors(jsonResponse(await this.getJwks()));
       }
 
       if (path === "/.well-known/oauth-protected-resource") {
-        return jsonResponse(
-          this.getProtectedResourceMetadata(requestIssuer, requestIssuer),
+        return withCors(
+          jsonResponse(
+            this.getProtectedResourceMetadata(requestIssuer, requestIssuer),
+          ),
         );
       }
     }
@@ -324,15 +333,15 @@ export class AuthService {
     }
 
     if (request.method === "POST" && path === "/register") {
-      return this.handleClientRegistration(request);
+      return withCors(await this.handleClientRegistration(request));
     }
 
     if (request.method === "POST" && path === "/token") {
-      return this.handleTokenRequest(request, requestIssuer);
+      return withCors(await this.handleTokenRequest(request, requestIssuer));
     }
 
     if (request.method === "POST" && path === "/revoke") {
-      return this.handleRevokeRequest(request);
+      return withCors(await this.handleRevokeRequest(request));
     }
 
     return new Response("Not Found", { status: 404 });
@@ -624,7 +633,7 @@ export class AuthService {
     const redirectUri = params.get("redirect_uri");
     const codeChallenge = params.get("code_challenge");
     const codeChallengeMethod = params.get("code_challenge_method");
-    const scope = params.get("scope") ?? undefined;
+    const requestedScope = params.get("scope") ?? undefined;
     const state = params.get("state") ?? undefined;
 
     if (responseType !== "code") {
@@ -647,9 +656,11 @@ export class AuthService {
     if (!client) {
       return { success: false, error: "Unknown client_id" };
     }
-    if (!client.redirect_uris.includes(redirectUri)) {
+    if (!hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
       return { success: false, error: "Unregistered redirect_uri" };
     }
+
+    const scope = requestedScope ?? client.scope;
 
     return {
       success: true,
@@ -739,7 +750,7 @@ export class AuthService {
     }
 
     const client = await this.clientStore.getClient(clientId);
-    if (!client?.redirect_uris.includes(redirectUri)) {
+    if (!client || !hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
       return oauthErrorResponse("invalid_grant", "Unregistered redirect_uri");
     }
 
@@ -878,6 +889,44 @@ function jsonResponse(
       ...extraHeaders,
     },
   });
+}
+
+const CORS_MACHINE_ENDPOINTS = new Set([
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/jwks.json",
+  "/.well-known/oauth-protected-resource",
+  "/register",
+  "/token",
+  "/revoke",
+]);
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+  "Access-Control-Allow-Private-Network": "true",
+  "X-Content-Type-Options": "nosniff",
+} as const;
+
+function isCorsMachineEndpoint(path: string): boolean {
+  return CORS_MACHINE_ENDPOINTS.has(path);
+}
+
+function withCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function corsPreflightResponse(): Response {
+  return withCors(new Response(null, { status: 204 }));
 }
 
 function oauthErrorResponse(error: string, description: string): Response {

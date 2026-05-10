@@ -793,6 +793,12 @@ describe("brain init", () => {
       expect(workflow).toContain(
         "bunx varlock@1.1.0 load --path .env.schema --format json --compact",
       );
+      expect(workflow).toContain("for attempt in 1 2 3");
+      expect(workflow).toContain("sleep 5");
+      expect(workflow).toContain("::add-mask::");
+      expect(workflow).toContain("escapeWorkflowCommand");
+      expect(workflow).toContain("appendEnv(key, value)");
+      expect(workflow).toContain("key + '<<' + delimiter");
       expect(workflow).not.toContain("npx -y varlock");
       expect(workflow).not.toContain("--show-all");
       expect(workflow).not.toContain("secrets.OP_TOKEN");
@@ -840,6 +846,8 @@ describe("brain init", () => {
       expect(workflow).toContain(
         "ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null",
       );
+      expect(workflow).toContain("Release stale Kamal deploy lock");
+      expect(workflow).toContain("kamal lock release || true");
       expect(workflow).toContain("kamal setup --skip-push");
       expect(workflow).toContain("PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}");
       expect(workflow).toContain(
@@ -929,6 +937,10 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
       expect(workflow).toContain(
         "BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}",
       );
+      expect(workflow).toContain(
+        'const bootstrapSecrets = new Set(["BWS_ACCESS_TOKEN"]);',
+      );
+      expect(workflow).toContain("bootstrapSecrets.has(key)");
       expect(workflow).not.toContain("AI_API_KEY: ${{ secrets.AI_API_KEY }}");
       expect(workflow).not.toContain(
         "GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}",

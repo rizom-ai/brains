@@ -102,6 +102,8 @@ brain secrets:push --push-to bitwarden
 
 `brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. `.env.local` takes precedence over `.env`, and `~/...` paths resolve against the operator home directory. That is the preferred reproducible path for multiline keys. GitHub pushes continue to leave TLS cert PEMs to `brain cert:bootstrap`; Bitwarden pushes include PEMs when they are present in `.env.schema` because Bitwarden becomes the source-of-truth backend.
 
+Generated deploy workflows resolve `.env.schema` with Varlock, retry compact resolution, mask resolved non-bootstrap values before exporting them to `$GITHUB_ENV`, and use multiline-safe `$GITHUB_ENV` entries. In Bitwarden mode, GitHub Actions should keep only the `BWS_ACCESS_TOKEN` bootstrap secret.
+
 ### `brain auth reset-passkeys`
 
 Break-glass recovery for lost or compromised operator passkeys. This is a local-only destructive command that clears passkey credentials, operator sessions, authorization codes, and refresh tokens from runtime auth storage. It preserves OAuth clients and the OAuth signing key.

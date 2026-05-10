@@ -32,9 +32,22 @@ export interface StreamableHTTPServerConfig {
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, MCP-Session-Id",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+  "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+function requestOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const proto = forwardedProto?.split(",")[0]?.trim();
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+
+  if (!host) return url.origin;
+  return `${proto ?? url.protocol.replace(":", "")}://${host}`;
+}
 
 /**
  * StreamableHTTP Server for MCP
@@ -156,8 +169,7 @@ export class StreamableHTTPServer {
     request: Request,
     params: Record<string, string> = {},
   ): string {
-    const url = new URL(request.url);
-    const resourceMetadata = `${url.origin}/.well-known/oauth-protected-resource`;
+    const resourceMetadata = `${requestOrigin(request)}/.well-known/oauth-protected-resource`;
     const entries = {
       resource_metadata: resourceMetadata,
       ...params,

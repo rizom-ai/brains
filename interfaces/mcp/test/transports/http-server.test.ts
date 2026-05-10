@@ -574,6 +574,31 @@ describe("StreamableHTTPServer", () => {
         });
       });
 
+      test("should allow hosted Inspector MCP preflight headers", async () => {
+        const response = await makeRequest("OPTIONS", "/mcp", {
+          port,
+          headers: {
+            Origin: "https://inspector.modelcontextprotocol.io",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers":
+              "content-type,mcp-protocol-version,last-event-id",
+            "Access-Control-Request-Private-Network": "true",
+          },
+        });
+
+        expect(response.status).toBe(204);
+        expect(response.headers["access-control-allow-origin"]).toBe("*");
+        expect(response.headers["access-control-allow-private-network"]).toBe(
+          "true",
+        );
+        expect(response.headers["access-control-allow-headers"]).toContain(
+          "MCP-Protocol-Version",
+        );
+        expect(response.headers["access-control-allow-headers"]).toContain(
+          "Last-Event-ID",
+        );
+      });
+
       test("should reject MCP requests without auth header", async () => {
         const response = await makeRequest("POST", "/mcp", {
           port,
@@ -598,6 +623,25 @@ describe("StreamableHTTPServer", () => {
           expect.stringContaining(
             "Authentication failed: Missing Bearer token",
           ),
+        );
+      });
+
+      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Host: "docs.rizom.ai",
+            "X-Forwarded-Proto": "https",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
+        expect(response.headers["www-authenticate"]).not.toContain(
+          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
         );
       });
 

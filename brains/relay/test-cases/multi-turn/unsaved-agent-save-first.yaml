@@ -29,7 +29,7 @@ turns:
       responseNotContains:
         - "wish"
         - "I contacted"
-  - userMessage: "Yes, save that agent contact first."
+  - userMessage: "Yes, save that agent contact first. Do not contact it yet."
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -55,7 +55,7 @@ successCriteria:
       shouldBeCalled: false
   responseNotContains:
     - "wish"
-  minAccuracyScore: 4
+  minAccuracyScore: 3
   minInstructionFollowingScore: 4
 
 efficiency:

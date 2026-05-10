@@ -1,5 +1,23 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.59
+
+### Patch Changes
+
+- Updated dependencies [[`6eef964`](https://github.com/rizom-ai/brains/commit/6eef964c712f71f30301bbbaedb9b8a019f8ead5)]:
+  - @brains/auth-service@0.2.0-alpha.59
+  - @brains/utils@0.2.0-alpha.59
+  - @brains/plugins@0.2.0-alpha.59
+
+## 0.2.0-alpha.58
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.58
+  - @brains/auth-service@0.2.0-alpha.58
+  - @brains/plugins@0.2.0-alpha.58
+
 ## 0.2.0-alpha.57
 
 ### Patch Changes

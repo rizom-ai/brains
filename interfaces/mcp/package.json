@@ -1,7 +1,7 @@
 {
   "name": "@brains/mcp",
   "private": true,
-  "version": "0.2.0-alpha.57",
+  "version": "0.2.0-alpha.59",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",

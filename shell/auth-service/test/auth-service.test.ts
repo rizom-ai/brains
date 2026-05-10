@@ -613,6 +613,78 @@ describe("AuthService", () => {
     expect(revokedRefreshResponse.status).toBe(400);
   });
 
+  it("allows MCP Inspector loopback redirect callback variation", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+    const client = await service.registerClient({
+      redirect_uris: ["http://localhost:6274/oauth/callback/debug"],
+      client_name: "MCP Inspector",
+      scope: "mcp",
+    });
+    const verifier =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~";
+    const challenge = await pkceChallenge(verifier);
+    const session = await service.createOperatorSession();
+    const authorizeUrl = new URL("http://localhost:8080/authorize");
+    authorizeUrl.searchParams.set("response_type", "code");
+    authorizeUrl.searchParams.set("client_id", client.client_id);
+    authorizeUrl.searchParams.set(
+      "redirect_uri",
+      "http://localhost:6274/oauth/callback",
+    );
+    authorizeUrl.searchParams.set("code_challenge", challenge);
+    authorizeUrl.searchParams.set("code_challenge_method", "S256");
+    authorizeUrl.searchParams.set("resource", "http://localhost:8080/");
+
+    const pageResponse = await service.handleRequest(
+      new Request(authorizeUrl.toString(), {
+        headers: { cookie: session.cookie },
+      }),
+    );
+    const page = await pageResponse.text();
+    expect(page).toContain("MCP access");
+    expect(page).not.toContain("Sign-in only");
+    const approvalToken = page.match(
+      /name="approval_token" value="([^"]+)"/,
+    )?.[1];
+    expect(approvalToken).toStartWith("oat_");
+
+    const approveParams = new URLSearchParams(authorizeUrl.searchParams);
+    approveParams.set("approval_token", approvalToken ?? "");
+    const approveResponse = await service.handleRequest(
+      new Request("http://localhost:8080/authorize", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: session.cookie,
+        },
+        body: approveParams.toString(),
+      }),
+    );
+    const redirect = new URL(approveResponse.headers.get("location") ?? "");
+    const code = redirect.searchParams.get("code");
+
+    const tokenResponse = await service.handleRequest(
+      new Request("http://localhost:8080/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: client.client_id,
+          redirect_uri: "http://127.0.0.1:6274/oauth/callback",
+          code: code ?? "",
+          code_verifier: verifier,
+        }).toString(),
+      }),
+    );
+
+    expect(tokenResponse.status).toBe(200);
+    const token = await tokenResponse.json();
+    expect(token).toMatchObject({ token_type: "Bearer", scope: "mcp" });
+  });
+
   it("logs out and revokes the current operator session", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
@@ -835,5 +907,55 @@ describe("AuthService", () => {
       resource_signing_alg_values_supported: ["ES256"],
       scopes_supported: ["mcp"],
     });
+  });
+
+  it("allows browser CORS for OAuth machine endpoints", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+
+    const metadataResponse = await service.handleRequest(
+      new Request(
+        "http://localhost:8080/.well-known/oauth-protected-resource",
+        {
+          headers: { Origin: "https://inspector.modelcontextprotocol.io" },
+        },
+      ),
+    );
+
+    expect(metadataResponse.status).toBe(200);
+    expect(metadataResponse.headers.get("access-control-allow-origin")).toBe(
+      "*",
+    );
+    expect(
+      metadataResponse.headers.get("access-control-allow-private-network"),
+    ).toBe("true");
+
+    const preflightResponse = await service.handleRequest(
+      new Request("http://localhost:8080/register", {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://inspector.modelcontextprotocol.io",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type",
+          "Access-Control-Request-Private-Network": "true",
+        },
+      }),
+    );
+
+    expect(preflightResponse.status).toBe(204);
+    expect(preflightResponse.headers.get("access-control-allow-origin")).toBe(
+      "*",
+    );
+    expect(preflightResponse.headers.get("access-control-allow-methods")).toBe(
+      "GET, POST, OPTIONS",
+    );
+    expect(
+      preflightResponse.headers.get("access-control-allow-headers"),
+    ).toContain("Content-Type");
+    expect(
+      preflightResponse.headers.get("access-control-allow-headers"),
+    ).toContain("MCP-Protocol-Version");
   });
 });

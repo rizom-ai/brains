@@ -126,6 +126,8 @@
     "fixed-group-alpha-republish",
     "hide-operator-routes-from-nav",
     "link-capture-alias-fix",
+    "mcp-forwarded-resource-metadata",
+    "oauth-inspector-compat",
     "ops-anchor-profile-content-seeding",
     "ops-deploy-finalize-push-ref",
     "ops-dockerfile-reconcile",

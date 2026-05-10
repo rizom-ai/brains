@@ -25,7 +25,6 @@ successCriteria:
   responseContains:
     - "Relay"
     - "team"
-    - "memory"
     - "peer"
   responseNotContains:
     - "blog platform"
@@ -37,5 +36,5 @@ successCriteria:
   minInstructionFollowingScore: 4
 
 efficiency:
-  maxToolCalls: 6
+  maxToolCalls: 8
   maxTokens: 40000

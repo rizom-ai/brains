@@ -176,7 +176,15 @@ ${workflowSecretsEnv}
         env:
 ${workflowSecretsEnv}
         run: |
-          bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json
+          for attempt in 1 2 3; do
+            if bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              exit 1
+            fi
+            sleep 5
+          done
           node <<'NODE'
           import { appendFileSync, readFileSync } from "node:fs";
           const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
@@ -189,22 +197,49 @@ ${workflowSecretsEnv}
           const newline = String.fromCharCode(10);
           const carriageReturn = String.fromCharCode(13);
           const bootstrapSecrets = new Set(${bootstrapSecretsLiteral});
-          const lines = Object.entries(env).flatMap(([key, value]) => {
-            if (bootstrapSecrets.has(key) || value === null || value === undefined) {
-              return [];
+
+          function normalizeNewlines(value) {
+            return String(value).split(carriageReturn + newline).join(newline);
+          }
+
+          function escapeWorkflowCommand(value) {
+            return value
+              .split('%').join('%25')
+              .split(carriageReturn).join('%0D')
+              .split(newline).join('%0A');
+          }
+
+          function envDelimiter(key, value) {
+            let delimiter = key + '_EOF';
+            while (value.includes(newline + delimiter + newline)) {
+              delimiter = delimiter + '_X';
+            }
+            return delimiter;
+          }
+
+          function appendEnv(key, value) {
+            const text = normalizeNewlines(value);
+            if (text.length > 0) {
+              console.log('::add-mask::' + escapeWorkflowCommand(text));
             }
 
-            const text = String(value)
-              .split(carriageReturn + newline)
-              .join(newline);
             if (text.includes(newline)) {
-              return [];
+              const delimiter = envDelimiter(key, text);
+              appendFileSync(
+                githubEnvPath,
+                key + '<<' + delimiter + newline + text + newline + delimiter + newline,
+              );
+            } else {
+              appendFileSync(githubEnvPath, key + '=' + text + newline);
             }
+          }
 
-            return [key + '=' + text];
-          });
-
-          appendFileSync(githubEnvPath, lines.join(newline) + newline);
+          for (const [key, value] of Object.entries(env)) {
+            if (bootstrapSecrets.has(key) || value === null || value === undefined) {
+              continue;
+            }
+            appendEnv(key, value);
+          }
           NODE
 
       - name: Write Kamal SSH key
@@ -335,6 +370,13 @@ ${workflowSecretsEnv}
           echo "SSH never became ready for $SSH_USER@$SERVER_IP; last attempt output:" >&2
           ssh "$SSH_USER@$SERVER_IP" true >&2 || true
           exit 1
+
+      - name: Release stale Kamal deploy lock
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+          VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
+          PREVIEW_DOMAIN: \${{ env.PREVIEW_DOMAIN }}
+        run: kamal lock release || true
 
       - name: Deploy
         env:
