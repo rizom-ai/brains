@@ -1,4 +1,6 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { z } from "@brains/utils";
 import {
   actionItemMetadataSchema,
   actionItemSchema,
@@ -14,7 +16,57 @@ import {
   DECISION_ENTITY_TYPE,
 } from "../lib/constants";
 
-export class DecisionAdapter extends BaseEntityAdapter<
+/**
+ * Shared adapter for derived conversation memory entities (decisions,
+ * action items). Both entity types share an identical markdown shape:
+ * the body is a single H1 title followed by free text, with metadata
+ * persisted as YAML frontmatter.
+ */
+class ConversationMemoryEntityAdapter<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata extends object,
+> extends BaseEntityAdapter<TEntity, TMetadata> {
+  private readonly metadataSchema: z.ZodSchema<TMetadata>;
+
+  constructor(config: {
+    entityType: string;
+    schema: z.ZodSchema<TEntity>;
+    metadataSchema: z.ZodObject<z.ZodRawShape>;
+  }) {
+    super({
+      entityType: config.entityType,
+      schema: config.schema,
+      frontmatterSchema: config.metadataSchema,
+    });
+    this.metadataSchema =
+      config.metadataSchema as unknown as z.ZodSchema<TMetadata>;
+  }
+
+  public composeContent(
+    title: string,
+    text: string,
+    metadata: TMetadata,
+  ): string {
+    return this.buildMarkdown(
+      [`# ${title}`, "", text.trim(), ""].join("\n"),
+      metadata as Record<string, unknown>,
+    );
+  }
+
+  public override toMarkdown(entity: TEntity): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(markdown: string): Partial<TEntity> {
+    return {
+      entityType: this.entityType,
+      content: markdown,
+      metadata: this.parseFrontMatter(markdown, this.metadataSchema),
+    } as Partial<TEntity>;
+  }
+}
+
+export class DecisionAdapter extends ConversationMemoryEntityAdapter<
   DecisionEntity,
   DecisionMetadata
 > {
@@ -22,39 +74,12 @@ export class DecisionAdapter extends BaseEntityAdapter<
     super({
       entityType: DECISION_ENTITY_TYPE,
       schema: decisionSchema,
-      frontmatterSchema: decisionMetadataSchema,
+      metadataSchema: decisionMetadataSchema,
     });
-  }
-
-  public composeContent(
-    title: string,
-    text: string,
-    metadata: DecisionMetadata,
-  ): string {
-    return this.buildMarkdown(
-      [`# ${title}`, "", text.trim(), ""].join("\n"),
-      metadata as Record<string, unknown>,
-    );
-  }
-
-  public override toMarkdown(entity: DecisionEntity): string {
-    return entity.content;
-  }
-
-  public fromMarkdown(markdown: string): Partial<DecisionEntity> {
-    return {
-      entityType: DECISION_ENTITY_TYPE,
-      content: markdown,
-      metadata: this.parseFrontMatter(markdown, decisionMetadataSchema),
-    };
-  }
-
-  public override extractMetadata(entity: DecisionEntity): DecisionMetadata {
-    return entity.metadata;
   }
 }
 
-export class ActionItemAdapter extends BaseEntityAdapter<
+export class ActionItemAdapter extends ConversationMemoryEntityAdapter<
   ActionItemEntity,
   ActionItemMetadata
 > {
@@ -62,36 +87,7 @@ export class ActionItemAdapter extends BaseEntityAdapter<
     super({
       entityType: ACTION_ITEM_ENTITY_TYPE,
       schema: actionItemSchema,
-      frontmatterSchema: actionItemMetadataSchema,
+      metadataSchema: actionItemMetadataSchema,
     });
-  }
-
-  public composeContent(
-    title: string,
-    text: string,
-    metadata: ActionItemMetadata,
-  ): string {
-    return this.buildMarkdown(
-      [`# ${title}`, "", text.trim(), ""].join("\n"),
-      metadata as Record<string, unknown>,
-    );
-  }
-
-  public override toMarkdown(entity: ActionItemEntity): string {
-    return entity.content;
-  }
-
-  public fromMarkdown(markdown: string): Partial<ActionItemEntity> {
-    return {
-      entityType: ACTION_ITEM_ENTITY_TYPE,
-      content: markdown,
-      metadata: this.parseFrontMatter(markdown, actionItemMetadataSchema),
-    };
-  }
-
-  public override extractMetadata(
-    entity: ActionItemEntity,
-  ): ActionItemMetadata {
-    return entity.metadata;
   }
 }

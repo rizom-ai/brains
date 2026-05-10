@@ -1,5 +1,13 @@
 # @brains/buttondown
 
+## 0.2.0-alpha.61
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.61
+  - @brains/plugins@0.2.0-alpha.61
+
 ## 0.2.0-alpha.60
 
 ### Patch Changes

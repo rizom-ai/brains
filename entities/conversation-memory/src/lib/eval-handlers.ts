@@ -16,6 +16,7 @@ import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import { SummaryProjector } from "./summary-projector";
+import { buildFallbackExcerpt } from "./excerpt";
 
 const evalMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
@@ -318,7 +319,7 @@ function createSeededRetrievalContext(
     (entity, index) => ({
       entity,
       score: memory[index]?.score ?? 1,
-      excerpt: memory[index]?.excerpt ?? fallbackExcerpt(entity),
+      excerpt: memory[index]?.excerpt ?? buildFallbackExcerpt(entity),
     }),
   );
 
@@ -415,14 +416,4 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       status,
     },
   };
-}
-
-function fallbackExcerpt(entity: BaseEntity): string {
-  return (
-    entity.content
-      .replace(/^---[\s\S]*?---\s*/m, "")
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.length > 0 && !line.startsWith("#")) ?? ""
-  );
 }

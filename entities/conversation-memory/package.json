@@ -1,7 +1,7 @@
 {
   "name": "@brains/conversation-memory",
   "private": true,
-  "version": "0.2.0-alpha.60",
+  "version": "0.2.0-alpha.61",
   "description": "Plugin for deriving durable conversation memory",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,10 +17,12 @@
   },
   "dependencies": {
     "@brains/conversation-service": "workspace:*",
+    "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

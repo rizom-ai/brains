@@ -1,5 +1,5 @@
 import { type EntityPluginContext, type Message } from "@brains/plugins";
-import { pLimit, type Logger } from "@brains/utils";
+import { pLimit, truncateText, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   ACTION_ITEM_ENTITY_TYPE,
@@ -99,15 +99,10 @@ export class SummaryProjector {
       };
     }
 
-    let existing: SummaryEntity | null = null;
-    try {
-      existing = await this.context.entityService.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: conversationId,
-      });
-    } catch {
-      existing = null;
-    }
+    const existing = await this.context.entityService.getEntity<SummaryEntity>({
+      entityType: SUMMARY_ENTITY_TYPE,
+      id: conversationId,
+    });
 
     if (existing?.metadata.sourceHash === source.sourceHash) {
       return {
@@ -294,14 +289,15 @@ export class SummaryProjector {
   private async deleteConversationMemory(
     conversationId: string,
   ): Promise<void> {
+    const limit = this.config.maxEntries * 4;
     const [decisions, actionItems] = await Promise.all([
       this.context.entityService.listEntities<DecisionEntity>({
         entityType: DECISION_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } } },
+        options: { filter: { metadata: { conversationId } }, limit },
       }),
       this.context.entityService.listEntities<ActionItemEntity>({
         entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } } },
+        options: { filter: { metadata: { conversationId } }, limit },
       }),
     ]);
 
@@ -437,8 +433,7 @@ export class SummaryProjector {
 
   private titleForMemory(prefix: string, text: string): string {
     const normalized = text.replace(/\s+/g, " ").trim();
-    if (normalized.length <= 80) return `${prefix}: ${normalized}`;
-    return `${prefix}: ${normalized.slice(0, 77)}...`;
+    return `${prefix}: ${truncateText(normalized, 80)}`;
   }
 
   private getSpaceId(metadata: SummaryMetadata): string {
@@ -485,15 +480,11 @@ export class SummaryProjector {
           (total, entry) => total + entry.sourceMessageCount,
           0,
         ),
-        keyPoints: this.unique(group.flatMap((entry) => entry.keyPoints)),
+        keyPoints: [...new Set(group.flatMap((entry) => entry.keyPoints))],
       });
     }
 
     return compacted.slice(0, this.config.maxEntries);
-  }
-
-  private unique(items: string[]): string[] {
-    return Array.from(new Set(items));
   }
 
   private getTimeRange(

@@ -32,7 +32,10 @@ import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
-import { registerSummaryDashboardWidget } from "./lib/dashboard-widget";
+import { registerActionItemsWidget } from "./lib/widgets/action-items";
+import { registerDecisionsWidget } from "./lib/widgets/decisions";
+import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
+import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
@@ -129,10 +132,11 @@ export class ConversationMemoryPlugin extends EntityPlugin<
             conversationId: string;
             reason: string;
           } => {
-            const parsed = conversationMessageAddedSchema.parse(payload);
+            const { conversationId } =
+              this.parseConversationMessagePayload(payload);
             return {
               mode: "conversation",
-              conversationId: parsed.conversationId,
+              conversationId,
               reason: "message-added",
             };
           },
@@ -150,16 +154,17 @@ export class ConversationMemoryPlugin extends EntityPlugin<
               pluginId: string;
             };
           } => {
-            const parsed = conversationMessageAddedSchema.parse(payload);
+            const { conversationId } =
+              this.parseConversationMessagePayload(payload);
             return {
               priority: 5,
               delayMs: this.config.projectionDelayMs,
               source: SUMMARY_JOB_SOURCE,
               deduplication: "skip",
-              deduplicationKey: `conversation-memory:${parsed.conversationId}`,
+              deduplicationKey: `conversation-memory:${conversationId}`,
               metadata: {
                 operationType: "data_processing" as const,
-                operationTarget: `conversation-memory:${parsed.conversationId}`,
+                operationTarget: `conversation-memory:${conversationId}`,
                 pluginId: SUMMARY_PLUGIN_ID,
               },
             };
@@ -169,27 +174,28 @@ export class ConversationMemoryPlugin extends EntityPlugin<
     ];
   }
 
+  private parseConversationMessagePayload(payload: EntityChangePayload): {
+    conversationId: string;
+  } {
+    return conversationMessageAddedSchema.parse(payload);
+  }
+
   private async shouldEnqueueConversationProjection(
     context: EntityPluginContext,
     payload: EntityChangePayload,
   ): Promise<boolean> {
-    const parsed = conversationMessageAddedSchema.parse(payload);
+    const { conversationId } = this.parseConversationMessagePayload(payload);
 
-    const conversation = await context.conversations.get(parsed.conversationId);
+    const conversation = await context.conversations.get(conversationId);
     if (!conversation) return false;
 
-    const messages = await context.conversations.getMessages(
-      parsed.conversationId,
-      { limit: this.config.maxSourceMessages },
-    );
+    // Skip the messages fetch here; the projector re-runs eligibility
+    // against the fully-loaded message window when the job actually runs.
     const eligibility = evaluateSummaryEligibility({
       conversation,
       spaces: context.spaces,
-      messages,
     });
-    if (!eligibility.eligible) return false;
-
-    return messages.length > 0;
+    return eligibility.eligible;
   }
 
   protected override async onRegister(
@@ -206,7 +212,10 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       actionItemAdapter,
     );
 
-    registerSummaryDashboardWidget({
+    registerActionItemsWidget({ context, pluginId: this.id });
+    registerDecisionsWidget({ context, pluginId: this.id });
+    registerRecentConversationMemoryWidget({ context, pluginId: this.id });
+    registerSummaryCoverageWidget({
       context,
       pluginId: this.id,
       config: this.config,

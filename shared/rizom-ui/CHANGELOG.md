@@ -1,5 +1,11 @@
 # @rizom/ui
 
+## 0.2.0-alpha.61
+
+### Patch Changes
+
+- [`4a65833`](https://github.com/rizom-ai/brains/commit/4a65833f1d6380d4348bfdd547e7714c33a41621) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade generated deploy workflow checkout action to avoid Node.js 20 action runtime warnings.
+
 ## 0.2.0-alpha.60
 
 ## 0.2.0-alpha.59

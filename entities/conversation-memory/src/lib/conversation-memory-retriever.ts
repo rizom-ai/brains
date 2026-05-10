@@ -1,4 +1,4 @@
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type {
   ActionItemEntity,
   DecisionEntity,
@@ -10,6 +10,7 @@ import {
   SUMMARY_ENTITY_TYPE,
 } from "./constants";
 import { getConversationSpaceId } from "./summary-space-eligibility";
+import { buildFallbackExcerpt } from "./excerpt";
 
 const DEFAULT_MEMORY_LIMIT = 5;
 const CANDIDATE_MULTIPLIER = 4;
@@ -157,7 +158,7 @@ export class ConversationMemoryRetriever {
     return entityGroups.flat().map((entity) => ({
       entity,
       score: 0,
-      excerpt: this.buildFallbackExcerpt(entity),
+      excerpt: buildFallbackExcerpt(entity),
     }));
   }
 
@@ -174,7 +175,7 @@ export class ConversationMemoryRetriever {
       interfaceType: metadata.interfaceType,
       updated: entity.updated,
       score: candidate.score,
-      excerpt: candidate.excerpt || this.buildFallbackExcerpt(entity),
+      excerpt: candidate.excerpt || buildFallbackExcerpt(entity),
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
@@ -190,15 +191,5 @@ export class ConversationMemoryRetriever {
       return metadata.spaceId;
     }
     return `${metadata.interfaceType}:${metadata.channelId}`;
-  }
-
-  private buildFallbackExcerpt(entity: BaseEntity): string {
-    return (
-      entity.content
-        .replace(/^---[\s\S]*?---\s*/m, "")
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0 && !line.startsWith("#")) ?? ""
-    );
   }
 }

@@ -74,10 +74,6 @@ export class SummaryAdapter extends BaseEntityAdapter<
     };
   }
 
-  public override extractMetadata(entity: SummaryEntity): SummaryMetadata {
-    return entity.metadata;
-  }
-
   private appendList(lines: string[], title: string, items: string[]): void {
     if (items.length === 0) return;
     lines.push(`### ${title}`);
