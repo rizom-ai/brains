@@ -9,7 +9,7 @@ tags:
   - summary
   - scenario
   - refactor-guard
-plugin: summary
+plugin: conversation-memory
 handler: summarizeMessages
 
 input:

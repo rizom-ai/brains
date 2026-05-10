@@ -10,7 +10,7 @@ tags:
   - projection-decision
   - scenario
   - refactor-guard
-plugin: summary
+plugin: conversation-memory
 handler: decideProjection
 
 input:

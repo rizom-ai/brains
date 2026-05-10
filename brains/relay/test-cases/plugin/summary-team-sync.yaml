@@ -6,7 +6,7 @@ tags:
   - relay
   - summary
   - core
-plugin: summary
+plugin: conversation-memory
 handler: summarizeMessages
 
 input:
