@@ -117,6 +117,7 @@
     "deploy-template-embedding-release",
     "deploy-template-runtime-sync",
     "deploy-workflow-env-mask-lock",
+    "docker-node24-actions",
     "ecosystem-heading-dark-mode",
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",

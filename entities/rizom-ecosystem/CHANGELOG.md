@@ -1,5 +1,14 @@
 # @brains/rizom-ecosystem
 
+## 0.2.0-alpha.62
+
+### Patch Changes
+
+- Updated dependencies [[`697394f`](https://github.com/rizom-ai/brains/commit/697394f96cf828eca5512cc06c2386b829276212)]:
+  - @rizom/ui@0.2.0-alpha.62
+  - @brains/utils@0.2.0-alpha.62
+  - @brains/plugins@0.2.0-alpha.62
+
 ## 0.2.0-alpha.61
 
 ### Patch Changes
