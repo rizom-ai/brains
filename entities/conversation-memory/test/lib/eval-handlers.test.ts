@@ -91,6 +91,121 @@ describe("registerSummaryEvalHandlers", () => {
     });
   });
 
+  it("retrieveMemory can evaluate first-class decision and action memory", async () => {
+    const { handlers } = registerHandlers();
+    const handler = handlers.get("retrieveMemory");
+    if (!handler) throw new Error("retrieveMemory handler missing");
+
+    const result = await handler({
+      query: "separate memory",
+      interfaceType: "mcp",
+      channelId: "team",
+      memory: [
+        {
+          id: "decision-1",
+          entityType: "decision",
+          conversationId: "conv-1",
+          interfaceType: "mcp",
+          channelId: "team",
+          content: "# Decision\n\nUse separate decision entities.",
+          excerpt: "Use separate decision entities.",
+          score: 0.8,
+          status: "active",
+        },
+        {
+          id: "action-1",
+          entityType: "action-item",
+          conversationId: "conv-1",
+          interfaceType: "mcp",
+          channelId: "team",
+          content: "# Action item\n\nAdd retrieval evals.",
+          excerpt: "Add retrieval evals.",
+          score: 0.7,
+          status: "open",
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      query: "separate memory",
+      spaceId: "mcp:team",
+      results: [
+        expect.objectContaining({
+          id: "decision-1",
+          entityType: "decision",
+          status: "active",
+        }),
+        expect.objectContaining({
+          id: "action-1",
+          entityType: "action-item",
+          status: "open",
+        }),
+      ],
+    });
+  });
+
+  it("projectMessages returns separate decision and action-item entities", async () => {
+    const { context, handlers } = registerHandlers();
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Memory entities",
+          summary: "Conversation memory uses separate entities.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: ["Summaries stay narrative-only"],
+          decisions: ["Use separate decision entities"],
+          actionItems: ["Add projection evals"],
+        },
+      ],
+    });
+
+    const handler = handlers.get("projectMessages");
+    if (!handler) throw new Error("projectMessages handler missing");
+
+    const result = await handler({
+      conversationId: "conv-1",
+      interfaceType: "mcp",
+      channelId: "team",
+      messages: [
+        {
+          role: "user",
+          content: "Decision: use separate decision entities.",
+          timestamp: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          role: "user",
+          content: "Action item: add projection evals.",
+          timestamp: "2026-01-01T00:01:00.000Z",
+        },
+      ],
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        result: expect.objectContaining({ skipped: false }),
+        summaries: [
+          expect.objectContaining({
+            entityType: "summary",
+            content: expect.not.stringContaining("### Decisions"),
+          }),
+        ],
+        decisions: [
+          expect.objectContaining({
+            entityType: "decision",
+            metadata: expect.objectContaining({ status: "active" }),
+          }),
+        ],
+        actionItems: [
+          expect.objectContaining({
+            entityType: "action-item",
+            metadata: expect.objectContaining({ status: "open" }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it("decideProjection returns the AI skip/update/append decision", async () => {
     const { context, handlers } = registerHandlers();
     const generateSpy = spyOn(context.ai, "generateObject").mockResolvedValue({

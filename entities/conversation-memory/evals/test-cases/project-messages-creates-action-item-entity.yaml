@@ -1,0 +1,40 @@
+id: conversation-memory-project-messages-creates-action-item-entity
+name: Projects explicit action items as separate entities
+description: Projects concrete follow-up work into a first-class action-item entity with open status.
+type: plugin
+tags:
+  - conversation-memory
+  - projection
+  - action-items
+plugin: conversation-memory
+handler: projectMessages
+
+input:
+  conversationId: eval-project-action
+  interfaceType: mcp
+  channelId: relay-team
+  projectionDecision: update
+  messages:
+    - role: user
+      content: "Action item: add evals proving decisions and action items are separate entities."
+      timestamp: "2026-05-04T11:00:00Z"
+    - role: assistant
+      content: "I will add projection and retrieval evals for the separate memory entities."
+      timestamp: "2026-05-04T11:01:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: result.skipped
+      equals: false
+    - path: summaries[0].entityType
+      equals: summary
+    - path: summaries[0].content
+      matches: "^(?![\\s\\S]*### Action Items)"
+    - path: actionItems[0].entityType
+      equals: action-item
+    - path: actionItems[0].metadata.status
+      equals: open
+    - path: actionItems[0].metadata.spaceId
+      equals: mcp:relay-team
+    - path: actionItems[0].content
+      matches: "evals|decision|action item|separate"

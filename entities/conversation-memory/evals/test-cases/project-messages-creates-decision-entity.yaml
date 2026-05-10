@@ -1,0 +1,42 @@
+id: conversation-memory-project-messages-creates-decision-entity
+name: Projects explicit decisions as separate entities
+description: Projects conversation messages into a narrative summary plus a first-class decision entity.
+type: plugin
+tags:
+  - conversation-memory
+  - projection
+  - decisions
+plugin: conversation-memory
+handler: projectMessages
+
+input:
+  conversationId: eval-project-decision
+  interfaceType: mcp
+  channelId: relay-team
+  projectionDecision: update
+  messages:
+    - role: user
+      content: "Final decision: rename the package to conversation-memory and keep summary narrative-only."
+      timestamp: "2026-05-04T10:00:00Z"
+    - role: assistant
+      content: "I will use @brains/conversation-memory and create separate decision entities."
+      timestamp: "2026-05-04T10:01:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: result.skipped
+      equals: false
+    - path: summaries[0].entityType
+      equals: summary
+    - path: summaries[0].content
+      matches: "Conversation Summary|conversation-memory|summary"
+    - path: summaries[0].content
+      matches: "^(?![\\s\\S]*### Decisions)"
+    - path: decisions[0].entityType
+      equals: decision
+    - path: decisions[0].metadata.status
+      equals: active
+    - path: decisions[0].metadata.spaceId
+      equals: mcp:relay-team
+    - path: decisions[0].content
+      matches: "conversation-memory|summary narrative-only|decision"

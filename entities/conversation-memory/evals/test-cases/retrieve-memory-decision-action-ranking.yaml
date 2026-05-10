@@ -1,0 +1,64 @@
+id: conversation-memory-retrieve-decision-action-ranking
+name: Retrieves first-class decision and action memory
+description: Same-space retrieval returns separate decision and action-item entities with provenance and status.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - decisions
+  - action-items
+plugin: conversation-memory
+handler: retrieveMemory
+
+input:
+  query: separate memory entities
+  interfaceType: mcp
+  channelId: relay-team
+  includeOtherSpaces: true
+  memory:
+    - id: other-summary
+      entityType: summary
+      conversationId: other-conv
+      interfaceType: mcp
+      channelId: other-team
+      content: "# Conversation Summary\n\nOther team chose unrelated dashboard work."
+      excerpt: Other team memory
+      score: 0.99
+      updated: "2026-05-04T12:00:00Z"
+    - id: decision-1
+      entityType: decision
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      content: "# Decision\n\nUse separate decision entities for accepted decisions."
+      excerpt: Use separate decision entities for accepted decisions.
+      score: 0.7
+      status: active
+      updated: "2026-05-04T11:00:00Z"
+    - id: action-1
+      entityType: action-item
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      content: "# Action item\n\nAdd evals for separate decision and action-item retrieval."
+      excerpt: Add evals for separate decision and action-item retrieval.
+      score: 0.6
+      status: open
+      updated: "2026-05-04T11:01:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: spaceId
+      equals: mcp:relay-team
+    - path: results[0].entityType
+      equals: decision
+    - path: results[0].spaceId
+      equals: mcp:relay-team
+    - path: results[0].status
+      equals: active
+    - path: results[1].entityType
+      equals: action-item
+    - path: results[1].status
+      equals: open
+    - path: results[2].spaceId
+      equals: mcp:other-team
