@@ -18,7 +18,7 @@ successCriteria:
     max: 6
   responseContains:
     - "Relay"
-    - "remember"
+    - "capture"
   responseNotContains:
     - "newsletter"
     - "publishing pipeline"

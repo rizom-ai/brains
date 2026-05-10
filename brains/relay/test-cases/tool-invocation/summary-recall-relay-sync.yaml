@@ -15,7 +15,9 @@ tags:
 turns:
   - userMessage: >-
       Get the saved summary with id relay-poc-sync and tell me what the team
-      decided about Relay presets and what action item remains.
+      decided about Relay presets and what action item remains. Use only the
+      saved summary content returned by the tool; if no action item is present
+      in that content, say that the saved summary does not include one.
 
 successCriteria:
   expectedTools:
@@ -28,6 +30,7 @@ successCriteria:
     - "core"
     - "default"
     - "full"
+    - "does not include"
   responseNotContains:
     - "meeting-notes"
     - "decision-record"

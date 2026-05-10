@@ -42,6 +42,26 @@ input:
         - List approved peer brains before delegating work.
         - Prepare the handoff context for Partner Brain.
 
+    - name: Audit Relay public surface
+      description: Check that Relay public-site claims are supported by saved site content, summaries, and approved peer-brain context.
+      tags:
+        - site-content
+        - audit
+        - provenance
+      examples:
+        - Verify the homepage only claims workflows backed by saved Relay memory.
+        - Flag unsupported public claims before a demo.
+
+    - name: Review peer-brain routing risk
+      description: Distinguish approved peer brains from discovered review-needed agents before relying on A2A or MCP handoffs.
+      tags:
+        - peer-brain
+        - review-needed
+        - handoff
+      examples:
+        - Trust Partner Brain for Relay handoff review.
+        - Keep Old Agent in review before production delegation.
+
   agents:
     - id: partner-brain
       name: Partner Brain
@@ -97,7 +117,17 @@ expectedOutput:
       exists: true
     - path: strengths[0].detail
       exists: true
+    - path: weaknesses[0].title
+      exists: true
+    - path: weaknesses[0].detail
+      exists: true
     - path: opportunities[0].title
+      exists: true
+    - path: opportunities[0].detail
+      exists: true
+    - path: threats[0].title
+      exists: true
+    - path: threats[0].detail
       exists: true
   qualityCriteria:
     minRelevanceScore: 3
@@ -108,13 +138,14 @@ expectedOutput:
       Evaluate this SWOT as Relay team-memory and peer-brain guidance.
 
       Good output:
-      - uses the supplied Relay skills and agents: team memory capture, synthesis, peer brains, agent directory, A2A/MCP handoffs, and public-surface audit
-      - gives actionable implications for what the Relay team should strengthen, test, trust, or watch next
-      - distinguishes the approved Partner Brain from the discovered/review-needed Old Agent where relevant
+      - uses the supplied Relay capability areas: team memory capture, synthesis, peer-brain coordination, agent directory, A2A/MCP handoffs, or public-surface audit
+      - gives practical implications for what the Relay team should strengthen, test, trust, or watch next
+      - treats discovered/review-needed peer-brain capability as tentative rather than dependable
+      - capability-area language is acceptable; specific agent names are not required
       - stays about collaborative intelligence and coordination, not personal publishing or marketing
 
       Bad output:
       - treats Relay like a blog/newsletter/social publishing brain
       - invents future plugins such as decision records, meeting notes, RAG QA, or knowledge graph as if they already exist
       - generic business SWOT language without practical team-memory guidance
-      - pure summary without a recommended next move
+      - pure summary without any practical implication

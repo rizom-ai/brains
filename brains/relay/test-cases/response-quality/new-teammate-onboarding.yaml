@@ -16,16 +16,22 @@ turns:
   - userMessage: >-
       I'm joining the Relay POC team today. Search the saved Relay memory and
       onboard me: what is Relay for, what should I read first, what workflows are
-      already supported, and what should I avoid assuming exists?
+      already supported, and what should I avoid assuming exists? Begin by
+      saying you searched saved Relay memory. Name the read-first saved items
+      using their saved titles exactly as shown by the tools, and separate
+      supported workflows from out-of-scope assumptions.
 
 successCriteria:
   expectedTools:
     - toolName: system_search
       shouldBeCalled: true
   responseContains:
+    - "searched saved Relay memory"
     - "Relay"
     - "team"
     - "peer"
+    - "operating"
+    - "synthesis"
   responseNotContains:
     - "blog platform"
     - "newsletter pipeline"

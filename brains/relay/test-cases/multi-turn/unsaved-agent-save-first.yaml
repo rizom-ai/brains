@@ -29,7 +29,10 @@ turns:
       responseNotContains:
         - "wish"
         - "I contacted"
-  - userMessage: "Yes, save that agent contact first. Do not contact it yet."
+  - userMessage: >-
+      Yes, start saving that agent contact first. Do not contact it yet. If the
+      save runs asynchronously, report it as queued or in progress instead of
+      claiming it is fully saved.
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -39,6 +42,8 @@ turns:
             url: "https://field-agent.example/a2a"
         - toolName: a2a_call
           shouldBeCalled: false
+      responseContains:
+        - "queued"
       responseNotContains:
         - "wish"
         - "I contacted"
