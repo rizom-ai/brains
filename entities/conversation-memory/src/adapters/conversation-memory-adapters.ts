@@ -48,10 +48,6 @@ export class DecisionAdapter extends BaseEntityAdapter<
       metadata: this.parseFrontMatter(markdown, decisionMetadataSchema),
     };
   }
-
-  public override extractMetadata(entity: DecisionEntity): DecisionMetadata {
-    return entity.metadata;
-  }
 }
 
 export class ActionItemAdapter extends BaseEntityAdapter<
@@ -87,11 +83,5 @@ export class ActionItemAdapter extends BaseEntityAdapter<
       content: markdown,
       metadata: this.parseFrontMatter(markdown, actionItemMetadataSchema),
     };
-  }
-
-  public override extractMetadata(
-    entity: ActionItemEntity,
-  ): ActionItemMetadata {
-    return entity.metadata;
   }
 }
