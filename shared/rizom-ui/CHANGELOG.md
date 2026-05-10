@@ -1,5 +1,11 @@
 # @rizom/ui
 
+## 0.2.0-alpha.62
+
+### Patch Changes
+
+- [`697394f`](https://github.com/rizom-ai/brains/commit/697394f96cf828eca5512cc06c2386b829276212) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade generated publish-image Docker actions to Node.js 24-compatible major versions.
+
 ## 0.2.0-alpha.61
 
 ### Patch Changes
