@@ -182,7 +182,7 @@ AI_API_KEY=
 GIT_SYNC_TOKEN=
 ```
 
-The generated deploy workflow maps every schema key from GitHub Actions secrets and Varlock validates those values from `process.env`.
+The generated deploy workflow maps every schema key from GitHub Actions secrets and Varlock validates those values from `process.env`. Resolved values are masked before export to the job environment.
 
 Use:
 
@@ -226,7 +226,7 @@ BWS_ACCESS_TOKEN
 
 Use a read-only Bitwarden machine account token for CI. After one successful deploy, delete old app/runtime GitHub secrets such as `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`.
 
-The generated workflow uses `bunx varlock@1.1.0`, not `npx -y varlock`, because older `npx` resolution can pick an obsolete Varlock package.
+The generated workflow uses `bunx varlock@1.1.0`, not `npx -y varlock`, because older `npx` resolution can pick an obsolete Varlock package. It retries compact Varlock resolution, masks every resolved non-bootstrap value before exporting it to the job environment, and writes multiline values with GitHub Actions' `$GITHUB_ENV` heredoc form.
 
 ## Domain setup
 
@@ -254,11 +254,13 @@ The workflow updates DNS before Kamal deploys, because `kamal-proxy` healthcheck
 - still supports `workflow_dispatch`
 - checks out the exact commit the publish run built
 - validates `.env.schema` through varlock
-- keeps multiline secrets in `/tmp/varlock-env.json`
+- retries compact Varlock resolution before writing `/tmp/varlock-env.json`
+- masks resolved non-bootstrap values before exporting them to `$GITHUB_ENV`
+- writes multiline `$GITHUB_ENV` values with heredoc syntax and keeps `/tmp/varlock-env.json` available for PEM/SSH handling
 - writes the SSH key and `.kamal/secrets`
 - provisions or reuses the Hetzner server
 - updates Cloudflare DNS
-- validates the SSH key, waits for SSH readiness, then runs `kamal setup --skip-push`
+- validates the SSH key, waits for SSH readiness, releases any stale Kamal deploy lock, then runs `kamal setup --skip-push`
 - deploys `VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}`
 - finishes with `Verify origin TLS`
 - dumps remote proxy diagnostics on failure

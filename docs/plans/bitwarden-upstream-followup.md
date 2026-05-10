@@ -10,6 +10,9 @@ Ship the deploy workflow improvements learned during the Bitwarden migration so 
 - `brain init --deploy --regen` already detects Bitwarden-backed schemas and maps only bootstrap secrets such as `BWS_ACCESS_TOKEN` from GitHub Actions secrets.
 - Generated deploy workflows already use `bunx varlock@1.1.0` instead of obsolete `npx -y varlock`.
 - A changeset already exists for the deploy workflow template update.
+- 2026-05-09 doc-brain deploy smoke exposed two operational issues:
+  - Varlock-loaded secrets were echoed in the GitHub Actions environment block because values were appended to `$GITHUB_ENV` without first adding GitHub masks.
+  - A stale Kamal deploy lock from a failed/cancelled deploy blocked the next deploy until manually released.
 
 ## Fixes still needed upstream
 
@@ -85,7 +88,20 @@ Add or tighten assertions that generated deploy workflows:
 - still map all schema keys in GitHub Secrets mode
 - still map only `BWS_ACCESS_TOKEN` in Bitwarden mode
 
-### 6. Update docs
+### 6. Decide deploy-lock policy
+
+File: `shared/deploy-templates/src/scaffold.ts`
+
+Doc-brain needed a one-off stale lock release after a failed deploy left the lock at an old commit. Upstream should decide whether generated workflows should handle this automatically.
+
+Options:
+
+- Add a pre-deploy step: `kamal lock release || true` before `kamal setup --skip-push`.
+- Prefer manual recovery and document `kamal lock release` as the runbook for failed/cancelled deploys.
+
+If automated, keep it immediately before the deploy step and do not run it before provisioning/DNS/TLS prep. The intent is only to clear stale locks from prior failed deploys, not to bypass active concurrent deploys.
+
+### 7. Update docs
 
 Files:
 
@@ -100,7 +116,7 @@ Document the final generated workflow behavior:
 - Varlock values are masked before being exported to job env.
 - CI should use a read-only Bitwarden machine account token.
 
-### 7. Release `@rizom/brain`
+### 8. Release `@rizom/brain`
 
 After implementation and tests:
 
@@ -127,4 +143,5 @@ After implementation and tests:
 - Multiline secrets are handled safely.
 - Transient Varlock/Bitwarden failures are retried.
 - Existing GitHub Secrets-backed deployments remain compatible.
+- Stale Kamal deploy-lock recovery is either automated in the generated workflow or documented as an explicit operator runbook.
 - A released `@rizom/brain` version includes the updated template.
