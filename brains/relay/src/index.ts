@@ -17,7 +17,7 @@ import { topicsPlugin } from "@brains/topics";
 import { linkPlugin } from "@brains/link";
 import { notePlugin } from "@brains/note";
 import { imagePlugin } from "@brains/image-plugin";
-import { summaryPlugin } from "@brains/summary";
+import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { decksPlugin } from "@brains/decks";
 import { docsPlugin } from "@brains/doc";
 import { promptPlugin } from "@brains/prompt";
@@ -59,7 +59,7 @@ const core = [
   "note",
   "link",
   "topics",
-  "summary",
+  "conversation-memory",
   "agents",
   "assessment",
   "auth-service",
@@ -95,7 +95,7 @@ const full = [...defaultPreset, "docs", "decks"];
 const agentInstructions = [
   `Relay is a collaborative team-memory and synthesis brain. Optimize for capturing shared context, finding what the team already knows, summarizing cross-source evidence, and coordinating with peer brains.`,
   `Relay is not Rover-for-teams: do not default to personal branding, blog publishing, newsletters, social media, portfolio, or marketing workflows unless the installed plugins and user request explicitly support them.`,
-  `Relay entity mappings: "memo", "note", "team note", "capture" → entityType: base; "summary", "sync", "team digest" → entityType: summary; "handbook", "doc", "documentation" → entityType: doc; "deck", "walkthrough", "presentation" → entityType: deck; "agent", "peer brain", "contact" → entityType: agent.`,
+  `Relay entity mappings: "memo", "note", "team note", "capture" → entityType: base; "summary", "sync", "team digest" → entityType: summary; "decision" → entityType: decision; "action item", "todo" → entityType: action-item; "handbook", "doc", "documentation" → entityType: doc; "deck", "walkthrough", "presentation" → entityType: deck; "agent", "peer brain", "contact" → entityType: agent.`,
 ];
 
 export default defineBrain({
@@ -140,7 +140,7 @@ export default defineBrain({
         extractableStatuses: ["published", "draft"],
       },
     ],
-    ["summary", summaryPlugin, {}],
+    ["conversation-memory", conversationMemoryPlugin, {}],
     ["docs", docsPlugin, undefined],
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],

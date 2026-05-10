@@ -1,0 +1,49 @@
+id: conversation-memory-retrieve-same-space-filter
+name: Retrieval filters to same-space memory by default
+description: Cross-space memory is excluded unless includeOtherSpaces is explicitly enabled.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - spaces
+plugin: conversation-memory
+handler: retrieveMemory
+
+input:
+  query: decision entity
+  interfaceType: mcp
+  channelId: relay-team
+  memory:
+    - id: decision-same
+      entityType: decision
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      content: "# Decision\n\nUse separate decision entities."
+      excerpt: Use separate decision entities.
+      score: 0.5
+      status: active
+      updated: "2026-05-04T11:00:00Z"
+    - id: decision-other
+      entityType: decision
+      conversationId: other-conv
+      interfaceType: mcp
+      channelId: other-team
+      content: "# Decision\n\nOther team made a higher-scoring unrelated decision."
+      excerpt: Other team made a higher-scoring unrelated decision.
+      score: 0.99
+      status: active
+      updated: "2026-05-04T11:01:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: spaceId
+      equals: mcp:relay-team
+    - path: results[0].id
+      equals: decision-same
+    - path: results[0].entityType
+      equals: decision
+    - path: results[0].spaceId
+      equals: mcp:relay-team
+    - path: results[1]
+      exists: false

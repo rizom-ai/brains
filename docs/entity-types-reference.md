@@ -26,31 +26,33 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 
 ## Model availability
 
-| Entity type         | Registered by             | Rover         | Relay       | Ranger      | Notes                                                                            |
-| ------------------- | ------------------------- | ------------- | ----------- | ----------- | -------------------------------------------------------------------------------- |
-| `anchor-profile`    | identity service          | all presets   | all presets | all presets | Singleton identity/profile for the person, team, or collective behind the brain. |
-| `brain-character`   | identity service          | all presets   | all presets | all presets | Singleton persona/instructions source for the brain.                             |
-| `base`              | `@brains/note`            | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                 |
-| `prompt`            | `@brains/prompt`          | all presets   | all presets | default     | Prompt/template overrides.                                                       |
-| `link`              | `@brains/link`            | all presets   | all presets | default     | Captured links and extracted summaries.                                          |
-| `wish`              | `@brains/wishlist`        | all presets   | —           | default     | User requests and roadmap wishes.                                                |
-| `topic`             | `@brains/topics`          | all presets   | all presets | —           | Derived topic clusters from source content.                                      |
-| `agent`             | `@brains/agent-discovery` | all presets   | all presets | —           | Saved peer-brain / A2A contacts.                                                 |
-| `skill`             | `@brains/agent-discovery` | all presets   | all presets | —           | Derived advertised skills for agent cards.                                       |
-| `swot`              | `@brains/assessment`      | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                             |
-| `image`             | `@brains/image-plugin`    | default, full | default     | —           | Uploaded or generated image assets.                                              |
-| `site-info`         | `@brains/site-info`       | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
-| `site-content`      | `@brains/site-content`    | —             | default     | default     | Route/section content blocks for configurable sites.                             |
-| `doc`               | `@brains/doc`             | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
-| `post`              | `@brains/blog`            | default, full | —           | —           | Blog posts.                                                                      |
-| `series`            | `@brains/series`          | default, full | —           | —           | Blog/content series pages.                                                       |
-| `deck`              | `@brains/decks`           | default, full | full        | —           | Presentation decks.                                                              |
-| `project`           | `@brains/portfolio`       | full          | —           | —           | Portfolio/case-study projects.                                                   |
-| `social-post`       | `@brains/social-media`    | full          | —           | default     | Social publishing drafts and history.                                            |
-| `newsletter`        | `@brains/newsletter`      | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
-| `product`           | `@brains/products`        | —             | —           | default     | Product detail pages.                                                            |
-| `products-overview` | `@brains/products`        | —             | —           | default     | Products landing/overview page.                                                  |
-| `summary`           | `@brains/summary`         | —             | all presets | —           | Conversation summaries for Relay team memory.                                    |
+| Entity type         | Registered by                 | Rover         | Relay       | Ranger      | Notes                                                                            |
+| ------------------- | ----------------------------- | ------------- | ----------- | ----------- | -------------------------------------------------------------------------------- |
+| `anchor-profile`    | identity service              | all presets   | all presets | all presets | Singleton identity/profile for the person, team, or collective behind the brain. |
+| `brain-character`   | identity service              | all presets   | all presets | all presets | Singleton persona/instructions source for the brain.                             |
+| `base`              | `@brains/note`                | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                 |
+| `prompt`            | `@brains/prompt`              | all presets   | all presets | default     | Prompt/template overrides.                                                       |
+| `link`              | `@brains/link`                | all presets   | all presets | default     | Captured links and extracted summaries.                                          |
+| `wish`              | `@brains/wishlist`            | all presets   | —           | default     | User requests and roadmap wishes.                                                |
+| `topic`             | `@brains/topics`              | all presets   | all presets | —           | Derived topic clusters from source content.                                      |
+| `agent`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Saved peer-brain / A2A contacts.                                                 |
+| `skill`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Derived advertised skills for agent cards.                                       |
+| `swot`              | `@brains/assessment`          | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                             |
+| `image`             | `@brains/image-plugin`        | default, full | default     | —           | Uploaded or generated image assets.                                              |
+| `site-info`         | `@brains/site-info`           | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
+| `site-content`      | `@brains/site-content`        | —             | default     | default     | Route/section content blocks for configurable sites.                             |
+| `doc`               | `@brains/doc`                 | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
+| `post`              | `@brains/blog`                | default, full | —           | —           | Blog posts.                                                                      |
+| `series`            | `@brains/series`              | default, full | —           | —           | Blog/content series pages.                                                       |
+| `deck`              | `@brains/decks`               | default, full | full        | —           | Presentation decks.                                                              |
+| `project`           | `@brains/portfolio`           | full          | —           | —           | Portfolio/case-study projects.                                                   |
+| `social-post`       | `@brains/social-media`        | full          | —           | default     | Social publishing drafts and history.                                            |
+| `newsletter`        | `@brains/newsletter`          | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
+| `product`           | `@brains/products`            | —             | —           | default     | Product detail pages.                                                            |
+| `products-overview` | `@brains/products`            | —             | —           | default     | Products landing/overview page.                                                  |
+| `summary`           | `@brains/conversation-memory` | —             | all presets | —           | Narrative conversation summaries for Relay team memory.                          |
+| `decision`          | `@brains/conversation-memory` | —             | all presets | —           | First-class decisions derived from team conversations.                           |
+| `action-item`       | `@brains/conversation-memory` | —             | all presets | —           | First-class follow-up items derived from team conversations.                     |
 
 `all presets` means the entity type is available in every preset currently declared by that model. A type marked `opt-in` is registered as a capability but is not included in the model's preset list by default.
 
@@ -197,7 +199,7 @@ Each SWOT item has a `title` and optional `detail`.
 
 ### `summary`
 
-Summary entities store conversation summaries when the summary plugin is enabled.
+Summary entities store narrative conversation memory when the conversation-memory plugin is enabled.
 
 Key metadata:
 
@@ -206,9 +208,39 @@ Key metadata:
 - `channelId`
 - `interfaceType`
 - `entryCount`
-- `totalMessages`
+- `messageCount`
 
 The body contains chronological summary log entries.
+
+### `decision`
+
+Decision entities store explicit decisions derived from team conversations.
+
+Key metadata:
+
+- `conversationId`
+- `channelId`
+- `interfaceType`
+- `spaceId`
+- `timeRange`
+- `sourceSummaryId`
+- `sourceMessageCount`
+- `status`: `active` or `superseded`
+
+### `action-item`
+
+Action item entities store explicit follow-up work derived from team conversations.
+
+Key metadata:
+
+- `conversationId`
+- `channelId`
+- `interfaceType`
+- `spaceId`
+- `timeRange`
+- `sourceSummaryId`
+- `sourceMessageCount`
+- `status`: `open`, `done`, or `dropped`
 
 ## Publishing entities
 

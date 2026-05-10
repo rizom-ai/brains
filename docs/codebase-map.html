@@ -132,7 +132,7 @@ const nodes = [
   { id:'image',        label:'Image',        sub:'entities/image',        desc:'Image entities. EntityPlugin with AI generation.',            x:468, y:166, w:W, h:H, layer:'entities' },
   { id:'series',       label:'Series',       sub:'entities/series',       desc:'Projected from source metadata. EntityPlugin projection.',             x:612, y:166, w:W, h:H, layer:'entities' },
   { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'Derived topics with batched extraction, canonicalization, merge, and rebuild support.',x:756, y:166, w:W, h:H, layer:'entities' },
-  { id:'summary',      label:'Summary',      sub:'entities/summary',      desc:'Conversation summaries from digest events.',         x:900, y:166, w:W, h:H, layer:'entities' },
+  { id:'conversation-memory', label:'Conversation Memory', sub:'entities/conversation-memory', desc:'Conversation summaries, decisions, and action items.', x:900, y:166, w:W, h:H, layer:'entities' },
   { id:'prompt',       label:'Prompt',       sub:'entities/prompt',       desc:'AI prompts as editable markdown entities. EntityPlugin.',    x:900, y:110, w:W, h:H, layer:'entities' },
   { id:'site-info',    label:'Site Info',    sub:'entities/site-info',    desc:'Site metadata (title, description). EntityPlugin.',           x:1044,y:110, w:W, h:H, layer:'entities' },
   { id:'doc',          label:'Doc',          sub:'entities/doc',          desc:'Generic docs entity. EntityPlugin with schema/adapter/datasource and componentized list/detail templates rendering /docs and /docs/:slug.', x:1188,y:110, w:W, h:H, layer:'entities' },

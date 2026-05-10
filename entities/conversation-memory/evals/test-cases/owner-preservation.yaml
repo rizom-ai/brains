@@ -1,0 +1,33 @@
+id: summary-owner-preservation
+name: Preserves action item owners
+description: Keeps explicitly named owners attached to their action items.
+type: plugin
+tags:
+  - summary
+  - action-items
+  - owners
+plugin: conversation-memory
+handler: summarizeMessages
+
+input:
+  conversationId: eval-owners
+  messages:
+    - role: user
+      content: Alice owns the adapter rewrite. Bob owns the eval harness.
+      timestamp: "2026-05-04T17:00:00Z"
+    - role: assistant
+      content: Got it. I will track Alice for the adapter and Bob for evals.
+      timestamp: "2026-05-04T17:01:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 1
+  itemsContain:
+    - field: keyPointsText
+      pattern: "Alice.*adapter|adapter.*Alice"
+    - field: keyPointsText
+      pattern: "Bob.*eval|eval.*Bob"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

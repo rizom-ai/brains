@@ -61,27 +61,27 @@ brains/
 
 Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`.
 
-| Package                    | Purpose                                                           |
-| -------------------------- | ----------------------------------------------------------------- |
-| `entities/note`            | Knowledge capture (base entity type)                              |
-| `entities/blog`            | Essays and articles                                               |
-| `entities/decks`           | Presentations                                                     |
-| `entities/link`            | Curated bookmarks + URL capture                                   |
-| `entities/portfolio`       | Case studies                                                      |
-| `entities/products`        | Product listings                                                  |
-| `entities/topics`          | AI-powered tagging                                                |
-| `entities/summary`         | AI summaries                                                      |
-| `entities/social-media`    | Social media posts                                                |
-| `entities/wishlist`        | Feature request tracking                                          |
-| `entities/newsletter`      | Email newsletters                                                 |
-| `entities/image`           | AI-generated images                                               |
-| `entities/series`          | Derived from posts                                                |
-| `entities/prompt`          | Editable AI prompts                                               |
-| `entities/site-info`       | Site metadata                                                     |
-| `entities/agent-discovery` | Agent + skill entities (A2A)                                      |
-| `entities/assessment`      | Derived assessment outputs (SWOT)                                 |
-| `entities/doc`             | Generic docs entity backing `/docs`                               |
-| `entities/rizom-ecosystem` | Entity-backed Rizom ecosystem section used by Rizom site variants |
+| Package                        | Purpose                                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `entities/note`                | Knowledge capture (base entity type)                              |
+| `entities/blog`                | Essays and articles                                               |
+| `entities/decks`               | Presentations                                                     |
+| `entities/link`                | Curated bookmarks + URL capture                                   |
+| `entities/portfolio`           | Case studies                                                      |
+| `entities/products`            | Product listings                                                  |
+| `entities/topics`              | AI-powered tagging                                                |
+| `entities/conversation-memory` | Conversation summaries, decisions, and action items               |
+| `entities/social-media`        | Social media posts                                                |
+| `entities/wishlist`            | Feature request tracking                                          |
+| `entities/newsletter`          | Email newsletters                                                 |
+| `entities/image`               | AI-generated images                                               |
+| `entities/series`              | Derived from posts                                                |
+| `entities/prompt`              | Editable AI prompts                                               |
+| `entities/site-info`           | Site metadata                                                     |
+| `entities/agent-discovery`     | Agent + skill entities (A2A)                                      |
+| `entities/assessment`          | Derived assessment outputs (SWOT)                                 |
+| `entities/doc`                 | Generic docs entity backing `/docs`                               |
+| `entities/rizom-ecosystem`     | Entity-backed Rizom ecosystem section used by Rizom site variants |
 
 ## Plugins (ServicePlugin — tools + infrastructure)
 

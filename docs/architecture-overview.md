@@ -64,27 +64,27 @@ packages/       Standalone distributable packages (for example @rizom/brain)
 
 Entity packages live in `entities/`. Most packages define one entity type; a few define more than one.
 
-| Package                    | Entity type(s)                 | Notes                                 |
-| -------------------------- | ------------------------------ | ------------------------------------- |
-| `entities/blog`            | `post`                         | Essays, long-form publishing          |
-| `entities/decks`           | `deck`                         | Presentation/deck content             |
-| `entities/doc`             | `doc`                          | Generic docs entity backing `/docs`   |
-| `entities/image`           | `image`                        | AI image generation                   |
-| `entities/link`            | `link`                         | URL capture and extraction            |
-| `entities/newsletter`      | `newsletter`                   | Newsletter content                    |
-| `entities/note`            | `base`                         | General markdown notes / base notes   |
-| `entities/portfolio`       | `project`                      | Case studies and portfolio entries    |
-| `entities/products`        | `product`, `products-overview` | Product catalog content               |
-| `entities/prompt`          | `prompt`                       | Editable AI prompt entities           |
-| `entities/series`          | `series`                       | Derived post grouping                 |
-| `entities/site-info`       | `site-info`                    | Site metadata                         |
-| `entities/social-media`    | `social-post`                  | Social publishing content             |
-| `entities/summary`         | `summary`                      | Conversation summaries                |
-| `entities/topics`          | `topic`                        | Derived topic/tag entities            |
-| `entities/wishlist`        | `wish`                         | Unfulfilled requests / backlog        |
-| `entities/agent-discovery` | `agent`, `skill`               | Agent directory + discoverable skills |
-| `entities/assessment`      | `swot`                         | Derived assessment outputs            |
-| `entities/rizom-ecosystem` | `ecosystem-section`            | Rizom site ecosystem section content  |
+| Package                        | Entity type(s)                       | Notes                                 |
+| ------------------------------ | ------------------------------------ | ------------------------------------- |
+| `entities/blog`                | `post`                               | Essays, long-form publishing          |
+| `entities/decks`               | `deck`                               | Presentation/deck content             |
+| `entities/doc`                 | `doc`                                | Generic docs entity backing `/docs`   |
+| `entities/image`               | `image`                              | AI image generation                   |
+| `entities/link`                | `link`                               | URL capture and extraction            |
+| `entities/newsletter`          | `newsletter`                         | Newsletter content                    |
+| `entities/note`                | `base`                               | General markdown notes / base notes   |
+| `entities/portfolio`           | `project`                            | Case studies and portfolio entries    |
+| `entities/products`            | `product`, `products-overview`       | Product catalog content               |
+| `entities/prompt`              | `prompt`                             | Editable AI prompt entities           |
+| `entities/series`              | `series`                             | Derived post grouping                 |
+| `entities/site-info`           | `site-info`                          | Site metadata                         |
+| `entities/social-media`        | `social-post`                        | Social publishing content             |
+| `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                   |
+| `entities/topics`              | `topic`                              | Derived topic/tag entities            |
+| `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog        |
+| `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills |
+| `entities/assessment`          | `swot`                               | Derived assessment outputs            |
+| `entities/rizom-ecosystem`     | `ecosystem-section`                  | Rizom site ecosystem section content  |
 
 ### Service plugins
 

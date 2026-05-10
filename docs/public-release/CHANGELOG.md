@@ -38,7 +38,7 @@ The first public release of `brains`, after roughly a year of private developmen
 - `@brains/social-media` — multi-platform social posts
 - `@brains/topics` — derived topic entities with AI extraction, canonicalization, merge support, and operator rebuilds
 - `@brains/series` — content groupings derived from blog posts
-- `@brains/summary` — AI-generated content summaries
+- `@brains/conversation-memory` — derived conversation summaries, decisions, and action items
 - `@brains/site-info` — singleton site identity
 - `@brains/agent-discovery` — remote agent directory entries
 - `@brains/image` — image entities with sharp-based variants
