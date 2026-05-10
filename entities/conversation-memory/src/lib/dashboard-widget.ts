@@ -83,10 +83,20 @@ export async function buildSummaryDashboardData(params: {
   let unsummarizedCount = 0;
   const recentSummaryItems: SummaryWidgetItem[] = [];
 
-  for (const conversation of conversations) {
-    if (!hasConfiguredSpace(conversation, context.spaces)) continue;
+  const candidateConversations = conversations.filter((conversation) =>
+    hasConfiguredSpace(conversation, context.spaces),
+  );
+  const sources = await Promise.all(
+    candidateConversations.map((conversation) =>
+      sourceReader.readConversation(conversation.id),
+    ),
+  );
 
-    const source = await sourceReader.readConversation(conversation.id);
+  for (let index = 0; index < candidateConversations.length; index += 1) {
+    const conversation = candidateConversations[index];
+    const source = sources[index];
+    if (!conversation || !source) continue;
+
     const eligibility = evaluateSummaryEligibility({
       conversation: source.conversation,
       spaces: context.spaces,
