@@ -289,14 +289,15 @@ export class SummaryProjector {
   private async deleteConversationMemory(
     conversationId: string,
   ): Promise<void> {
+    const limit = this.config.maxEntries * 4;
     const [decisions, actionItems] = await Promise.all([
       this.context.entityService.listEntities<DecisionEntity>({
         entityType: DECISION_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } } },
+        options: { filter: { metadata: { conversationId } }, limit },
       }),
       this.context.entityService.listEntities<ActionItemEntity>({
         entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } } },
+        options: { filter: { metadata: { conversationId } }, limit },
       }),
     ]);
 
