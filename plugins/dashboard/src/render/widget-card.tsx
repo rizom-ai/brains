@@ -10,6 +10,7 @@ const listItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  meta: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   count: z.number().optional(),
   priority: z.string().optional(),
@@ -190,6 +191,16 @@ function ListRow({ item }: { item: ListItem }): JSX.Element {
       <div class="list-main">
         <span class="list-name">{item.name}</span>
         {item.description && <span class="list-desc">{item.description}</span>}
+        {item.meta && item.meta.length > 0 && (
+          <span class="list-meta-text">
+            {item.meta.map((segment, index) => (
+              <span key={`${item.id}-meta-${index}`}>
+                {index > 0 && <span class="sep">·</span>}
+                {segment}
+              </span>
+            ))}
+          </span>
+        )}
         {item.tags && item.tags.length > 0 && (
           <div class="list-tags">
             {item.tags.map((tag) => (

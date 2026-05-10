@@ -32,7 +32,10 @@ import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
-import { registerSummaryDashboardWidget } from "./lib/dashboard-widget";
+import { registerActionItemsWidget } from "./lib/widgets/action-items";
+import { registerDecisionsWidget } from "./lib/widgets/decisions";
+import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
+import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
@@ -209,7 +212,10 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       actionItemAdapter,
     );
 
-    registerSummaryDashboardWidget({
+    registerActionItemsWidget({ context, pluginId: this.id });
+    registerDecisionsWidget({ context, pluginId: this.id });
+    registerRecentConversationMemoryWidget({ context, pluginId: this.id });
+    registerSummaryCoverageWidget({
       context,
       pluginId: this.id,
       config: this.config,
