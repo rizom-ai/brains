@@ -129,6 +129,7 @@
     "hide-operator-routes-from-nav",
     "link-capture-alias-fix",
     "mcp-forwarded-resource-metadata",
+    "node24-action-upgrades",
     "oauth-inspector-compat",
     "ops-anchor-profile-content-seeding",
     "ops-deploy-finalize-push-ref",
