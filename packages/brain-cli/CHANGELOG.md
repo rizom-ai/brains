@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.60
+
+### Patch Changes
+
+- [`51b1535`](https://github.com/rizom-ai/brains/commit/51b153531c8f8e3afa8474be9489c39cf2addb48) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden generated deploy workflows by retrying Varlock resolution, masking resolved non-bootstrap values before exporting them to `$GITHUB_ENV`, preserving multiline values with heredoc syntax, and releasing stale Kamal deploy locks before deploy.
+
 ## 0.2.0-alpha.59
 
 ## 0.2.0-alpha.58

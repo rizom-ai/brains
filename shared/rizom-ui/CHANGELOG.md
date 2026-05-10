@@ -1,5 +1,7 @@
 # @rizom/ui
 
+## 0.2.0-alpha.60
+
 ## 0.2.0-alpha.59
 
 ## 0.2.0-alpha.58

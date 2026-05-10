@@ -92,7 +92,8 @@
     "@brains/deploy-templates": "0.2.0-alpha.45",
     "@brains/site-engine": "0.2.0-alpha.48",
     "@brains/rizom-ecosystem": "0.2.0-alpha.50",
-    "@brains/auth-service": "0.2.0-alpha.54"
+    "@brains/auth-service": "0.2.0-alpha.54",
+    "@brains/conversation-memory": "0.2.0-alpha.59"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -115,6 +116,7 @@
     "default-theme-ecosystem-dark-decks",
     "deploy-template-embedding-release",
     "deploy-template-runtime-sync",
+    "deploy-workflow-env-mask-lock",
     "ecosystem-heading-dark-mode",
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",
