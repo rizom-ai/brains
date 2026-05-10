@@ -213,7 +213,7 @@ describe("initPilotRepo", () => {
       join(repo, ".github", "workflows", "build.yml"),
       "utf8",
     );
-    expect(buildWorkflow).toContain("docker/build-push-action@v6");
+    expect(buildWorkflow).toContain("docker/build-push-action@v7");
     expect(buildWorkflow).toContain("target: fleet");
     expect(buildWorkflow).toContain("brainVersion");
     expect(buildWorkflow).toContain(
