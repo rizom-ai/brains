@@ -18,7 +18,7 @@ turns:
       onboard me: what is Relay for, what should I read first, what workflows are
       already supported, and what should I avoid assuming exists? Begin by
       saying you searched saved Relay memory. Name the read-first saved items
-      using their saved titles exactly as shown by the tools, and separate
+      using saved item titles rather than invented plugin names, and separate
       supported workflows from out-of-scope assumptions.
 
 successCriteria:
