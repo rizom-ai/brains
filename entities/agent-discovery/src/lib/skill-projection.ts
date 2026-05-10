@@ -83,7 +83,7 @@ export function getSkillDerivedEntityProjections(
         requireInitialSync: true,
         jobData: () => ({
           mode: "derive",
-          replaceAll: false,
+          replaceAll: true,
           reason: "topic-change",
         }),
         jobOptions: () =>

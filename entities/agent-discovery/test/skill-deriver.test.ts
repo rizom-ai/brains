@@ -130,6 +130,23 @@ describe("deriveSkills", () => {
     expect(updateEntity).toHaveBeenCalledTimes(1);
   });
 
+  it("caps generated skills to the advertised maximum", async () => {
+    const generatedSkills = Array.from({ length: 10 }, (_, i) => ({
+      name: `Generated Skill ${i}`,
+      description: `Generated skill ${i}`,
+      tags: ["generated"],
+      examples: [`Example ${i}`],
+    }));
+    const { context, createEntity } = contextForSkills([], generatedSkills);
+
+    const result = await deriveSkills(context, createSilentLogger(), {
+      replaceAll: true,
+    });
+
+    expect(result.created).toBe(8);
+    expect(createEntity).toHaveBeenCalledTimes(8);
+  });
+
   it("deletes stale skills sequentially on replace-all", async () => {
     let inFlight = 0;
     let maxInFlight = 0;
@@ -238,6 +255,7 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
+    expect(prompt).toContain("Return 4-8 skills");
     expect(prompt).toContain("Reuse an existing tag when one fits");
   });
 });

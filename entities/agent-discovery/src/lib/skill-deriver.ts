@@ -57,7 +57,7 @@ For each skill, write an action-oriented description of what the brain
 can DO (not just what it knows). Use verbs: "Create...", "Analyze...",
 "Design...", "Write about...".
 
-Return 2-4 skills. Each skill needs:
+Return 4-8 skills. Each skill needs:
 - name: broad capability (max 50 chars, NOT a topic title copy)
 - description: one action-oriented sentence
 - tags: 3-5 keywords spanning multiple topics
@@ -111,7 +111,13 @@ export async function deriveSkills(
       prompt,
       templateName: SKILL_DERIVATION_TEMPLATE_REF,
     });
-    skills = result.skills;
+    skills = result.skills.slice(0, 8);
+    if (result.skills.length > skills.length) {
+      logger.warn("Dropped excess derived skills", {
+        received: result.skills.length,
+        kept: skills.length,
+      });
+    }
   } catch (error) {
     logger.error("Skill derivation LLM call failed", {
       error: getErrorMessage(error),

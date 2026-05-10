@@ -3,7 +3,7 @@ import { z } from "@brains/utils";
 import { skillFrontmatterSchema } from "../schemas/skill";
 
 const skillDerivationResultSchema = z.object({
-  skills: z.array(skillFrontmatterSchema),
+  skills: z.array(skillFrontmatterSchema).max(8),
 });
 
 export type SkillDerivationResult = z.infer<typeof skillDerivationResultSchema>;
@@ -27,6 +27,6 @@ For each skill, provide:
 - tags: 3-5 keywords spanning multiple topics
 - examples: 2-3 concrete user prompts
 
-Return 2-4 skills as a JSON object with a "skills" array.`,
+Return 4-8 skills as a JSON object with a "skills" array.`,
   requiredPermission: "public",
 });
