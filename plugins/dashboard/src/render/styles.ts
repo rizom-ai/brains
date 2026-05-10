@@ -467,6 +467,15 @@ body::after {
   border-radius: 100px;
 }
 .list-meta { display: flex; align-items: center; gap: 6px; }
+.list-meta-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--paper-mute);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.list-meta-text .sep { color: var(--paper-faint); margin: 0 6px; }
 .list-count {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -705,6 +714,46 @@ body::after {
 .swot-empty {
   color: var(--paper-mute);
   font-size: 12.5px;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 2px;
+}
+.view-tab {
+  background: transparent;
+  border: none;
+  padding: 2px 0 10px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.view-tab:hover { color: var(--paper-dim); }
+.view-tab.is-active {
+  color: var(--paper);
+  border-bottom-color: var(--accent);
+}
+.view-tab-count {
+  font-size: 10px;
+  color: var(--paper-mute);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.view-tab.is-active .view-tab-count {
+  color: var(--paper-dim);
 }
 
 .agent-network-view-tabs {

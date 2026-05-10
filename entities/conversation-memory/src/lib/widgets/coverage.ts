@@ -1,10 +1,11 @@
 import type { Conversation, EntityPluginContext } from "@brains/plugins";
-import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
-import { SUMMARY_ENTITY_TYPE, SUMMARY_PLUGIN_ID } from "./constants";
-import { SummarySourceReader } from "./summary-source-reader";
-import { evaluateSummaryEligibility } from "./summary-space-eligibility";
+import type { SummaryConfig, SummaryEntity } from "../../schemas/summary";
+import { SUMMARY_ENTITY_TYPE } from "../constants";
+import { SummarySourceReader } from "../summary-source-reader";
+import { evaluateSummaryEligibility } from "../summary-space-eligibility";
 
 const MAX_RECENT_SUMMARY_ITEMS = 6;
+const COVERAGE_WIDGET_ID = "conversation-memory:coverage";
 
 interface SummaryWidgetItem {
   id: string;
@@ -39,7 +40,7 @@ function summarizeCoverageStatus(params: {
   return `${summarizedCount}/${eligibleCount} summarized`;
 }
 
-export async function buildSummaryDashboardData(params: {
+export async function buildSummaryCoverageData(params: {
   context: EntityPluginContext;
   config: SummaryConfig;
 }): Promise<SummaryDashboardData> {
@@ -156,29 +157,31 @@ export async function buildSummaryDashboardData(params: {
   return { items };
 }
 
-export function registerSummaryDashboardWidget(params: {
+export function registerSummaryCoverageWidget(params: {
   context: EntityPluginContext;
   pluginId: string;
   config: SummaryConfig;
 }): void {
   const { context, pluginId, config } = params;
-
   context.messaging.subscribe(
     "system:plugins:ready",
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send({
         type: "dashboard:register-widget",
         payload: {
-          id: SUMMARY_PLUGIN_ID,
+          id: COVERAGE_WIDGET_ID,
           pluginId,
-          title: "Conversation Memory",
+          title: "Conversation memory coverage",
           section: "secondary",
-          priority: 30,
+          priority: 80,
           rendererName: "ListWidget",
-          dataProvider: () => buildSummaryDashboardData({ context, config }),
+          visibility: "operator",
+          dataProvider: () => buildSummaryCoverageData({ context, config }),
         },
       });
       return { success: true };
     },
   );
 }
+
+export const SUMMARY_COVERAGE_WIDGET_ID = COVERAGE_WIDGET_ID;

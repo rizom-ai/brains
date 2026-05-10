@@ -5,11 +5,11 @@ import type {
   Message,
 } from "@brains/plugins";
 import {
-  buildSummaryDashboardData,
-  registerSummaryDashboardWidget,
-} from "../../src/lib/dashboard-widget";
-import { summaryConfigSchema } from "../../src/schemas/summary";
-import type { SummaryEntity } from "../../src/schemas/summary";
+  buildSummaryCoverageData,
+  registerSummaryCoverageWidget,
+} from "../../../src/lib/widgets/coverage";
+import { summaryConfigSchema } from "../../../src/schemas/summary";
+import type { SummaryEntity } from "../../../src/schemas/summary";
 
 function createSummary(overrides: Partial<SummaryEntity> = {}): SummaryEntity {
   const now = new Date(Date.UTC(2026, 0, 1)).toISOString();
@@ -63,7 +63,7 @@ function createMessages(conversationId: string): Message[] {
   ];
 }
 
-describe("buildSummaryDashboardData", () => {
+describe("buildSummaryCoverageData", () => {
   it("reports disabled memory when no spaces are configured", async () => {
     const summaries = [createSummary()];
     const context = {
@@ -76,7 +76,7 @@ describe("buildSummaryDashboardData", () => {
       },
     } as unknown as EntityPluginContext;
 
-    const data = await buildSummaryDashboardData({
+    const data = await buildSummaryCoverageData({
       context,
       config: summaryConfigSchema.parse({}),
     });
@@ -149,7 +149,7 @@ describe("buildSummaryDashboardData", () => {
       },
     } as unknown as EntityPluginContext;
 
-    const data = await buildSummaryDashboardData({
+    const data = await buildSummaryCoverageData({
       context,
       config: summaryConfigSchema.parse({}),
     });
@@ -189,33 +189,13 @@ describe("buildSummaryDashboardData", () => {
   });
 });
 
-describe("registerSummaryDashboardWidget", () => {
-  it("registers a conversation memory dashboard widget", async () => {
+describe("registerSummaryCoverageWidget", () => {
+  it("registers an operator-only coverage widget", async () => {
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-
-    let registeredWidget:
-      | {
-          title: string;
-          dataProvider: () => Promise<{
-            items: Array<Record<string, unknown>>;
-          }>;
-        }
-      | undefined;
-
-    const send = mock(
-      async (request: {
-        type: string;
-        payload: {
-          title: string;
-          dataProvider: () => Promise<{
-            items: Array<Record<string, unknown>>;
-          }>;
-        };
-      }): Promise<void> => {
-        registeredWidget = request.payload;
-      },
-    );
-
+    let payload: Record<string, unknown> | undefined;
+    const send = mock(async (request: { type: string; payload: unknown }) => {
+      payload = request.payload as Record<string, unknown>;
+    });
     const subscribe = mock(
       (
         _topic: string,
@@ -225,7 +205,6 @@ describe("registerSummaryDashboardWidget", () => {
         return (): void => undefined;
       },
     );
-
     const context = {
       spaces: [],
       messaging: { send, subscribe },
@@ -237,44 +216,21 @@ describe("registerSummaryDashboardWidget", () => {
       },
     } as unknown as EntityPluginContext;
 
-    registerSummaryDashboardWidget({
+    registerSummaryCoverageWidget({
       context,
       pluginId: "conversation-memory",
       config: summaryConfigSchema.parse({}),
     });
+    await readyHandler?.();
 
-    expect(subscribe).toHaveBeenCalledWith(
-      "system:plugins:ready",
-      expect.any(Function),
-    );
-    expect(readyHandler).toBeDefined();
-
-    const result = await readyHandler?.();
-    expect(result).toEqual({ success: true });
-
-    expect(send).toHaveBeenCalledWith({
-      type: "dashboard:register-widget",
-      payload: expect.objectContaining({
-        id: "conversation-memory",
-        pluginId: "conversation-memory",
-        title: "Conversation Memory",
-        rendererName: "ListWidget",
-      }),
-    });
-
-    expect(registeredWidget).toBeDefined();
-    if (!registeredWidget) throw new Error("Widget was not registered");
-    expect(registeredWidget.title).toBe("Conversation Memory");
-    const widgetData = await registeredWidget.dataProvider();
-    expect(widgetData).toEqual({
-      items: [
-        {
-          id: "spaces",
-          name: "Configured spaces",
-          count: 0,
-          status: "disabled",
-        },
-      ],
+    expect(payload).toMatchObject({
+      id: "conversation-memory:coverage",
+      pluginId: "conversation-memory",
+      title: "Conversation memory coverage",
+      section: "secondary",
+      priority: 80,
+      rendererName: "ListWidget",
+      visibility: "operator",
     });
   });
 });
