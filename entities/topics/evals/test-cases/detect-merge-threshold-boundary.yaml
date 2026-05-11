@@ -1,0 +1,31 @@
+id: topics-detect-merge-threshold-boundary
+name: Detection service respects threshold boundary
+description: >
+  Tests a near-match whose similarity is below a stricter threshold, making the
+  gray-zone merge boundary explicit in eval coverage.
+type: plugin
+tags:
+  - topics
+  - merge
+  - detection
+  - edge-case
+plugin: topics
+handler: detectMergeCandidate
+
+input:
+  threshold: 0.95
+  existingTopics:
+    - title: Human-AI Collaboration
+      content: |
+        AI agents and humans collaborate as peers inside shared knowledge
+        systems and distributed teams.
+  incomingTopic:
+    title: AI Collaboration
+    content: |
+      Agents participate alongside humans in collaborative work and contribute
+      to shared goals.
+
+expectedOutput:
+  validateEach:
+    - path: found
+      equals: false

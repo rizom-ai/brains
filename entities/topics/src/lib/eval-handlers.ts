@@ -31,6 +31,7 @@ const mergeTestInputSchema = z.object({
   contentA: entityInputSchema,
   contentB: entityInputSchema,
   minRelevanceScore: z.number().optional(),
+  threshold: z.number().min(0).max(1).optional(),
 });
 
 const detectionTopicSchema = z.object({
@@ -169,21 +170,43 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
+      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
 
       const [topicsA, topicsB] = await Promise.all([
         extractTopics(parsed.contentA, minScore, "-a"),
         extractTopics(parsed.contentB, minScore, "-b"),
       ]);
 
-      const titlesA = topicsA.map((topic) => topic.title.toLowerCase());
-      const titlesB = topicsB.map((topic) => topic.title.toLowerCase());
-      const matchingTitles = titlesA.filter((title) => titlesB.includes(title));
+      const topicService = new TopicService(context.entityService, logger);
+      for (const topic of topicsA) {
+        await topicService.createTopic({
+          title: topic.title,
+          content: topic.content,
+        });
+      }
+
+      const topicIndex = await TopicIndex.create(topicService);
+      const mergeCandidates = topicsB.flatMap((topic) => {
+        const candidate = topicIndex.findMergeCandidate(topic, threshold);
+        if (!candidate) return [];
+        return [
+          {
+            incomingTitle: topic.title,
+            candidateTitle: candidate.title,
+            candidateScore: candidate.score,
+          },
+        ];
+      });
+      const matchingTitles = mergeCandidates.map(
+        (candidate) => candidate.candidateTitle,
+      );
 
       return {
         topicsA: topicsA.map(summarizeExtractedTopic),
         topicsB: topicsB.map(summarizeExtractedTopic),
         matchingTitles,
-        wouldMerge: matchingTitles.length > 0,
+        mergeCandidates,
+        wouldMerge: mergeCandidates.length > 0,
       };
     },
   );
