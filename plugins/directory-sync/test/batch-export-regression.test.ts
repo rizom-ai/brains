@@ -71,33 +71,6 @@ describe("batch operations should not include exports (regression)", () => {
     expect(lastOp?.type).toBe("directory-cleanup");
   });
 
-  it("prepareBatchOperations should skip cleanup when explicitly requested", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-    );
-
-    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"], {
-      skipCleanup: true,
-    });
-
-    const types = result.operations.map((op) => op.type);
-    expect(types).not.toContain("directory-cleanup");
-  });
-
-  it("prepareBatchOperations should return empty when no files and cleanup is skipped", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-    );
-
-    const result = manager.prepareBatchOperations([], { skipCleanup: true });
-
-    expect(result.operations).toHaveLength(0);
-    expect(result.exportOperationsCount).toBe(0);
-    expect(result.importOperationsCount).toBe(0);
-  });
-
   it("prepareBatchOperations should keep cleanup-only batches when no files", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),

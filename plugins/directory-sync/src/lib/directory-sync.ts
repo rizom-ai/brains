@@ -239,14 +239,8 @@ export class DirectorySync implements IDirectorySync {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
-    options?: { skipCleanup?: boolean },
   ): Promise<BatchResult | null> {
-    return this.batchQueue.queueSyncBatch(
-      pluginContext,
-      source,
-      metadata,
-      options,
-    );
+    return this.batchQueue.queueSyncBatch(pluginContext, source, metadata);
   }
 
   async startWatching(): Promise<void> {

@@ -20,7 +20,6 @@ export class DirectoryBatchQueue {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
-    options?: { skipCleanup?: boolean },
   ): Promise<BatchResult | null> {
     if (this.syncInProgress) {
       this.logger.debug("Sync already in progress, skipping", { source });
@@ -36,7 +35,6 @@ export class DirectoryBatchQueue {
         source,
         files,
         metadata,
-        options,
       );
     } finally {
       this.syncInProgress = false;

@@ -142,25 +142,6 @@ describe("sync tool", () => {
     expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("should use default cleanup behavior for manual sync batches", async () => {
-    const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
-
-    const tools = createDirectorySyncTools(
-      directorySync,
-      context,
-      "directory-sync",
-    );
-    const syncTool = findTool(tools, "directory-sync_sync");
-
-    await syncTool.handler({}, toolContext);
-
-    expect(queueSyncBatchMock).toHaveBeenCalledWith(
-      expect.anything(),
-      "plugin:directory-sync",
-      expect.objectContaining({ interfaceType: "mcp" }),
-    );
-  });
-
   it("should return batch info immediately", async () => {
     const { directorySync } = createMockDirectorySync();
 
