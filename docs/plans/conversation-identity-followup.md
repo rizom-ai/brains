@@ -69,12 +69,18 @@ interface CanonicalIdentityLink {
 }
 ```
 
-Open implementation choice:
+Implementation choice:
 
-1. **Identity-service extension**: best if canonical identities are shell-wide infrastructure.
-2. **Entity plugin**: best if identity links should be durable markdown content with normal entity lifecycle.
+Use an **identity-service extension backed by durable entities/adapters**.
 
-Recommended first cut: add this to identity-service only if there is already a stable public contract for plugins to query it. Otherwise, create a small entity plugin for durable link records and expose a narrow resolver service later.
+Rationale:
+
+- canonical identity resolution is shell-wide infrastructure, not a content plugin concern
+- `AgentService`, interfaces, and memory retrieval need a central resolver API without depending on an entity plugin
+- durable markdown-backed records still preserve reviewability and repo-friendly editing
+- identity-service can enforce uniqueness across records, e.g. one `actorId` maps to one active `canonicalId`
+
+Do not create a separate entity plugin for the first cut. If UI/tooling is needed later, expose it through a narrow service/plugin surface after the resolver contract is stable.
 
 ## Implementation slices
 
