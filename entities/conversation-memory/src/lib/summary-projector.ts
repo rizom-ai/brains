@@ -410,9 +410,10 @@ export class SummaryProjector {
     const itemMessages = this.getMessagesForMemoryItem(item, messages);
     const itemActors = this.getMessageActors(itemMessages);
     const assignedActors = this.getActorsMentionedInText(item.text, itemActors);
-    const requesterActors = this.getFirstPersonCommitmentActors(
+    const requesterActors = this.getActionItemRequesterActors(
       item.text,
       itemMessages,
+      assignedActors,
     );
     const metadata: ActionItemMetadata = {
       conversationId: summaryMetadata.conversationId,
@@ -565,6 +566,66 @@ export class SummaryProjector {
     return matches;
   }
 
+  private getActionItemRequesterActors(
+    text: string,
+    messages: Message[],
+    assignedActors: Array<{
+      actorId: string;
+      canonicalId?: string;
+      displayName?: string;
+    }>,
+  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+    const delegatedRequesters = this.getDelegatedRequestActors(
+      messages,
+      assignedActors,
+    );
+    if (delegatedRequesters.length > 0) {
+      return delegatedRequesters;
+    }
+
+    return this.getFirstPersonCommitmentActors(text, messages);
+  }
+
+  private getDelegatedRequestActors(
+    messages: Message[],
+    assignedActors: Array<{
+      actorId: string;
+      canonicalId?: string;
+      displayName?: string;
+    }>,
+  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+    if (assignedActors.length === 0) return [];
+
+    const assignedKeys = new Set(
+      assignedActors.map((actor) => this.memoryActorIdentityKey(actor)),
+    );
+    const requesters = new Map<
+      string,
+      { actorId: string; canonicalId?: string; displayName?: string }
+    >();
+
+    for (const message of messages) {
+      if (message.role !== "user") continue;
+      if (!this.isDelegatedRequestMessage(message.content)) continue;
+      if (!this.textMentionsAnyMemoryActor(message.content, assignedActors)) {
+        continue;
+      }
+
+      const actor = this.getMessageActors([message])[0];
+      if (!actor) continue;
+      const key = this.actorIdentityKey(actor);
+      if (assignedKeys.has(key) || requesters.has(key)) continue;
+
+      requesters.set(key, {
+        actorId: actor.actorId,
+        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
+        ...(actor.displayName ? { displayName: actor.displayName } : {}),
+      });
+    }
+
+    return Array.from(requesters.values());
+  }
+
   private getFirstPersonCommitmentActors(
     text: string,
     messages: Message[],
@@ -596,6 +657,29 @@ export class SummaryProjector {
     return mentionedActors.filter((actor) =>
       committedActorKeys.has(this.memoryActorIdentityKey(actor)),
     );
+  }
+
+  private isDelegatedRequestMessage(content: string): boolean {
+    return /\b(please|can you|could you|will you|would you|needs to|need you to|owns?|owner|assigned|assigning|take|handle)\b/i.test(
+      content,
+    );
+  }
+
+  private textMentionsAnyMemoryActor(
+    text: string,
+    actors: Array<{
+      actorId: string;
+      canonicalId?: string;
+      displayName?: string;
+    }>,
+  ): boolean {
+    const normalizedText = this.normalizeForAttribution(text);
+    return actors.some((actor) => {
+      const labels = [actor.displayName, actor.actorId, actor.canonicalId]
+        .filter((label): label is string => Boolean(label?.trim()))
+        .map((label) => this.normalizeForAttribution(label));
+      return labels.some((label) => normalizedText.includes(label));
+    });
   }
 
   private actorIdentityKey(actor: ConversationMessageActor): string {

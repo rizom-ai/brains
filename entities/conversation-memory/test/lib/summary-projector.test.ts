@@ -282,6 +282,88 @@ describe("SummaryProjector", () => {
     ]);
   });
 
+  it("separates delegated action assignee from requester", async () => {
+    const delegatedMessages: Message[] = [
+      {
+        id: "delegate-1",
+        conversationId: "discord-conv-1",
+        role: "user",
+        content: "Daniel, please update the onboarding checklist by Friday.",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        metadata: {
+          actor: {
+            actorId: "discord:user-mira",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Mira Ops",
+            username: "mira",
+          },
+        },
+      },
+      {
+        id: "delegate-2",
+        conversationId: "discord-conv-1",
+        role: "user",
+        content: "Got it, I'll take it.",
+        timestamp: "2026-01-01T00:01:00.000Z",
+        metadata: {
+          actor: {
+            actorId: "discord:user-daniel",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Daniel",
+            username: "daniel",
+          },
+        },
+      },
+    ];
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      delegatedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Delegated checklist work",
+          summary:
+            "Mira asked Daniel to update the checklist and Daniel accepted.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: [],
+          actionItems: [
+            "Daniel will update the onboarding checklist by Friday.",
+          ],
+        },
+      ],
+    });
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await projector.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      { actorId: "discord:user-daniel", displayName: "Daniel" },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+    ]);
+  });
+
   it("carries canonical actor ids into projected memory metadata", async () => {
     const context = createMockEntityPluginContext({
       spaces: ["discord:relay-pilot"],
