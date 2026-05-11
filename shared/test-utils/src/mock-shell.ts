@@ -566,6 +566,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       version: "1.0.0",
       uptime: 0,
       entities: 0,
+      entityCounts: [],
       embeddings: 0,
       ai: {
         model: "gpt-4.1",

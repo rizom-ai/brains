@@ -80,6 +80,7 @@ export type {
   RuntimeAppInfo,
   EndpointInfo,
   EndpointInfoInput,
+  EntityCount,
   InteractionInfo,
   InteractionInfoInput,
   DefaultQueryResponse,

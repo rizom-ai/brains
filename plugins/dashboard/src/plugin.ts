@@ -165,22 +165,19 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           const permissionLevel: WidgetVisibility = isOperator
             ? "anchor"
             : "public";
+          const anchorWidgets =
+            this.widgetRegistry?.list({ permissionLevel: "anchor" }) ?? [];
+          const visibleWidgets = anchorWidgets.filter((widget) =>
+            PermissionService.hasPermission(permissionLevel, widget.visibility),
+          );
           const hiddenWidgetCount =
-            this.widgetRegistry
-              ?.list({ permissionLevel: "anchor" })
-              .filter(
-                (widget) =>
-                  !PermissionService.hasPermission(
-                    permissionLevel,
-                    widget.visibility,
-                  ),
-              ).length ?? 0;
-          const [dashboardData, appInfo, entityCounts] = await Promise.all([
+            anchorWidgets.length - visibleWidgets.length;
+          const [dashboardData, appInfo] = await Promise.all([
             this.datasource.getDashboardData({
               permissionLevel,
+              widgets: visibleWidgets,
             }),
             ctx.appInfo(),
-            ctx.entityService.getEntityCounts(),
           ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
@@ -203,7 +200,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
                 endpoint.visibility,
               ),
             ),
-            interactions: (appInfo.interactions ?? []).filter((interaction) =>
+            interactions: appInfo.interactions.filter((interaction) =>
               PermissionService.hasPermission(
                 permissionLevel,
                 interaction.visibility,
@@ -228,7 +225,6 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             character,
             profile,
             appInfo: visibleAppInfo,
-            entityCounts,
             operatorAccess: {
               isOperator,
               hiddenWidgetCount,

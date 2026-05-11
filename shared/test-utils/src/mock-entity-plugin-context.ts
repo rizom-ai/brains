@@ -11,6 +11,7 @@ import {
   type MockEntityServiceReturns,
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
+import { createMockAppInfo } from "./mock-app-info";
 
 /**
  * Return value configuration for AI namespace methods
@@ -123,22 +124,7 @@ export function createMockEntityPluginContext(
       ),
     },
 
-    appInfo: mock(() =>
-      Promise.resolve({
-        version: "0.0.0",
-        model: "test-model",
-        uptime: 0,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
-      }),
-    ),
+    appInfo: mock(() => Promise.resolve(createMockAppInfo())),
 
     domain: undefined,
     spaces,

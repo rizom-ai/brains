@@ -1,17 +1,7 @@
 /** @jsxImportSource preact */
 import type { AppInfo } from "@brains/plugins";
-import { displayLinkLabel } from "@brains/utils";
+import { displayLinkLabel, resolveUrl } from "@brains/utils";
 import type { JSX } from "preact";
-
-function resolveUrl(url: string, baseUrl: string | undefined): string {
-  if (!baseUrl) return url;
-
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
-}
 
 function endpointHost(url: string): string {
   try {

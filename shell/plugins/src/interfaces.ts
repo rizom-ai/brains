@@ -145,6 +145,13 @@ export const interactionInfoSchema = z.object({
 export type InteractionInfo = z.output<typeof interactionInfoSchema>;
 export type InteractionInfoInput = z.input<typeof interactionInfoSchema>;
 
+export const entityCountSchema = z.object({
+  entityType: z.string(),
+  count: z.number(),
+});
+
+export type EntityCount = z.infer<typeof entityCountSchema>;
+
 /**
  * App info schema for validation
  */
@@ -153,6 +160,7 @@ export const appInfoSchema = z.object({
   version: z.string(),
   uptime: z.number(),
   entities: z.number(),
+  entityCounts: z.array(entityCountSchema),
   embeddings: z.number(),
   ai: z.object({
     model: z.string(),
@@ -160,7 +168,7 @@ export const appInfoSchema = z.object({
   }),
   daemons: z.array(DaemonStatusInfoSchema),
   endpoints: z.array(endpointInfoSchema),
-  interactions: z.array(interactionInfoSchema).optional(),
+  interactions: z.array(interactionInfoSchema),
 });
 
 export type RuntimeAppInfo = z.infer<typeof appInfoSchema>;

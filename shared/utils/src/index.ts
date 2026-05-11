@@ -59,6 +59,7 @@ export {
   pluralize,
   toDisplayName,
   displayLinkLabel,
+  resolveUrl,
   formatLabel,
   calculateReadingTime,
   firstSentence,

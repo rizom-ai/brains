@@ -1,17 +1,15 @@
 import type { InteractionInfo, InteractionInfoInput } from "@brains/plugins";
 import { interactionInfoSchema } from "@brains/plugins";
+import { PrioritizedRegistry } from "./prioritized-registry";
 
-export class InteractionRegistry {
-  private readonly interactions: InteractionInfo[] = [];
-
-  public register(interaction: InteractionInfoInput): void {
-    const parsed = interactionInfoSchema.parse(interaction);
-    this.interactions.push(parsed);
-  }
-
-  public list(): InteractionInfo[] {
-    return [...this.interactions].sort(
-      (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+export class InteractionRegistry extends PrioritizedRegistry<
+  InteractionInfoInput,
+  InteractionInfo
+> {
+  constructor() {
+    super(
+      (input) => interactionInfoSchema.parse(input),
+      (interaction) => interaction.id,
     );
   }
 }

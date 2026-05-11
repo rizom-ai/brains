@@ -1,33 +1,17 @@
 /** @jsxImportSource preact */
-import type { AppInfo } from "@brains/plugins";
-import { displayLinkLabel } from "@brains/utils";
+import type { AppInfo, InteractionInfo } from "@brains/plugins";
+import { displayLinkLabel, resolveUrl } from "@brains/utils";
 import type { JSX } from "preact";
 
-function resolveUrl(url: string, baseUrl: string | undefined): string {
-  if (!baseUrl) return url;
-
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
-}
-
-function interactionKindLabel(kind: string): string {
-  switch (kind) {
-    case "agent":
-      return "Agent";
-    case "admin":
-      return "Admin";
-    case "protocol":
-      return "Protocol";
-    default:
-      return "Human";
-  }
-}
+const INTERACTION_KIND_LABELS: Record<InteractionInfo["kind"], string> = {
+  human: "Human",
+  agent: "Agent",
+  admin: "Admin",
+  protocol: "Protocol",
+};
 
 export function InteractionsCard(props: {
-  interactions: NonNullable<AppInfo["interactions"]>;
+  interactions: AppInfo["interactions"];
   baseUrl: string | undefined;
 }): JSX.Element | null {
   const { interactions, baseUrl } = props;
@@ -36,17 +20,13 @@ export function InteractionsCard(props: {
     return null;
   }
 
-  const sorted = [...interactions].sort(
-    (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
-  );
-
   return (
     <aside class="card interactions-card">
       <div class="card-head">
         <span class="card-title">Ways to connect</span>
       </div>
       <div class="interactions-list">
-        {sorted.slice(0, 5).map((interaction) => {
+        {interactions.slice(0, 5).map((interaction) => {
           const resolved = resolveUrl(interaction.href, baseUrl);
           return (
             <a
@@ -60,7 +40,7 @@ export function InteractionsCard(props: {
                 <strong>{displayLinkLabel(interaction.label)}</strong>
                 {interaction.description && <em>{interaction.description}</em>}
               </span>
-              <small>{interactionKindLabel(interaction.kind)}</small>
+              <small>{INTERACTION_KIND_LABELS[interaction.kind]}</small>
             </a>
           );
         })}

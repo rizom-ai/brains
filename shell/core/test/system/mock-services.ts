@@ -250,6 +250,7 @@ export function createMockSystemServices(
       version: "1.0.0",
       uptime: 42,
       entities: 0,
+      entityCounts: [],
       embeddings: 0,
       ai: {
         model: "gpt-4.1",

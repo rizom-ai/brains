@@ -175,6 +175,20 @@ export function displayLinkLabel(label: string): string {
 }
 
 /**
+ * Resolve a possibly-relative URL against an optional base.
+ * Returns the original input unchanged when there is no base or
+ * when URL construction fails.
+ */
+export function resolveUrl(url: string, baseUrl: string | undefined): string {
+  if (!baseUrl) return url;
+  try {
+    return new URL(url, baseUrl).toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Calculate estimated reading time in minutes
  * Based on average reading speed of 200 words per minute
  */

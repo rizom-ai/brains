@@ -89,3 +89,6 @@ export {
   type MockShell,
   type MockShellOptions,
 } from "./mock-shell";
+
+// AppInfo fixture
+export { createMockAppInfo } from "./mock-app-info";

@@ -1,6 +1,8 @@
-import type { AppInfo } from "@brains/plugins";
+import type { AppInfo, EntityCount } from "@brains/plugins";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
+
+export type { EntityCount };
 
 export interface CharacterInput {
   role: string;
@@ -11,11 +13,6 @@ export interface CharacterInput {
 export interface ProfileInput {
   name: string;
   description?: string | undefined;
-}
-
-export interface EntityCount {
-  entityType: string;
-  count: number;
 }
 
 export interface RenderableWidgetData extends WidgetData {
@@ -37,7 +34,6 @@ export interface DashboardRenderInput {
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;
-  entityCounts: EntityCount[];
   operatorAccess?: DashboardOperatorAccess;
 }
 

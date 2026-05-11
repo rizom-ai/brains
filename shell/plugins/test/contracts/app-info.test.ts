@@ -9,6 +9,10 @@ describe("public app info contracts", () => {
       version: "0.2.0-alpha.46",
       uptime: 42,
       entities: 7,
+      entityCounts: [
+        { entityType: "note", count: 4 },
+        { entityType: "topic", count: 3 },
+      ],
       embeddings: 3,
       ai: {
         model: "claude-sonnet",
@@ -56,6 +60,10 @@ describe("public app info contracts", () => {
       version: "0.2.0-alpha.46",
       uptime: 42,
       entities: 7,
+      entityCounts: [
+        { entityType: "note", count: 4 },
+        { entityType: "topic", count: 3 },
+      ],
       embeddings: 3,
       ai: {
         model: "claude-sonnet",

@@ -21,6 +21,7 @@ export function toPublicAppInfo(appInfo: RuntimeAppInfo): AppInfo {
     version: appInfo.version,
     uptime: appInfo.uptime,
     entities: appInfo.entities,
+    entityCounts: appInfo.entityCounts,
     embeddings: appInfo.embeddings,
     ai: appInfo.ai,
     daemons: appInfo.daemons.map((daemon) => ({
@@ -30,6 +31,6 @@ export function toPublicAppInfo(appInfo: RuntimeAppInfo): AppInfo {
       health: toPublicDaemonHealth(daemon.health),
     })),
     endpoints: appInfo.endpoints,
-    interactions: appInfo.interactions ?? [],
+    interactions: appInfo.interactions,
   };
 }

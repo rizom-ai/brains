@@ -131,16 +131,14 @@ function DashboardDocument({
 }: {
   input: DashboardRenderInput;
 }): JSX.Element {
-  const totalEntities = input.entityCounts.reduce(
-    (sum, { count }) => sum + count,
-    0,
-  );
+  const totalEntities = input.appInfo.entities;
+  const entityCounts = input.appInfo.entityCounts;
   const groups = groupExternalWidgets(input.widgets);
   const hasCharacter =
     Boolean(input.character.role) ||
     Boolean(input.character.purpose) ||
     input.character.values.length > 0;
-  const interactions = input.appInfo.interactions ?? [];
+  const interactions = input.appInfo.interactions;
   const hasInteractions = interactions.length > 0;
   const hasEndpoints = input.appInfo.endpoints.length > 0;
   const hasSidebarWidgets = groups.sidebar.length > 0;
@@ -194,7 +192,7 @@ function DashboardDocument({
             <div class="main-column">
               <EntitySummaryCard
                 total={totalEntities}
-                entityCounts={input.entityCounts}
+                entityCounts={entityCounts}
               />
               {!hasCharacter && showOperatorGate && input.operatorAccess && (
                 <OperatorGate

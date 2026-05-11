@@ -4,6 +4,7 @@ import { getErrorMessage } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
   DashboardWidgetRegistry,
+  StoredRegisteredWidget,
   WidgetVisibility,
 } from "./widget-registry";
 import { type DashboardData, type WidgetData } from "./widget-schema";
@@ -28,14 +29,19 @@ export class DashboardDataSource implements DataSource {
   }
 
   async getDashboardData(
-    options: { permissionLevel?: WidgetVisibility } = {},
+    options: {
+      permissionLevel?: WidgetVisibility;
+      widgets?: StoredRegisteredWidget[];
+    } = {},
   ): Promise<DashboardData> {
     const widgets: Record<string, WidgetData> = {};
-    const registeredWidgets = this.registry.list({
-      ...(options.permissionLevel !== undefined && {
-        permissionLevel: options.permissionLevel,
-      }),
-    });
+    const registeredWidgets =
+      options.widgets ??
+      this.registry.list({
+        ...(options.permissionLevel !== undefined && {
+          permissionLevel: options.permissionLevel,
+        }),
+      });
 
     // Fetch all widget data in parallel
     const results = await Promise.allSettled(

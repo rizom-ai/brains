@@ -24,6 +24,7 @@ export async function getRuntimeAppInfo(options: {
     version: config.version || "1.0.0",
     uptime: Math.floor((Date.now() - bootTime) / 1000),
     entities: totalEntities,
+    entityCounts,
     embeddings: embeddingCount,
     ai: {
       model: config.ai.model,

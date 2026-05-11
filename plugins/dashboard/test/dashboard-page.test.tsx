@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import type { JSX } from "preact";
+import { createMockAppInfo } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -21,20 +22,7 @@ describe("renderDashboardPageHtml", () => {
       baseUrl: "https://brain.test",
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
-      appInfo: {
-        model: "test-model",
-        version: "1.0.0",
-        uptime: 100,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-      },
-      entityCounts: [],
+      appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
       operatorAccess: {
@@ -58,20 +46,7 @@ describe("renderDashboardPageHtml", () => {
       baseUrl: "https://brain.test",
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
-      appInfo: {
-        model: "test-model",
-        version: "1.0.0",
-        uptime: 100,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-      },
-      entityCounts: [],
+      appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       widgetScripts: [],
       operatorAccess: {
@@ -98,18 +73,8 @@ describe("renderDashboardPageHtml", () => {
         values: ["clarity"],
       },
       profile: { name: "Test Owner" },
-      appInfo: {
-        model: "test-model",
-        version: "1.0.0",
+      appInfo: createMockAppInfo({
         uptime: 100,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
         interactions: [
           {
             id: "a2a",
@@ -123,8 +88,7 @@ describe("renderDashboardPageHtml", () => {
             status: "available",
           },
         ],
-      },
-      entityCounts: [],
+      }),
       widgets: {},
       widgetScripts: [],
       operatorAccess: {
@@ -167,23 +131,14 @@ describe("renderDashboardPageHtml", () => {
         name: "Test Owner",
         description: "A dashboard render test",
       },
-      appInfo: {
-        model: "test-model",
-        version: "1.0.0",
+      appInfo: createMockAppInfo({
         uptime: 100,
         entities: 4,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-      },
-      entityCounts: [
-        { entityType: "agent", count: 2 },
-        { entityType: "skill", count: 2 },
-      ],
+        entityCounts: [
+          { entityType: "agent", count: 2 },
+          { entityType: "skill", count: 2 },
+        ],
+      }),
       widgets: {
         "custom:test-widget": {
           widget: {

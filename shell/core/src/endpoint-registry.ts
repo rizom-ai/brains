@@ -1,17 +1,15 @@
 import type { EndpointInfo, EndpointInfoInput } from "@brains/plugins";
 import { endpointInfoSchema } from "@brains/plugins";
+import { PrioritizedRegistry } from "./prioritized-registry";
 
-export class EndpointRegistry {
-  private readonly endpoints: EndpointInfo[] = [];
-
-  public register(endpoint: EndpointInfoInput): void {
-    const parsed = endpointInfoSchema.parse(endpoint);
-    this.endpoints.push(parsed);
-  }
-
-  public list(): EndpointInfo[] {
-    return [...this.endpoints].sort(
-      (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+export class EndpointRegistry extends PrioritizedRegistry<
+  EndpointInfoInput,
+  EndpointInfo
+> {
+  constructor() {
+    super(
+      (input) => endpointInfoSchema.parse(input),
+      (endpoint) => endpoint.url,
     );
   }
 }

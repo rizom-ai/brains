@@ -11,6 +11,7 @@ import {
   type MockEntityServiceReturns,
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
+import { createMockAppInfo } from "./mock-app-info";
 
 /**
  * Return value configuration for mock service plugin context methods
@@ -126,22 +127,7 @@ export function createMockServicePluginContext(
     },
 
     // App metadata
-    appInfo: mock(() =>
-      Promise.resolve({
-        version: "0.0.0",
-        model: "test-model",
-        uptime: 0,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
-      }),
-    ),
+    appInfo: mock(() => Promise.resolve(createMockAppInfo())),
 
     // Domain (top-level, like dataDir)
     domain: undefined,
@@ -209,7 +195,6 @@ export function createMockServicePluginContext(
       subscribe: mock(() => () => {}),
     },
 
-    // Endpoint and interaction advertisement
     endpoints: {
       register: mock(() => {}),
     },
