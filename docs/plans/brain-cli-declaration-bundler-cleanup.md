@@ -2,9 +2,7 @@
 
 ## Status
 
-Follow-up to `cb8c5fe4d refactor(site-builder): complete follow-up cleanup`.
-
-That refactor added `@brains/site-composition` to `packages/brain-cli/scripts/bundle-declarations.mjs` because `@rizom/brain build` generated a public `interfaces.d.ts` that leaked an internal `@brains/site-composition` import. The fix follows the existing allowlist pattern and is working, but the mechanism is still easy to miss when another public declaration path starts depending on a new internal package.
+Proposed. Follow-up to `cb8c5fe4d refactor(site-builder): complete follow-up cleanup`, which added `@brains/site-composition` to `packages/brain-cli/scripts/bundle-declarations.mjs` because `@rizom/brain build` generated a public `interfaces.d.ts` that leaked an internal `@brains/site-composition` import. The fix follows the existing allowlist pattern and is working, but the mechanism is still easy to miss when another public declaration path starts depending on a new internal package.
 
 ## Goal
 

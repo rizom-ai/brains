@@ -1,5 +1,9 @@
 # Plan: Unified ChatInterface using Vercel Chat SDK
 
+## Status
+
+Proposed. Not release-gating. The production Discord interface still uses `MessageInterfacePlugin` directly; this remains the consolidation path for future multi-platform chat adapters when another chat surface is prioritized.
+
 ## Context
 
 The brain currently has a production Discord interface (`@brains/discord`) implemented directly on top of `MessageInterfacePlugin`. Matrix has already been removed from the active interface packages, and should return through the Chat SDK adapter path rather than by resurrecting the old Matrix implementation.

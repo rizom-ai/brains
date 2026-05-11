@@ -70,14 +70,24 @@ describe("TopicsPlugin", () => {
   });
 
   describe("shouldProcessEntityType", () => {
+    const allowAll = {
+      getEntityTypeConfig: (): { projectionSource?: boolean } => ({}),
+    };
+    const blockSkill = {
+      getEntityTypeConfig: (type: string): { projectionSource?: boolean } =>
+        type === "skill" ? { projectionSource: false } : {},
+    };
+
     it("should always skip topic entity type to prevent recursion", () => {
       const pluginWithWhitelist = new TopicsPlugin({
         includeEntityTypes: ["topic", "post"],
       });
-      expect(pluginWithWhitelist.shouldProcessEntityType("topic")).toBe(false);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("topic", allowAll),
+      ).toBe(false);
     });
 
-    it("should register topic entities as unavailable for projection sources", async () => {
+    it("should register topic entity type with projectionSource: false", async () => {
       const harness = createPluginHarness<TopicsPlugin>({});
       await harness.installPlugin(new TopicsPlugin());
 
@@ -87,29 +97,43 @@ describe("TopicsPlugin", () => {
       ).toBe(false);
     });
 
-    it("should process only whitelisted projection source types", () => {
+    it("should process whitelisted entity types and reject ones marked projectionSource: false", () => {
       const pluginWithWhitelist = new TopicsPlugin({
         includeEntityTypes: ["post", "summary", "skill"],
       });
-      expect(pluginWithWhitelist.shouldProcessEntityType("post")).toBe(true);
-      expect(pluginWithWhitelist.shouldProcessEntityType("summary")).toBe(true);
       expect(
-        pluginWithWhitelist.shouldProcessEntityType("skill", () => ({
-          projectionSource: false,
-        })),
+        pluginWithWhitelist.shouldProcessEntityType("post", allowAll),
+      ).toBe(true);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("summary", allowAll),
+      ).toBe(true);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("skill", blockSkill),
       ).toBe(false);
-      expect(pluginWithWhitelist.shouldProcessEntityType("link")).toBe(false);
-      expect(pluginWithWhitelist.shouldProcessEntityType("deck")).toBe(false);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("link", allowAll),
+      ).toBe(false);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("deck", allowAll),
+      ).toBe(false);
     });
 
     it("should process nothing when includeEntityTypes is empty", () => {
       const pluginWithEmpty = new TopicsPlugin({
         includeEntityTypes: [],
       });
-      expect(pluginWithEmpty.shouldProcessEntityType("post")).toBe(false);
-      expect(pluginWithEmpty.shouldProcessEntityType("link")).toBe(false);
-      expect(pluginWithEmpty.shouldProcessEntityType("deck")).toBe(false);
-      expect(pluginWithEmpty.shouldProcessEntityType("topic")).toBe(false);
+      expect(pluginWithEmpty.shouldProcessEntityType("post", allowAll)).toBe(
+        false,
+      );
+      expect(pluginWithEmpty.shouldProcessEntityType("link", allowAll)).toBe(
+        false,
+      );
+      expect(pluginWithEmpty.shouldProcessEntityType("deck", allowAll)).toBe(
+        false,
+      );
+      expect(pluginWithEmpty.shouldProcessEntityType("topic", allowAll)).toBe(
+        false,
+      );
     });
   });
 });

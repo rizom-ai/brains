@@ -104,8 +104,9 @@ export class TopicsPlugin extends EntityPlugin<
             const entity = payload.entity;
             if (!entity) return null;
             if (
-              !this.shouldProcessEntityType(entity.entityType, (type) =>
-                context.entityService.getEntityTypeConfig(type),
+              !this.shouldProcessEntityType(
+                entity.entityType,
+                context.entityService,
               )
             ) {
               return null;
@@ -173,11 +174,15 @@ export class TopicsPlugin extends EntityPlugin<
 
   public shouldProcessEntityType(
     entityType: string,
-    getEntityTypeConfig?: (type: string) => EntityTypeConfig,
+    entityService: {
+      getEntityTypeConfig: (type: string) => EntityTypeConfig;
+    },
   ): boolean {
     if (entityType === TOPIC_ENTITY_TYPE) return false;
     if (!this.config.includeEntityTypes.includes(entityType)) return false;
-    return getEntityTypeConfig?.(entityType).projectionSource !== false;
+    return (
+      entityService.getEntityTypeConfig(entityType).projectionSource !== false
+    );
   }
 
   public isEntityPublished(entity: BaseEntity): boolean {
@@ -195,9 +200,7 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType, (type) =>
-          context.entityService.getEntityTypeConfig(type),
-        ),
+        this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }
@@ -207,9 +210,7 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType, (type) =>
-          context.entityService.getEntityTypeConfig(type),
-        ),
+        this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }

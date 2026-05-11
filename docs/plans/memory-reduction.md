@@ -1,5 +1,9 @@
 # Plan: Memory Reduction — Registries, Templates & Eager Loading
 
+## Status
+
+Proposed. Needs a fresh profile before implementation — some quick wins have already happened (e.g. the old hydration path was removed), so treat the phase list as a candidate checklist rather than current measurements.
+
 ## Context
 
 The app uses ~860MB at runtime. The user identified templates-in-memory and the proliferation of registries as likely contributors. Exploration confirmed:

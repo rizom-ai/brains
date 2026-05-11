@@ -1,5 +1,9 @@
 # Plan: Desktop App (Electrobun)
 
+## Status
+
+Parked. No desktop/Electrobun interface exists yet; keep as the native-app direction after build/runtime and local-AI constraints are clearer.
+
 ## Context
 
 The brain is a Bun process. Electrobun's main process runs on Bun. These are the same thing — the brain _is_ the Electrobun main process. No server, no Docker, no deployment. Just a desktop app.

@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed. Third plan in the integrated-auth sequence (Brain OAuth Provider → A2A Request Signing → this). Depends on the OAuth provider being in place.
+Proposed. Backend-heavy CMS write path that builds on the existing `shell/auth-service` OAuth/passkey foundation. Co-evolves with the multi-user plan for editor identity and attribution.
 
 ## Context
 
-The CMS today is a Sveltia SPA mounted at `/cms` (`plugins/cms/src/plugin.ts:109`, transitioning to `plugins/admin` per `cms-on-core.md`). Auth is entirely client-side: Sveltia talks directly to GitHub via GitHub OAuth, commits to the content repo, directory-sync brings changes back. The brain is a static-shell host; it never sees credentials and never touches commit operations.
+The CMS today is a Sveltia SPA mounted at `/cms` by `plugins/cms`. Auth is entirely client-side: Sveltia talks directly to GitHub via GitHub OAuth, commits to the content repo, directory-sync brings changes back. The brain hosts the shell/config but does not see credentials and does not touch commit operations.
 
 That model works for a single technical operator. It does not work for relay's multi-user case, where the brain is a team-collaboration tool that includes non-technical members (writers, designers, reviewers). With Sveltia → GitHub direct, every editor needs:
 
@@ -15,7 +15,7 @@ That model works for a single technical operator. It does not work for relay's m
 - 2FA / SSO compliance with the GitHub org's policies
 - familiarity with the GitHub auth flow
 
-It also fragments identity: Discord knows team members one way, MCP knows them another (via the brain's OAuth provider once plan 2 lands), CMS knows them as GitHub users. Three identity systems, three places to add and remove people, three permission models.
+It also fragments identity: Discord knows team members one way, MCP knows them another (via the brain's OAuth/passkey provider), CMS knows them as GitHub users. Three identity systems, three places to add and remove people, three permission models.
 
 This plan moves the CMS commit path through the brain. Editors authenticate to the brain (passkey) and the brain commits on their behalf using a single brain-held GitHub credential. Identity unifies across surfaces. Editors no longer need GitHub accounts.
 
@@ -60,7 +60,7 @@ This credential is more sensitive than the previous `GIT_SYNC_TOKEN` because it 
 
 ### 3. JWT-based commit attribution
 
-Every gateway endpoint requires a valid brain-issued JWT (from plan 2's OAuth provider). The JWT's identity claims (display name, email) populate the commit's `author` field; the brain identifies as `committer`. `git log` then shows:
+Every gateway endpoint requires a valid brain-issued JWT from `shell/auth-service`. The JWT's identity claims (display name, email) populate the commit's `author` field; the brain identifies as `committer`. `git log` then shows:
 
 ```
 Author: Anna Writer <anna@example.com>
@@ -75,19 +75,19 @@ The CMS already generates entity-schema-aware Sveltia configs (`shared/cms-confi
 
 ### 5. Identity in `permissionService` gates editing
 
-The JWT validation middleware (plan 2) already resolves the caller to a `permissionService` level. Gateway endpoints additionally check: only callers at `trusted` level or above may write. `public` callers can read public content but not write. This unifies the permission model across MCP, A2A, and CMS — one place to manage who can do what.
+JWT validation resolves the caller to a `permissionService` level. Gateway endpoints additionally check: only callers at `trusted` level or above may write. `public` callers can read public content but not write. This unifies the permission model across MCP, A2A, and CMS — one place to manage who can do what.
 
 For finer-grained per-path or per-collection permissions (writer can edit blog posts but not site config), a follow-on extension to `permissionService` is needed. V1 ships coarse trusted-or-not.
 
 ### 6. Plugin home
 
-The gateway lives in `plugins/admin` (per `cms-on-core.md`'s direction). Sveltia config generation (already in `shared/cms-config`) gets a switch: `backend.name: git-gateway` when this plan ships, with the gateway's API root pointing at the brain.
+The gateway lives in `plugins/cms`, the current CMS route owner. `shared/cms-config` gains a switch for `backend.name: git-gateway` and a gateway API root pointing at the brain.
 
 ## Design
 
 ### Sveltia configuration delta
 
-`plugins/admin` rewrites `/cms/config.yml` to swap:
+`plugins/cms` rewrites `/cms/config.yml` to swap:
 
 ```yaml
 # before
@@ -107,7 +107,7 @@ The repo identity is implicit on the brain's side (one brain → one content rep
 
 Each endpoint:
 
-1. validates JWT via the shared middleware from plan 2
+1. validates JWT via `shell/auth-service`
 2. resolves the user identity for commit attribution
 3. checks `permissionService` level (read-only for `public`, write for `trusted`+)
 4. for writes: validates content against entity schemas
@@ -137,12 +137,67 @@ Two layers:
 1. GitHub: commits show author = editor, committer = brain. `git log` is the durable record.
 2. Brain: every gateway request is logged with JWT subject, action, target path, commit SHA. Useful for "who tried to edit what when," including failed/rejected edits that never reach GitHub.
 
+## Tactical interim: GitHub OAuth proxy
+
+Until this plan ships, the CMS surface needs a server-side OAuth code-exchange for Sveltia's GitHub login flow (the client secret can't live in the browser). The brain can host a minimal proxy inside `plugins/cms` so operators don't need an external proxy (Netlify, Cloudflare Worker, etc.).
+
+This proxy is **explicitly throwaway** — it gets deleted when the gateway in this plan lands. Build with that retirement in mind.
+
+### Setup
+
+Per brain deployment, the operator registers a GitHub OAuth App at `github.com/settings/developers`:
+
+- Authorization callback URL: `https://<brain-domain>/auth/callback`
+
+Resulting credentials go into env:
+
+```bash
+GITHUB_OAUTH_CLIENT_ID=...
+GITHUB_OAUTH_CLIENT_SECRET=...
+```
+
+### Endpoints (mounted by `plugins/cms`)
+
+**`GET /auth`** — initiates the flow. Generates a `state` cookie and redirects to `https://github.com/login/oauth/authorize` with `client_id`, `redirect_uri`, `scope=repo` (or `public_repo`), `state`.
+
+**`GET /auth/callback`** — completes the flow. Verifies `state`, exchanges `code` + `client_secret` at GitHub's token endpoint, returns an HTML page that runs the Decap/Sveltia popup handshake:
+
+```js
+window.opener.postMessage(
+  `authorization:github:success:${JSON.stringify({ token, provider: "github" })}`,
+  "*",
+);
+window.close();
+```
+
+Sveltia listens for this exact message format on the opener window.
+
+### Sveltia config delta
+
+```yaml
+backend:
+  name: github
+  repo: <org>/<content-repo>
+  base_url: https://<brain-domain>
+  auth_endpoint: auth
+```
+
+`base_url` + `auth_endpoint` tell Sveltia to open `https://<brain-domain>/auth` in a popup instead of going to Netlify's default proxy.
+
+### Implementation size
+
+Two endpoints, ~80 lines of Hono. Reference: the Netlify CMS OAuth proxy and `vencax/netlify-cms-github-oauth-provider`.
+
+### Retirement
+
+When the gateway ships: delete `/auth` endpoints, drop the env vars from the schema, switch Sveltia config to `git-gateway`. No migration shim, no compatibility code.
+
 ## Rollout
 
 ### Phase 1 — gateway endpoints (read-only)
 
 - implement `refs`, `contents` (GET) endpoints
-- wire JWT validation from plan 2's middleware
+- wire JWT validation from `shell/auth-service`
 - verify Sveltia loads content through the gateway in read-only mode
 - existing GitHub-direct write flow still active during this phase
 
@@ -154,7 +209,7 @@ Two layers:
 
 ### Phase 3 — Sveltia config switch
 
-- `plugins/admin` config generation switches to `git-gateway` backend
+- `plugins/cms` config generation switches to `git-gateway` backend
 - `/cms/config.yml` points at the brain
 - Sveltia → GitHub direct path is decommissioned for users coming through the gateway
 
@@ -166,7 +221,7 @@ Two layers:
 
 ### Phase 5 — multi-user onboarding
 
-- editors register passkeys with the brain (per plan 2's enrollment flow)
+- editors register passkeys with the brain through the auth-service enrollment flow
 - no GitHub account required for editing
 - relay README and operator docs updated
 
@@ -184,7 +239,7 @@ Two layers:
 2. One brain → one content repo, or one brain → many content repos? V1 assumes one. Multi-repo is a relay-scale concern; defer.
 3. Should `GIT_SYNC_TOKEN` be reused for the gateway or kept separate? Separate is safer (different scopes, different rotation cadence) but adds operator config. Probably separate.
 4. Does the gateway need to support Sveltia's "preview" mode (rendering drafts without commit)? The architecture allows it, but v1 ships without — drafts hit GitHub immediately, just as today.
-5. Should the gateway expose its own `/health` reporting GitHub credential validity, or is that a `plugins/admin` health concern? Probably the latter — `plugins/admin` owns admin health.
+5. Should the gateway expose its own `/health` reporting GitHub credential validity, or is that a `plugins/cms` health concern? Probably the latter — the CMS/gateway package owns CMS health.
 6. How does the gateway handle force-push or branch-management operations that Sveltia might issue? Most are unnecessary for normal editing; reject them with a clear error rather than silently allow.
 
 ## Verification
@@ -203,8 +258,8 @@ Two layers:
 
 ## Related
 
-- `docs/plans/brain-oauth-provider.md` — required dependency
+- `shell/auth-service` — implemented OAuth/passkey/JWT foundation
 - `docs/plans/a2a-request-signing.md` — sequenced before this plan
-- `docs/plans/cms-on-core.md` — establishes `plugins/admin` ownership and shared HTTP surface
+- `interfaces/webserver` — shared HTTP host for CMS/gateway routes
 - `docs/plans/multi-user.md` — co-evolves; user entities populate commit attribution
 - `docs/plans/relay-presets.md` — relay is the primary motivating use case

@@ -1,5 +1,9 @@
 # Plan: Hosted Rovers on Kubernetes
 
+## Status
+
+Proposed. Hosted-product plan for managed rover hosting; not a prerequisite for self-hosted standalone brains.
+
 ## Goal
 
 Run many hosted rovers using Kubernetes rather than a custom in-process cluster/orchestration layer.
@@ -76,9 +80,8 @@ Before treating this as the production destination, validate:
 
 ## Dependencies
 
-- `docs/plans/rover-pilot.md`
+- current `@rizom/ops` rover-pilot fleet/deploy contract
 - current published-package / standalone app repo deploy contract
-- `docs/plans/monetization.md`
 
 ## Done when
 

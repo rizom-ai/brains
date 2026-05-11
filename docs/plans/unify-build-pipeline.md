@@ -1,5 +1,9 @@
 # Plan: Unify Build Pipeline
 
+## Status
+
+Proposed. `shell/app/scripts/build-model.ts` and `packages/brain-cli/scripts/build.ts` both exist and continue to duplicate build responsibilities.
+
 ## Context
 
 There are two parallel build pipelines for shipping brain artifacts:

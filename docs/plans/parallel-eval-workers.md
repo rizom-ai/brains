@@ -1,5 +1,9 @@
 # Plan: Parallel Multi-Model Eval
 
+## Status
+
+Proposed. Narrowed to **multi-model subprocess parallelism**. Test-case-level `--parallel` already exists inside a single model run; `shell/ai-evaluation/src/multi-model-runner.ts` still iterates configured models sequentially.
+
 ## Context
 
 Multi-model evals (`brain.eval.yaml` with `models:` list) run sequentially — one model at a time. With 2 models and ~60 test cases each, a full run takes ~5 minutes. Each model run boots a full Shell, runs all test cases, shuts down, resets singletons, then the next model starts.

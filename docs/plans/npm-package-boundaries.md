@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft / near-term. The external authoring path is already alpha-usable through `@rizom/brain/*`; this plan narrows the publishing target before more official package refactors and broader external adoption. It builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
+Proposed. Near-term: the external authoring path is already alpha-usable through `@rizom/brain/*`, and this plan narrows the publishing target before more official package refactors and broader external adoption. Builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
 
 ## Goal
 

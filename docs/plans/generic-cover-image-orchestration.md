@@ -1,5 +1,9 @@
 # Generic cover image orchestration
 
+## Status
+
+Proposed. Near-term: `system_create` has no generic `coverImage` option, and cover-image generation still needs the created entity id for targeting.
+
 ## Goal
 
 Support requests like “create a post/deck/project/social post with a cover image” without making the agent guess a future entity ID and without adding entity-specific flags to core.
