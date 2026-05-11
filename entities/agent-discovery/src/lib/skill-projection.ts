@@ -79,7 +79,9 @@ export function getSkillDerivedEntityProjections(
         jobOptions: getSkillDerivationJobOptions(pluginId, "initial-sync"),
       },
       sourceChange: {
-        sourceTypes: ["topic"],
+        sourceTypes: ["topic-batch"],
+        sourceType: "topic-batch",
+        events: ["topics:batch-completed"],
         requireInitialSync: true,
         jobData: () => ({
           mode: "derive",

@@ -45,7 +45,7 @@ describe("setupPeriodicGitSync", () => {
     expect(queueSyncBatchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("should use default cleanup behavior for periodic sync batches", async () => {
+  it("should skip queueSyncBatch when pull returns no files", async () => {
     const queueSyncBatchMock = mock(
       async (): Promise<BatchResult | null> => emptyBatchResult,
     );
@@ -62,10 +62,7 @@ describe("setupPeriodicGitSync", () => {
 
     await new Promise((r) => setTimeout(r, 150));
 
-    expect(queueSyncBatchMock).toHaveBeenCalledWith(
-      expect.anything(),
-      "periodic-sync",
-    );
+    expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 
   it("should not call sync() directly (non-blocking)", async () => {
@@ -78,7 +75,7 @@ describe("setupPeriodicGitSync", () => {
 
     cleanup = setupPeriodicGitSync(
       createMockGitSync({
-        pull: mock(async (): Promise<PullResult> => ({ files: [] })),
+        pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
       }),
       createMockDirectorySync({
         sync: syncMock,

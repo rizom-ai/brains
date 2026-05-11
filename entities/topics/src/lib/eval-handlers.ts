@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils";
 import { ProgressReporter, z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { TopicsPluginConfig } from "../schemas/config";
-import { TopicProcessingHandler } from "../handlers/topic-processing-handler";
+import { TopicProcessingBatchHandler } from "../handlers/topic-processing-batch-handler";
 import { TopicExtractor, type ExtractedTopic } from "./topic-extractor";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TOPIC_ENTITY_TYPE } from "./constants";
@@ -13,6 +13,7 @@ import {
 } from "./topic-presenter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
+import { TopicIndex } from "./topic-index";
 
 const entityInputSchema = z.object({
   entityType: z.string(),
@@ -199,7 +200,8 @@ export function registerTopicEvalHandlers(params: {
         await topicService.createTopic(existingTopic);
       }
 
-      const candidate = await topicService.findMergeCandidate(
+      const topicIndex = await TopicIndex.create(topicService);
+      const candidate = topicIndex.findMergeCandidate(
         {
           title: parsed.incomingTopic.title,
         },
@@ -242,7 +244,7 @@ export function registerTopicEvalHandlers(params: {
         });
       }
 
-      const handler = new TopicProcessingHandler(context, logger);
+      const handler = new TopicProcessingBatchHandler(context, logger);
       const progressReporter = ProgressReporter.from(async () => {});
       if (!progressReporter) {
         throw new Error("Failed to create progress reporter");
@@ -250,11 +252,13 @@ export function registerTopicEvalHandlers(params: {
 
       const result = await handler.process(
         {
-          topic: {
-            title: parsed.incomingTopic.title,
-            content: parsed.incomingTopic.content,
-            relevanceScore: parsed.incomingTopic.relevanceScore ?? 0.9,
-          },
+          topics: [
+            {
+              title: parsed.incomingTopic.title,
+              content: parsed.incomingTopic.content,
+              relevanceScore: parsed.incomingTopic.relevanceScore ?? 0.9,
+            },
+          ],
           sourceEntityId: "eval-source",
           sourceEntityType: "post",
           autoMerge: true,

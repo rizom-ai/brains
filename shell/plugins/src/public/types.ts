@@ -7,6 +7,7 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
@@ -62,7 +63,7 @@ export interface ToolResponse<T = unknown> {
   error?: string;
 }
 
-export type ToolVisibility = "public" | "trusted" | "anchor";
+export type ToolVisibility = UserPermissionLevel;
 
 export interface ToolConfirmation {
   required: boolean;

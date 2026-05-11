@@ -2,34 +2,51 @@
 
 ## Status
 
-Planned / near-term. The external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
+Proposed. Near-term: the external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. The divergence between public `IEntityService` and runtime `ICoreEntityService` is real and growing, and nine paired `(context: never)` overrides plus `context as <Plugin>Context` casts in `shell/plugins/src/public/{entity,interface,message-interface,service}-plugin.ts` paper over it instead of fixing it.
 
 ## Current state
 
-`shell/plugins/src/public/types.ts` re-declares two interfaces that already exist in `shell/entity-service/src/types.ts`:
+`shell/plugins/src/public/types.ts` re-declares interfaces that already exist in `shell/entity-service/src/types.ts`:
 
-- public `IEntityService` (~line 219) vs runtime `ICoreEntityService` (line 289)
-- public `IEntitiesNamespace` (~line 287) vs the runtime equivalent attached to plugin contexts
+- public `IEntityService` vs runtime `ICoreEntityService`
+- public `IEntitiesNamespace` vs the internal namespace shape defined in `shell/plugins/src/entity/context.ts`
+- public `GetEntityRequest`, `ListEntitiesRequest`, `EntitySearchRequest` vs the same names on the runtime
 
-The redeclarations were written by hand and got three things wrong:
+The redeclarations were written by hand and have drifted from the runtime in four ways:
 
-| Method                      | Public says     | Runtime delivers                             |
-| --------------------------- | --------------- | -------------------------------------------- |
-| `getEntity`, `listEntities` | `<T = unknown>` | `<T extends BaseEntity>`                     |
-| `search`                    | `Promise<T[]>`  | `Promise<SearchResult<T>[]>`                 |
-| `options` parameter         | `unknown`       | typed `ListOptions` / `SearchOptions` shapes |
+| Method                        | Public says                      | Runtime delivers                                                       |
+| ----------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| `getEntity`, `listEntities`   | `<T = unknown>`                  | `<T extends BaseEntity>`                                               |
+| `search`                      | `<T = unknown>` → `Promise<T[]>` | `<T extends BaseEntity = BaseEntity>` → `Promise<SearchResult<T>[]>`   |
+| `ListEntitiesRequest.options` | redeclared parallel type         | `ListOptions \| undefined` (typed `publishedOnly` / `filter` / `sort`) |
+| `getEntityTypeConfig`         | absent                           | `(type: string) => EntityTypeConfig`                                   |
 
-The runtime generics are not lies. `entityService.getEntity<T>` traces through `entitySerializer.reconstructEntity → entityRegistry.validateEntity → schema.parse(entity) as TData` (`shell/entity-service/src/entityRegistry.ts:144-147`). The plugin registered the schema for that entity type, so the narrowing is real.
+`getEntityTypeConfig` is the worst category — `entities/topics/src/index.ts` calls `entityService.getEntityTypeConfig(entityType).projectionSource` to enforce the cross-plugin cycle guard, but external plugin authors can't see this method on the public type. Any analogous usage from a published plugin forces an `as never` style escape.
 
-The public delegates wrap a runtime base class. Their override methods declare `(context: never)` and `return this.hooks.onRegister(context as PublicEntityPluginContext)`. The cast hides the fact that the runtime context (with the correct `IEntityService` shape) is not assignable to the public context (with the incorrect shape) under TypeScript's structural variance check.
+Two other runtime-only methods, `getEntityRaw` and `getWeightMap`, stay internal:
+
+- `getEntityRaw` is an entity-service-internal escape hatch used only by `shell/entity-service/src/lib/content-resolver.ts` to avoid recursion when resolving image references. No plugin should call it directly.
+- `getWeightMap` is only consumed by `shell/core/src/datasources/ai-content-datasource.ts`. It's a core-internal weighting concern, not part of the plugin contract.
+
+These two need to be reachable from the runtime implementation but explicitly excluded from the public interface — so the cleanup also has to slim or split `ICoreEntityService` (which currently bundles them in) before it can be safely re-exported as the public type.
+
+The runtime generics are not lies. `entityService.getEntity<T>` traces through `entitySerializer.reconstructEntity → entityRegistry.validateEntity → schema.parse(entity) as TData`. The plugin registered the schema for that entity type, so the narrowing is real.
+
+The public delegate methods declare `(context: never)` and call `this.hooks.onRegister(context as <Plugin>Context)`. The cast hides the fact that the runtime context (with the correct `IEntityService` shape) is not assignable to the public context (with the incorrect shape) under TypeScript's structural variance check. The pattern repeats nine times across the four public plugin files.
 
 ## Approach
 
-Single source of truth. `shell/plugins/src/public/types.ts` should re-export the relevant interfaces from `@brains/entity-service` instead of re-declaring them. Specifically:
+Single source of truth, with a clean public/internal split. `shell/entity-service` should expose:
 
-- `IEntityService` ← runtime `ICoreEntityService` (`shell/entity-service/src/types.ts:289`).
-- `IEntitiesNamespace` (the namespace methods plugins call — `register`, `update`, `getAdapter`, `registerDataSource`, `registerCreateInterceptor`) ← a single canonical definition, found in or moved into `shell/entity-service`.
-- `ListOptions`, `SearchOptions`, `SearchResult` ← runtime types, exported alongside.
+- a public `IEntityService` interface containing only methods external plugins should see — the read-side methods (`getEntity`, `listEntities`, `search`, `getEntityTypes`, `hasEntityType`, `countEntities`, `getEntityCounts`) plus `getEntityTypeConfig`.
+- an internal `ICoreEntityService extends IEntityService` (or equivalent name) that adds `getEntityRaw` and `getWeightMap` for use by `shell/*` consumers only.
+- the request/option types (`ListOptions`, `SearchOptions`, `SearchResult`, `GetEntityRequest`, `ListEntitiesRequest`, `EntitySearchRequest`) exported once from this package.
+
+`shell/plugins/src/public/types.ts` then re-exports the public-facing pieces instead of re-declaring them:
+
+- `IEntityService` re-exports the new entity-service public interface.
+- `IEntitiesNamespace` re-exports from its canonical home (`shell/plugins/src/entity/context.ts`). It includes plugin-only operations (`registerDataSource`, `registerCreateInterceptor`) that don't belong on `@brains/entity-service`, so it stays there.
+- `ListOptions`, `SearchOptions`, `SearchResult`, `GetEntityRequest`, `ListEntitiesRequest`, `EntitySearchRequest` re-export from `@brains/entity-service`.
 
 Once the type identities collapse to one, the wide internal context becomes structurally compatible with the public context. The casts and `(context: never)` overrides can be replaced with proper typed parameters: `(context: EntityPluginContext) → return this.hooks.onRegister(context)`.
 
@@ -47,17 +64,18 @@ Each new fixture file must compile RED on `bunx tsc --noEmit -p packages/brain-c
 
 ### 2. Reconcile types
 
-- In `shell/entity-service/src`, ensure `ICoreEntityService`, `ListOptions`, `SearchOptions`, `SearchResult` are exported from the package's public entry.
-- If `IEntitiesNamespace` does not yet exist as a runtime type, lift the inline shape from `shell/plugins/src/entity/context.ts` into `shell/entity-service/src/types.ts` and have `entity/context.ts` import it.
-- In `shell/plugins/src/public/types.ts`, delete the redeclared `IEntityService` and `IEntitiesNamespace`; replace with `export type { IEntityService, IEntitiesNamespace, ListOptions, SearchOptions, SearchResult } from "@brains/entity-service"` (or whichever names land).
+- In `shell/entity-service/src/types.ts`, split `ICoreEntityService` into a public `IEntityService` (read methods + `getEntityTypeConfig`) and a runtime-only superset that keeps `getEntityRaw` and `getWeightMap`. Update internal call sites (`content-resolver.ts`, `ai-content-datasource.ts`) to use the runtime-only type.
+- Ensure the public `IEntityService`, `ListOptions`, `SearchOptions`, `SearchResult`, `GetEntityRequest`, `ListEntitiesRequest`, and `EntitySearchRequest` are all exported from the package's public entry.
+- Keep `IEntitiesNamespace` in `shell/plugins/src/entity/context.ts` and make sure `shell/plugins/src/public/types.ts` can import it without re-declaring.
+- In `shell/plugins/src/public/types.ts`, delete every redeclared interface in the entity-service family (`IEntityService`, `IEntitiesNamespace`, request shapes) and replace with re-exports from the canonical packages. The new `IEntityService` already carries `getEntityTypeConfig`; do not add `getEntityRaw` or `getWeightMap` here — they are intentionally internal.
 
 ### 3. Remove the casts
 
 Across `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts`:
 
 - Replace `(context: never)` overrides with the actual typed parameter (the internal context type from `../{entity,service,interface}/context.ts`).
-- Drop the `as PublicContext` casts in the hook calls.
-- The `EntityPluginDelegate.interceptCreate` site at `entity-plugin.ts:86-96` follows the same pattern.
+- Drop the `context as <Plugin>Context` casts in the `onRegister` / `onReady` hook calls.
+- The `EntityPluginDelegate.interceptCreate` site in `entity-plugin.ts` follows the same pattern (currently casts to `EntityPluginContext`).
 
 After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as ServicePluginContext\|as InterfacePluginContext" shell/plugins/src/public/` must return no matches.
 
@@ -82,6 +100,7 @@ Record the breaking-change note: external plugins currently typed against `<T = 
 - Adding the `EntityService` _class_ to the public surface. Only the interface(s) it implements.
 - Widening the runtime types to match the (broken) public ones — the runtime is correct.
 - Introducing a third `IEntityService` definition.
+- Exposing `getEntityRaw` or `getWeightMap` on the public surface. They are internal to `entity-service` and `shell/core` respectively, and should stay that way.
 - Reworking the `register(shell, context)` low-level entry point. The `IShell` / `PluginRegistrationContext` bridge is pre-existing internal glue and out of scope.
 
 ## Dependencies

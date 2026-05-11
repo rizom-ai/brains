@@ -131,14 +131,3 @@ docs:
     order: 210
     source: docs/roadmap.md
 
-  - id: public-release-cleanup
-    title: Public Release Cleanup Plan
-    section: Planning and release readiness
-    order: 240
-    source: docs/plans/public-release-cleanup.md
-
-  - id: rizom-site-tbd
-    title: Rizom Site Follow-ups
-    section: Planning and release readiness
-    order: 260
-    source: docs/plans/rizom-site-tbd.md

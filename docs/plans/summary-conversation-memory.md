@@ -2,9 +2,7 @@
 
 ## Status
 
-Planning document for `@brains/conversation-memory` follow-up work after the projection-based summary rearchitecture.
-
-The package has been reframed from summary-only to conversation memory: summaries, decisions, and action items are derived from stored conversations via projection jobs, not digest events.
+Partial. `@brains/conversation-memory` now has scoped projection from stored conversations, summary/decision/action-item entities, dashboard widgets, and `ConversationMemoryRetriever`. Remaining work: tighten broader future-use evals and settle the open policy questions below.
 
 ## Settled decisions
 

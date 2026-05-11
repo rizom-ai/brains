@@ -1,3 +1,4 @@
+import { UserPermissionLevelSchema } from "@brains/templates";
 import { z } from "zod";
 import {
   conversationMessageActorSchema,
@@ -5,7 +6,7 @@ import {
 } from "@brains/conversation-service";
 
 export const ChatContextSchema = z.object({
-  userPermissionLevel: z.enum(["public", "trusted", "anchor"]).optional(),
+  userPermissionLevel: UserPermissionLevelSchema.optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),

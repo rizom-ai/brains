@@ -34,6 +34,7 @@ import type {
   CreateEntityFromMarkdownRequest,
   UpdateEntityRequest,
   UpsertEntityRequest,
+  EntityTypeConfig,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -366,6 +367,10 @@ export class EntityService implements IEntityService {
 
   public hasEntityType(type: string): boolean {
     return this.entityRegistry.hasEntityType(type);
+  }
+
+  public getEntityTypeConfig(type: string): EntityTypeConfig {
+    return this.entityRegistry.getEntityTypeConfig(type);
   }
 
   public getWeightMap(): Record<string, number> {

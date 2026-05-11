@@ -153,11 +153,11 @@ function DashboardDocument({
               {showOperatorGate && input.operatorAccess && (
                 <section class="card operator-gate">
                   <div>
-                    <div class="card-title">Operator layer</div>
+                    <div class="card-title">Restricted layer</div>
                     <p>
                       {input.operatorAccess.hiddenWidgetCount === 1
-                        ? "1 operator widget is hidden."
-                        : `${input.operatorAccess.hiddenWidgetCount} operator widgets are hidden.`}{" "}
+                        ? "1 restricted widget is hidden."
+                        : `${input.operatorAccess.hiddenWidgetCount} restricted widgets are hidden.`}{" "}
                       {""}
                       Sign in with your passkey to unlock private console data.
                     </p>

@@ -1,5 +1,9 @@
 # Plan: Multi-User & Permissions
 
+## Status
+
+Proposed. Near-term, sequenced after the OAuth/passkey foundation: new installs can move from `single-operator` toward real runtime auth users while existing permission-rule fallback remains compatible.
+
 ## Goal
 
 Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-owner/self-hosted path.

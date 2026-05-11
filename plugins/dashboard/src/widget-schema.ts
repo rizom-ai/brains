@@ -1,3 +1,4 @@
+import { UserPermissionLevelSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { WidgetComponent } from "./widget-registry";
 
@@ -9,7 +10,7 @@ export const widgetMetaSchema = z.object({
   priority: z.number(),
   section: z.enum(["primary", "secondary", "sidebar"]),
   rendererName: z.string(),
-  visibility: z.enum(["public", "operator"]),
+  visibility: UserPermissionLevelSchema,
   component: z.custom<WidgetComponent>().optional(),
 });
 

@@ -3,7 +3,10 @@ import {
   TopicExtractionHandler,
   type TopicExtractionJobData,
 } from "../../src/handlers/topic-extraction-handler";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockEntityPluginContext,
+  createSilentLogger,
+} from "@brains/test-utils";
 import {
   createMockShell,
   type MockShell,
@@ -199,6 +202,77 @@ describe("TopicExtractionHandler", () => {
 
       expect(result.success).toBe(true);
       expect(result.topicsExtracted).toBe(0);
+    });
+
+    it("should enqueue one process-batch job for multiple extracted topics", async () => {
+      const content = "Content about human AI collaboration and team memory.";
+      const entity = createEntity("test-entity", content);
+      const batchContext = createMockEntityPluginContext({
+        pluginId: "topics",
+        returns: {
+          entityService: { getEntity: entity, listEntities: [] },
+          ai: {
+            generate: {
+              topics: [
+                {
+                  title: "Human-AI Collaboration",
+                  content: "Humans and AI agents coordinate shared work.",
+                  relevanceScore: 0.9,
+                },
+                {
+                  title: "Team Memory",
+                  content: "Teams preserve shared context over time.",
+                  relevanceScore: 0.8,
+                },
+              ],
+            },
+          },
+          jobsEnqueue: "process-job-1",
+        },
+      });
+      const batchHandler = new TopicExtractionHandler(batchContext, logger);
+      const jobData = createJobData("test-entity", entity.contentHash);
+
+      const result = await batchHandler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.topicsExtracted).toBe(2);
+      expect(result.batchId).toBe("process-job-1");
+      expect(batchContext.jobs.enqueue).toHaveBeenCalledTimes(1);
+      expect(batchContext.jobs.enqueue).toHaveBeenCalledWith({
+        type: "process-batch",
+        data: {
+          topics: [
+            {
+              title: "Human-AI Collaboration",
+              content: "Humans and AI agents coordinate shared work.",
+              relevanceScore: 0.9,
+            },
+            {
+              title: "Team Memory",
+              content: "Teams preserve shared context over time.",
+              relevanceScore: 0.8,
+            },
+          ],
+          sourceEntityId: "test-entity",
+          sourceEntityType: "post",
+          autoMerge: true,
+          mergeSimilarityThreshold: 0.85,
+        },
+        options: expect.objectContaining({
+          priority: 5,
+          source: "topics-plugin",
+          metadata: expect.objectContaining({
+            operationType: "batch_processing",
+            operationTarget: "process topics for post:test-entity",
+            pluginId: "topics",
+          }),
+        }),
+      });
     });
 
     it("should extract topics from meaningful content", async () => {

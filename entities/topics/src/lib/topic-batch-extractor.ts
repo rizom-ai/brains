@@ -1,13 +1,12 @@
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { getErrorMessage, generateIdFromText } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import { batchEntities } from "./batch-entities";
-import {
-  buildTopicExtractionPrompt,
-  listExistingTopicTitles,
-} from "./extraction-prompt";
+import { buildTopicExtractionPrompt } from "./extraction-prompt";
 import { TopicService } from "./topic-service";
+import { TopicIndex } from "./topic-index";
+import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 
 /**
  * Build the prompt content for a batch of entities.
@@ -29,6 +28,10 @@ export function buildBatchPrompt(entities: BaseEntity[]): string {
     .join("\n\n");
 }
 
+export interface ExtractTopicsBatchedOptions {
+  minRelevanceScore?: number;
+}
+
 /**
  * Extract topics from entities in batches.
  *
@@ -39,6 +42,7 @@ export async function extractTopicsBatched(
   entities: BaseEntity[],
   context: EntityPluginContext,
   logger: Logger,
+  options: ExtractTopicsBatchedOptions = {},
 ): Promise<{ created: number; skipped: number; batches: number }> {
   if (entities.length === 0) {
     return { created: 0, skipped: 0, batches: 0 };
@@ -46,6 +50,7 @@ export async function extractTopicsBatched(
 
   const batches = batchEntities(entities);
   const topicService = new TopicService(context.entityService, logger);
+  const topicIndex = await TopicIndex.create(topicService);
 
   let created = 0;
   let skipped = 0;
@@ -54,9 +59,7 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const batchContent = buildBatchPrompt(batch);
-    const existingTopicTitles = await listExistingTopicTitles(
-      context.entityService,
-    );
+    const existingTopicTitles = topicIndex.getTitles();
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
@@ -72,20 +75,30 @@ export async function extractTopicsBatched(
         templateName: "topics:extraction",
       });
 
-      for (const topic of result.topics) {
-        const slug = generateIdFromText(topic.title);
-        const existing = await topicService.getTopic(slug);
+      const topics = result.topics.filter(
+        (topic) => topic.relevanceScore >= (options.minRelevanceScore ?? 0),
+      );
 
-        if (existing) {
+      for (const topic of topics) {
+        if (topicIndex.hasSlug(topic.title)) {
           skipped++;
           continue;
         }
 
-        await topicService.createTopic({
+        const createResult = await topicService.createTopicOptimistic({
           title: topic.title,
           content: topic.content,
         });
-        created++;
+
+        if (createResult.topic) {
+          topicIndex.set(createResult.topic);
+        }
+
+        if (createResult.created) {
+          created++;
+        } else {
+          skipped++;
+        }
       }
     } catch (error) {
       logger.error("Batch topic extraction failed", {
@@ -96,5 +109,15 @@ export async function extractTopicsBatched(
     }
   }
 
-  return { created, skipped, batches: batches.length };
+  const result = { created, skipped, batches: batches.length };
+
+  if (created > 0) {
+    await context.messaging.send({
+      type: TOPICS_BATCH_COMPLETED_EVENT,
+      payload: result,
+      broadcast: true,
+    });
+  }
+
+  return result;
 }

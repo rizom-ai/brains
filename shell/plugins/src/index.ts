@@ -176,8 +176,13 @@ export type {
   ComponentType,
   ViewTemplate,
   OutputFormat,
+  UserPermissionLevel,
 } from "@brains/templates";
-export { createTemplate, PermissionService } from "@brains/templates";
+export {
+  createTemplate,
+  PermissionService,
+  UserPermissionLevelSchema,
+} from "@brains/templates";
 
 export type { ResolutionOptions } from "@brains/content-service";
 

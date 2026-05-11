@@ -1,6 +1,10 @@
 # Plan: Relay Presets — Current & Future
 
-Last updated: 2026-05-06
+Last updated: 2026-05-11
+
+## Status
+
+Active. Relay reference plan, refreshed to match `brains/relay/src/index.ts`: `core` currently has 15 configured capabilities, `conversation-memory` is the plugin id, and the agent-directory composite is registered as `agents`.
 
 ## Context
 
@@ -32,24 +36,24 @@ each tier is a strict superset of the one below it.
 
 ## Shipping now
 
-### `core` (14 plugins)
+### `core` (15 capabilities)
 
 ```
-prompt             ─ AI templates
-directory-sync     ─ brain-data (+ seed content)
-note               ─ free-form text capture
-link               ─ URL bookmarks (huge for team reference-sharing)
-topics             ─ auto-extract topic clusters (synthesis layer)
-summary            ─ durable conversation summaries
-agent-discovery    ─ directory of peer brains
-skill              ─ capabilities published in the Agent Card
-assessment         ─ derived SWOT/capability assessment from agents + skills
-cms                ─ browser authoring surface
-dashboard          ─ operator dashboard widgets
-webserver          ─ shared HTTP/admin surface
-mcp                ─ MCP interface (tool access)
-discord            ─ team chat interface (skipped if no bot token)
-a2a                ─ agent-to-agent transport (brain↔brain collab)
+prompt              ─ AI templates
+directory-sync      ─ brain-data (+ seed content)
+note                ─ free-form text capture
+link                ─ URL bookmarks (huge for team reference-sharing)
+topics              ─ auto-extract topic clusters (synthesis layer)
+conversation-memory ─ durable summaries, decisions, and action items
+agents              ─ agent + skill directory for peer brains
+assessment          ─ derived SWOT/capability assessment from agents + skills
+auth-service        ─ OAuth/passkey identity for operators and editors
+cms                 ─ browser authoring surface
+dashboard           ─ operator dashboard widgets
+mcp                 ─ MCP interface (tool access)
+webserver           ─ shared HTTP/admin surface
+discord             ─ team chat interface (skipped if no bot token)
+a2a                 ─ agent-to-agent transport (brain↔brain collab)
 ```
 
 ### `default` = `core` + 4
@@ -83,10 +87,10 @@ smaller preset.
 4. **`note` + `link` + `image` in `core`?** `note` + `link` yes (they're
    the team's capture surface). `image` no in core, yes in `default`
    (public sites want images).
-5. **`topics` + `summary` in `core` for synthesis?** Yes. `topics`
-   creates the cross-entity map; `summary` turns team conversations into
+5. **`topics` + `conversation-memory` in `core` for synthesis?** Yes. `topics`
+   creates the cross-entity map; `conversation-memory` turns team conversations into
    durable source material for later search/topic extraction.
-6. **`a2a` + `agent-discovery` + `skill` in `core`?** Yes. The whole
+6. **`a2a` + `agents` in `core`?** Yes. The whole
    "brains that talk to peer brains" story is fundamentally team-oriented.
 7. **Define `full` now?** Yes, but keep it Relay-native. `full` adds
    existing team-knowledge surfaces (`docs`, `decks`) while deferring
@@ -123,14 +127,14 @@ list:
 Mapping [docs/roadmap.md](../roadmap.md) items that would naturally slot
 into relay once they land:
 
-| future plugin / feature                                       | target tier                  | notes                                                            |
-| ------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| **multi-user + permissions** ([plan](./multi-user.md))        | `core`                       | defining feature for a team brain — users, roles, audit trail    |
-| **Chat SDK migration** ([plan](./chat-interface-sdk.md))      | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                          |
-| **AT Protocol phases 1-2** ([plan](./atproto-integration.md)) | `default`                    | outbound publishing — teams push knowledge to decentralized feed |
-| **AT Protocol phases 3-6**                                    | `full`                       | inbound ingestion, cross-brain feeds, ambient federation         |
-| **agent-discovery phase 2** (ATProto firehose)                | `core`                       | auto-discover peer brains — already registered in `core` as stub |
-| **monitoring — phase 3** (usage tracking)                     | `default` or `full`          | team operators need to see AI spend + usage                      |
+| future plugin / feature                                       | target tier                  | notes                                                                |
+| ------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| **multi-user + permissions** ([plan](./multi-user.md))        | `core`                       | defining feature for a team brain — users, roles, audit trail        |
+| **Chat SDK migration** ([plan](./chat-interface-sdk.md))      | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                              |
+| **AT Protocol phases 1-2** ([plan](./atproto-integration.md)) | `default`                    | outbound publishing — teams push knowledge to decentralized feed     |
+| **AT Protocol phases 3-6**                                    | `full`                       | inbound ingestion, cross-brain feeds, ambient federation             |
+| **agents phase 2** (ATProto firehose)                         | `core`                       | auto-discover peer brains — `agents` is already registered in `core` |
+| **monitoring — phase 3** (usage tracking)                     | `default` or `full`          | team operators need to see AI spend + usage                          |
 
 ## Future — hypothetical plugins worth naming
 
@@ -181,14 +185,23 @@ existing publishing/newsletter stack.
 | `rizom.foundation` repo  | relay | `default` | —      | minimal public site for the manifesto |
 | `example relay instance` | relay | `full`    | —      | team knowledge hub with docs + decks  |
 
-## Known latent bugs surfaced this round
+## POC readiness
 
-- **`parseInstanceOverrides` silently drops all overrides on Zod failure.**
-  An empty YAML field like `anchors:` parses as `null`, which doesn't
-  satisfy `z.array(z.string()).optional()` (optional means `undefined`,
-  not `null`). The entire overrides object is discarded silently instead
-  of surfacing an error. A relay instance had this bug and was running with
-  _zero_ overrides until this round's cleanup removed the empty
-  `anchors:` field. Fix later: either coerce `null → undefined` in the
-  pre-validation step, or surface parse errors instead of falling back
-  to `{}`.
+### Changes made
+
+- Added `conversation-memory` to Relay `core`.
+- Configured Relay `topics` with durable source entity types and excluded topic-derived sources (`skill`) to break projection cycles.
+- Added `extractableStatuses` to `@brains/topics` so Relay can include `draft` links without changing global topic defaults.
+- Added Relay `full` with docs and decks only, keeping publishing-heavy plugins deferred.
+- Registered the agent-directory composite as `agents` and updated Relay preset docs to match the current model.
+
+### Acceptance checklist
+
+- A Discord user can save a note and capture a URL.
+- Captured notes, draft links, summaries, agents, and skills can feed topic extraction.
+- A team conversation produces durable conversation-memory entities, starting with `summary`.
+- `system_search` can find notes, links, summaries, and topics.
+- An operator can view dashboard/CMS on the webserver without enabling the public site stack.
+- A saved and approved peer `agent` can be called through A2A.
+- `preset: default` can still build a minimal public site when needed.
+- `preset: full` enables docs and decks without pulling in Rover-style publishing.

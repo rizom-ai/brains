@@ -1,3 +1,4 @@
+import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "zod";
 import { ExtensionMetadataSchema } from "./metadata";
 
@@ -52,6 +53,6 @@ export interface MessageContext {
   messageId?: string;
   timestamp?: string;
   interfaceType?: string;
-  userPermissionLevel?: "public" | "trusted" | "anchor";
+  userPermissionLevel?: UserPermissionLevel;
   threadId?: string;
 }

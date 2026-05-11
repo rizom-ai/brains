@@ -1,5 +1,9 @@
 # Move env-derived core defaults to app layer
 
+## Status
+
+Proposed. `shell/core` standard config still reads `XDG_DATA_HOME` / `XDG_CACHE_HOME` directly, and app migration scripts still import `getStandardConfigWithDirectories()` from core.
+
 ## Goal
 
 Make `shell/core` deterministic and config-driven by removing direct `process.env` reads from core standard config, while preserving Docker/Kamal behavior that stores state under mounted paths like `/data`.

@@ -1,5 +1,9 @@
 # Plan: AT Protocol Integration
 
+## Status
+
+Parked. No AT Protocol package exists yet; keep as the distribution/discovery design direction, but revalidate against the current agent-directory approval model before implementation.
+
 ## Context
 
 The AT Protocol (atproto) is a decentralized protocol for social networking with portable identity (DIDs), signed personal data repos, federation via firehose, and custom schemas (lexicons). Bluesky is the main app, but the protocol supports arbitrary record types — WhiteWind already stores blog posts, Linkat stores link collections.

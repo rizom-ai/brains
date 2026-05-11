@@ -1,5 +1,9 @@
 # Plan: Unify Build Pipeline
 
+## Status
+
+Proposed. `shell/app/scripts/build-model.ts` and `packages/brain-cli/scripts/build.ts` both exist and continue to duplicate build responsibilities.
+
 ## Context
 
 There are two parallel build pipelines for shipping brain artifacts:
@@ -13,17 +17,12 @@ There are two parallel build pipelines for shipping brain artifacts:
   Called from `prepublishOnly` when `npm publish` runs in
   `.github/workflows/release.yml`.
 
-Both scripts do nearly the same shape of work. The immediate
-trigger for documenting this is the alpha publish unblocking
-work where the hydration compile step had to be added to
-`build.ts` even though `publish-images.yml` had its
-own copy of the same step.
+Both scripts do nearly the same shape of work.
 
 ## Current overlap
 
 | Step                  | `build-model.ts` (docker)                          | `build.ts` (npm)                          |
 | --------------------- | -------------------------------------------------- | ----------------------------------------- |
-| Hydration compile     | ✗ (CI step in `publish-images.yml`)                | ✓ (inline in script)                      |
 | Bundle externals      | same list                                          | same list                                 |
 | `Bun.build` call      | one entrypoint, target=bun, format=esm, minify     | one CLI entrypoint + N library entries    |
 | Migrations copy       | 3 sources → `dist/migrations/`                     | same 3 sources → `dist/migrations/`       |
@@ -40,7 +39,6 @@ Extract a small set of shared helpers in `shell/app/src/build/`:
 
 ```
 shell/app/src/build/
-├── compile-hydration.ts   # invokes scripts/compile-hydration.ts, fail-fast
 ├── bundle.ts              # Bun.build wrapper with shared externals + report
 ├── copy-migrations.ts     # the 3-source list, copies to <outdir>/migrations
 ├── copy-seed-content.ts   # one or all models → <outdir>/seed-content
@@ -75,34 +73,12 @@ export function copySeedContent(opts: {
 }): void;
 ```
 
-`compile-hydration.ts` becomes a thin wrapper around the existing
-root-level `scripts/compile-hydration.ts` so both scripts call it
-the same way:
-
-```ts
-// shell/app/src/build/compile-hydration.ts
-import { spawnSync } from "child_process";
-import { join } from "path";
-
-export function compileHydration(monorepoRoot: string): void {
-  const result = spawnSync(
-    "bun",
-    [join(monorepoRoot, "scripts", "compile-hydration.ts")],
-    { cwd: monorepoRoot, stdio: "inherit" },
-  );
-  if (result.status !== 0) {
-    throw new Error("Hydration compile failed");
-  }
-}
-```
-
 ## What each consumer becomes
 
 ### `packages/brain-cli/scripts/build.ts`
 
 ```ts
 import {
-  compileHydration,
   bundleBrain,
   copyMigrations,
   copySeedContent,
@@ -110,8 +86,6 @@ import {
 
 const monorepoRoot = findMonorepoRoot();
 const outdir = join(import.meta.dir, "..", "dist");
-
-compileHydration(monorepoRoot);
 
 await Promise.all([
   bundleBrain({
@@ -137,17 +111,10 @@ copySeedContent({ monorepoRoot, outdir });
 ### `shell/app/scripts/build-model.ts`
 
 ```ts
-import {
-  compileHydration,
-  bundleBrain,
-  copyMigrations,
-  copySeedContent,
-} from "../src/build";
+import { bundleBrain, copyMigrations, copySeedContent } from "../src/build";
 
 const monorepoRoot = findMonorepoRoot();
 const outdir = join(brainModelDir, "dist");
-
-compileHydration(monorepoRoot);
 
 const entrypointPath = generatePerModelEntrypoint(brainPackage, sitePackages);
 try {
@@ -170,13 +137,6 @@ Each script keeps its own discovery, entrypoint generation, and
 post-processing — the helpers cover only the parts that are byte-
 identical between the two.
 
-## Drop the redundant CI step
-
-Once both scripts call `compileHydration()` themselves,
-`publish-images.yml` no longer needs its explicit
-`Compile hydration scripts` step. Delete it. The model build
-becomes self-contained the same way the npm build is.
-
 ## Non-goals
 
 - **Single bundle producing both outputs.** The npm package and
@@ -194,10 +154,9 @@ becomes self-contained the same way the npm build is.
 
 ## Effort
 
-- Extract the 5 helpers from existing code: ~30 min
+- Extract the 4 helpers from existing code: ~30 min
 - Update `build.ts` to use them: ~15 min
 - Update `build-model.ts` to use them: ~30 min
-- Drop the redundant CI step from `publish-images.yml`: ~5 min
 - Smoke test both pipelines: ~30 min
 - Update affected docs (build pipeline references): ~15 min
 
@@ -224,7 +183,6 @@ sync needed.
 - [ ] Extract `shell/app/src/build/` helpers
 - [ ] Update `packages/brain-cli/scripts/build.ts` to use them
 - [ ] Update `shell/app/scripts/build-model.ts` to use them
-- [ ] Drop redundant compile-hydration step from `publish-images.yml`
 - [ ] Smoke test docker build (`bun shell/app/scripts/build-model.ts rover`)
 - [ ] Smoke test npm build (`cd packages/brain-cli && bun scripts/build.ts`)
 - [ ] Update any docs referencing the old per-script flow

@@ -1,4 +1,9 @@
 import type { ComponentType } from "preact";
+import {
+  PermissionService,
+  UserPermissionLevelSchema,
+  type UserPermissionLevel,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 
@@ -10,7 +15,7 @@ export interface WidgetComponentProps {
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
 export type WidgetDataProvider = () => Promise<unknown>;
-export type WidgetVisibility = "public" | "operator";
+export type WidgetVisibility = UserPermissionLevel;
 
 export const BUILT_IN_WIDGET_RENDERERS = [
   "StatsWidget",
@@ -41,7 +46,7 @@ export const dashboardWidgetSchema = z.object({
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
-  visibility: z.enum(["public", "operator"]).default("public"),
+  visibility: UserPermissionLevelSchema.default("public"),
 });
 
 export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
@@ -105,20 +110,19 @@ export class DashboardWidgetRegistry {
       | "sidebar"
       | {
           section?: "primary" | "secondary" | "sidebar";
-          includeOperator?: boolean;
+          permissionLevel?: WidgetVisibility;
         } = {},
   ): StoredRegisteredWidget[] {
     const resolved =
       typeof options === "string" ? { section: options } : options;
+    const permissionLevel = resolved.permissionLevel ?? "public";
 
     return Array.from(this.widgets.values())
       .filter(
         (widget) => !resolved.section || widget.section === resolved.section,
       )
-      .filter(
-        (widget) =>
-          (resolved.includeOperator ?? false) ||
-          widget.visibility !== "operator",
+      .filter((widget) =>
+        PermissionService.hasPermission(permissionLevel, widget.visibility),
       )
       .sort((a, b) => a.priority - b.priority);
   }

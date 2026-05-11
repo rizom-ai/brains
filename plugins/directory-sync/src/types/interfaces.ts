@@ -62,7 +62,6 @@ export interface IDirectorySync {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
-    options?: { skipCleanup?: boolean },
   ): Promise<{
     batchId: string;
     operationCount: number;

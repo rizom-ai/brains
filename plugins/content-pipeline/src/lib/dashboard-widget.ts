@@ -29,7 +29,7 @@ export async function registerDashboardWidget(
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
-      visibility: "operator",
+      visibility: "anchor",
       dataProvider: () => getPipelineWidgetData(context),
     },
   });

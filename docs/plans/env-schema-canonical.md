@@ -8,9 +8,9 @@ Proposed.
 
 Brain instances declare environment via a `.env.schema` file generated at `brain init`. The shell expects matching env at runtime. There is no shared canonical source.
 
-- `packages/brain-cli/src/lib/env-schema.ts:160-175` (`buildInstanceEnvSchema`) composes the schema from inlined string fragments: `deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`, plus a model-specific schema resolved from `packages/brain-cli/src/lib/generated/bundled-model-env-schemas.ts`.
+- `packages/brain-cli/src/lib/env-schema.ts` (`buildInstanceEnvSchema`) composes the schema from inlined string fragments: `deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`, plus a model-specific schema resolved from `packages/brain-cli/src/lib/generated/bundled-model-env-schemas.ts`.
 - The shell reads env at runtime through `shell/core/src/config/` and individual services (ai-service, directory-sync, embedding-service, etc.).
-- A test (`packages/brain-cli/src/lib/env-schema.test.ts`) keeps the CLI side internally honest, but does not assert against actual shell expectations.
+- A test (`packages/brain-cli/test/env-schema.test.ts`) keeps the CLI side internally honest, but does not assert against actual shell expectations.
 
 Adding a new env var the shell needs requires editing both the CLI's bundled schema (so `brain init` scaffolds it) and the shell service that reads it. Drift is silent: forget the CLI side and the operator gets a useless `.env.schema`; forget the shell side and the var is never read.
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import { SkillPlugin } from "../src/plugins/skill-plugin";
+import { SKILL_ENTITY_TYPE } from "../src/lib/constants";
 import { createPluginHarness } from "@brains/plugins/test";
 
 function installWithJobQueue(): {
@@ -27,6 +28,16 @@ function installWithJobQueue(): {
 }
 
 describe("Skill derivation on initial sync", () => {
+  it("should register skill entity type with projectionSource: false", async () => {
+    const harness = createPluginHarness<SkillPlugin>({});
+    await harness.installPlugin(new SkillPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig(SKILL_ENTITY_TYPE)
+        .projectionSource,
+    ).toBe(false);
+  });
+
   it("should queue projection after sync:initial:completed", async () => {
     const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
 
@@ -114,7 +125,52 @@ describe("Skill derivation on initial sync", () => {
     harness.reset();
   });
 
-  it("should queue topic-change derivation after initial sync even when bootstrap is skipped", async () => {
+  it("should queue topic-batch-completed derivation after initial sync even when bootstrap is skipped", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue();
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-skill",
+        entityType: "skill",
+        content:
+          "---\nname: Existing\ndescription: Existing skill\ntags: []\nexamples: []\n---\n",
+        metadata: {
+          name: "Existing",
+          description: "Existing skill",
+          tags: [],
+          examples: [],
+        },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+
+    await harness.sendMessage(
+      "topics:batch-completed",
+      { created: 1, merged: 0, skipped: 0, batches: 1 },
+      "topics",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "skill:project",
+      data: { mode: "derive", replaceAll: true, reason: "topic-change" },
+      options: expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "skill-derivation:topic-change",
+      }),
+    });
+
+    harness.reset();
+  });
+
+  it("should not queue derivation directly from raw topic entity changes", async () => {
     const { harness, plugin, enqueue } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
@@ -146,15 +202,7 @@ describe("Skill derivation on initial sync", () => {
       "entity-service",
     );
 
-    expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith({
-      type: "skill:project",
-      data: { mode: "derive", replaceAll: true, reason: "topic-change" },
-      options: expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "skill-derivation:topic-change",
-      }),
-    });
+    expect(enqueue).not.toHaveBeenCalled();
 
     harness.reset();
   });

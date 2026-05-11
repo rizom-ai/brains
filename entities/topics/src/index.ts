@@ -13,7 +13,7 @@ import {
   type TopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
-import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
+import { TopicProcessingBatchHandler } from "./handlers/topic-processing-batch-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicListTemplate } from "./templates/topic-list";
@@ -28,6 +28,7 @@ import {
   extractAllTopics,
   getInitialProjectionJobOptions,
   rebuildAllTopics,
+  TopicSourceBatchBuffer,
   type TopicProjectionJobData,
 } from "./lib/topic-projection";
 import {
@@ -50,13 +51,14 @@ export class TopicsPlugin extends EntityPlugin<
   readonly adapter = topicAdapter;
 
   declare protected config: TopicsPluginConfig;
+  private readonly sourceBatch = new TopicSourceBatchBuffer();
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 0.5 };
+    return { weight: 0.5, projectionSource: false };
   }
 
   protected override getTemplates(): Record<string, Template> {
@@ -89,6 +91,8 @@ export class TopicsPlugin extends EntityPlugin<
             config: this.config,
             extractAllTopics: () => this.extractAllTopics(context),
             rebuildAllTopics: () => this.rebuildAllTopics(context),
+            sourceBatch: this.sourceBatch,
+            isEntityPublished: (entity) => this.isEntityPublished(entity),
           }),
         },
         initialSync: {
@@ -103,26 +107,36 @@ export class TopicsPlugin extends EntityPlugin<
           jobData: (payload): TopicProjectionJobData | null => {
             const entity = payload.entity;
             if (!entity) return null;
-            if (!this.shouldProcessEntityType(entity.entityType)) return null;
+            if (
+              !this.shouldProcessEntityType(
+                entity.entityType,
+                context.entityService,
+              )
+            ) {
+              return null;
+            }
             if (!this.isEntityPublished(entity)) return null;
-            return {
-              mode: "source",
+            this.sourceBatch.add({
               entityId: entity.id,
               entityType: entity.entityType,
               contentHash: entity.contentHash,
+            });
+            return {
+              mode: "source-batch",
               minRelevanceScore: this.config.minRelevanceScore,
               autoMerge: this.config.autoMerge,
               mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
             };
           },
-          jobOptions: (payload) => ({
+          jobOptions: () => ({
             priority: 5,
             source: TOPICS_JOB_SOURCE,
-            deduplication: "coalesce",
-            deduplicationKey: `topics-source:${payload.entityType}:${payload.entityId}:${payload.entity?.contentHash ?? "unknown"}`,
+            delayMs: this.config.sourceChangeBatchDelayMs,
+            deduplication: "skip",
+            deduplicationKey: "topics-source-batch",
             metadata: {
               operationType: "data_processing" as const,
-              operationTarget: `topic-projection:${payload.entityType}:${payload.entityId}`,
+              operationTarget: "topic-source-batch",
               pluginId: TOPICS_PLUGIN_ID,
             },
           }),
@@ -135,8 +149,11 @@ export class TopicsPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     // Job handlers
-    const processingHandler = new TopicProcessingHandler(context, this.logger);
-    context.jobs.registerHandler("process-single", processingHandler);
+    const batchProcessingHandler = new TopicProcessingBatchHandler(
+      context,
+      this.logger,
+    );
+    context.jobs.registerHandler("process-batch", batchProcessingHandler);
 
     // Insights
     context.insights.register(
@@ -165,9 +182,17 @@ export class TopicsPlugin extends EntityPlugin<
     );
   }
 
-  public shouldProcessEntityType(entityType: string): boolean {
+  public shouldProcessEntityType(
+    entityType: string,
+    entityService: {
+      getEntityTypeConfig: (type: string) => EntityTypeConfig;
+    },
+  ): boolean {
     if (entityType === TOPIC_ENTITY_TYPE) return false;
-    return this.config.includeEntityTypes.includes(entityType);
+    if (!this.config.includeEntityTypes.includes(entityType)) return false;
+    return (
+      entityService.getEntityTypeConfig(entityType).projectionSource !== false
+    );
   }
 
   public isEntityPublished(entity: BaseEntity): boolean {
@@ -185,7 +210,7 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType),
+        this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }
@@ -195,7 +220,7 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType),
+        this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }

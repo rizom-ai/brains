@@ -1,5 +1,9 @@
 # Plan: Memory Reduction — Registries, Templates & Eager Loading
 
+## Status
+
+Proposed. Needs a fresh profile before implementation — some quick wins have already happened (e.g. the old hydration path was removed), so treat the phase list as a candidate checklist rather than current measurements.
+
 ## Context
 
 The app uses ~860MB at runtime. The user identified templates-in-memory and the proliferation of registries as likely contributors. Exploration confirmed:
@@ -43,39 +47,25 @@ const after = process.memoryUsage();
 
 ## Phase 1: Quick Wins (1 day)
 
-### 1A. Externalize Zod from hydration bundles
+### 1A. Lazy-load OpenAI and Google AI providers
 
-**File:** `scripts/compile-hydration.ts` (line 34)
+**File:** `shell/ai-service/src/provider-clients.ts`
 
-Current `external` list only has Preact + crypto. Add `@brains/utils`, `zod`, and all `@brains/ui-library` internals so Zod doesn't get bundled into the 735KB hydration script. Also enable `minify: true`.
-
-**Expected savings:** Dashboard hydration string drops from 735KB to ~50-100KB.
-
-### 1B. Lazy-load OpenAI and Google AI providers
-
-**File:** `shell/ai-service/src/aiService.ts` (lines 1-4, 69-84)
-
-Keep `@ai-sdk/anthropic` eager (always used). Convert OpenAI + Google to dynamic `await import()` in their respective `generateImageWith*` methods. The providers are only needed for image generation and only if API keys are set.
+Currently eager-imports `@ai-sdk/anthropic`, `@ai-sdk/openai`, and `@ai-sdk/google` at module load. Keep Anthropic eager (always used). Convert OpenAI + Google to dynamic `await import()` inside `createProviderClients()` so they're only parsed when an API key for that provider is present. Image generation in `image-generation.ts` and embeddings in `online-embedding-provider.ts` already go through this factory, so they pick up the laziness automatically.
 
 ```typescript
-// Lines 2-4: Remove static imports of openai + google
-// Lines 74-84: Replace eager provider creation with lazy getters
-private async getOpenAIProvider() {
-  if (!this._openai && this.config.openaiApiKey) {
-    const { createOpenAI } = await import("@ai-sdk/openai");
-    this._openai = createOpenAI({ apiKey: this.config.openaiApiKey });
-  }
-  return this._openai;
+// Replace static imports of openai + google with lazy getters inside the factory:
+async function getOpenAI(apiKey: string) {
+  const { createOpenAI } = await import("@ai-sdk/openai");
+  return createOpenAI({ apiKey });
 }
 ```
 
 **Expected savings:** 5-15MB (two SDK modules + their transitive deps not parsed by V8/JSC).
 
-### 1C. Hydration pipeline removed
+### 1B. Hydration pipeline removed
 
-The old hydration path was removed instead of optimized.
-
-See `docs/hydration-pattern.md` for the retired approach and recovery notes.
+The old hydration path was removed instead of optimized. See `docs/hydration-pattern.md` for the retired approach and recovery notes.
 
 ---
 
@@ -211,7 +201,7 @@ After each phase:
 ```
 Phase 0 (profile)
   ↓
-Phase 1A + 1B + 1C (parallel, quick wins)
+Phase 1A (lazy OpenAI/Google providers — quick win)
   ↓
 Phase 3A (lazy AI SDK — easy, high impact)
   ↓
