@@ -34,24 +34,15 @@ export class BatchOperationsManager {
    */
   prepareBatchOperations(
     files: string[],
-    options?: { includeCleanup?: boolean },
+    options?: { skipCleanup?: boolean },
   ): BatchOperationResult {
-    if (files.length === 0) {
-      return {
-        operations: [],
-        exportOperationsCount: 0,
-        importOperationsCount: 0,
-        totalFiles: 0,
-      };
-    }
-
     const operations: BatchOperation[] = [];
 
     const importOps = this.createImportOperations(files);
     operations.push(...importOps);
     const importOperationsCount = importOps.length;
 
-    if (options?.includeCleanup) {
+    if (!options?.skipCleanup) {
       operations.push({ type: "directory-cleanup", data: {} });
     }
 
@@ -80,7 +71,7 @@ export class BatchOperationsManager {
     source: string,
     files: string[],
     metadata?: BatchMetadata,
-    options?: { includeCleanup?: boolean },
+    options?: { skipCleanup?: boolean },
   ): Promise<BatchResult | null> {
     const batchData = this.prepareBatchOperations(files, options);
 
