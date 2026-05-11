@@ -4,9 +4,8 @@ import type {
   JobHandler,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { ProgressReporter, z } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { TopicsPluginConfig } from "../schemas/config";
-import { TopicExtractionHandler } from "../handlers/topic-extraction-handler";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
@@ -21,26 +20,15 @@ export const topicProjectionJobDataSchema = z.discriminatedUnion("mode", [
     reason: z.string().optional(),
   }),
   z.object({
-    mode: z.literal("source"),
-    entityId: z.string(),
-    entityType: z.string(),
-    contentHash: z.string().optional(),
-    minRelevanceScore: z.number().min(0).max(1).optional(),
-    autoMerge: z.boolean().optional(),
-    mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
-  }),
-  z.object({
     mode: z.literal("source-batch"),
     minRelevanceScore: z.number().min(0).max(1).optional(),
-    autoMerge: z.boolean().optional(),
-    mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
   }),
 ]);
 
 export interface TopicSourceRef {
   entityId: string;
   entityType: string;
-  contentHash?: string;
+  contentHash: string;
 }
 
 export interface TopicSourceBatchResult {
@@ -89,6 +77,7 @@ interface ExtractionParams {
   logger: Logger;
   shouldProcessEntityType: (entityType: string) => boolean;
   isEntityPublished: (entity: BaseEntity) => boolean;
+  minRelevanceScore: number;
 }
 
 export function createTopicProjectionHandler(params: {
@@ -97,15 +86,10 @@ export function createTopicProjectionHandler(params: {
   config: TopicsPluginConfig;
   extractAllTopics: () => Promise<void>;
   rebuildAllTopics: () => Promise<void>;
-  sourceBatch?: TopicSourceBatchStore;
-  isEntityPublished?: (entity: BaseEntity) => boolean;
+  sourceBatch: TopicSourceBatchStore;
+  isEntityPublished: (entity: BaseEntity) => boolean;
 }): JobHandler<string, TopicProjectionJobData, unknown> {
   const { context, logger, config } = params;
-  const extractionHandler = new TopicExtractionHandler(context, logger);
-  const progressReporter = ProgressReporter.from(async () => {});
-  if (!progressReporter) {
-    throw new Error("Failed to create progress reporter");
-  }
 
   return {
     process: async (data): Promise<unknown> => {
@@ -117,37 +101,13 @@ export function createTopicProjectionHandler(params: {
         await params.rebuildAllTopics();
         return { success: true };
       }
-      if (data.mode === "source-batch") {
-        return processSourceBatch({
-          context,
-          logger,
-          ...(params.sourceBatch && { sourceBatch: params.sourceBatch }),
-          ...(params.isEntityPublished && {
-            isEntityPublished: params.isEntityPublished,
-          }),
-          minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
-        });
-      }
-
-      const entity = await context.entityService.getEntity({
-        entityType: data.entityType,
-        id: data.entityId,
+      return processSourceBatch({
+        context,
+        logger,
+        sourceBatch: params.sourceBatch,
+        isEntityPublished: params.isEntityPublished,
+        minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
       });
-      if (!entity) return { success: false, topicsExtracted: 0 };
-
-      return extractionHandler.process(
-        {
-          entityId: data.entityId,
-          entityType: data.entityType,
-          contentHash: data.contentHash ?? entity.contentHash,
-          minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
-          autoMerge: data.autoMerge ?? config.autoMerge,
-          mergeSimilarityThreshold:
-            data.mergeSimilarityThreshold ?? config.mergeSimilarityThreshold,
-        },
-        `topic-projection:${data.entityType}:${data.entityId}`,
-        progressReporter,
-      );
     },
     validateAndParse: (data: unknown): TopicProjectionJobData | null => {
       const result = topicProjectionJobDataSchema.safeParse(data ?? {});
@@ -159,37 +119,39 @@ export function createTopicProjectionHandler(params: {
 async function processSourceBatch(params: {
   context: EntityPluginContext;
   logger: Logger;
-  sourceBatch?: TopicSourceBatchStore;
-  isEntityPublished?: (entity: BaseEntity) => boolean;
+  sourceBatch: TopicSourceBatchStore;
+  isEntityPublished: (entity: BaseEntity) => boolean;
   minRelevanceScore: number;
 }): Promise<TopicSourceBatchResult> {
-  const refs = params.sourceBatch?.drain() ?? [];
+  const refs = params.sourceBatch.drain();
+  const fetched = await Promise.all(
+    refs.map(async (ref) => ({
+      ref,
+      entity: await params.context.entityService.getEntity({
+        entityType: ref.entityType,
+        id: ref.entityId,
+      }),
+    })),
+  );
+
   let stale = 0;
   let missing = 0;
   let unpublished = 0;
   const toExtract: BaseEntity[] = [];
 
-  for (const ref of refs) {
-    const entity = await params.context.entityService.getEntity({
-      entityType: ref.entityType,
-      id: ref.entityId,
-    });
-
+  for (const { ref, entity } of fetched) {
     if (!entity) {
       missing++;
       continue;
     }
-
-    if (ref.contentHash && entity.contentHash !== ref.contentHash) {
+    if (entity.contentHash !== ref.contentHash) {
       stale++;
       continue;
     }
-
-    if (params.isEntityPublished && !params.isEntityPublished(entity)) {
+    if (!params.isEntityPublished(entity)) {
       unpublished++;
       continue;
     }
-
     toExtract.push(entity);
   }
 
@@ -267,6 +229,7 @@ export async function extractAllTopics(
     toExtract,
     params.context,
     params.logger,
+    { minRelevanceScore: params.minRelevanceScore },
   );
 
   params.logger.info("Batch topic extraction complete", result);
@@ -283,6 +246,7 @@ export async function rebuildAllTopics(
     toExtract,
     params.context,
     params.logger,
+    params.minRelevanceScore,
   );
   params.logger.info("Topic rebuild complete", result);
 }
@@ -291,6 +255,7 @@ export async function replaceAllTopics(
   entities: BaseEntity[],
   context: EntityPluginContext,
   logger: Logger,
+  minRelevanceScore: number,
 ): Promise<Required<TopicBatchResult>> {
   const topicService = new TopicService(context.entityService, logger);
   const existingTopics = await topicService.listTopics();
@@ -308,7 +273,9 @@ export async function replaceAllTopics(
     };
   }
 
-  const result = await extractTopicsBatched(entities, context, logger);
+  const result = await extractTopicsBatched(entities, context, logger, {
+    minRelevanceScore,
+  });
   return {
     deleted: existingTopics.length,
     ...result,

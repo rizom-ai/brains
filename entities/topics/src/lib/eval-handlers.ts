@@ -316,7 +316,12 @@ export function registerTopicEvalHandlers(params: {
       createEntityFromInput(entity, `-rebuild-${index}`),
     );
 
-    const result = await replaceAllTopics(entities, context, logger);
+    const result = await replaceAllTopics(
+      entities,
+      context,
+      logger,
+      config.minRelevanceScore,
+    );
     const topics = await context.entityService.listEntities({
       entityType: TOPIC_ENTITY_TYPE,
     });
@@ -374,7 +379,9 @@ export function registerTopicEvalHandlers(params: {
       createEntityFromInput(entity, `-batch-${index}`),
     );
 
-    const result = await extractTopicsBatched(entities, context, logger);
+    const result = await extractTopicsBatched(entities, context, logger, {
+      minRelevanceScore: config.minRelevanceScore,
+    });
 
     // Return created topics so the eval can inspect them
     const topics = await context.entityService.listEntities({

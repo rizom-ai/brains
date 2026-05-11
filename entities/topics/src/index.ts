@@ -37,6 +37,7 @@ import {
   TOPIC_PROJECTION_JOB_TYPE,
   TOPICS_JOB_SOURCE,
   TOPICS_PLUGIN_ID,
+  TOPICS_SOURCE_BATCH_DEDUP_KEY,
 } from "./lib/constants";
 import packageJson from "../package.json";
 
@@ -121,19 +122,14 @@ export class TopicsPlugin extends EntityPlugin<
               entityType: entity.entityType,
               contentHash: entity.contentHash,
             });
-            return {
-              mode: "source-batch",
-              minRelevanceScore: this.config.minRelevanceScore,
-              autoMerge: this.config.autoMerge,
-              mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
-            };
+            return { mode: "source-batch" };
           },
           jobOptions: () => ({
             priority: 5,
             source: TOPICS_JOB_SOURCE,
             delayMs: this.config.sourceChangeBatchDelayMs,
             deduplication: "skip",
-            deduplicationKey: "topics-source-batch",
+            deduplicationKey: TOPICS_SOURCE_BATCH_DEDUP_KEY,
             metadata: {
               operationType: "data_processing" as const,
               operationTarget: "topic-source-batch",
@@ -212,6 +208,7 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
+      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 
@@ -222,6 +219,7 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
+      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 }

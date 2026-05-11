@@ -159,7 +159,6 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/topic-merge.ts` — similarity and normalization heuristics
 - `src/lib/topic-merge-synthesizer.ts` — AI synthesis for merges
 - `src/lib/topic-service.ts` — topic CRUD + merge helpers
-- `src/handlers/topic-extraction-handler.ts` — extraction job handler
 - `src/handlers/topic-processing-handler.ts` — per-topic create/merge handler
 
 ## Validation

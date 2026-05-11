@@ -71,6 +71,8 @@ describe("topic projection helpers", () => {
       config,
       extractAllTopics: mock(async (): Promise<void> => undefined),
       rebuildAllTopics: mock(async (): Promise<void> => undefined),
+      sourceBatch: new TopicSourceBatchBuffer(),
+      isEntityPublished: () => true,
     });
 
     expect(handler.validateAndParse({ mode: "derive" })).toEqual({
@@ -79,23 +81,9 @@ describe("topic projection helpers", () => {
     expect(handler.validateAndParse({ mode: "rebuild" })).toEqual({
       mode: "rebuild",
     });
-    expect(
-      handler.validateAndParse({
-        mode: "source",
-        entityId: "post-1",
-        entityType: "post",
-        minRelevanceScore: 0.7,
-      }),
-    ).toMatchObject({
-      mode: "source",
-      entityId: "post-1",
-      entityType: "post",
-      minRelevanceScore: 0.7,
-    });
     expect(handler.validateAndParse({ mode: "source-batch" })).toEqual({
       mode: "source-batch",
     });
-    expect(handler.validateAndParse({ mode: "source" })).toBeNull();
     expect(handler.validateAndParse({ mode: "unknown" })).toBeNull();
   });
 
@@ -113,6 +101,8 @@ describe("topic projection helpers", () => {
       config,
       extractAllTopics,
       rebuildAllTopics,
+      sourceBatch: new TopicSourceBatchBuffer(),
+      isEntityPublished: () => true,
     });
 
     const deriveResult = await handler.process(
@@ -131,36 +121,6 @@ describe("topic projection helpers", () => {
 
     expect(extractAllTopics).toHaveBeenCalledTimes(1);
     expect(rebuildAllTopics).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns an empty extraction result when a source entity is missing", async () => {
-    const getEntity = mock(async (): Promise<BaseEntity | null> => null);
-    const context = {
-      entityService: { getEntity },
-    } as unknown as EntityPluginContext;
-    const handler = createTopicProjectionHandler({
-      context,
-      logger: createSilentLogger(),
-      config,
-      extractAllTopics: mock(async (): Promise<void> => undefined),
-      rebuildAllTopics: mock(async (): Promise<void> => undefined),
-    });
-
-    const result = await handler.process(
-      {
-        mode: "source",
-        entityId: "missing-post",
-        entityType: "post",
-      },
-      "source-job",
-      progressReporter,
-    );
-
-    expect(result).toEqual({ success: false, topicsExtracted: 0 });
-    expect(getEntity).toHaveBeenCalledWith({
-      entityType: "post",
-      id: "missing-post",
-    });
   });
 
   it("drains source-change batches and skips stale, missing, and unpublished entities", async () => {
@@ -300,7 +260,12 @@ describe("topic projection helpers", () => {
       },
     } as unknown as EntityPluginContext;
 
-    const result = await replaceAllTopics([], context, createSilentLogger());
+    const result = await replaceAllTopics(
+      [],
+      context,
+      createSilentLogger(),
+      0.5,
+    );
 
     expect(result).toEqual({
       deleted: 2,

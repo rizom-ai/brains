@@ -136,12 +136,7 @@ describe("Initial sync triggers batch projection", () => {
     expect(enqueue).toHaveBeenCalledTimes(2);
     expect(enqueue).toHaveBeenLastCalledWith({
       type: "topic:project",
-      data: {
-        mode: "source-batch",
-        minRelevanceScore: expect.any(Number),
-        autoMerge: expect.any(Boolean),
-        mergeSimilarityThreshold: expect.any(Number),
-      },
+      data: { mode: "source-batch" },
       options: expect.objectContaining({
         deduplication: "skip",
         deduplicationKey: "topics-source-batch",
