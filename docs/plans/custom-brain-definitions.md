@@ -2,7 +2,7 @@
 
 ## Status
 
-Long-term / deferred. The underlying `defineBrain()` model API exists, but instance-local `brain: ./brain.ts` boot is not wired. Keep this as an escape hatch for concrete future needs; `brain.yaml` plus external plugins remains the recommended path for now.
+Parked. The underlying `defineBrain()` model API exists, but instance-local `brain: ./brain.ts` boot is not wired. Keep as an escape hatch for concrete future needs; `brain.yaml` plus external plugins remains the recommended path for now.
 
 ## Goal
 

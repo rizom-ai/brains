@@ -1,5 +1,9 @@
 # Plan: Hosted Rover Discord UX (DM-only + Internal Forwarding + A2A Mesh)
 
+## Status
+
+Proposed. Hosted-product plan; depends on the hosted-rovers control plane, multi-user identity, and A2A auth hardening.
+
 ## Context
 
 Hosted Rover needs a Discord UX that supports many user-specific agents. Design exploration mapped an unwinnable triangle:

@@ -2,17 +2,16 @@
 
 ## Status
 
-Draft. The initial/rebuild batch extraction work exists, but source-change extraction and per-topic processing still have N+1/fan-out behavior.
+Active. Slice 0 (projection-cycle guard) shipped in `7eb41713f`. Slices 1–4 (per-topic processing fanout, source-change backpressure, skill-derivation debounce, batch-extractor DB access) and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
 
 Relevant prior work:
 
 - `f175daac5 feat(topics): Phase 2b — batch extractor + deriveAll() wiring`
 - `d203511db feat(topics): trigger batch deriveAll on initial sync`
 - `f88e0ce10 fix(derivation): backpressure initial topic and skill jobs`
+- `7eb41713f fix(topics): guard projection source cycles` — Slice 0
 
-What survived: initial sync and rebuild use batched extraction.
-
-What still needs work: projection-cycle guards, source-change extraction, per-topic processing, and downstream skill derivation backpressure.
+What survived: initial sync and rebuild use batched extraction; topic-derived entity types (`topic`, `skill`) opt out of projection sourcing via `projectionSource: false`.
 
 ## Problem
 
@@ -60,9 +59,9 @@ Known cycle risks:
 - Reintroduce durable topic source tracking in topic metadata.
 - Combine topics, skills, and job-queue refactors in one large PR.
 
-## Slice 0: break projection cycles
+## Slice 0: break projection cycles (shipped)
 
-Do this first. Backpressure reduces volume, but it does not fix a logical cycle.
+Done in `7eb41713f`. Backpressure reduces volume, but it does not fix a logical cycle — fix the cycle first.
 
 ### Tests
 
@@ -210,6 +209,20 @@ Even `extractTopicsBatched` still does per-topic DB checks:
 - Same gates as Slice 1 (`bun run typecheck`, targeted tests, `bun run lint`, `bun run eval --skip-llm-judge`, Rover eval).
 - A burst-extraction test shows existing-topic queries scale with batches, not with extracted topics.
 
+## Slice 5: eval parity for topic merge
+
+Folded in from the former `topic-auto-merge` plan. The `topicMergeJobDataSchema` cleanup is already done; one deliverable remains.
+
+`checkMergeSimilarity` in `entities/topics/src/lib/eval-handlers.ts` still uses a simplified title-match eval path instead of exercising the real merge-candidate detection path.
+
+### Acceptance
+
+- evals cover the same decision path the runtime uses
+- gray-zone and no-merge cases stay explicit
+- runtime and eval behavior stop drifting
+
+User-facing docs and examples should keep describing the current bounded-alias merge model; that's ongoing maintenance, not a discrete deliverable.
+
 ## Risks
 
 - Coalescing without durable dirty-source tracking can drop work across restarts.
@@ -220,9 +233,10 @@ Even `extractTopicsBatched` still does per-topic DB checks:
 
 ## Suggested worktrees
 
-1. `fix/topics-cycle-guard` — Slice 0
+1. ~~`fix/topics-cycle-guard` — Slice 0~~ (shipped in `7eb41713f`)
 2. `fix/topics-process-batch` — Slices 1 and 4 (shared in-memory topic index)
 3. `fix/topics-source-backpressure` — Slice 2
 4. `fix/skill-derivation-debounce` — Slice 3
+5. `fix/topic-merge-eval-parity` — Slice 5
 
 Keep each slice reviewed and checked in before continuing.

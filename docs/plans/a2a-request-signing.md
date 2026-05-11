@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Second plan in the integrated-auth sequence (Brain OAuth Provider → this → CMS heavy backend). Supersedes the prior `2026-03-15-a2a-authentication.md` follow-on, which left the question "is stronger auth worth adding" open.
+Proposed. A2A-specific auth hardening that builds on the existing `shell/auth-service` JWKS/auth foundation. Supersedes the prior `2026-03-15-a2a-authentication.md` follow-on, which left the question "is stronger auth worth adding" open.
 
 ## Context
 
@@ -24,7 +24,7 @@ A2A traffic between brains is authenticated by per-brain Ed25519 signing keys, w
 ## Non-goals
 
 - Adopting full AAuth (Person Server, missions, AAuth-Requirement first-call ceremony, `aauth:local@domain` identifier scheme). This plan ships the foundation only — RFC 9421 plus per-instance keys plus JWKS — which is what AAuth itself sits on top of.
-- Replacing the OAuth provider for human/MCP auth. That is a separate plan.
+- Replacing the existing OAuth/passkey provider for human/MCP auth.
 - Changing the permission model. The anchor / trusted / public levels in `permissionService` remain authoritative; this plan only changes what feeds into the identity column.
 - Replay protection beyond a freshness window. A nonce store may be added later; the freshness window is the v1 bound.
 - Supporting reverse proxies that mutate covered headers. Operators must run with proxies that preserve `Host`, `Date`, and request body integrity. Documented as a constraint, not a feature.
@@ -48,11 +48,11 @@ This covers everything that matters for request integrity without depending on h
 
 The `keyid` parameter resolves to a JWKS URL at the same domain. Verified domain is the identity. Operators trust peers by listing domains in `trustedAgents: Record<domain, identity>`. No identifier scheme is invented; the brain's existing `context.domain` is the identity, consistent with how the Agent Card already advertises the brain.
 
-### 3. Separate keypair from the OAuth provider's signing key
+### 3. Separate keypair from the auth-service signing key
 
-The OAuth provider (plan 2) has its own keypair for issuing JWTs. This plan introduces a second keypair for signing A2A requests. Both are published via the same `/.well-known/jwks.json` endpoint, distinguished by `use`:
+`shell/auth-service` already has its own keypair for issuing JWTs. This plan introduces a second keypair for signing A2A requests. Both are published via the same `/.well-known/jwks.json` endpoint, distinguished by `use`:
 
-- `use: sig`, `alg: ES256` — OAuth provider key
+- `use: sig`, `alg: ES256` — auth-service JWT key
 - `use: sig`, `alg: EdDSA` — A2A signing key
 
 Separating the keys keeps blast radius contained: rotating the OAuth signing key does not invalidate A2A peer relationships, and vice versa.
@@ -60,7 +60,7 @@ Separating the keys keeps blast radius contained: rotating the OAuth signing key
 ### 4. Library choice
 
 - `http-message-signatures` (npm) for sign / verify
-- `jose` for JWKS parsing and key import (already in use by the OAuth provider plan)
+- `jose` for JWKS parsing and key import (already in use by `shell/auth-service`)
 
 If the available library does not cover Ed25519 + the chosen covered components cleanly, fall back to a small in-package implementation against the canonical-components algorithm. Verified scope is small enough to own.
 
@@ -72,7 +72,7 @@ A new shared package at `shared/http-signatures` or `shell/http-signatures`. Own
 - `verifyRequest(req, jwksResolver) → { keyId, domain } | error`
 - `JwksResolver` — TTL-cached fetcher of remote brains' JWKS
 
-Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside the OAuth provider's key custody.
+Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (generate / persist / load) lives in the same package or in `shell/auth-service` alongside existing auth key custody.
 
 ### 6. Trust-establishment via the existing agent-directory flow
 
@@ -156,7 +156,7 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 - module that generates an Ed25519 keypair on first run, persists in the brain's data dir, reloads thereafter
 - exposes the public key for inclusion in `/.well-known/jwks.json`
-- coordinates with the OAuth provider package's existing JWKS endpoint
+- coordinates with `shell/auth-service`'s existing JWKS endpoint
 
 ### Phase 2 — signing library
 
@@ -204,7 +204,7 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 
 ## Related
 
-- `docs/plans/brain-oauth-provider.md` — co-shares the JWKS endpoint
+- `shell/auth-service` — existing OAuth/JWKS foundation that this plan extends
 - `docs/plans/cms-heavy-backend.md` — sequenced after this plan
 - `docs/plans/multi-user.md` — depends on this plan for cross-interface identity
 - `entities/agent-discovery` — saved-agent allowlist semantics this plan plugs into

@@ -1,5 +1,9 @@
 # Plan: Local AI Runtime
 
+## Status
+
+Partial. Existing services cover online embeddings (`IAIService`, `IEmbeddingService`, async embedding jobs, lazy Sharp loading). Remaining: the proposed unified `IAIProvider`, `HttpAIProvider`, `runtime.yaml`, and separate local AI runtime process.
+
 ## Context
 
 The brain currently uses OpenAI online embeddings and cloud APIs for text generation (Anthropic, OpenAI, Google). Sharp is still bundled for image optimization. This creates two problems:

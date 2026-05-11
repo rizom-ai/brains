@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned / near-term. The external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
+Proposed. Near-term: the external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
 
 ## Current state
 

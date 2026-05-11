@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned. This is the natural follow-up to the site-builder boundary cleanup if we want renderer flexibility beyond the current Preact static builder.
+Proposed. The natural follow-up to the site-builder boundary cleanup if we want renderer flexibility beyond the current Preact static builder.
 
 ## Context
 
@@ -125,8 +125,22 @@ This is illustrative only. The real shape should be derived from existing templa
 - `bun run --filter @brains/site-builder-plugin typecheck`
 - Runtime smoke with the current Preact builder if renderer-facing behavior changes.
 
-## Relationship to Astro
+## Astro renderer spike
 
-This plan should happen before or alongside the Astro spike in [`astro-renderer-spike.md`](./astro-renderer-spike.md).
+Astro is the first concrete proof point for this contract work. The spike should stay behind the existing static builder contract/factory shape and should not move plugin orchestration out of `plugins/site-builder`.
 
-The Astro spike answers whether Astro is viable as a renderer. This plan makes sure templates can be consumed by more than one renderer without leaking plugin orchestration or Preact assumptions into shared contracts.
+Questions to answer:
+
+1. Can Astro render one static route and one entity detail route from the existing route/content contracts?
+2. Can existing Preact layouts/templates be reused as Astro islands, or would they need migration?
+3. Can Astro consume entity content directly through a loader/integration, or does it require generated files?
+4. Does the current theme/CSS-variable pipeline work under Astro without visual regressions?
+5. Can build progress and failures be surfaced through the existing site-build job flow?
+
+Spike validation:
+
+- Build with the current Preact builder to confirm no regression.
+- Experimental Astro output preserves site metadata, layout metadata, navigation, and CTA behavior for tested routes.
+- Runtime smoke still uses the current Preact builder unless/until Astro is explicitly selected.
+
+The spike succeeds if Astro can render representative routes with the neutral contracts and without plugin orchestration changes. Abandon it if it requires broad contract churn, breaks site package compatibility, or cannot preserve current rendering behavior without significant migration work.
