@@ -27,6 +27,7 @@ import {
 import { createActor, fromPromise, waitFor } from "xstate";
 import { buildModelMessages } from "./conversation-messages";
 import { extractToolResults } from "./agent-results";
+import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
 
 /**
@@ -50,6 +51,7 @@ export class AgentService implements IAgentService {
   private stepLimit: number;
   private agentFactory: AgentConfig["agentFactory"];
   private agentInstructions: AgentConfig["agentInstructions"];
+  private assistantActorId: string | undefined;
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -140,6 +142,7 @@ export class AgentService implements IAgentService {
     this.stepLimit = config.stepLimit ?? DEFAULT_STEP_LIMIT;
     this.agentFactory = config.agentFactory;
     this.agentInstructions = config.agentInstructions;
+    this.assistantActorId = config.assistantActorId;
   }
 
   /**
@@ -327,7 +330,7 @@ export class AgentService implements IAgentService {
         content: result.text,
         ...this.withMessageMetadata(
           this.buildMessageMetadata(
-            this.buildAssistantActor(),
+            this.getAssistantActor(),
             this.buildAssistantSource(channelId, channelName),
           ),
         ),
@@ -399,7 +402,7 @@ export class AgentService implements IAgentService {
       content: resultText,
       ...this.withMessageMetadata(
         this.buildMessageMetadata(
-          this.buildAssistantActor(),
+          this.getAssistantActor(),
           this.buildAssistantSource(channelId, channelName),
         ),
       ),
@@ -427,14 +430,11 @@ export class AgentService implements IAgentService {
     return Object.keys(metadata).length > 0 ? { metadata } : {};
   }
 
-  private buildAssistantActor(): ConversationMessageActor {
-    return {
-      actorId: "brain:assistant",
-      interfaceType: "agent",
-      role: "assistant",
-      displayName: "Assistant",
-      isBot: true,
-    };
+  private getAssistantActor(): ConversationMessageActor {
+    return buildAssistantActor({
+      character: this.identityService.getCharacter(),
+      ...(this.assistantActorId ? { actorId: this.assistantActorId } : {}),
+    });
   }
 
   private buildAssistantSource(

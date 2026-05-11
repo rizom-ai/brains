@@ -57,6 +57,8 @@ export interface AgentConfig {
   agentFactory: BrainAgentFactory;
   /** Brain-specific behavior instructions from the brain definition */
   agentInstructions?: string[];
+  /** Stable actor id used for assistant messages, e.g. brain:relay */
+  assistantActorId?: string;
 }
 
 /**

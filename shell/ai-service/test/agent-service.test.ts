@@ -351,6 +351,63 @@ describe("AgentService", () => {
         }),
       );
     });
+
+    it("uses configured brain actor id and character name for assistant metadata", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          assistantActorId: "brain:relay",
+        },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "brain:relay",
+              interfaceType: "agent",
+              role: "assistant",
+              displayName: "Test Brain",
+              isBot: true,
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("keeps a stable assistant actor fallback when no brain actor id is configured", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "brain:assistant",
+              displayName: "Test Brain",
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   describe("tools integration", () => {

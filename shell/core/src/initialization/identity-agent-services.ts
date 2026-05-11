@@ -1,5 +1,6 @@
 import {
   AgentService,
+  createBrainActorId,
   createBrainAgentFactory,
   type IAgentService,
   type IAIService,
@@ -112,6 +113,7 @@ export function initializeIdentityAndAgentServices(
     maxTokens: aiService.getConfig().maxTokens,
     messageBus,
   });
+  const assistantActorId = createBrainActorId(config.name);
 
   const agentService = AgentService.getInstance(
     mcpService,
@@ -121,6 +123,7 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      ...(assistantActorId ? { assistantActorId } : {}),
       ...(config.agentInstructions && {
         agentInstructions: config.agentInstructions,
       }),

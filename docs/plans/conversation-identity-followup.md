@@ -2,6 +2,8 @@
 
 ## Status
 
+In progress. Slice 1 (assistant actor resolver) is implemented in this branch.
+
 Follow-up plan for the work intentionally deferred from `conversation-speaker-attribution` before merging that branch.
 
 The current branch preserves per-interface actor/source metadata, projects speaker-aware conversation memory, stores summary participants, and stores explicit decision/action attribution when it can be recovered safely. This plan covers the next identity layer after that merge.
@@ -78,14 +80,13 @@ Recommended first cut: add this to identity-service only if there is already a s
 
 ### Slice 1: Assistant actor resolver
 
-- Add an internal helper that resolves assistant actor metadata for `AgentService`.
-- Prefer brain character/app identity for display name.
-- Prefer a stable brain instance id for `actorId` if available.
-- Keep fallback behavior when no brain id is exposed.
-- Tests:
-  - assistant message metadata uses resolver output
-  - fallback remains stable
-  - display name follows brain identity when configured
+Implemented:
+
+- Added a helper that resolves assistant actor metadata for `AgentService`.
+- Assistant message display names now come from brain character identity.
+- Shell initialization passes a stable brain actor id derived from the configured brain name.
+- Direct `AgentService` construction keeps the stable `brain:assistant` fallback.
+- Tests cover configured actor id, fallback actor id, and display name behavior.
 
 ### Slice 2: Explicit canonical identity links
 
