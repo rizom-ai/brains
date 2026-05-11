@@ -42,9 +42,9 @@ input:
 
 expectedOutput:
   validateEach:
-    - path: totalTopics
-      equals: 1
-    - path: topics[0].title
+    - path: perEntity[0].extractedTitles[0]
       equals: Human-AI Collaboration
     - path: perEntity[1].extractedTitles[0]
       equals: Human-AI Collaboration
+    - path: perEntity[1].extractedTitles.length
+      equals: 1

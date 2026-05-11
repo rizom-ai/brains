@@ -1,13 +1,13 @@
 import type { IEntityService, SearchResult } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
+import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicMetadata } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { scoreTopicSimilarity } from "./topic-merge";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-
-const MAX_ALIASES = 5;
 
 export interface TopicMergeCandidate {
   topic: TopicEntity;
@@ -86,7 +86,7 @@ export class TopicService {
       metadata?: TopicMetadata;
     },
   ): Promise<TopicEntity> {
-    const metadata: TopicMetadata = params.metadata ?? { aliases: [] };
+    const metadata: TopicMetadata = params.metadata ?? {};
 
     const body = this.adapter.createTopicBody({
       title: params.title,
@@ -196,27 +196,43 @@ export class TopicService {
     });
   }
 
-  public mergeAliases(
-    existingAliases: string[] | undefined,
-    canonicalTitle: string,
-    candidateAliases: string[],
-  ): string[] {
-    const normalizedCanonical = canonicalTitle.trim().toLowerCase();
-    const seen = new Set<string>();
-    const merged: string[] = [];
+  /**
+   * Find an existing topic that should absorb the incoming title.
+   *
+   * Candidate pool = top-K vector search (semantic neighbors) ∪
+   * caller-provided `additionalCandidates` (in-batch state, freshly seeded
+   * topics whose embeddings aren't ready yet). Title-token similarity is
+   * the final arbiter — search just bounds the pool, it doesn't decide.
+   */
+  public async findMergeCandidate(params: {
+    incoming: Pick<ExtractedTopicData, "title">;
+    threshold: number;
+    searchLimit?: number;
+    additionalCandidates?: TopicEntity[];
+  }): Promise<TopicMergeCandidate | null> {
+    const searchResults = await this.searchTopics(
+      params.incoming.title,
+      params.searchLimit ?? 20,
+    );
 
-    for (const alias of [...(existingAliases ?? []), ...candidateAliases]) {
-      const trimmed = alias.trim();
-      if (trimmed.length === 0) continue;
-      if (trimmed.toLowerCase() === normalizedCanonical) continue;
-      const key = trimmed.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(trimmed);
-      if (merged.length >= MAX_ALIASES) break;
+    const candidates = new Map<string, TopicEntity>();
+    for (const result of searchResults) {
+      candidates.set(result.entity.id, result.entity);
+    }
+    for (const topic of params.additionalCandidates ?? []) {
+      candidates.set(topic.id, topic);
     }
 
-    return merged;
+    let best: TopicMergeCandidate | null = null;
+    for (const topic of candidates.values()) {
+      const { title } = this.adapter.parseTopicBody(topic.content);
+      const score = scoreTopicSimilarity(params.incoming, { title });
+      if (score < params.threshold) continue;
+      if (!best || score > best.score) {
+        best = { topic, title, score };
+      }
+    }
+    return best;
   }
 
   public async applySynthesizedMerge(params: {
@@ -225,21 +241,13 @@ export class TopicService {
       title: string;
       content: string;
     };
-    aliasCandidates: string[];
   }): Promise<TopicEntity | null> {
     const existing = await this.getTopic(params.existingId);
     if (!existing) return null;
 
-    const aliases = this.mergeAliases(
-      existing.metadata.aliases,
-      params.synthesized.title,
-      params.aliasCandidates,
-    );
-
     return this.updateTopic(params.existingId, {
       title: params.synthesized.title,
       content: params.synthesized.content,
-      metadata: { aliases },
     });
   }
 

@@ -32,7 +32,7 @@ function createTopic(id: string): BaseEntity {
     entityType: "topic",
     content: `---\ntitle: ${id}\n---\n${id}`,
     contentHash: "hash",
-    metadata: { aliases: [] },
+    metadata: {},
     created: now,
     updated: now,
   };
@@ -168,11 +168,19 @@ describe("topic projection helpers", () => {
       },
     } as unknown as EntityPluginContext;
 
-    const result = await replaceAllTopics([], context, createSilentLogger());
+    const result = await replaceAllTopics([], context, createSilentLogger(), {
+      includeEntityTypes: [],
+      minRelevanceScore: 0,
+      mergeSimilarityThreshold: 0.85,
+      autoMerge: false,
+      extractableStatuses: [],
+      enableAutoExtraction: false,
+    });
 
     expect(result).toEqual({
       deleted: 2,
       created: 0,
+      merged: 0,
       skipped: 0,
       batches: 0,
     });

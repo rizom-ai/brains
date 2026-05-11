@@ -1,9 +1,9 @@
 id: topics-process-topic-with-auto-merge-synthesis
-name: Auto-merge synthesizes canonical topic and alias
+name: Auto-merge synthesizes canonical topic
 description: >
   Tests the end-to-end auto-merge path: seed an existing canonical topic,
   process a new mergeable topic through TopicProcessingBatchHandler, and verify
-  that the result is still one topic with the incoming title preserved as an alias.
+  the result is a single topic carrying the canonical title.
 type: plugin
 tags:
   - topics
@@ -48,8 +48,6 @@ expectedOutput:
       equals: human-ai-collaboration
     - path: topics[0].title
       matches: "Human.*Collaboration"
-    - path: topics[0].metadata.aliases[0]
-      equals: Human-Agent Collaboration
   qualityCriteria:
     minRelevanceScore: 4
     minAccuracyScore: 4
@@ -58,5 +56,4 @@ expectedOutput:
       Evaluate the merged topic:
       1. Does the merged title stay a stable canonical topic rather than a rhetorical variant?
       2. Does the merged content preserve core ideas from both the existing and incoming topic?
-      3. Is the incoming title preserved as an alias rather than replacing the canonical topic?
-      4. Is the result a single coherent topic rather than a concatenation artifact?
+      3. Is the result a single coherent topic rather than a concatenation artifact?

@@ -13,7 +13,6 @@ import {
   type TopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
-import { TopicProcessingBatchHandler } from "./handlers/topic-processing-batch-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicListTemplate } from "./templates/topic-list";
@@ -141,13 +140,6 @@ export class TopicsPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    // Job handlers
-    const batchProcessingHandler = new TopicProcessingBatchHandler(
-      context,
-      this.logger,
-    );
-    context.jobs.registerHandler("process-batch", batchProcessingHandler);
-
     // Insights
     context.insights.register(
       "topic-distribution",
@@ -202,6 +194,7 @@ export class TopicsPlugin extends EntityPlugin<
     await extractAllTopics({
       context,
       logger: this.logger,
+      config: this.config,
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
@@ -212,6 +205,7 @@ export class TopicsPlugin extends EntityPlugin<
     await rebuildAllTopics({
       context,
       logger: this.logger,
+      config: this.config,
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),

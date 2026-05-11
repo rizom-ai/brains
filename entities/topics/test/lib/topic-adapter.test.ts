@@ -72,7 +72,7 @@ Main content here
       });
 
       expect(() => schema.parse(validTopic)).not.toThrow();
-      expect(schema.parse(validTopic).metadata.aliases).toBeUndefined();
+      expect(schema.parse(validTopic).metadata).toEqual({});
     });
 
     it("should reject invalid topic type", () => {
@@ -176,7 +176,7 @@ Content
       });
 
       const metadata = adapter.extractMetadata(entity);
-      expect(metadata).toEqual({ aliases: [] });
+      expect(metadata).toEqual({});
     });
   });
 

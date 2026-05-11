@@ -1,9 +1,8 @@
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { ProgressReporter, z } from "@brains/utils";
+import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { TopicsPluginConfig } from "../schemas/config";
-import { TopicProcessingBatchHandler } from "../handlers/topic-processing-batch-handler";
 import { TopicExtractor, type ExtractedTopic } from "./topic-extractor";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TOPIC_ENTITY_TYPE } from "./constants";
@@ -13,7 +12,7 @@ import {
 } from "./topic-presenter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
-import { TopicIndex } from "./topic-index";
+import type { TopicEntity } from "../types";
 
 const entityInputSchema = z.object({
   entityType: z.string(),
@@ -44,20 +43,8 @@ const detectMergeCandidateSchema = z.object({
   threshold: z.number().optional(),
 });
 
-const aliasMergeSchema = z.object({
-  existingAliases: z.array(z.string()).optional(),
-  canonicalTitle: z.string(),
-  candidateAliases: z.array(z.string()),
-});
-
 const mergeProcessingSchema = z.object({
-  existingTopics: z
-    .array(
-      detectionTopicSchema.extend({
-        aliases: z.array(z.string()).optional(),
-      }),
-    )
-    .default([]),
+  existingTopics: z.array(detectionTopicSchema).default([]),
   incomingTopic: detectionTopicSchema.extend({
     relevanceScore: z.number().min(0).max(1).optional(),
   }),
@@ -137,6 +124,20 @@ async function clearTopics(context: EntityPluginContext): Promise<void> {
   );
 }
 
+/**
+ * Wait until the embedding queue is empty so seeded topics are searchable
+ * before an eval invokes a handler that depends on vector search.
+ */
+async function waitForEmbeddingsToDrain(
+  context: EntityPluginContext,
+): Promise<void> {
+  for (;;) {
+    const active = await context.jobs.getActiveJobs(["shell:embedding"]);
+    if (active.length === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 export function registerTopicEvalHandlers(params: {
   context: EntityPluginContext;
   logger: Logger;
@@ -196,17 +197,17 @@ export function registerTopicEvalHandlers(params: {
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
       const topicService = new TopicService(context.entityService, logger);
 
+      const seeded: TopicEntity[] = [];
       for (const existingTopic of parsed.existingTopics) {
-        await topicService.createTopic(existingTopic);
+        const created = await topicService.createTopic(existingTopic);
+        if (created) seeded.push(created);
       }
 
-      const topicIndex = await TopicIndex.create(topicService);
-      const candidate = topicIndex.findMergeCandidate(
-        {
-          title: parsed.incomingTopic.title,
-        },
+      const candidate = await topicService.findMergeCandidate({
+        incoming: { title: parsed.incomingTopic.title },
         threshold,
-      );
+        additionalCandidates: seeded,
+      });
 
       return {
         found: candidate !== null,
@@ -215,19 +216,6 @@ export function registerTopicEvalHandlers(params: {
       };
     },
   );
-
-  context.eval.registerHandler("mergeAliases", async (input: unknown) => {
-    const parsed = aliasMergeSchema.parse(input);
-    const topicService = new TopicService(context.entityService, logger);
-
-    return {
-      aliases: topicService.mergeAliases(
-        parsed.existingAliases,
-        parsed.canonicalTitle,
-        parsed.candidateAliases,
-      ),
-    };
-  });
 
   context.eval.registerHandler(
     "processTopicWithAutoMerge",
@@ -240,33 +228,30 @@ export function registerTopicEvalHandlers(params: {
         await topicService.createTopic({
           title: existingTopic.title,
           content: existingTopic.content,
-          metadata: { aliases: existingTopic.aliases ?? [] },
         });
       }
 
-      const handler = new TopicProcessingBatchHandler(context, logger);
-      const progressReporter = ProgressReporter.from(async () => {});
-      if (!progressReporter) {
-        throw new Error("Failed to create progress reporter");
-      }
+      await waitForEmbeddingsToDrain(context);
 
-      const result = await handler.process(
+      const sourceEntity = createEntityFromInput(
         {
-          topics: [
-            {
-              title: parsed.incomingTopic.title,
-              content: parsed.incomingTopic.content,
-              relevanceScore: parsed.incomingTopic.relevanceScore ?? 0.9,
-            },
-          ],
-          sourceEntityId: "eval-source",
-          sourceEntityType: "post",
+          entityType: "post",
+          content: parsed.incomingTopic.content,
+          metadata: { title: parsed.incomingTopic.title },
+        },
+        "-source",
+      );
+
+      const result = await extractTopicsBatched(
+        [sourceEntity],
+        context,
+        logger,
+        {
+          minRelevanceScore: 0,
           autoMerge: true,
           mergeSimilarityThreshold:
             parsed.threshold ?? config.mergeSimilarityThreshold,
         },
-        `eval-job-${Date.now()}`,
-        progressReporter,
       );
 
       const topics = await context.entityService.listEntities({
@@ -293,7 +278,7 @@ export function registerTopicEvalHandlers(params: {
       createEntityFromInput(entity, `-rebuild-${index}`),
     );
 
-    const result = await replaceAllTopics(entities, context, logger);
+    const result = await replaceAllTopics(entities, context, logger, config);
     const topics = await context.entityService.listEntities({
       entityType: TOPIC_ENTITY_TYPE,
     });

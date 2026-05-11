@@ -4,9 +4,8 @@ import type {
   JobHandler,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { ProgressReporter, z } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { TopicsPluginConfig } from "../schemas/config";
-import { TopicExtractionHandler } from "../handlers/topic-extraction-handler";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
@@ -38,6 +37,7 @@ export type TopicProjectionJobData = z.infer<
 export interface TopicBatchResult {
   deleted?: number;
   created: number;
+  merged: number;
   skipped: number;
   batches: number;
 }
@@ -45,6 +45,7 @@ export interface TopicBatchResult {
 interface ExtractionParams {
   context: EntityPluginContext;
   logger: Logger;
+  config: TopicsPluginConfig;
   shouldProcessEntityType: (entityType: string) => boolean;
   isEntityPublished: (entity: BaseEntity) => boolean;
 }
@@ -57,11 +58,6 @@ export function createTopicProjectionHandler(params: {
   rebuildAllTopics: () => Promise<void>;
 }): JobHandler<string, TopicProjectionJobData, unknown> {
   const { context, logger, config } = params;
-  const extractionHandler = new TopicExtractionHandler(context, logger);
-  const progressReporter = ProgressReporter.from(async () => {});
-  if (!progressReporter) {
-    throw new Error("Failed to create progress reporter");
-  }
 
   return {
     process: async (data): Promise<unknown> => {
@@ -80,19 +76,22 @@ export function createTopicProjectionHandler(params: {
       });
       if (!entity) return { success: false, topicsExtracted: 0 };
 
-      return extractionHandler.process(
-        {
-          entityId: data.entityId,
-          entityType: data.entityType,
-          contentHash: data.contentHash ?? entity.contentHash,
-          minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
-          autoMerge: data.autoMerge ?? config.autoMerge,
-          mergeSimilarityThreshold:
-            data.mergeSimilarityThreshold ?? config.mergeSimilarityThreshold,
-        },
-        `topic-projection:${data.entityType}:${data.entityId}`,
-        progressReporter,
-      );
+      // Staleness check: skip if content has changed since the job was queued.
+      if (data.contentHash && entity.contentHash !== data.contentHash) {
+        logger.debug("Skipping stale source extraction", {
+          entityId: entity.id,
+          entityType: entity.entityType,
+        });
+        return { success: true, created: 0, merged: 0, skipped: 0 };
+      }
+
+      const result = await extractTopicsBatched([entity], context, logger, {
+        minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
+        autoMerge: data.autoMerge ?? config.autoMerge,
+        mergeSimilarityThreshold:
+          data.mergeSimilarityThreshold ?? config.mergeSimilarityThreshold,
+      });
+      return { success: true, ...result };
     },
     validateAndParse: (data: unknown): TopicProjectionJobData | null => {
       const result = topicProjectionJobDataSchema.safeParse(data ?? {});
@@ -145,6 +144,11 @@ export async function extractAllTopics(
     toExtract,
     params.context,
     params.logger,
+    {
+      minRelevanceScore: params.config.minRelevanceScore,
+      autoMerge: params.config.autoMerge,
+      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+    },
   );
 
   params.logger.info("Batch topic extraction complete", result);
@@ -161,6 +165,7 @@ export async function rebuildAllTopics(
     toExtract,
     params.context,
     params.logger,
+    params.config,
   );
   params.logger.info("Topic rebuild complete", result);
 }
@@ -169,6 +174,7 @@ export async function replaceAllTopics(
   entities: BaseEntity[],
   context: EntityPluginContext,
   logger: Logger,
+  config: TopicsPluginConfig,
 ): Promise<Required<TopicBatchResult>> {
   const topicService = new TopicService(context.entityService, logger);
   const existingTopics = await topicService.listTopics();
@@ -181,12 +187,17 @@ export async function replaceAllTopics(
     return {
       deleted: existingTopics.length,
       created: 0,
+      merged: 0,
       skipped: 0,
       batches: 0,
     };
   }
 
-  const result = await extractTopicsBatched(entities, context, logger);
+  const result = await extractTopicsBatched(entities, context, logger, {
+    minRelevanceScore: config.minRelevanceScore,
+    autoMerge: config.autoMerge,
+    mergeSimilarityThreshold: config.mergeSimilarityThreshold,
+  });
   return {
     deleted: existingTopics.length,
     ...result,

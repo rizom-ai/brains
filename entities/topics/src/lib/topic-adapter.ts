@@ -43,10 +43,8 @@ export class TopicAdapter extends BaseEntityAdapter<
     };
   }
 
-  public override extractMetadata(entity: TopicEntity): TopicMetadata {
-    return {
-      aliases: entity.metadata.aliases ?? [],
-    };
+  public override extractMetadata(_entity: TopicEntity): TopicMetadata {
+    return {};
   }
 
   public override generateFrontMatter(entity: TopicEntity): string {

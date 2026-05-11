@@ -29,7 +29,7 @@ describe("topic presenter", () => {
       title: "Human-AI Collaboration",
       content: "Humans and AI systems coordinate work across a long process.",
     }),
-    { aliases: ["AI Collaboration"] },
+    {},
   );
 
   it("extracts topic titles", () => {
@@ -66,7 +66,7 @@ describe("topic presenter", () => {
       id: "human-ai-collaboration",
       title: "Human-AI Collaboration",
       content: "Humans and AI systems coordinate work across a long process.",
-      metadata: { aliases: ["AI Collaboration"] },
+      metadata: {},
     });
   });
 });

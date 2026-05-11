@@ -10,7 +10,6 @@ Topics are normal entities:
 
 - durable content lives in markdown
 - editable fields live in frontmatter/body
-- system-maintained aliases live in metadata only
 
 ## What it does
 
@@ -19,7 +18,6 @@ Topics are normal entities:
 - **Token-budget-aware batching** to reduce one-call-per-entity extraction overhead
 - **Canonicalization against existing topics** so new extractions reuse established titles
 - **Configurable auto-merge** with similarity scoring and merge synthesis
-- **Bounded aliases** stored in metadata only (`max 5`)
 - **Replace-all rebuilds** for operators who want to delete and regenerate all topics from current source content
 
 ## Configuration
@@ -95,9 +93,8 @@ When `autoMerge` is enabled, each extracted topic is checked against existing to
 If a strong candidate is found:
 
 1. similarity heuristics identify the likely canonical topic
-2. a merge synthesis step produces the merged title/content/keywords
-3. alias candidates are merged into metadata-only `aliases`
-4. aliases are deduped, canonical title is excluded, and the list is capped at 5
+2. a merge synthesis step produces the merged title/content
+3. the incoming topic is absorbed into the canonical one
 
 If no candidate clears the threshold, a new topic entity is created.
 
@@ -108,34 +105,16 @@ If no candidate clears the threshold, a new topic entity is created.
 ```yaml
 ---
 title: Human-AI Collaboration
-keywords:
-  - human-ai
-  - collaboration
 ---
 ```
 
-The markdown body contains the topic summary/content.
-
-### Metadata
-
-```ts
-{
-  aliases?: string[];
-}
-```
-
-Aliases are:
-
-- system-maintained
-- metadata-only
-- not part of authored frontmatter/content
-- used for canonicalization and merge reuse
+The markdown body contains the topic summary/content. Metadata is empty for
+new topics; unknown legacy fields on existing entities are stripped on read.
 
 ## Implementation notes
 
 - Existing topic titles are fed back into extraction prompts to reduce noisy near-duplicates.
 - Merge detection uses title/keyword similarity heuristics before synthesis.
-- Metadata roundtripping preserves aliases; markdown reconstruction does not overwrite persisted metadata.
 
 ### Dependency boundary follow-up
 
@@ -160,7 +139,7 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/topic-merge-synthesizer.ts` — AI synthesis for merges
 - `src/lib/topic-service.ts` — topic CRUD + merge helpers
 - `src/handlers/topic-extraction-handler.ts` — extraction job handler
-- `src/handlers/topic-processing-handler.ts` — per-topic create/merge handler
+- `src/handlers/topic-processing-batch-handler.ts` — batched create/merge handler
 
 ## Validation
 
