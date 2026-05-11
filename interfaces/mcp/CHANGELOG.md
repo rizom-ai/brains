@@ -1,5 +1,14 @@
 # @brains/mcp
 
+## 0.2.0-alpha.63
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/auth-service@0.2.0-alpha.63
+  - @brains/mcp-service@0.2.0-alpha.63
+  - @brains/plugins@0.2.0-alpha.63
+
 ## 0.2.0-alpha.62
 
 ### Patch Changes
