@@ -12,11 +12,11 @@ Relevant prior work:
 
 What survived: initial sync and rebuild use batched extraction.
 
-What still needs work: source-change extraction, per-topic processing, and downstream skill derivation backpressure.
+What still needs work: projection-cycle guards, source-change extraction, per-topic processing, and downstream skill derivation backpressure.
 
 ## Problem
 
-Topic generation can fan out badly during content bursts.
+Topic generation can fan out badly during content bursts and can also form derived-entity feedback loops.
 
 Current source-change flow:
 
@@ -26,6 +26,7 @@ Current source-change flow:
 4. each extraction makes one LLM call
 5. each extracted topic enqueues or runs per-topic processing
 6. each topic mutation can trigger downstream skill derivation
+7. derived entities such as `skill` or `summary` may be included as topic sources and feed the loop again
 
 For `N` source changes and `K` extracted topics over `M` existing topics, this can become:
 
@@ -34,9 +35,18 @@ For `N` source changes and `K` extracted topics over `M` existing topics, this c
 - `K` topic processing jobs
 - `K * M` merge-candidate scans
 - repeated downstream skill derivation during one logical topic generation wave
+- feedback cycles such as `topic -> skill -> topic -> skill`
+
+Known cycle risks:
+
+- Relay currently includes `skill` in `topics.includeEntityTypes`, while skill derivation listens to topic changes. This creates a direct `topic -> skill -> topic` loop.
+- Relay includes `summary`; this is intentional because conversations are ephemeral and summaries are the durable proxy for conversation memory. `summary -> topic` is not itself a bad cycle.
+- The problematic chain is `summary -> topic -> skill -> topic` when `skill` is also allowed as a topic source.
+- Other durable projections such as `decision` and `action-item` may also be valid topic sources when they are terminal projections from ephemeral/raw inputs. They should be reviewed for whether they depend on topics before being blocked.
 
 ## Goals
 
+- Break derived-entity feedback loops before optimizing fanout.
 - Preserve batch extraction for initial sync and rebuild.
 - Add backpressure for source-change bursts.
 - Process extracted topics in batches instead of one job per extracted topic.
@@ -50,9 +60,41 @@ For `N` source changes and `K` extracted topics over `M` existing topics, this c
 - Reintroduce durable topic source tracking in topic metadata.
 - Combine topics, skills, and job-queue refactors in one large PR.
 
+## Slice 0: break projection cycles
+
+Do this first. Backpressure reduces volume, but it does not fix a logical cycle.
+
+### Tests
+
+Add tests that prove:
+
+- topics does not extract from topic-derived entity types by default (`topic`, `skill`, and any other outputs whose derivation depends on topics)
+- Relay's topics config no longer creates a `topic -> skill -> topic` loop
+- `summary` remains allowed as a durable proxy for ephemeral conversations
+- if a topic-derived entity type is intentionally allowed as a topic source, it must opt in explicitly and have a documented cycle guard
+
+### Implementation
+
+Preferred small fix:
+
+1. Add a topics config denylist for topic-derived source types, defaulting to at least `topic` and `skill`.
+2. Apply the denylist in `shouldProcessEntityType` in addition to `includeEntityTypes`.
+3. Remove `skill` from Relay's topic source list unless there is a strong product reason to keep it.
+4. Keep `summary` eligible when it represents durable conversation memory rather than a topic-derived projection.
+5. Revisit `agent`, `decision`, and `action-item` in Relay's topic source list and either keep them as terminal durable projections or block them if they depend on topics.
+
+Longer-term rule: topics should extract from primary human/source content and terminal durable proxies for ephemeral inputs by default. They should not extract from entities whose own derivation depends on topics.
+
+### Acceptance
+
+- No default config creates `topic -> skill -> topic` cycles.
+- `summary -> topic` remains allowed when summaries are the durable proxy for ephemeral conversations.
+- Unit tests cover the denylist / opt-in behavior.
+- Relay and Rover evals still pass.
+
 ## Slice 1: prove and fix per-topic processing fanout
 
-Package-local first.
+Package-local after Slice 0.
 
 ### Tests
 
@@ -170,11 +212,13 @@ Even `extractTopicsBatched` still does per-topic DB checks:
 - Batch merge behavior can differ from single-topic behavior if in-memory indexes are not updated after each mutation.
 - Too much batching can delay topic visibility if delay windows are too large.
 - Downstream skill derivation changes may cross entity package boundaries.
+- Removing topic-derived entity types from topic sources may change topic coverage for Relay; evals should confirm whether the lost coverage was useful or just recursive noise.
 
 ## Suggested worktrees
 
-1. `fix/topics-process-batch` — Slices 1 and 4 (shared in-memory topic index)
-2. `fix/topics-source-backpressure` — Slice 2
-3. `fix/skill-derivation-debounce` — Slice 3
+1. `fix/topics-cycle-guard` — Slice 0
+2. `fix/topics-process-batch` — Slices 1 and 4 (shared in-memory topic index)
+3. `fix/topics-source-backpressure` — Slice 2
+4. `fix/skill-derivation-debounce` — Slice 3
 
 Keep each slice reviewed and checked in before continuing.
