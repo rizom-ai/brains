@@ -1,6 +1,9 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockServicePluginContext,
+  createSilentLogger,
+} from "@brains/test-utils";
 
 /**
  * Regression test: queueSyncBatch should NOT create export operations.
@@ -56,21 +59,7 @@ describe("batch operations should not include exports (regression)", () => {
     expect(importOps.length).toBeGreaterThan(0);
   });
 
-  it("prepareBatchOperations should append cleanup when includeCleanup is true", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-    );
-
-    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"], {
-      includeCleanup: true,
-    });
-
-    const lastOp = result.operations[result.operations.length - 1];
-    expect(lastOp?.type).toBe("directory-cleanup");
-  });
-
-  it("prepareBatchOperations should not include cleanup by default", () => {
+  it("prepareBatchOperations should append cleanup by default", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
@@ -78,11 +67,38 @@ describe("batch operations should not include exports (regression)", () => {
 
     const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"]);
 
+    const lastOp = result.operations[result.operations.length - 1];
+    expect(lastOp?.type).toBe("directory-cleanup");
+  });
+
+  it("prepareBatchOperations should skip cleanup when explicitly requested", () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+    );
+
+    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"], {
+      skipCleanup: true,
+    });
+
     const types = result.operations.map((op) => op.type);
     expect(types).not.toContain("directory-cleanup");
   });
 
-  it("prepareBatchOperations should return empty when no files", () => {
+  it("prepareBatchOperations should return empty when no files and cleanup is skipped", () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+    );
+
+    const result = manager.prepareBatchOperations([], { skipCleanup: true });
+
+    expect(result.operations).toHaveLength(0);
+    expect(result.exportOperationsCount).toBe(0);
+    expect(result.importOperationsCount).toBe(0);
+  });
+
+  it("prepareBatchOperations should keep cleanup-only batches when no files", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
@@ -90,8 +106,34 @@ describe("batch operations should not include exports (regression)", () => {
 
     const result = manager.prepareBatchOperations([]);
 
-    expect(result.operations).toHaveLength(0);
+    expect(result.operations).toEqual([
+      { type: "directory-cleanup", data: {} },
+    ]);
     expect(result.exportOperationsCount).toBe(0);
     expect(result.importOperationsCount).toBe(0);
+    expect(result.totalFiles).toBe(0);
+  });
+
+  it("queueSyncBatch should enqueue cleanup-only batches when no files", async () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+    );
+    const context = createMockServicePluginContext();
+    const enqueueBatch = mock(async () => "batch-cleanup");
+    context.jobs.enqueueBatch = enqueueBatch;
+
+    const result = await manager.queueSyncBatch(context, "test", []);
+
+    expect(enqueueBatch).toHaveBeenCalledWith(
+      [{ type: "directory-cleanup", data: {} }],
+      expect.anything(),
+    );
+    expect(result).toMatchObject({
+      batchId: "batch-cleanup",
+      operationCount: 1,
+      importOperationsCount: 0,
+      totalFiles: 0,
+    });
   });
 });
