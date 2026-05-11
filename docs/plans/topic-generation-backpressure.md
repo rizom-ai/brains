@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), and Slice 4 (batch-extractor DB access) have shipped. Slice 2 (source-change backpressure) is implemented in `fix/topics-source-backpressure`. Slice 3 (skill-derivation debounce) and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
+Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), Slice 2 (source-change backpressure), and Slice 4 (batch-extractor DB access) have shipped. Slice 3 (skill-derivation debounce) is implemented in `fix/skill-derivation-debounce`. Slice 5 (eval parity, formerly the topic-auto-merge plan) remains.
 
 Relevant prior work:
 
@@ -100,19 +100,25 @@ Acceptance covered:
 
 Tradeoff: dirty source refs are in memory. This keeps Slice 2 package-local and avoids adding a cross-package "changed since last extraction" query, but dirty refs can be lost across process restart while a delayed source-batch job is pending. A future durability slice can replace the buffer with a small durable queue or add a cheap updated-since query.
 
-## Slice 3: downstream skill derivation debounce
+## Slice 3: downstream skill derivation debounce (implemented)
 
-Topic mutations currently trigger skill derivation. During a topic generation wave, this can run multiple times.
+Implemented in `fix/skill-derivation-debounce`.
 
-Options:
+What is implemented:
 
-1. Add a real debounce strategy to the job queue.
-2. Make skill derivation preserve/extend `delayMs` when coalescing.
-3. Emit a single topic-batch-completed event from the Slice 1 batch handler and have skills derive from that instead of every topic mutation.
+- Topic batch extraction emits one `topics:batch-completed` event after a run creates topics.
+- Runtime `process-batch` topic processing emits one `topics:batch-completed` event after a batch creates or merges topics.
+- Skill derivation now listens to `topics:batch-completed` rather than raw `entity:created` / `entity:updated` topic mutations.
+- Skill derivation still uses the existing projection job and `skill-derivation:topic-change` coalescing key, preserving initial-sync gating.
 
-Preferred: option 3. It dovetails with the Slice 1 batch handler (which already has the natural "wave done" boundary), keeps the change localized to one event emission plus one subscriber rewrite, and avoids changing job queue semantics. Options 1 and 2 are fallbacks if option 3 turns out to require too much subscriber rework.
+Acceptance covered:
 
-This likely crosses package boundaries, so keep it separate from the topics package-local fix.
+- Topic batch extraction emits one completion event for a changed batch and no event when nothing changes.
+- Runtime topic processing emits one completion event for a changed batch.
+- Skills enqueue after `topics:batch-completed` once initial sync has been observed.
+- Raw topic entity changes no longer enqueue skill derivation directly.
+
+This crosses topics and agent-discovery package boundaries and is intentionally isolated from Slice 2.
 
 ## Slice 4: optimize batch extractor DB access (shipped)
 
@@ -157,7 +163,7 @@ User-facing docs and examples should keep describing the current bounded-alias m
 1. ~~`fix/topics-cycle-guard` — Slice 0~~ (shipped in `7eb41713f`)
 2. ~~`fix/topics-process-batch` — Slices 1 and 4~~ (shipped in `0fa831f1b`)
 3. `fix/topics-source-backpressure` — Slice 2 (implemented, pending merge)
-4. `fix/skill-derivation-debounce` — Slice 3
+4. `fix/skill-derivation-debounce` — Slice 3 (implemented, pending merge)
 5. `fix/topic-merge-eval-parity` — Slice 5
 
 Keep each slice reviewed and checked in before continuing.
