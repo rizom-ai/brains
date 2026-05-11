@@ -1,13 +1,11 @@
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { getErrorMessage, generateIdFromText } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import { batchEntities } from "./batch-entities";
-import {
-  buildTopicExtractionPrompt,
-  listExistingTopicTitles,
-} from "./extraction-prompt";
+import { buildTopicExtractionPrompt } from "./extraction-prompt";
 import { TopicService } from "./topic-service";
+import { TopicIndex } from "./topic-index";
 
 /**
  * Build the prompt content for a batch of entities.
@@ -46,6 +44,7 @@ export async function extractTopicsBatched(
 
   const batches = batchEntities(entities);
   const topicService = new TopicService(context.entityService, logger);
+  const topicIndex = await TopicIndex.create(topicService);
 
   let created = 0;
   let skipped = 0;
@@ -54,9 +53,7 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const batchContent = buildBatchPrompt(batch);
-    const existingTopicTitles = await listExistingTopicTitles(
-      context.entityService,
-    );
+    const existingTopicTitles = topicIndex.getTitles();
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
@@ -73,19 +70,25 @@ export async function extractTopicsBatched(
       });
 
       for (const topic of result.topics) {
-        const slug = generateIdFromText(topic.title);
-        const existing = await topicService.getTopic(slug);
-
-        if (existing) {
+        if (topicIndex.hasSlug(topic.title)) {
           skipped++;
           continue;
         }
 
-        await topicService.createTopic({
+        const createResult = await topicService.createTopicOptimistic({
           title: topic.title,
           content: topic.content,
         });
-        created++;
+
+        if (createResult.topic) {
+          topicIndex.set(createResult.topic);
+        }
+
+        if (createResult.created) {
+          created++;
+        } else {
+          skipped++;
+        }
       }
     } catch (error) {
       logger.error("Batch topic extraction failed", {

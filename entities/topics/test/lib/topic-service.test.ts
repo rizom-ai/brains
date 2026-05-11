@@ -1,11 +1,17 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import type { TopicMetadata } from "../../src/schemas/topic";
 import { TopicService } from "../../src/lib/topic-service";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockEntityService,
+  createSilentLogger,
+} from "@brains/test-utils";
 import {
   createMockShell,
   createEntityPluginContext,
 } from "@brains/plugins/test";
+import { TopicAdapter } from "../../src/lib/topic-adapter";
+
+const topicAdapter = new TopicAdapter();
 
 describe("TopicService", () => {
   it("should be instantiable", () => {
@@ -78,5 +84,36 @@ describe("TopicService", () => {
     });
 
     expect(created?.metadata).toEqual({ aliases: [] } satisfies TopicMetadata);
+  });
+
+  it("createTopicOptimistic recovers from concurrent insert races", async () => {
+    const logger = createSilentLogger();
+    const existingTopic = {
+      id: "race-topic",
+      entityType: "topic",
+      content: topicAdapter.createTopicBody({
+        title: "Race Topic",
+        content: "Created by another worker.",
+      }),
+      contentHash: "hash",
+      metadata: { aliases: [] },
+      created: "2026-01-01T00:00:00Z",
+      updated: "2026-01-01T00:00:00Z",
+    };
+    const entityService = createMockEntityService({
+      returns: { getEntity: existingTopic },
+    });
+    spyOn(entityService, "createEntity").mockRejectedValue(
+      new Error("Entity already exists"),
+    );
+    const service = new TopicService(entityService, logger);
+
+    const result = await service.createTopicOptimistic({
+      title: "Race Topic",
+      content: "Incoming content.",
+    });
+
+    expect(result.created).toBe(false);
+    expect(result.topic?.id).toBe("race-topic");
   });
 });

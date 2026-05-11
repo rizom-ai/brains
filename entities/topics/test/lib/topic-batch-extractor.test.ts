@@ -1,6 +1,17 @@
-import { describe, it, expect } from "bun:test";
-import { buildBatchPrompt } from "../../src/lib/topic-batch-extractor";
+import { describe, it, expect, spyOn } from "bun:test";
+import {
+  buildBatchPrompt,
+  extractTopicsBatched,
+} from "../../src/lib/topic-batch-extractor";
 import type { BaseEntity } from "@brains/plugins";
+import {
+  createEntityPluginContext,
+  createMockShell,
+} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { TopicAdapter } from "../../src/lib/topic-adapter";
+
+const topicAdapter = new TopicAdapter();
 
 function makeEntity(
   id: string,
@@ -83,5 +94,97 @@ describe("buildBatchPrompt", () => {
   it("should handle empty batch", () => {
     const prompt = buildBatchPrompt([]);
     expect(prompt).toBe("");
+  });
+});
+
+describe("extractTopicsBatched", () => {
+  it("preloads existing topics once per run", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const entityService = mockShell.getEntityService();
+
+    await entityService.createEntity({
+      entity: {
+        id: "existing-topic",
+        entityType: "topic",
+        content: topicAdapter.createTopicBody({
+          title: "Existing Topic",
+          content: "Already known.",
+        }),
+        metadata: { aliases: [] },
+      },
+    });
+
+    let topicListCalls = 0;
+    const originalListEntities = entityService.listEntities.bind(entityService);
+    spyOn(entityService, "listEntities").mockImplementation(async (request) => {
+      if (request.entityType === "topic") topicListCalls++;
+      return originalListEntities(request);
+    });
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "Knowledge Management",
+          content: "Teams organize durable shared context.",
+          relevanceScore: 0.9,
+        },
+        {
+          title: "Team Memory",
+          content: "Teams preserve useful memory over time.",
+          relevanceScore: 0.85,
+        },
+      ],
+    });
+
+    const result = await extractTopicsBatched(
+      [
+        makeEntity("p1", "post", "Post 1", "Content 1"),
+        makeEntity("p2", "post", "Post 2", "Content 2"),
+      ],
+      context,
+      logger,
+    );
+
+    expect(result.created).toBe(2);
+    expect(result.skipped).toBe(0);
+    expect(topicListCalls).toBe(1);
+  });
+
+  it("updates the in-memory index after creates in the same run", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "Team Memory",
+          content: "Teams preserve useful memory over time.",
+          relevanceScore: 0.9,
+        },
+        {
+          title: "Team Memory",
+          content: "Duplicate title from the same extraction batch.",
+          relevanceScore: 0.8,
+        },
+      ],
+    });
+
+    const result = await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+    );
+
+    expect(result.created).toBe(1);
+    expect(result.skipped).toBe(1);
+
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
+    expect(topics).toHaveLength(1);
+    expect(topics[0]?.id).toBe("team-memory");
   });
 });

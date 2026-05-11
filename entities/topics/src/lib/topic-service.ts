@@ -2,12 +2,10 @@ import type { IEntityService, SearchResult } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata } from "../schemas/topic";
-import type { ExtractedTopicData } from "../schemas/extraction";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-import { scoreTopicSimilarity } from "./topic-merge";
 
 const MAX_ALIASES = 5;
 
@@ -44,6 +42,50 @@ export class TopicService {
       return existing;
     }
 
+    return this.insertTopic(topicId, params);
+  }
+
+  /**
+   * Insert a new topic; on a concurrent-insert race, fetch the existing one
+   * instead of failing. For batch callers that have already checked
+   * existence against an in-memory index, this avoids the eager `getTopic`
+   * roundtrip that `createTopic` would do.
+   */
+  public async createTopicOptimistic(params: {
+    title: string;
+    content: string;
+    metadata?: TopicMetadata;
+  }): Promise<{ topic: TopicEntity | null; created: boolean }> {
+    const topicId = generateIdFromText(params.title);
+
+    try {
+      return {
+        topic: await this.insertTopic(topicId, params),
+        created: true,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
+        this.logger.debug("Topic was created concurrently, fetching existing", {
+          id: topicId,
+          title: params.title,
+        });
+        return {
+          topic: await this.getTopic(topicId),
+          created: false,
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async insertTopic(
+    topicId: string,
+    params: {
+      title: string;
+      content: string;
+      metadata?: TopicMetadata;
+    },
+  ): Promise<TopicEntity> {
     const metadata: TopicMetadata = params.metadata ?? { aliases: [] };
 
     const body = this.adapter.createTopicBody({
@@ -51,42 +93,31 @@ export class TopicService {
       content: params.content,
     });
 
-    try {
-      const { entityId } = await this.entityService.createEntity({
-        entity: {
-          id: topicId,
-          entityType: TOPIC_ENTITY_TYPE,
-          content: body,
-          metadata,
-        },
-      });
-
-      const topic: TopicEntity = {
-        id: entityId,
+    const { entityId } = await this.entityService.createEntity({
+      entity: {
+        id: topicId,
         entityType: TOPIC_ENTITY_TYPE,
         content: body,
-        contentHash: computeContentHash(body),
         metadata,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      },
+    });
 
-      this.logger.debug("Created topic", {
-        id: topic.id,
-        title: params.title,
-      });
+    const topic: TopicEntity = {
+      id: entityId,
+      entityType: TOPIC_ENTITY_TYPE,
+      content: body,
+      contentHash: computeContentHash(body),
+      metadata,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
 
-      return topic;
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("already exists")) {
-        this.logger.debug("Topic was created concurrently, fetching existing", {
-          id: topicId,
-          title: params.title,
-        });
-        return this.getTopic(topicId);
-      }
-      throw error;
-    }
+    this.logger.debug("Created topic", {
+      id: topic.id,
+      title: params.title,
+    });
+
+    return topic;
   }
 
   public async updateTopic(
@@ -163,32 +194,6 @@ export class TopicService {
         limit,
       },
     });
-  }
-
-  public async findMergeCandidate(
-    incoming: Pick<ExtractedTopicData, "title">,
-    threshold: number,
-  ): Promise<TopicMergeCandidate | null> {
-    const topics = await this.listTopics();
-    let bestCandidate: TopicMergeCandidate | null = null;
-
-    for (const topic of topics) {
-      const parsed = this.adapter.parseTopicBody(topic.content);
-      const score = scoreTopicSimilarity(incoming, {
-        title: parsed.title,
-      });
-
-      if (score < threshold) continue;
-      if (!bestCandidate || score > bestCandidate.score) {
-        bestCandidate = {
-          topic,
-          title: parsed.title,
-          score,
-        };
-      }
-    }
-
-    return bestCandidate;
   }
 
   public mergeAliases(

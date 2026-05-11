@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Proposed. This plan describes work that lands in the deployed **rover-pilot fleet repo** (external to this monorepo), with the new template scripts (`destroy-server.ts`, `delete-dns.ts`, `derive-offboard-config.ts`) contributed back through `shared/deploy-templates/src/deploy-scripts/` and/or `packages/brains-ops/templates/rover-pilot/`. All `deploy/scripts/...`, `.github/workflows/deploy.yml`, `users/<handle>.yaml`, and `pilot.yaml` paths cited below are fleet-repo paths, not paths in this monorepo.
 
 ## Why this plan exists
 

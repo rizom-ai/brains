@@ -13,7 +13,7 @@ import {
   type TopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
-import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
+import { TopicProcessingBatchHandler } from "./handlers/topic-processing-batch-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicListTemplate } from "./templates/topic-list";
@@ -142,8 +142,11 @@ export class TopicsPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     // Job handlers
-    const processingHandler = new TopicProcessingHandler(context, this.logger);
-    context.jobs.registerHandler("process-single", processingHandler);
+    const batchProcessingHandler = new TopicProcessingBatchHandler(
+      context,
+      this.logger,
+    );
+    context.jobs.registerHandler("process-batch", batchProcessingHandler);
 
     // Insights
     context.insights.register(
