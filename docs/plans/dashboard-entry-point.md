@@ -24,16 +24,28 @@ The dashboard should answer:
 - Preserve widgets as the dashboard card/content extension system.
 - Add a first-class concept for “ways to interact/connect” with the brain.
 
-## Current cleanup
+## Current implementation status
 
-Rename the entity count card to remove hero terminology:
+Done:
 
-- `HeroCard` -> `EntitySummaryCard`
-- `render/hero.tsx` -> `render/entity-summary-card.tsx`
-- `.card--hero` -> `.card--entity-summary`
-- `.hero-number` / `.hero-label` -> `.entity-summary-number` / `.entity-summary-label`
-
-This is a low-risk naming cleanup before larger UX work.
+- Renamed the entity count card to remove hero terminology:
+  - `HeroCard` -> `EntitySummaryCard`
+  - `render/hero.tsx` -> `render/entity-summary-card.tsx`
+  - `.card--hero` -> `.card--entity-summary`
+  - `.hero-number` / `.hero-label` -> `.entity-summary-number` / `.entity-summary-label`
+- Switched dashboard widget visibility to the central `public` / `trusted` / `anchor` permission model.
+- Added first-class interaction registration through `context.interactions.register(...)`.
+- Added `appInfo.interactions` alongside `appInfo.endpoints`.
+- Added permission visibility to endpoints and interactions.
+- Rendered interactions in the dashboard as “Ways to connect”.
+- Filtered widgets, endpoints, and interactions with the same permission model.
+- Seeded initial interactions:
+  - Site: public human interaction
+  - A2A: public agent interaction
+  - MCP: trusted protocol interaction
+  - CMS: anchor admin interaction
+  - Preview: anchor admin interaction
+- Reworked layout so mobile can put identity/interactions before the entity summary while desktop keeps the sidebar model.
 
 ## Proposed UX structure
 
@@ -70,9 +82,9 @@ Rationale: a phone visitor is more likely trying to understand and interact with
 
 ## Interaction model
 
-Add a small interaction registry/API over time. Endpoints are HTTP surfaces; interactions are user-facing ways to connect with the brain.
+The interaction registry/API now exists. Endpoints are HTTP surfaces; interactions are user-facing ways to connect with the brain.
 
-Suggested shape:
+Current shape:
 
 ```ts
 interface DashboardInteraction {
@@ -87,50 +99,52 @@ interface DashboardInteraction {
 }
 ```
 
-Initial likely examples:
+Initial seeded examples:
 
 - Public site: `human`, `public`
 - A2A endpoint: `agent`, `public`
-- CMS: `admin`, probably `anchor` unless configured otherwise
-- MCP endpoint: `protocol`, `trusted` or `anchor`
-- Dashboard itself: `human`, `public`
+- MCP endpoint: `protocol`, `trusted`
+- CMS: `admin`, `anchor`
+- Preview site: `admin`, `anchor`
+
+Potential follow-up: register the dashboard itself as a public human interaction if it proves useful outside the dashboard page.
 
 ## Implementation phases
 
-### Phase 1: Naming and layout cleanup
+### Phase 1: Naming and layout cleanup — done
 
 - Rename `HeroCard` to `EntitySummaryCard`.
 - Rename related CSS classes.
 - Keep visual output unchanged.
 - Add/adjust tests only if snapshots or string expectations require it.
 
-### Phase 2: Mobile ordering
+### Phase 2: Mobile ordering — done
 
 - Keep desktop layout mostly unchanged.
 - Render identity/sidebar content earlier on mobile.
 - Avoid duplicating content in the DOM if possible; prefer CSS grid/order if accessible, otherwise split layout components carefully.
 - Validate keyboard/read order, not just visual order.
 
-### Phase 3: Identity card improvements
+### Phase 3: Identity card improvements — next
 
 - Make role, purpose, and values easier to scan.
 - Add room for primary interaction CTAs.
 - Keep the card concise; avoid turning it into a full profile page.
 
-### Phase 4: Interaction registry
+### Phase 4: Interaction registry — done
 
 - Add dashboard interaction types/schema using central permission levels.
 - Add registration surface via plugin context or dashboard messaging.
 - Filter interactions with `PermissionService.hasPermission`, same as widgets.
 - Seed interactions from known app endpoints where reasonable, but do not rely on endpoints as the long-term source of truth.
 
-### Phase 5: Render interactions
+### Phase 5: Render interactions — partially done
 
 - Show top 3-5 interactions near/inside identity area.
 - Show a fuller interaction/endpoint card lower in the sidebar or mobile flow.
 - Visually distinguish human, agent, admin, and protocol interactions without adding icon complexity yet.
 
-### Phase 6: Permission-aware entry point
+### Phase 6: Permission-aware entry point — partially done
 
 - Public: identity, entity summary, public interactions, public widgets.
 - Trusted: public plus trusted protocol/agent surfaces like MCP where appropriate.
@@ -154,4 +168,14 @@ For code changes:
 - targeted dashboard tests
 - if interaction contracts touch shared plugin APIs: `cd shell/plugins && bun run typecheck && bun run lint`
 
-Note: this worktree may need dependencies installed or linked before local typecheck can run.
+Additional checks used on the current branch:
+
+- `bun run --filter @brains/plugins typecheck`
+- `bun run --filter @brains/plugins lint`
+- `bun run --filter @brains/dashboard typecheck`
+- `bun run --filter @brains/dashboard lint`
+- `bun run --filter @brains/core typecheck`
+- `bun run --filter @brains/webserver typecheck`
+- `bun run --filter @brains/mcp typecheck`
+- `bun run --filter @brains/a2a typecheck`
+- targeted dashboard/plugin/A2A tests
