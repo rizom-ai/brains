@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), and Slice 4 (batch-extractor DB access) have shipped. Slice 2 (source-change backpressure), Slice 3 (skill-derivation debounce), and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
+Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), and Slice 4 (batch-extractor DB access) have shipped. Slice 2 (source-change backpressure) is implemented in `fix/topics-source-backpressure`. Slice 3 (skill-derivation debounce) and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
 
 Relevant prior work:
 
@@ -12,29 +12,22 @@ Relevant prior work:
 - `7eb41713f fix(topics): guard projection source cycles` — Slice 0
 - `0fa831f1b fix(topics): batch topic processing` — Slices 1 and 4
 
-What survived: initial sync and rebuild use batched extraction; topic-derived entity types (`topic`, `skill`) opt out of projection sourcing via `projectionSource: false`; extracted topics are processed through a batch handler and shared in-memory topic index.
+What survived: initial sync and rebuild use batched extraction; topic-derived entity types (`topic`, `skill`) opt out of projection sourcing via `projectionSource: false`; extracted topics are processed through a batch handler and shared in-memory topic index; source-change events enqueue one delayed batch projection job instead of one extraction job per source.
 
 ## Problem
 
 Topic generation can fan out badly during content bursts and can also form derived-entity feedback loops.
 
-Current source-change flow:
+Current source-change flow after Slice 2:
 
-1. each source entity create/update enqueues a topic projection job
-2. each projection job fetches one entity
-3. each extraction lists existing topic titles
-4. each extraction makes one LLM call
-5. extracted topics are processed by a batch handler
-6. each topic mutation can trigger downstream skill derivation
-7. `summary` is intentionally allowed as a topic source (durable proxy for ephemeral conversations); other durable projections such as `decision` and `action-item` may also be valid topic sources when they are terminal projections from ephemeral/raw inputs, but need review before opt-in
+1. each source entity create/update records a dirty source reference in the topics plugin
+2. source-change events enqueue a delayed batch projection job using one batch-level dedupe key
+3. the batch job drains dirty source references, fetches fresh entities, and skips missing, stale, or unpublished sources
+4. eligible sources are passed to `extractTopicsBatched`
+5. each topic mutation can trigger downstream skill derivation
+6. `summary` is intentionally allowed as a topic source (durable proxy for ephemeral conversations); other durable projections such as `decision` and `action-item` may also be valid topic sources when they are terminal projections from ephemeral/raw inputs, but need review before opt-in
 
-For `N` source changes and `K` extracted topics over `M` existing topics, this can still become:
-
-- `N` LLM extraction calls
-- `N` existing-topic list queries
-- repeated downstream skill derivation during one logical topic generation wave
-
-The classic feedback cycle (`topic -> skill -> topic -> skill`) was the motivation for Slice 0 and is no longer a risk in Relay's default config — see Slice 0 below. The per-topic processing fanout (`K` topic processing jobs and `K * M` merge-candidate scans) was addressed by Slices 1 and 4.
+The classic feedback cycle (`topic -> skill -> topic -> skill`) was the motivation for Slice 0 and is no longer a risk in Relay's default config — see Slice 0 below. The per-topic processing fanout (`K` topic processing jobs and `K * M` merge-candidate scans) was addressed by Slices 1 and 4. The source-change fanout (`N` extraction jobs and `N` existing-topic list queries during bursts) was addressed by Slice 2.
 
 ## Goals
 
@@ -86,45 +79,26 @@ What shipped:
 - `bun run eval --skip-llm-judge` passes for `entities/topics`.
 - Rover eval passes after the slice.
 
-## Slice 2: source-change batching/backpressure
+## Slice 2: source-change batching/backpressure (implemented)
 
-After Slice 1 is reviewed and checked in.
+Implemented in `fix/topics-source-backpressure`.
 
-### Tests
+What is implemented:
 
-Add tests that prove:
+- Source-change events record dirty source references (`entityType`, `id`, `contentHash`) in a package-local `TopicSourceBatchBuffer`.
+- Repeated source changes for the same entity keep only the latest content hash.
+- Source-change events enqueue `mode: "source-batch"` with one batch-level dedupe key (`topics-source-batch`) and a configurable `sourceChangeBatchDelayMs` delay.
+- The batch job drains dirty refs, fetches fresh entities, skips stale hashes, missing entities, and unpublished entities, then calls `extractTopicsBatched` for the eligible set.
+- Source-batch extraction applies the configured `minRelevanceScore`.
 
-- a burst of source entity changes enqueues one batch/source job rather than one extraction job per source
-- stale content hashes are skipped when the batch job runs
-- unpublished source entities are skipped
-- initial sync gating still prevents source-change extraction before initial sync completes
+Acceptance covered:
 
-### Implementation options
+- Source-change events use a single batch-level dedupe key instead of per-source extraction keys.
+- Stale content hashes are skipped when the batch job runs.
+- Unpublished source entities are skipped when the batch job runs.
+- Initial sync gating still prevents source-change extraction before initial sync completes.
 
-Preferred package-local design:
-
-1. Source-change events record dirty source references:
-   - `entityType`
-   - `id`
-   - `contentHash`
-2. Source-change events enqueue one delayed/coalesced `topics:source-batch` job.
-3. The source-batch job drains dirty source references.
-4. It fetches fresh entities, filters stale hashes and unpublished entities, then calls `extractTopicsBatched`.
-
-Avoid the shortcut of running full `deriveAll` on every source change. That fixes fanout but over-extracts too much.
-
-### Open design question
-
-Where should dirty source references live?
-
-Options:
-
-- in-memory buffer: simplest, but loses dirty refs across restart
-- job data: durable enough per coalesced job, but hard to merge on coalesce with the current queue API
-- small durable queue/entity: most correct, more work
-- coalesced job with no per-source payload: enqueue a single `topics:source-batch` job using the existing `deduplication: "coalesce"` support (already used for `topics-initial-derivation`). The handler queries on wake for entities updated since the last topic-extraction wave (tracked via a small marker — last-run timestamp or a per-entity `lastExtractedHash`). Avoids both the merge-on-coalesce problem and the restart-loss problem; the cost is needing a "what changed since" query path
-
-Preferred: the coalesced-job-with-no-payload option, assuming a cheap "what changed since" query is available. Fall back to in-memory for alpha if that query is awkward to add — document the tradeoff either way.
+Tradeoff: dirty source refs are in memory. This keeps Slice 2 package-local and avoids adding a cross-package "changed since last extraction" query, but dirty refs can be lost across process restart while a delayed source-batch job is pending. A future durability slice can replace the buffer with a small durable queue or add a cheap updated-since query.
 
 ## Slice 3: downstream skill derivation debounce
 
@@ -182,7 +156,7 @@ User-facing docs and examples should keep describing the current bounded-alias m
 
 1. ~~`fix/topics-cycle-guard` — Slice 0~~ (shipped in `7eb41713f`)
 2. ~~`fix/topics-process-batch` — Slices 1 and 4~~ (shipped in `0fa831f1b`)
-3. `fix/topics-source-backpressure` — Slice 2
+3. `fix/topics-source-backpressure` — Slice 2 (implemented, pending merge)
 4. `fix/skill-derivation-debounce` — Slice 3
 5. `fix/topic-merge-eval-parity` — Slice 5
 

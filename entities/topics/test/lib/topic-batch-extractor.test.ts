@@ -152,6 +152,43 @@ describe("extractTopicsBatched", () => {
     expect(topicListCalls).toBe(1);
   });
 
+  it("filters extracted topics below the configured relevance threshold", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "High Relevance",
+          content: "This topic should be created.",
+          relevanceScore: 0.9,
+        },
+        {
+          title: "Low Relevance",
+          content: "This topic should be ignored.",
+          relevanceScore: 0.2,
+        },
+      ],
+    });
+
+    const result = await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+      { minRelevanceScore: 0.5 },
+    );
+
+    expect(result.created).toBe(1);
+    expect(result.skipped).toBe(0);
+
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
+    expect(topics).toHaveLength(1);
+    expect(topics[0]?.id).toBe("high-relevance");
+  });
+
   it("updates the in-memory index after creates in the same run", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });

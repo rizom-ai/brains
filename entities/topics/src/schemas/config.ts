@@ -35,6 +35,11 @@ export const topicsPluginConfigSchema = z.object({
    * Enable automatic topic extraction from entity events
    */
   enableAutoExtraction: z.boolean().default(true),
+
+  /**
+   * Delay before processing source-change batches, allowing bursts to coalesce.
+   */
+  sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
 });
 
 export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
