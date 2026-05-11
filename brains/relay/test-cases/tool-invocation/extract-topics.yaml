@@ -9,7 +9,7 @@ tags:
   - system
 
 turns:
-  - userMessage: "Run one topic extraction pass over the current Relay team memory so it covers notes, links, summaries, agents, docs, and decks."
+  - userMessage: "Run one topic extraction pass over the current Relay team memory so it covers notes, links, summaries, agents, docs, and decks. Don't enumerate individual source IDs in your response; just confirm the pass and coverage at the entity-type level."
 
 successCriteria:
   expectedTools:

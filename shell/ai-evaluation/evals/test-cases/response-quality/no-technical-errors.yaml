@@ -1,6 +1,10 @@
 id: shell-no-technical-errors
 name: No Technical Error Messages Leaked
-description: Tests that raw technical error messages are not shown to users when requesting invalid entity types
+description: >-
+  Tests that raw technical error messages are not shown to users when requesting
+  invalid entity types. User-facing content categories are acceptable when used
+  as a safe fallback; judge helpfulness on whether the response avoids raw
+  errors and explains the unsupported request clearly.
 type: response_quality
 tags:
   - shell

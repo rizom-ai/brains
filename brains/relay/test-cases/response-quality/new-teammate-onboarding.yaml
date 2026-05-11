@@ -2,7 +2,19 @@ id: relay-scenario-new-teammate-onboarding
 name: New teammate onboarding from saved Relay memory
 description: >-
   Real user scenario: a new teammate asks what Relay is, what to read first, and
-  what is deliberately out of scope.
+  what is deliberately out of scope. Judge against the saved Relay fixture facts:
+  Relay is a team knowledge coordinator for shared team memory, synthesis, and
+  peer-brain coordination; read-first saved titles include Relay operating model,
+  Capture and synthesis, Peer-brain directory, Relay POC walkthrough, and Relay
+  POC team notes; supported workflows include notes/links capture, conversation
+  summaries, topics, a peer-brain directory with approved A2A coordination, and
+  docs/decks only as the current full-preset surfaces; out-of-scope assumptions
+  include Rover-style publishing, blog/portfolio/marketing automation flows,
+  future plugin/entity types, and contacting unsaved or unapproved agents. Do not
+  penalize grounded wording such as routing shared knowledge across humans and
+  peer brains, approved local agents for A2A, minimal public knowledge surface
+  when enabled, or docs/decks as current full-preset surfaces. The saved title
+  order is not important as long as the titles are saved items.
 type: response_quality
 tags:
   - relay
@@ -32,6 +44,13 @@ successCriteria:
     - "peer"
     - "operating"
     - "synthesis"
+    - "notes"
+    - "links"
+    - "summar"
+    - "topics"
+    - "agent"
+    - "docs"
+    - "decks"
   responseNotContains:
     - "blog platform"
     - "newsletter pipeline"

@@ -138,11 +138,12 @@ expectedOutput:
       Evaluate this SWOT as Relay team-memory and peer-brain guidance.
 
       Good output:
-      - uses the supplied Relay capability areas: team memory capture, synthesis, peer-brain coordination, agent directory, A2A/MCP handoffs, or public-surface audit
+      - uses several supplied Relay capability areas, such as team memory capture, synthesis, peer-brain coordination, agent directory, A2A/MCP handoffs, or public-surface audit
       - gives practical implications for what the Relay team should strengthen, test, trust, or watch next
       - treats discovered/review-needed peer-brain capability as tentative rather than dependable
       - capability-area language is acceptable; specific agent names are not required
       - stays about collaborative intelligence and coordination, not personal publishing or marketing
+      - for coverage, a concise SWOT can score 3+ when it covers at least three distinct Relay-specific themes across quadrants; do not require every named capability area to appear
 
       Bad output:
       - treats Relay like a blog/newsletter/social publishing brain

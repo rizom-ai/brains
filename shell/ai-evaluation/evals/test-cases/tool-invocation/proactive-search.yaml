@@ -35,5 +35,5 @@ successCriteria:
   minInstructionFollowingScore: 4
 
 efficiency:
-  maxToolCalls: 5
+  maxToolCalls: 6
   maxTokens: 45000

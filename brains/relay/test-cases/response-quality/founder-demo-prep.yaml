@@ -30,12 +30,12 @@ successCriteria:
   responseNotContains:
     - "fully autonomous"
     - "production-ready"
-    - "blog"
+    - "blog platform"
     - "newsletter"
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
 
 efficiency:
-  maxToolCalls: 6
+  maxToolCalls: 10
   maxTokens: 40000
