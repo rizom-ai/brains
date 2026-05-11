@@ -58,6 +58,19 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     this.permissionContext = context.permissions;
 
     if (this.hasWebserver) {
+      context.endpoints.register({
+        label: "A2A",
+        url: "/a2a",
+        priority: 25,
+      });
+      context.interactions.register({
+        id: "a2a",
+        label: "A2A",
+        description: "Let other agents discover and talk to this brain.",
+        href: "/a2a",
+        kind: "agent",
+        priority: 25,
+      });
       this.logger.info("A2A interface registered", {
         domain: context.domain,
       });

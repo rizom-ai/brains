@@ -88,6 +88,54 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
+  it("should render interaction entry points", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: {
+        role: "Research brain",
+        purpose: "Help collaborators navigate a network",
+        values: ["clarity"],
+      },
+      profile: { name: "Test Owner" },
+      appInfo: {
+        model: "test-model",
+        version: "1.0.0",
+        uptime: 100,
+        entities: 0,
+        embeddings: 0,
+        ai: {
+          model: "test-model",
+          embeddingModel: "test-embedding-model",
+        },
+        daemons: [],
+        endpoints: [],
+        interactions: [
+          {
+            id: "a2a",
+            label: "A2A",
+            description: "Let other agents talk to this brain.",
+            href: "/a2a",
+            kind: "agent",
+            pluginId: "a2a",
+            priority: 25,
+            visibility: "public",
+            status: "available",
+          },
+        ],
+      },
+      entityCounts: [],
+      widgets: {},
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("Ways to connect");
+    expect(html).toContain("Let other agents talk to this brain.");
+    expect(html).toContain('href="https://brain.test/a2a"');
+  });
+
   it("should render plugin-owned custom widgets and inject their scripts", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
