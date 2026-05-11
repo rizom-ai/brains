@@ -229,7 +229,7 @@ body::after {
   position: relative;
   box-shadow: var(--shadow-card);
 }
-.card--hero { padding: 28px 32px 32px; }
+.card--entity-summary { padding: 28px 32px 32px; }
 
 .operator-gate {
   display: grid;
@@ -312,7 +312,7 @@ body::after {
 @media (max-width: 720px) {
   .entities { grid-template-columns: 1fr; gap: 24px; align-items: start; }
 }
-.hero-number {
+.entity-summary-number {
   font-family: var(--font-display);
   font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 350;
   font-size: clamp(5rem, 10vw, 7.5rem);
@@ -321,10 +321,10 @@ body::after {
   color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
-[data-theme="light"] .hero-number {
+[data-theme="light"] .entity-summary-number {
   font-variation-settings: "opsz" 144, "SOFT" 30, "wght" 420;
 }
-.hero-label {
+.entity-summary-label {
   margin-top: 14px;
   font-family: var(--font-mono);
   font-size: 11px;

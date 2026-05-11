@@ -3,7 +3,7 @@ import { render } from "preact-render-to-string";
 import type { JSX } from "preact";
 import { DASHBOARD_STYLES } from "./render/styles";
 import { Masthead } from "./render/masthead";
-import { HeroCard } from "./render/hero";
+import { EntitySummaryCard } from "./render/entity-summary-card";
 import { CharacterCard } from "./render/character-card";
 import { EndpointsCard } from "./render/endpoints-card";
 import { WidgetCard } from "./render/widget-card";
@@ -146,7 +146,7 @@ function DashboardDocument({
 
           <section class="layout">
             <div class="main-column">
-              <HeroCard
+              <EntitySummaryCard
                 total={totalEntities}
                 entityCounts={input.entityCounts}
               />

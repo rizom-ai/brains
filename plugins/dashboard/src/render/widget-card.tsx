@@ -348,13 +348,13 @@ function WidgetBody({ widget }: RendererProps): JSX.Element {
 
 export function WidgetCard({
   widget,
-  hero = false,
+  featured = false,
 }: {
   widget: RenderableWidgetData;
-  hero?: boolean;
+  featured?: boolean;
 }): JSX.Element {
   return (
-    <article class={hero ? "card card--hero" : "card"}>
+    <article class={featured ? "card card--entity-summary" : "card"}>
       <div class="card-head">
         <span class="card-title">{widget.widget.title}</span>
         <CountChip widget={widget} />
