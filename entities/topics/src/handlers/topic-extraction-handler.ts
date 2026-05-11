@@ -1,13 +1,7 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import {
-  getErrorMessage,
-  z,
-  createId,
-  PROGRESS_STEPS,
-  JobResult,
-} from "@brains/utils";
+import { getErrorMessage, z, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "../lib/constants";
 import { TopicExtractor } from "../lib/topic-extractor";
 
@@ -147,31 +141,24 @@ export class TopicExtractionHandler extends BaseJobHandler<
         };
       }
 
-      // Queue batch of topic processing jobs
-      const operations = extractedTopics.map((topic) => ({
-        type: "topics:process-single",
+      // Queue one batch processing job instead of one job per extracted topic.
+      const batchId = await this.context.jobs.enqueue({
+        type: "process-batch",
         data: {
-          topic,
+          topics: extractedTopics,
           sourceEntityId: entityId,
           sourceEntityType: entityType,
           autoMerge,
           mergeSimilarityThreshold,
         },
-        metadata: {
-          operationType: "data_processing" as const,
-          operationTarget: topic.title,
-        },
-      }));
-
-      const rootJobId = createId();
-      const batchId = await this.context.jobs.enqueueBatch(operations, {
-        priority: 5, // Low priority - background processing
-        source: TOPICS_JOB_SOURCE,
-        rootJobId,
-        metadata: {
-          operationType: "batch_processing" as const,
-          operationTarget: `process topics for ${entityType}:${entityId}`,
-          pluginId: TOPICS_PLUGIN_ID,
+        options: {
+          priority: 5, // Low priority - background processing
+          source: TOPICS_JOB_SOURCE,
+          metadata: {
+            operationType: "batch_processing" as const,
+            operationTarget: `process topics for ${entityType}:${entityId}`,
+            pluginId: TOPICS_PLUGIN_ID,
+          },
         },
       });
 

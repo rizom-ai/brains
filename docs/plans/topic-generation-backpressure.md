@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. Slice 0 (projection-cycle guard) shipped in `7eb41713f`. Slices 1–4 (per-topic processing fanout, source-change backpressure, skill-derivation debounce, batch-extractor DB access) and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
+Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), and Slice 4 (batch-extractor DB access) have shipped. Slice 2 (source-change backpressure), Slice 3 (skill-derivation debounce), and Slice 5 (eval parity, formerly the topic-auto-merge plan) remain.
 
 Relevant prior work:
 
@@ -10,8 +10,9 @@ Relevant prior work:
 - `d203511db feat(topics): trigger batch deriveAll on initial sync`
 - `f88e0ce10 fix(derivation): backpressure initial topic and skill jobs`
 - `7eb41713f fix(topics): guard projection source cycles` — Slice 0
+- `0fa831f1b fix(topics): batch topic processing` — Slices 1 and 4
 
-What survived: initial sync and rebuild use batched extraction; topic-derived entity types (`topic`, `skill`) opt out of projection sourcing via `projectionSource: false`.
+What survived: initial sync and rebuild use batched extraction; topic-derived entity types (`topic`, `skill`) opt out of projection sourcing via `projectionSource: false`; extracted topics are processed through a batch handler and shared in-memory topic index.
 
 ## Problem
 
@@ -23,25 +24,17 @@ Current source-change flow:
 2. each projection job fetches one entity
 3. each extraction lists existing topic titles
 4. each extraction makes one LLM call
-5. each extracted topic enqueues or runs per-topic processing
+5. extracted topics are processed by a batch handler
 6. each topic mutation can trigger downstream skill derivation
-7. derived entities such as `skill` or `summary` may be included as topic sources and feed the loop again
+7. `summary` is intentionally allowed as a topic source (durable proxy for ephemeral conversations); other durable projections such as `decision` and `action-item` may also be valid topic sources when they are terminal projections from ephemeral/raw inputs, but need review before opt-in
 
-For `N` source changes and `K` extracted topics over `M` existing topics, this can become:
+For `N` source changes and `K` extracted topics over `M` existing topics, this can still become:
 
 - `N` LLM extraction calls
 - `N` existing-topic list queries
-- `K` topic processing jobs
-- `K * M` merge-candidate scans
 - repeated downstream skill derivation during one logical topic generation wave
-- feedback cycles such as `topic -> skill -> topic -> skill`
 
-Known cycle risks:
-
-- Relay currently includes `skill` in `topics.includeEntityTypes`, while skill derivation listens to topic changes. This creates a direct `topic -> skill -> topic` loop.
-- Relay includes `summary`; this is intentional because conversations are ephemeral and summaries are the durable proxy for conversation memory. `summary -> topic` is not itself a bad cycle.
-- The problematic chain is `summary -> topic -> skill -> topic` when `skill` is also allowed as a topic source.
-- Other durable projections such as `decision` and `action-item` may also be valid topic sources when they are terminal projections from ephemeral/raw inputs. They should be reviewed for whether they depend on topics before being blocked.
+The classic feedback cycle (`topic -> skill -> topic -> skill`) was the motivation for Slice 0 and is no longer a risk in Relay's default config — see Slice 0 below. The per-topic processing fanout (`K` topic processing jobs and `K * M` merge-candidate scans) was addressed by Slices 1 and 4.
 
 ## Goals
 
@@ -61,73 +54,37 @@ Known cycle risks:
 
 ## Slice 0: break projection cycles (shipped)
 
-Done in `7eb41713f`. Backpressure reduces volume, but it does not fix a logical cycle — fix the cycle first.
+Shipped in `7eb41713f`. Cycle-breaking had to land before any backpressure work, because backpressure reduces volume but doesn't fix a logical cycle.
 
-### Tests
+What shipped:
 
-Add tests that prove:
+- A generic `projectionSource?: boolean` flag on `EntityTypeConfig`, defaulting to `true`.
+- `projectionSource: false` set on `topic` (in `entities/topics/src/index.ts`) and `skill` (in `plugins/agent-discovery/src/plugins/skill-plugin.ts`).
+- `TopicsPlugin.shouldProcessEntityType` now requires both `includeEntityTypes` membership and a non-`false` `projectionSource`.
+- Relay's `topics.includeEntityTypes` no longer contains `skill`; the topics-config test asserts this.
+- A new `EntityService.getEntityTypeConfig` accessor exposes the registered config so cross-plugin checks like the topics cycle guard can read it without reaching into the registry.
 
-- entity types can declare whether they are eligible as projection source material
-- topics does not extract from entity types whose config opts out of projection sourcing
-- Relay's topics config no longer creates a `topic -> skill -> topic` loop
-- `summary` remains allowed as a durable proxy for ephemeral conversations
-- if an opted-out entity type is intentionally used as a topic source, it must opt in explicitly and have a documented cycle guard
+Longer-term rule established: entity types own whether they can serve as source material for downstream projections. Topics should extract from primary human/source content and terminal durable proxies for ephemeral inputs, not from entities whose own derivation depends on topics.
 
-### Implementation
+`agent`, `decision`, and `action-item` are not currently in Relay's topic source list; whether to opt them in remains an open call.
 
-Preferred small fix:
+## Slice 1: prove and fix per-topic processing fanout (shipped)
 
-1. Add a generic entity type config flag, tentatively `projectionSource?: boolean`, defaulting to `true`.
-2. Set `projectionSource: false` on entity types that should not feed other projections, starting with `topic` and `skill`.
-3. Keep `summary` eligible (`projectionSource: true` or omitted) because it is the durable proxy for ephemeral conversations.
-4. Update topics so `shouldProcessEntityType` requires both:
-   - the type is listed in `includeEntityTypes`
-   - the registered entity type config does not set `projectionSource: false`
-5. Remove `skill` from Relay's topic source list unless there is a strong product reason to keep it.
-6. Revisit `agent`, `decision`, and `action-item` in Relay's topic source list and either keep them as terminal durable projections or set `projectionSource: false` if they depend on topics.
+Shipped in `0fa831f1b`.
 
-Longer-term rule: entity types own whether they can serve as source material for downstream projections. Topics should extract from primary human/source content and terminal durable proxies for ephemeral inputs, not from entities whose own derivation depends on topics.
-
-### Acceptance
-
-- No default config creates `topic -> skill -> topic` cycles.
-- `summary -> topic` remains allowed when summaries are the durable proxy for ephemeral conversations.
-- Unit tests cover `projectionSource: false` and opt-in behavior.
-- Relay and Rover evals still pass.
-
-## Slice 1: prove and fix per-topic processing fanout
-
-Package-local after Slice 0.
-
-### Tests
-
-Add tests that prove:
+What shipped:
 
 - `TopicExtractionHandler` enqueues one `process-batch` job for multiple extracted topics instead of N `process-single` jobs.
-- The batch handler preloads existing topics exactly once and runs all merge-candidate scoring against that in-memory set.
+- `TopicProcessingBatchHandler` preloads existing topics once and runs merge-candidate scoring against an in-memory index.
 - The in-memory index is updated after each create/merge so later topics in the same batch see earlier mutations.
-- Existing `topics:process-single` behavior remains supported for compatibility while queued jobs drain.
-
-### Implementation
-
-Add a new batch handler, for example `topics:process-batch`.
-
-Flow:
-
-1. `TopicExtractionHandler` extracts topics from one source entity.
-2. It enqueues one `process-batch` job containing the extracted topic list and source info.
-3. The batch handler preloads existing topics once into an in-memory index.
-4. For each extracted topic it runs `findMergeCandidate`-equivalent similarity scoring against the in-memory index (no per-topic DB scan).
-5. It creates/updates/merges topics in a bounded pass, updating the in-memory index after each mutation.
-
-Keep `topics:process-single` registered temporarily so old queued jobs and focused tests still work. Removal milestone: drop the handler one release after Slice 1 ships, once production queues have drained.
+- `process-single` is no longer registered as a runtime job handler; old queued `process-single` jobs may be orphaned/failed rather than drained.
 
 ### Acceptance
 
 - Unit tests cover batch processing behavior, including the "later topic in batch sees earlier merge" case.
 - `bun run typecheck`, targeted tests, `bun run lint` pass for `entities/topics`.
 - `bun run eval --skip-llm-judge` passes for `entities/topics`.
-- Rover eval still passes after the slice.
+- Rover eval passes after the slice.
 
 ## Slice 2: source-change batching/backpressure
 
@@ -183,26 +140,16 @@ Preferred: option 3. It dovetails with the Slice 1 batch handler (which already 
 
 This likely crosses package boundaries, so keep it separate from the topics package-local fix.
 
-## Slice 4: optimize batch extractor DB access
+## Slice 4: optimize batch extractor DB access (shipped)
 
-Folded into Slice 1's worktree — the in-memory topic index built for `process-batch` is the same index `extractTopicsBatched` needs. Splitting them risks building two near-identical indexes.
+Shipped in `0fa831f1b`.
 
-Even `extractTopicsBatched` still does per-topic DB checks:
+What shipped:
 
-- it calls `getTopic(slug)`
-- then `createTopic()`, which checks existence again
-
-### Tests
-
-- `extractTopicsBatched` issues one existing-topic preload per run, not one per extracted topic.
-- A create helper that trusts a preloaded index still surfaces (or recovers from) a real race error if the slug appears between preload and insert.
+- A shared in-memory `TopicIndex` backs both `process-batch` and `extractTopicsBatched`.
+- `extractTopicsBatched` preloads existing topics once per run instead of checking the DB per extracted topic.
+- `createTopicFromPreloadedIndex` trusts the preloaded index while still recovering from concurrent insert races by fetching the existing topic.
 - The in-memory index reflects creates and merges performed earlier in the same run.
-
-### Implementation
-
-- Preload existing topic IDs/slugs once per batch or per run, sharing the index with the Slice 1 `process-batch` handler where the call sites overlap.
-- Add a create helper that can trust the preloaded index but still handles the race-error path from a concurrent insert.
-- Update the in-memory index after each create/merge.
 
 ### Acceptance
 
@@ -213,7 +160,7 @@ Even `extractTopicsBatched` still does per-topic DB checks:
 
 Folded in from the former `topic-auto-merge` plan. The `topicMergeJobDataSchema` cleanup is already done; one deliverable remains.
 
-`checkMergeSimilarity` in `entities/topics/src/lib/eval-handlers.ts` still uses a simplified title-match eval path instead of exercising the real merge-candidate detection path.
+`checkMergeSimilarity` in `entities/topics/src/lib/eval-handlers.ts` still uses a simplified lowercase-title-match (lines 177-179). The same file already has a sibling handler, `detectMergeCandidate`, that uses the real `topicService.findMergeCandidate` path — so the work is "consolidate `checkMergeSimilarity` through that real path" rather than "build the real path from scratch."
 
 ### Acceptance
 
@@ -234,7 +181,7 @@ User-facing docs and examples should keep describing the current bounded-alias m
 ## Suggested worktrees
 
 1. ~~`fix/topics-cycle-guard` — Slice 0~~ (shipped in `7eb41713f`)
-2. `fix/topics-process-batch` — Slices 1 and 4 (shared in-memory topic index)
+2. ~~`fix/topics-process-batch` — Slices 1 and 4~~ (shipped in `0fa831f1b`)
 3. `fix/topics-source-backpressure` — Slice 2
 4. `fix/skill-derivation-debounce` — Slice 3
 5. `fix/topic-merge-eval-parity` — Slice 5
