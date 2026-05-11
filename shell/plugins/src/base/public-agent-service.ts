@@ -49,6 +49,8 @@ function toRuntimeChatContext(
     ...(context.interfaceType && { interfaceType: context.interfaceType }),
     ...(context.channelId && { channelId: context.channelId }),
     ...(context.channelName && { channelName: context.channelName }),
+    ...(context.actor && { actor: context.actor }),
+    ...(context.source && { source: context.source }),
   };
 }
 

@@ -1,4 +1,8 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  ConversationMessageActor,
+  ConversationMessageSource,
+} from "@brains/conversation-service";
 import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
 import type { ModelMessage } from "ai";
 
@@ -64,6 +68,8 @@ export interface ChatContext {
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
   channelId?: string; // Channel/room identifier for conversation tracking
   channelName?: string; // Human-readable name for the channel/room
+  actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
+  source?: ConversationMessageSource; // Platform-specific source provenance
 }
 
 /**

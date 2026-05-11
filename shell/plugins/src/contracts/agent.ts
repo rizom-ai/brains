@@ -1,10 +1,16 @@
 import { z } from "zod";
+import {
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
+} from "@brains/conversation-service";
 
 export const ChatContextSchema = z.object({
   userPermissionLevel: z.enum(["public", "trusted", "anchor"]).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
+  actor: conversationMessageActorSchema.optional(),
+  source: conversationMessageSourceSchema.optional(),
 });
 
 export type ChatContext = z.infer<typeof ChatContextSchema>;

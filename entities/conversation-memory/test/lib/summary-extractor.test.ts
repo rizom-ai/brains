@@ -39,6 +39,50 @@ describe("buildSummaryExtractionPrompt", () => {
     expect(prompt).toContain("Preserve relevant system/developer constraints");
     expect(prompt).toContain("not as user decisions or action items");
   });
+
+  it("formats messages with speaker attribution when actor metadata is present", () => {
+    const prompt = buildSummaryExtractionPrompt({
+      messages: [
+        {
+          id: "m1",
+          conversationId: "conv-1",
+          role: "user",
+          content: "I decided we should keep the onboarding doc short.",
+          timestamp: "2026-01-01T00:00:00.000Z",
+          metadata: {
+            actor: {
+              actorId: "discord:user-123",
+              interfaceType: "discord",
+              role: "user",
+              displayName: "Mira Ops",
+              username: "mira",
+            },
+          },
+        },
+        {
+          id: "m2",
+          conversationId: "conv-1",
+          role: "user",
+          content: "I'll update the checklist by Friday.",
+          timestamp: "2026-01-01T00:01:00.000Z",
+          metadata: {
+            actor: {
+              actorId: "discord:user-456",
+              interfaceType: "discord",
+              role: "user",
+              displayName: "Daniel",
+              username: "daniel",
+            },
+          },
+        },
+      ],
+      config: summaryConfigSchema.parse({}),
+    });
+
+    expect(prompt).toContain("Mira Ops [user]: I decided");
+    expect(prompt).toContain("Daniel [user]: I'll update");
+    expect(prompt).not.toContain("user: I decided");
+  });
 });
 
 describe("SummaryExtractor", () => {

@@ -1,8 +1,47 @@
 import { describe, expect, it } from "bun:test";
-import { AgentResponseSchema } from "../../src/contracts/agent";
+import {
+  AgentResponseSchema,
+  ChatContextSchema,
+} from "../../src/contracts/agent";
 import { toPublicAgentResponse } from "../../src/base/public-agent-service";
 
 describe("public agent contracts", () => {
+  it("accepts speaker attribution in chat context", () => {
+    expect(
+      ChatContextSchema.parse({
+        interfaceType: "discord",
+        channelId: "thread-456",
+        actor: {
+          actorId: "discord:user-789",
+          interfaceType: "discord",
+          role: "user",
+          displayName: "Mira Ops",
+        },
+        source: {
+          messageId: "message-123",
+          channelId: "channel-123",
+          threadId: "thread-456",
+          metadata: { guildId: "guild-123" },
+        },
+      }),
+    ).toEqual({
+      interfaceType: "discord",
+      channelId: "thread-456",
+      actor: {
+        actorId: "discord:user-789",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Mira Ops",
+      },
+      source: {
+        messageId: "message-123",
+        channelId: "channel-123",
+        threadId: "thread-456",
+        metadata: { guildId: "guild-123" },
+      },
+    });
+  });
+
   it("maps runtime agent responses to the stable public contract", () => {
     const response = toPublicAgentResponse({
       text: "Done",

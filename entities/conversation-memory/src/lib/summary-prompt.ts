@@ -1,3 +1,7 @@
+import {
+  conversationMessageMetadataSchema,
+  type ConversationMessageActor,
+} from "@brains/conversation-service";
 import type { Message } from "@brains/plugins";
 import type { SummaryConfig } from "../schemas/summary";
 
@@ -11,13 +15,38 @@ export interface SummaryProjectionDecisionPromptInput {
   messages: Message[];
 }
 
+function getMessageActor(
+  message: Message,
+): ConversationMessageActor | undefined {
+  const parsed = conversationMessageMetadataSchema.safeParse(message.metadata);
+  return parsed.success ? parsed.data.actor : undefined;
+}
+
+function firstNonEmpty(values: string[]): string | undefined {
+  return values.map((value) => value.trim()).find((value) => value.length > 0);
+}
+
+function getSpeakerLabel(message: Message): string {
+  const actor = getMessageActor(message);
+  if (!actor) return message.role;
+
+  const label =
+    firstNonEmpty([
+      actor.displayName ?? "",
+      actor.username ?? "",
+      actor.actorId,
+    ]) ?? message.role;
+
+  return `${label} [${message.role}]`;
+}
+
 function formatMessages(messages: Message[]): string {
   if (messages.length === 0) return "(No messages.)";
 
   return messages
     .map(
       (message, index) =>
-        `${index + 1}. [${message.timestamp}] ${message.role}: ${message.content}`,
+        `${index + 1}. [${message.timestamp}] ${getSpeakerLabel(message)}: ${message.content}`,
     )
     .join("\n");
 }

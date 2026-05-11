@@ -1,5 +1,9 @@
 import { setup, assign, fromPromise } from "xstate";
 import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  ConversationMessageActor,
+  ConversationMessageSource,
+} from "@brains/conversation-service";
 import type { AgentResponse, PendingConfirmation } from "./agent-types";
 
 /**
@@ -13,6 +17,8 @@ export interface AgentMachineContext {
   channelId: string;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  actor: ConversationMessageActor | null;
+  source: ConversationMessageSource | null;
   response: AgentResponse | null;
   pendingConfirmation: PendingConfirmation | null;
   error: string | null;
@@ -30,6 +36,8 @@ export type AgentMachineEvent =
       channelId: string;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
+      actor: ConversationMessageActor | null;
+      source: ConversationMessageSource | null;
     }
   | { type: "CONFIRM" }
   | { type: "CANCEL" };
@@ -44,6 +52,8 @@ export interface ProcessMessageInput {
   channelId: string;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
+  actor: ConversationMessageActor | null;
+  source: ConversationMessageSource | null;
 }
 
 /**
@@ -100,6 +110,8 @@ export const agentMachine = setup({
     channelId: "",
     channelName: "",
     userPermissionLevel: "public" as UserPermissionLevel,
+    actor: null,
+    source: null,
     response: null,
     pendingConfirmation: null,
     error: null,
@@ -116,6 +128,8 @@ export const agentMachine = setup({
             channelId: event.channelId,
             channelName: event.channelName,
             userPermissionLevel: event.userPermissionLevel,
+            actor: event.actor,
+            source: event.source,
             response: null,
             pendingConfirmation: null,
             error: null,
@@ -134,6 +148,8 @@ export const agentMachine = setup({
           channelId: context.channelId,
           channelName: context.channelName,
           userPermissionLevel: context.userPermissionLevel,
+          actor: context.actor,
+          source: context.source,
         }),
         onDone: [
           {

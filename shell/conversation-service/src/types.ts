@@ -55,6 +55,43 @@ export interface StartConversationRequest {
   metadata: ConversationMetadata;
 }
 
+export const conversationMessageActorSchema = z.object({
+  actorId: z.string(),
+  canonicalId: z.string().optional(),
+  interfaceType: z.string(),
+  role: z.enum(["user", "assistant", "system"]),
+  displayName: z.string().optional(),
+  username: z.string().optional(),
+  isBot: z.boolean().optional(),
+});
+
+export type ConversationMessageActor = z.infer<
+  typeof conversationMessageActorSchema
+>;
+
+export const conversationMessageSourceSchema = z.object({
+  messageId: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  threadId: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type ConversationMessageSource = z.infer<
+  typeof conversationMessageSourceSchema
+>;
+
+export const conversationMessageMetadataSchema = z
+  .object({
+    actor: conversationMessageActorSchema.optional(),
+    source: conversationMessageSourceSchema.optional(),
+  })
+  .passthrough();
+
+export type ConversationMessageMetadata = z.infer<
+  typeof conversationMessageMetadataSchema
+>;
+
 export interface AddConversationMessageRequest {
   conversationId: string;
   role: MessageRole;

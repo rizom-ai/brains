@@ -286,6 +286,71 @@ describe("AgentService", () => {
       // Should save user message and assistant response
       expect(mockConversationService.addMessage).toHaveBeenCalledTimes(2);
     });
+
+    it("should persist chat actor and source metadata on conversation messages", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Hello from Mira", "test-conversation", {
+        userPermissionLevel: "trusted",
+        interfaceType: "discord",
+        channelId: "thread-456",
+        channelName: "Ops Guild",
+        actor: {
+          actorId: "discord:user-789",
+          interfaceType: "discord",
+          role: "user",
+          displayName: "Mira Ops",
+          username: "mira",
+        },
+        source: {
+          messageId: "message-123",
+          channelId: "channel-123",
+          threadId: "thread-456",
+          metadata: {
+            guildId: "guild-123",
+            guildName: "Ops Guild",
+          },
+        },
+      });
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "Hello from Mira",
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "discord:user-789",
+              displayName: "Mira Ops",
+            }),
+            source: expect.objectContaining({
+              messageId: "message-123",
+              threadId: "thread-456",
+            }),
+          }),
+        }),
+      );
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              role: "assistant",
+              isBot: true,
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   describe("tools integration", () => {
