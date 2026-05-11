@@ -203,11 +203,14 @@ export class SummaryExtractor {
         Math.min(messages.length, entry.endMessageIndex) -
         Math.max(1, entry.startMessageIndex) +
         1;
-      return entry[field].map((text) => ({
-        text,
-        timeRange,
-        sourceMessageCount: Math.max(0, sourceMessageCount),
-      }));
+      return entry[field]
+        .map((text) => text.trim())
+        .filter((text) => /[\p{L}\p{N}]/u.test(text))
+        .map((text) => ({
+          text,
+          timeRange,
+          sourceMessageCount: Math.max(0, sourceMessageCount),
+        }));
     });
   }
 

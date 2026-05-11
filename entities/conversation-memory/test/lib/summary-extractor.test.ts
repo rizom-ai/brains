@@ -81,6 +81,13 @@ describe("buildSummaryExtractionPrompt", () => {
 
     expect(prompt).toContain("Mira Ops [user]: I decided");
     expect(prompt).toContain("Daniel [user]: I'll update");
+    expect(prompt).toContain("distinct task, artifact, or decision area");
+    expect(prompt).toContain("preserve those speaker names");
+    expect(prompt).toContain("Mira decided");
+    expect(prompt).toContain("Daniel will");
+    expect(prompt).toContain("explicit user requests, instructions");
+    expect(prompt).toContain("Alice owns the adapter rewrite");
+    expect(prompt).toContain("do not infer owners from proximity alone");
     expect(prompt).not.toContain("user: I decided");
   });
 });
@@ -210,6 +217,40 @@ describe("SummaryExtractor", () => {
 
     expect(memory.entries[0]?.keyPoints).toEqual([]);
     expect(memory.decisions.map((item) => item.text)).toEqual(["Add evals"]);
+    expect(memory.actionItems.map((item) => item.text)).toEqual([
+      "Create eval cases",
+    ]);
+  });
+
+  it("drops malformed decision and action item strings from model output", async () => {
+    const logger = createSilentLogger();
+    const context = createEntityPluginContext(
+      createMockShell({ logger }),
+      "summary",
+    );
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Malformed items",
+          summary: "The model emitted punctuation-only memory items.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: [":"],
+          actionItems: [":", "Create eval cases"],
+        },
+      ],
+    });
+
+    const extractor = new SummaryExtractor(
+      context,
+      logger,
+      summaryConfigSchema.parse({}),
+    );
+
+    const memory = await extractor.extract(messages);
+
+    expect(memory.decisions).toEqual([]);
     expect(memory.actionItems.map((item) => item.text)).toEqual([
       "Create eval cases",
     ]);

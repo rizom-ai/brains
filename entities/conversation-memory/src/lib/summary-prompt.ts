@@ -92,12 +92,16 @@ ${formatMessages(messages)}
 
 Rules:
 - Split the conversation into coherent phases or topic shifts.
+- Create separate entries when the conversation moves to a distinct task, artifact, or decision area, even if each phase is short.
 - Do not split every message into its own entry; merge adjacent short messages when they are part of one request/response phase.
 - For low-signal chatter (acknowledgements, "done", "continue"), return at most one minimal entry, or zero entries if there is nothing useful to preserve.
 - Keep entries chronological.
 - Use startMessageIndex and endMessageIndex to identify the source messages for each entry.
 - Cover every meaningful message exactly once when possible.
 - Do not invent facts, decisions, owners, or tasks.
+- When message labels identify distinct speakers, preserve those speaker names for attributed decisions, commitments, and action items; do not infer owners from proximity alone.
+- If a labeled user message declares a decision, write the decision with that speaker as the decider (for example, "Mira decided ..."). If a labeled user makes a first-person commitment, write the action item with that speaker as the owner (for example, "Daniel will ...").
+- Treat explicit user requests, instructions, and named ownership assignments for future work as action items. For "Alice owns the adapter rewrite", extract an action item owned by Alice; do not classify ownership assignments as decisions unless they are explicitly framed as decisions.
 - Treat system/developer messages as constraints or context, not as user decisions or action items. Preserve relevant system/developer constraints in the summary or keyPoints when they materially shape the conversation, but do not copy them into decisions unless a user explicitly adopts them as a decision.
 - Put recommendations and opinions in keyPoints, not decisions, unless the conversation explicitly accepts or labels them as a decision.
 - Keep each summary under ${config.maxEntryLength} characters unless critical context would be lost.

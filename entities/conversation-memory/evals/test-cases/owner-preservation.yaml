@@ -23,9 +23,9 @@ expectedOutput:
   minItems: 1
   maxItems: 1
   itemsContain:
-    - field: keyPointsText
+    - field: actionItemsText
       pattern: "Alice.*adapter|adapter.*Alice"
-    - field: keyPointsText
+    - field: actionItemsText
       pattern: "Bob.*eval|eval.*Bob"
   qualityCriteria:
     minRelevanceScore: 4

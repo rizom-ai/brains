@@ -8,6 +8,10 @@ import type {
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+import {
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
+} from "@brains/conversation-service";
 import type {
   ActionItemEntity,
   DecisionEntity,
@@ -22,6 +26,8 @@ const evalMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
   content: z.string(),
   timestamp: z.string().datetime().optional(),
+  actor: conversationMessageActorSchema.optional(),
+  source: conversationMessageSourceSchema.optional(),
 });
 
 const summarizeMessagesInputSchema = z.object({
@@ -227,7 +233,10 @@ function toEvalMessages(
       role: message.role,
       content: message.content,
       timestamp,
-      metadata: {},
+      metadata: {
+        ...(message.actor ? { actor: message.actor } : {}),
+        ...(message.source ? { source: message.source } : {}),
+      },
     };
   });
 }
