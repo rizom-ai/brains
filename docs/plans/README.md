@@ -34,7 +34,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Content, sync, and generation
 
 - [Generic cover image orchestration](./generic-cover-image-orchestration.md)
-- [Topic generation backpressure](./topic-generation-backpressure.md)
 
 ### Auth, users, CMS, and HTTP
 
