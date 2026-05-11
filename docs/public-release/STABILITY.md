@@ -87,6 +87,8 @@ External plugin authors should use the generated public `@rizom/brain/*` subpath
 
 The public plugin base classes (`ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`) and lifecycle hooks (`onRegister`, `onReady`, `onShutdown`) are stable enough to build external plugins on during alpha. Public data contracts are schema-backed DTOs; callable context namespaces are TypeScript interfaces. Published declarations are generated from source and guarded so they do not expose internal `@brains/*` imports.
 
+`context.entityService` is the shared read/query entity-service surface: typed `getEntity`, `listEntities`, `search`, counts, and entity-type discovery. Registration and controlled mutation capabilities live on `context.entities` instead of exposing the full runtime entity-service implementation.
+
 Public DTO `metadata` bags use `ExtensionMetadataSchema` and are best-effort extension data, not stable per-key contracts. Stable fields are hoisted to typed top-level properties before being documented.
 
 ### External plugin loading shape

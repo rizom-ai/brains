@@ -1,11 +1,13 @@
 import type {
-  BaseEntity,
-  CreateExecutionContext,
-  CreateInput,
-  CreateInterceptionResult,
-  DataSource,
-  EntityAdapter,
-  EntityTypeConfig,
+  CountEntitiesRequest,
+  EntitySearchRequest,
+  GetEntityRequest,
+  ICoreEntityService,
+  IEntitiesNamespace,
+  ListEntitiesRequest,
+  ListOptions,
+  SearchOptions,
+  SearchResult,
 } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils";
@@ -217,37 +219,31 @@ export function defineChannel<TPayload, TResponse = unknown>(
   return { name, schema };
 }
 
-export interface GetEntityRequest {
-  entityType: string;
-  id: string;
-}
+type PublicEntityServiceMethods =
+  | "getEntity"
+  | "listEntities"
+  | "search"
+  | "getEntityTypes"
+  | "hasEntityType"
+  | "countEntities"
+  | "getEntityCounts"
+  | "getEntityTypeConfig";
 
-export type GetEntityRawRequest = GetEntityRequest;
+export type IEntityService = Pick<
+  ICoreEntityService,
+  PublicEntityServiceMethods
+>;
 
-export interface ListEntitiesRequest {
-  entityType: string;
-  options?: unknown;
-}
-
-export interface CountEntitiesRequest {
-  entityType: string;
-  options?: unknown;
-}
-
-export interface EntitySearchRequest {
-  query: string;
-  options?: unknown;
-}
-
-export interface IEntityService {
-  getEntity<T = unknown>(request: GetEntityRequest): Promise<T | null>;
-  listEntities<T = unknown>(request: ListEntitiesRequest): Promise<T[]>;
-  search<T = unknown>(request: EntitySearchRequest): Promise<T[]>;
-  getEntityTypes(): string[];
-  hasEntityType(type: string): boolean;
-  countEntities(request: CountEntitiesRequest): Promise<number>;
-  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
-}
+export type {
+  CountEntitiesRequest,
+  EntitySearchRequest,
+  GetEntityRequest,
+  IEntitiesNamespace,
+  ListEntitiesRequest,
+  ListOptions,
+  SearchOptions,
+  SearchResult,
+};
 
 export interface IIdentityNamespace {
   get: () => BrainCharacter;
@@ -285,10 +281,7 @@ export type InsightHandler = (
 ) => Promise<Record<string, unknown>>;
 
 export interface IEvalNamespace {
-  registerHandler<TInput = unknown, TOutput = unknown>(
-    handlerId: string,
-    handler: EvalHandler<TInput, TOutput>,
-  ): void;
+  registerHandler(handlerId: string, handler: EvalHandler): void;
 }
 
 export interface IInsightsNamespace {
@@ -311,29 +304,6 @@ export interface BasePluginContext {
   readonly insights: IInsightsNamespace;
 }
 
-export interface IEntitiesNamespace {
-  register<TEntity extends BaseEntity>(
-    entityType: string,
-    schema: z.ZodSchema<TEntity>,
-    adapter: EntityAdapter<TEntity>,
-    config?: EntityTypeConfig,
-  ): void;
-  getAdapter<TEntity extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<TEntity> | undefined;
-  update<TEntity extends BaseEntity>(
-    entity: TEntity,
-  ): Promise<{ entityId: string; jobId: string }>;
-  registerDataSource(dataSource: DataSource): void;
-  registerCreateInterceptor(
-    entityType: string,
-    interceptor: (
-      input: CreateInput,
-      executionContext: CreateExecutionContext,
-    ) => Promise<CreateInterceptionResult>,
-  ): void;
-}
-
 export interface IPromptsNamespace {
   resolve(target: string, fallback: string): Promise<string>;
 }
@@ -343,7 +313,11 @@ export interface IServiceTemplatesNamespace {
 }
 
 export interface IViewsNamespace {
-  register(views: unknown): void;
+  get(name: string): unknown | undefined;
+  list(): unknown[];
+  hasRenderer(templateName: string): boolean;
+  getRenderer(templateName: string): unknown | undefined;
+  validate(templateName: string, content: unknown): boolean;
 }
 
 export interface ServicePluginContext extends BasePluginContext {

@@ -1,4 +1,5 @@
 import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
+import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
 import type {
   IShell,
   PluginCapabilities,
@@ -39,12 +40,16 @@ class InterfacePluginDelegate<
     super(id, packageJson, config, configSchema);
   }
 
-  protected override onRegister(context: never): Promise<void> {
-    return this.hooks.onRegister(context as InterfacePluginContext);
+  protected override onRegister(
+    context: RuntimeInterfacePluginContext,
+  ): Promise<void> {
+    return this.hooks.onRegister(context);
   }
 
-  protected override onReady(context: never): Promise<void> {
-    return this.hooks.onReady(context as InterfacePluginContext);
+  protected override onReady(
+    context: RuntimeInterfacePluginContext,
+  ): Promise<void> {
+    return this.hooks.onReady(context);
   }
 
   protected override onShutdown(): Promise<void> {

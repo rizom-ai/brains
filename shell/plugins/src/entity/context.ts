@@ -7,12 +7,8 @@ import type {
 } from "../interfaces";
 import type {
   IEntityService,
-  BaseEntity,
-  CreateInterceptor,
-  EntityAdapter,
-  EntityTypeConfig,
+  IEntitiesNamespace,
 } from "@brains/entity-service";
-import type { DataSource } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type {
   ImageGenerationOptions,
@@ -21,48 +17,7 @@ import type {
 import type { DefaultQueryResponse } from "@brains/utils";
 import type { z } from "@brains/utils";
 
-/**
- * Entities namespace — entity type registration and management
- */
-export interface IEntitiesNamespace {
-  /** Register a new entity type with schema and adapter */
-  register: <T extends BaseEntity>(
-    entityType: string,
-    schema: z.ZodSchema<T>,
-    adapter: EntityAdapter<T>,
-    config?: EntityTypeConfig,
-  ) => void;
-
-  /** Get the adapter for an entity type */
-  getAdapter: <T extends BaseEntity>(
-    entityType: string,
-  ) => EntityAdapter<T> | undefined;
-
-  /** Extend an adapter's frontmatterSchema with additional fields */
-  extendFrontmatterSchema: (
-    type: string,
-    extension: z.ZodObject<z.ZodRawShape>,
-  ) => void;
-
-  /** Get effective frontmatter schema (base + extensions) for an entity type */
-  getEffectiveFrontmatterSchema: (
-    type: string,
-  ) => z.ZodObject<z.ZodRawShape> | undefined;
-
-  /** Update an existing entity */
-  update: <T extends BaseEntity>(
-    entity: T,
-  ) => Promise<{ entityId: string; jobId: string }>;
-
-  /** Register a data source for dynamic content */
-  registerDataSource: (dataSource: DataSource) => void;
-
-  /** Register a create interceptor for this plugin's entity type */
-  registerCreateInterceptor: (
-    entityType: string,
-    interceptor: CreateInterceptor,
-  ) => void;
-}
+export type { IEntitiesNamespace };
 
 /**
  * AI namespace for entity plugins — includes generation capabilities

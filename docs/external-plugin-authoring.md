@@ -97,6 +97,15 @@ export default plugin;
 
 The repository keeps a package-local compile fixture at [`packages/brain-cli/test/fixtures/external-plugin`](../packages/brain-cli/test/fixtures/external-plugin). It typechecks against the public `.d.ts` contracts and must not import `@brains/*`. For a durable entity example, see [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes).
 
+## Entity service and entity namespace
+
+Public plugin contexts expose entity capabilities through two deliberately separate surfaces:
+
+- `context.entityService` for read/query operations such as `getEntity<T extends BaseEntity>()`, `listEntities<T extends BaseEntity>()`, `search<T extends BaseEntity>()`, counts, and entity-type discovery.
+- `context.entities` for registration and controlled writes such as `register`, `update`, `registerDataSource`, and `registerCreateInterceptor`.
+
+`search<T>()` returns `SearchResult<T>[]`, not bare entities. Import `BaseEntity`, `ListOptions`, `SearchOptions`, and `SearchResult` from `@rizom/brain/entities` when you need typed entity access.
+
 ## Registration model
 
 Capabilities are registered through a documented hybrid: **class methods** for static declarations the shell collects automatically, and **`context.*.register*()` calls** inside `onRegister` for anything dynamic, conditional, or namespaced.

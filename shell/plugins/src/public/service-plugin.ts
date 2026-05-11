@@ -1,4 +1,5 @@
 import { ServicePlugin as RuntimeServicePlugin } from "../service/service-plugin";
+import type { ServicePluginContext as RuntimeServicePluginContext } from "../service/context";
 import type {
   IShell,
   PluginCapabilities,
@@ -27,12 +28,16 @@ class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
     super(id, packageJson, config, configSchema);
   }
 
-  protected override onRegister(context: never): Promise<void> {
-    return this.hooks.onRegister(context as ServicePluginContext);
+  protected override onRegister(
+    context: RuntimeServicePluginContext,
+  ): Promise<void> {
+    return this.hooks.onRegister(context);
   }
 
-  protected override onReady(context: never): Promise<void> {
-    return this.hooks.onReady(context as ServicePluginContext);
+  protected override onReady(
+    context: RuntimeServicePluginContext,
+  ): Promise<void> {
+    return this.hooks.onReady(context);
   }
 
   protected override onShutdown(): Promise<void> {
