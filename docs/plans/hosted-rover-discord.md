@@ -126,7 +126,7 @@ The router is just an async function. The `rover-gateway` plugin registers it vi
 
 The rover produces platform-agnostic responses; the gateway translates them into Discord operations via Chat SDK. This plays to Chat SDK's mdast ↔ platform contract — the abstraction it exists to provide. Bypassing it (rover producing Discord-shaped bytes) would re-implement platform rendering on the rover side, fight the SDK, and break the path for adding Slack/Teams later.
 
-**This boundary already exists in the codebase.** `shell/ai-service/src/agent-types.ts:90` defines `AgentResponse` as `{ text: string (markdown), toolResults, pendingConfirmation, usage }` — already platform-agnostic. `shared/utils/src/chunk-message.ts` is generic markdown chunking, not Discord-specific. Discord-specific behavior lives only in `interfaces/discord/`. The gateway/`interfaces/chat/` slots in at the same boundary `interfaces/discord/` already occupies. No rover-side rework needed for content abstraction.
+**This boundary already exists in the codebase.** `shell/ai-service/src/agent-types.ts` defines `AgentResponse` (interface at line 92) as `{ text: string (markdown), toolResults, pendingConfirmation, usage }` — already platform-agnostic. `shared/utils/src/chunk-message.ts` is generic markdown chunking, not Discord-specific. Discord-specific behavior lives only in `interfaces/discord/`. The gateway/`interfaces/chat/` slots in at the same boundary `interfaces/discord/` already occupies. No rover-side rework needed for content abstraction.
 
 **Concrete responsibilities:**
 

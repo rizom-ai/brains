@@ -39,20 +39,21 @@ each tier is a strict superset of the one below it.
 ### `core` (15 capabilities)
 
 ```
-prompt             ─ AI templates
-directory-sync     ─ brain-data (+ seed content)
-note               ─ free-form text capture
-link               ─ URL bookmarks (huge for team reference-sharing)
-topics             ─ auto-extract topic clusters (synthesis layer)
+prompt              ─ AI templates
+directory-sync      ─ brain-data (+ seed content)
+note                ─ free-form text capture
+link                ─ URL bookmarks (huge for team reference-sharing)
+topics              ─ auto-extract topic clusters (synthesis layer)
 conversation-memory ─ durable summaries, decisions, and action items
 agents              ─ agent + skill directory for peer brains
-assessment         ─ derived SWOT/capability assessment from agents + skills
-cms                ─ browser authoring surface
-dashboard          ─ operator dashboard widgets
-webserver          ─ shared HTTP/admin surface
-mcp                ─ MCP interface (tool access)
-discord            ─ team chat interface (skipped if no bot token)
-a2a                ─ agent-to-agent transport (brain↔brain collab)
+assessment          ─ derived SWOT/capability assessment from agents + skills
+auth-service        ─ OAuth/passkey identity for operators and editors
+cms                 ─ browser authoring surface
+dashboard           ─ operator dashboard widgets
+mcp                 ─ MCP interface (tool access)
+webserver           ─ shared HTTP/admin surface
+discord             ─ team chat interface (skipped if no bot token)
+a2a                 ─ agent-to-agent transport (brain↔brain collab)
 ```
 
 ### `default` = `core` + 4
@@ -204,15 +205,3 @@ existing publishing/newsletter stack.
 - A saved and approved peer `agent` can be called through A2A.
 - `preset: default` can still build a minimal public site when needed.
 - `preset: full` enables docs and decks without pulling in Rover-style publishing.
-
-## Known latent bugs surfaced this round
-
-- **`parseInstanceOverrides` silently drops all overrides on Zod failure.**
-  An empty YAML field like `anchors:` parses as `null`, which doesn't
-  satisfy `z.array(z.string()).optional()` (optional means `undefined`,
-  not `null`). The entire overrides object is discarded silently instead
-  of surfacing an error. A relay instance had this bug and was running with
-  _zero_ overrides until this round's cleanup removed the empty
-  `anchors:` field. Fix later: either coerce `null → undefined` in the
-  pre-validation step, or surface parse errors instead of falling back
-  to `{}`.

@@ -25,44 +25,34 @@ Operator-facing interfaces share the Brain tool surface, but hosted onboarding a
 - Do not require GitHub Actions logs, hosted log scraping, SSH, webhooks, or doc-brain deployment.
 - Do not reintroduce `plugins.mcp.authToken`.
 
-## Auth-service responsibilities
+## What ships today
 
-- Generate the setup token internally when no passkey exists.
-- Serve `/setup?token=...` only for the valid generated token.
-- Require the valid generated token for passkey registration endpoints.
-- Clear/close setup after successful passkey registration.
-- Refuse setup once any passkey exists.
-- Expose setup state through a small internal API and an anchor-visible tool.
+### Auth-service: setup token + setup endpoint
 
-Example internal shape:
+`shell/auth-service` owns the bootstrap ceremony in `auth-service.ts`:
+
+- Generates a setup token internally when no passkey exists.
+- Serves `/setup?token=...` only for the valid generated token.
+- Requires the valid generated token on passkey registration endpoints.
+- Clears/closes setup after successful passkey registration.
+- Refuses setup once any passkey exists.
+- Exposes setup state via `AuthService#getSetupUrl()` and `getOperatorSetupRequired()`.
+
+The internal type is exported from `@brains/auth-service`:
 
 ```ts
-interface OperatorSetupRequired {
+export interface OperatorSetupRequired {
   setupUrl: string;
   expiresAt: number;
 }
 ```
 
-`AuthService#getSetupUrl()` should remain available for code that needs to re-read the active setup URL before returning or delivering it.
+### Anchor-visible setup retrieval tool
 
-## Anchor-visible setup retrieval tool
-
-Register a tool from `shell/auth-service`, for example:
+`auth-service-plugin.ts` registers an anchor-visible tool named `get_passkey_setup_url` (which surfaces under the plugin's namespace). Result shape:
 
 ```ts
-auth_get_passkey_setup_url;
-```
-
-Tool visibility:
-
-```ts
-visibility: "anchor";
-```
-
-Expected behavior:
-
-```ts
-type PasskeySetupToolResult =
+type PasskeySetupToolData =
   | { status: "setup_required"; setupUrl: string; expiresAt: number }
   | { status: "complete" }
   | { status: "unavailable"; reason: string };
@@ -70,13 +60,24 @@ type PasskeySetupToolResult =
 
 Rules:
 
-- If a passkey already exists, return `status: "complete"`.
-- If setup is required and a valid setup URL exists, return `status: "setup_required"` with the URL and expiry.
-- If setup is required but no valid setup URL is available, return `status: "unavailable"` with a non-sensitive reason.
-- The setup URL remains the same active one-shot URL; do not generate per-interface or per-user tokens for this plan.
+- If a passkey already exists, returns `status: "complete"`.
+- If setup is required and a valid setup URL exists, returns `status: "setup_required"` with the URL and expiry.
+- If setup is required but no valid setup URL is available, returns `status: "unavailable"` with a non-sensitive reason.
+- The setup URL remains the same active one-shot URL; per-interface or per-user tokens are not used.
 - First successful passkey registration wins and closes setup for everyone else.
 
-## Operator notification contract
+### Shipped tests (auth-service)
+
+- setup URL generated when no passkey exists
+- setup retrieval tool returns `setup_required` with URL and expiry when no passkey exists
+- setup retrieval tool returns `complete` when a passkey already exists
+- `/setup` requires the valid generated token
+- registration endpoints require the valid generated token
+- setup closes after successful passkey registration
+
+## Remaining work
+
+### Operator notification contract
 
 Introduce a system notification/request with a shape like:
 
@@ -108,6 +109,27 @@ Operator notification layer / message bus
 DiscordInterface
   owns Discord transport and sends Discord DMs
 ```
+
+### Auth-service-plugin bridge
+
+The plugin should subscribe to "setup required" state from `AuthService` and emit an `OperatorNotification` request through the operator-notification layer when the brain boots with no passkey configured. Idempotent: re-emits should dedupe through the notification layer's `dedupeKey`.
+
+### Discord delivery
+
+See "Discord delivery" section below for the contract.
+
+### Operator docs update
+
+See "Docs" section below.
+
+### Remaining tests (interface + plugin)
+
+- auth-service-plugin emits/requests operator notification when setup is required
+- no notification is requested when a passkey already exists
+- Discord does not post token-bearing output into unsafe public/server channels
+- Discord resolves `discord:*` anchors and sends DMs
+- Discord queues or safely handles notification before client readiness
+- Discord delivery failure logs do not include the setup URL
 
 ## Interface behavior
 
@@ -168,26 +190,6 @@ Update onboarding docs to state:
 - Initial Discord delivery DMs configured `discord:*` anchors.
 - The same URL may be sent to multiple trusted anchors; it is single-use and first registration wins.
 - Logs are local/dev fallback only.
-
-## Tests
-
-Auth-service tests:
-
-- setup URL is generated when no passkey exists
-- setup retrieval tool returns `setup_required` with URL and expiry when no passkey exists
-- setup retrieval tool returns `complete` when a passkey already exists
-- `/setup` requires the valid generated token
-- registration endpoints require the valid generated token
-- setup closes after successful passkey registration
-- auth-service-plugin emits/requests operator notification when setup is required
-- no notification is requested when a passkey already exists
-
-Interface tests:
-
-- Discord does not post token-bearing output into unsafe public/server channels
-- Discord resolves `discord:*` anchors and sends DMs
-- Discord queues or safely handles notification before client readiness
-- Discord delivery failure logs do not include the setup URL
 
 ## Validation
 
