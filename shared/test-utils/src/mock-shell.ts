@@ -104,6 +104,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
   const entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
+  const entityTypeConfigs = new Map<
+    string,
+    Parameters<IEntityRegistry["registerEntityType"]>[3]
+  >();
 
   // Serialize an entity the way the real EntityService would: adapter
   // rebuilds markdown from entity fields, adapter extracts canonical
@@ -256,6 +260,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         skipped: false,
       };
     },
+    getEntityTypeConfig: (type: string) => entityTypeConfigs.get(type) ?? {},
     getWeightMap: () => ({}),
     countEntities: async () => 0,
     getEntityCounts: async () => [],
@@ -268,9 +273,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   >();
 
   const entityRegistry: IEntityRegistry = {
-    registerEntityType: (type, _schema, adapter) => {
+    registerEntityType: (type, _schema, adapter, config) => {
       entityTypes.add(type);
       entityAdapters.set(type, adapter as unknown as EntityAdapter<BaseEntity>);
+      entityTypeConfigs.set(type, config ?? {});
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
@@ -290,7 +296,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     hasEntityType: (type: string) => entityTypes.has(type),
     validateEntity: <TData>(_type: string, entity: unknown) => entity as TData,
     getAllEntityTypes: () => Array.from(entityTypes),
-    getEntityTypeConfig: () => ({}),
+    getEntityTypeConfig: (type: string) => entityTypeConfigs.get(type) ?? {},
     getWeightMap: () => ({}),
     registerCreateInterceptor: (type, interceptor) => {
       createInterceptors.set(

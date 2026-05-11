@@ -68,28 +68,32 @@ Do this first. Backpressure reduces volume, but it does not fix a logical cycle.
 
 Add tests that prove:
 
-- topics does not extract from topic-derived entity types by default (`topic`, `skill`, and any other outputs whose derivation depends on topics)
+- entity types can declare whether they are eligible as projection source material
+- topics does not extract from entity types whose config opts out of projection sourcing
 - Relay's topics config no longer creates a `topic -> skill -> topic` loop
 - `summary` remains allowed as a durable proxy for ephemeral conversations
-- if a topic-derived entity type is intentionally allowed as a topic source, it must opt in explicitly and have a documented cycle guard
+- if an opted-out entity type is intentionally used as a topic source, it must opt in explicitly and have a documented cycle guard
 
 ### Implementation
 
 Preferred small fix:
 
-1. Add a topics config denylist for topic-derived source types, defaulting to at least `topic` and `skill`.
-2. Apply the denylist in `shouldProcessEntityType` in addition to `includeEntityTypes`.
-3. Remove `skill` from Relay's topic source list unless there is a strong product reason to keep it.
-4. Keep `summary` eligible when it represents durable conversation memory rather than a topic-derived projection.
-5. Revisit `agent`, `decision`, and `action-item` in Relay's topic source list and either keep them as terminal durable projections or block them if they depend on topics.
+1. Add a generic entity type config flag, tentatively `projectionSource?: boolean`, defaulting to `true`.
+2. Set `projectionSource: false` on entity types that should not feed other projections, starting with `topic` and `skill`.
+3. Keep `summary` eligible (`projectionSource: true` or omitted) because it is the durable proxy for ephemeral conversations.
+4. Update topics so `shouldProcessEntityType` requires both:
+   - the type is listed in `includeEntityTypes`
+   - the registered entity type config does not set `projectionSource: false`
+5. Remove `skill` from Relay's topic source list unless there is a strong product reason to keep it.
+6. Revisit `agent`, `decision`, and `action-item` in Relay's topic source list and either keep them as terminal durable projections or set `projectionSource: false` if they depend on topics.
 
-Longer-term rule: topics should extract from primary human/source content and terminal durable proxies for ephemeral inputs by default. They should not extract from entities whose own derivation depends on topics.
+Longer-term rule: entity types own whether they can serve as source material for downstream projections. Topics should extract from primary human/source content and terminal durable proxies for ephemeral inputs, not from entities whose own derivation depends on topics.
 
 ### Acceptance
 
 - No default config creates `topic -> skill -> topic` cycles.
 - `summary -> topic` remains allowed when summaries are the durable proxy for ephemeral conversations.
-- Unit tests cover the denylist / opt-in behavior.
+- Unit tests cover `projectionSource: false` and opt-in behavior.
 - Relay and Rover evals still pass.
 
 ## Slice 1: prove and fix per-topic processing fanout

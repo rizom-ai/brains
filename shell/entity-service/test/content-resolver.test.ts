@@ -118,6 +118,7 @@ Some text
         hasEntityType: mock(() => false),
         countEntities: mock(() => Promise.resolve(0)),
         getEntityCounts: mock(() => Promise.resolve([])),
+        getEntityTypeConfig: mock(() => ({})),
         getWeightMap: mock(() => ({})),
       };
     });

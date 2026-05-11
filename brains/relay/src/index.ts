@@ -128,7 +128,6 @@ export default defineBrain({
           "link",
           "summary",
           "agent",
-          "skill",
           "swot",
           "deck",
           "doc",

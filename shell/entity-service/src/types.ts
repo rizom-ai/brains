@@ -280,6 +280,9 @@ export interface EntityTypeConfig {
   /** Whether to generate embeddings for this entity type (default: true).
    *  Set to false for entity types with non-textual content (e.g., images). */
   embeddable?: boolean;
+  /** Whether this entity type may be used as source material for derived projections (default: true).
+   *  Set to false for projection outputs that would create feedback loops. */
+  projectionSource?: boolean;
 }
 
 /**
@@ -364,6 +367,9 @@ export interface ICoreEntityService {
   // Entity counts
   countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
+
+  /** Get configuration for a specific entity type */
+  getEntityTypeConfig(type: string): EntityTypeConfig;
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;

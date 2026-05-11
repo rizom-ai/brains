@@ -32,6 +32,7 @@ function createMockEntityService(): EntityService {
     hasEntityType: () => false,
     countEntities: async () => 0,
     getEntityCounts: async () => [],
+    getEntityTypeConfig: () => ({}),
     getWeightMap: () => ({}),
     createEntity: async () => ({
       entityId: "test",

@@ -3,6 +3,7 @@ import type {
   EntityPluginContext,
   Template,
   DerivedEntityProjection,
+  EntityTypeConfig,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
@@ -28,6 +29,10 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
 
   constructor() {
     super(SKILL_PLUGIN_ID, packageJson);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { projectionSource: false };
   }
 
   protected override getTemplates(): Record<string, Template> {
