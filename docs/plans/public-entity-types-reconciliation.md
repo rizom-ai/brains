@@ -2,7 +2,9 @@
 
 ## Status
 
-Planned / near-term. The external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
+Completed. Implemented on branch `public-entity-types-reconciliation` in commit `c2fc86767`.
+
+The external plugin API was already alpha-usable, but this type reconciliation needed to land before the public authoring contract hardened further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` were not stylistic noise — they papered over real shape divergence between public and runtime entity-service interfaces.
 
 ## Current state
 
@@ -33,49 +35,49 @@ Single source of truth. `shell/plugins/src/public/types.ts` should re-export the
 
 Once the type identities collapse to one, the wide internal context becomes structurally compatible with the public context. The casts and `(context: never)` overrides can be replaced with proper typed parameters: `(context: EntityPluginContext) → return this.hooks.onRegister(context)`.
 
-## Open work
+## Implemented work
 
 ### 1. Tests first
 
-Extend the public-API typecheck fixture at `packages/brain-cli/test/fixtures/external-plugin/`:
+Extended the public-API typecheck fixture at `packages/brain-cli/test/fixtures/external-plugin/`:
 
 - A file that calls `context.entityService.search<MyEntity>(...)` and assigns to `SearchResult<MyEntity>[]`. With the current public type this compiles as `MyEntity[]` — under the fix it must compile as `SearchResult<MyEntity>[]`. This pins the silent-bug case.
 - A file that calls `context.entityService.getEntity<MyEntity>(...)` where `MyEntity extends BaseEntity` — the new constraint, currently absent.
 - A file that passes a typed `ListOptions` to `listEntities` — locks in autocomplete for `publishedOnly` / `filter` / `sort` etc.
 
-Each new fixture file must compile RED on `bunx tsc --noEmit -p packages/brain-cli/test/fixtures/external-plugin` against the current types, and GREEN after the fix.
+The new fixture files compiled RED against the old public types and GREEN after the fix.
 
 ### 2. Reconcile types
 
-- In `shell/entity-service/src`, ensure `ICoreEntityService`, `ListOptions`, `SearchOptions`, `SearchResult` are exported from the package's public entry.
-- If `IEntitiesNamespace` does not yet exist as a runtime type, lift the inline shape from `shell/plugins/src/entity/context.ts` into `shell/entity-service/src/types.ts` and have `entity/context.ts` import it.
-- In `shell/plugins/src/public/types.ts`, delete the redeclared `IEntityService` and `IEntitiesNamespace`; replace with `export type { IEntityService, IEntitiesNamespace, ListOptions, SearchOptions, SearchResult } from "@brains/entity-service"` (or whichever names land).
+- `ICoreEntityService`, `ListOptions`, `SearchOptions`, `SearchResult`, and `IEntitiesNamespace` are exported from `@brains/entity-service`.
+- `IEntitiesNamespace` was lifted from `shell/plugins/src/entity/context.ts` into `shell/entity-service/src/types.ts` and imported by runtime plugin contexts.
+- `shell/plugins/src/public/types.ts` no longer redeclares `IEntityService` or `IEntitiesNamespace`; public plugin types re-export the canonical runtime contracts, with public `IEntityService` mapped to `ICoreEntityService`.
 
 ### 3. Remove the casts
 
 Across `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts`:
 
-- Replace `(context: never)` overrides with the actual typed parameter (the internal context type from `../{entity,service,interface}/context.ts`).
-- Drop the `as PublicContext` casts in the hook calls.
-- The `EntityPluginDelegate.interceptCreate` site at `entity-plugin.ts:86-96` follows the same pattern.
+- Replaced `(context: never)` overrides with the actual typed parameter (the internal context type from `../{entity,service,interface}/context.ts`).
+- Dropped the `as PublicContext` casts in hook calls.
+- Updated `EntityPluginDelegate.interceptCreate` the same way.
 
-After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as ServicePluginContext\|as InterfacePluginContext" shell/plugins/src/public/` must return no matches.
+After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as ServicePluginContext\|as InterfacePluginContext" shell/plugins/src/public/` returns no matches.
 
 ### 4. Update `@rizom/brain` public re-exports
 
-`packages/brain-cli/src/entries/plugins.ts` and `entries/entities.ts` need to add the newly-canonical types so external authors can import them:
+`packages/brain-cli/src/entries/plugins.ts` and `entries/entities.ts` expose the newly-canonical types so external authors can import them:
 
-- `ListOptions`, `SearchOptions`, `SearchResult` join `@rizom/brain/entities`.
-- `IEntityService`, `IEntitiesNamespace` are unchanged from external-author perspective (same names, accurate shapes).
+- `ListOptions`, `SearchOptions`, `SearchResult` are available from `@rizom/brain/entities`.
+- `IEntityService`, `IEntitiesNamespace` are available from `@rizom/brain/plugins` with the same public names and accurate shapes.
 
 ### 5. Public-surface notes
 
-The published `@rizom/brain/*` contract needs the following adjustments:
+The published `@rizom/brain/*` contract now has the following adjustments:
 
 - `@rizom/brain/plugins`: `IEntityService` shape uses `<T extends BaseEntity>` and the corrected `search` return type.
 - `@rizom/brain/entities`: gains `ListOptions`, `SearchOptions`, `SearchResult` as public types.
 
-Record the breaking-change note: external plugins currently typed against `<T = unknown>` for `getEntity` / `listEntities` may need a touch-up. Acceptable during alpha; flag in a changeset.
+A changeset records the alpha-phase breaking type tightening: external plugins currently typed against `<T = unknown>` for `getEntity` / `listEntities` may need a touch-up.
 
 ## Non-goals
 
@@ -90,14 +92,14 @@ Record the breaking-change note: external plugins currently typed against `<T = 
 - `@brains/entity-service` exports — the runtime types must be reachable from `@brains/plugins/public/types.ts` without pulling in implementation classes.
 - The package-local fixture in `packages/brain-cli/test/fixtures/external-plugin/` — the regression net.
 
-## Done when
+## Completion evidence
 
-1. The three new fixture files in `packages/brain-cli/test/fixtures/external-plugin/` compile GREEN under the new types and previously compiled RED under the old.
+1. The three new fixture files in `packages/brain-cli/test/fixtures/external-plugin/` compile GREEN under the new types and compiled RED under the old public `search<T>()` shape.
 2. `grep` for `as never`, `context: never`, and `as {Entity,Service,Interface}PluginContext` in `shell/plugins/src/public/` returns no matches.
-3. `bun turbo run typecheck` passes for all packages.
-4. `bun test` passes `shell/plugins/test/`, `shell/entity-service/test/`, `packages/brain-cli/test/`, and the public-API typecheck suite.
-5. The published `@rizom/brain/plugins` and `@rizom/brain/entities` declarations reflect the new public-type contract.
-6. A changeset notes the alpha-phase breaking change for external authors who relied on `<T = unknown>`.
+3. `bun run typecheck` passed.
+4. `bun test shell/plugins/test shell/entity-service/test packages/brain-cli/test` passed.
+5. The generated `@rizom/brain/plugins` and `@rizom/brain/entities` declarations reflect the new public-type contract.
+6. `.changeset/public-entity-types-reconciliation.md` notes the alpha-phase breaking change for external authors who relied on `<T = unknown>`.
 
 ## Heads up
 
