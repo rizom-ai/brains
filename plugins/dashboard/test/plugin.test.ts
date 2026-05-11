@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type { WebRouteDefinition } from "@brains/plugins";
+import { AuthServicePlugin } from "@brains/auth-service";
 import { h } from "preact";
 import type { WidgetComponentProps } from "../src";
 import { DashboardPlugin } from "../src/plugin";
@@ -102,6 +103,51 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
       expect(html).not.toContain("CMS");
+    });
+
+    it("should show anchor endpoints and interactions to signed-in operators", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-auth-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createOperatorSession();
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+      const shell = harness.getMockShell();
+      shell.registerEndpoint({
+        label: "MCP",
+        url: "/mcp",
+        pluginId: "mcp",
+        priority: 30,
+        visibility: "trusted",
+      });
+      shell.registerEndpoint({
+        label: "CMS",
+        url: "/cms",
+        pluginId: "cms",
+        priority: 40,
+        visibility: "anchor",
+      });
+      shell.registerInteraction({
+        id: "cms",
+        label: "CMS",
+        href: "/cms",
+        kind: "admin",
+        pluginId: "cms",
+        priority: 40,
+        visibility: "anchor",
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: cookie },
+        }),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("MCP");
+      expect(html).toContain("CMS");
+      expect(html).not.toContain("restricted widget is hidden");
     });
   });
 
