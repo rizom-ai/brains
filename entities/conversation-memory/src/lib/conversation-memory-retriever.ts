@@ -32,6 +32,10 @@ export interface RetrieveConversationMemoryInput {
   channelId?: string | undefined;
   limit?: number | undefined;
   includeOtherSpaces?: boolean | undefined;
+  /** Explicit identity filter; does not cross spaces unless includeOtherSpaces is true. */
+  actorId?: string | undefined;
+  /** Explicit canonical identity filter; does not cross spaces unless includeOtherSpaces is true. */
+  canonicalId?: string | undefined;
 }
 
 export interface RetrievedConversationMemory {
@@ -73,10 +77,12 @@ export class ConversationMemoryRetriever {
     const spaceId = await this.resolveSpaceId(input);
     const candidates = await this.loadCandidates(query, limit);
 
-    const scopedCandidates = candidates.filter((candidate) => {
-      if (!spaceId || input.includeOtherSpaces) return true;
-      return this.getEntitySpaceId(candidate.entity) === spaceId;
-    });
+    const scopedCandidates = candidates
+      .filter((candidate) => {
+        if (!spaceId || input.includeOtherSpaces) return true;
+        return this.getEntitySpaceId(candidate.entity) === spaceId;
+      })
+      .filter((candidate) => this.matchesIdentity(candidate.entity, input));
 
     const ranked = scopedCandidates
       .sort((left, right) => {
@@ -183,6 +189,56 @@ export class ConversationMemoryRetriever {
           }
         : { status: entity.metadata.status }),
     };
+  }
+
+  private matchesIdentity(
+    entity: ConversationMemorySearchEntity,
+    input: Pick<RetrieveConversationMemoryInput, "actorId" | "canonicalId">,
+  ): boolean {
+    if (!input.actorId && !input.canonicalId) return true;
+
+    return this.getIdentityReferences(entity).some((reference) => {
+      if (input.canonicalId && reference.canonicalId === input.canonicalId) {
+        return true;
+      }
+      if (!input.actorId) return false;
+      return (
+        reference.actorId === input.actorId ||
+        reference.sourceActorIds?.includes(input.actorId) === true
+      );
+    });
+  }
+
+  private getIdentityReferences(entity: ConversationMemorySearchEntity): Array<{
+    actorId?: string | undefined;
+    canonicalId?: string | undefined;
+    sourceActorIds?: string[] | undefined;
+  }> {
+    if (this.isSummaryEntity(entity)) {
+      return entity.metadata.participants ?? [];
+    }
+    if (this.isDecisionEntity(entity)) {
+      return [
+        ...(entity.metadata.decidedBy ?? []),
+        ...(entity.metadata.mentionedBy ?? []),
+      ];
+    }
+    return [
+      ...(entity.metadata.assignedTo ?? []),
+      ...(entity.metadata.requestedBy ?? []),
+    ];
+  }
+
+  private isSummaryEntity(
+    entity: ConversationMemorySearchEntity,
+  ): entity is SummaryEntity {
+    return entity.entityType === SUMMARY_ENTITY_TYPE;
+  }
+
+  private isDecisionEntity(
+    entity: ConversationMemorySearchEntity,
+  ): entity is DecisionEntity {
+    return entity.entityType === DECISION_ENTITY_TYPE;
   }
 
   private getEntitySpaceId(entity: ConversationMemorySearchEntity): string {
