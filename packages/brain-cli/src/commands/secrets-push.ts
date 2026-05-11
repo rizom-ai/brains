@@ -1,6 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join } from "path";
-import { parseEnvSchemaFile, type EnvSchemaEntry } from "@brains/utils";
+import {
+  parseEnvSchemaFile,
+  type EnvSchemaEntry,
+} from "@brains/deploy-support";
 import {
   BITWARDEN_BOOTSTRAP_TOKEN_NAMES,
   BOOTSTRAP_SECTION_HEADER,

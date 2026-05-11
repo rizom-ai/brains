@@ -2,7 +2,10 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { readLocalEnvValues, resolveLocalEnvValue } from "@brains/utils";
+import {
+  readLocalEnvValues,
+  resolveLocalEnvValue,
+} from "@brains/deploy-support";
 
 import type { ResolvedUser } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

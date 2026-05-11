@@ -1,4 +1,4 @@
-# @brains/deploy-templates
+# @brains/deploy-support
 
 ## 0.2.0-alpha.65
 

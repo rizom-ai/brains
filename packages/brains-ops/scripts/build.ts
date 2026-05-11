@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { copyDeployScripts } from "@brains/deploy-templates";
+import { copyDeployScripts } from "@brains/deploy-support";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");

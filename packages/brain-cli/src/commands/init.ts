@@ -17,8 +17,8 @@ import {
   renderKamalDeploy,
   renderPreDeployHook,
   renderPublishImageWorkflow,
-} from "@brains/deploy-templates";
-import { parseEnvSchema } from "@brains/utils";
+} from "@brains/deploy-support";
+import { parseEnvSchema } from "@brains/deploy-support";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
   BITWARDEN_BOOTSTRAP_TOKEN_NAMES,

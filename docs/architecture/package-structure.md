@@ -52,7 +52,7 @@ brains/
 | `shared/product-site-content` | Product page layouts and templates                                              |
 | `shared/image`                | Image schema, adapter, utilities                                                |
 | `shared/mcp-bridge`           | Base class for upstream MCP integration                                         |
-| `shared/deploy-templates`     | Canonical Caddyfile/Dockerfile/Kamal/scripts/workflow content                   |
+| `shared/deploy-support`       | Canonical deploy templates, script helpers, env parsing, and cert support       |
 | `shared/test-utils`           | Mock factories, test harnesses                                                  |
 | `shared/eslint-config`        | Shared ESLint config                                                            |
 | `shared/typescript-config`    | Shared TS configs (root, library, instance)                                     |

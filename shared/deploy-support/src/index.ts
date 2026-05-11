@@ -13,6 +13,21 @@ export type {
   DeployWorkflowTemplateOptions,
   PreDeployHookTemplateOptions,
 } from "./scaffold";
+export {
+  readJsonResponse,
+  parseEnvFile,
+  parseEnvSchema,
+  parseEnvSchemaFile,
+  requireEnv,
+  writeGitHubOutput,
+  writeGitHubEnv,
+  type EnvSchemaEntry,
+} from "./ci";
+export {
+  readLocalEnvValues,
+  resolveLocalEnvValue,
+  resolveLocalPath,
+} from "./local-env";
 
 export interface KamalDeployTemplateOptions {
   serviceName: string;

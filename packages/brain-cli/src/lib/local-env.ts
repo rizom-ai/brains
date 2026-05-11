@@ -2,4 +2,4 @@ export {
   readLocalEnvValues,
   resolveLocalEnvValue,
   resolveLocalPath,
-} from "@brains/utils";
+} from "@brains/deploy-support";

@@ -304,7 +304,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/image` — image schema, adapter, utilities
 - `@brains/cms-config` — CMS config types consumed by the `cms` plugin
 - `@brains/product-site-content` — product page layouts and templates
-- `@brains/deploy-templates` — canonical Caddyfile/Dockerfile/Kamal/scripts/workflow templates
+- `@brains/deploy-support` — canonical deploy templates, deploy script helpers, env parsing, and cert support
 - `@brains/theme-base` / `@brains/theme-default` / `@brains/theme-rizom` — shared CSS themes
 - `@brains/eslint-config` / `@brains/typescript-config` — shared lint and TS configs
 

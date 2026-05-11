@@ -5,7 +5,7 @@ import {
   backendBootstrapEnvSchema,
   deployProvisionEnvSchema,
   tlsCertEnvSchema,
-} from "@brains/deploy-templates";
+} from "@brains/deploy-support";
 import { bundledModelEnvSchemas } from "./generated/bundled-model-env-schemas";
 
 // "none" means: no varlock plugin in the schema. Values resolve from

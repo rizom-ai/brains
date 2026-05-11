@@ -1,6 +1,6 @@
 import packageJson from "../package.json";
 
-import type { FetchLike } from "@brains/utils/origin-ca";
+import type { FetchLike } from "@brains/deploy-support/origin-ca";
 import { runPilotAgeKeyBootstrap } from "./age-key-bootstrap";
 import { runPilotCertBootstrap } from "./cert-bootstrap";
 import { initPilotRepo } from "./init";

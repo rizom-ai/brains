@@ -142,22 +142,7 @@ export { getErrorMessage, toError } from "./error";
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";
 
-// CI / workflow helpers
-export {
-  readJsonResponse,
-  parseEnvFile,
-  parseEnvSchema,
-  parseEnvSchemaFile,
-  requireEnv,
-  writeGitHubOutput,
-  writeGitHubEnv,
-} from "./ci";
-export type { EnvSchemaEntry } from "./ci";
-export {
-  readLocalEnvValues,
-  resolveLocalEnvValue,
-  resolveLocalPath,
-} from "./local-env";
+// HTTP response helpers
 export { readJsonBody, parseJsonResponse } from "./http-response";
 
 // Presentation utilities

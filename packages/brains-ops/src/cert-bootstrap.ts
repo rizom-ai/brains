@@ -1,13 +1,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { readLocalEnvValues, resolveLocalEnvValue } from "@brains/utils";
+import {
+  readLocalEnvValues,
+  resolveLocalEnvValue,
+} from "@brains/deploy-support";
 import {
   createOriginCertificateRequest,
   generateOriginKeyPair,
   issueCloudflareOriginCertificate,
   setCloudflareZoneSslStrict,
   type FetchLike,
-} from "@brains/utils/origin-ca";
+} from "@brains/deploy-support/origin-ca";
 import { loadPilotRegistry } from "./load-registry";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

@@ -22,7 +22,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { copyDeployScripts } from "@brains/deploy-templates";
+import { copyDeployScripts } from "@brains/deploy-support";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");

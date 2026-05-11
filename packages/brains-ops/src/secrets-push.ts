@@ -6,7 +6,7 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
   type EnvSchemaEntry,
-} from "@brains/utils";
+} from "@brains/deploy-support";
 
 import { pushSecretsToBackend } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

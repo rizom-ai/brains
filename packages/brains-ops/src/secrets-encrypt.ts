@@ -7,9 +7,8 @@ import {
   readLocalEnvValues,
   resolveLocalEnvValue,
   resolveLocalPath,
-  toYaml,
-  z,
-} from "@brains/utils";
+} from "@brains/deploy-support";
+import { toYaml, z } from "@brains/utils";
 
 import { findUser } from "./reconcile-lib";
 

@@ -23,6 +23,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Public entity types reconciliation](./public-entity-types-reconciliation.md)
 - [NPM package boundaries](./npm-package-boundaries.md)
+- [Utils package boundaries](./utils-package-boundaries.md)
 - [Custom brain definitions](./custom-brain-definitions.md)
 - [Canonical env schema](./env-schema-canonical.md)
 - [Move env-derived core defaults to app layer](./core-env-config.md)

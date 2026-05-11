@@ -5,5 +5,5 @@ export {
   requireEnv,
   writeGitHubOutput,
   writeGitHubEnv,
-} from "@brains/utils";
-export type { EnvSchemaEntry } from "@brains/utils";
+} from "@brains/deploy-support";
+export type { EnvSchemaEntry } from "@brains/deploy-support";

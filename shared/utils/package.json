@@ -12,10 +12,6 @@
     "./hash": {
       "types": "./src/hash.ts",
       "default": "./src/hash.ts"
-    },
-    "./origin-ca": {
-      "types": "./src/origin-ca.ts",
-      "default": "./src/origin-ca.ts"
     }
   },
   "scripts": {

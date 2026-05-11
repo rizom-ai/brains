@@ -1,5 +1,5 @@
 {
-  "name": "@brains/deploy-templates",
+  "name": "@brains/deploy-support",
   "version": "0.2.0-alpha.65",
   "private": true,
   "type": "module",
@@ -12,6 +12,10 @@
     "./deploy-scripts/*": {
       "types": "./src/deploy-scripts/*",
       "default": "./src/deploy-scripts/*"
+    },
+    "./origin-ca": {
+      "types": "./src/origin-ca.ts",
+      "default": "./src/origin-ca.ts"
     }
   },
   "scripts": {

@@ -14,7 +14,7 @@ const monorepoRoot = dirname(dirname(packageDir));
 
 function readDeployTemplateFile(relativePath: string): string {
   return readFileSync(
-    join(monorepoRoot, "shared", "deploy-templates", "src", relativePath),
+    join(monorepoRoot, "shared", "deploy-support", "src", relativePath),
     "utf8",
   );
 }

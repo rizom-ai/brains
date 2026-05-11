@@ -9,13 +9,12 @@ import {
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import {
-  parseJsonResponse,
   readLocalEnvValues,
   resolveLocalEnvValue,
   resolveLocalPath,
-  z,
-} from "@brains/utils";
-import { type FetchLike } from "@brains/utils/origin-ca";
+} from "@brains/deploy-support";
+import { parseJsonResponse, z } from "@brains/utils";
+import { type FetchLike } from "@brains/deploy-support/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 

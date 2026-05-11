@@ -8,7 +8,7 @@ import {
   renderDockerfile,
   renderKamalDeploy,
   renderPreDeployHook,
-} from "@brains/deploy-templates";
+} from "@brains/deploy-support";
 import { writeUsersTable } from "./render-users-table";
 
 const starterFilePaths = [
