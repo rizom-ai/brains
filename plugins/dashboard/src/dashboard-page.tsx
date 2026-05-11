@@ -68,6 +68,32 @@ const THEME_TOGGLE_SCRIPT = `(function () {
   sync();
 })();`;
 
+function OperatorGate({
+  hiddenWidgetCount,
+  loginUrl,
+}: {
+  hiddenWidgetCount: number;
+  loginUrl: string;
+}): JSX.Element {
+  return (
+    <section class="card operator-gate">
+      <div>
+        <div class="card-title">Operator access</div>
+        <p>
+          {hiddenWidgetCount === 1
+            ? "1 private console widget is hidden."
+            : `${hiddenWidgetCount} private console widgets are hidden.`}{" "}
+          {""}
+          Sign in with your passkey to unlock the restricted layer.
+        </p>
+      </div>
+      <a class="operator-gate-link" href={loginUrl}>
+        Sign in
+      </a>
+    </section>
+  );
+}
+
 const PIPELINE_TABS_SCRIPT = `(function () {
   function activate(root, status) {
     var tabs = root.querySelectorAll("[data-pipeline-tab]");
@@ -157,6 +183,12 @@ function DashboardDocument({
                   interactions={interactions}
                   baseUrl={input.baseUrl}
                 />
+                {showOperatorGate && input.operatorAccess && (
+                  <OperatorGate
+                    hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
+                    loginUrl={input.operatorAccess.loginUrl}
+                  />
+                )}
               </div>
             )}
             <div class="main-column">
@@ -164,25 +196,11 @@ function DashboardDocument({
                 total={totalEntities}
                 entityCounts={input.entityCounts}
               />
-              {showOperatorGate && input.operatorAccess && (
-                <section class="card operator-gate">
-                  <div>
-                    <div class="card-title">Restricted layer</div>
-                    <p>
-                      {input.operatorAccess.hiddenWidgetCount === 1
-                        ? "1 restricted widget is hidden."
-                        : `${input.operatorAccess.hiddenWidgetCount} restricted widgets are hidden.`}{" "}
-                      {""}
-                      Sign in with your passkey to unlock private console data.
-                    </p>
-                  </div>
-                  <a
-                    class="operator-gate-link"
-                    href={input.operatorAccess.loginUrl}
-                  >
-                    Sign in
-                  </a>
-                </section>
+              {!hasCharacter && showOperatorGate && input.operatorAccess && (
+                <OperatorGate
+                  hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
+                  loginUrl={input.operatorAccess.loginUrl}
+                />
               )}
               {groups.primary.map((widget) => (
                 <WidgetCard

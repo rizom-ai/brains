@@ -34,7 +34,7 @@ export function Masthead(props: {
   operatorAccess: DashboardOperatorAccess | undefined;
 }): JSX.Element {
   const { title, tagline, appInfo, now, operatorAccess } = props;
-  const plugins = appInfo.daemons.length;
+  const daemons = appInfo.daemons.length;
 
   return (
     <header class="masthead">
@@ -53,8 +53,8 @@ export function Masthead(props: {
           <span>v{appInfo.version}</span>
         </div>
         <div class="line">
-          <span class="label">plugins</span>
-          <span>{plugins} active</span>
+          <span class="label">daemons</span>
+          <span>{daemons} active</span>
         </div>
         <div class="line">
           <span class="label">rendered</span>

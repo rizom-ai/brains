@@ -47,8 +47,8 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Restricted layer");
-    expect(html).toContain("1 restricted widget is hidden.");
+    expect(html).toContain("Operator access");
+    expect(html).toContain("1 private console widget is hidden.");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
   });
 
@@ -127,6 +127,12 @@ describe("renderDashboardPageHtml", () => {
       entityCounts: [],
       widgets: {},
       widgetScripts: [],
+      operatorAccess: {
+        isOperator: false,
+        hiddenWidgetCount: 1,
+        loginUrl: "/login?return_to=%2Fdashboard",
+        logoutUrl: "/logout?return_to=%2Fdashboard",
+      },
     };
 
     const html = renderDashboardPageHtml(input);
@@ -137,8 +143,15 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Values");
     expect(html).toContain("Research brain");
     expect(html).toContain("Ways to connect");
+    expect(html).toContain("Operator access");
     expect(html).toContain("Let other agents talk to this brain.");
     expect(html).toContain('href="https://brain.test/a2a"');
+    expect(html.indexOf("Ways to connect")).toBeLessThan(
+      html.indexOf("Operator access"),
+    );
+    expect(html.indexOf("Operator access")).toBeLessThan(
+      html.indexOf("Entities"),
+    );
   });
 
   it("should render plugin-owned custom widgets and inject their scripts", () => {

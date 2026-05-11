@@ -46,6 +46,7 @@ Done:
   - CMS: anchor admin interaction
   - Preview: anchor admin interaction
 - Reworked layout so mobile can put identity/interactions before the entity summary while desktop keeps the sidebar model.
+- Moved the public sign-in gate into the identity/interaction area when identity is present, so private access belongs with entry actions rather than interrupting corpus/widgets.
 
 ## Proposed UX structure
 
@@ -54,12 +55,12 @@ Done:
 1. Masthead
 2. Main column
    - Entity summary
-   - Restricted sign-in gate when relevant
    - Primary widgets
    - Secondary widgets
-3. Sidebar
+3. Sidebar / entry column
    - Identity card
    - Top interaction links / calls to action
+   - Restricted sign-in gate when relevant
    - Sidebar widgets
    - Full endpoint/interaction card
 4. Colophon
@@ -71,8 +72,8 @@ Use a different order optimized for entry:
 1. Masthead
 2. Identity card
 3. Top interaction links / calls to action
-4. Entity summary
-5. Restricted sign-in gate when relevant
+4. Restricted sign-in gate when relevant
+5. Entity summary
 6. Primary widgets
 7. Secondary widgets
 8. Endpoint/interaction details
@@ -125,11 +126,11 @@ Potential follow-up: register the dashboard itself as a public human interaction
 - Avoid duplicating content in the DOM if possible; prefer CSS grid/order if accessible, otherwise split layout components carefully.
 - Validate keyboard/read order, not just visual order.
 
-### Phase 3: Identity card improvements — next
+### Phase 3: Identity card improvements — done
 
-- Make role, purpose, and values easier to scan.
-- Add room for primary interaction CTAs.
-- Keep the card concise; avoid turning it into a full profile page.
+- Made role, purpose, and values easier to scan.
+- Added room for primary interaction CTAs and operator access entry.
+- Kept the card concise; avoided turning it into a full profile page.
 
 ### Phase 4: Interaction registry — done
 
@@ -138,18 +139,18 @@ Potential follow-up: register the dashboard itself as a public human interaction
 - Filter interactions with `PermissionService.hasPermission`, same as widgets.
 - Seed interactions from known app endpoints where reasonable, but do not rely on endpoints as the long-term source of truth.
 
-### Phase 5: Render interactions — partially done
+### Phase 5: Render interactions — done
 
-- Show top 3-5 interactions near/inside identity area.
-- Show a fuller interaction/endpoint card lower in the sidebar or mobile flow.
-- Visually distinguish human, agent, admin, and protocol interactions without adding icon complexity yet.
+- Shows interactions near the identity area.
+- Keeps endpoint details lower in the sidebar/mobile flow.
+- Visually distinguishes human, agent, admin, and protocol interactions without adding icon complexity yet.
 
-### Phase 6: Permission-aware entry point — partially done
+### Phase 6: Permission-aware entry point — done
 
-- Public: identity, entity summary, public interactions, public widgets.
+- Public: identity, entity summary, public interactions, public widgets, and sign-in gate when private widgets are hidden.
 - Trusted: public plus trusted protocol/agent surfaces like MCP where appropriate.
 - Anchor: public/trusted plus private/admin interactions and widgets.
-- Do not show explicit permission badges on every widget.
+- Does not show explicit permission badges on every widget.
 
 ## Non-goals
 
