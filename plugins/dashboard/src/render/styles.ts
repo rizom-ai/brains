@@ -396,14 +396,40 @@ body::after {
   opacity: 0.55;
 }
 
+.identity-card {
+  background:
+    linear-gradient(135deg, rgba(255, 139, 61, 0.06), transparent 45%),
+    var(--ink-raised);
+}
+.identity-sections {
+  display: grid;
+  gap: 16px;
+}
+.identity-section {
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.identity-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+.identity-label {
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
 .identity-role {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--paper);
   letter-spacing: -0.005em;
+  line-height: 1.35;
 }
 .identity-purpose {
-  margin-top: 10px;
+  margin: 0;
   font-size: 13px;
   line-height: 1.55;
   color: var(--paper-dim);
@@ -412,7 +438,6 @@ body::after {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 6px;
-  margin-top: 14px;
 }
 .value {
   font-family: var(--font-mono);

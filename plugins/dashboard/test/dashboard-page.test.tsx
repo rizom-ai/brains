@@ -88,7 +88,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
-  it("should render interaction entry points", () => {
+  it("should render identity sections and interaction entry points", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -131,6 +131,11 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
+    expect(html).toContain("Identity");
+    expect(html).toContain("Role");
+    expect(html).toContain("Purpose");
+    expect(html).toContain("Values");
+    expect(html).toContain("Research brain");
     expect(html).toContain("Ways to connect");
     expect(html).toContain("Let other agents talk to this brain.");
     expect(html).toContain('href="https://brain.test/a2a"');

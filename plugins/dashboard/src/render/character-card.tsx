@@ -16,21 +16,36 @@ export function CharacterCard({
   }
 
   return (
-    <aside class="card">
+    <aside class="card identity-card">
       <div class="card-head">
-        <span class="card-title">Brain Character</span>
+        <span class="card-title">Identity</span>
       </div>
-      {hasRole && <div class="identity-role">{character.role}</div>}
-      {hasPurpose && <p class="identity-purpose">{character.purpose}</p>}
-      {hasValues && (
-        <div class="values">
-          {character.values.map((value) => (
-            <span key={value} class="value">
-              {value}
-            </span>
-          ))}
-        </div>
-      )}
+      <div class="identity-sections">
+        {hasRole && (
+          <section class="identity-section">
+            <div class="identity-label">Role</div>
+            <div class="identity-role">{character.role}</div>
+          </section>
+        )}
+        {hasPurpose && (
+          <section class="identity-section">
+            <div class="identity-label">Purpose</div>
+            <p class="identity-purpose">{character.purpose}</p>
+          </section>
+        )}
+        {hasValues && (
+          <section class="identity-section">
+            <div class="identity-label">Values</div>
+            <div class="values">
+              {character.values.map((value) => (
+                <span key={value} class="value">
+                  {value}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </aside>
   );
 }

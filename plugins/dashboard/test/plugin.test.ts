@@ -54,7 +54,7 @@ describe("DashboardPlugin", () => {
       const html = await response?.text();
       expect(html).toContain("Test Owner");
       expect(html).toContain("Entities");
-      expect(html).toContain("Brain Character");
+      expect(html).toContain("Identity");
       expect(html).toContain("dashboard:dashboard");
       expect(html).not.toContain("data-cms-frame");
     });
