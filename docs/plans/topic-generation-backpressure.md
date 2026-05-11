@@ -2,7 +2,7 @@
 
 ## Status
 
-Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), Slice 2 (source-change backpressure), and Slice 4 (batch-extractor DB access) have shipped. Slice 3 (skill-derivation debounce) is implemented in `fix/skill-derivation-debounce`. Slice 5 (eval parity, formerly the topic-auto-merge plan) remains.
+Active. Slice 0 (projection-cycle guard), Slice 1 (per-topic processing fanout), Slice 2 (source-change backpressure), Slice 3 (skill-derivation debounce), and Slice 4 (batch-extractor DB access) have shipped. Slice 5 (eval parity, formerly the topic-auto-merge plan) is implemented in `fix/topic-merge-eval-parity`.
 
 Relevant prior work:
 
@@ -100,9 +100,9 @@ Acceptance covered:
 
 Tradeoff: dirty source refs are in memory. This keeps Slice 2 package-local and avoids adding a cross-package "changed since last extraction" query, but dirty refs can be lost across process restart while a delayed source-batch job is pending. A future durability slice can replace the buffer with a small durable queue or add a cheap updated-since query.
 
-## Slice 3: downstream skill derivation debounce (implemented)
+## Slice 3: downstream skill derivation debounce (shipped)
 
-Implemented in `fix/skill-derivation-debounce`.
+Shipped in `6b434b281` and merged via `7189fe001`.
 
 What is implemented:
 
@@ -136,15 +136,19 @@ What shipped:
 - Same gates as Slice 1 (`bun run typecheck`, targeted tests, `bun run lint`, `bun run eval --skip-llm-judge`, Rover eval).
 - A burst-extraction test shows existing-topic queries scale with batches, not with extracted topics.
 
-## Slice 5: eval parity for topic merge
+## Slice 5: eval parity for topic merge (implemented)
 
-Folded in from the former `topic-auto-merge` plan. The `topicMergeJobDataSchema` cleanup is already done; one deliverable remains.
+Folded in from the former `topic-auto-merge` plan. The `topicMergeJobDataSchema` cleanup is already done.
 
-`checkMergeSimilarity` in `entities/topics/src/lib/eval-handlers.ts` still uses a simplified lowercase-title-match (lines 177-179). The same file already has a sibling handler, `detectMergeCandidate`, that uses the real `topicService.findMergeCandidate` path — so the work is "consolidate `checkMergeSimilarity` through that real path" rather than "build the real path from scratch."
+What is implemented:
 
-### Acceptance
+- `checkMergeSimilarity` now seeds extracted topics from the first source and evaluates extracted topics from the second source through the same `TopicIndex.findMergeCandidate` decision path used by runtime batch topic processing.
+- `checkMergeSimilarity` accepts an optional threshold and returns merge-candidate details in addition to the existing `matchingTitles` / `wouldMerge` fields.
+- A threshold-boundary eval keeps the gray-zone no-merge case explicit.
 
-- evals cover the same decision path the runtime uses
+### Acceptance covered
+
+- evals cover the same merge-candidate decision path the runtime uses
 - gray-zone and no-merge cases stay explicit
 - runtime and eval behavior stop drifting
 
@@ -162,8 +166,8 @@ User-facing docs and examples should keep describing the current bounded-alias m
 
 1. ~~`fix/topics-cycle-guard` — Slice 0~~ (shipped in `7eb41713f`)
 2. ~~`fix/topics-process-batch` — Slices 1 and 4~~ (shipped in `0fa831f1b`)
-3. `fix/topics-source-backpressure` — Slice 2 (implemented, pending merge)
-4. `fix/skill-derivation-debounce` — Slice 3 (implemented, pending merge)
-5. `fix/topic-merge-eval-parity` — Slice 5
+3. ~~`fix/topics-source-backpressure` — Slice 2~~ (shipped in `0c675abb8`)
+4. ~~`fix/skill-derivation-debounce` — Slice 3~~ (shipped in `7189fe001`)
+5. `fix/topic-merge-eval-parity` — Slice 5 (implemented, pending merge)
 
 Keep each slice reviewed and checked in before continuing.
