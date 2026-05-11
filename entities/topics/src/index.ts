@@ -201,7 +201,6 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
-      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 
@@ -213,7 +212,6 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
-      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 }
