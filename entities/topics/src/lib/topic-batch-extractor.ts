@@ -27,6 +27,10 @@ export function buildBatchPrompt(entities: BaseEntity[]): string {
     .join("\n\n");
 }
 
+export interface ExtractTopicsBatchedOptions {
+  minRelevanceScore?: number;
+}
+
 /**
  * Extract topics from entities in batches.
  *
@@ -37,6 +41,7 @@ export async function extractTopicsBatched(
   entities: BaseEntity[],
   context: EntityPluginContext,
   logger: Logger,
+  options: ExtractTopicsBatchedOptions = {},
 ): Promise<{ created: number; skipped: number; batches: number }> {
   if (entities.length === 0) {
     return { created: 0, skipped: 0, batches: 0 };
@@ -69,7 +74,11 @@ export async function extractTopicsBatched(
         templateName: "topics:extraction",
       });
 
-      for (const topic of result.topics) {
+      const topics = result.topics.filter(
+        (topic) => topic.relevanceScore >= (options.minRelevanceScore ?? 0),
+      );
+
+      for (const topic of topics) {
         if (topicIndex.hasSlug(topic.title)) {
           skipped++;
           continue;
