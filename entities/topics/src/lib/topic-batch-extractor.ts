@@ -84,7 +84,7 @@ export async function extractTopicsBatched(
           continue;
         }
 
-        const createResult = await topicService.createTopicFromPreloadedIndex({
+        const createResult = await topicService.createTopicOptimistic({
           title: topic.title,
           content: topic.content,
         });

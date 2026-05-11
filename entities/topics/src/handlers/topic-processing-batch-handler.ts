@@ -132,17 +132,21 @@ export class TopicProcessingBatchHandler extends BaseJobHandler<
             continue;
           }
 
-          const createdTopic = await this.topicService.createTopic({
+          const createResult = await this.topicService.createTopicOptimistic({
             title: topic.title,
             content: topic.content,
           });
 
-          if (!createdTopic) {
+          if (!createResult.topic) {
             throw new Error(`Failed to create topic: ${topic.title}`);
           }
 
-          topicIndex.set(createdTopic);
-          created++;
+          topicIndex.set(createResult.topic);
+          if (createResult.created) {
+            created++;
+          } else {
+            skipped++;
+          }
         } catch (error) {
           failed++;
           this.logger.error("Topic batch item failed", {

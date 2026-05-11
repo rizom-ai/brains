@@ -76,7 +76,7 @@ Used by `interfaces/a2a` (both inbound and outbound). The keypair lifecycle (gen
 
 ### 6. Trust-establishment via the existing agent-directory flow
 
-`interfaces/a2a/src/a2a-interface.ts:333-344` already documents a "discovered → approved" lifecycle for peer agents. This plan plugs into that flow:
+The a2a interface already uses a "discovered → approved" lifecycle for peer agents (see the agent-call instruction block in `interfaces/a2a/src/a2a-interface.ts`, around the `target agent is discovered but not approved yet` rule). This plan plugs into that flow:
 
 - Adding a peer fetches `/.well-known/agent-card.json` and `/.well-known/jwks.json`, marks the entry "discovered"
 - Approving a peer adds an entry to `trustedAgents` with the desired permission level
@@ -87,23 +87,17 @@ No secret is exchanged. The `outboundTokens` config field is removed.
 
 ### Outbound signing
 
-`interfaces/a2a/src/client.ts:367-370` — replace:
-
-```ts
-headers["Authorization"] = `Bearer ${authToken}`;
-```
-
-with:
+In `interfaces/a2a/src/client.ts` (the bearer is set at `headers["Authorization"] = Bearer ${authToken}`; `outboundTokens` is resolved in the surrounding caller), replace the bearer header write with:
 
 ```ts
 await signRequest(request, agentKey.privateKey, agentKey.keyId);
 ```
 
-`agentKey.keyId` is a stable string of the form `https://<own-domain>/.well-known/jwks.json#<kid>`, allowing the receiver to resolve the JWKS via the keyid without inventing a separate discovery mechanism.
+…and drop the `outboundTokens` lookup that supplies `authToken`. `agentKey.keyId` is a stable string of the form `https://<own-domain>/.well-known/jwks.json#<kid>`, allowing the receiver to resolve the JWKS via the keyid without inventing a separate discovery mechanism.
 
 ### Inbound verification
 
-`interfaces/a2a/src/a2a-interface.ts:135-149` — `resolveCallerPermission(authHeader)` becomes:
+In `interfaces/a2a/src/a2a-interface.ts`, the existing `resolveCallerPermission(authHeader)` (currently reads `authHeader` and looks up `trustedTokens`) becomes:
 
 ```ts
 private async resolveCallerPermission(req: Request): Promise<UserPermissionLevel> {
