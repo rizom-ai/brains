@@ -6,6 +6,7 @@ import { batchEntities } from "./batch-entities";
 import { buildTopicExtractionPrompt } from "./extraction-prompt";
 import { TopicService } from "./topic-service";
 import { TopicIndex } from "./topic-index";
+import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 
 /**
  * Build the prompt content for a batch of entities.
@@ -108,5 +109,15 @@ export async function extractTopicsBatched(
     }
   }
 
-  return { created, skipped, batches: batches.length };
+  const result = { created, skipped, batches: batches.length };
+
+  if (created > 0) {
+    await context.messaging.send({
+      type: TOPICS_BATCH_COMPLETED_EVENT,
+      payload: result,
+      broadcast: true,
+    });
+  }
+
+  return result;
 }

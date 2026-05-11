@@ -2,8 +2,8 @@ import { describe, it, expect } from "bun:test";
 import { SkillPlugin } from "../src/plugins/skill-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 
-describe("Skill incremental derivation on topic changes", () => {
-  it("should re-derive skills when a topic entity is created", async () => {
+describe("Skill incremental derivation on topic batch completion", () => {
+  it("should re-derive skills when a topic batch completes", async () => {
     const harness = createPluginHarness<SkillPlugin>({});
     const plugin = new SkillPlugin();
 
@@ -15,23 +15,11 @@ describe("Skill incremental derivation on topic changes", () => {
       "directory-sync",
     );
 
-    // Topic created after initial sync — should trigger re-derivation
+    // Topic batch completed after initial sync — should trigger re-derivation
     // (deriveSkills runs but creates nothing without AI — the point is it doesn't throw)
     await harness.sendMessage(
-      "entity:created",
-      {
-        entityType: "topic",
-        entityId: "new-topic",
-        entity: {
-          id: "new-topic",
-          entityType: "topic",
-          content: "---\ntitle: New Topic\n---\n",
-          contentHash: "x",
-          metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        },
-      },
+      "topics:batch-completed",
+      { created: 1, merged: 0, skipped: 0, batches: 1 },
       "topics",
     );
 
@@ -49,22 +37,10 @@ describe("Skill incremental derivation on topic changes", () => {
 
     expect(plugin.hasRunInitialDerivation()).toBe(false);
 
-    // Topic created before initial sync — should NOT trigger
+    // Topic batch completed before initial sync — should NOT trigger
     await harness.sendMessage(
-      "entity:created",
-      {
-        entityType: "topic",
-        entityId: "early-topic",
-        entity: {
-          id: "early-topic",
-          entityType: "topic",
-          content: "---\ntitle: Early\n---\n",
-          contentHash: "x",
-          metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        },
-      },
+      "topics:batch-completed",
+      { created: 1, merged: 0, skipped: 0, batches: 1 },
       "topics",
     );
 

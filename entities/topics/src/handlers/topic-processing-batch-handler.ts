@@ -8,6 +8,7 @@ import {
 } from "../lib/topic-merge-synthesizer";
 import { TopicService } from "../lib/topic-service";
 import { TopicIndex } from "../lib/topic-index";
+import { TOPICS_BATCH_COMPLETED_EVENT } from "../lib/constants";
 
 const extractedTopicSchema = z.object({
   title: z.string(),
@@ -52,7 +53,7 @@ export class TopicProcessingBatchHandler extends BaseJobHandler<
   private readonly topicMergeSynthesizer: ITopicMergeSynthesizer;
 
   constructor(
-    context: EntityPluginContext,
+    private readonly context: EntityPluginContext,
     logger: Logger,
     topicMergeSynthesizer?: ITopicMergeSynthesizer,
   ) {
@@ -161,6 +162,21 @@ export class TopicProcessingBatchHandler extends BaseJobHandler<
         progress: PROGRESS_STEPS.COMPLETE,
         message: `Processed ${topics.length} extracted topics`,
       });
+
+      if (created + merged > 0) {
+        await this.context.messaging.send({
+          type: TOPICS_BATCH_COMPLETED_EVENT,
+          payload: {
+            created,
+            merged,
+            skipped,
+            failed,
+            sourceEntityId: data.sourceEntityId,
+            sourceEntityType: data.sourceEntityType,
+          },
+          broadcast: true,
+        });
+      }
 
       return {
         success: failed === 0,

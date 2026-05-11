@@ -116,6 +116,42 @@ describe("TopicProcessingBatchHandler", () => {
     expect(topicListCalls).toBe(1);
   });
 
+  it("emits one topic batch completion event after topic mutations", async () => {
+    const send = spyOn(context.messaging, "send");
+
+    await handler.process(
+      {
+        topics: [
+          {
+            title: "Batch Completion",
+            content: "Topic processing emits one completion event.",
+            relevanceScore: 0.9,
+          },
+        ],
+        sourceEntityId: "post-events",
+        sourceEntityType: "post",
+        autoMerge: true,
+        mergeSimilarityThreshold: 0.85,
+      },
+      "job-events",
+      progressReporter,
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith({
+      type: "topics:batch-completed",
+      payload: {
+        created: 1,
+        merged: 0,
+        skipped: 0,
+        failed: 0,
+        sourceEntityId: "post-events",
+        sourceEntityType: "post",
+      },
+      broadcast: true,
+    });
+  });
+
   it("updates the in-memory index so later topics can merge with earlier creates", async () => {
     const result = await handler.process(
       {
