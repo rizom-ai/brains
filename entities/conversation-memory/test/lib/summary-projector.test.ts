@@ -42,6 +42,66 @@ const messages: Message[] = [
   },
 ];
 
+const discordConversation: Conversation = {
+  ...conversation,
+  id: "discord-conv-1",
+  sessionId: "discord-conv-1",
+  interfaceType: "discord",
+  channelId: "relay-pilot",
+  channelName: "Relay Pilot",
+};
+
+const attributedMessages: Message[] = [
+  {
+    id: "dm1",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "Decision: keep the onboarding guide to one page.",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "discord:user-mira",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Mira Ops",
+        username: "mira",
+      },
+    },
+  },
+  {
+    id: "dm2",
+    conversationId: "discord-conv-1",
+    role: "assistant",
+    content: "Suggestion: add a certification checklist later.",
+    timestamp: "2026-01-01T00:01:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "brain:relay",
+        interfaceType: "agent",
+        role: "assistant",
+        displayName: "Relay",
+        isBot: true,
+      },
+    },
+  },
+  {
+    id: "dm3",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "I'll update the checklist by Friday.",
+    timestamp: "2026-01-01T00:02:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "discord:user-daniel",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Daniel",
+        username: "daniel",
+      },
+    },
+  },
+];
+
 function mockDecisionAndExtraction(
   context: ReturnType<typeof createMockEntityPluginContext>,
   decision: "skip" | "update" | "append" = "update",
@@ -105,6 +165,85 @@ describe("SummaryProjector", () => {
     expect(entity?.metadata["messageCount"]).toBe(2);
     expect(entity?.content).toContain("# Conversation Summary");
     expect(entity?.content).toContain("Projection source");
+  });
+
+  it("stores participants and attributed decision/action metadata", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      attributedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Onboarding pilot",
+          summary:
+            "Mira chose the onboarding format and Daniel took the checklist follow-up.",
+          startMessageIndex: 1,
+          endMessageIndex: 3,
+          keyPoints: [],
+          decisions: [
+            "Mira Ops decided to keep the onboarding guide to one page.",
+          ],
+          actionItems: ["Daniel will update the checklist by Friday."],
+        },
+      ],
+    });
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await projector.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy).toHaveBeenCalledTimes(3);
+
+    const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(summaryEntity?.metadata["participants"]).toEqual([
+      {
+        actorId: "discord:user-mira",
+        displayName: "Mira Ops",
+        roles: ["user"],
+      },
+      {
+        actorId: "brain:relay",
+        displayName: "Relay",
+        roles: ["assistant"],
+      },
+      {
+        actorId: "discord:user-daniel",
+        displayName: "Daniel",
+        roles: ["user"],
+      },
+    ]);
+
+    const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(decisionEntity?.entityType).toBe("decision");
+    expect(decisionEntity?.metadata["decidedBy"]).toEqual([
+      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+    ]);
+    expect(decisionEntity?.metadata["mentionedBy"]).toEqual([
+      { actorId: "discord:user-mira", displayName: "Mira Ops" },
+    ]);
+
+    const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
+    expect(actionItemEntity?.entityType).toBe("action-item");
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      { actorId: "discord:user-daniel", displayName: "Daniel" },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      { actorId: "discord:user-daniel", displayName: "Daniel" },
+    ]);
   });
 
   it("chunks long conversations before extraction", async () => {

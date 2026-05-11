@@ -203,12 +203,28 @@ export class SummaryExtractor {
         Math.min(messages.length, entry.endMessageIndex) -
         Math.max(1, entry.startMessageIndex) +
         1;
-      return entry[field].map((text) => ({
-        text,
-        timeRange,
-        sourceMessageCount: Math.max(0, sourceMessageCount),
-      }));
+      return entry[field]
+        .map((text) => text.trim())
+        .filter((text) => this.isValidMemoryItemText(text, field))
+        .map((text) => ({
+          text,
+          timeRange,
+          sourceMessageCount: Math.max(0, sourceMessageCount),
+        }));
     });
+  }
+
+  private isValidMemoryItemText(
+    text: string,
+    field: "decisions" | "actionItems",
+  ): boolean {
+    if (!/[\p{L}\p{N}]/u.test(text)) return false;
+    if (field === "actionItems") {
+      return !/\b(no specific task|no specific action|no substantive topic|no durable topic)\b/i.test(
+        text,
+      );
+    }
+    return true;
   }
 
   private getEntryTimeRange(

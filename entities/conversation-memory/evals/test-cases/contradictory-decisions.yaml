@@ -28,7 +28,7 @@ expectedOutput:
     - field: decisionsText
       pattern: "DerivedEntityProjection|conversation message events"
     - field: summary
-      pattern: "replaces|changed|superseded|instead"
+      pattern: "replaces|changed|superseded|instead|revised|reversed|overrode|override"
   qualityCriteria:
     minRelevanceScore: 4
     minAccuracyScore: 4

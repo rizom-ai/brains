@@ -23,6 +23,10 @@ This file applies to the whole repository unless a more specific `AGENTS.md` exi
 - Fix failing checks before continuing.
 - Do not bypass tests or commit hooks.
 - For app/site verification, remember this repo serves app-managed site-builder outputs, not just static site files. Start the app, then trigger a site rebuild **on the running app** via the app command surface (typically MCP HTTP via `--remote`, even for `localhost`) before inspecting generated output. When preview is configured, start with the default preview rebuild/output (`dist/site-preview`); production is separate (`dist/site-production`).
+- Brain model test apps start from the model package directory with its preset scripts; do not invent alternate commands.
+  - Rover: `cd brains/rover && bun start:core|start:default|start:full` (use `bun start:full` for the full Rover test app).
+  - Relay: `cd brains/relay && bun start:core|start:default|start:full|start:docs`.
+  - Ranger: no in-repo `test-apps` scripts currently; run a Ranger instance from its instance directory with `bunx brain start`.
 
 ## Architecture defaults
 

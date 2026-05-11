@@ -17,6 +17,7 @@ import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "../types/routes";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
@@ -26,6 +27,7 @@ import {
   createEvalNamespace,
   createIdentityNamespace,
   createInsightsNamespace,
+  createInteractionsNamespace,
   createJobsNamespace,
   createMessagingNamespace,
 } from "./namespaces";
@@ -250,11 +252,35 @@ export interface BasePluginContext {
    * other operator-facing consumers.
    */
   readonly endpoints: IEndpointsNamespace;
+
+  /**
+   * Interactions namespace — advertise user/agent entry points for this brain.
+   */
+  readonly interactions: IInteractionsNamespace;
 }
 
 export interface IEndpointsNamespace {
   /** Register a user-facing URL for this plugin */
-  register(endpoint: { label: string; url: string; priority?: number }): void;
+  register(endpoint: {
+    label: string;
+    url: string;
+    priority?: number;
+    visibility?: UserPermissionLevel;
+  }): void;
+}
+
+export interface IInteractionsNamespace {
+  /** Register a user or agent-facing way to interact with this brain */
+  register(interaction: {
+    id: string;
+    label: string;
+    description?: string;
+    href: string;
+    kind: "human" | "agent" | "admin" | "protocol";
+    priority?: number;
+    visibility?: UserPermissionLevel;
+    status?: "available" | "coming-soon" | "disabled";
+  }): void;
 }
 
 /**
@@ -300,5 +326,6 @@ export function createBasePluginContext(
     insights: createInsightsNamespace(shell),
 
     endpoints: createEndpointsNamespace(shell, pluginId),
+    interactions: createInteractionsNamespace(shell, pluginId),
   };
 }

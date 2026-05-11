@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import type { DataSource } from "./datasource-types";
 
 /**
  * Entity type for unstructured notes (the "base" entity type).
@@ -378,6 +379,46 @@ export interface ICoreEntityService {
 /**
  * Entity service interface for managing brain entities
  */
+export interface IEntitiesNamespace {
+  /** Register a new entity type with schema and adapter */
+  register<TEntity extends BaseEntity>(
+    entityType: string,
+    schema: z.ZodSchema<TEntity>,
+    adapter: EntityAdapter<TEntity>,
+    config?: EntityTypeConfig,
+  ): void;
+
+  /** Get the adapter for an entity type */
+  getAdapter<TEntity extends BaseEntity>(
+    entityType: string,
+  ): EntityAdapter<TEntity> | undefined;
+
+  /** Extend an adapter's frontmatterSchema with additional fields */
+  extendFrontmatterSchema(
+    type: string,
+    extension: z.ZodObject<z.ZodRawShape>,
+  ): void;
+
+  /** Get effective frontmatter schema (base + extensions) for an entity type */
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /** Update an existing entity */
+  update<TEntity extends BaseEntity>(
+    entity: TEntity,
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  /** Register a data source for dynamic content */
+  registerDataSource(dataSource: DataSource): void;
+
+  /** Register a create interceptor for this plugin's entity type */
+  registerCreateInterceptor(
+    entityType: string,
+    interceptor: CreateInterceptor,
+  ): void;
+}
+
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(

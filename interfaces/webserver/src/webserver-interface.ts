@@ -43,12 +43,30 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         url: this.siteUrl,
         priority: 10,
       });
+      context.interactions.register({
+        id: "site",
+        label: "Public site",
+        description: "Visit the published public site for this brain.",
+        href: this.siteUrl,
+        kind: "human",
+        priority: 10,
+      });
     }
     if (this.config.enablePreview && this.previewUrl) {
       context.endpoints.register({
         label: "Preview",
         url: this.previewUrl,
         priority: 20,
+        visibility: "anchor",
+      });
+      context.interactions.register({
+        id: "preview",
+        label: "Preview site",
+        description: "Open the private preview build.",
+        href: this.previewUrl,
+        kind: "admin",
+        priority: 20,
+        visibility: "anchor",
       });
     }
 

@@ -135,7 +135,6 @@ bunx brain start
 
 See also:
 
-- [Relay POC review](../../docs/plans/relay-poc-review.md)
 - [Relay preset plan](../../docs/plans/relay-presets.md)
 - [Brain model architecture](../../docs/brain-model.md)
 - [Repository README](../../README.md)

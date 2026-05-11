@@ -27,6 +27,7 @@ import {
   extractAllTopics,
   getInitialProjectionJobOptions,
   rebuildAllTopics,
+  TopicSourceBatchBuffer,
   type TopicProjectionJobData,
 } from "./lib/topic-projection";
 import {
@@ -35,6 +36,7 @@ import {
   TOPIC_PROJECTION_JOB_TYPE,
   TOPICS_JOB_SOURCE,
   TOPICS_PLUGIN_ID,
+  TOPICS_SOURCE_BATCH_DEDUP_KEY,
 } from "./lib/constants";
 import packageJson from "../package.json";
 
@@ -49,6 +51,7 @@ export class TopicsPlugin extends EntityPlugin<
   readonly adapter = topicAdapter;
 
   declare protected config: TopicsPluginConfig;
+  private readonly sourceBatch = new TopicSourceBatchBuffer();
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
@@ -88,6 +91,8 @@ export class TopicsPlugin extends EntityPlugin<
             config: this.config,
             extractAllTopics: () => this.extractAllTopics(context),
             rebuildAllTopics: () => this.rebuildAllTopics(context),
+            sourceBatch: this.sourceBatch,
+            isEntityPublished: (entity) => this.isEntityPublished(entity),
           }),
         },
         initialSync: {
@@ -111,24 +116,22 @@ export class TopicsPlugin extends EntityPlugin<
               return null;
             }
             if (!this.isEntityPublished(entity)) return null;
-            return {
-              mode: "source",
+            this.sourceBatch.add({
               entityId: entity.id,
               entityType: entity.entityType,
               contentHash: entity.contentHash,
-              minRelevanceScore: this.config.minRelevanceScore,
-              autoMerge: this.config.autoMerge,
-              mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
-            };
+            });
+            return { mode: "source-batch" };
           },
-          jobOptions: (payload) => ({
+          jobOptions: () => ({
             priority: 5,
             source: TOPICS_JOB_SOURCE,
-            deduplication: "coalesce",
-            deduplicationKey: `topics-source:${payload.entityType}:${payload.entityId}:${payload.entity?.contentHash ?? "unknown"}`,
+            delayMs: this.config.sourceChangeBatchDelayMs,
+            deduplication: "skip",
+            deduplicationKey: TOPICS_SOURCE_BATCH_DEDUP_KEY,
             metadata: {
               operationType: "data_processing" as const,
-              operationTarget: `topic-projection:${payload.entityType}:${payload.entityId}`,
+              operationTarget: "topic-source-batch",
               pluginId: TOPICS_PLUGIN_ID,
             },
           }),
@@ -198,6 +201,7 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
+      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 
@@ -209,6 +213,7 @@ export class TopicsPlugin extends EntityPlugin<
       shouldProcessEntityType: (entityType) =>
         this.shouldProcessEntityType(entityType, context.entityService),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
+      minRelevanceScore: this.config.minRelevanceScore,
     });
   }
 }

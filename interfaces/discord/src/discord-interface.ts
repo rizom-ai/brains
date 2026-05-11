@@ -352,6 +352,30 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         interfaceType: "discord",
         channelId: replyChannelId,
         channelName,
+        actor: {
+          actorId: `discord:${discordMessage.author.id}`,
+          interfaceType: "discord",
+          role: "user",
+          displayName: this.getAuthorDisplayName(discordMessage),
+          username: discordMessage.author.username,
+          isBot: Boolean(discordMessage.author.bot),
+        },
+        source: {
+          messageId: discordMessage.id,
+          channelId,
+          channelName,
+          ...(replyChannelId !== channelId || discordMessage.channel.isThread()
+            ? { threadId: replyChannelId }
+            : {}),
+          metadata: {
+            ...(discordMessage.guild?.id
+              ? { guildId: discordMessage.guild.id }
+              : {}),
+            ...(discordMessage.guild?.name
+              ? { guildName: discordMessage.guild.name }
+              : {}),
+          },
+        },
       });
 
       if (response.pendingConfirmation) {
@@ -446,6 +470,14 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   }
 
   // ── Utilities ──
+
+  private getAuthorDisplayName(message: Message): string {
+    return (
+      message.member?.displayName ??
+      message.author.globalName ??
+      message.author.username
+    );
+  }
 
   private stripMention(content: string): string {
     if (!this.client?.user) return content;

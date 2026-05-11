@@ -85,6 +85,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         label: "MCP",
         url: "/mcp",
         priority: 30,
+        visibility: "trusted",
+      });
+      context.interactions.register({
+        id: "mcp",
+        label: "MCP",
+        description:
+          "Connect a trusted client through the Model Context Protocol.",
+        href: "/mcp",
+        kind: "protocol",
+        priority: 30,
+        visibility: "trusted",
       });
     }
 

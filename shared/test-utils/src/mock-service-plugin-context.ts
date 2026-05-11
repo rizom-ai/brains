@@ -130,7 +130,16 @@ export function createMockServicePluginContext(
       Promise.resolve({
         version: "0.0.0",
         model: "test-model",
-        plugins: [],
+        uptime: 0,
+        entities: 0,
+        embeddings: 0,
+        ai: {
+          model: "test-model",
+          embeddingModel: "test-embedding-model",
+        },
+        daemons: [],
+        endpoints: [],
+        interactions: [],
       }),
     ),
 
@@ -198,6 +207,14 @@ export function createMockServicePluginContext(
         returns.messagingSend ?? ((): Promise<void> => Promise.resolve()),
       ),
       subscribe: mock(() => () => {}),
+    },
+
+    // Endpoint and interaction advertisement
+    endpoints: {
+      register: mock(() => {}),
+    },
+    interactions: {
+      register: mock(() => {}),
     },
 
     // Properties

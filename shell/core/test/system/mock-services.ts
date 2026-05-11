@@ -257,6 +257,7 @@ export function createMockSystemServices(
       },
       daemons: [],
       endpoints: [],
+      interactions: [],
     }),
     searchLimit: 10,
     insights: createInsightsRegistry(),

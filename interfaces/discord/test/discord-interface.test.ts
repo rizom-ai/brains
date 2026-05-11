@@ -168,9 +168,11 @@ function createDiscordMessage(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
   return {
-    author: { id: "user-789" },
+    id: "discord-message-123",
+    author: { id: "user-789", username: "mira", globalName: "Mira" },
+    member: { displayName: "Mira Ops" },
     content: "<@bot-user-123> Hello bot",
-    guild: { name: "Test Server" },
+    guild: { id: "guild-123", name: "Test Server" },
     channel: mockChannel,
     mentions: {
       has: mock(() => true),
@@ -247,6 +249,36 @@ describe("DiscordInterface", () => {
         expect.objectContaining({
           interfaceType: "discord",
           userPermissionLevel: "public",
+        }),
+      );
+    });
+
+    it("should pass Discord speaker attribution to the agent context", async () => {
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello bot",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({
+          actor: expect.objectContaining({
+            actorId: "discord:user-789",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Mira Ops",
+            username: "mira",
+            isBot: false,
+          }),
+          source: expect.objectContaining({
+            messageId: "discord-message-123",
+            channelId: "channel-123",
+            threadId: "thread-456",
+            metadata: expect.objectContaining({
+              guildId: "guild-123",
+              guildName: "Test Server",
+            }),
+          }),
         }),
       );
     });

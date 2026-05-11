@@ -92,15 +92,86 @@ describe("Deferred Auto-Extraction", () => {
     expect(enqueue).toHaveBeenCalledWith({
       type: "topic:project",
       data: expect.objectContaining({
-        mode: "source",
-        entityId: "post-1",
-        entityType: "post",
+        mode: "source-batch",
       }),
       options: expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "topics-source:post:post-1:hash-1",
+        deduplication: "skip",
+        deduplicationKey: "topics-source-batch",
       }),
     });
+
+    harness.reset();
+  });
+
+  it("stores one batch source job for a burst of source changes", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue({
+      enableAutoExtraction: true,
+      includeEntityTypes: ["post"],
+    });
+    const storedJobs = new Map<string, unknown>();
+    enqueue.mockImplementation(async (request) => {
+      const key = request.options?.deduplicationKey ?? request.type;
+      if (request.options?.deduplication === "skip" && storedJobs.has(key)) {
+        return `job-${key}`;
+      }
+      storedJobs.set(key, request);
+      return `job-${key}`;
+    });
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-topic",
+        entityType: "topic",
+        content: "---\ntitle: Existing Topic\n---\nExisting topic",
+        metadata: { title: "Existing Topic" },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    await sendPostUpdate(harness);
+    await harness.sendMessage(
+      "entity:updated",
+      {
+        entityType: "post",
+        entityId: "post-2",
+        entity: {
+          id: "post-2",
+          entityType: "post",
+          content: "Another published post",
+          metadata: { status: "published" },
+          contentHash: "hash-2",
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        },
+      },
+      "entity-service",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(storedJobs.size).toBe(1);
+    expect(storedJobs.get("topics-source-batch")).toMatchObject({
+      type: "topic:project",
+      data: { mode: "source-batch" },
+      options: {
+        deduplication: "skip",
+        deduplicationKey: "topics-source-batch",
+      },
+    });
+    for (const call of enqueue.mock.calls) {
+      expect(call[0]).toMatchObject({
+        type: "topic:project",
+        data: { mode: "source-batch" },
+        options: {
+          deduplication: "skip",
+          deduplicationKey: "topics-source-batch",
+        },
+      });
+    }
 
     harness.reset();
   });

@@ -154,6 +154,100 @@ describe("extractTopicsBatched", () => {
     expect(topicListCalls).toBe(1);
   });
 
+  it("emits one topic batch completion event after creating topics", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const send = spyOn(context.messaging, "send");
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "Batch Events",
+          content: "Topic batches emit one completion event.",
+          relevanceScore: 0.9,
+        },
+        {
+          title: "Source Backpressure",
+          content: "Source changes are processed together.",
+          relevanceScore: 0.8,
+        },
+      ],
+    });
+
+    await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith({
+      type: "topics:batch-completed",
+      payload: {
+        created: 2,
+        merged: 0,
+        skipped: 0,
+        batches: 1,
+      },
+      broadcast: true,
+    });
+  });
+
+  it("does not emit a topic batch completion event when nothing changes", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const send = spyOn(context.messaging, "send");
+
+    spyOn(context.ai, "generate").mockResolvedValue({ topics: [] });
+
+    await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+    );
+
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("filters extracted topics below the configured relevance threshold", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "High Relevance",
+          content: "This topic should be created.",
+          relevanceScore: 0.9,
+        },
+        {
+          title: "Low Relevance",
+          content: "This topic should be ignored.",
+          relevanceScore: 0.2,
+        },
+      ],
+    });
+
+    const result = await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+      { minRelevanceScore: 0.5 },
+    );
+
+    expect(result.created).toBe(1);
+    expect(result.skipped).toBe(0);
+
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
+    expect(topics).toHaveLength(1);
+    expect(topics[0]?.id).toBe("high-relevance");
+  });
+
   it("skips duplicate-slug extractions within the same run", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });

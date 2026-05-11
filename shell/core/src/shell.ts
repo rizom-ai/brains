@@ -4,7 +4,10 @@ import type {
   ContentGenerationConfig,
   DefaultQueryResponse,
   EndpointInfo,
+  EndpointInfoInput,
   EvalHandler,
+  InteractionInfo,
+  InteractionInfoInput,
   IShell,
   Plugin,
   Resource,
@@ -74,6 +77,7 @@ import {
 import { createInsightsRegistry } from "./system/insights";
 import type { IInsightsRegistry } from "@brains/plugins";
 import { EndpointRegistry } from "./endpoint-registry";
+import { InteractionRegistry } from "./interaction-registry";
 import { createJobsNamespace } from "./jobs-namespace";
 import {
   collectPluginApiRoutes,
@@ -93,6 +97,7 @@ export class Shell implements IShell {
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
+  private readonly interactionRegistry = new InteractionRegistry();
 
   public readonly jobs: IJobsNamespace;
 
@@ -404,12 +409,20 @@ export class Shell implements IShell {
     this.services.daemonRegistry.register(name, daemon, pluginId);
   }
 
-  public registerEndpoint(endpoint: EndpointInfo): void {
+  public registerEndpoint(endpoint: EndpointInfoInput): void {
     this.endpointRegistry.register(endpoint);
   }
 
   public listEndpoints(): EndpointInfo[] {
     return this.endpointRegistry.list();
+  }
+
+  public registerInteraction(interaction: InteractionInfoInput): void {
+    this.interactionRegistry.register(interaction);
+  }
+
+  public listInteractions(): InteractionInfo[] {
+    return this.interactionRegistry.list();
   }
 
   // Public runtime context
@@ -486,6 +499,7 @@ export class Shell implements IShell {
       services: this.services,
       bootTime: this.bootTime,
       endpoints: () => this.listEndpoints(),
+      interactions: () => this.listInteractions(),
     });
   }
 }

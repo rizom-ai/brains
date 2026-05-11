@@ -13,6 +13,7 @@ import {
   TopicMergeSynthesizer,
   type ITopicMergeSynthesizer,
 } from "./topic-merge-synthesizer";
+import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 
 /**
  * Build the prompt content for a batch of entities.
@@ -61,6 +62,10 @@ export interface ExtractTopicsBatchedResult {
  * `additionalCandidates` so a later topic in the same run can merge with one
  * created earlier — covering the gap where embeddings for fresh writes are
  * still queued in the background.
+ *
+ * Emits `TOPICS_BATCH_COMPLETED_EVENT` once at the end when any topic was
+ * created or merged, so downstream subscribers can react to the wave rather
+ * than per topic.
  */
 export async function extractTopicsBatched(
   entities: BaseEntity[],
@@ -177,5 +182,20 @@ export async function extractTopicsBatched(
     }
   }
 
-  return { created, merged, skipped, batches: batches.length };
+  const summary: ExtractTopicsBatchedResult = {
+    created,
+    merged,
+    skipped,
+    batches: batches.length,
+  };
+
+  if (created > 0 || merged > 0) {
+    await context.messaging.send({
+      type: TOPICS_BATCH_COMPLETED_EVENT,
+      payload: summary,
+      broadcast: true,
+    });
+  }
+
+  return summary;
 }

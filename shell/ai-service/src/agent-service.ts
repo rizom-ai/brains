@@ -1,6 +1,11 @@
 import { type Logger } from "@brains/utils";
 import { type IMCPService, type ToolContext } from "@brains/mcp-service";
-import type { IConversationService } from "@brains/conversation-service";
+import type {
+  ConversationMessageActor,
+  ConversationMessageMetadata,
+  ConversationMessageSource,
+  IConversationService,
+} from "@brains/conversation-service";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -208,6 +213,8 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       userPermissionLevel,
+      actor: context?.actor ?? null,
+      source: context?.source ?? null,
     });
 
     const snapshot = await waitFor(
@@ -261,6 +268,8 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       userPermissionLevel,
+      actor,
+      source,
     } = input;
 
     // Ensure conversation exists
@@ -293,6 +302,7 @@ export class AgentService implements IAgentService {
       conversationId,
       role: "user",
       content: message,
+      ...this.withMessageMetadata(this.buildMessageMetadata(actor, source)),
     });
 
     // Call agent
@@ -315,6 +325,12 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: result.text,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(
+            this.buildAssistantActor(),
+            this.buildAssistantSource(channelId, channelName),
+          ),
+        ),
       });
     }
 
@@ -381,11 +397,53 @@ export class AgentService implements IAgentService {
       conversationId,
       role: "assistant",
       content: resultText,
+      ...this.withMessageMetadata(
+        this.buildMessageMetadata(
+          this.buildAssistantActor(),
+          this.buildAssistantSource(channelId, channelName),
+        ),
+      ),
     });
 
     return {
       text: resultText,
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
+  }
+
+  private buildMessageMetadata(
+    actor: ConversationMessageActor | null,
+    source: ConversationMessageSource | null,
+  ): ConversationMessageMetadata {
+    return {
+      ...(actor ? { actor } : {}),
+      ...(source ? { source } : {}),
+    };
+  }
+
+  private withMessageMetadata(
+    metadata: ConversationMessageMetadata,
+  ): { metadata: Record<string, unknown> } | Record<string, never> {
+    return Object.keys(metadata).length > 0 ? { metadata } : {};
+  }
+
+  private buildAssistantActor(): ConversationMessageActor {
+    return {
+      actorId: "brain:assistant",
+      interfaceType: "agent",
+      role: "assistant",
+      displayName: "Assistant",
+      isBot: true,
+    };
+  }
+
+  private buildAssistantSource(
+    channelId: string,
+    channelName: string,
+  ): ConversationMessageSource {
+    return {
+      channelId,
+      channelName,
     };
   }
 }

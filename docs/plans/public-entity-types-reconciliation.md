@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. Near-term: the external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. The divergence between public `IEntityService` and runtime `ICoreEntityService` is real and growing, and nine paired `(context: never)` overrides plus `context as <Plugin>Context` casts in `shell/plugins/src/public/{entity,interface,message-interface,service}-plugin.ts` paper over it instead of fixing it.
+Completed. Implemented on branch `public-entity-types-reconciliation` in commit `c2fc86767` and merged against the current public-surface plan.
+
+The external plugin API was already alpha-usable, but this type reconciliation needed to land before the public authoring contract hardened further. The divergence between public `IEntityService` and runtime `ICoreEntityService` was real and growing, and paired `(context: never)` overrides plus `context as <Plugin>Context` casts in `shell/plugins/src/public/{entity,interface,message-interface,service}-plugin.ts` papered over it instead of fixing it.
 
 ## Current state
 
@@ -50,50 +52,50 @@ Single source of truth, with a clean public/internal split. `shell/entity-servic
 
 Once the type identities collapse to one, the wide internal context becomes structurally compatible with the public context. The casts and `(context: never)` overrides can be replaced with proper typed parameters: `(context: EntityPluginContext) → return this.hooks.onRegister(context)`.
 
-## Open work
+## Implemented work
 
 ### 1. Tests first
 
-Extend the public-API typecheck fixture at `packages/brain-cli/test/fixtures/external-plugin/`:
+Extended the public-API typecheck fixture at `packages/brain-cli/test/fixtures/external-plugin/`:
 
 - A file that calls `context.entityService.search<MyEntity>(...)` and assigns to `SearchResult<MyEntity>[]`. With the current public type this compiles as `MyEntity[]` — under the fix it must compile as `SearchResult<MyEntity>[]`. This pins the silent-bug case.
 - A file that calls `context.entityService.getEntity<MyEntity>(...)` where `MyEntity extends BaseEntity` — the new constraint, currently absent.
 - A file that passes a typed `ListOptions` to `listEntities` — locks in autocomplete for `publishedOnly` / `filter` / `sort` etc.
 
-Each new fixture file must compile RED on `bunx tsc --noEmit -p packages/brain-cli/test/fixtures/external-plugin` against the current types, and GREEN after the fix.
+The new fixture files compiled RED against the old public types and GREEN after the fix.
 
 ### 2. Reconcile types
 
-- In `shell/entity-service/src/types.ts`, split `ICoreEntityService` into a public `IEntityService` (read methods + `getEntityTypeConfig`) and a runtime-only superset that keeps `getEntityRaw` and `getWeightMap`. Update internal call sites (`content-resolver.ts`, `ai-content-datasource.ts`) to use the runtime-only type.
-- Ensure the public `IEntityService`, `ListOptions`, `SearchOptions`, `SearchResult`, `GetEntityRequest`, `ListEntitiesRequest`, and `EntitySearchRequest` are all exported from the package's public entry.
-- Keep `IEntitiesNamespace` in `shell/plugins/src/entity/context.ts` and make sure `shell/plugins/src/public/types.ts` can import it without re-declaring.
-- In `shell/plugins/src/public/types.ts`, delete every redeclared interface in the entity-service family (`IEntityService`, `IEntitiesNamespace`, request shapes) and replace with re-exports from the canonical packages. The new `IEntityService` already carries `getEntityTypeConfig`; do not add `getEntityRaw` or `getWeightMap` here — they are intentionally internal.
+- `ICoreEntityService`, `ListOptions`, `SearchOptions`, `SearchResult`, and `IEntitiesNamespace` are exported from `@brains/entity-service`.
+- `IEntitiesNamespace` was lifted from `shell/plugins/src/entity/context.ts` into `shell/entity-service/src/types.ts` and imported by runtime plugin contexts.
+- `shell/plugins/src/public/types.ts` no longer redeclares entity request/options/result shapes or `IEntitiesNamespace`; public plugin types use the canonical runtime contracts.
+- Public `IEntityService` is derived from `ICoreEntityService` as the documented read/query subset plus `getEntityTypeConfig`, so `getEntityRaw` and `getWeightMap` remain out of the public `@rizom/brain/plugins` entity-service surface.
 
 ### 3. Remove the casts
 
 Across `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts`:
 
-- Replace `(context: never)` overrides with the actual typed parameter (the internal context type from `../{entity,service,interface}/context.ts`).
-- Drop the `context as <Plugin>Context` casts in the `onRegister` / `onReady` hook calls.
-- The `EntityPluginDelegate.interceptCreate` site in `entity-plugin.ts` follows the same pattern (currently casts to `EntityPluginContext`).
+- Replaced `(context: never)` overrides with the actual typed parameter (the internal context type from `../{entity,service,interface}/context.ts`).
+- Dropped the `context as <Plugin>Context` casts in hook calls.
+- Updated `EntityPluginDelegate.interceptCreate` the same way.
 
-After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as ServicePluginContext\|as InterfacePluginContext" shell/plugins/src/public/` must return no matches.
+After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as ServicePluginContext\|as InterfacePluginContext" shell/plugins/src/public/` returns no matches.
 
 ### 4. Update `@rizom/brain` public re-exports
 
-`packages/brain-cli/src/entries/plugins.ts` and `entries/entities.ts` need to add the newly-canonical types so external authors can import them:
+`packages/brain-cli/src/entries/plugins.ts` and `entries/entities.ts` expose the newly-canonical types so external authors can import them:
 
-- `ListOptions`, `SearchOptions`, `SearchResult` join `@rizom/brain/entities`.
-- `IEntityService`, `IEntitiesNamespace` are unchanged from external-author perspective (same names, accurate shapes).
+- `ListOptions`, `SearchOptions`, `SearchResult` are available from `@rizom/brain/entities`.
+- `IEntityService`, `IEntitiesNamespace` are available from `@rizom/brain/plugins` with the same public names and accurate shapes.
 
 ### 5. Public-surface notes
 
-The published `@rizom/brain/*` contract needs the following adjustments:
+The published `@rizom/brain/*` contract now has the following adjustments:
 
 - `@rizom/brain/plugins`: `IEntityService` shape uses `<T extends BaseEntity>` and the corrected `search` return type.
 - `@rizom/brain/entities`: gains `ListOptions`, `SearchOptions`, `SearchResult` as public types.
 
-Record the breaking-change note: external plugins currently typed against `<T = unknown>` for `getEntity` / `listEntities` may need a touch-up. Acceptable during alpha; flag in a changeset.
+A changeset records the alpha-phase breaking type tightening: external plugins currently typed against `<T = unknown>` for `getEntity` / `listEntities` may need a touch-up.
 
 ## Non-goals
 
@@ -109,14 +111,14 @@ Record the breaking-change note: external plugins currently typed against `<T = 
 - `@brains/entity-service` exports — the runtime types must be reachable from `@brains/plugins/public/types.ts` without pulling in implementation classes.
 - The package-local fixture in `packages/brain-cli/test/fixtures/external-plugin/` — the regression net.
 
-## Done when
+## Completion evidence
 
-1. The three new fixture files in `packages/brain-cli/test/fixtures/external-plugin/` compile GREEN under the new types and previously compiled RED under the old.
+1. The three new fixture files in `packages/brain-cli/test/fixtures/external-plugin/` compile GREEN under the new types and compiled RED under the old public `search<T>()` shape.
 2. `grep` for `as never`, `context: never`, and `as {Entity,Service,Interface}PluginContext` in `shell/plugins/src/public/` returns no matches.
-3. `bun turbo run typecheck` passes for all packages.
-4. `bun test` passes `shell/plugins/test/`, `shell/entity-service/test/`, `packages/brain-cli/test/`, and the public-API typecheck suite.
-5. The published `@rizom/brain/plugins` and `@rizom/brain/entities` declarations reflect the new public-type contract.
-6. A changeset notes the alpha-phase breaking change for external authors who relied on `<T = unknown>`.
+3. `bun run typecheck` passed.
+4. `bun test shell/plugins/test shell/entity-service/test packages/brain-cli/test` passed.
+5. The generated `@rizom/brain/plugins` and `@rizom/brain/entities` declarations reflect the new public-type contract.
+6. `.changeset/public-entity-types-reconciliation.md` notes the alpha-phase breaking change for external authors who relied on `<T = unknown>`.
 
 ## Heads up
 

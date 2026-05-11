@@ -1,0 +1,74 @@
+id: conversation-memory-multi-speaker-attribution
+name: Preserves speaker attribution from message metadata
+description: >-
+  Discord-like team conversation where speaker names are provided by message
+  metadata, not message text. The summary should preserve who made the decision
+  and who explicitly accepted the action item, while avoiding assistant
+  suggestions as decisions.
+type: plugin
+tags:
+  - conversation-memory
+  - speakers
+  - discord
+  - attribution
+plugin: conversation-memory
+handler: summarizeMessages
+
+input:
+  conversationId: eval-multi-speaker-attribution
+  messages:
+    - role: user
+      content: "Decision: keep the onboarding guide to one page for the pilot."
+      timestamp: "2026-05-04T17:00:00Z"
+      actor:
+        actorId: discord:user-mira
+        interfaceType: discord
+        role: user
+        displayName: Mira Ops
+        username: mira
+      source:
+        messageId: discord-message-1
+        channelId: relay-pilot
+        metadata:
+          guildId: relay-guild
+    - role: assistant
+      content: "Suggestion: we could also add a certification checklist later."
+      timestamp: "2026-05-04T17:01:00Z"
+      actor:
+        actorId: brain:assistant
+        interfaceType: agent
+        role: assistant
+        displayName: Relay
+        isBot: true
+    - role: user
+      content: "I'll update the checklist by Friday."
+      timestamp: "2026-05-04T17:02:00Z"
+      actor:
+        actorId: discord:user-daniel
+        interfaceType: discord
+        role: user
+        displayName: Daniel
+        username: daniel
+      source:
+        messageId: discord-message-2
+        channelId: relay-pilot
+        metadata:
+          guildId: relay-guild
+
+expectedOutput:
+  minItems: 1
+  maxItems: 2
+  itemsContain:
+    - field: decisionsText
+      pattern: "Mira.*onboarding|onboarding.*Mira"
+    - field: actionItemsText
+      pattern: "Daniel.*checklist|checklist.*Daniel"
+  itemsNotContain:
+    - field: decisionsText
+      pattern: "certification|checklist later|suggestion"
+    - field: actionItemsText
+      pattern: "Mira.*checklist|checklist.*Mira"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

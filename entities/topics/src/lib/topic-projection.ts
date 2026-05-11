@@ -20,15 +20,47 @@ export const topicProjectionJobDataSchema = z.discriminatedUnion("mode", [
     reason: z.string().optional(),
   }),
   z.object({
-    mode: z.literal("source"),
-    entityId: z.string(),
-    entityType: z.string(),
-    contentHash: z.string().optional(),
+    mode: z.literal("source-batch"),
     minRelevanceScore: z.number().min(0).max(1).optional(),
-    autoMerge: z.boolean().optional(),
-    mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
   }),
 ]);
+
+export interface TopicSourceRef {
+  entityId: string;
+  entityType: string;
+  contentHash: string;
+}
+
+export interface TopicSourceBatchResult {
+  success: boolean;
+  sources: number;
+  created: number;
+  merged: number;
+  skipped: number;
+  batches: number;
+  stale: number;
+  missing: number;
+  unpublished: number;
+}
+
+export interface TopicSourceBatchStore {
+  add(ref: TopicSourceRef): void;
+  drain(): TopicSourceRef[];
+}
+
+export class TopicSourceBatchBuffer implements TopicSourceBatchStore {
+  private readonly refs = new Map<string, TopicSourceRef>();
+
+  public add(ref: TopicSourceRef): void {
+    this.refs.set(`${ref.entityType}:${ref.entityId}`, ref);
+  }
+
+  public drain(): TopicSourceRef[] {
+    const refs = Array.from(this.refs.values());
+    this.refs.clear();
+    return refs;
+  }
+}
 
 export type TopicProjectionJobData = z.infer<
   typeof topicProjectionJobDataSchema
@@ -56,6 +88,8 @@ export function createTopicProjectionHandler(params: {
   config: TopicsPluginConfig;
   extractAllTopics: () => Promise<void>;
   rebuildAllTopics: () => Promise<void>;
+  sourceBatch: TopicSourceBatchStore;
+  isEntityPublished: (entity: BaseEntity) => boolean;
 }): JobHandler<string, TopicProjectionJobData, unknown> {
   const { context, logger, config } = params;
 
@@ -69,34 +103,94 @@ export function createTopicProjectionHandler(params: {
         await params.rebuildAllTopics();
         return { success: true };
       }
-
-      const entity = await context.entityService.getEntity({
-        entityType: data.entityType,
-        id: data.entityId,
-      });
-      if (!entity) return { success: false, topicsExtracted: 0 };
-
-      // Staleness check: skip if content has changed since the job was queued.
-      if (data.contentHash && entity.contentHash !== data.contentHash) {
-        logger.debug("Skipping stale source extraction", {
-          entityId: entity.id,
-          entityType: entity.entityType,
-        });
-        return { success: true, created: 0, merged: 0, skipped: 0 };
-      }
-
-      const result = await extractTopicsBatched([entity], context, logger, {
+      return processSourceBatch({
+        context,
+        logger,
+        config,
+        sourceBatch: params.sourceBatch,
+        isEntityPublished: params.isEntityPublished,
         minRelevanceScore: data.minRelevanceScore ?? config.minRelevanceScore,
-        autoMerge: data.autoMerge ?? config.autoMerge,
-        mergeSimilarityThreshold:
-          data.mergeSimilarityThreshold ?? config.mergeSimilarityThreshold,
       });
-      return { success: true, ...result };
     },
     validateAndParse: (data: unknown): TopicProjectionJobData | null => {
       const result = topicProjectionJobDataSchema.safeParse(data ?? {});
       return result.success ? result.data : null;
     },
+  };
+}
+
+async function processSourceBatch(params: {
+  context: EntityPluginContext;
+  logger: Logger;
+  config: TopicsPluginConfig;
+  sourceBatch: TopicSourceBatchStore;
+  isEntityPublished: (entity: BaseEntity) => boolean;
+  minRelevanceScore: number;
+}): Promise<TopicSourceBatchResult> {
+  const refs = params.sourceBatch.drain();
+  const fetched = await Promise.all(
+    refs.map(async (ref) => ({
+      ref,
+      entity: await params.context.entityService.getEntity({
+        entityType: ref.entityType,
+        id: ref.entityId,
+      }),
+    })),
+  );
+
+  let stale = 0;
+  let missing = 0;
+  let unpublished = 0;
+  const toExtract: BaseEntity[] = [];
+
+  for (const { ref, entity } of fetched) {
+    if (!entity) {
+      missing++;
+      continue;
+    }
+    if (entity.contentHash !== ref.contentHash) {
+      stale++;
+      continue;
+    }
+    if (!params.isEntityPublished(entity)) {
+      unpublished++;
+      continue;
+    }
+    toExtract.push(entity);
+  }
+
+  if (toExtract.length === 0) {
+    return {
+      success: true,
+      sources: refs.length,
+      created: 0,
+      merged: 0,
+      skipped: 0,
+      batches: 0,
+      stale,
+      missing,
+      unpublished,
+    };
+  }
+
+  const result = await extractTopicsBatched(
+    toExtract,
+    params.context,
+    params.logger,
+    {
+      minRelevanceScore: params.minRelevanceScore,
+      autoMerge: params.config.autoMerge,
+      mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+    },
+  );
+
+  return {
+    success: true,
+    sources: refs.length,
+    ...result,
+    stale,
+    missing,
+    unpublished,
   };
 }
 

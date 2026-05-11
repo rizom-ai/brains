@@ -11,6 +11,9 @@ export type {
   AddConversationMessageRequest,
   ListConversationsOptions,
   ConversationDigestPayload,
+  ConversationMessageActor,
+  ConversationMessageSource,
+  ConversationMessageMetadata,
   ConversationDbConfig,
 } from "./types";
 export {
@@ -18,6 +21,9 @@ export {
   CONVERSATION_SOURCE_KIND,
   CONVERSATION_STARTED_CHANNEL,
   conversationDigestPayloadSchema,
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
+  conversationMessageMetadataSchema,
 } from "./types";
 
 // Schema types for compatibility - consider importing from /service if you need these

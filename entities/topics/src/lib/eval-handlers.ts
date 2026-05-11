@@ -30,6 +30,7 @@ const mergeTestInputSchema = z.object({
   contentA: entityInputSchema,
   contentB: entityInputSchema,
   minRelevanceScore: z.number().optional(),
+  threshold: z.number().min(0).max(1).optional(),
 });
 
 const detectionTopicSchema = z.object({
@@ -170,21 +171,54 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
+      const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
 
       const [topicsA, topicsB] = await Promise.all([
         extractTopics(parsed.contentA, minScore, "-a"),
         extractTopics(parsed.contentB, minScore, "-b"),
       ]);
 
-      const titlesA = topicsA.map((topic) => topic.title.toLowerCase());
-      const titlesB = topicsB.map((topic) => topic.title.toLowerCase());
-      const matchingTitles = titlesA.filter((title) => titlesB.includes(title));
+      const topicService = new TopicService(context.entityService, logger);
+      const seededA: TopicEntity[] = [];
+      for (const topic of topicsA) {
+        const created = await topicService.createTopic(topic);
+        if (created) seededA.push(created);
+      }
+      const mergeCandidates = (
+        await Promise.all(
+          topicsB.map(async (topic) => {
+            const candidate = await topicService.findMergeCandidate({
+              incoming: topic,
+              threshold,
+              additionalCandidates: seededA,
+            });
+            if (!candidate) return null;
+            return {
+              incomingTitle: topic.title,
+              candidateTitle: candidate.title,
+              candidateScore: candidate.score,
+            };
+          }),
+        )
+      ).filter(
+        (
+          candidate,
+        ): candidate is {
+          incomingTitle: string;
+          candidateTitle: string;
+          candidateScore: number;
+        } => candidate !== null,
+      );
+      const matchingTitles = mergeCandidates.map(
+        (candidate) => candidate.candidateTitle,
+      );
 
       return {
         topicsA: topicsA.map(summarizeExtractedTopic),
         topicsB: topicsB.map(summarizeExtractedTopic),
         matchingTitles,
-        wouldMerge: matchingTitles.length > 0,
+        mergeCandidates,
+        wouldMerge: mergeCandidates.length > 0,
       };
     },
   );
@@ -195,8 +229,8 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed = detectMergeCandidateSchema.parse(input);
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
-      const topicService = new TopicService(context.entityService, logger);
 
+      const topicService = new TopicService(context.entityService, logger);
       const seeded: TopicEntity[] = [];
       for (const existingTopic of parsed.existingTopics) {
         const created = await topicService.createTopic(existingTopic);
@@ -336,7 +370,9 @@ export function registerTopicEvalHandlers(params: {
       createEntityFromInput(entity, `-batch-${index}`),
     );
 
-    const result = await extractTopicsBatched(entities, context, logger);
+    const result = await extractTopicsBatched(entities, context, logger, {
+      minRelevanceScore: config.minRelevanceScore,
+    });
 
     // Return created topics so the eval can inspect them
     const topics = await context.entityService.listEntities({

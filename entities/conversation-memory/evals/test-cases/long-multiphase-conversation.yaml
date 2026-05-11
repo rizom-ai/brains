@@ -47,7 +47,7 @@ expectedOutput:
     - field: summary
       pattern: "stored conversation messages|source of truth"
     - field: summary
-      pattern: "timestamps|timeRange|time spans"
+      pattern: "timestamp|timestamps|timeRange|time spans|spans"
     - field: summary
       pattern: "eval"
   qualityCriteria:

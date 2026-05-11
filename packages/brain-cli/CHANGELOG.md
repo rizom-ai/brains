@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.63
+
+### Patch Changes
+
+- [`c2fc867`](https://github.com/rizom-ai/brains/commit/c2fc86767c490f7f449a3e5931f6af69822e9959) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reconcile the public plugin entity-service contract with the runtime entity-service types. Public `IEntityService` now constrains entity generics to `BaseEntity`, `search` returns `SearchResult<T>[]`, and list/search request options use the canonical `ListOptions` and `SearchOptions` shapes.
+
+  This is an alpha-phase breaking type tightening for external plugins that relied on unconstrained `<T = unknown>` entity-service generics.
+
 ## 0.2.0-alpha.62
 
 ### Patch Changes

@@ -28,7 +28,7 @@ expectedOutput:
   validateEach:
     - path: actionItems[0]
       exists: false
-    - path: summary
+    - path: keyPointsText
       matches: "outdated|digest|eval"
   qualityCriteria:
     minRelevanceScore: 4
