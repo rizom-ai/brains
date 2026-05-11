@@ -4,7 +4,7 @@ import type { JSX } from "preact";
 import { DASHBOARD_STYLES } from "./render/styles";
 import { Masthead } from "./render/masthead";
 import { EntitySummaryCard } from "./render/entity-summary-card";
-import { CharacterCard } from "./render/character-card";
+import { IdentityCard } from "./render/identity-card";
 import { EndpointsCard } from "./render/endpoints-card";
 import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
@@ -152,7 +152,7 @@ function DashboardDocument({
           <section class={layoutClass}>
             {hasCharacter && (
               <div class="identity-column">
-                <CharacterCard character={input.character} />
+                <IdentityCard character={input.character} />
                 <InteractionsCard
                   interactions={interactions}
                   baseUrl={input.baseUrl}

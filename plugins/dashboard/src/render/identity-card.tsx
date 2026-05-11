@@ -2,7 +2,7 @@
 import type { JSX } from "preact";
 import type { CharacterInput } from "./types";
 
-export function CharacterCard({
+export function IdentityCard({
   character,
 }: {
   character: CharacterInput;
