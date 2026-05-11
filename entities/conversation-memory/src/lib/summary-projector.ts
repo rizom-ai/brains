@@ -1,3 +1,7 @@
+import {
+  conversationMessageMetadataSchema,
+  type ConversationMessageActor,
+} from "@brains/conversation-service";
 import { type EntityPluginContext, type Message } from "@brains/plugins";
 import { pLimit, truncateText, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -26,6 +30,7 @@ import type {
   SummaryEntity,
   SummaryEntry,
   SummaryMetadata,
+  SummaryParticipant,
 } from "../schemas/summary";
 import {
   SummaryExtractor,
@@ -168,6 +173,7 @@ export class SummaryProjector {
       ...(timeRange ? { timeRange } : {}),
       messageCount: source.messages.length,
       entryCount: projected.entries.length,
+      ...this.getParticipantsMetadata(source.messages),
       sourceHash: source.sourceHash,
       projectionVersion: this.config.projectionVersion,
     };
@@ -190,7 +196,12 @@ export class SummaryProjector {
     if (decision.decision === "update") {
       await this.deleteConversationMemory(conversationId);
     }
-    await this.upsertConversationMemory(projected, metadata, now);
+    await this.upsertConversationMemory(
+      projected,
+      metadata,
+      now,
+      source.messages,
+    );
 
     this.logger.info("Projected conversation memory", {
       conversationId,
@@ -321,12 +332,13 @@ export class SummaryProjector {
     projected: ProjectedConversationMemory,
     summaryMetadata: SummaryMetadata,
     now: string,
+    messages: Message[],
   ): Promise<void> {
     const decisionEntities = projected.decisions.map((item, index) =>
-      this.createDecisionEntity(item, summaryMetadata, index, now),
+      this.createDecisionEntity(item, summaryMetadata, index, now, messages),
     );
     const actionItemEntities = projected.actionItems.map((item, index) =>
-      this.createActionItemEntity(item, summaryMetadata, index, now),
+      this.createActionItemEntity(item, summaryMetadata, index, now, messages),
     );
 
     await Promise.all(
@@ -341,7 +353,13 @@ export class SummaryProjector {
     summaryMetadata: SummaryMetadata,
     index: number,
     now: string,
+    messages: Message[],
   ): DecisionEntity {
+    const itemActors = this.getActorsForMemoryItem(item, messages);
+    const attributedActors = this.getActorsMentionedInText(
+      item.text,
+      itemActors,
+    );
     const metadata: DecisionMetadata = {
       conversationId: summaryMetadata.conversationId,
       channelId: summaryMetadata.channelId,
@@ -355,6 +373,9 @@ export class SummaryProjector {
       sourceMessageCount: item.sourceMessageCount,
       projectionVersion: summaryMetadata.projectionVersion,
       status: "active",
+      ...(attributedActors.length > 0
+        ? { decidedBy: attributedActors, mentionedBy: attributedActors }
+        : {}),
     };
     const title = this.titleForMemory("Decision", item.text);
     const content = this.decisionAdapter.composeContent(
@@ -384,7 +405,15 @@ export class SummaryProjector {
     summaryMetadata: SummaryMetadata,
     index: number,
     now: string,
+    messages: Message[],
   ): ActionItemEntity {
+    const itemMessages = this.getMessagesForMemoryItem(item, messages);
+    const itemActors = this.getMessageActors(itemMessages);
+    const assignedActors = this.getActorsMentionedInText(item.text, itemActors);
+    const requesterActors = this.getFirstPersonCommitmentActors(
+      item.text,
+      itemMessages,
+    );
     const metadata: ActionItemMetadata = {
       conversationId: summaryMetadata.conversationId,
       channelId: summaryMetadata.channelId,
@@ -398,6 +427,15 @@ export class SummaryProjector {
       sourceMessageCount: item.sourceMessageCount,
       projectionVersion: summaryMetadata.projectionVersion,
       status: "open",
+      ...(assignedActors.length > 0
+        ? {
+            assignedTo: assignedActors.map((actor) => ({
+              actorId: actor.actorId,
+              displayName: actor.displayName ?? actor.actorId,
+            })),
+          }
+        : {}),
+      ...(requesterActors.length > 0 ? { requestedBy: requesterActors } : {}),
     };
     const title = this.titleForMemory("Action item", item.text);
     const content = this.actionItemAdapter.composeContent(
@@ -420,6 +458,127 @@ export class SummaryProjector {
       updated: now,
       metadata,
     };
+  }
+
+  private getParticipantsMetadata(messages: Message[]): {
+    participants?: SummaryParticipant[];
+  } {
+    const participants = this.getParticipants(messages);
+    return participants.length > 0 ? { participants } : {};
+  }
+
+  private getParticipants(messages: Message[]): SummaryParticipant[] {
+    const participants = new Map<string, SummaryParticipant>();
+
+    for (const actor of this.getMessageActors(messages)) {
+      const existing = participants.get(actor.actorId);
+      if (existing) {
+        if (!existing.roles.includes(actor.role)) {
+          existing.roles.push(actor.role);
+        }
+        if (!existing.displayName && actor.displayName) {
+          existing.displayName = actor.displayName;
+        }
+        continue;
+      }
+
+      participants.set(actor.actorId, {
+        actorId: actor.actorId,
+        ...(actor.displayName ? { displayName: actor.displayName } : {}),
+        roles: [actor.role],
+      });
+    }
+
+    return Array.from(participants.values());
+  }
+
+  private getActorsForMemoryItem(
+    item: ExtractedConversationMemoryItem,
+    messages: Message[],
+  ): ConversationMessageActor[] {
+    return this.getMessageActors(this.getMessagesForMemoryItem(item, messages));
+  }
+
+  private getMessagesForMemoryItem(
+    item: ExtractedConversationMemoryItem,
+    messages: Message[],
+  ): Message[] {
+    return messages.filter(
+      (message) =>
+        message.timestamp >= item.timeRange.start &&
+        message.timestamp <= item.timeRange.end,
+    );
+  }
+
+  private getMessageActors(messages: Message[]): ConversationMessageActor[] {
+    return messages.flatMap((message) => {
+      const parsed = conversationMessageMetadataSchema.safeParse(
+        message.metadata,
+      );
+      return parsed.success && parsed.data.actor ? [parsed.data.actor] : [];
+    });
+  }
+
+  private getActorsMentionedInText(
+    text: string,
+    actors: ConversationMessageActor[],
+  ): Array<{ actorId: string; displayName?: string }> {
+    const normalizedText = this.normalizeForAttribution(text);
+    const seen = new Set<string>();
+    const matches: Array<{ actorId: string; displayName?: string }> = [];
+
+    for (const actor of actors) {
+      if (seen.has(actor.actorId)) continue;
+      const labels = [actor.displayName, actor.username, actor.actorId]
+        .filter((label): label is string => Boolean(label?.trim()))
+        .map((label) => this.normalizeForAttribution(label));
+      if (!labels.some((label) => normalizedText.includes(label))) continue;
+
+      seen.add(actor.actorId);
+      matches.push({
+        actorId: actor.actorId,
+        ...(actor.displayName ? { displayName: actor.displayName } : {}),
+      });
+    }
+
+    return matches;
+  }
+
+  private getFirstPersonCommitmentActors(
+    text: string,
+    messages: Message[],
+  ): Array<{ actorId: string; displayName?: string }> {
+    const mentionedActors = this.getActorsMentionedInText(
+      text,
+      this.getMessageActors(messages),
+    );
+    const mentionedActorIds = new Set(
+      mentionedActors.map((actor) => actor.actorId),
+    );
+    const committedActors = new Set<string>();
+
+    for (const message of messages) {
+      if (message.role !== "user") continue;
+      if (
+        !/\b(i'll|i will|i can|i'm going to|i am going to)\b/i.test(
+          message.content,
+        )
+      ) {
+        continue;
+      }
+      const actor = this.getMessageActors([message])[0];
+      if (actor && mentionedActorIds.has(actor.actorId)) {
+        committedActors.add(actor.actorId);
+      }
+    }
+
+    return mentionedActors.filter((actor) =>
+      committedActors.has(actor.actorId),
+    );
+  }
+
+  private normalizeForAttribution(value: string): string {
+    return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
   }
 
   private memoryEntityId(

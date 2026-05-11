@@ -24,6 +24,14 @@ export const summaryBodySchema = z.object({
 
 export type SummaryBody = z.infer<typeof summaryBodySchema>;
 
+export const summaryParticipantSchema = z.object({
+  actorId: z.string(),
+  displayName: z.string().optional(),
+  roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
+});
+
+export type SummaryParticipant = z.infer<typeof summaryParticipantSchema>;
+
 export const summaryMetadataSchema = z.object({
   conversationId: z.string(),
   channelId: z.string(),
@@ -32,6 +40,7 @@ export const summaryMetadataSchema = z.object({
   timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
   entryCount: z.number().int().min(0),
+  participants: z.array(summaryParticipantSchema).optional(),
   sourceHash: z.string(),
   projectionVersion: z.number().int().min(1),
 });

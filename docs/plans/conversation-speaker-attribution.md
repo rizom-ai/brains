@@ -2,7 +2,9 @@
 
 ## Status
 
-Planning document for preserving speaker identity from chat interfaces through stored conversations and conversation-memory projections.
+Implemented for the first attribution pass. Conversation messages now preserve actor/source metadata through Discord and agent persistence, conversation-memory prompts are speaker-aware, summaries store participants, decision/action-item metadata stores explicit attribution when safely recoverable, and multi-speaker eval coverage is passing.
+
+Still deferred: cross-interface canonical identity linking and a formal brain-instance assistant actor id.
 
 ## Problem
 
@@ -222,9 +224,12 @@ Only populate `assignedTo` when explicit. Do not convert every first-person stat
 
 ### Slice 4: Derived memory attribution
 
-- Add participant metadata to summaries.
-- Evaluate whether `decision` and `action-item` schemas should get explicit attribution fields now or after prompt formatting lands.
-- Add tests that explicit speaker-owned decisions/actions survive extraction.
+Implemented:
+
+- Added participant metadata to summaries.
+- Added optional `decidedBy` / `mentionedBy` metadata to decisions.
+- Added optional `assignedTo` / `requestedBy` metadata to action items.
+- Added tests that explicit speaker-owned decisions/actions survive projection.
 
 ### Slice 5: Evals
 
@@ -248,6 +253,8 @@ Expected behavior:
 - Should raw actor ids appear in the LLM prompt, or only display names plus collision disambiguators?
 - Should decision/action attribution fields be part of the first implementation slice, or follow after prompt attribution proves useful?
 
-## Recommended first cut
+## Current remaining work
 
-Implement slices 1-3 first. That gives durable speaker metadata and makes summaries speaker-aware without expanding entity schemas prematurely. Then add one eval before deciding whether decision/action-item schemas need first-class attribution fields.
+- Add cross-interface `canonicalId` identity linking only after an explicit identity layer exists.
+- Replace the assistant fallback actor id with a formal brain-instance id when that service boundary exposes one.
+- Consider richer attribution extraction later if we need requester/assignee attribution for delegated work where the requester and owner are different people.

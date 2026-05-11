@@ -237,7 +237,11 @@ describe("SummaryExtractor", () => {
           endMessageIndex: 2,
           keyPoints: [],
           decisions: [":"],
-          actionItems: [":", "Create eval cases"],
+          actionItems: [
+            ":",
+            "Continue from the prior context, though no specific task was stated.",
+            "Create eval cases",
+          ],
         },
       ],
     });

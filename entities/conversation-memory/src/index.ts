@@ -19,6 +19,7 @@ export type {
   SummaryEntry,
   SummaryMetadata,
   SummaryConfig,
+  SummaryParticipant,
   SummaryTimeRange,
 } from "./schemas/summary";
 
@@ -28,21 +29,26 @@ export {
   summaryEntrySchema,
   summaryMetadataSchema,
   summaryConfigSchema,
+  summaryParticipantSchema,
   summaryTimeRangeSchema,
 } from "./schemas/summary";
 
 export {
+  actionItemAssigneeSchema,
   actionItemMetadataSchema,
   actionItemSchema,
   decisionMetadataSchema,
   decisionSchema,
+  memoryActorReferenceSchema,
 } from "./schemas/conversation-memory";
 export type {
+  ActionItemAssignee,
   ActionItemEntity,
   ActionItemMetadata,
   ConversationMemoryEntity,
   DecisionEntity,
   DecisionMetadata,
+  MemoryActorReference,
 } from "./schemas/conversation-memory";
 
 export {
