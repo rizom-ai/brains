@@ -56,7 +56,7 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 0.5 };
+    return { weight: 0.5, projectionSource: false };
   }
 
   protected override getTemplates(): Record<string, Template> {
@@ -103,7 +103,13 @@ export class TopicsPlugin extends EntityPlugin<
           jobData: (payload): TopicProjectionJobData | null => {
             const entity = payload.entity;
             if (!entity) return null;
-            if (!this.shouldProcessEntityType(entity.entityType)) return null;
+            if (
+              !this.shouldProcessEntityType(entity.entityType, (type) =>
+                context.entityService.getEntityTypeConfig(type),
+              )
+            ) {
+              return null;
+            }
             if (!this.isEntityPublished(entity)) return null;
             return {
               mode: "source",
@@ -165,9 +171,13 @@ export class TopicsPlugin extends EntityPlugin<
     );
   }
 
-  public shouldProcessEntityType(entityType: string): boolean {
+  public shouldProcessEntityType(
+    entityType: string,
+    getEntityTypeConfig?: (type: string) => EntityTypeConfig,
+  ): boolean {
     if (entityType === TOPIC_ENTITY_TYPE) return false;
-    return this.config.includeEntityTypes.includes(entityType);
+    if (!this.config.includeEntityTypes.includes(entityType)) return false;
+    return getEntityTypeConfig?.(entityType).projectionSource !== false;
   }
 
   public isEntityPublished(entity: BaseEntity): boolean {
@@ -185,7 +195,9 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType),
+        this.shouldProcessEntityType(entityType, (type) =>
+          context.entityService.getEntityTypeConfig(type),
+        ),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }
@@ -195,7 +207,9 @@ export class TopicsPlugin extends EntityPlugin<
       context,
       logger: this.logger,
       shouldProcessEntityType: (entityType) =>
-        this.shouldProcessEntityType(entityType),
+        this.shouldProcessEntityType(entityType, (type) =>
+          context.entityService.getEntityTypeConfig(type),
+        ),
       isEntityPublished: (entity) => this.isEntityPublished(entity),
     });
   }

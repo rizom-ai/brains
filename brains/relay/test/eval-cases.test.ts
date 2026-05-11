@@ -19,8 +19,9 @@ async function findYamlFiles(directory: string): Promise<string[]> {
 
 describe("Relay eval cases", () => {
   it("loads every Relay eval YAML case", async () => {
-    const loader = YAMLLoader.createFresh({ directory: "test-cases" });
-    const files = await findYamlFiles("test-cases");
+    const testCasesDir = join(import.meta.dir, "..", "test-cases");
+    const loader = YAMLLoader.createFresh({ directory: testCasesDir });
+    const files = await findYamlFiles(testCasesDir);
     const cases = await Promise.all(
       files.map((file) => loader.loadTestCase(file)),
     );

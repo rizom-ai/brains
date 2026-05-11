@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createTestEntity } from "@brains/test-utils";
+import { createPluginHarness } from "@brains/plugins/test";
 
 describe("TopicsPlugin", () => {
   let plugin: TopicsPlugin;
@@ -76,12 +77,27 @@ describe("TopicsPlugin", () => {
       expect(pluginWithWhitelist.shouldProcessEntityType("topic")).toBe(false);
     });
 
-    it("should process only whitelisted types", () => {
+    it("should register topic entities as unavailable for projection sources", async () => {
+      const harness = createPluginHarness<TopicsPlugin>({});
+      await harness.installPlugin(new TopicsPlugin());
+
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("topic")
+          .projectionSource,
+      ).toBe(false);
+    });
+
+    it("should process only whitelisted projection source types", () => {
       const pluginWithWhitelist = new TopicsPlugin({
-        includeEntityTypes: ["post", "summary"],
+        includeEntityTypes: ["post", "summary", "skill"],
       });
       expect(pluginWithWhitelist.shouldProcessEntityType("post")).toBe(true);
       expect(pluginWithWhitelist.shouldProcessEntityType("summary")).toBe(true);
+      expect(
+        pluginWithWhitelist.shouldProcessEntityType("skill", () => ({
+          projectionSource: false,
+        })),
+      ).toBe(false);
       expect(pluginWithWhitelist.shouldProcessEntityType("link")).toBe(false);
       expect(pluginWithWhitelist.shouldProcessEntityType("deck")).toBe(false);
     });

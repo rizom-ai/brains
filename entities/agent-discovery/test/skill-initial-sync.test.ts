@@ -27,6 +27,15 @@ function installWithJobQueue(): {
 }
 
 describe("Skill derivation on initial sync", () => {
+  it("registers skills as unavailable for projection sources", async () => {
+    const harness = createPluginHarness<SkillPlugin>({});
+    await harness.installPlugin(new SkillPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("skill").projectionSource,
+    ).toBe(false);
+  });
+
   it("should queue projection after sync:initial:completed", async () => {
     const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
 
