@@ -6,6 +6,7 @@ import { Masthead } from "./render/masthead";
 import { EntitySummaryCard } from "./render/entity-summary-card";
 import { CharacterCard } from "./render/character-card";
 import { EndpointsCard } from "./render/endpoints-card";
+import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { Colophon } from "./render/colophon";
 import type {
@@ -113,7 +114,11 @@ function DashboardDocument({
     Boolean(input.character.role) ||
     Boolean(input.character.purpose) ||
     input.character.values.length > 0;
+  const interactions = input.appInfo.interactions ?? [];
+  const hasInteractions = interactions.length > 0;
   const hasEndpoints = input.appInfo.endpoints.length > 0;
+  const hasSidebarWidgets = groups.sidebar.length > 0;
+  const layoutClass = `layout${hasCharacter ? " has-identity" : ""}`;
   const showOperatorGate =
     input.operatorAccess &&
     !input.operatorAccess.isOperator &&
@@ -144,7 +149,16 @@ function DashboardDocument({
             operatorAccess={input.operatorAccess}
           />
 
-          <section class="layout">
+          <section class={layoutClass}>
+            {hasCharacter && (
+              <div class="identity-column">
+                <CharacterCard character={input.character} />
+                <InteractionsCard
+                  interactions={interactions}
+                  baseUrl={input.baseUrl}
+                />
+              </div>
+            )}
             <div class="main-column">
               <EntitySummaryCard
                 total={totalEntities}
@@ -183,9 +197,16 @@ function DashboardDocument({
                 />
               ))}
             </div>
-            {(hasCharacter || groups.sidebar.length > 0 || hasEndpoints) && (
+            {(hasSidebarWidgets ||
+              hasEndpoints ||
+              (!hasCharacter && hasInteractions)) && (
               <div class="sidebar-column">
-                <CharacterCard character={input.character} />
+                {!hasCharacter && (
+                  <InteractionsCard
+                    interactions={interactions}
+                    baseUrl={input.baseUrl}
+                  />
+                )}
                 {groups.sidebar.map((widget) => (
                   <WidgetCard
                     key={`${widget.widget.pluginId}:${widget.widget.id}`}

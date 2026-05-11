@@ -96,6 +96,16 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
       label: "CMS",
       url: this.config.routePath,
       priority: 40,
+      visibility: "anchor",
+    });
+    context.interactions.register({
+      id: "cms",
+      label: "CMS",
+      description: "Edit and manage content through the browser CMS.",
+      href: this.config.routePath,
+      kind: "admin",
+      priority: 40,
+      visibility: "anchor",
     });
   }
 

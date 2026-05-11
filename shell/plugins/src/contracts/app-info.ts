@@ -1,3 +1,4 @@
+import { UserPermissionLevelSchema } from "@brains/templates";
 import { z } from "zod";
 
 const EndpointSchema = z.object({
@@ -5,6 +6,19 @@ const EndpointSchema = z.object({
   url: z.string(),
   pluginId: z.string(),
   priority: z.number(),
+  visibility: UserPermissionLevelSchema.default("public"),
+});
+
+const InteractionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string().optional(),
+  href: z.string(),
+  kind: z.enum(["human", "agent", "admin", "protocol"]),
+  pluginId: z.string(),
+  priority: z.number(),
+  visibility: UserPermissionLevelSchema.default("public"),
+  status: z.enum(["available", "coming-soon", "disabled"]).default("available"),
 });
 
 const DaemonHealthSchema = z.object({
@@ -33,6 +47,7 @@ export const AppInfoSchema = z.object({
   }),
   daemons: z.array(DaemonStatusSchema),
   endpoints: z.array(EndpointSchema),
+  interactions: z.array(InteractionSchema).optional(),
 });
 
 export type AppInfo = z.infer<typeof AppInfoSchema>;

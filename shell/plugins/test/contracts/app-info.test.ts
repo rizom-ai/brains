@@ -33,6 +33,20 @@ describe("public app info contracts", () => {
           url: "https://example.com/dashboard",
           pluginId: "dashboard",
           priority: 10,
+          visibility: "public",
+        },
+      ],
+      interactions: [
+        {
+          id: "a2a",
+          label: "A2A",
+          description: "Talk to this brain from another agent.",
+          href: "https://example.com/a2a",
+          kind: "agent",
+          pluginId: "a2a",
+          priority: 20,
+          visibility: "public",
+          status: "available",
         },
       ],
     });
@@ -66,6 +80,20 @@ describe("public app info contracts", () => {
           url: "https://example.com/dashboard",
           pluginId: "dashboard",
           priority: 10,
+          visibility: "public",
+        },
+      ],
+      interactions: [
+        {
+          id: "a2a",
+          label: "A2A",
+          description: "Talk to this brain from another agent.",
+          href: "https://example.com/a2a",
+          kind: "agent",
+          pluginId: "a2a",
+          priority: 20,
+          visibility: "public",
+          status: "available",
         },
       ],
     });

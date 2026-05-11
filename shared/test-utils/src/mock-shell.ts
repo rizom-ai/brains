@@ -16,6 +16,9 @@ import type {
   RuntimeAppInfo,
   Daemon,
   EndpointInfo,
+  EndpointInfoInput,
+  InteractionInfo,
+  InteractionInfoInput,
   IDaemonRegistry,
   IInsightsRegistry,
   InsightHandler,
@@ -409,6 +412,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   >();
 
   const endpoints: EndpointInfo[] = [];
+  const interactions: InteractionInfo[] = [];
 
   const daemonRegistry: IDaemonRegistry = {
     register: (name, daemon, pluginId) => {
@@ -571,6 +575,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       endpoints: [...endpoints].sort(
         (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
       ),
+      interactions: [...interactions].sort(
+        (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+      ),
     }),
 
     // High-level operations
@@ -649,11 +656,27 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
 
     // Endpoint advertisement
-    registerEndpoint: (endpoint: EndpointInfo) => {
-      endpoints.push(endpoint);
+    registerEndpoint: (endpoint: EndpointInfoInput) => {
+      endpoints.push({
+        ...endpoint,
+        priority: endpoint.priority ?? 100,
+        visibility: endpoint.visibility ?? "public",
+      });
     },
     listEndpoints: (): EndpointInfo[] =>
       [...endpoints].sort(
+        (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+      ),
+    registerInteraction: (interaction: InteractionInfoInput) => {
+      interactions.push({
+        ...interaction,
+        priority: interaction.priority ?? 100,
+        visibility: interaction.visibility ?? "public",
+        status: interaction.status ?? "available",
+      });
+    },
+    listInteractions: (): InteractionInfo[] =>
+      [...interactions].sort(
         (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
       ),
 

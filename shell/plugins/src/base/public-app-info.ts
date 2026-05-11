@@ -30,5 +30,6 @@ export function toPublicAppInfo(appInfo: RuntimeAppInfo): AppInfo {
       health: toPublicDaemonHealth(daemon.health),
     })),
     endpoints: appInfo.endpoints,
+    interactions: appInfo.interactions ?? [],
   };
 }
