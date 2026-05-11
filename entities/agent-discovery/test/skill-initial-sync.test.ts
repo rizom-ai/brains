@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import { SkillPlugin } from "../src/plugins/skill-plugin";
+import { SKILL_ENTITY_TYPE } from "../src/lib/constants";
 import { createPluginHarness } from "@brains/plugins/test";
 
 function installWithJobQueue(): {
@@ -27,12 +28,13 @@ function installWithJobQueue(): {
 }
 
 describe("Skill derivation on initial sync", () => {
-  it("registers skills as unavailable for projection sources", async () => {
+  it("should register skill entity type with projectionSource: false", async () => {
     const harness = createPluginHarness<SkillPlugin>({});
     await harness.installPlugin(new SkillPlugin());
 
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("skill").projectionSource,
+      harness.getEntityRegistry().getEntityTypeConfig(SKILL_ENTITY_TYPE)
+        .projectionSource,
     ).toBe(false);
   });
 

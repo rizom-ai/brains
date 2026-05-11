@@ -108,6 +108,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     string,
     Parameters<IEntityRegistry["registerEntityType"]>[3]
   >();
+  const getEntityTypeConfig = (
+    type: string,
+  ): NonNullable<Parameters<IEntityRegistry["registerEntityType"]>[3]> =>
+    entityTypeConfigs.get(type) ?? {};
 
   // Serialize an entity the way the real EntityService would: adapter
   // rebuilds markdown from entity fields, adapter extracts canonical
@@ -260,7 +264,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         skipped: false,
       };
     },
-    getEntityTypeConfig: (type: string) => entityTypeConfigs.get(type) ?? {},
+    getEntityTypeConfig,
     getWeightMap: () => ({}),
     countEntities: async () => 0,
     getEntityCounts: async () => [],
@@ -296,7 +300,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     hasEntityType: (type: string) => entityTypes.has(type),
     validateEntity: <TData>(_type: string, entity: unknown) => entity as TData,
     getAllEntityTypes: () => Array.from(entityTypes),
-    getEntityTypeConfig: (type: string) => entityTypeConfigs.get(type) ?? {},
+    getEntityTypeConfig,
     getWeightMap: () => ({}),
     registerCreateInterceptor: (type, interceptor) => {
       createInterceptors.set(
