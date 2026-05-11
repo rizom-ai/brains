@@ -138,6 +138,16 @@ async function clearTopics(context: EntityPluginContext): Promise<void> {
   );
 }
 
+async function seedTopicIndex(
+  context: EntityPluginContext,
+  logger: Logger,
+  topics: Array<{ title: string; content: string }>,
+): Promise<TopicIndex> {
+  const topicService = new TopicService(context.entityService, logger);
+  await Promise.all(topics.map((topic) => topicService.createTopic(topic)));
+  return TopicIndex.create(topicService);
+}
+
 export function registerTopicEvalHandlers(params: {
   context: EntityPluginContext;
   logger: Logger;
@@ -177,15 +187,7 @@ export function registerTopicEvalHandlers(params: {
         extractTopics(parsed.contentB, minScore, "-b"),
       ]);
 
-      const topicService = new TopicService(context.entityService, logger);
-      for (const topic of topicsA) {
-        await topicService.createTopic({
-          title: topic.title,
-          content: topic.content,
-        });
-      }
-
-      const topicIndex = await TopicIndex.create(topicService);
+      const topicIndex = await seedTopicIndex(context, logger, topicsA);
       const mergeCandidates = topicsB.flatMap((topic) => {
         const candidate = topicIndex.findMergeCandidate(topic, threshold);
         if (!candidate) return [];
@@ -217,13 +219,12 @@ export function registerTopicEvalHandlers(params: {
       await clearTopics(context);
       const parsed = detectMergeCandidateSchema.parse(input);
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
-      const topicService = new TopicService(context.entityService, logger);
 
-      for (const existingTopic of parsed.existingTopics) {
-        await topicService.createTopic(existingTopic);
-      }
-
-      const topicIndex = await TopicIndex.create(topicService);
+      const topicIndex = await seedTopicIndex(
+        context,
+        logger,
+        parsed.existingTopics,
+      );
       const candidate = topicIndex.findMergeCandidate(
         {
           title: parsed.incomingTopic.title,
