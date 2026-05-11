@@ -1,4 +1,8 @@
-import type { RuntimeAppInfo, EndpointInfo } from "@brains/plugins";
+import type {
+  RuntimeAppInfo,
+  EndpointInfo,
+  InteractionInfo,
+} from "@brains/plugins";
 import type { ShellConfig } from "./config";
 import type { ShellServices } from "./initialization/shellInitializer";
 
@@ -7,8 +11,9 @@ export async function getRuntimeAppInfo(options: {
   services: ShellServices;
   bootTime: number;
   endpoints: () => EndpointInfo[];
+  interactions: () => InteractionInfo[];
 }): Promise<RuntimeAppInfo> {
-  const { config, services, bootTime, endpoints } = options;
+  const { config, services, bootTime, endpoints, interactions } = options;
   const entityCounts = await services.entityService.getEntityCounts();
   const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
   const embeddingCount = await services.entityService.countEmbeddings();
@@ -26,5 +31,6 @@ export async function getRuntimeAppInfo(options: {
     },
     daemons,
     endpoints: endpoints(),
+    interactions: interactions(),
   };
 }

@@ -127,7 +127,16 @@ export function createMockEntityPluginContext(
       Promise.resolve({
         version: "0.0.0",
         model: "test-model",
-        plugins: [],
+        uptime: 0,
+        entities: 0,
+        embeddings: 0,
+        ai: {
+          model: "test-model",
+          embeddingModel: "test-embedding-model",
+        },
+        daemons: [],
+        endpoints: [],
+        interactions: [],
       }),
     ),
 

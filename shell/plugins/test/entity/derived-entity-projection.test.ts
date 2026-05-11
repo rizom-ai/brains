@@ -23,7 +23,22 @@ function createProjectionContext(options?: {
     siteUrl: undefined,
     previewUrl: undefined,
     entityDisplay: undefined,
-    appInfo: mock(() => Promise.resolve({ version: "0.0.0", plugins: [] })),
+    appInfo: mock(() =>
+      Promise.resolve({
+        version: "0.0.0",
+        model: "test-model",
+        uptime: 0,
+        entities: 0,
+        embeddings: 0,
+        ai: {
+          model: "test-model",
+          embeddingModel: "test-embedding-model",
+        },
+        daemons: [],
+        endpoints: [],
+        interactions: [],
+      }),
+    ),
     entityService: {
       listEntities: mock((request: { entityType: string }) =>
         Promise.resolve(listEntities[request.entityType] ?? []),

@@ -19,6 +19,7 @@ describe("context.endpoints.register", () => {
       url: "/cms",
       pluginId: "my-plugin",
       priority: 100,
+      visibility: "public",
     });
   });
 
@@ -74,5 +75,43 @@ describe("context.endpoints.register", () => {
     const endpoints = shell.listEndpoints();
     expect(endpoints.find((e) => e.label === "CMS")?.pluginId).toBe("cms");
     expect(endpoints.find((e) => e.label === "MCP")?.pluginId).toBe("mcp");
+  });
+
+  it("preserves endpoint visibility", () => {
+    const shell = createMockShell({ logger });
+    const context = createBasePluginContext(shell, "mcp");
+
+    context.endpoints.register({
+      label: "MCP",
+      url: "/mcp",
+      visibility: "trusted",
+    });
+
+    expect(shell.listEndpoints()[0]?.visibility).toBe("trusted");
+  });
+
+  it("registers interactions with defaults and plugin scope", () => {
+    const shell = createMockShell({ logger });
+    const context = createBasePluginContext(shell, "a2a");
+
+    context.interactions.register({
+      id: "a2a",
+      label: "A2A",
+      href: "/a2a",
+      kind: "agent",
+    });
+
+    expect(shell.listInteractions()).toEqual([
+      {
+        id: "a2a",
+        label: "A2A",
+        href: "/a2a",
+        kind: "agent",
+        pluginId: "a2a",
+        priority: 100,
+        visibility: "public",
+        status: "available",
+      },
+    ]);
   });
 });

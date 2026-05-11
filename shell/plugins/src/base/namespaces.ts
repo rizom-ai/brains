@@ -24,6 +24,7 @@ import type {
   IEvalNamespace,
   IIdentityNamespace,
   IInsightsNamespace,
+  IInteractionsNamespace,
   IMessagingNamespace,
   TypedMessageHandler,
 } from "./context";
@@ -168,8 +169,38 @@ export function createEndpointsNamespace(
   pluginId: string,
 ): IEndpointsNamespace {
   return {
-    register: ({ label, url, priority = 100 }): void => {
-      shell.registerEndpoint({ label, url, pluginId, priority });
+    register: ({ label, url, priority = 100, visibility = "public" }): void => {
+      shell.registerEndpoint({ label, url, pluginId, priority, visibility });
+    },
+  };
+}
+
+export function createInteractionsNamespace(
+  shell: IShell,
+  pluginId: string,
+): IInteractionsNamespace {
+  return {
+    register: ({
+      id,
+      label,
+      description,
+      href,
+      kind,
+      priority = 100,
+      visibility = "public",
+      status = "available",
+    }): void => {
+      shell.registerInteraction({
+        id,
+        label,
+        ...(description ? { description } : {}),
+        href,
+        kind,
+        pluginId,
+        priority,
+        visibility,
+        status,
+      });
     },
   };
 }

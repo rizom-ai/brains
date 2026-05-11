@@ -1,5 +1,8 @@
 import { z } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/templates";
+import {
+  UserPermissionLevelSchema,
+  type UserPermissionLevel,
+} from "@brains/templates";
 import {
   defaultQueryResponseSchema,
   simpleTextResponseSchema,
@@ -108,9 +111,39 @@ export const endpointInfoSchema = z.object({
   url: z.string(),
   pluginId: z.string(),
   priority: z.number().default(100),
+  visibility: UserPermissionLevelSchema.default("public"),
 });
 
-export type EndpointInfo = z.infer<typeof endpointInfoSchema>;
+export type EndpointInfo = z.output<typeof endpointInfoSchema>;
+export type EndpointInfoInput = z.input<typeof endpointInfoSchema>;
+
+export const interactionKindSchema = z.enum([
+  "human",
+  "agent",
+  "admin",
+  "protocol",
+]);
+
+export const interactionStatusSchema = z.enum([
+  "available",
+  "coming-soon",
+  "disabled",
+]);
+
+export const interactionInfoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string().optional(),
+  href: z.string(),
+  kind: interactionKindSchema,
+  pluginId: z.string(),
+  priority: z.number().default(100),
+  visibility: UserPermissionLevelSchema.default("public"),
+  status: interactionStatusSchema.default("available"),
+});
+
+export type InteractionInfo = z.output<typeof interactionInfoSchema>;
+export type InteractionInfoInput = z.input<typeof interactionInfoSchema>;
 
 /**
  * App info schema for validation
@@ -127,6 +160,7 @@ export const appInfoSchema = z.object({
   }),
   daemons: z.array(DaemonStatusInfoSchema),
   endpoints: z.array(endpointInfoSchema),
+  interactions: z.array(interactionInfoSchema).optional(),
 });
 
 export type RuntimeAppInfo = z.infer<typeof appInfoSchema>;
@@ -248,8 +282,12 @@ export interface IShell {
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;
 
   // Endpoint advertisement — plugins advertise user-facing URLs
-  registerEndpoint(endpoint: EndpointInfo): void;
+  registerEndpoint(endpoint: EndpointInfoInput): void;
   listEndpoints(): EndpointInfo[];
+
+  // Interaction advertisement — plugins advertise user/agent entry points
+  registerInteraction(interaction: InteractionInfoInput): void;
+  listInteractions(): InteractionInfo[];
 
   // Eval handler registration for plugin testing
   registerEvalHandler(

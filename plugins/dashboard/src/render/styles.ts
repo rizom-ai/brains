@@ -194,26 +194,46 @@ body::after {
 }
 
 .layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 20px;
   align-items: flex-start;
 }
 .main-column {
-  flex: 1 1 0;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+.layout.has-identity .main-column {
+  grid-row: 1 / span 2;
+}
+.identity-column,
 .sidebar-column {
-  flex: 0 0 300px;
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+.identity-column { grid-row: 1; }
+.sidebar-column { grid-row: 1; }
+.layout.has-identity .sidebar-column { grid-row: 2; }
 @media (max-width: 1024px) {
-  .layout { flex-direction: column; align-items: stretch; }
-  .sidebar-column { flex: 1 1 auto; width: 100%; }
+  .layout {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .main-column,
+  .layout.has-identity .main-column,
+  .identity-column,
+  .sidebar-column,
+  .layout.has-identity .sidebar-column {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
 }
 @media (max-width: 640px) {
   .console { padding: 28px 18px 56px; }
@@ -229,7 +249,7 @@ body::after {
   position: relative;
   box-shadow: var(--shadow-card);
 }
-.card--hero { padding: 28px 32px 32px; }
+.card--entity-summary { padding: 28px 32px 32px; }
 
 .operator-gate {
   display: grid;
@@ -312,7 +332,7 @@ body::after {
 @media (max-width: 720px) {
   .entities { grid-template-columns: 1fr; gap: 24px; align-items: start; }
 }
-.hero-number {
+.entity-summary-number {
   font-family: var(--font-display);
   font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 350;
   font-size: clamp(5rem, 10vw, 7.5rem);
@@ -321,10 +341,10 @@ body::after {
   color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
-[data-theme="light"] .hero-number {
+[data-theme="light"] .entity-summary-number {
   font-variation-settings: "opsz" 144, "SOFT" 30, "wght" 420;
 }
-.hero-label {
+.entity-summary-label {
   margin-top: 14px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -376,14 +396,40 @@ body::after {
   opacity: 0.55;
 }
 
+.identity-card {
+  background:
+    linear-gradient(135deg, rgba(255, 139, 61, 0.06), transparent 45%),
+    var(--ink-raised);
+}
+.identity-sections {
+  display: grid;
+  gap: 16px;
+}
+.identity-section {
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.identity-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+.identity-label {
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
 .identity-role {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--paper);
   letter-spacing: -0.005em;
+  line-height: 1.35;
 }
 .identity-purpose {
-  margin-top: 10px;
+  margin: 0;
   font-size: 13px;
   line-height: 1.55;
   color: var(--paper-dim);
@@ -392,7 +438,6 @@ body::after {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 6px;
-  margin-top: 14px;
 }
 .value {
   font-family: var(--font-mono);
@@ -497,7 +542,48 @@ body::after {
 .pill--ok   { color: var(--ok);   border-color: rgba(104, 204, 139, 0.35); }
 .pill--mute { color: var(--paper-faint); }
 
+.interactions-list,
 .links { display: flex; flex-direction: column; }
+.interaction-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.018);
+  color: var(--paper);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.interaction-link:hover {
+  border-color: var(--rule-accent);
+  background: var(--accent-soft);
+}
+.interaction-link strong,
+.interaction-link em,
+.interaction-link small { display: block; }
+.interaction-link strong {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.interaction-link em {
+  margin-top: 4px;
+  color: var(--paper-mute);
+  font-size: 12.5px;
+  font-style: normal;
+  line-height: 1.35;
+}
+.interaction-link small {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 .link {
   display: grid;
   grid-template-columns: 72px 1fr auto;

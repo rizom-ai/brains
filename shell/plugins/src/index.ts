@@ -79,6 +79,9 @@ export type {
   ToolVisibility,
   RuntimeAppInfo,
   EndpointInfo,
+  EndpointInfoInput,
+  InteractionInfo,
+  InteractionInfoInput,
   DefaultQueryResponse,
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
@@ -96,6 +99,9 @@ export type {
 export {
   appInfoSchema,
   endpointInfoSchema,
+  interactionInfoSchema,
+  interactionKindSchema,
+  interactionStatusSchema,
   defaultQueryResponseSchema,
   pluginMetadataSchema,
   toolResponseSchema,

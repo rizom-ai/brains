@@ -21,7 +21,7 @@ function BreakdownRow({
   );
 }
 
-export function HeroCard(props: {
+export function EntitySummaryCard(props: {
   total: number;
   entityCounts: EntityCount[];
 }): JSX.Element {
@@ -29,7 +29,7 @@ export function HeroCard(props: {
 
   if (entityCounts.length === 0) {
     return (
-      <article class="card card--hero">
+      <article class="card card--entity-summary">
         <div class="card-head">
           <span class="card-title">Entities</span>
         </div>
@@ -42,15 +42,15 @@ export function HeroCard(props: {
   const max = sorted[0]?.count ?? 1;
 
   return (
-    <article class="card card--hero">
+    <article class="card card--entity-summary">
       <div class="card-head">
         <span class="card-title">Entities</span>
         <span class="card-subtitle">corpus · sorted by volume</span>
       </div>
       <div class="entities">
         <div>
-          <div class="hero-number">{total}</div>
-          <div class="hero-label">indexed entities</div>
+          <div class="entity-summary-number">{total}</div>
+          <div class="entity-summary-label">indexed entities</div>
         </div>
         <div class="breakdown">
           {sorted.map((item) => (

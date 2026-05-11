@@ -195,6 +195,22 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
               }
             })();
 
+          const visibleAppInfo = {
+            ...appInfo,
+            endpoints: appInfo.endpoints.filter((endpoint) =>
+              PermissionService.hasPermission(
+                permissionLevel,
+                endpoint.visibility,
+              ),
+            ),
+            interactions: (appInfo.interactions ?? []).filter((interaction) =>
+              PermissionService.hasPermission(
+                permissionLevel,
+                interaction.visibility,
+              ),
+            ),
+          };
+
           const title = profile.name || appInfo.model || "Brain Dashboard";
           const requestUrl = new URL(request.url);
           const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
@@ -211,7 +227,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             widgetScripts: resolvedWidgets.widgetScripts,
             character,
             profile,
-            appInfo,
+            appInfo: visibleAppInfo,
             entityCounts,
             operatorAccess: {
               isOperator,

@@ -1,10 +1,10 @@
-import type { EndpointInfo } from "@brains/plugins";
+import type { EndpointInfo, EndpointInfoInput } from "@brains/plugins";
 import { endpointInfoSchema } from "@brains/plugins";
 
 export class EndpointRegistry {
   private readonly endpoints: EndpointInfo[] = [];
 
-  public register(endpoint: EndpointInfo): void {
+  public register(endpoint: EndpointInfoInput): void {
     const parsed = endpointInfoSchema.parse(endpoint);
     this.endpoints.push(parsed);
   }

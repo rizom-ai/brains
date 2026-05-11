@@ -3,9 +3,10 @@ import { render } from "preact-render-to-string";
 import type { JSX } from "preact";
 import { DASHBOARD_STYLES } from "./render/styles";
 import { Masthead } from "./render/masthead";
-import { HeroCard } from "./render/hero";
-import { CharacterCard } from "./render/character-card";
+import { EntitySummaryCard } from "./render/entity-summary-card";
+import { IdentityCard } from "./render/identity-card";
 import { EndpointsCard } from "./render/endpoints-card";
+import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
 import { Colophon } from "./render/colophon";
 import type {
@@ -67,6 +68,32 @@ const THEME_TOGGLE_SCRIPT = `(function () {
   sync();
 })();`;
 
+function OperatorGate({
+  hiddenWidgetCount,
+  loginUrl,
+}: {
+  hiddenWidgetCount: number;
+  loginUrl: string;
+}): JSX.Element {
+  return (
+    <section class="card operator-gate">
+      <div>
+        <div class="card-title">Operator access</div>
+        <p>
+          {hiddenWidgetCount === 1
+            ? "1 private console widget is hidden."
+            : `${hiddenWidgetCount} private console widgets are hidden.`}{" "}
+          {""}
+          Sign in with your passkey to unlock the restricted layer.
+        </p>
+      </div>
+      <a class="operator-gate-link" href={loginUrl}>
+        Sign in
+      </a>
+    </section>
+  );
+}
+
 const PIPELINE_TABS_SCRIPT = `(function () {
   function activate(root, status) {
     var tabs = root.querySelectorAll("[data-pipeline-tab]");
@@ -113,7 +140,11 @@ function DashboardDocument({
     Boolean(input.character.role) ||
     Boolean(input.character.purpose) ||
     input.character.values.length > 0;
+  const interactions = input.appInfo.interactions ?? [];
+  const hasInteractions = interactions.length > 0;
   const hasEndpoints = input.appInfo.endpoints.length > 0;
+  const hasSidebarWidgets = groups.sidebar.length > 0;
+  const layoutClass = `layout${hasCharacter ? " has-identity" : ""}`;
   const showOperatorGate =
     input.operatorAccess &&
     !input.operatorAccess.isOperator &&
@@ -144,31 +175,32 @@ function DashboardDocument({
             operatorAccess={input.operatorAccess}
           />
 
-          <section class="layout">
+          <section class={layoutClass}>
+            {hasCharacter && (
+              <div class="identity-column">
+                <IdentityCard character={input.character} />
+                <InteractionsCard
+                  interactions={interactions}
+                  baseUrl={input.baseUrl}
+                />
+                {showOperatorGate && input.operatorAccess && (
+                  <OperatorGate
+                    hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
+                    loginUrl={input.operatorAccess.loginUrl}
+                  />
+                )}
+              </div>
+            )}
             <div class="main-column">
-              <HeroCard
+              <EntitySummaryCard
                 total={totalEntities}
                 entityCounts={input.entityCounts}
               />
-              {showOperatorGate && input.operatorAccess && (
-                <section class="card operator-gate">
-                  <div>
-                    <div class="card-title">Restricted layer</div>
-                    <p>
-                      {input.operatorAccess.hiddenWidgetCount === 1
-                        ? "1 restricted widget is hidden."
-                        : `${input.operatorAccess.hiddenWidgetCount} restricted widgets are hidden.`}{" "}
-                      {""}
-                      Sign in with your passkey to unlock private console data.
-                    </p>
-                  </div>
-                  <a
-                    class="operator-gate-link"
-                    href={input.operatorAccess.loginUrl}
-                  >
-                    Sign in
-                  </a>
-                </section>
+              {!hasCharacter && showOperatorGate && input.operatorAccess && (
+                <OperatorGate
+                  hiddenWidgetCount={input.operatorAccess.hiddenWidgetCount}
+                  loginUrl={input.operatorAccess.loginUrl}
+                />
               )}
               {groups.primary.map((widget) => (
                 <WidgetCard
@@ -183,9 +215,16 @@ function DashboardDocument({
                 />
               ))}
             </div>
-            {(hasCharacter || groups.sidebar.length > 0 || hasEndpoints) && (
+            {(hasSidebarWidgets ||
+              hasEndpoints ||
+              (!hasCharacter && hasInteractions)) && (
               <div class="sidebar-column">
-                <CharacterCard character={input.character} />
+                {!hasCharacter && (
+                  <InteractionsCard
+                    interactions={interactions}
+                    baseUrl={input.baseUrl}
+                  />
+                )}
                 {groups.sidebar.map((widget) => (
                   <WidgetCard
                     key={`${widget.widget.pluginId}:${widget.widget.id}`}
