@@ -117,7 +117,7 @@ describe("DashboardDataSource", () => {
       expect(result.widgets["plugin:bad-widget"]).toBeUndefined();
     });
 
-    it("should hide operator widgets unless requested", async () => {
+    it("should filter widgets by permission level", async () => {
       registry.register({
         id: "public-widget",
         pluginId: "test",
@@ -128,25 +128,44 @@ describe("DashboardDataSource", () => {
         dataProvider: async () => ({ value: "public" }),
       });
       registry.register({
-        id: "operator-widget",
+        id: "trusted-widget",
         pluginId: "test",
-        title: "Operator",
+        title: "Trusted",
         section: "primary",
         priority: 20,
         rendererName: "StatsWidget",
-        visibility: "operator",
-        dataProvider: async () => ({ value: "operator" }),
+        visibility: "trusted",
+        dataProvider: async () => ({ value: "trusted" }),
+      });
+      registry.register({
+        id: "anchor-widget",
+        pluginId: "test",
+        title: "Anchor",
+        section: "primary",
+        priority: 30,
+        rendererName: "StatsWidget",
+        visibility: "anchor",
+        dataProvider: async () => ({ value: "anchor" }),
       });
 
       const publicResult = await datasource.getDashboardData();
       expect(Object.keys(publicResult.widgets)).toEqual(["test:public-widget"]);
 
-      const operatorResult = await datasource.getDashboardData({
-        includeOperator: true,
+      const trustedResult = await datasource.getDashboardData({
+        permissionLevel: "trusted",
       });
-      expect(Object.keys(operatorResult.widgets)).toEqual([
+      expect(Object.keys(trustedResult.widgets)).toEqual([
         "test:public-widget",
-        "test:operator-widget",
+        "test:trusted-widget",
+      ]);
+
+      const anchorResult = await datasource.getDashboardData({
+        permissionLevel: "anchor",
+      });
+      expect(Object.keys(anchorResult.widgets)).toEqual([
+        "test:public-widget",
+        "test:trusted-widget",
+        "test:anchor-widget",
       ]);
     });
 

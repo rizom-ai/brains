@@ -3,14 +3,22 @@ import type {
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import {
+  PermissionService,
+  ServicePlugin,
+  UserPermissionLevelSchema,
+} from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
 import {
   BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
   isBuiltInWidgetRenderer,
 } from "./widget-registry";
-import type { RegisteredWidget, WidgetComponent } from "./widget-registry";
+import type {
+  RegisteredWidget,
+  WidgetComponent,
+  WidgetVisibility,
+} from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
 import {
   renderDashboardPageHtml,
@@ -36,7 +44,7 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
-    visibility: z.enum(["public", "operator"]).default("public"),
+    visibility: UserPermissionLevelSchema.default("public"),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.function().returns(z.promise(z.unknown())),
@@ -154,15 +162,22 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           const operatorSession =
             await getActiveAuthService()?.getOperatorSession(request);
           const isOperator = Boolean(operatorSession);
-          const hiddenWidgetCount = isOperator
-            ? 0
-            : (this.widgetRegistry
-                ?.list({ includeOperator: true })
-                .filter((widget) => widget.visibility === "operator").length ??
-              0);
+          const permissionLevel: WidgetVisibility = isOperator
+            ? "anchor"
+            : "public";
+          const hiddenWidgetCount =
+            this.widgetRegistry
+              ?.list({ permissionLevel: "anchor" })
+              .filter(
+                (widget) =>
+                  !PermissionService.hasPermission(
+                    permissionLevel,
+                    widget.visibility,
+                  ),
+              ).length ?? 0;
           const [dashboardData, appInfo, entityCounts] = await Promise.all([
             this.datasource.getDashboardData({
-              includeOperator: isOperator,
+              permissionLevel,
             }),
             ctx.appInfo(),
             ctx.entityService.getEntityCounts(),

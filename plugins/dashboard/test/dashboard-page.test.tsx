@@ -15,7 +15,7 @@ function TestCustomWidget({ data }: { data: unknown }): JSX.Element {
 }
 
 describe("renderDashboardPageHtml", () => {
-  it("should render an operator sign-in prompt when operator widgets are hidden", () => {
+  it("should render a sign-in prompt when restricted widgets are hidden", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -47,8 +47,8 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Operator layer");
-    expect(html).toContain("1 operator widget is hidden.");
+    expect(html).toContain("Restricted layer");
+    expect(html).toContain("1 restricted widget is hidden.");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
   });
 

@@ -2,7 +2,10 @@ import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import type { z } from "@brains/utils";
-import { type DashboardWidgetRegistry } from "./widget-registry";
+import type {
+  DashboardWidgetRegistry,
+  WidgetVisibility,
+} from "./widget-registry";
 import { type DashboardData, type WidgetData } from "./widget-schema";
 
 /**
@@ -25,12 +28,12 @@ export class DashboardDataSource implements DataSource {
   }
 
   async getDashboardData(
-    options: { includeOperator?: boolean } = {},
+    options: { permissionLevel?: WidgetVisibility } = {},
   ): Promise<DashboardData> {
     const widgets: Record<string, WidgetData> = {};
     const registeredWidgets = this.registry.list({
-      ...(options.includeOperator !== undefined && {
-        includeOperator: options.includeOperator,
+      ...(options.permissionLevel !== undefined && {
+        permissionLevel: options.permissionLevel,
       }),
     });
 

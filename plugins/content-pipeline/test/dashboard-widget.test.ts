@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import type { UserPermissionLevel } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
   createMockShell,
@@ -19,7 +20,7 @@ interface DashboardWidgetPayload {
   section: string;
   priority: number;
   rendererName: string;
-  visibility: "public" | "operator";
+  visibility: UserPermissionLevel;
   dataProvider: () => Promise<PipelineWidgetData>;
 }
 
@@ -54,7 +55,7 @@ describe("dashboard widget registration", () => {
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
-      visibility: "operator",
+      visibility: "anchor",
     });
     expect(widgetPayload?.dataProvider).toBeFunction();
   });
