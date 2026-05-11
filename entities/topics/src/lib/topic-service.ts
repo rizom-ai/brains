@@ -2,12 +2,10 @@ import type { IEntityService, SearchResult } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata } from "../schemas/topic";
-import type { ExtractedTopicData } from "../schemas/extraction";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-import { scoreTopicSimilarity } from "./topic-merge";
 
 const MAX_ALIASES = 5;
 
@@ -47,7 +45,13 @@ export class TopicService {
     return this.insertTopic(topicId, params);
   }
 
-  public async createTopicFromPreloadedIndex(params: {
+  /**
+   * Insert a new topic; on a concurrent-insert race, fetch the existing one
+   * instead of failing. For batch callers that have already checked
+   * existence against an in-memory index, this avoids the eager `getTopic`
+   * roundtrip that `createTopic` would do.
+   */
+  public async createTopicOptimistic(params: {
     title: string;
     content: string;
     metadata?: TopicMetadata;
@@ -190,32 +194,6 @@ export class TopicService {
         limit,
       },
     });
-  }
-
-  public async findMergeCandidate(
-    incoming: Pick<ExtractedTopicData, "title">,
-    threshold: number,
-  ): Promise<TopicMergeCandidate | null> {
-    const topics = await this.listTopics();
-    let bestCandidate: TopicMergeCandidate | null = null;
-
-    for (const topic of topics) {
-      const parsed = this.adapter.parseTopicBody(topic.content);
-      const score = scoreTopicSimilarity(incoming, {
-        title: parsed.title,
-      });
-
-      if (score < threshold) continue;
-      if (!bestCandidate || score > bestCandidate.score) {
-        bestCandidate = {
-          topic,
-          title: parsed.title,
-          score,
-        };
-      }
-    }
-
-    return bestCandidate;
   }
 
   public mergeAliases(

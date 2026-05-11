@@ -141,7 +141,6 @@ export class TopicExtractionHandler extends BaseJobHandler<
         };
       }
 
-      // Queue one batch processing job instead of one job per extracted topic.
       const batchId = await this.context.jobs.enqueue({
         type: "process-batch",
         data: {

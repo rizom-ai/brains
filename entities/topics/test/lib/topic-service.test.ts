@@ -86,7 +86,7 @@ describe("TopicService", () => {
     expect(created?.metadata).toEqual({ aliases: [] } satisfies TopicMetadata);
   });
 
-  it("createTopicFromPreloadedIndex recovers from concurrent insert races", async () => {
+  it("createTopicOptimistic recovers from concurrent insert races", async () => {
     const logger = createSilentLogger();
     const existingTopic = {
       id: "race-topic",
@@ -108,7 +108,7 @@ describe("TopicService", () => {
     );
     const service = new TopicService(entityService, logger);
 
-    const result = await service.createTopicFromPreloadedIndex({
+    const result = await service.createTopicOptimistic({
       title: "Race Topic",
       content: "Incoming content.",
     });

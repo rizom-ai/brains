@@ -2,7 +2,7 @@ id: topics-process-topic-with-auto-merge-synthesis
 name: Auto-merge synthesizes canonical topic and alias
 description: >
   Tests the end-to-end auto-merge path: seed an existing canonical topic,
-  process a new mergeable topic through TopicProcessingHandler, and verify
+  process a new mergeable topic through TopicProcessingBatchHandler, and verify
   that the result is still one topic with the incoming title preserved as an alias.
 type: plugin
 tags:
@@ -38,8 +38,10 @@ input:
 
 expectedOutput:
   validateEach:
-    - path: action
-      equals: merged
+    - path: merged
+      equals: 1
+    - path: created
+      equals: 0
     - path: topicCount
       equals: 1
     - path: topics[0].id
