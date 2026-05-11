@@ -4,6 +4,7 @@ import type {
   ConversationMessageSource,
 } from "@brains/conversation-service";
 import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
+import type { ICanonicalIdentityService } from "@brains/identity-service";
 import type { ModelMessage } from "ai";
 
 /**
@@ -50,6 +51,11 @@ export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 /**
  * Configuration for the AgentService
  */
+export type CanonicalIdentityResolver = Pick<
+  ICanonicalIdentityService,
+  "resolveActor"
+>;
+
 export interface AgentConfig {
   /** Maximum iterations before stopping (SDK defaults to 1) */
   stepLimit?: number;
@@ -59,6 +65,8 @@ export interface AgentConfig {
   agentInstructions?: string[];
   /** Stable actor id used for assistant messages, e.g. brain:relay */
   assistantActorId?: string;
+  /** Optional explicit actor -> canonical identity resolver */
+  canonicalIdentityResolver?: CanonicalIdentityResolver;
 }
 
 /**

@@ -52,6 +52,7 @@ export class AgentService implements IAgentService {
   private agentFactory: AgentConfig["agentFactory"];
   private agentInstructions: AgentConfig["agentInstructions"];
   private assistantActorId: string | undefined;
+  private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -143,6 +144,7 @@ export class AgentService implements IAgentService {
     this.agentFactory = config.agentFactory;
     this.agentInstructions = config.agentInstructions;
     this.assistantActorId = config.assistantActorId;
+    this.canonicalIdentityResolver = config.canonicalIdentityResolver;
   }
 
   /**
@@ -418,9 +420,30 @@ export class AgentService implements IAgentService {
     actor: ConversationMessageActor | null,
     source: ConversationMessageSource | null,
   ): ConversationMessageMetadata {
+    const enrichedActor = this.resolveCanonicalActor(actor);
     return {
-      ...(actor ? { actor } : {}),
+      ...(enrichedActor ? { actor: enrichedActor } : {}),
       ...(source ? { source } : {}),
+    };
+  }
+
+  private resolveCanonicalActor(
+    actor: ConversationMessageActor | null,
+  ): ConversationMessageActor | null {
+    if (!actor || actor.canonicalId || actor.role !== "user") {
+      return actor;
+    }
+
+    const resolution = this.canonicalIdentityResolver?.resolveActor(
+      actor.actorId,
+    );
+    if (!resolution) {
+      return actor;
+    }
+
+    return {
+      ...actor,
+      canonicalId: resolution.canonicalId,
     };
   }
 

@@ -141,6 +141,7 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      canonicalIdentityResolver: canonicalIdentityService,
       ...(assistantActorId ? { assistantActorId } : {}),
       ...(config.agentInstructions && {
         agentInstructions: config.agentInstructions,
