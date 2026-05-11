@@ -51,6 +51,42 @@ const discordConversation: Conversation = {
   channelName: "Relay Pilot",
 };
 
+const canonicalLinkedMessages: Message[] = [
+  {
+    id: "cm1",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "Decision: Daniel prefers the compact checklist.",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Daniel D.",
+        username: "daniel",
+      },
+    },
+  },
+  {
+    id: "cm2",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "I'll update the compact checklist from MCP too.",
+    timestamp: "2026-01-01T00:01:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "mcp:daniel",
+        canonicalId: "person:daniel",
+        interfaceType: "mcp",
+        role: "user",
+        displayName: "Daniel",
+      },
+    },
+  },
+];
+
 const attributedMessages: Message[] = [
   {
     id: "dm1",
@@ -243,6 +279,81 @@ describe("SummaryProjector", () => {
     ]);
     expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
       { actorId: "discord:user-daniel", displayName: "Daniel" },
+    ]);
+  });
+
+  it("carries canonical actor ids into projected memory metadata", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      canonicalLinkedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Linked identity",
+          summary: "Daniel used Discord and MCP in the same thread.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: ["Daniel D. decided to use the compact checklist."],
+          actionItems: ["Daniel will update the compact checklist."],
+        },
+      ],
+    });
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await projector.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy).toHaveBeenCalledTimes(3);
+
+    const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(summaryEntity?.metadata["participants"]).toEqual([
+      {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        displayName: "Daniel D.",
+        roles: ["user"],
+        sourceActorIds: ["discord:user-daniel", "mcp:daniel"],
+      },
+    ]);
+
+    const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(decisionEntity?.metadata["decidedBy"]).toEqual([
+      {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        displayName: "Daniel D.",
+      },
+    ]);
+
+    const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        displayName: "Daniel D.",
+      },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        displayName: "Daniel D.",
+      },
     ]);
   });
 

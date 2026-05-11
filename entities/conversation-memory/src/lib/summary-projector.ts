@@ -431,6 +431,7 @@ export class SummaryProjector {
         ? {
             assignedTo: assignedActors.map((actor) => ({
               actorId: actor.actorId,
+              ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
               displayName: actor.displayName ?? actor.actorId,
             })),
           }
@@ -471,7 +472,8 @@ export class SummaryProjector {
     const participants = new Map<string, SummaryParticipant>();
 
     for (const actor of this.getMessageActors(messages)) {
-      const existing = participants.get(actor.actorId);
+      const key = this.actorIdentityKey(actor);
+      const existing = participants.get(key);
       if (existing) {
         if (!existing.roles.includes(actor.role)) {
           existing.roles.push(actor.role);
@@ -479,13 +481,21 @@ export class SummaryProjector {
         if (!existing.displayName && actor.displayName) {
           existing.displayName = actor.displayName;
         }
+        if (actor.canonicalId) {
+          existing.sourceActorIds ??= [existing.actorId];
+          if (!existing.sourceActorIds.includes(actor.actorId)) {
+            existing.sourceActorIds.push(actor.actorId);
+          }
+        }
         continue;
       }
 
-      participants.set(actor.actorId, {
+      participants.set(key, {
         actorId: actor.actorId,
+        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
         ...(actor.displayName ? { displayName: actor.displayName } : {}),
         roles: [actor.role],
+        ...(actor.canonicalId ? { sourceActorIds: [actor.actorId] } : {}),
       });
     }
 
@@ -522,21 +532,32 @@ export class SummaryProjector {
   private getActorsMentionedInText(
     text: string,
     actors: ConversationMessageActor[],
-  ): Array<{ actorId: string; displayName?: string }> {
+  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
     const normalizedText = this.normalizeForAttribution(text);
     const seen = new Set<string>();
-    const matches: Array<{ actorId: string; displayName?: string }> = [];
+    const matches: Array<{
+      actorId: string;
+      canonicalId?: string;
+      displayName?: string;
+    }> = [];
 
     for (const actor of actors) {
-      if (seen.has(actor.actorId)) continue;
-      const labels = [actor.displayName, actor.username, actor.actorId]
+      const key = this.actorIdentityKey(actor);
+      if (seen.has(key)) continue;
+      const labels = [
+        actor.displayName,
+        actor.username,
+        actor.actorId,
+        actor.canonicalId,
+      ]
         .filter((label): label is string => Boolean(label?.trim()))
         .map((label) => this.normalizeForAttribution(label));
       if (!labels.some((label) => normalizedText.includes(label))) continue;
 
-      seen.add(actor.actorId);
+      seen.add(key);
       matches.push({
         actorId: actor.actorId,
+        ...(actor.canonicalId ? { canonicalId: actor.canonicalId } : {}),
         ...(actor.displayName ? { displayName: actor.displayName } : {}),
       });
     }
@@ -547,15 +568,15 @@ export class SummaryProjector {
   private getFirstPersonCommitmentActors(
     text: string,
     messages: Message[],
-  ): Array<{ actorId: string; displayName?: string }> {
+  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
     const mentionedActors = this.getActorsMentionedInText(
       text,
       this.getMessageActors(messages),
     );
-    const mentionedActorIds = new Set(
-      mentionedActors.map((actor) => actor.actorId),
+    const mentionedActorKeys = new Set(
+      mentionedActors.map((actor) => this.memoryActorIdentityKey(actor)),
     );
-    const committedActors = new Set<string>();
+    const committedActorKeys = new Set<string>();
 
     for (const message of messages) {
       if (message.role !== "user") continue;
@@ -567,14 +588,25 @@ export class SummaryProjector {
         continue;
       }
       const actor = this.getMessageActors([message])[0];
-      if (actor && mentionedActorIds.has(actor.actorId)) {
-        committedActors.add(actor.actorId);
+      if (actor && mentionedActorKeys.has(this.actorIdentityKey(actor))) {
+        committedActorKeys.add(this.actorIdentityKey(actor));
       }
     }
 
     return mentionedActors.filter((actor) =>
-      committedActors.has(actor.actorId),
+      committedActorKeys.has(this.memoryActorIdentityKey(actor)),
     );
+  }
+
+  private actorIdentityKey(actor: ConversationMessageActor): string {
+    return actor.canonicalId ?? actor.actorId;
+  }
+
+  private memoryActorIdentityKey(actor: {
+    actorId: string;
+    canonicalId?: string;
+  }): string {
+    return actor.canonicalId ?? actor.actorId;
   }
 
   private normalizeForAttribution(value: string): string {
