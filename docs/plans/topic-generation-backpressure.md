@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft. The initial/rebuild batch extraction work exists, but source-change extraction and per-topic processing still have N+1/fan-out behavior.
+Draft. Projection-cycle guards and batch topic processing are implemented. Source-change extraction and downstream skill derivation still need backpressure.
 
 Relevant prior work:
 
@@ -12,7 +12,7 @@ Relevant prior work:
 
 What survived: initial sync and rebuild use batched extraction.
 
-What still needs work: projection-cycle guards, source-change extraction, per-topic processing, and downstream skill derivation backpressure.
+What still needs work: source-change extraction batching and downstream skill derivation backpressure.
 
 ## Problem
 
@@ -62,7 +62,9 @@ Known cycle risks:
 
 ## Slice 0: break projection cycles
 
-Do this first. Backpressure reduces volume, but it does not fix a logical cycle.
+Status: complete in `fix(topics): merge cycle guard`.
+
+Backpressure reduces volume, but it does not fix a logical cycle.
 
 ### Tests
 
@@ -97,6 +99,8 @@ Longer-term rule: entity types own whether they can serve as source material for
 - Relay and Rover evals still pass.
 
 ## Slice 1: prove and fix per-topic processing fanout
+
+Status: complete in `fix/topics-process-batch`.
 
 Package-local after Slice 0.
 
@@ -186,12 +190,14 @@ This likely crosses package boundaries, so keep it separate from the topics pack
 
 ## Slice 4: optimize batch extractor DB access
 
+Status: complete in `fix/topics-process-batch`.
+
 Folded into Slice 1's worktree — the in-memory topic index built for `process-batch` is the same index `extractTopicsBatched` needs. Splitting them risks building two near-identical indexes.
 
-Even `extractTopicsBatched` still does per-topic DB checks:
+Before this slice, `extractTopicsBatched` still did per-topic DB checks:
 
-- it calls `getTopic(slug)`
-- then `createTopic()`, which checks existence again
+- it called `getTopic(slug)`
+- then `createTopic()`, which checked existence again
 
 ### Tests
 

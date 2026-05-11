@@ -44,6 +44,44 @@ export class TopicService {
       return existing;
     }
 
+    return this.insertTopic(topicId, params);
+  }
+
+  public async createTopicFromPreloadedIndex(params: {
+    title: string;
+    content: string;
+    metadata?: TopicMetadata;
+  }): Promise<{ topic: TopicEntity | null; created: boolean }> {
+    const topicId = generateIdFromText(params.title);
+
+    try {
+      return {
+        topic: await this.insertTopic(topicId, params),
+        created: true,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
+        this.logger.debug("Topic was created concurrently, fetching existing", {
+          id: topicId,
+          title: params.title,
+        });
+        return {
+          topic: await this.getTopic(topicId),
+          created: false,
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async insertTopic(
+    topicId: string,
+    params: {
+      title: string;
+      content: string;
+      metadata?: TopicMetadata;
+    },
+  ): Promise<TopicEntity> {
     const metadata: TopicMetadata = params.metadata ?? { aliases: [] };
 
     const body = this.adapter.createTopicBody({
@@ -51,42 +89,31 @@ export class TopicService {
       content: params.content,
     });
 
-    try {
-      const { entityId } = await this.entityService.createEntity({
-        entity: {
-          id: topicId,
-          entityType: TOPIC_ENTITY_TYPE,
-          content: body,
-          metadata,
-        },
-      });
-
-      const topic: TopicEntity = {
-        id: entityId,
+    const { entityId } = await this.entityService.createEntity({
+      entity: {
+        id: topicId,
         entityType: TOPIC_ENTITY_TYPE,
         content: body,
-        contentHash: computeContentHash(body),
         metadata,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      },
+    });
 
-      this.logger.debug("Created topic", {
-        id: topic.id,
-        title: params.title,
-      });
+    const topic: TopicEntity = {
+      id: entityId,
+      entityType: TOPIC_ENTITY_TYPE,
+      content: body,
+      contentHash: computeContentHash(body),
+      metadata,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
 
-      return topic;
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("already exists")) {
-        this.logger.debug("Topic was created concurrently, fetching existing", {
-          id: topicId,
-          title: params.title,
-        });
-        return this.getTopic(topicId);
-      }
-      throw error;
-    }
+    this.logger.debug("Created topic", {
+      id: topic.id,
+      title: params.title,
+    });
+
+    return topic;
   }
 
   public async updateTopic(
