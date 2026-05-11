@@ -1,0 +1,56 @@
+id: conversation-memory-retrieve-no-name-based-merge
+name: Does not merge similarly named actors without canonical links
+description: >-
+  Two actors share the display name Daniel, but only one has the requested
+  canonicalId. Retrieval must not merge by name or prose similarity.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - canonical-identity
+  - no-inference
+plugin: conversation-memory
+handler: retrieveMemory
+
+input:
+  query: Daniel onboarding decisions
+  interfaceType: discord
+  channelId: relay-team
+  canonicalId: person:daniel
+  memory:
+    - id: linked-daniel
+      entityType: decision
+      conversationId: linked-conv
+      interfaceType: discord
+      channelId: relay-team
+      content: "# Decision\n\nDaniel chose the compact onboarding checklist."
+      excerpt: Daniel chose the compact onboarding checklist.
+      score: 0.7
+      status: active
+      updated: "2026-05-04T11:00:00Z"
+      decidedBy:
+        - actorId: discord:user-daniel
+          canonicalId: person:daniel
+          displayName: Daniel
+    - id: unlinked-daniel
+      entityType: decision
+      conversationId: unlinked-conv
+      interfaceType: discord
+      channelId: relay-team
+      content: "# Decision\n\nDaniel chose a separate launch checklist."
+      excerpt: Daniel chose a separate launch checklist.
+      score: 0.99
+      status: active
+      updated: "2026-05-04T11:01:00Z"
+      decidedBy:
+        - actorId: discord:user-other-daniel
+          displayName: Daniel
+
+expectedOutput:
+  validateEach:
+    - path: results[0].id
+      equals: linked-daniel
+    - path: results[0].spaceId
+      equals: discord:relay-team
+    - path: results[1]
+      exists: false

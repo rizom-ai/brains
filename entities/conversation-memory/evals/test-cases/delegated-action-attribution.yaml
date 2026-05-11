@@ -1,0 +1,65 @@
+id: conversation-memory-delegated-action-attribution
+name: Separates delegated action assignee and requester
+description: >-
+  Mira explicitly asks Daniel to update a checklist and Daniel accepts. The
+  action item should be assigned to Daniel while preserving Mira as the requester.
+type: plugin
+tags:
+  - conversation-memory
+  - projection
+  - attribution
+  - delegated-work
+plugin: conversation-memory
+handler: projectMessages
+
+input:
+  conversationId: eval-delegated-action-attribution
+  interfaceType: discord
+  channelId: relay-team
+  channelName: Relay Team
+  projectionDecision: update
+  messages:
+    - role: user
+      content: "Daniel, please update the onboarding checklist by Friday."
+      timestamp: "2026-05-04T10:00:00Z"
+      actor:
+        actorId: discord:user-mira
+        interfaceType: discord
+        role: user
+        displayName: Mira Ops
+        username: mira
+    - role: assistant
+      content: "Suggestion: we could also add a certification checklist later."
+      timestamp: "2026-05-04T10:01:00Z"
+      actor:
+        actorId: brain:relay
+        interfaceType: agent
+        role: assistant
+        displayName: Relay
+        isBot: true
+    - role: user
+      content: "Got it, I'll take it."
+      timestamp: "2026-05-04T10:02:00Z"
+      actor:
+        actorId: discord:user-daniel
+        interfaceType: discord
+        role: user
+        displayName: Daniel
+        username: daniel
+
+expectedOutput:
+  validateEach:
+    - path: result.skipped
+      equals: false
+    - path: actionItems[0].entityType
+      equals: action-item
+    - path: actionItems[0].metadata.assignedTo[0].actorId
+      equals: discord:user-daniel
+    - path: actionItems[0].metadata.requestedBy[0].actorId
+      equals: discord:user-mira
+    - path: actionItems[0].content
+      matches: "Daniel.*checklist|checklist.*Daniel"
+    - path: actionItems[0].content
+      matches: "^(?![\\s\\S]*Mira Ops will)"
+    - path: actionItems[1]
+      exists: false

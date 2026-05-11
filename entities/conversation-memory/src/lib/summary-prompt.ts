@@ -102,6 +102,7 @@ Rules:
 - When message labels identify distinct speakers, preserve those speaker names for attributed decisions, commitments, and action items; do not infer owners from proximity alone.
 - If a labeled user message declares a decision, write the decision with that speaker as the decider (for example, "Mira decided ..."). If a labeled user makes a first-person commitment, write the action item with that speaker as the owner (for example, "Daniel will ...").
 - Treat explicit user requests, instructions, and named ownership assignments for future work as action items. For "Alice owns the adapter rewrite", extract an action item owned by Alice; do not classify ownership assignments as decisions unless they are explicitly framed as decisions.
+- For delegated work, keep assignee and requester distinct in wording: if Mira asks Daniel to update a checklist and Daniel accepts, write "Daniel will update the checklist" rather than "Mira will update...".
 - Treat system/developer messages as constraints or context, not as user decisions or action items. Preserve relevant system/developer constraints in the summary or keyPoints when they materially shape the conversation, but do not copy them into decisions unless a user explicitly adopts them as a decision.
 - Put recommendations and opinions in keyPoints, not decisions, unless the conversation explicitly accepts or labels them as a decision.
 - Keep each summary under ${config.maxEntryLength} characters unless critical context would be lost.

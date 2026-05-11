@@ -19,6 +19,7 @@ import type { IMCPService } from "@brains/mcp-service";
 import type {
   BrainCharacterService,
   AnchorProfileService,
+  CanonicalIdentityService,
 } from "@brains/identity-service";
 import type { MessageBus } from "@brains/messaging-service";
 import type {
@@ -52,6 +53,7 @@ export interface ShellServices {
   permissionService: PermissionService;
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
+  canonicalIdentityService: CanonicalIdentityService;
   agentService: IAgentService;
 }
 

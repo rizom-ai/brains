@@ -1,0 +1,62 @@
+id: conversation-memory-canonical-linked-actor-projection
+name: Projects canonical identity links from actor metadata
+description: >-
+  Two platform-specific actor ids are explicitly linked by canonicalId in message
+  metadata. Projection should preserve the canonical id in summary participants
+  and first-class memory attribution without inferring from names.
+type: plugin
+tags:
+  - conversation-memory
+  - projection
+  - canonical-identity
+  - attribution
+plugin: conversation-memory
+handler: projectMessages
+
+input:
+  conversationId: eval-canonical-linked-actor
+  interfaceType: discord
+  channelId: relay-team
+  channelName: Relay Team
+  projectionDecision: update
+  messages:
+    - role: user
+      content: "Decision: Daniel prefers the compact checklist for onboarding."
+      timestamp: "2026-05-04T10:00:00Z"
+      actor:
+        actorId: discord:user-daniel
+        canonicalId: person:daniel
+        interfaceType: discord
+        role: user
+        displayName: Daniel D.
+        username: daniel
+    - role: user
+      content: "I'll update the compact checklist from MCP too."
+      timestamp: "2026-05-04T10:01:00Z"
+      actor:
+        actorId: mcp:daniel
+        canonicalId: person:daniel
+        interfaceType: mcp
+        role: user
+        displayName: Daniel
+
+expectedOutput:
+  validateEach:
+    - path: result.skipped
+      equals: false
+    - path: summaries[0].metadata.participants[0].canonicalId
+      equals: person:daniel
+    - path: summaries[0].metadata.participants[0].sourceActorIds[0]
+      equals: discord:user-daniel
+    - path: summaries[0].metadata.participants[0].sourceActorIds[1]
+      equals: mcp:daniel
+    - path: decisions[0].metadata.decidedBy[0].canonicalId
+      equals: person:daniel
+    - path: decisions[0].content
+      matches: "compact checklist|onboarding|Daniel"
+    - path: actionItems[0].metadata.assignedTo[0].canonicalId
+      equals: person:daniel
+    - path: actionItems[0].metadata.requestedBy[0].canonicalId
+      equals: person:daniel
+    - path: actionItems[0].content
+      matches: "compact checklist|MCP|Daniel"

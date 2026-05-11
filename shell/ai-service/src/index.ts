@@ -32,6 +32,7 @@ export type {
 
 // Agent service (merged from @brains/agent-service)
 export { AgentService } from "./agent-service";
+export { buildAssistantActor, createBrainActorId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
 export {
   createToolExecuteWrapper,

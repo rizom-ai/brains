@@ -45,6 +45,7 @@ function createDecision(params: {
   content?: string;
   score?: number;
   updated?: string;
+  decidedBy?: DecisionEntity["metadata"]["decidedBy"];
 }): DecisionEntity {
   const updated = params.updated ?? "2026-01-01T00:00:00.000Z";
   return {
@@ -67,6 +68,7 @@ function createDecision(params: {
       sourceMessageCount: 2,
       projectionVersion: 1,
       status: "active",
+      ...(params.decidedBy ? { decidedBy: params.decidedBy } : {}),
     },
   };
 }
@@ -77,6 +79,8 @@ function createActionItem(params: {
   content?: string;
   score?: number;
   updated?: string;
+  assignedTo?: ActionItemEntity["metadata"]["assignedTo"];
+  requestedBy?: ActionItemEntity["metadata"]["requestedBy"];
 }): ActionItemEntity {
   const updated = params.updated ?? "2026-01-01T00:00:00.000Z";
   return {
@@ -99,6 +103,8 @@ function createActionItem(params: {
       sourceMessageCount: 2,
       projectionVersion: 1,
       status: "open",
+      ...(params.assignedTo ? { assignedTo: params.assignedTo } : {}),
+      ...(params.requestedBy ? { requestedBy: params.requestedBy } : {}),
     },
   };
 }
@@ -258,6 +264,158 @@ describe("ConversationMemoryRetriever", () => {
     expect(context.conversations.get).toHaveBeenCalledWith("conv-current");
     expect(result.spaceId).toBe("mcp:team");
     expect(result.results.map((item) => item.id)).toEqual(["summary-team"]);
+  });
+
+  it("filters memory by canonical identity without crossing spaces by default", async () => {
+    const context = createMockEntityPluginContext();
+    const sameSpaceDaniel = createDecision({
+      id: "decision-daniel-same",
+      channelId: "team",
+      content: "# Decision\n\nDaniel chose the team checklist.",
+      decidedBy: [
+        {
+          actorId: "discord:user-daniel",
+          canonicalId: "person:daniel",
+          displayName: "Daniel",
+        },
+      ],
+    });
+    const otherSpaceDaniel = createDecision({
+      id: "decision-daniel-other",
+      channelId: "other",
+      content: "# Decision\n\nDaniel chose the other checklist.",
+      decidedBy: [
+        {
+          actorId: "mcp:daniel",
+          canonicalId: "person:daniel",
+          displayName: "Daniel",
+        },
+      ],
+    });
+    const sameSpaceAlex = createDecision({
+      id: "decision-alex-same",
+      channelId: "team",
+      content: "# Decision\n\nAlex chose a separate checklist.",
+      decidedBy: [{ actorId: "discord:user-alex", displayName: "Daniel" }],
+    });
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: otherSpaceDaniel, score: 0.95, excerpt: "Other Daniel" },
+        { entity: sameSpaceAlex, score: 0.9, excerpt: "Unlinked same name" },
+        { entity: sameSpaceDaniel, score: 0.8, excerpt: "Same Daniel" },
+      ]),
+    );
+
+    const retriever = new ConversationMemoryRetriever(context);
+    const result = await retriever.retrieve({
+      query: "checklist",
+      interfaceType: "mcp",
+      channelId: "team",
+      canonicalId: "person:daniel",
+    });
+
+    expect(result.results.map((item) => item.id)).toEqual([
+      "decision-daniel-same",
+    ]);
+  });
+
+  it("filters memory by source actor id", async () => {
+    const context = createMockEntityPluginContext();
+    const linkedSummary = createSummary({
+      id: "summary-linked",
+      channelId: "team",
+    });
+    linkedSummary.metadata.participants = [
+      {
+        actorId: "discord:user-daniel",
+        canonicalId: "person:daniel",
+        displayName: "Daniel",
+        roles: ["user"],
+        sourceActorIds: ["discord:user-daniel", "mcp:daniel"],
+      },
+    ];
+    const otherSummary = createSummary({
+      id: "summary-other",
+      channelId: "team",
+    });
+    otherSummary.metadata.participants = [
+      {
+        actorId: "discord:user-other",
+        displayName: "Daniel",
+        roles: ["user"],
+      },
+    ];
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: otherSummary, score: 0.99, excerpt: "Other Daniel" },
+        { entity: linkedSummary, score: 0.7, excerpt: "Linked Daniel" },
+      ]),
+    );
+
+    const retriever = new ConversationMemoryRetriever(context);
+    const result = await retriever.retrieve({
+      query: "Daniel",
+      interfaceType: "mcp",
+      channelId: "team",
+      actorId: "mcp:daniel",
+    });
+
+    expect(result.results.map((item) => item.id)).toEqual(["summary-linked"]);
+  });
+
+  it("can expand canonical identity retrieval across spaces when requested", async () => {
+    const context = createMockEntityPluginContext();
+    const discordDaniel = createDecision({
+      id: "decision-discord-daniel",
+      channelId: "discord-team",
+      content: "# Decision\n\nDaniel chose the Discord checklist.",
+      decidedBy: [
+        {
+          actorId: "discord:user-daniel",
+          canonicalId: "person:daniel",
+          displayName: "Daniel",
+        },
+      ],
+    });
+    const mcpDaniel = createActionItem({
+      id: "action-mcp-daniel",
+      channelId: "mcp-team",
+      content: "# Action item\n\nDaniel will update the MCP checklist.",
+      assignedTo: [
+        {
+          actorId: "mcp:daniel",
+          canonicalId: "person:daniel",
+          displayName: "Daniel",
+        },
+      ],
+    });
+    const unlinkedDaniel = createDecision({
+      id: "decision-unlinked-daniel",
+      channelId: "discord-team",
+      content: "# Decision\n\nAnother Daniel chose the launch plan.",
+      decidedBy: [{ actorId: "discord:user-other", displayName: "Daniel" }],
+    });
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: unlinkedDaniel, score: 0.99, excerpt: "Unlinked Daniel" },
+        { entity: mcpDaniel, score: 0.8, excerpt: "MCP Daniel" },
+        { entity: discordDaniel, score: 0.7, excerpt: "Discord Daniel" },
+      ]),
+    );
+
+    const retriever = new ConversationMemoryRetriever(context);
+    const result = await retriever.retrieve({
+      query: "Daniel checklist",
+      interfaceType: "mcp",
+      channelId: "mcp-team",
+      canonicalId: "person:daniel",
+      includeOtherSpaces: true,
+    });
+
+    expect(result.results.map((item) => item.id)).toEqual([
+      "action-mcp-daniel",
+      "decision-discord-daniel",
+    ]);
   });
 
   it("lists recent summaries when no query is provided", async () => {

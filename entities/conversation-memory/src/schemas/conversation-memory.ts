@@ -4,6 +4,7 @@ import { summaryTimeRangeSchema } from "./summary";
 
 export const memoryActorReferenceSchema = z.object({
   actorId: z.string(),
+  canonicalId: z.string().optional(),
   displayName: z.string().optional(),
 });
 
@@ -11,6 +12,7 @@ export type MemoryActorReference = z.infer<typeof memoryActorReferenceSchema>;
 
 export const actionItemAssigneeSchema = z.object({
   actorId: z.string().optional(),
+  canonicalId: z.string().optional(),
   displayName: z.string().min(1),
 });
 

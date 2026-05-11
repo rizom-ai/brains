@@ -1,5 +1,6 @@
 import {
   AgentService,
+  createBrainActorId,
   createBrainAgentFactory,
   type IAgentService,
   type IAIService,
@@ -9,6 +10,7 @@ import type { IEntityService } from "@brains/entity-service";
 import {
   AnchorProfileService,
   BrainCharacterService,
+  CanonicalIdentityService,
 } from "@brains/identity-service";
 import type { IMCPService } from "@brains/mcp-service";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
@@ -19,6 +21,7 @@ import { SHELL_ENTITY_TYPES } from "../constants";
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
+  canonicalIdentityService: CanonicalIdentityService;
   agentService: IAgentService;
 }
 
@@ -35,12 +38,13 @@ export interface IdentityAndAgentServiceOptions {
 
 /**
  * Subscribe to entity lifecycle events (created, updated, deleted) for cache invalidation.
- * Calls the provided refresh callback when the specified entity type/id changes.
+ * Calls the provided refresh callback when the specified entity type changes.
+ * If entityId is provided, only that singleton entity invalidates the cache.
  */
 function subscribeToEntityCacheInvalidation(
   messageBus: IMessageBus,
   entityType: string,
-  entityId: string,
+  entityId: string | null,
   refreshCache: () => Promise<void>,
   logger: Logger,
 ): (() => void)[] {
@@ -56,7 +60,7 @@ function subscribeToEntityCacheInvalidation(
       async (message) => {
         if (
           message.payload.entityType === entityType &&
-          message.payload.entityId === entityId
+          (entityId === null || message.payload.entityId === entityId)
         ) {
           await refreshCache();
           const action = event.replace("entity:", "");
@@ -104,6 +108,21 @@ export function initializeIdentityAndAgentServices(
     config.profile,
   );
 
+  const canonicalIdentityService = CanonicalIdentityService.getInstance(
+    entityService,
+    logger,
+  );
+
+  disposables.push(
+    ...subscribeToEntityCacheInvalidation(
+      messageBus,
+      SHELL_ENTITY_TYPES.CANONICAL_IDENTITY_LINK,
+      null,
+      () => canonicalIdentityService.refreshCache(),
+      logger,
+    ),
+  );
+
   const agentFactory = createBrainAgentFactory({
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
@@ -112,6 +131,7 @@ export function initializeIdentityAndAgentServices(
     maxTokens: aiService.getConfig().maxTokens,
     messageBus,
   });
+  const assistantActorId = createBrainActorId(config.name);
 
   const agentService = AgentService.getInstance(
     mcpService,
@@ -121,6 +141,8 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      canonicalIdentityResolver: canonicalIdentityService,
+      ...(assistantActorId ? { assistantActorId } : {}),
       ...(config.agentInstructions && {
         agentInstructions: config.agentInstructions,
       }),
@@ -154,5 +176,10 @@ export function initializeIdentityAndAgentServices(
     );
   }
 
-  return { identityService, profileService, agentService };
+  return {
+    identityService,
+    profileService,
+    canonicalIdentityService,
+    agentService,
+  };
 }

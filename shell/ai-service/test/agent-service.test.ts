@@ -351,6 +351,197 @@ describe("AgentService", () => {
         }),
       );
     });
+
+    it("enriches user actor metadata with explicit canonical identity links", async () => {
+      const resolveActor = mock(() => ({
+        canonicalId: "person:mira",
+        displayName: "Mira Ops",
+        matchedActor: {
+          actorId: "discord:user-789",
+          interfaceType: "discord",
+          displayName: "Mira Ops",
+        },
+        actors: [
+          {
+            actorId: "discord:user-789",
+            interfaceType: "discord",
+            displayName: "Mira Ops",
+          },
+          {
+            actorId: "mcp:mira",
+            interfaceType: "mcp",
+            displayName: "Mira",
+          },
+        ],
+      }));
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          canonicalIdentityResolver: { resolveActor },
+        },
+      );
+
+      await service.chat("Hello from Mira", "test-conversation", {
+        interfaceType: "discord",
+        actor: {
+          actorId: "discord:user-789",
+          interfaceType: "discord",
+          role: "user",
+          displayName: "Mira Ops",
+        },
+      });
+
+      expect(resolveActor).toHaveBeenCalledWith("discord:user-789");
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "discord:user-789",
+              canonicalId: "person:mira",
+              displayName: "Mira Ops",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("preserves existing actor canonical ids without resolver lookup", async () => {
+      const resolveActor = mock(() => ({
+        canonicalId: "person:wrong",
+        matchedActor: { actorId: "discord:user-789", interfaceType: "discord" },
+        actors: [{ actorId: "discord:user-789", interfaceType: "discord" }],
+      }));
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          canonicalIdentityResolver: { resolveActor },
+        },
+      );
+
+      await service.chat("Hello", "test-conversation", {
+        actor: {
+          actorId: "discord:user-789",
+          canonicalId: "person:explicit",
+          interfaceType: "discord",
+          role: "user",
+        },
+      });
+
+      expect(resolveActor).not.toHaveBeenCalled();
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              canonicalId: "person:explicit",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("leaves unlinked actors without canonical ids", async () => {
+      const resolveActor = mock(() => null);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          canonicalIdentityResolver: { resolveActor },
+        },
+      );
+
+      await service.chat("Hello", "test-conversation", {
+        actor: {
+          actorId: "discord:user-789",
+          interfaceType: "discord",
+          role: "user",
+        },
+      });
+
+      expect(resolveActor).toHaveBeenCalledWith("discord:user-789");
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.not.objectContaining({
+              canonicalId: expect.anything(),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("uses configured brain actor id and character name for assistant metadata", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          assistantActorId: "brain:relay",
+        },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "brain:relay",
+              interfaceType: "agent",
+              role: "assistant",
+              displayName: "Test Brain",
+              isBot: true,
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("keeps a stable assistant actor fallback when no brain actor id is configured", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor: expect.objectContaining({
+              actorId: "brain:assistant",
+              displayName: "Test Brain",
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   describe("tools integration", () => {

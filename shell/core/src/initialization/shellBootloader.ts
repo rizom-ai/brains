@@ -126,8 +126,9 @@ export class ShellBootloader {
     await Promise.all([
       this.services.identityService.initialize(),
       this.services.profileService.initialize(),
+      this.services.canonicalIdentityService.refreshCache(),
     ]);
-    this.services.logger.debug("Identity and profile services initialized");
+    this.services.logger.debug("Identity services initialized");
 
     const count = await materializePrompts(
       this.services.templateRegistry,

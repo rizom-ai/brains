@@ -8,6 +8,7 @@ import {
 import {
   AnchorProfileAdapter,
   BrainCharacterAdapter,
+  CanonicalIdentityLinkAdapter,
 } from "@brains/identity-service";
 import type {
   Plugin,
@@ -89,6 +90,19 @@ export function registerAnchorProfileSupport(
     profileAdapter,
   );
   logger.debug("Anchor profile entity support registered");
+}
+
+export function registerCanonicalIdentityLinkSupport(
+  entityRegistry: IEntityRegistry,
+  logger: Logger,
+): void {
+  const linkAdapter = new CanonicalIdentityLinkAdapter();
+  entityRegistry.registerEntityType(
+    SHELL_ENTITY_TYPES.CANONICAL_IDENTITY_LINK,
+    linkAdapter.schema,
+    linkAdapter,
+  );
+  logger.debug("Canonical identity link entity support registered");
 }
 
 export async function initializeConfiguredPlugins(options: {

@@ -78,6 +78,15 @@ export class ShellInitializer {
     shellRegistration.registerAnchorProfileSupport(entityRegistry, this.logger);
   }
 
+  public registerCanonicalIdentityLinkSupport(
+    entityRegistry: IEntityRegistry,
+  ): void {
+    shellRegistration.registerCanonicalIdentityLinkSupport(
+      entityRegistry,
+      this.logger,
+    );
+  }
+
   public async initializePlugins(
     pluginManager: PluginManager,
     options?: shellRegistration.PluginInitializeOptions,
@@ -131,6 +140,7 @@ export class ShellInitializer {
       this.registerBaseEntityDisplayTemplate(templateRegistry);
       this.registerBrainCharacterSupport(entityRegistry);
       this.registerAnchorProfileSupport(entityRegistry);
+      this.registerCanonicalIdentityLinkSupport(entityRegistry);
       await this.initializePlugins(pluginManager, options);
 
       // Register fallback base entity adapter only if no plugin claimed "base"

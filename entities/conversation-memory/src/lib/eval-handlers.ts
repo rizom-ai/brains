@@ -50,6 +50,23 @@ const projectMessagesInputSchema = z.object({
   messages: z.array(evalMessageSchema),
 });
 
+const seededActorReferenceSchema = z.object({
+  actorId: z.string(),
+  canonicalId: z.string().optional(),
+  displayName: z.string().optional(),
+});
+
+const seededParticipantSchema = seededActorReferenceSchema.extend({
+  roles: z.array(z.enum(["user", "assistant", "system"])).default(["user"]),
+  sourceActorIds: z.array(z.string()).optional(),
+});
+
+const seededAssigneeSchema = z.object({
+  actorId: z.string().optional(),
+  canonicalId: z.string().optional(),
+  displayName: z.string(),
+});
+
 const seededMemorySchema = z.object({
   id: z.string(),
   entityType: z.enum(["summary", "decision", "action-item"]),
@@ -62,6 +79,11 @@ const seededMemorySchema = z.object({
   channelName: z.string().optional(),
   updated: z.string().datetime().optional(),
   status: z.string().optional(),
+  participants: z.array(seededParticipantSchema).optional(),
+  decidedBy: z.array(seededActorReferenceSchema).optional(),
+  mentionedBy: z.array(seededActorReferenceSchema).optional(),
+  assignedTo: z.array(seededAssigneeSchema).optional(),
+  requestedBy: z.array(seededActorReferenceSchema).optional(),
 });
 
 const retrieveMemoryInputSchema = z.object({
@@ -71,6 +93,8 @@ const retrieveMemoryInputSchema = z.object({
   channelId: z.string().optional(),
   limit: z.number().int().min(1).optional(),
   includeOtherSpaces: z.boolean().optional(),
+  actorId: z.string().optional(),
+  canonicalId: z.string().optional(),
   memory: z.array(seededMemorySchema).optional(),
 });
 
@@ -375,6 +399,7 @@ function toSummaryEntity(memory: SeededMemory): SummaryEntity {
       entryCount: 1,
       sourceHash: `source-${memory.id}`,
       projectionVersion: 1,
+      ...(memory.participants ? { participants: memory.participants } : {}),
     },
   };
 }
@@ -397,6 +422,8 @@ function toDecisionEntity(memory: SeededMemory): DecisionEntity {
       sourceMessageCount: 2,
       projectionVersion: 1,
       status: memory.status === "superseded" ? "superseded" : "active",
+      ...(memory.decidedBy ? { decidedBy: memory.decidedBy } : {}),
+      ...(memory.mentionedBy ? { mentionedBy: memory.mentionedBy } : {}),
     },
   };
 }
@@ -423,6 +450,8 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       sourceMessageCount: 2,
       projectionVersion: 1,
       status,
+      ...(memory.assignedTo ? { assignedTo: memory.assignedTo } : {}),
+      ...(memory.requestedBy ? { requestedBy: memory.requestedBy } : {}),
     },
   };
 }

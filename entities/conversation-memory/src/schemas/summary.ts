@@ -26,8 +26,10 @@ export type SummaryBody = z.infer<typeof summaryBodySchema>;
 
 export const summaryParticipantSchema = z.object({
   actorId: z.string(),
+  canonicalId: z.string().optional(),
   displayName: z.string().optional(),
   roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
+  sourceActorIds: z.array(z.string()).optional(),
 });
 
 export type SummaryParticipant = z.infer<typeof summaryParticipantSchema>;

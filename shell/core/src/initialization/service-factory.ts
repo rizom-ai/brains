@@ -99,17 +99,21 @@ export function createShellServices(options: {
       dataSourceRegistry,
     });
 
-  const { identityService, profileService, agentService } =
-    initializeIdentityAndAgentServices({
-      config,
-      entityService,
-      logger,
-      messageBus,
-      aiService,
-      mcpService,
-      conversationService,
-      disposables,
-    });
+  const {
+    identityService,
+    profileService,
+    canonicalIdentityService,
+    agentService,
+  } = initializeIdentityAndAgentServices({
+    config,
+    entityService,
+    logger,
+    messageBus,
+    aiService,
+    mcpService,
+    conversationService,
+    disposables,
+  });
 
   const { batchJobManager, jobProgressMonitor, jobQueueWorker } =
     initializeJobServices({
@@ -142,6 +146,7 @@ export function createShellServices(options: {
     permissionService,
     identityService,
     profileService,
+    canonicalIdentityService,
     agentService,
   };
 }

@@ -1,0 +1,75 @@
+id: conversation-memory-retrieve-canonical-linked-actors
+name: Retrieves linked actors by explicit canonical identity
+description: >-
+  Discord Daniel and MCP Daniel are explicitly linked with the same canonicalId.
+  Retrieval may connect both records only when canonical identity expansion is
+  explicitly requested.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - canonical-identity
+plugin: conversation-memory
+handler: retrieveMemory
+
+input:
+  query: Daniel checklist decisions
+  interfaceType: mcp
+  channelId: relay-mcp
+  includeOtherSpaces: true
+  canonicalId: person:daniel
+  memory:
+    - id: discord-decision-daniel
+      entityType: decision
+      conversationId: discord-conv
+      interfaceType: discord
+      channelId: relay-discord
+      content: "# Decision\n\nDaniel chose the compact onboarding checklist in Discord."
+      excerpt: Daniel chose the compact onboarding checklist in Discord.
+      score: 0.7
+      status: active
+      updated: "2026-05-04T11:00:00Z"
+      decidedBy:
+        - actorId: discord:user-daniel
+          canonicalId: person:daniel
+          displayName: Daniel D.
+    - id: mcp-action-daniel
+      entityType: action-item
+      conversationId: mcp-conv
+      interfaceType: mcp
+      channelId: relay-mcp
+      content: "# Action item\n\nDaniel will update the onboarding checklist from MCP."
+      excerpt: Daniel will update the onboarding checklist from MCP.
+      score: 0.8
+      status: open
+      updated: "2026-05-04T11:01:00Z"
+      assignedTo:
+        - actorId: mcp:daniel
+          canonicalId: person:daniel
+          displayName: Daniel
+    - id: unlinked-daniel
+      entityType: decision
+      conversationId: other-conv
+      interfaceType: discord
+      channelId: relay-discord
+      content: "# Decision\n\nAnother Daniel chose the launch plan."
+      excerpt: Another Daniel chose the launch plan.
+      score: 0.99
+      status: active
+      updated: "2026-05-04T11:02:00Z"
+      decidedBy:
+        - actorId: discord:user-other-daniel
+          displayName: Daniel
+
+expectedOutput:
+  validateEach:
+    - path: results[0].id
+      equals: mcp-action-daniel
+    - path: results[0].spaceId
+      equals: mcp:relay-mcp
+    - path: results[1].id
+      equals: discord-decision-daniel
+    - path: results[1].spaceId
+      equals: discord:relay-discord
+    - path: results[2]
+      exists: false
