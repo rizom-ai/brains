@@ -4,17 +4,20 @@ import { join } from "path";
 import {
   BrainCharacterService,
   AnchorProfileService,
+  CanonicalIdentityService,
 } from "@brains/identity-service";
 
 describe("Startup Initialization Order", () => {
   beforeEach(() => {
     BrainCharacterService.resetInstance();
     AnchorProfileService.resetInstance();
+    CanonicalIdentityService.resetInstance();
   });
 
   afterEach(() => {
     BrainCharacterService.resetInstance();
     AnchorProfileService.resetInstance();
+    CanonicalIdentityService.resetInstance();
   });
 
   describe("ShellInitializer must not own ready-state identity initialization", () => {
@@ -38,7 +41,7 @@ describe("Startup Initialization Order", () => {
       "../src/initialization/shellBootloader.ts",
     );
 
-    it("should initialize identity and profile after plugins-registered sync and before plugin ready hooks", () => {
+    it("should initialize identity services after plugins-registered sync and before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
       const earlyWebserverCallIndex = source.indexOf(
@@ -52,6 +55,7 @@ describe("Startup Initialization Order", () => {
 
       expect(source).toContain("identityService.initialize()");
       expect(source).toContain("profileService.initialize()");
+      expect(source).toContain("canonicalIdentityService.refreshCache()");
       expect(source).not.toContain(
         "Promise.all([this.emitPluginsRegistered(), this.prepareReadyState()])",
       );
