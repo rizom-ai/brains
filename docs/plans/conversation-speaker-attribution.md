@@ -255,6 +255,8 @@ Expected behavior:
 
 ## Current remaining work
 
+Tracked in `conversation-identity-followup.md`:
+
 - Add cross-interface `canonicalId` identity linking only after an explicit identity layer exists.
 - Replace the assistant fallback actor id with a formal brain-instance id when that service boundary exposes one.
 - Consider richer attribution extraction later if we need requester/assignee attribution for delegated work where the requester and owner are different people.
