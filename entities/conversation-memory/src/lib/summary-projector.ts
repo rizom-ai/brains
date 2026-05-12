@@ -20,6 +20,7 @@ import type {
   ActionItemMetadata,
   DecisionEntity,
   DecisionMetadata,
+  MemoryActorReference,
 } from "../schemas/conversation-memory";
 import {
   summaryProjectionDecisionSchema,
@@ -39,6 +40,7 @@ import {
 import { buildSummaryProjectionDecisionPrompt } from "./summary-prompt";
 import {
   evaluateSummaryEligibility,
+  getConversationSpaceId,
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
@@ -533,14 +535,10 @@ export class SummaryProjector {
   private getActorsMentionedInText(
     text: string,
     actors: ConversationMessageActor[],
-  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+  ): MemoryActorReference[] {
     const normalizedText = this.normalizeForAttribution(text);
     const seen = new Set<string>();
-    const matches: Array<{
-      actorId: string;
-      canonicalId?: string;
-      displayName?: string;
-    }> = [];
+    const matches: MemoryActorReference[] = [];
 
     for (const actor of actors) {
       const key = this.actorIdentityKey(actor);
@@ -569,12 +567,8 @@ export class SummaryProjector {
   private getActionItemRequesterActors(
     text: string,
     messages: Message[],
-    assignedActors: Array<{
-      actorId: string;
-      canonicalId?: string;
-      displayName?: string;
-    }>,
-  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+    assignedActors: MemoryActorReference[],
+  ): MemoryActorReference[] {
     const delegatedRequesters = this.getDelegatedRequestActors(
       messages,
       assignedActors,
@@ -588,21 +582,14 @@ export class SummaryProjector {
 
   private getDelegatedRequestActors(
     messages: Message[],
-    assignedActors: Array<{
-      actorId: string;
-      canonicalId?: string;
-      displayName?: string;
-    }>,
-  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+    assignedActors: MemoryActorReference[],
+  ): MemoryActorReference[] {
     if (assignedActors.length === 0) return [];
 
     const assignedKeys = new Set(
-      assignedActors.map((actor) => this.memoryActorIdentityKey(actor)),
+      assignedActors.map((actor) => this.actorIdentityKey(actor)),
     );
-    const requesters = new Map<
-      string,
-      { actorId: string; canonicalId?: string; displayName?: string }
-    >();
+    const requesters = new Map<string, MemoryActorReference>();
 
     for (const message of messages) {
       if (message.role !== "user") continue;
@@ -629,13 +616,13 @@ export class SummaryProjector {
   private getFirstPersonCommitmentActors(
     text: string,
     messages: Message[],
-  ): Array<{ actorId: string; canonicalId?: string; displayName?: string }> {
+  ): MemoryActorReference[] {
     const mentionedActors = this.getActorsMentionedInText(
       text,
       this.getMessageActors(messages),
     );
     const mentionedActorKeys = new Set(
-      mentionedActors.map((actor) => this.memoryActorIdentityKey(actor)),
+      mentionedActors.map((actor) => this.actorIdentityKey(actor)),
     );
     const committedActorKeys = new Set<string>();
 
@@ -655,7 +642,7 @@ export class SummaryProjector {
     }
 
     return mentionedActors.filter((actor) =>
-      committedActorKeys.has(this.memoryActorIdentityKey(actor)),
+      committedActorKeys.has(this.actorIdentityKey(actor)),
     );
   }
 
@@ -667,11 +654,7 @@ export class SummaryProjector {
 
   private textMentionsAnyMemoryActor(
     text: string,
-    actors: Array<{
-      actorId: string;
-      canonicalId?: string;
-      displayName?: string;
-    }>,
+    actors: MemoryActorReference[],
   ): boolean {
     const normalizedText = this.normalizeForAttribution(text);
     return actors.some((actor) => {
@@ -682,13 +665,9 @@ export class SummaryProjector {
     });
   }
 
-  private actorIdentityKey(actor: ConversationMessageActor): string {
-    return actor.canonicalId ?? actor.actorId;
-  }
-
-  private memoryActorIdentityKey(actor: {
+  private actorIdentityKey(actor: {
     actorId: string;
-    canonicalId?: string;
+    canonicalId?: string | undefined;
   }): string {
     return actor.canonicalId ?? actor.actorId;
   }
@@ -712,7 +691,7 @@ export class SummaryProjector {
   }
 
   private getSpaceId(metadata: SummaryMetadata): string {
-    return `${metadata.interfaceType}:${metadata.channelId}`;
+    return getConversationSpaceId(metadata);
   }
 
   private chunkMessages(messages: Message[]): Message[][] {

@@ -1,5 +1,6 @@
 import type { ConversationMessageActor } from "@brains/conversation-service";
 import type { BrainCharacter } from "@brains/identity-service";
+import { slugify } from "@brains/utils";
 
 const FALLBACK_ASSISTANT_ACTOR_ID = "brain:assistant";
 const FALLBACK_ASSISTANT_DISPLAY_NAME = "Assistant";
@@ -7,12 +8,8 @@ const FALLBACK_ASSISTANT_DISPLAY_NAME = "Assistant";
 export function createBrainActorId(
   name: string | undefined,
 ): string | undefined {
-  const slug = name
-    ?.trim()
-    .toLocaleLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
+  if (!name) return undefined;
+  const slug = slugify(name);
   return slug ? `brain:${slug}` : undefined;
 }
 

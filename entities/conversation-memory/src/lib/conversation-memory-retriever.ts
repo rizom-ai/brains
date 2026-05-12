@@ -112,7 +112,10 @@ export class ConversationMemoryRetriever {
     input: RetrieveConversationMemoryInput,
   ): Promise<string | undefined> {
     if (input.interfaceType && input.channelId) {
-      return `${input.interfaceType}:${input.channelId}`;
+      return getConversationSpaceId({
+        interfaceType: input.interfaceType,
+        channelId: input.channelId,
+      });
     }
 
     if (!input.conversationId) return undefined;
@@ -246,6 +249,6 @@ export class ConversationMemoryRetriever {
     if ("spaceId" in metadata && typeof metadata.spaceId === "string") {
       return metadata.spaceId;
     }
-    return `${metadata.interfaceType}:${metadata.channelId}`;
+    return getConversationSpaceId(metadata);
   }
 }

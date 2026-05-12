@@ -21,6 +21,7 @@ import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import { SummaryProjector } from "./summary-projector";
 import { buildFallbackExcerpt } from "./excerpt";
+import { getConversationSpaceId } from "./summary-space-eligibility";
 
 const evalMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
@@ -299,7 +300,7 @@ function createEvalProjectionContext(params: {
   deleted: Array<{ entityType: string; id: string }>;
   projectionDecision: "update" | "append";
 }): EntityPluginContext {
-  const spaceId = `${params.conversation.interfaceType}:${params.conversation.channelId}`;
+  const spaceId = getConversationSpaceId(params.conversation);
   return {
     ...params.context,
     spaces: [spaceId],
@@ -413,7 +414,7 @@ function toDecisionEntity(memory: SeededMemory): DecisionEntity {
       channelId: memory.channelId,
       ...(memory.channelName ? { channelName: memory.channelName } : {}),
       interfaceType: memory.interfaceType,
-      spaceId: `${memory.interfaceType}:${memory.channelId}`,
+      spaceId: getConversationSpaceId(memory),
       timeRange: {
         start: "2026-01-01T00:00:00.000Z",
         end: "2026-01-01T00:01:00.000Z",
@@ -441,7 +442,7 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       channelId: memory.channelId,
       ...(memory.channelName ? { channelName: memory.channelName } : {}),
       interfaceType: memory.interfaceType,
-      spaceId: `${memory.interfaceType}:${memory.channelId}`,
+      spaceId: getConversationSpaceId(memory),
       timeRange: {
         start: "2026-01-01T00:00:00.000Z",
         end: "2026-01-01T00:01:00.000Z",

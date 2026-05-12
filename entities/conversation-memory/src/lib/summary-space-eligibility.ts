@@ -12,8 +12,11 @@ export interface SummaryEligibilityResult {
   spaceId: string;
 }
 
-export function getConversationSpaceId(conversation: Conversation): string {
-  return `${conversation.interfaceType}:${conversation.channelId}`;
+export function getConversationSpaceId(scope: {
+  interfaceType: string;
+  channelId: string;
+}): string {
+  return `${scope.interfaceType}:${scope.channelId}`;
 }
 
 export function isSpaceSelectorMatch(
