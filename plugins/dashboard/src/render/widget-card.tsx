@@ -5,6 +5,7 @@ import type { RenderableWidgetData } from "./types";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
 const PIPELINE_STATUSES = ["draft", "queued", "published", "failed"] as const;
+const WIDE_WIDGET_RENDERERS = new Set(["SwotWidget", "AgentNetworkWidget"]);
 
 const listItemSchema = z.object({
   id: z.string(),
@@ -353,8 +354,13 @@ export function WidgetCard({
   widget: RenderableWidgetData;
   featured?: boolean;
 }): JSX.Element {
+  const isWide = WIDE_WIDGET_RENDERERS.has(widget.widget.rendererName);
+  const className = featured
+    ? "card card--entity-summary"
+    : `card${isWide ? " widget-card--wide" : ""}`;
+
   return (
-    <article class={featured ? "card card--entity-summary" : "card"}>
+    <article class={className}>
       <div class="card-head">
         <span class="card-title">{widget.widget.title}</span>
         <CountChip widget={widget} />

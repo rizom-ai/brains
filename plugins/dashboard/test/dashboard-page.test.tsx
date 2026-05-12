@@ -118,6 +118,47 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
+  it("should give complex custom widgets a wide card by default", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {
+        "swot:swot": {
+          widget: {
+            id: "swot",
+            pluginId: "swot",
+            title: "SWOT",
+            section: "secondary",
+            priority: 10,
+            rendererName: "SwotWidget",
+            visibility: "public",
+          },
+          data: { status: "ready" },
+        },
+        "agent-discovery:network": {
+          widget: {
+            id: "network",
+            pluginId: "agent-discovery",
+            title: "Agent Network",
+            section: "secondary",
+            priority: 11,
+            rendererName: "AgentNetworkWidget",
+            visibility: "public",
+          },
+          data: { status: "ready" },
+        },
+      },
+      widgetScripts: [],
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(2);
+  });
+
   it("should render plugin-owned custom widgets and inject their scripts", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
