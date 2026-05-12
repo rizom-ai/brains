@@ -107,6 +107,7 @@ export function createShellServices(options: {
   } = initializeIdentityAndAgentServices({
     config,
     entityService,
+    entityRegistry,
     logger,
     messageBus,
     aiService,

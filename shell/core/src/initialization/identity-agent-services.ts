@@ -6,7 +6,7 @@ import {
   type IAIService,
 } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import {
   AnchorProfileService,
   BrainCharacterService,
@@ -28,6 +28,7 @@ export interface IdentityAndAgentServices {
 export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
   entityService: IEntityService;
+  entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
   aiService: IAIService;
@@ -78,6 +79,7 @@ export function initializeIdentityAndAgentServices(
   const {
     config,
     entityService,
+    entityRegistry,
     logger,
     messageBus,
     aiService,
@@ -111,6 +113,15 @@ export function initializeIdentityAndAgentServices(
   const canonicalIdentityService = CanonicalIdentityService.getInstance(
     entityService,
     logger,
+  );
+
+  entityRegistry.registerPersistValidator(
+    SHELL_ENTITY_TYPES.CANONICAL_IDENTITY_LINK,
+    (entity, context) =>
+      canonicalIdentityService.validateLink(
+        entity as Parameters<typeof canonicalIdentityService.validateLink>[0],
+        context,
+      ),
   );
 
   disposables.push(

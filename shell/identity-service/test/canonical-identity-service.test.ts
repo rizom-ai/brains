@@ -96,33 +96,46 @@ describe("CanonicalIdentityService", () => {
     expect(service.resolveActor("discord:unknown")).toBeNull();
   });
 
-  it("rejects duplicate actor ids across active links", async () => {
+  it("rejects writes whose actor id is already claimed by another link", async () => {
+    const existing = linkEntity({
+      canonicalId: "person:daniel",
+      actors: [{ actorId: "discord:123", interfaceType: "discord" }],
+    });
     const entityService = createMockEntityService({
-      returns: {
-        listEntities: [
-          linkEntity({
-            canonicalId: "person:daniel",
-            actors: [{ actorId: "discord:123", interfaceType: "discord" }],
-          }),
-          linkEntity({
-            canonicalId: "person:other-daniel",
-            actors: [{ actorId: "discord:123", interfaceType: "discord" }],
-          }),
-        ],
-      },
+      returns: { listEntities: [existing] },
     });
     const service = CanonicalIdentityService.createFresh(
       entityService,
       createSilentLogger(),
     );
 
-    try {
-      await service.refreshCache();
-      throw new Error("Expected duplicate actor id rejection");
-    } catch (error) {
-      expect((error as Error).message).toContain(
-        "Duplicate canonical identity actor id",
-      );
-    }
+    const incoming = linkEntity({
+      canonicalId: "person:other-daniel",
+      actors: [{ actorId: "discord:123", interfaceType: "discord" }],
+    });
+
+    expect(
+      service.validateLink(incoming, { operation: "create" }),
+    ).rejects.toThrow(
+      /actorId discord:123 is already claimed by person:daniel/,
+    );
+  });
+
+  it("permits updates that keep the same actor ids on the same link", async () => {
+    const existing = linkEntity({
+      canonicalId: "person:daniel",
+      actors: [{ actorId: "discord:123", interfaceType: "discord" }],
+    });
+    const entityService = createMockEntityService({
+      returns: { listEntities: [existing] },
+    });
+    const service = CanonicalIdentityService.createFresh(
+      entityService,
+      createSilentLogger(),
+    );
+
+    expect(
+      service.validateLink(existing, { operation: "update" }),
+    ).resolves.toBeUndefined();
   });
 });

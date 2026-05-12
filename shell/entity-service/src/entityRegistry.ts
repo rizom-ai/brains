@@ -5,6 +5,7 @@ import type {
   EntityAdapter,
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
+  PersistValidator,
 } from "./types";
 
 /**
@@ -18,6 +19,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
+  private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<
     string,
     z.ZodObject<z.ZodRawShape>[]
@@ -182,6 +184,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined {
     return this.createInterceptors.get(type);
+  }
+
+  registerPersistValidator(type: string, validator: PersistValidator): void {
+    this.persistValidators.set(type, validator);
+  }
+
+  getPersistValidator(type: string): PersistValidator | undefined {
+    return this.persistValidators.get(type);
   }
 
   /**

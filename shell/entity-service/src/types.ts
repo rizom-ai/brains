@@ -163,6 +163,16 @@ export type CreateInterceptor = (
 ) => Promise<CreateInterceptionResult>;
 
 /**
+ * Called before an entity is persisted (on create or update). Throws to reject
+ * the write with an operator-facing error. Use this for cross-entity invariants
+ * the per-entity Zod schema cannot express.
+ */
+export type PersistValidator<T extends BaseEntity = BaseEntity> = (
+  entity: T,
+  context: { operation: "create" | "update" },
+) => Promise<void>;
+
+/**
  * Minimal event bus contract used by entity-service for lifecycle events.
  * Kept structural to avoid coupling this package to a concrete messaging service.
  */
@@ -496,6 +506,10 @@ export interface EntityRegistry {
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined;
+
+  registerPersistValidator(type: string, validator: PersistValidator): void;
+
+  getPersistValidator(type: string): PersistValidator | undefined;
 
   /**
    * Extend an adapter's frontmatterSchema with additional fields.

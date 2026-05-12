@@ -89,6 +89,13 @@ export class EntityMutations {
       entityWithDefaults,
     );
 
+    const persistValidator = this.entityRegistry.getPersistValidator(
+      validatedEntity.entityType,
+    );
+    if (persistValidator) {
+      await persistValidator(validatedEntity, { operation: "create" });
+    }
+
     // Prepare entity for storage
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
@@ -170,6 +177,13 @@ export class EntityMutations {
       entity.entityType,
       updatedEntity,
     );
+
+    const persistValidator = this.entityRegistry.getPersistValidator(
+      validatedEntity.entityType,
+    );
+    if (persistValidator) {
+      await persistValidator(validatedEntity, { operation: "update" });
+    }
 
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(

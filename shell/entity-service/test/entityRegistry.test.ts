@@ -281,6 +281,16 @@ This note has frontmatter metadata.`;
     expect(registry.getCreateInterceptor("unknown")).toBeUndefined();
   });
 
+  test("registerPersistValidator stores and retrieves validator by entity type", (): void => {
+    const validator = async (): Promise<void> => {};
+    registry.registerPersistValidator("note", validator);
+    expect(registry.getPersistValidator("note")).toBe(validator);
+  });
+
+  test("getPersistValidator returns undefined when none is registered", (): void => {
+    expect(registry.getPersistValidator("unknown")).toBeUndefined();
+  });
+
   describe("entity type config", () => {
     test("registerEntityType with config stores weight", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);

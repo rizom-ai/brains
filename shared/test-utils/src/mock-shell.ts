@@ -318,6 +318,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       createInterceptors.get(type) as ReturnType<
         IEntityRegistry["getCreateInterceptor"]
       >,
+    registerPersistValidator: (): void => {},
+    getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: () => undefined,
   };

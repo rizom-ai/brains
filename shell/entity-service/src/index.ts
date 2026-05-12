@@ -31,6 +31,7 @@ export type {
   CreateResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  PersistValidator,
   EntityInput,
   SearchResult,
   EntityAdapter,
