@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.64
+
+### Patch Changes
+
+- [`3b10699`](https://github.com/rizom-ai/brains/commit/3b1069954e2baeb01b831cc8691e212e8bde7c3e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose the dashboard as a registered runtime endpoint/interaction so operator surfaces are discoverable through system status, and add Relay eval coverage for approved peer-brain A2A calls plus dashboard/CMS operator access.
+
 ## 0.2.0-alpha.63
 
 ### Patch Changes

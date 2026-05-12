@@ -1,7 +1,7 @@
 {
   "name": "@brains/rizom-ecosystem",
   "private": true,
-  "version": "0.2.0-alpha.63",
+  "version": "0.2.0-alpha.64",
   "description": "Entity-backed Rizom ecosystem section",
   "type": "module",
   "exports": {

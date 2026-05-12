@@ -1,5 +1,15 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.64
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/newsletter-entity@0.2.0-alpha.64
+  - @brains/buttondown@0.2.0-alpha.64
+  - @brains/utils@0.2.0-alpha.64
+  - @brains/plugins@0.2.0-alpha.64
+
 ## 0.2.0-alpha.63
 
 ### Patch Changes
