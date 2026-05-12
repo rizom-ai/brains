@@ -1,5 +1,3 @@
-import { getErrorMessage } from "./error";
-
 /**
  * Helper for creating consistent job handler results.
  * Reduces boilerplate in try/catch blocks.
@@ -19,7 +17,7 @@ export const JobResult = {
   failure(error: unknown): { success: false; error: string } {
     return {
       success: false,
-      error: getErrorMessage(error),
+      error: error instanceof Error ? error.message : String(error),
     };
   },
 };

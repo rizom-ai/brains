@@ -1,5 +1,5 @@
 import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
-import type { PublishResult } from "@brains/utils";
+import type { PublishResult } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";

@@ -1,7 +1,8 @@
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, generationResultSchema } from "@brains/utils";
+import { z } from "@brains/utils";
+import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
 

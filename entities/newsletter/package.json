@@ -14,6 +14,7 @@
     "lint:fix": "eslint src test --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",

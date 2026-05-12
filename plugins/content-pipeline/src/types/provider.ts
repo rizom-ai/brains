@@ -1,4 +1,4 @@
-import type { PublishProvider, PublishResult } from "@brains/utils";
+import type { PublishProvider, PublishResult } from "@brains/contracts";
 
 /**
  * Default provider for internal publishing (blog, decks).

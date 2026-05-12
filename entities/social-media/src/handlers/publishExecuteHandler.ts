@@ -1,5 +1,6 @@
 import { getErrorMessage } from "@brains/utils";
-import type { Logger, PublishProvider, PublishImageData } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { PublishProvider, PublishImageData } from "@brains/contracts";
 import type {
   IEntityService,
   MessageSender,

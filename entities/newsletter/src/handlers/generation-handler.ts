@@ -5,7 +5,8 @@ import {
 } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, type GenerationResult } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
+import { type GenerationResult } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { BaseEntity } from "@brains/entity-service";
 import type { NewsletterMetadata } from "../schemas/newsletter";

@@ -139,6 +139,7 @@
       "name": "@brains/agent-discovery",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
@@ -177,6 +178,7 @@
       "name": "@brains/blog",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -215,6 +217,7 @@
       "name": "@brains/decks",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -250,6 +253,7 @@
       "name": "@brains/image-plugin",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -267,6 +271,7 @@
       "name": "@brains/link",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -284,6 +289,7 @@
       "name": "@brains/newsletter-entity",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -304,6 +310,7 @@
       "name": "@brains/note",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -321,6 +328,7 @@
       "name": "@brains/portfolio",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -426,6 +434,7 @@
       "name": "@brains/social-media",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -442,6 +451,7 @@
       "name": "@brains/topics",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -684,6 +694,7 @@
       "name": "@brains/content-pipeline",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "croner": "^9.1.0",
@@ -720,6 +731,7 @@
       "name": "@brains/directory-sync",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -878,6 +890,19 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/contracts": {
+      "name": "@brains/contracts",
+      "version": "0.2.0-alpha.63",
+      "dependencies": {
+        "zod": "^3.23.8",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/node": "^20.0.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1349,6 +1374,7 @@
       "name": "@brains/plugins",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
@@ -1527,6 +1553,8 @@
     "@brains/content-pipeline": ["@brains/content-pipeline@workspace:plugins/content-pipeline"],
 
     "@brains/content-service": ["@brains/content-service@workspace:shell/content-service"],
+
+    "@brains/contracts": ["@brains/contracts@workspace:shared/contracts"],
 
     "@brains/conversation-memory": ["@brains/conversation-memory@workspace:entities/conversation-memory"],
 

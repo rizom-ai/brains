@@ -5,7 +5,7 @@
  * Provides default internal provider for types without explicit registration.
  */
 
-import type { PublishProvider } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import { InternalPublishProvider } from "./types/provider";
 
 export class ProviderRegistry {

@@ -1,6 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, PROGRESS_STEPS, JobResult } from "@brains/utils";
+import { z } from "@brains/utils";
+import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";

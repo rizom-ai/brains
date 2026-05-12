@@ -3,11 +3,8 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import {
-  getErrorMessage,
-  fetchImageAsBase64,
-  PROGRESS_STEPS,
-} from "@brains/utils";
+import { getErrorMessage, fetchImageAsBase64 } from "@brains/utils";
+import { PROGRESS_STEPS } from "@brains/contracts";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";

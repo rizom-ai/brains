@@ -49,7 +49,7 @@ export {
   type PublishExecutePayload,
 } from "./handlers";
 
-// Provider exports (uses PublishProvider from @brains/utils)
+// Provider exports (uses PublishProvider from @brains/contracts)
 export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
 
 // Template exports

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import type { PublishProvider } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import {
   PublishExecuteHandler,
   type PublishExecuteHandlerConfig,

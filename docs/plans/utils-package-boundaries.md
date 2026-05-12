@@ -73,12 +73,12 @@ Minimum before merge:
 Start with the least ambiguous moves:
 
 1. Move ops/env/cert/CI helpers out of `@brains/utils` into `@brains/deploy-support`. ✅
-2. Move shared result/response/publish/job schemas into a contracts home.
+2. Move shared result/publish/job contracts into `@brains/contracts`. ✅
 3. Keep primitive helpers and `z` in `@brains/utils`.
-4. Update imports repo-wide and run typecheck.
+4. Review response schemas and formatter ownership separately.
+5. Update imports repo-wide and run typecheck.
 
 ## Open questions
 
-- Should the contracts home be a new `shared/contracts` package or an existing shell/shared package?
 - Which schema helpers should be public through `@rizom/brain` versus internal only?
 - Are any official plugin/entity packages about to be published separately, requiring stricter public-only imports now?

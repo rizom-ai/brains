@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
-import type { PublishImageData } from "@brains/utils";
+import type { PublishImageData } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 
 const TINY_PNG_BASE64 =

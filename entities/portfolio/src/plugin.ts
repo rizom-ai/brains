@@ -14,12 +14,8 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import {
-  getErrorMessage,
-  z,
-  type PublishProvider,
-  type PublishResult,
-} from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
+import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
 import {
   projectSchema,

@@ -1,9 +1,9 @@
+import type { Logger } from "@brains/utils";
 import type {
-  Logger,
   PublishProvider,
   PublishResult,
   PublishImageData,
-} from "@brains/utils";
+} from "@brains/contracts";
 import type { LinkedinConfig } from "../config";
 
 /**

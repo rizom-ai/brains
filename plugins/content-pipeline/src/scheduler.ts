@@ -12,7 +12,7 @@ import { getErrorMessage } from "@brains/utils";
  * Also supports generation scheduling for automatic draft creation.
  */
 
-import type { PublishResult } from "@brains/utils";
+import type { PublishResult } from "@brains/contracts";
 import type { GenerationCondition } from "./types/config";
 import { sendPublishCompleted, sendPublishFailed } from "./scheduler-publish";
 import type { PublishDeps } from "./scheduler-publish";

@@ -11,7 +11,7 @@ import { SocialPostDataSource } from "./datasources/social-post-datasource";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { GenerationJobHandler } from "./handlers/generationHandler";
-import type { PublishProvider } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";

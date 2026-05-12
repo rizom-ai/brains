@@ -5,7 +5,7 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
-import type { PublishProvider } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import { createMockEntityService, createMockLogger } from "@brains/test-utils";
 
 describe("ContentScheduler", () => {

@@ -11,6 +11,7 @@ const publicPackages = [
   { name: "@brains/app", dir: "shell/app" },
   { name: "@brains/entity-service", dir: "shell/entity-service" },
   { name: "@brains/templates", dir: "shell/templates" },
+  { name: "@brains/contracts", dir: "shared/contracts" },
   { name: "@brains/utils", dir: "shared/utils" },
   { name: "@brains/deploy-support", dir: "shared/deploy-support" },
   { name: "@brains/site-composition", dir: "shared/site-composition" },

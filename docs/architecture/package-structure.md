@@ -38,24 +38,25 @@ brains/
 
 ## Shared
 
-| Package                       | Purpose                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| `shared/utils`                | Zod, slugify, markdown, YAML, logging, IDs, progress (overloaded — see roadmap) |
-| `shared/ui-library`           | Preact components (Header, Footer, Cards, CTA)                                  |
-| `shared/rizom-ui`             | `@rizom/ui` — Rizom-brand UI primitives shared across app-owned Rizom variants  |
-| `shared/site-composition`     | Shared site composition contract and merge helpers                              |
-| `shared/site-engine`          | Renderer-agnostic site build engine utilities                                   |
-| `shared/theme-base`           | `composeTheme()`, shared CSS utilities, Tailwind setup                          |
-| `shared/theme-default`        | Simplified editorial default theme (warm neutrals)                              |
-| `shared/theme-rizom`          | Rizom brand theme — amber + purple bioluminescent palette                       |
-| `shared/cms-config`           | Shared CMS config types consumed by the `cms` plugin                            |
-| `shared/product-site-content` | Product page layouts and templates                                              |
-| `shared/image`                | Image schema, adapter, utilities                                                |
-| `shared/mcp-bridge`           | Base class for upstream MCP integration                                         |
-| `shared/deploy-support`       | Canonical deploy templates, script helpers, env parsing, and cert support       |
-| `shared/test-utils`           | Mock factories, test harnesses                                                  |
-| `shared/eslint-config`        | Shared ESLint config                                                            |
-| `shared/typescript-config`    | Shared TS configs (root, library, instance)                                     |
+| Package                       | Purpose                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `shared/utils`                | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives     |
+| `shared/contracts`            | Shared result, job progress, and publish contracts                             |
+| `shared/ui-library`           | Preact components (Header, Footer, Cards, CTA)                                 |
+| `shared/rizom-ui`             | `@rizom/ui` — Rizom-brand UI primitives shared across app-owned Rizom variants |
+| `shared/site-composition`     | Shared site composition contract and merge helpers                             |
+| `shared/site-engine`          | Renderer-agnostic site build engine utilities                                  |
+| `shared/theme-base`           | `composeTheme()`, shared CSS utilities, Tailwind setup                         |
+| `shared/theme-default`        | Simplified editorial default theme (warm neutrals)                             |
+| `shared/theme-rizom`          | Rizom brand theme — amber + purple bioluminescent palette                      |
+| `shared/cms-config`           | Shared CMS config types consumed by the `cms` plugin                           |
+| `shared/product-site-content` | Product page layouts and templates                                             |
+| `shared/image`                | Image schema, adapter, utilities                                               |
+| `shared/mcp-bridge`           | Base class for upstream MCP integration                                        |
+| `shared/deploy-support`       | Canonical deploy templates, script helpers, env parsing, and cert support      |
+| `shared/test-utils`           | Mock factories, test harnesses                                                 |
+| `shared/eslint-config`        | Shared ESLint config                                                           |
+| `shared/typescript-config`    | Shared TS configs (root, library, instance)                                    |
 
 ## Entities (EntityPlugin — content type definitions)
 

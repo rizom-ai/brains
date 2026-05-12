@@ -1,7 +1,7 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { PublishImageData } from "@brains/utils";
+import type { PublishImageData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;

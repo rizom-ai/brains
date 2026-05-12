@@ -1,5 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger, PublishProvider } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import {
   PublishExecuteHandler,
   type PublishExecutePayload,

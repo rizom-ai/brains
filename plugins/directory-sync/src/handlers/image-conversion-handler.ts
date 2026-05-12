@@ -8,9 +8,8 @@ import {
   fetchImageAsBase64,
   parseMarkdown,
   generateMarkdown,
-  PROGRESS_STEPS,
-  JobResult,
 } from "@brains/utils";
+import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   parseDataUrl,
   detectImageFormat,

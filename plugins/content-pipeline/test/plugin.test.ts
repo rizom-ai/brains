@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { PublishProvider } from "@brains/utils";
+import type { PublishProvider } from "@brains/contracts";
 import {
   createPluginHarness,
   type PluginTestHarness,
