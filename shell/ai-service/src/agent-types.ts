@@ -53,7 +53,7 @@ export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
  */
 export type CanonicalIdentityResolver = Pick<
   ICanonicalIdentityService,
-  "resolveActor"
+  "enrichActor"
 >;
 
 export interface AgentConfig {

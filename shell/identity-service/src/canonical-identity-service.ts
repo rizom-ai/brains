@@ -1,5 +1,6 @@
 import type { IEntityService } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
+import type { ConversationMessageActor } from "@brains/conversation-service";
 import { CanonicalIdentityLinkAdapter } from "./canonical-identity-link-adapter";
 import {
   CANONICAL_IDENTITY_LINK_ENTITY_TYPE,
@@ -16,6 +17,12 @@ export interface ICanonicalIdentityService {
   refreshCache(): Promise<void>;
   getLinks(): CanonicalIdentityLink[];
   resolveActor(actorId: string): CanonicalIdentityResolution | null;
+  /**
+   * Return the actor with `canonicalId` filled in when a link exists. Returns
+   * the actor unchanged when enrichment doesn't apply (already canonical, no
+   * matching link, or non-user role).
+   */
+  enrichActor(actor: ConversationMessageActor): ConversationMessageActor;
   validateLink(
     entity: CanonicalIdentityLinkEntity,
     context: { operation: "create" | "update" },
@@ -92,6 +99,15 @@ export class CanonicalIdentityService implements ICanonicalIdentityService {
 
   public resolveActor(actorId: string): CanonicalIdentityResolution | null {
     return this.actorIndex.get(actorId) ?? null;
+  }
+
+  public enrichActor(
+    actor: ConversationMessageActor,
+  ): ConversationMessageActor {
+    if (actor.canonicalId || actor.role !== "user") return actor;
+    const resolution = this.resolveActor(actor.actorId);
+    if (!resolution) return actor;
+    return { ...actor, canonicalId: resolution.canonicalId };
   }
 
   public async validateLink(

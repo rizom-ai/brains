@@ -8,7 +8,10 @@ import type {
   IAnchorProfileService,
   AnchorProfile,
 } from "@brains/identity-service";
-import type { IConversationService } from "@brains/conversation-service";
+import type {
+  ConversationMessageActor,
+  IConversationService,
+} from "@brains/conversation-service";
 import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
 import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
 import type { ModelMessage } from "ai";
@@ -353,27 +356,12 @@ describe("AgentService", () => {
     });
 
     it("enriches user actor metadata with explicit canonical identity links", async () => {
-      const resolveActor = mock(() => ({
-        canonicalId: "person:mira",
-        displayName: "Mira Ops",
-        matchedActor: {
-          actorId: "discord:user-789",
-          interfaceType: "discord",
-          displayName: "Mira Ops",
-        },
-        actors: [
-          {
-            actorId: "discord:user-789",
-            interfaceType: "discord",
-            displayName: "Mira Ops",
-          },
-          {
-            actorId: "mcp:mira",
-            interfaceType: "mcp",
-            displayName: "Mira",
-          },
-        ],
-      }));
+      const enrichActor = mock(
+        (actor: ConversationMessageActor): ConversationMessageActor =>
+          actor.actorId === "discord:user-789"
+            ? { ...actor, canonicalId: "person:mira" }
+            : actor,
+      );
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -382,7 +370,7 @@ describe("AgentService", () => {
         logger,
         {
           agentFactory: mockAgentFactory,
-          canonicalIdentityResolver: { resolveActor },
+          canonicalIdentityResolver: { enrichActor },
         },
       );
 
@@ -396,7 +384,9 @@ describe("AgentService", () => {
         },
       });
 
-      expect(resolveActor).toHaveBeenCalledWith("discord:user-789");
+      expect(enrichActor).toHaveBeenCalledWith(
+        expect.objectContaining({ actorId: "discord:user-789" }),
+      );
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -411,12 +401,10 @@ describe("AgentService", () => {
       );
     });
 
-    it("preserves existing actor canonical ids without resolver lookup", async () => {
-      const resolveActor = mock(() => ({
-        canonicalId: "person:wrong",
-        matchedActor: { actorId: "discord:user-789", interfaceType: "discord" },
-        actors: [{ actorId: "discord:user-789", interfaceType: "discord" }],
-      }));
+    it("preserves the actor returned by enrichActor when no enrichment applies", async () => {
+      const enrichActor = mock(
+        (actor: ConversationMessageActor): ConversationMessageActor => actor,
+      );
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -425,7 +413,7 @@ describe("AgentService", () => {
         logger,
         {
           agentFactory: mockAgentFactory,
-          canonicalIdentityResolver: { resolveActor },
+          canonicalIdentityResolver: { enrichActor },
         },
       );
 
@@ -438,7 +426,6 @@ describe("AgentService", () => {
         },
       });
 
-      expect(resolveActor).not.toHaveBeenCalled();
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -452,7 +439,9 @@ describe("AgentService", () => {
     });
 
     it("leaves unlinked actors without canonical ids", async () => {
-      const resolveActor = mock(() => null);
+      const enrichActor = mock(
+        (actor: ConversationMessageActor): ConversationMessageActor => actor,
+      );
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -461,7 +450,7 @@ describe("AgentService", () => {
         logger,
         {
           agentFactory: mockAgentFactory,
-          canonicalIdentityResolver: { resolveActor },
+          canonicalIdentityResolver: { enrichActor },
         },
       );
 
@@ -473,7 +462,9 @@ describe("AgentService", () => {
         },
       });
 
-      expect(resolveActor).toHaveBeenCalledWith("discord:user-789");
+      expect(enrichActor).toHaveBeenCalledWith(
+        expect.objectContaining({ actorId: "discord:user-789" }),
+      );
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({

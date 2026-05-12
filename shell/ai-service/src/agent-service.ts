@@ -420,30 +420,12 @@ export class AgentService implements IAgentService {
     actor: ConversationMessageActor | null,
     source: ConversationMessageSource | null,
   ): ConversationMessageMetadata {
-    const enrichedActor = this.resolveCanonicalActor(actor);
+    const enrichedActor = actor
+      ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
+      : null;
     return {
       ...(enrichedActor ? { actor: enrichedActor } : {}),
       ...(source ? { source } : {}),
-    };
-  }
-
-  private resolveCanonicalActor(
-    actor: ConversationMessageActor | null,
-  ): ConversationMessageActor | null {
-    if (!actor || actor.canonicalId || actor.role !== "user") {
-      return actor;
-    }
-
-    const resolution = this.canonicalIdentityResolver?.resolveActor(
-      actor.actorId,
-    );
-    if (!resolution) {
-      return actor;
-    }
-
-    return {
-      ...actor,
-      canonicalId: resolution.canonicalId,
     };
   }
 
