@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atelier Sancho · Operator Console (mockup)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  --ink:          #0a0819;
+  --ink-raised:   #14112b;
+  --ink-soft:     #1b1638;
+  --ink-deep:     #05040f;
+  --paper:        #f1eadd;
+  --paper-dim:    #bfb7a6;
+  --paper-mute:   #7a7263;
+  --paper-faint:  #4a4459;
+  --rule:         rgba(241, 234, 221, 0.07);
+  --rule-strong:  rgba(241, 234, 221, 0.14);
+  --rule-accent:  rgba(255, 139, 61, 0.45);
+  --accent:       #ff8b3d;
+  --accent-soft:  rgba(255, 139, 61, 0.12);
+  --ok:           #68cc8b;
+  --warn:         #f5c158;
+  --err:          #e26d6d;
+  --neutral:      #7a7263;
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-body:    "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.02) inset,
+                  0 24px 48px -24px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --ink:          #ece3cd;
+  --ink-raised:   #f6efdc;
+  --ink-soft:     #e4dac1;
+  --ink-deep:     #d4c8a8;
+  --paper:        #1a1528;
+  --paper-dim:    #4a4257;
+  --paper-mute:   #7a7180;
+  --paper-faint:  #a79d98;
+  --rule:         rgba(26, 21, 40, 0.11);
+  --rule-strong:  rgba(26, 21, 40, 0.22);
+  --rule-accent:  rgba(180, 65, 12, 0.42);
+  --accent:       #b8410c;
+  --accent-soft:  rgba(184, 65, 12, 0.07);
+  color-scheme: light;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 0;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 45%, var(--ink-deep) 110%);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+/* --- dashboard sizes to real columns and centers in the viewport --- */
+.console {
+  --col-min: 360px;
+  --col-max: 460px;
+  --col-gap: 20px;
+  --page-pad: clamp(28px, 5vw, 100px);
+  --layout-cols: 6;
+  --main-cols: 4;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 3060px;
+  margin: 0 auto;
+  padding: 52px var(--page-pad) 44px;
+}
+
+/* --- masthead with full-bleed scoreboard --- */
+.masthead {
+  position: relative;
+  margin-bottom: 40px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 120px; height: 1px;
+  background: var(--accent);
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 18px;
+}
+.eyebrow::before {
+  content: ""; width: 18px; height: 1px; background: var(--accent);
+}
+.pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(104, 204, 139, 0.45); }
+  50%      { box-shadow: 0 0 0 6px rgba(104, 204, 139, 0); }
+}
+.brand {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 50, "wght" 380;
+  font-size: clamp(2.75rem, 6vw, 5.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+  color: var(--paper);
+}
+.brand em {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+  color: var(--accent);
+}
+.sub-deck {
+  margin-top: 18px;
+  max-width: 64ch;
+  color: var(--paper-dim);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* scoreboard: horizontal stat row across the bottom of the masthead */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  margin-top: 36px;
+}
+.scoreboard-tile { padding: 0 22px; }
+.scoreboard-tile:first-child { padding-left: 0; }
+.scoreboard-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.scoreboard-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--paper);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.scoreboard-value a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 900px) {
+  .scoreboard { grid-template-columns: 1fr 1fr; gap: 14px 0; }
+  .scoreboard-tile { padding: 0 16px; }
+  .scoreboard-tile:nth-child(odd) { padding-left: 0; }
+}
+
+/* --- every column is mobile-screen-width; layout caps at 6 columns total --- */
+.layout {
+  display: grid;
+  grid-template-columns: repeat(var(--layout-cols), minmax(var(--col-min), var(--col-max)));
+  gap: var(--col-gap);
+  align-items: flex-start;
+  justify-content: center;
+}
+.left-column,
+.right-column {
+  display: flex; flex-direction: column; gap: 24px;
+  min-width: 0;
+}
+.left-column { grid-column: 1; grid-row: 1; }
+.main-column {
+  grid-column: 2 / span var(--main-cols);
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--main-cols), minmax(0, 1fr));
+  gap: var(--col-gap);
+  grid-auto-flow: dense;
+  min-width: 0;
+}
+.right-column { grid-column: -2; grid-row: 1; }
+
+@media (max-width: 2539px) {
+  .console { --layout-cols: 5; --main-cols: 3; }
+}
+@media (max-width: 2100px) {
+  .console { --layout-cols: 4; --main-cols: 2; }
+}
+@media (max-width: 1700px) {
+  .console { --layout-cols: 3; --main-cols: 1; }
+}
+@media (max-width: 1280px) {
+  .console { --layout-cols: 2; --main-cols: 1; }
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(var(--col-min), var(--col-max)); }
+  .left-column { grid-column: 2; grid-row: 1; }
+  .main-column { grid-column: 1; grid-row: 1 / span 2; grid-template-columns: 1fr; }
+  .right-column { grid-column: 2; grid-row: 2; }
+}
+@media (max-width: 900px) {
+  .console { --layout-cols: 1; --main-cols: 1; }
+  .layout { grid-template-columns: 1fr; }
+  .left-column, .main-column, .right-column { grid-column: 1; grid-row: auto; }
+}
+
+/* --- cards --- */
+.card {
+  background: var(--ink-raised);
+  border-radius: 4px;
+  padding: 22px 24px 24px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.card-title::before {
+  content: ""; width: 4px; height: 4px;
+  background: var(--accent); border-radius: 50%;
+}
+.card-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--paper-faint);
+  text-transform: uppercase;
+}
+.muted { color: var(--paper-mute); font-size: 13px; }
+
+/* --- entity summary, 3-up breakdown at wide --- */
+.card--entity-summary { padding: 28px 32px 32px; }
+.entities {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  gap: 44px;
+  align-items: end;
+}
+@media (max-width: 720px) {
+  .entities { grid-template-columns: 1fr; gap: 26px; align-items: start; }
+}
+.entity-summary-number {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 20, "wght" 350;
+  font-size: clamp(5rem, 10vw, 9rem);
+  line-height: 0.85;
+  letter-spacing: -0.045em;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.entity-summary-label {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+}
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 18px;
+}
+@media (max-width: 1200px) {
+  .breakdown { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .breakdown { grid-template-columns: 1fr; }
+}
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 0;
+}
+.breakdown-name { font-size: 13px; color: var(--paper-dim); }
+.breakdown-count {
+  font-family: var(--font-mono);
+  font-size: 14px; font-weight: 500;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.breakdown-bar {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  height: 1px;
+  position: relative; overflow: hidden;
+}
+.breakdown-bar > i {
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--accent); opacity: 0.55;
+}
+
+/* entity card is important, but should not become a runway on 6-column displays */
+.main-column > .card--entity-summary { grid-column: span 2; }
+@media (max-width: 1700px) {
+  .main-column > .card--entity-summary { grid-column: span 1; }
+}
+
+/* --- identity --- */
+.identity-card {
+  background: linear-gradient(135deg, rgba(255, 139, 61, 0.06), transparent 45%), var(--ink-raised);
+}
+.identity-sections { display: grid; gap: 20px; }
+.identity-section { padding-top: 0; }
+.identity-label {
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.identity-role {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--paper);
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+.identity-purpose {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--paper-dim);
+}
+.values { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--paper-dim);
+  padding: 3px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 100px;
+}
+
+/* --- interactions card (right column) --- */
+.interactions-list { display: flex; flex-direction: column; gap: 6px; }
+.interaction-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  color: var(--paper);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.interaction-link:hover { background: var(--accent-soft); }
+.interaction-link strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.interaction-link em {
+  display: block;
+  margin-top: 4px;
+  color: var(--paper-mute);
+  font-size: 12.5px;
+  font-style: normal;
+  line-height: 1.4;
+}
+.interaction-link small {
+  display: block;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* --- endpoints, 2-line layout, no truncation --- */
+.endpoint-link {
+  display: block;
+  padding: 10px 0;
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.15s ease;
+}
+.endpoint-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+}
+.endpoint-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+}
+.endpoint-arrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--paper-faint);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.endpoint-host {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--paper-dim);
+  word-break: break-all;
+  line-height: 1.35;
+}
+.endpoint-link:hover .endpoint-host { color: var(--accent); }
+.endpoint-link:hover .endpoint-arrow { color: var(--accent); transform: translateX(3px); }
+
+/* --- pipeline widget --- */
+.pipeline-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.pipeline-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 100px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  cursor: pointer;
+}
+.pipeline-tab.is-active {
+  background: color-mix(in srgb, var(--ink-soft) 55%, transparent);
+  border-color: var(--rule-accent);
+  color: var(--paper);
+}
+.pipeline-summary-count { color: var(--paper); font-variant-numeric: tabular-nums; font-size: 11px; }
+.pipeline-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neutral); }
+.pipeline-dot--draft { background: var(--neutral); }
+.pipeline-dot--queued { background: var(--warn); }
+.pipeline-dot--published { background: var(--ok); }
+.pipeline-dot--failed { background: var(--err); }
+.pipeline-list { display: flex; flex-direction: column; gap: 6px; }
+.pipeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px; align-items: center;
+  padding: 8px 0;
+}
+.pipeline-name {
+  font-size: 13px; color: var(--paper);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pipeline-type, .pipeline-when {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  white-space: nowrap;
+}
+.pipeline-when--err { color: var(--err); }
+
+/* --- list widget --- */
+.list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: baseline;
+  padding: 10px 4px;
+}
+.list-name { font-size: 13.5px; color: var(--paper); }
+.list-desc { font-size: 12px; color: var(--paper-dim); display: block; margin-top: 2px; line-height: 1.45; }
+.list-count { font-family: var(--font-mono); font-size: 11px; color: var(--paper-dim); font-variant-numeric: tabular-nums; }
+.pill {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  color: var(--paper-mute);
+  border: 1px solid var(--rule-strong);
+}
+.pill--ok { color: var(--ok); border-color: rgba(104, 204, 139, 0.35); }
+.pill--warn { color: var(--warn); border-color: rgba(245, 193, 88, 0.35); }
+
+/* --- kv widget --- */
+.kv { display: flex; flex-direction: column; }
+.kv-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px; align-items: baseline;
+  padding: 8px 0;
+}
+.kv-row dt {
+  font-size: 12px; color: var(--paper-mute);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kv-row dd { font-size: 13px; color: var(--paper); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* --- operator gate --- */
+.operator-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 139, 61, 0.12), transparent 42%),
+    var(--ink-raised);
+}
+.operator-gate p { margin-top: 8px; color: var(--paper-dim); font-size: 13px; }
+.operator-gate-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 38px; padding: 0 14px;
+  border: 1px solid rgba(255, 139, 61, 0.55);
+  border-radius: 999px;
+  background: var(--accent); color: var(--ink-deep);
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+/* --- quiet utility footer: actions only; provenance lives in Runtime card --- */
+.colophon {
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.colophon-mark { color: var(--paper-faint); }
+.colophon-actions { display: inline-flex; flex-wrap: wrap; gap: 16px; justify-content: flex-end; }
+.colophon a,
+.colophon button {
+  color: var(--paper-mute);
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+.colophon a:hover,
+.colophon button:hover { color: var(--accent); }
+@media (max-width: 700px) {
+  .colophon { flex-direction: column; align-items: flex-start; }
+  .colophon-actions { justify-content: flex-start; }
+}
+
+.folio { display: none; }
+
+/* --- staggered card rise --- */
+@media (prefers-reduced-motion: no-preference) {
+  .left-column > *,
+  .main-column > *,
+  .right-column > * {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .left-column   > *:nth-child(1) { animation-delay: 0.05s; }
+  .left-column   > *:nth-child(2) { animation-delay: 0.18s; }
+  .left-column   > *:nth-child(3) { animation-delay: 0.30s; }
+  .main-column   > *:nth-child(1) { animation-delay: 0.10s; }
+  .main-column   > *:nth-child(2) { animation-delay: 0.22s; }
+  .main-column   > *:nth-child(3) { animation-delay: 0.34s; }
+  .right-column  > *:nth-child(1) { animation-delay: 0.14s; }
+  .right-column  > *:nth-child(2) { animation-delay: 0.26s; }
+  .right-column  > *:nth-child(3) { animation-delay: 0.38s; }
+  .masthead { animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+}
+
+/* note label for the mockup */
+.mockup-note {
+  position: fixed;
+  bottom: 18px; left: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  background: var(--ink-raised);
+  padding: 8px 12px;
+  border-radius: 100px;
+  z-index: 50;
+}
+  </style>
+</head>
+<body>
+  <main class="console">
+    <header class="masthead">
+      <div class="eyebrow"><span class="pulse"></span>Brain · Operator Console</div>
+      <h1 class="brand">Atelier <em>Sancho</em></h1>
+      <p class="sub-deck">A small studio building tools, fielding ideas, and keeping receipts — this brain traces how those ideas move between people, places, and tools across a working network.</p>
+
+      <div class="scoreboard">
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Status</div>
+          <div class="scoreboard-value">Online · public</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Corpus</div>
+          <div class="scoreboard-value">1,284 entities</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Index</div>
+          <div class="scoreboard-value">14m ago</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Jobs</div>
+          <div class="scoreboard-value">4 queued · 1 failed</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Access</div>
+          <div class="scoreboard-value">Operator locked</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="layout">
+      <!-- LEFT: identity -->
+      <div class="left-column">
+        <aside class="card identity-card">
+          <div class="card-head"><span class="card-title">Identity</span></div>
+          <div class="identity-sections">
+            <section class="identity-section">
+              <div class="identity-label">Role</div>
+              <div class="identity-role">Curator and field researcher</div>
+            </section>
+            <section class="identity-section">
+              <div class="identity-label">Purpose</div>
+              <p class="identity-purpose">Trace how ideas move between people, places, and tools across a working network — and keep the brain in service of that work.</p>
+            </section>
+            <section class="identity-section">
+              <div class="identity-label">Values</div>
+              <div class="values">
+                <span class="value">clarity</span>
+                <span class="value">stewardship</span>
+                <span class="value">rigor</span>
+                <span class="value">play</span>
+              </div>
+            </section>
+          </div>
+        </aside>
+
+        <section class="card operator-gate">
+          <div>
+            <div class="card-title">Operator access</div>
+            <p>3 private console widgets are hidden. Sign in with your passkey to unlock the restricted layer.</p>
+          </div>
+          <a class="operator-gate-link" href="#">Sign in</a>
+        </section>
+      </div>
+
+      <!-- MAIN: entity summary then widget masonry -->
+      <div class="main-column">
+        <article class="card card--entity-summary">
+          <div class="card-head">
+            <span class="card-title">Entities</span>
+            <span class="card-subtitle">corpus · sorted by volume</span>
+          </div>
+          <div class="entities">
+            <div>
+              <div class="entity-summary-number">1,284</div>
+              <div class="entity-summary-label">indexed entities</div>
+            </div>
+            <div class="breakdown">
+              <div class="breakdown-row"><span class="breakdown-name">Note</span><span class="breakdown-count">612</span><div class="breakdown-bar"><i style="width:100%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Topic</span><span class="breakdown-count">218</span><div class="breakdown-bar"><i style="width:36%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Summary</span><span class="breakdown-count">184</span><div class="breakdown-bar"><i style="width:30%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Person</span><span class="breakdown-count">96</span><div class="breakdown-bar"><i style="width:16%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Skill</span><span class="breakdown-count">74</span><div class="breakdown-bar"><i style="width:12%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Decision</span><span class="breakdown-count">58</span><div class="breakdown-bar"><i style="width:9%"></i></div></div>
+              <div class="breakdown-row"><span class="breakdown-name">Image</span><span class="breakdown-count">42</span><div class="breakdown-bar"><i style="width:7%"></i></div></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><span class="card-title">Content pipeline</span></div>
+            <div class="pipeline-tabs">
+              <button class="pipeline-tab"><span class="pipeline-dot pipeline-dot--failed"></span><span class="pipeline-summary-count">1</span> failed</button>
+              <button class="pipeline-tab is-active"><span class="pipeline-dot pipeline-dot--queued"></span><span class="pipeline-summary-count">4</span> queued</button>
+              <button class="pipeline-tab"><span class="pipeline-dot pipeline-dot--draft"></span><span class="pipeline-summary-count">12</span> drafts</button>
+              <button class="pipeline-tab"><span class="pipeline-dot pipeline-dot--published"></span><span class="pipeline-summary-count">87</span> published</button>
+            </div>
+            <div class="pipeline-list">
+              <div class="pipeline-item"><span class="pipeline-dot pipeline-dot--queued"></span><span class="pipeline-name">Weekly digest — week 19</span><span class="pipeline-type">digest</span><span class="pipeline-when">in 12m</span></div>
+              <div class="pipeline-item"><span class="pipeline-dot pipeline-dot--queued"></span><span class="pipeline-name">Topic merge — observability/logging</span><span class="pipeline-type">topic-merge</span><span class="pipeline-when">in 18m</span></div>
+              <div class="pipeline-item"><span class="pipeline-dot pipeline-dot--queued"></span><span class="pipeline-name">Site rebuild — sancho.studio</span><span class="pipeline-type">site-build</span><span class="pipeline-when">in 22m</span></div>
+              <div class="pipeline-item"><span class="pipeline-dot pipeline-dot--queued"></span><span class="pipeline-name">Embedding refresh — 84 entities</span><span class="pipeline-type">embed</span><span class="pipeline-when">in 1h</span></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span class="card-title">Active topics</span></div>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;">
+              <li class="list-item">
+                <div><span class="list-name">observability/logging</span><span class="list-desc">8 sources · last summarised 2h ago</span></div>
+                <div><span class="list-count">24</span></div>
+              </li>
+              <li class="list-item">
+                <div><span class="list-name">rizom · site composition</span><span class="list-desc">site-engine extraction follow-ups</span></div>
+                <div><span class="list-count">19</span></div>
+              </li>
+              <li class="list-item">
+                <div><span class="list-name">conversation memory</span><span class="list-desc">summary projector + coverage widget</span></div>
+                <div><span class="list-count">15</span></div>
+              </li>
+              <li class="list-item">
+                <div><span class="list-name">identity service</span><span class="list-desc">canonical identity + delegated actions</span></div>
+                <div><span class="list-count">12</span></div>
+              </li>
+              <li class="list-item">
+                <div><span class="list-name">dashboard improvements</span><span class="list-desc">screen real-estate review (you are here)</span></div>
+                <div><span class="pill pill--warn">high</span></div>
+              </li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span class="card-title">Conversation memory</span></div>
+            <dl class="kv">
+              <div class="kv-row"><dt>Conversations</dt><dd>148</dd></div>
+              <div class="kv-row"><dt>Active sessions</dt><dd>3</dd></div>
+              <div class="kv-row"><dt>Summarised</dt><dd>132</dd></div>
+              <div class="kv-row"><dt>Pending summary</dt><dd>2</dd></div>
+              <div class="kv-row"><dt>Avg coverage</dt><dd>94%</dd></div>
+              <div class="kv-row"><dt>Oldest active</dt><dd>2d 04h</dd></div>
+            </dl>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span class="card-title">Indexer throughput</span></div>
+            <dl class="kv">
+              <div class="kv-row"><dt>Last hour</dt><dd>62 entities</dd></div>
+              <div class="kv-row"><dt>Last 24h</dt><dd>1,104</dd></div>
+              <div class="kv-row"><dt>Embedding queue</dt><dd>0</dd></div>
+              <div class="kv-row"><dt>Failed (24h)</dt><dd>2</dd></div>
+              <div class="kv-row"><dt>p95 latency</dt><dd>312 ms</dd></div>
+            </dl>
+          </article>
+      </div>
+
+      <!-- RIGHT: interactions + endpoints -->
+      <div class="right-column">
+        <aside class="card">
+          <div class="card-head"><span class="card-title">Ways to connect</span></div>
+          <div class="interactions-list">
+            <a class="interaction-link" href="#"><span><strong>Matrix</strong><em>Chat with the brain in your usual room.</em></span><small>Human</small></a>
+            <a class="interaction-link" href="#"><span><strong>CLI</strong><em>Direct shell access for operators.</em></span><small>Admin</small></a>
+            <a class="interaction-link" href="#"><span><strong>A2A</strong><em>Let other agents talk to this brain.</em></span><small>Agent</small></a>
+            <a class="interaction-link" href="#"><span><strong>MCP</strong><em>Model Context Protocol surface.</em></span><small>Protocol</small></a>
+          </div>
+        </aside>
+
+        <aside class="card">
+          <div class="card-head"><span class="card-title">Endpoints</span></div>
+          <div>
+            <a class="endpoint-link" href="#">
+              <div class="endpoint-row"><span class="endpoint-label">Public site</span><span class="endpoint-arrow">↗</span></div>
+              <div class="endpoint-host">brain.local/</div>
+            </a>
+            <a class="endpoint-link" href="#">
+              <div class="endpoint-row"><span class="endpoint-label">MCP</span><span class="endpoint-arrow">↗</span></div>
+              <div class="endpoint-host">brain.local/mcp</div>
+            </a>
+            <a class="endpoint-link" href="#">
+              <div class="endpoint-row"><span class="endpoint-label">A2A</span><span class="endpoint-arrow">↗</span></div>
+              <div class="endpoint-host">brain.local/a2a</div>
+            </a>
+            <a class="endpoint-link" href="#">
+              <div class="endpoint-row"><span class="endpoint-label">Webhook</span><span class="endpoint-arrow">↗</span></div>
+              <div class="endpoint-host">brain.local/webhook/relay/inbound</div>
+            </a>
+            <a class="endpoint-link" href="#">
+              <div class="endpoint-row"><span class="endpoint-label">Healthz</span><span class="endpoint-arrow">↗</span></div>
+              <div class="endpoint-host">brain.local/healthz</div>
+            </a>
+          </div>
+        </aside>
+
+        <aside class="card">
+          <div class="card-head"><span class="card-title">Runtime</span></div>
+          <dl class="kv">
+            <div class="kv-row"><dt>Version</dt><dd>v0.21.4</dd></div>
+            <div class="kv-row"><dt>Build hash</dt><dd>987907d</dd></div>
+            <div class="kv-row"><dt>Model</dt><dd>claude-opus-4-7</dd></div>
+            <div class="kv-row"><dt>Uptime</dt><dd>3d 07h 12m</dd></div>
+            <div class="kv-row"><dt>Rendered</dt><dd>2026-05-12 14:38</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <footer class="colophon">
+      <div class="colophon-mark">Dashboard</div>
+      <div class="colophon-actions">
+        <a href="#">Docs ↗</a>
+        <button id="themeToggle">Light mode</button>
+      </div>
+    </footer>
+  </main>
+
+  <div class="mockup-note">mockup · proposed layout</div>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("themeToggle");
+      function sync() {
+        if (!btn) return;
+        btn.textContent = root.getAttribute("data-theme") === "dark" ? "Light mode" : "Dark mode";
+      }
+      if (btn) {
+        btn.addEventListener("click", function () {
+          var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          sync();
+        });
+      }
+      sync();
+    })();
+    document.querySelectorAll(".pipeline-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".pipeline-tab").forEach(function (t) { t.classList.remove("is-active"); });
+        tab.classList.add("is-active");
+      });
+    });
+  </script>
+</body>
+</html>

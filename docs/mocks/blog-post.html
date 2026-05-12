@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notes on field receipts · Atelier Sancho</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  --ink:          #0a0819;
+  --ink-raised:   #14112b;
+  --ink-soft:     #1b1638;
+  --ink-deep:     #05040f;
+  --paper:        #f1eadd;
+  --paper-dim:    #bfb7a6;
+  --paper-mute:   #7a7263;
+  --paper-faint:  #4a4459;
+  --rule:         rgba(241, 234, 221, 0.07);
+  --rule-strong:  rgba(241, 234, 221, 0.14);
+  --rule-accent:  rgba(255, 139, 61, 0.45);
+  --accent:       #ff8b3d;
+  --accent-soft:  rgba(255, 139, 61, 0.10);
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-text:    "Fraunces", "Times New Roman", serif;
+  --font-ui:      "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --ink:          #ece3cd;
+  --ink-raised:   #f6efdc;
+  --ink-soft:     #e4dac1;
+  --ink-deep:     #d4c8a8;
+  --paper:        #1a1528;
+  --paper-dim:    #4a4257;
+  --paper-mute:   #7a7180;
+  --paper-faint:  #a79d98;
+  --rule:         rgba(26, 21, 40, 0.11);
+  --rule-strong:  rgba(26, 21, 40, 0.22);
+  --rule-accent:  rgba(180, 65, 12, 0.42);
+  --accent:       #b8410c;
+  --accent-soft:  rgba(184, 65, 12, 0.07);
+  color-scheme: light;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 14, "SOFT" 50, "wght" 400;
+  font-size: 19px;
+  line-height: 1.68;
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 0;
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 50%, var(--ink-deep) 115%);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+::selection { background: var(--accent-soft); color: var(--paper); }
+
+a { color: inherit; }
+
+/* --- page frame: narrow column, wider breakouts --- */
+.page {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 5vw, 56px) 96px;
+}
+.page > * {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- topbar --- */
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 18px;
+  margin-bottom: 72px;
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-brand {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96, "SOFT" 50, "wght" 380;
+  font-size: 19px;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  color: var(--paper);
+}
+.topbar-brand em {
+  font-style: italic;
+  color: var(--accent);
+  font-variation-settings: "opsz" 96, "SOFT" 100, "wght" 320;
+}
+.topnav { display: inline-flex; gap: 26px; }
+.topnav a {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--paper-mute);
+  text-decoration: none;
+  letter-spacing: 0.005em;
+}
+.topnav a:hover { color: var(--paper); }
+.topnav a[aria-current="page"] {
+  color: var(--paper);
+  position: relative;
+}
+.topnav a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -22px;
+  height: 1px;
+  background: var(--accent);
+}
+@media (max-width: 600px) {
+  .topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .topnav a[aria-current="page"]::after { display: none; }
+}
+
+/* --- masthead (matches dashboard pattern) --- */
+.masthead {
+  position: relative;
+  margin-bottom: 56px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 120px; height: 1px;
+  background: var(--accent);
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.eyebrow::before {
+  content: "";
+  width: 18px; height: 1px;
+  background: var(--accent);
+}
+.eyebrow a {
+  color: var(--paper-mute);
+  text-decoration: none;
+}
+.eyebrow a:hover { color: var(--paper); }
+.eyebrow .ord { color: var(--paper-faint); }
+
+.title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 40, "wght" 360;
+  font-size: clamp(2.4rem, 5.2vw, 4.1rem);
+  line-height: 1.0;
+  letter-spacing: -0.025em;
+  color: var(--paper);
+  margin-bottom: 24px;
+  text-wrap: balance;
+}
+.title em {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+  color: var(--accent);
+}
+
+.dek {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 36, "SOFT" 80, "wght" 340;
+  font-style: italic;
+  font-size: 1.32rem;
+  line-height: 1.45;
+  color: var(--paper-dim);
+  max-width: 40ch;
+  text-wrap: pretty;
+}
+
+/* meta scoreboard --- exactly the dashboard pattern */
+.meta-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-top: 36px;
+}
+.meta-tile { padding: 0 22px; }
+.meta-tile:first-child { padding-left: 0; }
+.meta-tile + .meta-tile { border-left: 1px solid var(--rule); }
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  margin-bottom: 6px;
+}
+.meta-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.meta-value em {
+  font-family: var(--font-text);
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "SOFT" 80, "wght" 380;
+  letter-spacing: 0;
+  color: var(--paper-dim);
+}
+@media (max-width: 720px) {
+  .meta-board { grid-template-columns: 1fr 1fr; gap: 18px 0; }
+  .meta-tile { padding: 0 16px; border-left: none; }
+  .meta-tile:nth-child(odd) { padding-left: 0; }
+}
+
+/* --- cover plate: breaks out beyond prose column --- */
+.cover {
+  max-width: 1080px !important;
+  margin: 0 auto 64px;
+  position: relative;
+}
+.cover-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 70% 30%, rgba(255, 139, 61, 0.18), transparent 55%),
+    linear-gradient(160deg, #1d1838 0%, #0a0819 70%);
+  border: 1px solid var(--rule-strong);
+}
+.cover-frame::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 80px; height: 1px;
+  background: var(--accent);
+  z-index: 2;
+}
+.cover-frame img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.04) saturate(0.78) brightness(0.92);
+}
+.cover-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.cover-caption span:last-child { color: var(--paper-mute); }
+
+/* --- prose --- */
+.prose > * + * { margin-top: 1.3em; }
+.prose p {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 14, "SOFT" 50, "wght" 400;
+  font-size: 19px;
+  line-height: 1.72;
+  color: var(--paper);
+  text-wrap: pretty;
+}
+.prose h2 {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 60, "SOFT" 50, "wght" 380;
+  font-size: 1.55rem;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
+  margin-top: 2.6em;
+  color: var(--paper);
+}
+.prose h2 + p { margin-top: 0.65em; }
+
+.prose a {
+  color: var(--paper);
+  text-decoration: underline;
+  text-decoration-color: var(--paper-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.prose a:hover { text-decoration-color: var(--accent); }
+
+.prose em {
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "SOFT" 80, "wght" 400;
+  color: var(--paper);
+}
+.prose strong { font-weight: 600; color: var(--paper); }
+
+.prose blockquote {
+  margin: 2em 0 2em 1.5em;
+  padding-left: 1.6em;
+  border-left: 1px solid var(--rule-strong);
+  font-style: italic;
+  font-variation-settings: "opsz" 24, "SOFT" 80, "wght" 380;
+  font-size: 1.06em;
+  color: var(--paper-dim);
+}
+@media (max-width: 600px) { .prose blockquote { margin-left: 0; } }
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--paper);
+  background: var(--ink-raised);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  background: var(--ink-raised);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  color: var(--paper);
+  margin: 1.8em 0;
+}
+.prose pre code { background: none; padding: 0; }
+
+.prose ul, .prose ol {
+  padding-left: 1.4em;
+  font-size: 19px;
+  line-height: 1.7;
+}
+.prose ul li, .prose ol li { color: var(--paper); }
+.prose ul li::marker, .prose ol li::marker { color: var(--paper-faint); }
+
+.prose sup a {
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  color: var(--paper-mute);
+  padding: 0 1px;
+}
+.prose sup a:hover { color: var(--accent); }
+
+/* --- notes --- */
+.notes { margin-top: 3.6em; }
+.notes-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.notes-label::before {
+  content: "";
+  width: 18px; height: 1px;
+  background: var(--accent);
+}
+.notes ol {
+  padding-left: 1.6em;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--paper-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.notes a {
+  text-decoration: none;
+  color: var(--paper-mute);
+  margin-left: 6px;
+}
+.notes a:hover { color: var(--accent); }
+
+/* --- prev / next --- */
+.adjacent {
+  margin-top: 4em;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 600px) { .adjacent { grid-template-columns: 1fr; gap: 18px; } }
+.adjacent-link { display: block; text-decoration: none; color: inherit; }
+.adjacent-link.next { text-align: right; }
+.adjacent-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  display: block;
+  margin-bottom: 8px;
+}
+.adjacent-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 24, "SOFT" 50, "wght" 380;
+  font-size: 1.1rem;
+  letter-spacing: -0.008em;
+  color: var(--paper);
+  line-height: 1.3;
+  border-bottom: 1px solid transparent;
+  display: inline-block;
+}
+.adjacent-link:hover .adjacent-title { border-bottom-color: var(--paper-mute); }
+.adjacent-link:hover .adjacent-label { color: var(--accent); }
+
+/* --- series endpaper --- */
+.series-end {
+  margin-top: 4em;
+  padding: 26px 28px 28px;
+  background: var(--ink-raised);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 24px 48px -24px rgba(0, 0, 0, 0.55);
+}
+.series-end-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.series-end-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.series-end-title::before {
+  content: "";
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.series-end-name {
+  font-family: var(--font-text);
+  font-style: italic;
+  font-variation-settings: "opsz" 18, "SOFT" 80, "wght" 380;
+  font-size: 15px;
+  color: var(--paper);
+}
+.series-end-list { list-style: none; padding: 0; margin: 0; }
+.series-end-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+  align-items: baseline;
+}
+.series-end-item:first-of-type { border-top: none; }
+.series-end-item .ord {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.series-end-item .name {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 18, "SOFT" 50, "wght" 400;
+  font-size: 15.5px;
+  color: var(--paper-dim);
+  line-height: 1.35;
+}
+.series-end-item .tag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.series-end-item:hover .name { color: var(--paper); }
+.series-end-item.is-current .ord { color: var(--accent); }
+.series-end-item.is-current .name { color: var(--paper); }
+.series-end-item.is-current .tag { color: var(--accent); }
+
+/* --- colophon --- */
+.colophon {
+  margin-top: 80px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.colophon a, .colophon button {
+  color: var(--paper-mute);
+  background: none; border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer; padding: 0; text-decoration: none;
+}
+.colophon a:hover, .colophon button:hover { color: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .masthead, .cover, .prose, .notes, .adjacent, .series-end {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .masthead   { animation-delay: 0.05s; }
+  .cover      { animation-delay: 0.14s; }
+  .prose      { animation-delay: 0.22s; }
+  .notes      { animation-delay: 0.28s; }
+  .adjacent   { animation-delay: 0.30s; }
+  .series-end { animation-delay: 0.32s; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+}
+  </style>
+</head>
+<body>
+  <article class="page">
+    <header class="topbar">
+      <a class="topbar-brand" href="/">Atelier <em>Sancho</em></a>
+      <nav class="topnav" aria-label="Primary">
+        <a href="/essays" aria-current="page">Essays</a>
+        <a href="/about">About</a>
+        <a href="/rss.xml">Feed</a>
+      </nav>
+    </header>
+
+    <header class="masthead">
+      <div class="eyebrow">
+        <a href="/series/field-receipts">Field Receipts</a>
+        <span class="ord">№ 02 / 06</span>
+      </div>
+
+      <h1 class="title">Notes on field <em>receipts</em></h1>
+
+      <p class="dek">
+        A working studio is held together less by its outputs than by the small,
+        dated receipts of its attention.
+      </p>
+
+      <div class="meta-board">
+        <div class="meta-tile">
+          <div class="meta-label">Published</div>
+          <div class="meta-value">12 May 2026</div>
+        </div>
+        <div class="meta-tile">
+          <div class="meta-label">Reading</div>
+          <div class="meta-value">9 min</div>
+        </div>
+        <div class="meta-tile">
+          <div class="meta-label">Length</div>
+          <div class="meta-value">2,140 words</div>
+        </div>
+        <div class="meta-tile">
+          <div class="meta-label">Filed under</div>
+          <div class="meta-value"><em>field-receipts</em></div>
+        </div>
+      </div>
+    </header>
+
+    <figure class="cover">
+      <div class="cover-frame">
+        <img
+          src="https://picsum.photos/seed/sancho-field-receipts-02/2160/1215"
+          alt="A studio desk strewn with paper, ink, and dated receipts."
+          loading="eager"
+        />
+      </div>
+      <figcaption class="cover-caption">
+        <span>Plate i — receipts, May 2026</span>
+        <span>Atelier Sancho</span>
+      </figcaption>
+    </figure>
+
+    <div class="prose">
+      <p>
+        Every studio I have worked in keeps two kinds of records: the polished
+        ones that face the client, and the tangled ones that face the work
+        itself. The first set gets filed neatly. The second set gets lost — and
+        with it, almost everything that mattered about how a decision actually
+        got made.
+      </p>
+
+      <p>
+        I have come to call the lost set <em>field receipts</em>. Not the
+        project brief, not the deliverable, not the retrospective. The small
+        scraps in between: the chat thread that re-routed a week, the
+        screenshot annotated at 1am, the voice memo on the way back from a site
+        visit. Each one is mundane. Together they describe — with more honesty
+        than any retrospective — how the work was actually held.
+      </p>
+
+      <h2>Why receipts vanish</h2>
+
+      <p>
+        The usual reason is friction. A receipt that requires a form to file is
+        a receipt that does not get filed. So receipts collect in the edges of
+        the tools that already hold them — Slack threads, terminal history, the
+        bottom of a Notes app, scrawls on a paper map — until the tool churns
+        and the receipt is gone with it.
+      </p>
+
+      <blockquote>
+        A receipt that requires a form to file is a receipt that does not get
+        filed.
+      </blockquote>
+
+      <p>
+        The second reason is taste. Most receipts are embarrassing. They record
+        the wrong turn, the second-guess, the question that turned out to be
+        naïve. We are trained to file the version where we knew what we were
+        doing — and to quietly discard the version where we were figuring it
+        out. The figuring-out version is the one a future colleague
+        needs.<sup><a href="#fn1" id="ref1">1</a></sup>
+      </p>
+
+      <h2>What a good receipt looks like</h2>
+
+      <p>
+        A useful field receipt has four properties. It is <strong>dated</strong>,
+        because a receipt without a date is a rumour. It is <strong>local</strong>,
+        meaning it sits next to the thing it describes rather than in a
+        separate archive. It is <strong>cheap</strong> to write — under thirty
+        seconds, ideally inside the tool you were already in. And it is
+        <strong>honest about confidence</strong>: a receipt that hedges into
+        unfalsifiability is no better than no receipt at all.
+      </p>
+
+      <pre><code>2026-05-12  switched the indexer to write-through after losing
+            two batches on a restart. doesn't fix the underlying
+            race in commit ordering — just narrows the window.</code></pre>
+
+      <p>
+        That is four lines. It will outlive the indexer. It tells the next
+        person <em>why</em> the configuration looks the way it does, and tells
+        them what was deferred — which is the thing a future bug report will
+        need to know.
+      </p>
+
+      <h2>Receipts in a brain</h2>
+
+      <p>
+        The reason I think about this here is that a personal knowledge system
+        — a brain, in our terminology — is exactly the shape that wants
+        receipts. Topics drift. Decisions reverse. The system that quietly
+        remembers <em>when</em> something was true is the system that stays
+        trustworthy over years. The system that overwrites yesterday with
+        today's better understanding loses the most interesting information in
+        the corpus.<sup><a href="#fn2" id="ref2">2</a></sup>
+      </p>
+
+      <p>
+        Concretely: every entity should carry a <code>created</code> and a
+        <code>history</code>, every summary should know which version of its
+        sources it was drawn from, and nothing should be silently replaced.
+        That last constraint is harder than it sounds.
+      </p>
+
+      <h2>A small closing receipt</h2>
+
+      <p>
+        This essay is itself a receipt. It is dated. It is filed next to the
+        thing it describes. It cost about an hour to write, which is the upper
+        bound of what a receipt is allowed to cost. And it is honest about
+        confidence: I am sure about the smallest viable practice, less sure
+        about how to encode it in tooling, and not yet sure whether
+        <em>receipt</em> will turn out to be the right word.
+      </p>
+
+      <p>Either way — it is filed.</p>
+    </div>
+
+    <section class="notes" aria-label="Notes">
+      <div class="notes-label">Notes</div>
+      <ol>
+        <li id="fn1">
+          The same problem appears in research notebooks; the gap between a lab
+          notebook and a methods section is exactly this gap.
+          <a href="#ref1" aria-label="back to text">↩</a>
+        </li>
+        <li id="fn2">
+          See also: schemas that treat <code>updated_at</code> as the only
+          timestamp. They are quietly destructive.
+          <a href="#ref2" aria-label="back to text">↩</a>
+        </li>
+      </ol>
+    </section>
+
+    <nav class="adjacent" aria-label="Adjacent essays">
+      <a class="adjacent-link prev" href="#">
+        <span class="adjacent-label">← Previous</span>
+        <span class="adjacent-title">On filing the unfileable</span>
+      </a>
+      <a class="adjacent-link next" href="#">
+        <span class="adjacent-label">Next →</span>
+        <span class="adjacent-title">The cost of re-organization</span>
+      </a>
+    </nav>
+
+    <section class="series-end" aria-label="Series">
+      <header class="series-end-head">
+        <span class="series-end-title">Series</span>
+        <span class="series-end-name">Field Receipts</span>
+      </header>
+      <ol class="series-end-list">
+        <a class="series-end-item" href="#">
+          <span class="ord">01</span>
+          <span class="name">On filing the unfileable</span>
+          <span class="tag">prev</span>
+        </a>
+        <a class="series-end-item is-current" href="#" aria-current="page">
+          <span class="ord">02</span>
+          <span class="name">Notes on field receipts</span>
+          <span class="tag">here</span>
+        </a>
+        <a class="series-end-item" href="#">
+          <span class="ord">03</span>
+          <span class="name">The cost of re-organization</span>
+          <span class="tag">next</span>
+        </a>
+        <a class="series-end-item" href="#">
+          <span class="ord">04</span>
+          <span class="name">When yesterday is data</span>
+          <span class="tag"></span>
+        </a>
+        <a class="series-end-item" href="#">
+          <span class="ord">05</span>
+          <span class="name">Receipts in a corpus</span>
+          <span class="tag"></span>
+        </a>
+        <a class="series-end-item" href="#">
+          <span class="ord">06</span>
+          <span class="name">A small closing receipt</span>
+          <span class="tag"></span>
+        </a>
+      </ol>
+    </section>
+
+    <footer class="colophon">
+      <span>Essay · field-receipts/02</span>
+      <button id="themeToggle" type="button">Light mode</button>
+    </footer>
+  </article>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("themeToggle");
+      function sync() {
+        if (!btn) return;
+        btn.textContent = root.getAttribute("data-theme") === "dark" ? "Light mode" : "Dark mode";
+      }
+      if (btn) {
+        btn.addEventListener("click", function () {
+          var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          sync();
+        });
+      }
+      sync();
+    })();
+  </script>
+</body>
+</html>

@@ -712,5 +712,4 @@
   Pin to a specific version, do not depend on `^0.1.0-alpha.0` resolving
   to a stable contract.
 
-  See `docs/plans/public-release-cleanup.md` for the road from alpha
-  to v0.1.0.
+  See `docs/roadmap.md` for current release-readiness direction.

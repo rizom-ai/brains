@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Essays · Atelier Sancho</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  --ink:          #0a0819;
+  --ink-raised:   #14112b;
+  --ink-soft:     #1b1638;
+  --ink-deep:     #05040f;
+  --paper:        #f1eadd;
+  --paper-dim:    #bfb7a6;
+  --paper-mute:   #7a7263;
+  --paper-faint:  #4a4459;
+  --rule:         rgba(241, 234, 221, 0.07);
+  --rule-strong:  rgba(241, 234, 221, 0.14);
+  --rule-accent:  rgba(255, 139, 61, 0.45);
+  --accent:       #ff8b3d;
+  --accent-soft:  rgba(255, 139, 61, 0.10);
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-text:    "Fraunces", "Times New Roman", serif;
+  --font-ui:      "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --ink:          #ece3cd;
+  --ink-raised:   #f6efdc;
+  --ink-soft:     #e4dac1;
+  --ink-deep:     #d4c8a8;
+  --paper:        #1a1528;
+  --paper-dim:    #4a4257;
+  --paper-mute:   #7a7180;
+  --paper-faint:  #a79d98;
+  --rule:         rgba(26, 21, 40, 0.11);
+  --rule-strong:  rgba(26, 21, 40, 0.22);
+  --rule-accent:  rgba(180, 65, 12, 0.42);
+  --accent:       #b8410c;
+  --accent-soft:  rgba(184, 65, 12, 0.07);
+  color-scheme: light;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 14, "SOFT" 50, "wght" 400;
+  font-size: 17px;
+  line-height: 1.62;
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 0;
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 50%, var(--ink-deep) 115%);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+::selection { background: var(--accent-soft); color: var(--paper); }
+
+a { color: inherit; }
+
+.page {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 5vw, 56px) 96px;
+}
+
+/* --- topbar --- */
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 18px;
+  margin-bottom: 72px;
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-brand {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96, "SOFT" 50, "wght" 380;
+  font-size: 19px;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  color: var(--paper);
+}
+.topbar-brand em {
+  font-style: italic;
+  color: var(--accent);
+  font-variation-settings: "opsz" 96, "SOFT" 100, "wght" 320;
+}
+.topnav { display: inline-flex; gap: 26px; }
+.topnav a {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--paper-mute);
+  text-decoration: none;
+  letter-spacing: 0.005em;
+}
+.topnav a:hover, .topnav a[aria-current="page"] { color: var(--paper); }
+.topnav a[aria-current="page"] { position: relative; }
+.topnav a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -22px;
+  height: 1px;
+  background: var(--accent);
+}
+@media (max-width: 600px) {
+  .topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .topnav a[aria-current="page"]::after { display: none; }
+}
+
+/* --- masthead (matches dashboard pattern) --- */
+.masthead {
+  position: relative;
+  margin-bottom: 64px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 120px; height: 1px;
+  background: var(--accent);
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.eyebrow::before {
+  content: "";
+  width: 18px; height: 1px;
+  background: var(--accent);
+}
+.masthead-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 40, "wght" 360;
+  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  line-height: 0.96;
+  letter-spacing: -0.027em;
+  color: var(--paper);
+  margin-bottom: 24px;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+.masthead-title em {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+  color: var(--accent);
+}
+.masthead-sub {
+  font-family: var(--font-text);
+  font-variation-settings: "opsz" 24, "SOFT" 70, "wght" 360;
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.48;
+  color: var(--paper-dim);
+  max-width: 42ch;
+}
+
+/* scoreboard --- matches dashboard exactly */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-top: 40px;
+}
+.scoreboard-tile { padding: 0 22px; }
+.scoreboard-tile:first-child { padding-left: 0; }
+.scoreboard-tile + .scoreboard-tile { border-left: 1px solid var(--rule); }
+.scoreboard-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  margin-bottom: 6px;
+}
+.scoreboard-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--paper);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 720px) {
+  .scoreboard { grid-template-columns: 1fr 1fr; gap: 18px 0; }
+  .scoreboard-tile { padding: 0 16px; border-left: none; }
+  .scoreboard-tile:nth-child(odd) { padding-left: 0; }
+}
+
+/* --- year section --- */
+.year-section + .year-section { margin-top: 80px; }
+.year-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 14px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--rule-strong);
+  position: relative;
+}
+.year-heading::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 56px; height: 1px;
+  background: var(--accent);
+}
+.year-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.year-mark .ord { color: var(--paper-mute); margin-right: 12px; }
+.year-meta {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--paper-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- index list --- */
+.index-list { list-style: none; padding: 0; margin: 0; }
+.entry {
+  display: grid;
+  grid-template-columns: 96px 80px minmax(0, 1fr) 64px;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 22px 0;
+  border-top: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+}
+.entry:first-of-type { border-top: none; }
+.entry-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  font-variant-numeric: tabular-nums;
+  padding-top: 10px;
+}
+.entry-thumb {
+  width: 80px; height: 80px;
+  background:
+    radial-gradient(120% 80% at 70% 30%, rgba(255, 139, 61, 0.18), transparent 55%),
+    linear-gradient(160deg, #1d1838 0%, #0a0819 70%);
+  border: 1px solid var(--rule-strong);
+  overflow: hidden;
+  position: relative;
+}
+.entry-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.04) saturate(0.78) brightness(0.9);
+}
+.entry-thumb::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 18px; height: 1px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.entry:hover .entry-thumb::after { opacity: 1; }
+.entry-body { min-width: 0; padding-top: 4px; }
+.entry-series {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.entry-series .ord {
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+}
+.entry:hover .entry-series .ord { color: var(--accent); }
+.entry-title {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 36, "SOFT" 50, "wght" 380;
+  font-size: 1.55rem;
+  line-height: 1.18;
+  letter-spacing: -0.018em;
+  color: var(--paper);
+  margin-bottom: 10px;
+  text-wrap: balance;
+}
+.entry-title em {
+  font-style: italic;
+  font-variation-settings: "opsz" 36, "SOFT" 100, "wght" 320;
+  color: var(--paper);
+}
+.entry-excerpt {
+  font-family: var(--font-text);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--paper-dim);
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+.entry-tail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  padding-top: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.entry:hover .entry-title { color: var(--paper); }
+@media (max-width: 820px) {
+  .entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-areas:
+      "thumb date"
+      "thumb body"
+      "thumb tail";
+    gap: 6px 18px;
+    padding: 22px 0;
+  }
+  .entry-thumb { width: 64px; height: 64px; grid-area: thumb; align-self: start; }
+  .entry-date { grid-area: date; padding-top: 0; }
+  .entry-body { grid-area: body; padding-top: 4px; }
+  .entry-tail { grid-area: tail; text-align: left; padding-top: 0; }
+}
+@media (max-width: 520px) {
+  .entry { grid-template-columns: 1fr; grid-template-areas: "date" "thumb" "body" "tail"; }
+  .entry-thumb { width: 100%; aspect-ratio: 16 / 9; height: auto; }
+}
+
+/* --- pagination --- */
+.pagination {
+  margin-top: 64px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.pagination a {
+  color: var(--paper-mute);
+  text-decoration: none;
+}
+.pagination a:hover { color: var(--paper); }
+.pagination [aria-disabled] { opacity: 0.35; pointer-events: none; }
+.pagination-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- series endpaper --- */
+.series-end {
+  margin-top: 80px;
+  padding: 26px 28px 28px;
+  background: var(--ink-raised);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.02) inset,
+    0 24px 48px -24px rgba(0, 0, 0, 0.55);
+}
+.series-end-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.series-end-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.series-end-title::before {
+  content: "";
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.series-end-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.series-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 48px;
+}
+@media (max-width: 700px) { .series-grid { grid-template-columns: 1fr; } }
+.series-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+}
+.series-row:nth-of-type(1), .series-row:nth-of-type(2) { border-top: none; }
+@media (max-width: 700px) { .series-row:nth-of-type(2) { border-top: 1px solid var(--rule); } }
+.series-name {
+  font-family: var(--font-text);
+  font-size: 15.5px;
+  color: var(--paper);
+  line-height: 1.35;
+}
+.series-name em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--paper-mute);
+}
+.series-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--paper-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.series-row:hover .series-name { color: var(--paper); }
+.series-row:hover .series-count { color: var(--accent); }
+
+/* --- colophon --- */
+.colophon {
+  margin-top: 80px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.colophon a, .colophon button {
+  color: var(--paper-mute);
+  background: none; border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer; padding: 0; text-decoration: none;
+}
+.colophon a:hover, .colophon button:hover { color: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .masthead, .year-section, .pagination, .series-end {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .masthead { animation-delay: 0.05s; }
+  .year-section:nth-of-type(1) { animation-delay: 0.16s; }
+  .year-section:nth-of-type(2) { animation-delay: 0.24s; }
+  .pagination { animation-delay: 0.30s; }
+  .series-end { animation-delay: 0.34s; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="topbar-brand" href="/">Atelier <em>Sancho</em></a>
+      <nav class="topnav" aria-label="Primary">
+        <a href="/essays" aria-current="page">Essays</a>
+        <a href="/about">About</a>
+        <a href="/rss.xml">Feed</a>
+      </nav>
+    </header>
+
+    <header class="masthead">
+      <div class="eyebrow">Atelier Sancho · The Archive</div>
+      <h1 class="masthead-title">Essays &amp; <em>field receipts</em></h1>
+      <p class="masthead-sub">
+        Working notes from a small studio — long-form receipts of attention,
+        filed in the order they happened.
+      </p>
+
+      <div class="scoreboard">
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Essays</div>
+          <div class="scoreboard-value">42</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Series</div>
+          <div class="scoreboard-value">6 active</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Latest</div>
+          <div class="scoreboard-value">12 May 2026</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Cadence</div>
+          <div class="scoreboard-value">~ 1 / fortnight</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="year-section">
+      <header class="year-heading">
+        <div class="year-mark"><span class="ord">i</span>2026</div>
+        <div class="year-meta">8 essays · in progress</div>
+      </header>
+
+      <ol class="index-list">
+        <a class="entry" href="#">
+          <span class="entry-date">12 May</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-field-receipts-02/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">02</span>Field Receipts</div>
+            <h2 class="entry-title">Notes on field <em>receipts</em></h2>
+            <p class="entry-excerpt">A working studio is held together less by its outputs than by the small, dated receipts of its attention — and most of them never get filed.</p>
+          </div>
+          <span class="entry-tail">9 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">02 May</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-field-receipts-01/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">01</span>Field Receipts</div>
+            <h2 class="entry-title">On filing the unfileable</h2>
+            <p class="entry-excerpt">Most of what holds a studio together never makes it into the project files. A taxonomy of the receipts we drop, and a sketch of where they could live.</p>
+          </div>
+          <span class="entry-tail">7 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">18 Apr</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-on-brains-04/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">04</span>On Brains</div>
+            <h2 class="entry-title">The corpus that remembers <em>when</em></h2>
+            <p class="entry-excerpt">Temporal honesty in personal knowledge systems. Why <code style="font-family:var(--font-mono);font-size:0.88em;color:var(--paper);background:var(--ink-raised);padding:1px 4px;border-radius:2px;">updated_at</code> is quietly destructive, and what to keep instead.</p>
+          </div>
+          <span class="entry-tail">11 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">03 Apr</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-site-composition-03/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">03</span>Site Composition</div>
+            <h2 class="entry-title">One shared site, many skins</h2>
+            <p class="entry-excerpt">Why the rizom site lives in a single repo with per-app theming — and what we tried first that didn't survive contact with the build.</p>
+          </div>
+          <span class="entry-tail">8 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">21 Mar</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-changelogs/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series">Standalone</div>
+            <h2 class="entry-title">Three rules for an honest changelog</h2>
+            <p class="entry-excerpt">A short discipline for changelogs that survive contact with reality, drawn from a year of mostly failing to keep one.</p>
+          </div>
+          <span class="entry-tail">5 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">02 Mar</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-toolmaking-02/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">02</span>Toolmaking</div>
+            <h2 class="entry-title">Small tools, long handles</h2>
+            <p class="entry-excerpt">On the cost of clever scripts that nobody else will read in six months — and the kind of script that earns its keep.</p>
+          </div>
+          <span class="entry-tail">6 min</span>
+        </a>
+      </ol>
+    </section>
+
+    <section class="year-section">
+      <header class="year-heading">
+        <div class="year-mark"><span class="ord">ii</span>2025</div>
+        <div class="year-meta">21 essays · complete</div>
+      </header>
+
+      <ol class="index-list">
+        <a class="entry" href="#">
+          <span class="entry-date">14 Dec</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-on-brains-11/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">11</span>On Brains</div>
+            <h2 class="entry-title">What a brain owes its operator</h2>
+            <p class="entry-excerpt">A year-end inventory of the small contracts a knowledge system silently makes with the person who runs it.</p>
+          </div>
+          <span class="entry-tail">14 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">22 Nov</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-weeknote/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series">Standalone</div>
+            <h2 class="entry-title">Why I keep a weeknote in <em>plain text</em></h2>
+            <p class="entry-excerpt">Markdown, dated, appended-to, never re-organized. The cheapest writing habit that has survived four years.</p>
+          </div>
+          <span class="entry-tail">4 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">07 Nov</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-toolmaking-07/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">07</span>Toolmaking</div>
+            <h2 class="entry-title">Configuring less</h2>
+            <p class="entry-excerpt">The settings file that grew until nobody could find the one option that mattered, and what it would have looked like with discipline.</p>
+          </div>
+          <span class="entry-tail">9 min</span>
+        </a>
+
+        <a class="entry" href="#">
+          <span class="entry-date">12 Oct</span>
+          <span class="entry-thumb">
+            <img src="https://picsum.photos/seed/sancho-site-composition-04/200/200" alt="" loading="lazy" />
+          </span>
+          <div class="entry-body">
+            <div class="entry-series"><span class="ord">04</span>Site Composition</div>
+            <h2 class="entry-title">The shape of a static site we'd publish twice</h2>
+            <p class="entry-excerpt">Generating the same content into two different surfaces — public site, operator console — without splitting the source of truth.</p>
+          </div>
+          <span class="entry-tail">12 min</span>
+        </a>
+      </ol>
+    </section>
+
+    <nav class="pagination" aria-label="Pagination">
+      <a href="#" aria-disabled="true">← Newer</a>
+      <span class="pagination-count">Page 01 / 04</span>
+      <a href="#">Older →</a>
+    </nav>
+
+    <section class="series-end" aria-label="Series">
+      <header class="series-end-head">
+        <span class="series-end-title">Series</span>
+        <span class="series-end-sub">6 active · 42 essays</span>
+      </header>
+      <div class="series-grid">
+        <a class="series-row" href="#">
+          <span class="series-name">Field Receipts<em>The receipts a studio drops</em></span>
+          <span class="series-count">2 / 6</span>
+        </a>
+        <a class="series-row" href="#">
+          <span class="series-name">On Brains<em>Notes on personal knowledge systems</em></span>
+          <span class="series-count">11</span>
+        </a>
+        <a class="series-row" href="#">
+          <span class="series-name">Site Composition<em>One source, many surfaces</em></span>
+          <span class="series-count">5</span>
+        </a>
+        <a class="series-row" href="#">
+          <span class="series-name">Toolmaking<em>Small tools, long handles</em></span>
+          <span class="series-count">8</span>
+        </a>
+        <a class="series-row" href="#">
+          <span class="series-name">Working Notes<em>Weeknotes, drafts, marginalia</em></span>
+          <span class="series-count">12</span>
+        </a>
+        <a class="series-row" href="#">
+          <span class="series-name">Standalone<em>One-offs and loose pieces</em></span>
+          <span class="series-count">4</span>
+        </a>
+      </div>
+    </section>
+
+    <footer class="colophon">
+      <span>Archive · /essays</span>
+      <button id="themeToggle" type="button">Light mode</button>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("themeToggle");
+      function sync() {
+        if (!btn) return;
+        btn.textContent = root.getAttribute("data-theme") === "dark" ? "Light mode" : "Dark mode";
+      }
+      if (btn) {
+        btn.addEventListener("click", function () {
+          var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          sync();
+        });
+      }
+      sync();
+    })();
+  </script>
+</body>
+</html>
