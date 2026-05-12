@@ -9,7 +9,7 @@ import { createPreactBuilder } from "./preact-builder";
 import type { RouteRegistry } from "@brains/site-engine";
 
 import type { EntityDisplayMap } from "../config";
-import { EntityUrlGenerator } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { runSiteBuild } from "./run-site-build";

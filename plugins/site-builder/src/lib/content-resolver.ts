@@ -1,6 +1,6 @@
 import type { SectionDefinition } from "@brains/site-composition";
 import type { SiteImageLookup } from "@brains/site-engine";
-import { EntityUrlGenerator } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import { enrichWithUrls } from "./content-enrichment";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { BuildPipelineContext } from "./build-pipeline-context";

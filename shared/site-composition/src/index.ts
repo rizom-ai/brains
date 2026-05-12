@@ -35,5 +35,7 @@ export {
   siteMetadataSectionSchema,
 } from "./metadata";
 export type { SiteLayoutInfo, SiteMetadata, SiteMetadataCTA } from "./metadata";
+export { EntityUrlGenerator } from "./entity-url-generator";
+export type { EntityDisplayMap } from "./entity-url-generator";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";
 export type { SitePackage, SitePackageOverrides } from "./package";

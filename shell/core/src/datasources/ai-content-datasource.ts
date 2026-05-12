@@ -2,7 +2,8 @@ import type { DataSource } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { z, EntityUrlGenerator } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/site-composition";
+import { z } from "@brains/utils";
 import { resolvePrompt } from "@brains/plugins";
 
 export const GenerationContextSchema = z.object({

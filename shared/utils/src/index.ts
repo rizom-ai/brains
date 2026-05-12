@@ -75,10 +75,6 @@ export { ensureArray } from "./array";
 // Message chunking
 export { chunkMessage } from "./chunk-message";
 
-// URL generation utilities
-export { EntityUrlGenerator } from "./entity-url-generator";
-export type { EntityDisplayMap } from "./entity-url-generator";
-
 // Hash utilities — import from "@brains/utils/hash" (uses Node crypto)
 
 // Sort utilities

@@ -9,7 +9,7 @@ import {
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
-import { EntityUrlGenerator } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 
 export interface SiteBuildJobHandlerConfig {

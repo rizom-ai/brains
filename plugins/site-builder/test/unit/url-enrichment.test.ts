@@ -8,7 +8,8 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import { EntityUrlGenerator, z } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/site-composition";
+import { z } from "@brains/utils";
 
 describe("SiteBuilder - URL Enrichment", () => {
   let mockContext: ServicePluginContext;
