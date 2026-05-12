@@ -1,0 +1,44 @@
+id: relay-tool-a2a-approved-peer-call
+name: Call approved Relay peer brain
+description: >-
+  Verifies that Relay will call an already saved and approved peer brain through
+  a2a_call using the local agent id, instead of asking to save it again or
+  passing a full URL. The remote network may be unavailable in eval runs; this
+  case is about the agent choosing the correct approved-peer A2A tool path and
+  reporting the tool result honestly.
+type: tool_invocation
+tags:
+  - relay
+  - agent-discovery
+  - a2a
+  - peer-brain
+  - core
+
+turns:
+  - userMessage: >-
+      Ask the saved approved peer brain partner-brain.io whether it can review a
+      Relay handoff summary for the POC. Use the saved local agent id; do not add
+      or save a new agent. If the remote call itself fails, just report that tool
+      result honestly.
+
+successCriteria:
+  expectedTools:
+    - toolName: a2a_call
+      shouldBeCalled: true
+      argsContain:
+        agent: "partner-brain.io"
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContains:
+    - "partner-brain.io"
+  responseNotContains:
+    - "wish"
+    - "save it first"
+    - "add it first"
+    - "not approved"
+    - "not saved"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

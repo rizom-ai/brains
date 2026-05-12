@@ -1,0 +1,44 @@
+id: relay-tool-operator-dashboard-cms-status
+name: Operator dashboard and CMS access from Relay core
+description: >-
+  Verifies that Relay can guide an operator to the core web/admin surfaces for
+  dashboard and CMS access without implying that the public site-builder stack is
+  required. This covers the POC acceptance item that operators can inspect the
+  dashboard/CMS on the shared webserver surface while keeping Relay core private.
+type: tool_invocation
+tags:
+  - relay
+  - dashboard
+  - cms
+  - webserver
+  - core
+
+turns:
+  - userMessage: >-
+      Run a system status check for this Relay operator setup, then tell me the
+      browser paths for the dashboard and CMS. Make clear these are Relay core
+      web/admin surfaces and do not require enabling the public site builder.
+      Keep it concise.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_status
+      shouldBeCalled: true
+  responseContains:
+    - "dashboard"
+    - "CMS"
+    - "/dashboard"
+    - "/cms"
+    - "core"
+  responseNotContains:
+    - "site-builder is required"
+    - "enable the public site"
+    - "blog"
+    - "newsletter"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

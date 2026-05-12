@@ -101,6 +101,21 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
     this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);
     context.entities.registerDataSource(this.datasource);
+    context.endpoints.register({
+      label: "Dashboard",
+      url: this.config.routePath,
+      priority: 30,
+      visibility: "public",
+    });
+    context.interactions.register({
+      id: "dashboard",
+      label: "Dashboard",
+      description: "Inspect runtime status, endpoints, and dashboard widgets.",
+      href: this.config.routePath,
+      kind: "admin",
+      priority: 30,
+      visibility: "public",
+    });
 
     context.messaging.subscribe(
       "dashboard:register-widget",

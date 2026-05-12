@@ -33,5 +33,11 @@ describe("Relay eval cases", () => {
     expect(cases.map((testCase) => testCase.id)).toContain(
       "relay-scenario-new-teammate-onboarding",
     );
+    expect(cases.map((testCase) => testCase.id)).toContain(
+      "relay-tool-a2a-approved-peer-call",
+    );
+    expect(cases.map((testCase) => testCase.id)).toContain(
+      "relay-tool-operator-dashboard-cms-status",
+    );
   });
 });
