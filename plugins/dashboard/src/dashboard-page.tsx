@@ -8,6 +8,7 @@ import { IdentityCard } from "./render/identity-card";
 import { EndpointsCard } from "./render/endpoints-card";
 import { InteractionsCard } from "./render/interactions-card";
 import { WidgetCard } from "./render/widget-card";
+import { RuntimeCard } from "./render/runtime-card";
 import { Colophon } from "./render/colophon";
 import type {
   DashboardRenderInput,
@@ -139,14 +140,12 @@ function DashboardDocument({
     Boolean(input.character.purpose) ||
     input.character.values.length > 0;
   const interactions = input.appInfo.interactions;
-  const hasInteractions = interactions.length > 0;
-  const hasEndpoints = input.appInfo.endpoints.length > 0;
-  const hasSidebarWidgets = groups.sidebar.length > 0;
   const layoutClass = `layout${hasCharacter ? " has-identity" : ""}`;
   const showOperatorGate =
     input.operatorAccess &&
     !input.operatorAccess.isOperator &&
     input.operatorAccess.hiddenWidgetCount > 0;
+  const now = new Date();
 
   return (
     <html lang="en" data-theme="dark">
@@ -169,7 +168,7 @@ function DashboardDocument({
             title={input.title}
             tagline={input.profile.description}
             appInfo={input.appInfo}
-            now={new Date()}
+            now={now}
             operatorAccess={input.operatorAccess}
           />
 
@@ -213,36 +212,33 @@ function DashboardDocument({
                 />
               ))}
             </div>
-            {(hasSidebarWidgets ||
-              hasEndpoints ||
-              (!hasCharacter && hasInteractions)) && (
-              <div class="sidebar-column">
-                {!hasCharacter && (
-                  <InteractionsCard
-                    interactions={interactions}
-                    baseUrl={input.baseUrl}
-                  />
-                )}
-                {groups.sidebar.map((widget) => (
-                  <WidgetCard
-                    key={`${widget.widget.pluginId}:${widget.widget.id}`}
-                    widget={widget}
-                  />
-                ))}
-                <EndpointsCard
-                  endpoints={input.appInfo.endpoints}
+            <div class="sidebar-column">
+              {!hasCharacter && (
+                <InteractionsCard
+                  interactions={interactions}
                   baseUrl={input.baseUrl}
                 />
-              </div>
-            )}
+              )}
+              {groups.sidebar.map((widget) => (
+                <WidgetCard
+                  key={`${widget.widget.pluginId}:${widget.widget.id}`}
+                  widget={widget}
+                />
+              ))}
+              <EndpointsCard
+                endpoints={input.appInfo.endpoints}
+                baseUrl={input.baseUrl}
+              />
+              <RuntimeCard appInfo={input.appInfo} now={now} />
+            </div>
           </section>
 
-          <Colophon title={input.title} appInfo={input.appInfo} />
+          <Colophon
+            title={input.title}
+            appInfo={input.appInfo}
+            baseUrl={input.baseUrl}
+          />
         </main>
-
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-          Light mode
-        </button>
 
         <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: PIPELINE_TABS_SCRIPT }} />

@@ -18,12 +18,17 @@ function BrandTitle({ title }: { title: string }): JSX.Element {
   );
 }
 
-function formatRendered(date: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+function statusLabel(appInfo: AppInfo): string {
+  const hasError = appInfo.daemons.some(
+    (daemon) => daemon.health?.status === "error",
   );
+  const hasWarning = appInfo.daemons.some(
+    (daemon) => daemon.health?.status === "warning",
+  );
+
+  if (hasError) return "Degraded";
+  if (hasWarning) return "Warning";
+  return "Online";
 }
 
 export function Masthead(props: {
@@ -33,39 +38,47 @@ export function Masthead(props: {
   now: Date;
   operatorAccess: DashboardOperatorAccess | undefined;
 }): JSX.Element {
-  const { title, tagline, appInfo, now, operatorAccess } = props;
-  const daemons = appInfo.daemons.length;
+  const { title, tagline, appInfo, operatorAccess } = props;
+  const daemonCount = appInfo.daemons.length;
+  const accessLabel = operatorAccess?.isOperator ? "Operator" : "Public view";
 
   return (
     <header class="masthead">
-      <div>
-        <div class="eyebrow">
-          <span class="pulse"></span>Brain · Operator Console
-        </div>
-        <h1 class="brand">
-          <BrandTitle title={title} />
-        </h1>
-        {tagline && <p class="sub-deck">{tagline}</p>}
+      <div class="eyebrow">
+        <span class="pulse"></span>Brain · Operator Console
       </div>
-      <div class="masthead-meta">
-        <div class="line">
-          <span class="label">build</span>
-          <span>v{appInfo.version}</span>
+      <h1 class="brand">
+        <BrandTitle title={title} />
+      </h1>
+      {tagline && <p class="sub-deck">{tagline}</p>}
+
+      <div class="scoreboard">
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Status</div>
+          <div class="scoreboard-value">{statusLabel(appInfo)}</div>
         </div>
-        <div class="line">
-          <span class="label">daemons</span>
-          <span>{daemons} active</span>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Corpus</div>
+          <div class="scoreboard-value">{appInfo.entities} entities</div>
         </div>
-        <div class="line">
-          <span class="label">rendered</span>
-          <span>{formatRendered(now)}</span>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Embeddings</div>
+          <div class="scoreboard-value">{appInfo.embeddings}</div>
         </div>
-        {operatorAccess?.isOperator && (
-          <div class="line">
-            <span class="label">access</span>
-            <a href={operatorAccess.logoutUrl}>operator · sign out</a>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Daemons</div>
+          <div class="scoreboard-value">{daemonCount} active</div>
+        </div>
+        <div class="scoreboard-tile">
+          <div class="scoreboard-label">Access</div>
+          <div class="scoreboard-value">
+            {operatorAccess?.isOperator ? (
+              <a href={operatorAccess.logoutUrl}>operator · sign out</a>
+            ) : (
+              accessLabel
+            )}
           </div>
-        )}
+        </div>
       </div>
     </header>
   );
