@@ -230,7 +230,7 @@ describe("registerSummaryCoverageWidget", () => {
       section: "secondary",
       priority: 80,
       rendererName: "ListWidget",
-      visibility: "operator",
+      visibility: "anchor",
     });
   });
 });

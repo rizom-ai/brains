@@ -175,7 +175,7 @@ export function registerSummaryCoverageWidget(params: {
           section: "secondary",
           priority: 80,
           rendererName: "ListWidget",
-          visibility: "operator",
+          visibility: "anchor",
           dataProvider: () => buildSummaryCoverageData({ context, config }),
         },
       });
