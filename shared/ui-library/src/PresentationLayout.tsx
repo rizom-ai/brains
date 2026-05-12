@@ -1,10 +1,7 @@
 import type { JSX } from "preact";
-import {
-  parseSlideDirectives,
-  splitColumns,
-  convertMermaidBlocks,
-} from "@brains/utils";
 import { useMarkdownToHtml } from "./ImageRendererProvider";
+import { convertMermaidBlocks } from "./presentation-html";
+import { parseSlideDirectives, splitColumns } from "./presentation-utils";
 
 export interface PresentationLayoutProps {
   markdown: string;

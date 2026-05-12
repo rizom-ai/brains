@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { parseSlideDirectives, splitColumns } from "../src/slide-directives";
+import { parseSlideDirectives, splitColumns } from "./presentation-utils";
 
 describe("parseSlideDirectives", () => {
   it("should return empty attributes when no directive present", () => {

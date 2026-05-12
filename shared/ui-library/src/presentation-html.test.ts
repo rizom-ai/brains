@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { convertMermaidBlocks } from "../src/presentation-html";
+import { convertMermaidBlocks } from "./presentation-html";
 
 describe("convertMermaidBlocks", () => {
   it("should convert mermaid code blocks to divs", () => {

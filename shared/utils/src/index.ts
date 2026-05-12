@@ -117,11 +117,3 @@ export { LeadingTrailingDebounce } from "./debounce";
 
 // HTTP response helpers
 export { readJsonBody, parseJsonResponse } from "./http-response";
-
-// Presentation utilities
-export {
-  parseSlideDirectives,
-  splitColumns,
-  type SlideDirectiveResult,
-} from "./slide-directives";
-export { convertMermaidBlocks, escapeHtml } from "./presentation-html";
