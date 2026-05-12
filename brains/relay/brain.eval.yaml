@@ -14,3 +14,8 @@ plugins:
   directory-sync:
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"
+  a2a:
+    # Positive-call evals should prove tool routing without hanging on a fake peer.
+    requestTimeoutMs: 1000
+    streamIdleTimeoutMs: 1000
+    maxNetworkAttempts: 1

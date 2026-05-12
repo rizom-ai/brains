@@ -35,6 +35,31 @@ describe("DashboardPlugin", () => {
       const capabilities = await harness.installPlugin(new DashboardPlugin());
       expect(capabilities.tools).toHaveLength(0);
     });
+
+    it("should advertise the dashboard endpoint and interaction", () => {
+      const shell = harness.getMockShell();
+      const dashboardEndpoint = shell
+        .listEndpoints()
+        .find((endpoint) => endpoint.pluginId === "dashboard");
+      const dashboardInteraction = shell
+        .listInteractions()
+        .find((interaction) => interaction.id === "dashboard");
+
+      expect(dashboardEndpoint).toMatchObject({
+        label: "Dashboard",
+        url: "/dashboard",
+        pluginId: "dashboard",
+        visibility: "public",
+      });
+      expect(dashboardInteraction).toMatchObject({
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        kind: "admin",
+        pluginId: "dashboard",
+        visibility: "public",
+      });
+    });
   });
 
   describe("Web routes", () => {
