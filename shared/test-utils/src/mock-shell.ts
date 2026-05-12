@@ -7,7 +7,6 @@ import type {
   Prompt,
   ContentGenerationConfig,
   QueryContext,
-  DefaultQueryResponse,
   EvalHandler,
   RegisteredApiRoute,
   RegisteredWebRoute,
@@ -33,6 +32,7 @@ import type {
 } from "@brains/messaging-service";
 import type { ContentService } from "@brains/content-service";
 import type { Logger } from "@brains/utils";
+import type { DefaultQueryResponse } from "@brains/contracts";
 import type {
   IEntityService,
   IEntityRegistry,

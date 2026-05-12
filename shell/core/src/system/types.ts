@@ -2,7 +2,8 @@ import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import type { DefaultQueryResponse, Logger } from "@brains/utils";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import type { Logger } from "@brains/utils";
 import type { RuntimeAppInfo } from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
 

@@ -95,18 +95,6 @@ export {
   fetchAsText,
 } from "./http-utils";
 
-// Response types
-export {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-} from "./response-types";
-
 // Zod exports - centralized for the entire monorepo
 // NOTE: No wildcard exports to avoid loading all Zod types (causes 5M+ type instantiations)
 export { z, ZodError } from "./zod";

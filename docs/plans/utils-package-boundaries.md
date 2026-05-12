@@ -74,9 +74,10 @@ Start with the least ambiguous moves:
 
 1. Move ops/env/cert/CI helpers out of `@brains/utils` into `@brains/deploy-support`. ✅
 2. Move shared result/publish/job contracts into `@brains/contracts`. ✅
-3. Keep primitive helpers and `z` in `@brains/utils`.
-4. Review response schemas and formatter ownership separately.
-5. Update imports repo-wide and run typecheck.
+3. Move shared response schemas/types into `@brains/contracts`. ✅
+4. Keep primitive helpers and `z` in `@brains/utils`.
+5. Review formatter ownership separately.
+6. Update imports repo-wide and run typecheck.
 
 ## Open questions
 

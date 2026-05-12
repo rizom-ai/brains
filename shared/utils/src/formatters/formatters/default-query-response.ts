@@ -1,5 +1,5 @@
 import type { ContentFormatter } from "../types";
-import type { DefaultQueryResponse } from "../../response-types";
+import type { DefaultQueryResponse } from "@brains/contracts";
 
 /**
  * Default query response formatter
@@ -7,9 +7,7 @@ import type { DefaultQueryResponse } from "../../response-types";
  * Formats DefaultQueryResponse objects into human-readable strings,
  * extracting just the message field for interface display.
  */
-export class DefaultQueryResponseFormatter
-  implements ContentFormatter<DefaultQueryResponse>
-{
+export class DefaultQueryResponseFormatter implements ContentFormatter<DefaultQueryResponse> {
   format(response: DefaultQueryResponse): string {
     return response.message;
   }

@@ -1036,6 +1036,9 @@
     "shared/test-utils": {
       "name": "@brains/test-utils",
       "version": "0.2.0-alpha.63",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+      },
       "devDependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
@@ -1120,6 +1123,7 @@
       "name": "@brains/utils",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "gray-matter": "^4.0.3",
         "js-yaml": "^4.1.0",
         "marked": "^12.0.0",
@@ -1235,6 +1239,7 @@
       "version": "0.2.0-alpha.63",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/templates": "workspace:*",
@@ -1267,6 +1272,7 @@
       "name": "@brains/core",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",

@@ -2,7 +2,6 @@
 import type {
   RuntimeAppInfo,
   ContentGenerationConfig,
-  DefaultQueryResponse,
   EndpointInfo,
   EndpointInfoInput,
   EvalHandler,
@@ -58,6 +57,7 @@ import type {
 import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger, type z } from "@brains/utils";
+import type { DefaultQueryResponse } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
 import type { ShellConfig, ShellConfigInput } from "./config";
