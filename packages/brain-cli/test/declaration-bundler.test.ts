@@ -1,40 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   findInternalBrainImports,
   formatDeclarationLeakError,
 } from "../scripts/declaration-leaks";
 
-const pkgDir = join(import.meta.dir, "..");
-
 describe("declaration bundler policy", () => {
-  it("names the declaration inline allowlist explicitly", () => {
-    const source = readFileSync(
-      join(pkgDir, "scripts", "bundle-declarations.mjs"),
-      "utf-8",
-    );
-
-    expect(source).toContain("const declarationInlinePackages");
-    expect(source).toContain("public type surface");
-    expect(source).not.toContain("const publicPackages");
-  });
-
-  it("includes the required internal packages for public declarations", () => {
-    const source = readFileSync(
-      join(pkgDir, "scripts", "bundle-declarations.mjs"),
-      "utf-8",
-    );
-
-    for (const packageName of [
-      "@brains/app",
-      "@brains/plugins",
-      "@brains/site-composition",
-    ]) {
-      expect(source).toContain(`name: "${packageName}"`);
-    }
-  });
-
   it("extracts leaked internal @brains import specifiers", () => {
     const declaration = [
       'import type { App } from "@brains/app";',

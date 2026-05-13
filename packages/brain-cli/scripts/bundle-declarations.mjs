@@ -9,23 +9,15 @@ const root = resolve(import.meta.dirname, "../../..");
 // `exports`, but inclusion here is explicit policy: adding a package can expand
 // the public type surface and should be reviewed deliberately.
 const declarationInlinePackages = [
-  // Runtime and app contracts exposed through the root/runtime entrypoints.
   { name: "@brains/app", dir: "shell/app" },
-  // Entity/service authoring contracts surfaced by @rizom/brain/entities.
   { name: "@brains/entity-service", dir: "shell/entity-service" },
-  // Template authoring contracts surfaced by @rizom/brain/templates.
   { name: "@brains/templates", dir: "shell/templates" },
-  // Shared DTO/result contracts referenced by public authoring declarations.
   { name: "@brains/contracts", dir: "shared/contracts" },
   { name: "@brains/content-formatters", dir: "shared/content-formatters" },
-  // Low-level schema/logger/markdown primitives used in public contracts.
   { name: "@brains/utils", dir: "shared/utils" },
-  // Deploy helper types surfaced by @rizom/brain/deploy.
   { name: "@brains/deploy-support", dir: "shared/deploy-support" },
-  // Site/theme composition contracts surfaced by site/interface declarations.
   { name: "@brains/site-composition", dir: "shared/site-composition" },
   { name: "@brains/theme-base", dir: "shared/theme-base" },
-  // Plugin authoring contracts surfaced by @rizom/brain/plugins.
   { name: "@brains/plugins", dir: "shell/plugins" },
 ];
 

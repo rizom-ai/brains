@@ -4,13 +4,9 @@ const internalBrainSpecifierPattern = /@brains\/[\w-]+(?:\/[\w./-]+)?/g;
 
 export function findInternalBrainImports(declaration: string): string[] {
   const imports = new Set<string>();
-
-  internalBrainSpecifierPattern.lastIndex = 0;
   for (const match of declaration.matchAll(internalBrainSpecifierPattern)) {
-    const specifier = match[0];
-    imports.add(specifier);
+    imports.add(match[0]);
   }
-
   return [...imports].sort();
 }
 
