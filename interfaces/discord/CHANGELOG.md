@@ -1,5 +1,15 @@
 # @brains/discord
 
+## 0.2.0-alpha.65
+
+### Patch Changes
+
+- [`1281198`](https://github.com/rizom-ai/brains/commit/12811987b63172ce6a8856c31e90804ea0c4b3dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Capture messages passively in configured Discord spaces so conversation-memory summaries can project without requiring a bot mention.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.65
+  - @brains/plugins@0.2.0-alpha.65
+
 ## 0.2.0-alpha.64
 
 ### Patch Changes
