@@ -15,12 +15,9 @@ export {
   extractTitle,
   extractIndexedFields,
   generateMarkdown,
-  markdownToHtml,
   stripMarkdown,
   updateFrontmatterField,
 } from "./markdown";
-export type { ImageRenderer, MarkdownToHtmlOptions } from "./markdown";
-
 // Concurrency
 export { default as pLimit } from "p-limit";
 

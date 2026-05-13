@@ -81,8 +81,9 @@ Start with the least ambiguous moves:
 6. Move content/schema/tool formatters into `@brains/content-formatters`. ✅
 7. Move shared database config contract into `@brains/contracts`. ✅
 8. Move image/media markdown helpers into `@brains/image`. ✅
-9. Keep primitive helpers and `z` in `@brains/utils`.
-10. Update imports repo-wide and run typecheck.
+9. Move HTML markdown rendering into `@brains/ui-library`. ✅
+10. Keep primitive helpers and `z` in `@brains/utils`.
+11. Update imports repo-wide and run typecheck.
 
 ## Open questions
 

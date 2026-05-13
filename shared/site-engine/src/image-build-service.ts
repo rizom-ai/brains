@@ -1,4 +1,5 @@
-import type { Logger, ImageRenderer } from "@brains/utils";
+import type { ImageRenderer } from "@brains/ui-library";
+import type { Logger } from "@brains/utils";
 import { pLimit } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";

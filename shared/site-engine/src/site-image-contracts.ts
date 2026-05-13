@@ -1,4 +1,4 @@
-import type { ImageRenderer } from "@brains/utils";
+import type { ImageRenderer } from "@brains/ui-library";
 
 /** Pre-resolved image ready for rendering in static site output. */
 export interface ResolvedSiteImage {

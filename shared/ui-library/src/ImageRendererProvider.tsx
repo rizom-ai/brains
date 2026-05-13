@@ -1,7 +1,7 @@
 import { createContext, h, type JSX } from "preact";
 import { useContext } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import { markdownToHtml, type ImageRenderer } from "@brains/utils";
+import { markdownToHtml, type ImageRenderer } from "./markdown-html";
 
 /**
  * Context for sharing the ImageRenderer during SSR.

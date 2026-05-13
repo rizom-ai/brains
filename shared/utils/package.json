@@ -33,7 +33,6 @@
   "dependencies": {
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
-    "marked": "^12.0.0",
     "mdast-util-to-string": "^4.0.0",
     "nanoid": "^5.0.4",
     "p-limit": "^6.1.0",

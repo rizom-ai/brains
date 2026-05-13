@@ -140,6 +140,8 @@ export type {
 } from "./Head";
 
 // Image-aware markdown rendering
+export { markdownToHtml } from "./markdown-html";
+export type { ImageRenderer, MarkdownToHtmlOptions } from "./markdown-html";
 export {
   ImageRendererProvider,
   useImageRenderer,

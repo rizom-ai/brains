@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { markdownToHtml } from "@brains/utils";
+import { markdownToHtml } from "@brains/ui-library";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
