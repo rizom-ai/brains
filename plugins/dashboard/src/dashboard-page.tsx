@@ -173,13 +173,7 @@ function DashboardDocument({
       </head>
       <body>
         <main class="console" data-component="dashboard:dashboard">
-          <Masthead
-            title={input.title}
-            tagline={input.profile.description}
-            appInfo={input.appInfo}
-            now={now}
-            operatorAccess={input.operatorAccess}
-          />
+          <Masthead title={input.title} tagline={input.profile.description} />
 
           <section class={layoutClass}>
             {hasCharacter && (

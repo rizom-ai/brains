@@ -60,7 +60,7 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
-  it("should render operator sign-out link when signed in", () => {
+  it("should not render the masthead scoreboard", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -79,8 +79,8 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("operator · sign out");
-    expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
+    expect(html).not.toContain('class="scoreboard"');
+    expect(html).not.toContain("operator · sign out");
   });
 
   it("should render identity sections and interaction entry points", () => {

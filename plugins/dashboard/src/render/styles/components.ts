@@ -116,37 +116,6 @@ body::after {
   0%, 100% { box-shadow: 0 0 0 0 rgba(104, 204, 139, 0.45); }
   50%      { box-shadow: 0 0 0 6px rgba(104, 204, 139, 0); }
 }
-.scoreboard {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0;
-  margin-top: 36px;
-}
-.scoreboard-tile { padding: 0 22px; }
-.scoreboard-tile:first-child { padding-left: 0; }
-.scoreboard-label {
-  font-family: var(--dashboard-font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--paper-faint);
-  margin-bottom: 6px;
-}
-.scoreboard-value {
-  font-family: var(--dashboard-font-mono);
-  font-size: 14px;
-  color: var(--paper);
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.scoreboard-value a { color: var(--accent); text-decoration: none; }
-.scoreboard-value a:hover { text-decoration: underline; }
-@media (max-width: 900px) {
-  .scoreboard { grid-template-columns: 1fr 1fr; gap: 14px 0; }
-  .scoreboard-tile { padding: 0 16px; }
-  .scoreboard-tile:nth-child(odd) { padding-left: 0; }
-}
-
 .layout {
   display: grid;
   grid-template-columns: repeat(var(--layout-cols), minmax(var(--col-min), var(--col-max)));
