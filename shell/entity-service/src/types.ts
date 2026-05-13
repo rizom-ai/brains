@@ -540,4 +540,4 @@ export interface EntityRegistry {
 /**
  * Database configuration for entity service
  */
-export type { DbConfig as EntityDbConfig } from "@brains/utils";
+export type { DbConfig as EntityDbConfig } from "@brains/contracts";

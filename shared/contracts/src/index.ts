@@ -1,3 +1,4 @@
+export { dbConfigSchema, type DbConfig } from "./db-config";
 export {
   generationResultSchema,
   type GenerationResult,

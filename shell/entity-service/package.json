@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",

@@ -4,9 +4,6 @@
  * This package contains shared utilities used across the Brains system.
  */
 
-// Database config
-export { dbConfigSchema, type DbConfig } from "./db-config";
-
 // Logger
 export { Logger, LogLevel } from "./logger";
 export type { LogFormat, LoggerOptions } from "./logger";

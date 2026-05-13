@@ -1292,6 +1292,7 @@
       "name": "@brains/conversation-service",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
@@ -1335,6 +1336,7 @@
       "version": "0.2.0-alpha.63",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
@@ -1367,6 +1369,7 @@
       "name": "@brains/job-queue",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",

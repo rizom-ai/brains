@@ -1,5 +1,6 @@
 import type { AIModelConfig } from "@brains/ai-service";
-import { Logger, LogLevel, type DbConfig } from "@brains/utils";
+import type { DbConfig } from "@brains/contracts";
+import { Logger, LogLevel } from "@brains/utils";
 import type { ShellConfig } from "../config";
 
 export function createServiceLogger(

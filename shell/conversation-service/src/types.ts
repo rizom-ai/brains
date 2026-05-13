@@ -165,4 +165,4 @@ export type ConversationDigestPayload = z.infer<
 /**
  * Database configuration for conversation service
  */
-export type { DbConfig as ConversationDbConfig } from "@brains/utils";
+export type { DbConfig as ConversationDbConfig } from "@brains/contracts";

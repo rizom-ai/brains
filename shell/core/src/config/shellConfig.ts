@@ -1,4 +1,5 @@
-import { z, dbConfigSchema } from "@brains/utils";
+import { dbConfigSchema } from "@brains/contracts";
+import { z } from "@brains/utils";
 import type {
   Plugin,
   IEvalHandlerRegistry,

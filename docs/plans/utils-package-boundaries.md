@@ -79,8 +79,9 @@ Start with the least ambiguous moves:
 4. Move presentation/deck rendering helpers into `@brains/ui-library`. ✅
 5. Move entity URL generation into `@brains/site-composition`. ✅
 6. Move content/schema/tool formatters into `@brains/content-formatters`. ✅
-7. Keep primitive helpers and `z` in `@brains/utils`.
-8. Update imports repo-wide and run typecheck.
+7. Move shared database config contract into `@brains/contracts`. ✅
+8. Keep primitive helpers and `z` in `@brains/utils`.
+9. Update imports repo-wide and run typecheck.
 
 ## Open questions
 

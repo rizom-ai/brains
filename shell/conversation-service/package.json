@@ -24,6 +24,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",

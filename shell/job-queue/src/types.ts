@@ -1,7 +1,8 @@
 import { JobContextSchema } from "./schema/types";
 import type { JobOptions, JobContext } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
-import type { DbConfig, ProgressReporter } from "@brains/utils";
+import type { DbConfig } from "@brains/contracts";
+import type { ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 
 // Re-export types that are used internally
@@ -183,7 +184,7 @@ export type EnqueueJob = (request: JobQueueEnqueueRequest) => Promise<string>;
 /**
  * Database configuration for job queue
  */
-export type { DbConfig as JobQueueDbConfig } from "@brains/utils";
+export type { DbConfig as JobQueueDbConfig } from "@brains/contracts";
 
 /**
  * Configuration for the JobQueueService.

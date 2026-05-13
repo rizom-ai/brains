@@ -1,4 +1,4 @@
-import type { DbConfig } from "@brains/utils";
+import type { DbConfig } from "@brains/contracts";
 
 export interface StandardPaths {
   dataDir: string;
