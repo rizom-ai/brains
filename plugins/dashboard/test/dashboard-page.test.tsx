@@ -118,7 +118,7 @@ describe("renderDashboardPageHtml", () => {
     );
   });
 
-  it("should give complex custom widgets a wide card by default", () => {
+  it("should give content-heavy widgets a wide card by default", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -150,13 +150,40 @@ describe("renderDashboardPageHtml", () => {
           },
           data: { status: "ready" },
         },
+        "content-pipeline:pipeline": {
+          widget: {
+            id: "pipeline",
+            pluginId: "content-pipeline",
+            title: "Content Pipeline",
+            section: "secondary",
+            priority: 12,
+            rendererName: "PipelineWidget",
+            visibility: "public",
+          },
+          data: { summary: {}, items: [] },
+        },
+        "stats:tiny": {
+          widget: {
+            id: "tiny",
+            pluginId: "stats",
+            title: "Tiny Stats",
+            section: "secondary",
+            priority: 13,
+            rendererName: "StatsWidget",
+            visibility: "public",
+          },
+          data: { ok: true },
+        },
       },
       widgetScripts: [],
     };
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(2);
+    expect(html.match(/class="card widget-card--wide"/g)).toHaveLength(3);
+    expect(html).toContain(
+      '<article class="card"><div class="card-head"><span class="card-title">Tiny Stats</span>',
+    );
   });
 
   it("should render plugin-owned custom widgets and inject their scripts", () => {
