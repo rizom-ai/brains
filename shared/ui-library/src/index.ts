@@ -116,6 +116,11 @@ export { ContentListItem } from "./ContentListItem";
 export type { ContentListItemProps, SeriesInfo } from "./ContentListItem";
 export { ContentSection } from "./ContentSection";
 export type { ContentSectionProps, ContentItem } from "./ContentSection";
+export { ContentArchive } from "./ContentArchive";
+export type {
+  ContentArchiveProps,
+  ContentArchivePagination,
+} from "./ContentArchive";
 export { ContentList } from "./ContentList";
 export type { ContentListProps } from "./ContentList";
 export { SectionHeader } from "./SectionHeader";

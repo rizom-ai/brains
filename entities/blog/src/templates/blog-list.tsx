@@ -1,12 +1,7 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
 import type { PaginationInfo } from "@brains/plugins";
-import {
-  ContentSection,
-  type ContentItem,
-  Head,
-  Pagination,
-} from "@brains/ui-library";
+import { ContentArchive, type ContentItem, Head } from "@brains/ui-library";
 
 export interface BlogListProps {
   posts: EnrichedBlogPost[];
@@ -40,7 +35,7 @@ export const BlogListTemplate = ({
         : undefined,
   }));
 
-  const title = pageTitle ?? "Essays";
+  const title = pageTitle && pageTitle !== "Posts" ? pageTitle : "Essays";
   const totalCount = pagination?.totalItems ?? posts.length;
   const description = `Browse all ${totalCount} ${totalCount === 1 ? "essay" : "essays"}`;
 
@@ -48,15 +43,13 @@ export const BlogListTemplate = ({
     <>
       <Head title={title} description={description} />
       <div className="blog-list bg-theme">
-        <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
-          <ContentSection title={title} items={postItems} />
-          {pagination && pagination.totalPages > 1 && (
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              baseUrl={baseUrl}
-            />
-          )}
+        <div className="container mx-auto max-w-[1100px] px-6 py-16 md:px-12 md:py-24">
+          <ContentArchive
+            title={title}
+            items={postItems}
+            pagination={pagination}
+            baseUrl={baseUrl}
+          />
         </div>
       </div>
     </>

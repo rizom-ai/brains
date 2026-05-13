@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedDeckListData } from "./schema";
-import { ContentSection, type ContentItem } from "@brains/ui-library";
+import { ContentArchive, type ContentItem } from "@brains/ui-library";
 
 export const DeckListLayout = ({
   decks,
@@ -17,8 +17,8 @@ export const DeckListLayout = ({
 
   return (
     <div className="deck-list bg-theme">
-      <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
-        <ContentSection
+      <div className="container mx-auto max-w-[1100px] px-6 py-16 md:px-12 md:py-24">
+        <ContentArchive
           title={pageTitle ?? "Presentations"}
           items={deckItems}
         />
