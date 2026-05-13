@@ -34,6 +34,7 @@ export interface DashboardRenderInput {
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;
+  themeCSS?: string;
   operatorAccess?: DashboardOperatorAccess;
 }
 

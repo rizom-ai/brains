@@ -192,6 +192,21 @@ function applyPluginDefaults(
       siteBuilderExplicit,
     );
   }
+
+  if (theme !== undefined) {
+    const dashboardDefaults: Record<string, unknown> = { themeCSS: theme };
+    const dashboardExplicit = pluginOverrides["dashboard"] ?? {};
+    pluginOverrides["dashboard"] = deepMerge(
+      dashboardDefaults,
+      dashboardExplicit,
+    );
+
+    const dashboardRootExplicit = pluginOverrides["dashboard-root"] ?? {};
+    pluginOverrides["dashboard-root"] = deepMerge(
+      dashboardDefaults,
+      dashboardRootExplicit,
+    );
+  }
 }
 
 function instantiateSitePlugin(

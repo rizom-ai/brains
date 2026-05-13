@@ -31,6 +31,7 @@ import packageJson from "../package.json";
 const dashboardConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   routePath: z.string().default("/dashboard"),
+  themeCSS: z.string().optional(),
 });
 
 type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
@@ -240,6 +241,9 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             character,
             profile,
             appInfo: visibleAppInfo,
+            ...(this.config.themeCSS !== undefined && {
+              themeCSS: this.config.themeCSS,
+            }),
             operatorAccess: {
               isOperator,
               hiddenWidgetCount,

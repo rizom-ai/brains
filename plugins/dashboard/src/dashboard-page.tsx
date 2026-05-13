@@ -160,7 +160,16 @@ function DashboardDocument({
           crossOrigin="anonymous"
         />
         <link href={FONTS_URL} rel="stylesheet" />
-        <style dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }} />
+        {input.themeCSS !== undefined && (
+          <style
+            data-dashboard-theme
+            dangerouslySetInnerHTML={{ __html: input.themeCSS }}
+          />
+        )}
+        <style
+          data-dashboard-styles
+          dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
+        />
       </head>
       <body>
         <main class="console" data-component="dashboard:dashboard">

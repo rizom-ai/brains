@@ -40,6 +40,26 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
   });
 
+  it("should inject theme CSS before dashboard component styles", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      widgetScripts: [],
+      themeCSS: ":root { --color-accent: #c6ff00; }",
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain(":root { --color-accent: #c6ff00; }");
+    expect(html.indexOf("--color-accent: #c6ff00")).toBeLessThan(
+      html.indexOf("data-dashboard-styles"),
+    );
+  });
+
   it("should render operator sign-out link when signed in", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",

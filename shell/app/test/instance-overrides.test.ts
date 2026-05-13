@@ -1217,6 +1217,7 @@ function createMockSitePackage(
 describe("resolve with site package", () => {
   test("should use theme from brain definition as default", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
+    const [dashboardFactory] = createMockFactory("dashboard");
     const site = createMockSitePackage("personal-site");
 
     const def = defineBrain({
@@ -1224,18 +1225,46 @@ describe("resolve with site package", () => {
       version: "1.0.0",
       site,
       theme: "body { color: pink; }",
-      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      capabilities: [
+        ["site-builder", siteBuilderFactory, {}],
+        ["dashboard", dashboardFactory, {}],
+      ],
       interfaces: [],
     });
 
     const config = resolve(def, {});
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+    const expectedThemeCSS = composeTheme("body { color: pink; }");
 
     expect(pluginIds).toContain("personal-site");
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
-    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(expectedThemeCSS);
+    const dashboard = config.plugins?.find((p) => p.id === "dashboard");
+    expect(getConfig(dashboard)["themeCSS"]).toBe(expectedThemeCSS);
+  });
+
+  test("should inject theme into dashboard-root capability configs", () => {
+    const [dashboardRootFactory] = createMockFactory("dashboard-root");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      theme: "body { color: pink; }",
+      capabilities: [
+        ["dashboard-root", dashboardRootFactory, { routePath: "/" }],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const dashboardRoot = config.plugins?.find(
+      (p) => p.id === "dashboard-root",
+    );
+
+    expect(getConfig(dashboardRoot)["themeCSS"]).toBe(
       composeTheme("body { color: pink; }"),
     );
+    expect(getConfig(dashboardRoot)["routePath"]).toBe("/");
   });
 
   test("should inject routes and entityDisplay into site-builder", () => {
