@@ -23,6 +23,10 @@ import {
 import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
+import {
+  findInternalBrainImports,
+  formatDeclarationLeakError,
+} from "./declaration-leaks";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
@@ -216,9 +220,10 @@ async function emitLibraryDeclarations(): Promise<void> {
     for (const entry of libraryEntries) {
       const declarationPath = join(outdir, `${entry.name}.d.ts`);
       const declaration = readFileSync(declarationPath, "utf8");
-      if (declaration.includes("@brains/")) {
+      const leakedImports = findInternalBrainImports(declaration);
+      if (leakedImports.length > 0) {
         console.error(
-          `Generated declaration '${entry.name}.d.ts' leaks an internal @brains/* import`,
+          formatDeclarationLeakError(declarationPath, leakedImports),
         );
         process.exit(1);
       }
