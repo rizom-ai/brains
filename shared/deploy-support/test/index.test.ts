@@ -4,6 +4,7 @@ import {
   deployProvisionEnvSchema,
   deployScriptNames,
   renderDockerfile,
+  renderExtractBrainConfigScript,
   renderKamalDeploy,
   resolveDeployScriptPath,
   tlsCertEnvSchema,
@@ -24,6 +25,14 @@ describe("deploy templates", () => {
     expect(backendBootstrapEnvSchema("1password")).toContain(
       "secret backend bootstrap",
     );
+  });
+
+  it("renders preview domains under the configured brain domain", () => {
+    const script = renderExtractBrainConfigScript();
+
+    expect(script).toContain('preview_domain = "preview.#{brain_domain}"');
+    expect(script).not.toContain("preview_domain = if labels.length >= 3");
+    expect(script).not.toContain("-preview");
   });
 
   it("resolves deploy script source paths", () => {

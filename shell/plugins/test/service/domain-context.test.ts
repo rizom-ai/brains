@@ -71,7 +71,7 @@ describe("Top-level context properties", () => {
       });
       const context = createBasePluginContext(shell, "test-plugin");
 
-      expect(context.previewUrl).toBe("https://recall-preview.rizom.ai");
+      expect(context.previewUrl).toBe("https://preview.recall.rizom.ai");
     });
   });
 

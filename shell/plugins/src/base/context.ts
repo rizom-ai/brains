@@ -162,7 +162,7 @@ export interface BasePluginContext {
   /** Production site URL derived from domain (e.g. "https://yeehaa.io"), undefined if no domain */
   readonly siteUrl: string | undefined;
 
-  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://recall-preview.rizom.ai"), undefined if no domain */
+  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://preview.recall.rizom.ai"), undefined if no domain */
   readonly previewUrl: string | undefined;
 
   /** Entity display metadata from the active site package, if any */

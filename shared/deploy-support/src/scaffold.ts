@@ -39,11 +39,7 @@ raise "Missing domain in brain.yaml" if brain_domain.nil? || brain_domain.to_s.s
 
 brain_domain = brain_domain.to_s.strip
 labels = brain_domain.split(".")
-preview_domain = if labels.length >= 3
-  labels.dup.tap { |parts| parts[0] = "#{parts[0]}-preview" }.join(".")
-else
-  "preview.#{brain_domain}"
-end
+preview_domain = "preview.#{brain_domain}"
 www_domain = if labels.length == 2
   "www.#{brain_domain}"
 else

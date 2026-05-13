@@ -868,11 +868,11 @@ describe("brain init", () => {
       expect(script).toContain('ENV["GITHUB_ENV"]');
       expect(script).toContain('ENV["GITHUB_REPOSITORY_OWNER"]');
       expect(script).toContain('ENV["GITHUB_REPOSITORY"]');
-      expect(script).toContain("preview_domain = if labels.length >= 3");
-      expect(script).toContain(
+      expect(script).toContain('preview_domain = "preview.#{brain_domain}"');
+      expect(script).not.toContain("preview_domain = if labels.length >= 3");
+      expect(script).not.toContain(
         'labels.dup.tap { |parts| parts[0] = "#{parts[0]}-preview" }.join(".")',
       );
-      expect(script).toContain('"preview.#{brain_domain}"');
       expect(script).toContain('file.puts("PREVIEW_DOMAIN=#{preview_domain}")');
       expect(script).toContain('file.puts("WWW_DOMAIN=#{www_domain}")');
       expect(script).toContain("INSTANCE_NAME");

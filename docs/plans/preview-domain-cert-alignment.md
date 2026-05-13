@@ -1,5 +1,9 @@
 # Preview domain and origin cert alignment
 
+## Status
+
+Implemented. Standalone deploy scaffolding and shared preview-domain derivation now use `preview.<brain-domain>` for both apex and nested brain domains.
+
 ## Problem
 
 Standalone deploy scaffolding derives preview hosts differently for nested domains:
@@ -26,7 +30,7 @@ This aligns DNS, Kamal proxy hosts, and origin certificates generated for `<doma
 
 ## Proposed implementation
 
-1. Change the shared standalone deploy scaffold in `shared/deploy-templates/src/scaffold.ts` so `extract-brain-config.rb` always emits:
+1. Change the shared standalone deploy scaffold in `shared/deploy-support/src/scaffold.ts` so `extract-brain-config.rb` always emits:
 
    ```ruby
    preview_domain = "preview.#{brain_domain}"

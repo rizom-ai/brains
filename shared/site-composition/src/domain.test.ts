@@ -9,10 +9,10 @@ describe("derivePreviewDomain", () => {
     );
   });
 
-  it("uses -preview hostnames for subdomain deployments", () => {
+  it("uses preview subdomain under nested deployment domains", () => {
     expect(derivePreviewDomain("recall.rizom.ai")).toBe(
-      "recall-preview.rizom.ai",
+      "preview.recall.rizom.ai",
     );
-    expect(derivePreviewDomain("max.rizom.ai")).toBe("max-preview.rizom.ai");
+    expect(derivePreviewDomain("max.rizom.ai")).toBe("preview.max.rizom.ai");
   });
 });
