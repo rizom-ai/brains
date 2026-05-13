@@ -1,3 +1,4 @@
+import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils";
 import type { ImageFormat } from "../schemas/image";
 
 /**
@@ -69,8 +70,14 @@ export function isValidDataUrl(str: string): boolean {
   return /^data:image\/[a-z+]+;base64,.+$/i.test(str);
 }
 
-// Re-export HTTP utilities from @brains/utils for convenience
-export { isHttpUrl, fetchImageAsBase64 } from "@brains/utils";
+export { isHttpUrl };
+
+/**
+ * Fetch an image from URL and return as base64 data URL.
+ */
+export async function fetchImageAsBase64(url: string): Promise<string> {
+  return fetchAsBase64DataUrl(url, "image/");
+}
 
 /**
  * Get image dimensions from base64 data

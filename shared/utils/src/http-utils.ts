@@ -43,14 +43,6 @@ export async function fetchAsBase64DataUrl(
 }
 
 /**
- * Fetch an image from URL and return as base64 data URL
- * Convenience wrapper for fetchAsBase64DataUrl with image validation
- */
-export async function fetchImageAsBase64(url: string): Promise<string> {
-  return fetchAsBase64DataUrl(url, "image/");
-}
-
-/**
  * Fetch a resource from URL and return as plain text
  */
 export async function fetchAsText(url: string): Promise<string> {

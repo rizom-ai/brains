@@ -1,12 +1,12 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
-  getErrorMessage,
-  isHttpUrl,
-  fetchImageAsBase64,
   extractMarkdownImages,
+  fetchImageAsBase64,
+  isHttpUrl,
   type ExtractedImage,
-} from "@brains/utils";
+} from "@brains/image";
+import { getErrorMessage } from "@brains/utils";
 import type { ImageFetcher } from "./frontmatter-image-converter";
 import { getOrCreateImageEntity } from "./image-entity-helper";
 

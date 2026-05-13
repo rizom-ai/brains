@@ -3,7 +3,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { UnsplashClient } from "./lib/unsplash-client";
 import { createStockPhotoTools } from "./tools";
-import { fetchImageAsBase64 } from "@brains/utils";
+import { fetchImageAsBase64 } from "@brains/image";
 import type { FetchFn, FetchImageFn } from "./lib/types";
 import packageJson from "../package.json";
 

@@ -21,6 +21,14 @@ export {
   extractCoverImageId,
 } from "./lib/image-resolver";
 
+// Markdown image utilities
+export {
+  extractMarkdownImages,
+  getCoverImageId,
+  setCoverImageId,
+} from "./lib/markdown-images";
+export type { ExtractedImage } from "./lib/markdown-images";
+
 // Image utilities
 export {
   parseDataUrl,

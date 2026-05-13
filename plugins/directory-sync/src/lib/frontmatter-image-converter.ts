@@ -1,9 +1,8 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
 import {
   getErrorMessage,
-  isHttpUrl,
-  fetchImageAsBase64,
   slugify,
   parseMarkdown,
   generateMarkdown,

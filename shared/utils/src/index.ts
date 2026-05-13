@@ -17,16 +17,9 @@ export {
   generateMarkdown,
   markdownToHtml,
   stripMarkdown,
-  extractMarkdownImages,
   updateFrontmatterField,
-  getCoverImageId,
-  setCoverImageId,
 } from "./markdown";
-export type {
-  ExtractedImage,
-  ImageRenderer,
-  MarkdownToHtmlOptions,
-} from "./markdown";
+export type { ImageRenderer, MarkdownToHtmlOptions } from "./markdown";
 
 // Concurrency
 export { default as pLimit } from "p-limit";
@@ -78,12 +71,7 @@ export { sortByPublicationDate } from "./sort";
 export { toISODateString, getYesterday, getDaysAgo } from "./date";
 
 // HTTP utilities
-export {
-  isHttpUrl,
-  fetchAsBase64DataUrl,
-  fetchImageAsBase64,
-  fetchAsText,
-} from "./http-utils";
+export { isHttpUrl, fetchAsBase64DataUrl, fetchAsText } from "./http-utils";
 
 // Zod exports - centralized for the entire monorepo
 // NOTE: No wildcard exports to avoid loading all Zod types (causes 5M+ type instantiations)

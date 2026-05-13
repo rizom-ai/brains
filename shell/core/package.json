@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",

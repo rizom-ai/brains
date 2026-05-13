@@ -2,10 +2,10 @@ import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { getErrorMessage, z, slugify, setCoverImageId } from "@brains/utils";
+import { imageAdapter, setCoverImageId } from "@brains/image";
+import { getErrorMessage, z, slugify } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { findEntityByIdentifier } from "@brains/entity-service";
-import { imageAdapter } from "@brains/image";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
 
 /**

@@ -1,6 +1,7 @@
+import { getCoverImageId } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Logger } from "@brains/utils";
-import { getCoverImageId, getErrorMessage, pluralize, z } from "@brains/utils";
+import { getErrorMessage, pluralize, z } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
 import type { IEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";

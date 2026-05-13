@@ -1,7 +1,7 @@
 import { resolveEntityOrError } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
-import { setCoverImageId } from "@brains/utils";
+import { setCoverImageId } from "@brains/image";
 import { setCoverInputSchema } from "./schemas";
 import type { SystemServices } from "./types";
 

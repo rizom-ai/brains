@@ -3,9 +3,9 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
+import { fetchImageAsBase64 } from "@brains/image";
 import {
   getErrorMessage,
-  fetchImageAsBase64,
   parseMarkdown,
   generateMarkdown,
 } from "@brains/utils";

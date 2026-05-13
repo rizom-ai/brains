@@ -5,8 +5,6 @@ import {
   extractIndexedFields,
   generateMarkdown,
   updateFrontmatterField,
-  getCoverImageId,
-  setCoverImageId,
 } from "../src/markdown";
 
 describe("Markdown Utilities", () => {
@@ -262,95 +260,6 @@ Content here`;
 
       expect(parsed.frontmatter["coverImageId"]).toBe("my-image");
       expect(parsed.content).toBe("Just content, no frontmatter");
-    });
-  });
-
-  describe("getCoverImageId", () => {
-    it("should get cover image ID from frontmatter", () => {
-      const entity = {
-        content: `---
-title: Test Post
-coverImageId: hero-image-123
----
-
-Content here`,
-      };
-
-      const result = getCoverImageId(entity);
-      expect(result).toBe("hero-image-123");
-    });
-
-    it("should return null when no cover image", () => {
-      const entity = {
-        content: `---
-title: Test Post
----
-
-Content here`,
-      };
-
-      const result = getCoverImageId(entity);
-      expect(result).toBeNull();
-    });
-
-    it("should return null for empty content", () => {
-      const entity = { content: "" };
-
-      const result = getCoverImageId(entity);
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("setCoverImageId", () => {
-    it("should set cover image ID on entity", () => {
-      const entity = {
-        id: "test-123",
-        content: `---
-title: Test Post
----
-
-Content here`,
-      };
-
-      const result = setCoverImageId(entity, "new-cover-image");
-
-      expect(result.id).toBe("test-123");
-      expect(getCoverImageId(result)).toBe("new-cover-image");
-    });
-
-    it("should remove cover image when null", () => {
-      const entity = {
-        id: "test-123",
-        content: `---
-title: Test Post
-coverImageId: old-image
----
-
-Content here`,
-      };
-
-      const result = setCoverImageId(entity, null);
-
-      expect(getCoverImageId(result)).toBeNull();
-    });
-
-    it("should preserve other entity properties", () => {
-      const entity = {
-        id: "test-123",
-        entityType: "blog",
-        content: `---
-title: Test
----
-
-Content`,
-        metadata: { slug: "test-post" },
-      };
-
-      const result = setCoverImageId(entity, "cover-img");
-
-      expect(result.id).toBe("test-123");
-      expect(result.entityType).toBe("blog");
-      expect(result.metadata).toEqual({ slug: "test-post" });
     });
   });
 });
