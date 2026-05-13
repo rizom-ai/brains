@@ -192,6 +192,7 @@ export function wrapPem(label: string, der: Buffer): string {
   ].join("\n");
 }
 
+// Only used to encode the CSR version field, which PKCS#10 fixes at 0.
 function encodeInteger(value: number): Buffer {
   if (value !== 0) {
     throw new Error("Only zero-valued INTEGER encoding is currently supported");

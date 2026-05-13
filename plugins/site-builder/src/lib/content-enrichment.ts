@@ -1,4 +1,4 @@
-import { getCoverImageId } from "@brains/image";
+import { extractCoverImageId } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage, pluralize, z } from "@brains/utils";
@@ -111,7 +111,7 @@ export async function enrichWithUrls(
   const listLabel = pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
 
   // Resolve cover image: prefer pre-optimized build image, fall back to data URL
-  const coverImageId = getCoverImageId(entity) ?? undefined;
+  const coverImageId = extractCoverImageId(entity);
   const preResolved = coverImageId
     ? options.imageBuildService?.get(coverImageId)
     : undefined;
@@ -205,7 +205,7 @@ export async function collectAllImageIds(
       const entities = await entityService.listEntities({ entityType });
 
       for (const entity of entities) {
-        const coverImageId = getCoverImageId(entity);
+        const coverImageId = extractCoverImageId(entity);
         if (coverImageId) {
           imageIds.add(coverImageId);
         }

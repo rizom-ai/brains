@@ -3,6 +3,7 @@ import {
   resolveImage,
   resolveEntityCoverImage,
   extractCoverImageId,
+  setCoverImageId,
 } from "../src/lib/image-resolver";
 import type { Image } from "../src/schemas/image";
 import type { BaseEntity } from "@brains/entity-service";
@@ -125,6 +126,53 @@ title: Test
     const result = extractCoverImageId(entity);
 
     expect(result).toBeUndefined();
+  });
+});
+
+describe("setCoverImageId", () => {
+  it("sets cover image ID on entity", () => {
+    const entity = createMockEntity(`---
+title: Test Post
+---
+
+Content here`);
+
+    const result = setCoverImageId(entity, "new-cover-image");
+
+    expect(result.id).toBe("test-entity-1");
+    expect(extractCoverImageId(result)).toBe("new-cover-image");
+  });
+
+  it("removes cover image when null", () => {
+    const entity = createMockEntity(`---
+title: Test Post
+coverImageId: old-image
+---
+
+Content here`);
+
+    const result = setCoverImageId(entity, null);
+
+    expect(extractCoverImageId(result)).toBeUndefined();
+  });
+
+  it("preserves other entity properties", () => {
+    const entity = {
+      id: "test-123",
+      entityType: "blog",
+      content: `---
+title: Test
+---
+
+Content`,
+      metadata: { slug: "test-post" },
+    };
+
+    const result = setCoverImageId(entity, "cover-img");
+
+    expect(result.id).toBe("test-123");
+    expect(result.entityType).toBe("blog");
+    expect(result.metadata).toEqual({ slug: "test-post" });
   });
 });
 

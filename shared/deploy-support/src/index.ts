@@ -167,6 +167,8 @@ export const REQUIRED_DEPLOY_MOUNTS = [
   "/opt/brain-dist:/app/dist",
 ] as const;
 
+// Replaces the trailing `volumes:` list with a placeholder so two deploy.yml
+// files can be compared on structure without their mount lists clashing.
 export function stripDeployVolumes(content: string): string {
   return content.replace(
     /\nvolumes:\n(?: {2}- .*\n)+$/,
@@ -174,6 +176,8 @@ export function stripDeployVolumes(content: string): string {
   );
 }
 
+// Drops the optional WWW_DOMAIN ERB conditional block. Different on-disk
+// templates may or may not include it, but the surrounding YAML matches.
 function normalizeOptionalWwwDeployHost(content: string): string {
   return content.replace(
     /\n {4}# <% if ENV\['WWW_DOMAIN'\] && !ENV\['WWW_DOMAIN'\]\.empty\? %>\n {4}- <%= ENV\['WWW_DOMAIN'\] %>\n {4}# <% end %>/,
@@ -202,6 +206,13 @@ export function isStaleDeployMounts(
   );
 }
 
+// Maps the older standalone deploy.yml shape onto a canonical form so the
+// two can be string-compared. Three normalizations:
+//   1. collapse the multi-line `secret:` list — legacy hard-codes 4 entries,
+//      canonical varies — to a single placeholder.
+//   2. drop the optional WWW host conditional (varies independently).
+//   3. replace the second proxy `hosts:` entry with __PREVIEW_HOST__ since
+//      legacy emits `preview.${DOMAIN}` while canonical uses ENV['PREVIEW_DOMAIN'].
 function normalizeStandaloneDeployYmlForComparison(content: string): string {
   return content
     .replace(
@@ -226,12 +237,10 @@ function isStaleStandaloneDeployMounts(current: string): boolean {
   );
 }
 
-export function matchesLegacyStandaloneDeployYml(current: string): boolean {
-  const normalized = normalizeStandaloneDeployYmlForComparison(current);
-
-  return (
-    normalized ===
-      `service: brain
+// Expected normalized form of an older standalone deploy.yml. Can't be
+// derived from the current canonical template — they differ in app_port
+// (80 vs 8080) and shipped volume list — so we keep a separate literal.
+const LEGACY_STANDALONE_DEPLOY_YML_NORMALIZED = `service: brain
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:
@@ -268,6 +277,12 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-` || isStaleStandaloneDeployMounts(current)
+`;
+
+export function matchesLegacyStandaloneDeployYml(current: string): boolean {
+  const normalized = normalizeStandaloneDeployYmlForComparison(current);
+  return (
+    normalized === LEGACY_STANDALONE_DEPLOY_YML_NORMALIZED ||
+    isStaleStandaloneDeployMounts(current)
   );
 }

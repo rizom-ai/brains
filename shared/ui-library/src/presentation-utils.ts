@@ -1,35 +1,22 @@
-/**
- * Result of parsing slide directives from a markdown chunk.
- */
 export interface SlideDirectiveResult {
-  /** Key-value attributes extracted from <!-- .slide: ... --> */
   attributes: Record<string, string>;
-  /** Markdown with directive comments stripped */
   markdown: string;
 }
 
-/** Matches <!-- .slide: ... --> directives */
 const SLIDE_DIRECTIVE_PATTERN = /<!--\s*\.slide:\s*(.*?)\s*-->/g;
 
 /**
  * Parse Reveal.js-compatible slide directives from a markdown chunk.
- *
- * Extracts `<!-- .slide: key="value" ... -->` comments and returns
- * the attributes as a record plus the cleaned markdown.
- *
- * Supports:
- * - Quoted values: `data-background-color="#ff0000"`
- * - Boolean attributes: `data-auto-animate`
- * - Multiple attributes per directive
+ * Extracts `<!-- .slide: key="value" ... -->` comments, returning the
+ * attributes plus the cleaned markdown. Supports quoted values and
+ * bare boolean attributes.
  */
 export function parseSlideDirectives(markdown: string): SlideDirectiveResult {
   const attributes: Record<string, string> = {};
 
-  // Collect attributes from all directive comments
   for (const match of markdown.matchAll(SLIDE_DIRECTIVE_PATTERN)) {
     const attrString = match[1] ?? "";
 
-    // Extract quoted key="value" pairs
     for (const attrMatch of attrString.matchAll(
       /([\w-]+)=["']([^"']*?)["']/g,
     )) {
@@ -40,7 +27,8 @@ export function parseSlideDirectives(markdown: string): SlideDirectiveResult {
       }
     }
 
-    // Extract boolean attributes — strip quoted attrs first, then match bare words
+    // Strip quoted attrs before matching bare words so a key from
+    // `key="value bare"` isn't picked up as a boolean attribute.
     const withoutQuoted = attrString
       .replace(/([\w-]+)=["']([^"']*?)["']/g, "")
       .trim();
@@ -56,7 +44,6 @@ export function parseSlideDirectives(markdown: string): SlideDirectiveResult {
     }
   }
 
-  // Strip all directive comments in a single pass, then clean up whitespace
   const cleaned = markdown
     .replace(SLIDE_DIRECTIVE_PATTERN, "")
     .replace(/^\n+/, "")
@@ -66,15 +53,8 @@ export function parseSlideDirectives(markdown: string): SlideDirectiveResult {
   return { attributes, markdown: cleaned };
 }
 
-/** Matches <!-- .break --> column separator */
 const BREAK_PATTERN = /<!--\s*\.break\s*-->/;
 
-/**
- * Split markdown content on `<!-- .break -->` separators.
- *
- * Returns an array of column strings, or null if no break is found.
- * Each column's content is preserved as-is (not trimmed).
- */
 export function splitColumns(markdown: string): string[] | null {
   const parts = markdown.split(BREAK_PATTERN);
   return parts.length > 1 ? parts : null;
