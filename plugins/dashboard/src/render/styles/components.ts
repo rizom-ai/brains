@@ -67,6 +67,13 @@ body::after {
   width: 120px; height: 1px;
   background: var(--accent);
 }
+.masthead-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
 .eyebrow {
   font-family: var(--dashboard-font-mono);
   font-size: 10.5px;
@@ -77,12 +84,29 @@ body::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 18px;
 }
 .eyebrow::before {
   content: "";
   width: 18px; height: 1px;
   background: var(--accent);
+}
+.masthead-action {
+  flex: 0 0 auto;
+  font-family: var(--dashboard-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.masthead-action:hover {
+  border-color: var(--rule-accent);
+  background: var(--accent-soft);
 }
 .brand {
   font-family: var(--dashboard-font-display);

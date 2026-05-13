@@ -1,5 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
+import type { DashboardOperatorAccess } from "./types";
 
 function BrandTitle({ title }: { title: string }): JSX.Element {
   const trimmed = title.trim();
@@ -19,13 +20,21 @@ function BrandTitle({ title }: { title: string }): JSX.Element {
 export function Masthead(props: {
   title: string;
   tagline: string | undefined;
+  operatorAccess: DashboardOperatorAccess | undefined;
 }): JSX.Element {
-  const { title, tagline } = props;
+  const { title, tagline, operatorAccess } = props;
 
   return (
     <header class="masthead">
-      <div class="eyebrow">
-        <span class="pulse"></span>Brain · Operator Console
+      <div class="masthead-topline">
+        <div class="eyebrow">
+          <span class="pulse"></span>Brain · Operator Console
+        </div>
+        {operatorAccess?.isOperator && (
+          <a class="masthead-action" href={operatorAccess.logoutUrl}>
+            Sign out
+          </a>
+        )}
       </div>
       <h1 class="brand">
         <BrandTitle title={title} />

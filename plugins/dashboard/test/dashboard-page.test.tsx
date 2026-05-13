@@ -81,6 +81,8 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).not.toContain('class="scoreboard"');
     expect(html).not.toContain("operator · sign out");
+    expect(html).toContain('class="masthead-action"');
+    expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
   it("should render identity sections and interaction entry points", () => {
