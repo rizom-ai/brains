@@ -137,7 +137,7 @@ Content:
 ${data.entityContent}`,
             imagePromptSchema,
           );
-          finalPrompt = prompt + object.imagePrompt;
+          finalPrompt = `${prompt.trim()} ${object.imagePrompt}`;
         } catch (error) {
           this.logger.warn("AI prompt distillation failed, using fallback", {
             error: getErrorMessage(error),

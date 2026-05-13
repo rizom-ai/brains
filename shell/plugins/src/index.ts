@@ -115,6 +115,7 @@ export {
 // Core entity types
 export type {
   BaseEntity,
+  CreateCoverImageInput,
   CreateInput,
   CreateExecutionContext,
   CreateResult,
@@ -162,6 +163,7 @@ export {
   BaseGenerationJobHandler,
   type GenerationJobHandlerConfig,
   type GeneratedContent,
+  type GenericCoverImageRequest,
 } from "./service/base-generation-job-handler";
 
 export type {

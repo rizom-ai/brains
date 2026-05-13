@@ -16,6 +16,16 @@ const enqueuedCreateJobSchema = z.object({
   targetEntityId: z.string(),
 });
 
+const enqueuedCoverImageJobSchema = z.object({
+  prompt: z.string(),
+  title: z.string(),
+  aspectRatio: z.string(),
+  targetEntityType: z.string(),
+  targetEntityId: z.string(),
+  entityTitle: z.string().optional(),
+  entityContent: z.string().optional(),
+});
+
 const enqueuedLinkJobSchema = z.object({
   url: z.string().url(),
   metadata: z.object({
@@ -737,12 +747,73 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url and not include options field in schema", () => {
+  it("should expose top-level url and coverImage, and not include options field in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
+    expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
+  });
+
+  it("should queue cover image generation after direct create with actual entity id", async () => {
+    const result = await exec({
+      entityType: "post",
+      title: "Cover Ready Post",
+      content: "A post that needs a visual cover.",
+      coverImage: {
+        generate: true,
+        prompt: "Editorial abstract for a cover-ready post",
+      },
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.entityId).toBe("cover-ready-post");
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("image:image-generate");
+    const jobData = enqueuedCoverImageJobSchema.parse(enqueuedJob.data);
+    expect(jobData).toMatchObject({
+      prompt: "Editorial abstract for a cover-ready post",
+      title: "Cover Ready Post Cover",
+      aspectRatio: "16:9",
+      targetEntityType: "post",
+      targetEntityId: "cover-ready-post",
+      entityTitle: "Cover Ready Post",
+      entityContent: "A post that needs a visual cover.",
+    });
+  });
+
+  it("should pass normalized coverImage option through generation jobs", async () => {
+    await exec({
+      entityType: "social-post",
+      prompt: "Write a LinkedIn post about continuous learning",
+      coverImage: true,
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("social-post:generation");
+    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(rawJobData["coverImage"]).toEqual({ generate: true });
+  });
+
+  it("should reject coverImage for entity types without cover support", async () => {
+    const result = await exec({
+      entityType: "base",
+      title: "Plain Note",
+      content: "Notes do not support cover images in this mock registry.",
+      coverImage: true,
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Entity type 'base' doesn't support cover images",
+    );
+    expect(services.getEntities().size).toBe(0);
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
   it("should pass target fields as top-level (not nested in options)", async () => {

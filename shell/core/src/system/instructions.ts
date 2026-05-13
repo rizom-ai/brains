@@ -10,6 +10,7 @@ export function createSystemInstructions(services: SystemServices): string {
     "",
     "- **system_create**: Create or generate any entity. " +
       "Pass `content` for direct creation, `prompt` for AI generation, or `url` for URL-first flows like saving links or remote agents. " +
+      "When creating an entity with a cover image, pass `coverImage: true` or `coverImage: { generate: true, prompt }`; do not guess a future entity ID. " +
       `Available entity types: ${types.join(", ")}.`,
     "- **system_update**: Modify an entity's fields or content. " +
       "Use `fields` for title, status, and other frontmatter/metadata changes. " +

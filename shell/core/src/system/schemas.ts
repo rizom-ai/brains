@@ -22,6 +22,14 @@ export const listInputSchema = z.object({
     .describe("Maximum number of results (default: 20)"),
 });
 
+const coverImageInputSchema = z.union([
+  z.boolean(),
+  z.object({
+    generate: z.boolean().optional().describe("Generate a cover image"),
+    prompt: z.string().optional().describe("Prompt for cover image generation"),
+  }),
+]);
+
 export const createInputSchema = z.object({
   entityType: z.string().describe("Entity type to create"),
   title: z.string().optional().describe("Title for the entity"),
@@ -43,6 +51,11 @@ export const createInputSchema = z.object({
     .string()
     .optional()
     .describe("Attach to this entity ID after creation"),
+  coverImage: coverImageInputSchema
+    .optional()
+    .describe(
+      "Generate a cover image for the created entity after the entity exists. Use true or { generate: true, prompt }.",
+    ),
 });
 
 export const updateInputSchema = z.object({

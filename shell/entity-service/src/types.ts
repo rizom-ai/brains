@@ -119,6 +119,11 @@ export interface SearchResult<T extends BaseEntity = BaseEntity> {
 /**
  * Normalized system_create input shape used by plugin create interceptors.
  */
+export interface CreateCoverImageInput {
+  generate?: boolean | undefined;
+  prompt?: string | undefined;
+}
+
 export interface CreateInput {
   entityType: string;
   prompt?: string;
@@ -127,6 +132,7 @@ export interface CreateInput {
   url?: string;
   targetEntityType?: string;
   targetEntityId?: string;
+  coverImage?: boolean | CreateCoverImageInput;
 }
 
 /**

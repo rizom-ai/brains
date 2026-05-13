@@ -10,6 +10,14 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
+const coverImageJobSchema = z.union([
+  z.boolean(),
+  z.object({
+    generate: z.boolean().optional(),
+    prompt: z.string().optional(),
+  }),
+]);
+
 export const generationJobSchema = z.object({
   prompt: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
@@ -25,6 +33,9 @@ export const generationJobSchema = z.object({
     .boolean()
     .optional()
     .describe("Auto-generate cover image for post"),
+  coverImage: coverImageJobSchema
+    .optional()
+    .describe("Generic cover image generation request"),
 });
 
 export type GenerationJobData = z.infer<typeof generationJobSchema>;
@@ -282,6 +293,7 @@ ${sourceEntity.content}`,
       sourceEntityType: data.sourceEntityType,
       addToQueue: data.addToQueue ?? false,
       generateImage: data.generateImage ?? false,
+      coverImage: !!data.coverImage,
     };
   }
 }

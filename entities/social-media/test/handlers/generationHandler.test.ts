@@ -107,6 +107,25 @@ describe("GenerationJobHandler", () => {
       const result = generationJobSchema.parse(data);
       expect(result.generateImage).toBeUndefined();
     });
+
+    it("should validate generic coverImage option", () => {
+      const data = {
+        prompt: "Create a post about AI",
+        platform: "linkedin",
+        coverImage: {
+          generate: true,
+          prompt: "Conceptual cover for responsible AI",
+        },
+      };
+      const result = generationJobSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.coverImage).toEqual({
+          generate: true,
+          prompt: "Conceptual cover for responsible AI",
+        });
+      }
+    });
   });
 
   describe("validateAndParse", () => {
@@ -411,6 +430,63 @@ describe("GenerationJobHandler", () => {
         (j) => j.jobType === "image:image-generate",
       );
       expect(imageJob).toBeUndefined();
+    });
+
+    it("should queue generic coverImage generation with generated content context", async () => {
+      interface ImageGenerateJobData {
+        prompt: string;
+        title: string;
+        aspectRatio: string;
+        targetEntityType: string;
+        targetEntityId: string;
+        entityTitle?: string;
+        entityContent?: string;
+      }
+      const enqueuedJobs: Array<{
+        jobType: string;
+        data: ImageGenerateJobData;
+      }> = [];
+      context.jobs.enqueue = async (request): Promise<string> => {
+        enqueuedJobs.push({
+          jobType: request.type,
+          data: request.data as ImageGenerateJobData,
+        });
+        return "image-job-789";
+      };
+
+      const jobData: GenerationJobData = {
+        title: "Contextual Visual Post",
+        content: "Post body that should inform the generated image.",
+        platform: "linkedin",
+        addToQueue: false,
+        coverImage: {
+          generate: true,
+          prompt: "Editorial social post cover:",
+        },
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      const imageJob = enqueuedJobs.find(
+        (j) => j.jobType === "image:image-generate",
+      );
+      expect(imageJob).toBeDefined();
+      expect(imageJob?.data).toMatchObject({
+        prompt: "Editorial social post cover:",
+        title: "Contextual Visual Post Cover",
+        aspectRatio: "16:9",
+        targetEntityType: "social-post",
+        targetEntityId: "linkedin-contextual-visual-post",
+        entityTitle: "Contextual Visual Post",
+      });
+      expect(imageJob?.data.entityContent).toContain(
+        "Post body that should inform the generated image.",
+      );
     });
 
     it("should use slug as entity ID (platform-title format)", async () => {
