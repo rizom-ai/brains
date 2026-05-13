@@ -48,7 +48,6 @@ export {
   calculateReadingTime,
   firstSentence,
   truncateText,
-  derivePreviewDomain,
   interpolateEnvVar,
   interpolateEnv,
 } from "./string-utils";

@@ -1,5 +1,6 @@
 import type { IShell } from "../interfaces";
-import { derivePreviewDomain, type Logger } from "@brains/utils";
+import { type Logger } from "@brains/utils";
+import { derivePreviewDomain } from "@brains/site-composition";
 import type {
   MessageHandler,
   MessageSender,

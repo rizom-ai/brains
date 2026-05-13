@@ -4,7 +4,6 @@ import {
   generateIdFromText,
   pluralize,
   toDisplayName,
-  derivePreviewDomain,
 } from "../src/string-utils";
 
 describe("string-utils", () => {
@@ -162,22 +161,6 @@ describe("string-utils", () => {
     it("should only pluralize the last word", () => {
       expect(toDisplayName("anchor-profile")).toBe("Anchor Profiles");
       expect(toDisplayName("brain-character")).toBe("Brain Characters");
-    });
-  });
-
-  describe("derivePreviewDomain", () => {
-    it("should use preview subdomain for apex domains", () => {
-      expect(derivePreviewDomain("yeehaa.io")).toBe("preview.yeehaa.io");
-      expect(derivePreviewDomain("mylittlephoney.com")).toBe(
-        "preview.mylittlephoney.com",
-      );
-    });
-
-    it("should use -preview hostnames for subdomain deployments", () => {
-      expect(derivePreviewDomain("recall.rizom.ai")).toBe(
-        "recall-preview.rizom.ai",
-      );
-      expect(derivePreviewDomain("max.rizom.ai")).toBe("max-preview.rizom.ai");
     });
   });
 });
