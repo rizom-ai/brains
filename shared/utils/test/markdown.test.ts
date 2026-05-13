@@ -1,8 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
   parseMarkdown,
-  extractTitle,
-  extractIndexedFields,
   generateMarkdown,
   updateFrontmatterField,
 } from "../src/markdown";
@@ -44,111 +42,6 @@ No frontmatter here.`;
 
       expect(result.frontmatter).toEqual({});
       expect(result.content).toBe("");
-    });
-  });
-
-  describe("extractTitle", () => {
-    it("should extract title from frontmatter first", () => {
-      const markdown = `---
-title: Frontmatter Title
----
-
-# Different Heading
-
-First line of content`;
-
-      const title = extractTitle(markdown, "entity_123");
-      expect(title).toBe("Frontmatter Title");
-    });
-
-    it("should extract title from first heading if no frontmatter title", () => {
-      const markdown = `---
-tags: [test]
----
-
-# Heading Title
-
-Content here`;
-
-      const title = extractTitle(markdown, "entity_123");
-      expect(title).toBe("Heading Title");
-    });
-
-    it("should extract title from first non-empty line if no heading", () => {
-      const markdown = `---
-tags: [test]
----
-
-This is the first line of content that will become the title.
-
-More content here.`;
-
-      const title = extractTitle(markdown, "entity_123");
-      expect(title).toBe("This is the first line of content that will bec...");
-    });
-
-    it("should use entity ID as fallback", () => {
-      const markdown = `---
-tags: [test]
----
-
-`;
-
-      const title = extractTitle(markdown, "entity_123");
-      expect(title).toBe("entity_123");
-    });
-
-    it("should remove markdown formatting from extracted title", () => {
-      const markdown = `**Bold** and *italic* and \`code\` and [link](url)`;
-
-      const title = extractTitle(markdown, "entity_123");
-      expect(title).toBe("Bold and italic and code and link");
-    });
-  });
-
-  describe("extractIndexedFields", () => {
-    it("should extract all indexed fields", () => {
-      const markdown = `---
-title: Test Entity
-tags: [one, two, three]
-contentWeight: 0.8
----
-
-Content here`;
-
-      const fields = extractIndexedFields(markdown, "entity_123");
-
-      expect(fields).toEqual({
-        title: "Test Entity",
-        contentWeight: 0.8,
-      });
-    });
-
-    it("should use defaults when fields are missing", () => {
-      const markdown = `Just some content`;
-
-      const fields = extractIndexedFields(markdown, "entity_123");
-
-      expect(fields).toEqual({
-        title: "Just some content",
-        contentWeight: 1.0,
-      });
-    });
-
-    it("should clamp contentWeight between 0 and 1", () => {
-      const markdown1 = `---
-contentWeight: 1.5
----`;
-
-      const fields1 = extractIndexedFields(markdown1, "entity_123");
-      expect(fields1.contentWeight).toBe(1.0);
-
-      const markdown2 = `---
-contentWeight: -0.5
----`;
-
-      const fields2 = extractIndexedFields(markdown2, "entity_123");
-      expect(fields2.contentWeight).toBe(0.0);
     });
   });
 

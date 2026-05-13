@@ -12,8 +12,6 @@ export { default as defaultLogger } from "./logger";
 // Markdown utilities
 export {
   parseMarkdown,
-  extractTitle,
-  extractIndexedFields,
   generateMarkdown,
   stripMarkdown,
   updateFrontmatterField,

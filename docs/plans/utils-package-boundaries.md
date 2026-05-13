@@ -83,8 +83,9 @@ Start with the least ambiguous moves:
 8. Move image/media markdown helpers into `@brains/image`. ✅
 9. Move HTML markdown rendering into `@brains/ui-library`. ✅
 10. Move preview-domain URL derivation into `@brains/site-composition`. ✅
-11. Keep primitive helpers and `z` in `@brains/utils`.
-12. Update imports repo-wide and run typecheck.
+11. Remove obsolete entity-indexing markdown exports from `@brains/utils`. ✅
+12. Keep primitive helpers and `z` in `@brains/utils`.
+13. Update imports repo-wide and run typecheck.
 
 ## Open questions
 
