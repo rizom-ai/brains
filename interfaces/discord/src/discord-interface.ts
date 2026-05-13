@@ -212,25 +212,39 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       isThread &&
       "ownerId" in message.channel &&
       message.channel.ownerId === this.client?.user?.id;
+    const spaceChannelId = this.getSpaceChannelId(message);
+    const isConfiguredSpace =
+      !isDM && this.isConfiguredSpace(spaceChannelId);
 
-    // allowedChannels gates both chat and URL capture
+    // allowedChannels gates chat, passive capture, and URL capture
     if (
       this.config.allowedChannels.length > 0 &&
       !isDM &&
-      !this.config.allowedChannels.includes(message.channel.id)
+      !this.isAllowedChannel(message.channel.id, spaceChannelId)
     ) {
       return;
+    }
+
+    const willRouteToAgent =
+      isDM || isOwnThread || !this.config.requireMention || botIsMentioned;
+
+    if (
+      isConfiguredSpace &&
+      (!willRouteToAgent || this.willRouteUseNonSpaceConversation(message))
+    ) {
+      await this.capturePassiveSpaceMessage(message, spaceChannelId).catch(
+        (error: unknown) =>
+          this.logger.error("Passive Discord space capture failed", {
+            error,
+            channelId: spaceChannelId,
+          }),
+      );
     }
 
     // In server channels / foreign threads: require mention.
     // In own threads: respond freely (user continuing a conversation).
     // At this fallback, try URL capture before returning.
-    if (
-      !isDM &&
-      !isOwnThread &&
-      this.config.requireMention &&
-      !botIsMentioned
-    ) {
+    if (!willRouteToAgent) {
       if (this.config.captureUrls) {
         const urls = this.extractCaptureableUrls(
           message.content,
@@ -297,6 +311,46 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     await this.routeToAgent(agentMessage, channelId, message);
   }
 
+  private async capturePassiveSpaceMessage(
+    discordMessage: Message,
+    spaceChannelId: string,
+  ): Promise<void> {
+    if (!this.context) return;
+
+    const content = this.stripMention(discordMessage.content).trim();
+    if (!content) return;
+
+    const conversationId = `discord-${spaceChannelId}`;
+    const channelName = this.getChannelName(discordMessage);
+
+    await this.context.conversations.start({
+      sessionId: conversationId,
+      interfaceType: "discord",
+      channelId: spaceChannelId,
+      metadata: {
+        channelName,
+        interfaceType: "discord",
+        channelId: spaceChannelId,
+      },
+    });
+
+    await this.context.conversations.addMessage({
+      conversationId,
+      role: "user",
+      content,
+      metadata: this.buildUserMessageMetadata(
+        discordMessage,
+        spaceChannelId,
+        channelName,
+        {
+          threadId: discordMessage.channel.isThread()
+            ? discordMessage.channel.id
+            : undefined,
+        },
+      ),
+    });
+  }
+
   private async routeToAgent(
     message: string,
     channelId: string,
@@ -328,7 +382,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       "discord",
       discordMessage.author.id,
     );
-    const channelName = discordMessage.guild?.name ?? "DM";
+    const channelName = this.getChannelName(discordMessage);
 
     this.startProcessingInput(replyChannelId);
     try {
@@ -352,30 +406,17 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         interfaceType: "discord",
         channelId: replyChannelId,
         channelName,
-        actor: {
-          actorId: `discord:${discordMessage.author.id}`,
-          interfaceType: "discord",
-          role: "user",
-          displayName: this.getAuthorDisplayName(discordMessage),
-          username: discordMessage.author.username,
-          isBot: Boolean(discordMessage.author.bot),
-        },
-        source: {
-          messageId: discordMessage.id,
+        ...this.buildUserMessageMetadata(
+          discordMessage,
           channelId,
           channelName,
-          ...(replyChannelId !== channelId || discordMessage.channel.isThread()
-            ? { threadId: replyChannelId }
-            : {}),
-          metadata: {
-            ...(discordMessage.guild?.id
-              ? { guildId: discordMessage.guild.id }
-              : {}),
-            ...(discordMessage.guild?.name
-              ? { guildName: discordMessage.guild.name }
-              : {}),
+          {
+            threadId:
+              replyChannelId !== channelId || discordMessage.channel.isThread()
+                ? replyChannelId
+                : undefined,
           },
-        },
+        ),
       });
 
       if (response.pendingConfirmation) {
@@ -477,6 +518,88 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       message.author.globalName ??
       message.author.username
     );
+  }
+
+  private getChannelName(message: Message): string {
+    return message.guild?.name ?? "DM";
+  }
+
+  private getSpaceChannelId(message: Message): string {
+    if (!message.channel.isThread()) return message.channel.id;
+    if (
+      "parentId" in message.channel &&
+      typeof message.channel.parentId === "string"
+    ) {
+      return message.channel.parentId;
+    }
+    if (
+      "parent" in message.channel &&
+      message.channel.parent &&
+      typeof message.channel.parent === "object" &&
+      "id" in message.channel.parent &&
+      typeof message.channel.parent.id === "string"
+    ) {
+      return message.channel.parent.id;
+    }
+    return message.channel.id;
+  }
+
+  private isConfiguredSpace(channelId: string): boolean {
+    const spaceId = `discord:${channelId}`;
+    return (
+      this.context?.spaces.some((selector) =>
+        this.isSpaceSelectorMatch(selector, spaceId),
+      ) ?? false
+    );
+  }
+
+  private isSpaceSelectorMatch(selector: string, spaceId: string): boolean {
+    if (selector === spaceId) return true;
+    const escaped = selector.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = `^${escaped.replace(/\*/g, ".*")}$`;
+    return new RegExp(pattern).test(spaceId);
+  }
+
+  private isAllowedChannel(channelId: string, spaceChannelId: string): boolean {
+    return (
+      this.config.allowedChannels.includes(channelId) ||
+      this.config.allowedChannels.includes(spaceChannelId)
+    );
+  }
+
+  private willRouteUseNonSpaceConversation(message: Message): boolean {
+    if (message.channel.isThread()) {
+      return this.getSpaceChannelId(message) !== message.channel.id;
+    }
+    return this.config.useThreads && Boolean(message.guild);
+  }
+
+  private buildUserMessageMetadata(
+    message: Message,
+    channelId: string,
+    channelName: string,
+    options: { threadId?: string | undefined } = {},
+  ): Record<string, unknown> {
+    return {
+      actor: {
+        actorId: `discord:${message.author.id}`,
+        interfaceType: "discord",
+        role: "user",
+        displayName: this.getAuthorDisplayName(message),
+        username: message.author.username,
+        isBot: Boolean(message.author.bot),
+      },
+      source: {
+        messageId: message.id,
+        channelId,
+        channelName,
+        ...(options.threadId ? { threadId: options.threadId } : {}),
+        metadata: {
+          ...(message.guild?.id ? { guildId: message.guild.id } : {}),
+          ...(message.guild?.name ? { guildName: message.guild.name } : {}),
+        },
+      },
+    };
   }
 
   private stripMention(content: string): string {

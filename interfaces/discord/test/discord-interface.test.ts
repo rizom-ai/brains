@@ -45,6 +45,19 @@ interface MockAgentService {
   invalidateAgent: () => void;
 }
 
+interface MockConversationService {
+  startConversation: Mock<
+    (request: { sessionId: string }) => Promise<string>
+  >;
+  addMessage: Mock<(_request: unknown) => Promise<void>>;
+  getConversation: Mock<() => Promise<null>>;
+  listConversations: Mock<() => Promise<never[]>>;
+  searchConversations: Mock<() => Promise<never[]>>;
+  getMessages: Mock<() => Promise<never[]>>;
+  countMessages: Mock<() => Promise<number>>;
+  close: Mock<() => void>;
+}
+
 // ── Mock discord.js ──
 
 const mockSend = mock(() =>
@@ -162,6 +175,19 @@ const createMockAgentService = (): MockAgentService => ({
   invalidateAgent: (): void => {},
 });
 
+const createMockConversationService = (): MockConversationService => ({
+  startConversation: mock((request: { sessionId: string }) =>
+    Promise.resolve(request.sessionId),
+  ),
+  addMessage: mock((_request: unknown) => Promise.resolve()),
+  getConversation: mock(() => Promise.resolve(null)),
+  listConversations: mock(() => Promise.resolve([])),
+  searchConversations: mock(() => Promise.resolve([])),
+  getMessages: mock(() => Promise.resolve([])),
+  countMessages: mock(() => Promise.resolve(0)),
+  close: mock((): void => {}),
+});
+
 const mockReact = mock(() => Promise.resolve());
 
 function createDiscordMessage(
@@ -225,6 +251,17 @@ describe("DiscordInterface", () => {
   afterEach(() => {
     harness.reset();
   });
+
+  async function installDiscordWithSpaces(
+    spaces: string[],
+    conversationService: MockConversationService,
+  ): Promise<void> {
+    harness.getMockShell().getSpaces = (): string[] => spaces;
+    harness.getMockShell().getConversationService =
+      (): MockConversationService => conversationService;
+    const spacedDiscord = new DiscordInterface({ botToken: "test-token" });
+    await harness.installPlugin(spacedDiscord);
+  }
 
   describe("Initialization", () => {
     it("should create interface with valid config", () => {
@@ -445,6 +482,142 @@ describe("DiscordInterface", () => {
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 50));
 
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Passive space capture", () => {
+    it("should capture unmentioned server messages in configured spaces without routing to agent", async () => {
+      const conversationService = createMockConversationService();
+      await installDiscordWithSpaces(
+        ["discord:channel-123"],
+        conversationService,
+      );
+
+      const msg = createDiscordMessage({
+        content: "Team update for summary",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(conversationService.startConversation).toHaveBeenCalledWith({
+        sessionId: "discord-channel-123",
+        interfaceType: "discord",
+        channelId: "channel-123",
+        metadata: {
+          channelName: "Test Server",
+          interfaceType: "discord",
+          channelId: "channel-123",
+        },
+      });
+      expect(conversationService.addMessage).toHaveBeenCalledWith({
+        conversationId: "discord-channel-123",
+        role: "user",
+        content: "Team update for summary",
+        metadata: expect.objectContaining({
+          actor: expect.objectContaining({
+            actorId: "discord:user-789",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Mira Ops",
+            username: "mira",
+            isBot: false,
+          }),
+          source: expect.objectContaining({
+            messageId: "discord-message-123",
+            channelId: "channel-123",
+            channelName: "Test Server",
+            metadata: expect.objectContaining({
+              guildId: "guild-123",
+              guildName: "Test Server",
+            }),
+          }),
+        }),
+      });
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(mockStartThread).not.toHaveBeenCalled();
+    });
+
+    it("should ignore unmentioned server messages outside configured spaces when mention is required", async () => {
+      const conversationService = createMockConversationService();
+      await installDiscordWithSpaces(
+        ["discord:other-channel"],
+        conversationService,
+      );
+
+      const msg = createDiscordMessage({
+        content: "Outside configured spaces",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(conversationService.startConversation).not.toHaveBeenCalled();
+      expect(conversationService.addMessage).not.toHaveBeenCalled();
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it("should still route mentioned messages in configured spaces to the agent", async () => {
+      const conversationService = createMockConversationService();
+      await installDiscordWithSpaces(
+        ["discord:channel-123"],
+        conversationService,
+      );
+
+      const msg = createDiscordMessage({
+        content: "<@bot-user-123> summarize this",
+        mentions: { has: mock(() => true) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "summarize this",
+        expect.stringContaining("discord-"),
+        expect.objectContaining({ interfaceType: "discord" }),
+      );
+    });
+
+    it("should capture thread messages against the configured parent channel space", async () => {
+      const conversationService = createMockConversationService();
+      await installDiscordWithSpaces(
+        ["discord:channel-123"],
+        conversationService,
+      );
+
+      const threadInConfiguredSpace = {
+        ...mockForeignThreadChannel,
+        parentId: "channel-123",
+      };
+      const msg = createDiscordMessage({
+        channel: threadInConfiguredSpace,
+        content: "Thread update for the parent space",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(conversationService.startConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: "discord-channel-123",
+          channelId: "channel-123",
+        }),
+      );
+      expect(conversationService.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: "discord-channel-123",
+          content: "Thread update for the parent space",
+          metadata: expect.objectContaining({
+            source: expect.objectContaining({
+              channelId: "channel-123",
+              threadId: "thread-789",
+            }),
+          }),
+        }),
+      );
       expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
   });
