@@ -27,6 +27,37 @@ export interface GenerationJobHandlerConfig<TInput> {
  * Subclasses return this from `generate()`. The base class handles
  * progress reporting, error wrapping, and entity creation.
  */
+export interface GenericCoverImageRequest {
+  generate?: boolean;
+  prompt?: string;
+}
+
+interface NormalizedGenericCoverImageRequest {
+  generate: true;
+  prompt?: string;
+}
+
+function normalizeGenericCoverImageRequest(
+  data: unknown,
+): NormalizedGenericCoverImageRequest | undefined {
+  if (typeof data !== "object" || data === null || !("coverImage" in data)) {
+    return undefined;
+  }
+
+  const coverImage = (data as { coverImage?: unknown }).coverImage;
+  if (coverImage === undefined || coverImage === false) return undefined;
+  if (coverImage === true) return { generate: true };
+  if (typeof coverImage !== "object" || coverImage === null) return undefined;
+
+  const request = coverImage as GenericCoverImageRequest;
+  if (request.generate === false) return undefined;
+  const prompt = request.prompt?.trim();
+  return {
+    generate: true,
+    ...(prompt && { prompt }),
+  };
+}
+
 export interface GeneratedContent {
   /** Entity ID (often derived from title) */
   id: string;
@@ -152,6 +183,21 @@ export abstract class BaseGenerationJobHandler<
     // Default: no-op
   }
 
+  override validateAndParse(data: unknown): TInput | null {
+    const parsed = super.validateAndParse(data);
+    if (!parsed) return null;
+
+    const coverImage = normalizeGenericCoverImageRequest(data);
+    if (!coverImage || typeof parsed !== "object") {
+      return parsed;
+    }
+
+    return {
+      ...(parsed as Record<string, unknown>),
+      coverImage,
+    } as TInput;
+  }
+
   async process(
     data: TInput,
     jobId: string,
@@ -189,6 +235,12 @@ export abstract class BaseGenerationJobHandler<
         progressReporter,
         generated,
       );
+      await this.enqueueGenericCoverImageIfRequested(
+        data,
+        result.entityId,
+        progressReporter,
+        generated,
+      );
 
       // Step 4: Done
       await this.reportProgress(progressReporter, {
@@ -217,6 +269,36 @@ export abstract class BaseGenerationJobHandler<
       await this.onGenerationFailure(data, errorMessage);
       return JobResult.failure(error) as TResult;
     }
+  }
+
+  private async enqueueGenericCoverImageIfRequested(
+    data: TInput,
+    entityId: string,
+    progressReporter: ProgressReporter,
+    generated: GeneratedContent,
+  ): Promise<void> {
+    const coverImage = normalizeGenericCoverImageRequest(data);
+    if (!coverImage) return;
+
+    await this.reportProgress(progressReporter, {
+      progress: 90,
+      message: "Queueing cover image generation",
+    });
+
+    const title = generated.title ?? entityId;
+    await this.context.jobs.enqueue({
+      type: "image:image-generate",
+      data: {
+        prompt: coverImage.prompt ?? `Editorial cover image for: ${title}. `,
+        title: `${title} Cover`,
+        aspectRatio: "16:9",
+        targetEntityType: this.entityType,
+        targetEntityId: entityId,
+        entityTitle: title,
+        entityContent: generated.content,
+      },
+      toolContext: { interfaceType: "job", userId: "system" },
+    });
   }
 
   /**

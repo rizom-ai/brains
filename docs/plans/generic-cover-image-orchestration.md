@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Near-term: `system_create` has no generic `coverImage` option, and cover-image generation still needs the created entity id for targeting.
+Implemented in the `plan/cover-image-orchestration` worktree. `system_create` accepts generic `coverImage` orchestration and queues image generation after entity creation.
 
 ## Goal
 
@@ -15,7 +15,9 @@ Cover image generation is currently a two-pass workflow:
 1. create or generate the target entity
 2. generate an image with `targetEntityType` and the actual `targetEntityId`
 
-That is correct, but agent-driven one-turn requests can fail when the agent attempts step 2 immediately with a guessed slug/ID. A recent eval failure did this for a social post cover.
+That is correct and should remain the internal execution model. The problem is the public/tool orchestration: agent-driven one-turn requests can fail when the agent attempts step 2 immediately with a guessed slug/ID. A recent eval failure did this for a social post cover.
+
+For generated text entities, image generation also depends on the finished text. The image job needs the real created entity ID and, when available, the generated title/content so it can derive a relevant image prompt. Therefore image generation must run after text/entity creation, not in parallel.
 
 A quick `generateImage` flag would avoid the guessed ID, but it is too vague and social-media-shaped for generic `system_create`.
 
@@ -61,29 +63,28 @@ Core may own this because cover images are a generic entity capability (`support
 Implementation should preserve plugin boundaries:
 
 - `system_create` accepts the generic `coverImage` option
+- the one-call API is orchestration sugar over the existing sequential two-pass model; it must not imply parallel text/image generation
 - direct creates can enqueue cover image generation after `entityService.createEntity*` returns the actual entity ID
 - generated entities need a post-create hook or orchestration event so cover generation runs after the generation job creates the entity
+- for generated entities, enqueue the image job with the generated title/content (`entityTitle` / `entityContent`) so the existing image handler can distill a prompt from the finished text
 - cover generation still uses the existing image generation path with `targetEntityType` and `targetEntityId`
 - core must validate the target entity adapter supports cover images before enqueueing cover generation
 
-## Open design question
+## Implemented design
 
-Generated content is async. We need one of these approaches:
+Generated content is async and the image prompt may depend on the generated text, so the implementation uses core/shared post-generation orchestration:
 
-1. **Core post-generation orchestration**
-   - include `coverImage` in generation job data
-   - base generation handler or shared generation infrastructure enqueues image generation after entity creation
-   - best if generation handlers share a common base path
-
-2. **Plugin opt-in hook**
-   - plugins that support generation read the generic `coverImage` option and call a shared helper after create
-   - simpler migration, but more duplicated opt-in work
-
-Prefer option 1 if the shared generation base can support it cleanly.
+- `system_create` normalizes `coverImage` and validates `supportsCoverImage` before direct or generated creation.
+- Direct creates enqueue `image:image-generate` only after `entityService.createEntity*` returns the actual entity ID.
+- Generation jobs receive the normalized `coverImage` request.
+- `BaseGenerationJobHandler` preserves the generic `coverImage` request through validation and enqueues `image:image-generate` after the generated entity is persisted.
+- Generated title/content are passed to the image job as `entityTitle` and `entityContent` so prompt distillation can use finished text.
 
 ## Acceptance criteria
 
 - Agent can request a cover image during entity creation without guessing IDs
+- Image generation runs after target entity creation and receives the real target entity ID
+- For generated text entities, image generation can use the finished generated title/content as prompt context
 - Works for any entity type whose adapter supports cover images
 - Does not introduce social-media-specific fields in core
 - Existing two-pass explicit flow still works

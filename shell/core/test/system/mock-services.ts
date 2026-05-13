@@ -50,6 +50,14 @@ export function createMockSystemServices(
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
     } => {
+      const coverImageEntityTypes = new Set([
+        "deck",
+        "post",
+        "project",
+        "series",
+        "social-post",
+      ]);
+
       if (type === "link") {
         return {
           supportsCoverImage: false,
@@ -101,7 +109,7 @@ export function createMockSystemServices(
       }
 
       return {
-        supportsCoverImage: false,
+        supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
         isSingleton: false,
         fromMarkdown: (): unknown => ({}),
