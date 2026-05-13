@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. Near-term: the external authoring path is already alpha-usable through `@rizom/brain/*`, and this plan narrows the publishing target before more official package refactors and broader external adoption. Builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
+Accepted direction. Near-term: the external authoring path is already alpha-usable through `@rizom/brain/*`, and this plan narrows the publishing target before more official package refactors and broader external adoption. Builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
+
+New external-facing plugin/entity work should not add private `@brains/*` shortcut imports when a suitable public `@rizom/brain/*` surface exists or should be added. Existing packages can migrate package-by-package, but new work should move toward the public-only shape instead of deepening private coupling.
 
 ## Goal
 
@@ -12,6 +14,26 @@ The public contract should answer two questions:
 
 1. What packages can an external plugin author depend on?
 2. What packages can an official publishable plugin/entity package depend on?
+
+## Publishing source
+
+Official plugin/entity packages should publish from this monorepo first. Extract packages to separate repositories only when independent lifecycle, ownership, or community-maintenance needs justify the extra release infrastructure.
+
+## Naming convention
+
+Public plugin packages should use distinctive Rizom Brain names for npm discovery:
+
+- official packages: `@rizom/brain-plugin-*`, for example `@rizom/brain-plugin-note`
+- scoped third-party packages: `@scope/rizom-brain-plugin-*`, for example `@yeehaa/rizom-brain-plugin-calendar`
+- unscoped third-party packages: `rizom-brain-plugin-*`
+
+Recommended discovery keywords:
+
+```json
+["rizom", "rizom-brain", "rizom-brain-plugin"]
+```
+
+Keep `@brains/*` as the private workspace/internal implementation scope, not the public npm plugin namespace.
 
 ## Package tiers
 
@@ -38,12 +60,12 @@ These subpaths are the SDK. They must have generated declarations with no `@brai
 
 Examples:
 
-- `@brains/topics`
-- `@brains/blog`
-- `@brains/link`
-- `@brains/note`
-- `@brains/decks`
-- `@brains/social-media`
+- internal workspace: `@brains/note` → public package: `@rizom/brain-plugin-note`
+- internal workspace: `@brains/topics` → public package: `@rizom/brain-plugin-topics`
+- internal workspace: `@brains/blog` → public package: `@rizom/brain-plugin-blog`
+- internal workspace: `@brains/link` → public package: `@rizom/brain-plugin-link`
+- internal workspace: `@brains/decks` → public package: `@rizom/brain-plugin-decks`
+- internal workspace: `@brains/social-media` → public package: `@rizom/brain-plugin-social-media`
 
 These packages may be published as official plugins, but they should consume only the same public authoring contract available to external plugins.
 
@@ -77,7 +99,7 @@ These may remain workspace-internal implementation details. They can be used by 
 
 - keep `@brains/utils` private/internal for now
 - promote only proven stable utilities into curated `@rizom/brain/*` subpaths
-- keep external examples importing `zod` directly unless we deliberately expose a blessed schema helper
+- expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities
 
 Candidate utilities to promote deliberately:
 
@@ -128,7 +150,7 @@ For each candidate official plugin/entity package, classify imports as:
 - should remain internal and be replaced by a local implementation or different abstraction
 - should move to third-party dependency
 
-Start with `@brains/topics` because its recent refactor exposed the boundary problems.
+Start with `@brains/note` because it is the smallest proof package: no TSX/UI dependency and only a narrow set of plugin/entity, contract, and utility imports to replace. Use `@brains/topics` later as a second-stage proof once the UI/template and formatter boundaries are clearer.
 
 ### 2. Expand public entries only from concrete needs
 
@@ -140,7 +162,7 @@ Add exports to `@rizom/brain/*` one small slice at a time. Each slice must satis
 
 ### 3. Convert one official plugin to public-only imports
 
-Use `@brains/topics` as the first proof package.
+Use `@brains/note` as the first proof package.
 
 Acceptance for that package:
 
@@ -168,21 +190,35 @@ Branch/worktree:
 refactor/npm-package-boundaries
 ```
 
+### Milestone A: non-UI publish-path proof
+
 First implementation slice:
 
-1. inventory `@brains/topics` imports
+1. inventory `@brains/note` imports
 2. map each non-relative import to a public/private decision
-3. add only the smallest missing `@rizom/brain/*` public exports needed by topics
-4. convert topics imports
+3. add only the smallest missing `@rizom/brain/*` public exports needed by note
+4. convert note imports
 5. run targeted typecheck/tests/evals plus Rover eval
 
-## Open questions
+This milestone intentionally avoids the UI/template question. It proves the official-package dependency model, public SDK gaps, declaration cleanliness, and package-build shape without freezing a broader UI surface.
 
-- Should official packages keep the `@brains/*` scope on npm, or move to `@rizom/brain-plugin-*` names?
-- Should `zod` be imported directly by plugins, or should the SDK expose a blessed `z`?
-- Is a UI/template public surface needed before publishing TSX-heavy entity packages?
-- Which official packages are actually npm targets for the first public release?
-- Do official plugin packages publish from this monorepo, or are some extracted into separate repos?
+### Milestone B: UI/template publishing decision
+
+Immediately after the non-UI proof, choose the public surface for TSX-heavy official packages. Do not publish `@brains/ui-library` as-is just to unblock plugins. Decide from concrete package needs among:
+
+1. package-local TSX/components plus `preact`,
+2. reusable components in `@rizom/ui`, and/or
+3. narrow renderer/template contracts from `@rizom/brain/templates`.
+
+Then migrate the first UI-heavy package as the second proof before broad package-by-package rollout.
+
+## First release scope
+
+No official plugin/entity packages are targets for the first public release. The first public release remains centered on `@rizom/brain` and its public authoring subpaths.
+
+`@brains/note` is the first proof package for the later official-plugin publishing path, not a required first-release package.
+
+The UI/template public-surface decision is not needed before the non-UI `@brains/note` proof. It must be made in Milestone B before publishing TSX-heavy official packages.
 
 ## Success criteria
 
