@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { landingHeroDataSchema, type LandingHeroData } from "./schema";
 
 export class HeroSectionFormatter extends StructuredContentFormatter<LandingHeroData> {

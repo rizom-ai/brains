@@ -1,4 +1,5 @@
-import { StructuredContentFormatter, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 
 const ctaLinkSchema = z.object({
   label: z.string(),

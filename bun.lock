@@ -63,6 +63,7 @@
         "@brains/assessment": "workspace:*",
         "@brains/auth-service": "workspace:*",
         "@brains/cms": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/conversation-memory": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -139,6 +140,7 @@
       "name": "@brains/agent-discovery",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -160,6 +162,7 @@
       "name": "@brains/assessment",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -196,6 +199,7 @@
       "name": "@brains/conversation-memory",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -217,6 +221,7 @@
       "name": "@brains/decks",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -271,6 +276,7 @@
       "name": "@brains/link",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -328,6 +334,7 @@
       "name": "@brains/portfolio",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
@@ -346,6 +353,7 @@
       "name": "@brains/products",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -395,6 +403,7 @@
       "name": "@brains/series",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -451,6 +460,7 @@
       "name": "@brains/topics",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -590,6 +600,7 @@
       },
       "devDependencies": {
         "@brains/app": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/deploy-support": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/mcp-service": "workspace:*",
@@ -731,6 +742,7 @@
       "name": "@brains/directory-sync",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -748,6 +760,7 @@
       "name": "@brains/plugin-examples",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -847,6 +860,7 @@
       "name": "@brains/site-content",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -890,6 +904,25 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/content-formatters": {
+      "name": "@brains/content-formatters",
+      "version": "0.2.0-alpha.63",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "js-yaml": "^4.1.0",
+        "remark": "^15.0.1",
+        "zod": "^3.23.8",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^20.0.0",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -964,6 +997,7 @@
       "name": "@brains/product-site-content",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1124,7 +1158,6 @@
       "name": "@brains/utils",
       "version": "0.2.0-alpha.63",
       "dependencies": {
-        "@brains/contracts": "workspace:*",
         "gray-matter": "^4.0.3",
         "js-yaml": "^4.1.0",
         "marked": "^12.0.0",
@@ -1154,6 +1187,7 @@
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/app": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1240,6 +1274,7 @@
       "version": "0.2.0-alpha.63",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
@@ -1299,6 +1334,7 @@
       "name": "@brains/entity-service",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
@@ -1382,6 +1418,7 @@
       "name": "@brains/plugins",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
@@ -1404,6 +1441,7 @@
       "name": "@brains/templates",
       "version": "0.2.0-alpha.63",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
       },
@@ -1557,6 +1595,8 @@
     "@brains/cms": ["@brains/cms@workspace:plugins/cms"],
 
     "@brains/cms-config": ["@brains/cms-config@workspace:shared/cms-config"],
+
+    "@brains/content-formatters": ["@brains/content-formatters@workspace:shared/content-formatters"],
 
     "@brains/content-pipeline": ["@brains/content-pipeline@workspace:plugins/content-pipeline"],
 
@@ -2104,7 +2144,7 @@
 
     "@types/body-parser": ["@types/body-parser@1.19.6", "", { "dependencies": { "@types/connect": "*", "@types/node": "*" } }, "sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g=="],
 
-    "@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
+    "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@types/chai": ["@types/chai@5.2.3", "", { "dependencies": { "@types/deep-eql": "*", "assertion-error": "^2.0.1" } }, "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="],
 
@@ -2262,7 +2302,7 @@
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
-    "bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
+    "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "bytes": ["bytes@3.1.2", "", {}, "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg=="],
 
@@ -3332,6 +3372,8 @@
 
     "@pnpm/network.ca-file/graceful-fs": ["graceful-fs@4.2.10", "", {}, "sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA=="],
 
+    "@rizom/ops/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
+
     "@tailwindcss/node/enhanced-resolve": ["enhanced-resolve@5.20.0", "", { "dependencies": { "graceful-fs": "^4.2.4", "tapable": "^2.3.0" } }, "sha512-/ce7+jQ1PQ6rVXwe+jKEg5hW5ciicHwIQUagZkp6IufBoY3YDgdTTY1azVs0qoRgVmvsNB+rbjLJxDAeHHtwsQ=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.8.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" }, "bundled": true }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
@@ -3561,6 +3603,8 @@
     "@modelcontextprotocol/sdk/express/serve-static": ["serve-static@2.2.1", "", { "dependencies": { "encodeurl": "^2.0.0", "escape-html": "^1.0.3", "parseurl": "^1.3.3", "send": "^1.2.0" } }, "sha512-xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw=="],
 
     "@modelcontextprotocol/sdk/express/type-is": ["type-is@2.0.1", "", { "dependencies": { "content-type": "^1.0.5", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw=="],
+
+    "@rizom/ops/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "@typescript-eslint/typescript-estree/minimatch/brace-expansion": ["brace-expansion@5.0.4", "", { "dependencies": { "balanced-match": "^4.0.2" } }, "sha512-h+DEnpVvxmfVefa4jFbCf5HdH5YMDXRsmKflpf1pILZWRFlTbJpxeU55nJl4Smt5HQaGzg1o6RHFPJaOqnmBDg=="],
 

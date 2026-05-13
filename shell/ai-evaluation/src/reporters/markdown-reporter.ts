@@ -1,6 +1,6 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { formatAsTable, formatAsList } from "@brains/utils";
+import { formatAsTable, formatAsList } from "@brains/content-formatters";
 
 import type { IReporter } from "../types";
 import type { EvaluationSummary, EvaluationResult } from "../schemas";

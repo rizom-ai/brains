@@ -5,9 +5,9 @@ import { hasProps } from "./utils";
  * Base formatter for API/query responses with common utilities
  * Implements ContentFormatter but throws on parse() since responses are read-only
  */
-export abstract class ResponseFormatter<T = unknown>
-  implements ContentFormatter<T>
-{
+export abstract class ResponseFormatter<
+  T = unknown,
+> implements ContentFormatter<T> {
   abstract format(data: T): string;
   abstract canFormat(data: unknown): boolean;
 

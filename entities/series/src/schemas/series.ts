@@ -1,4 +1,5 @@
-import { z, StructuredContentFormatter } from "@brains/utils";
+import { z } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**

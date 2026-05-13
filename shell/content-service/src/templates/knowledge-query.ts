@@ -1,6 +1,6 @@
 import type { Template } from "@brains/templates";
 import { defaultQueryResponseSchema } from "@brains/contracts";
-import { DefaultQueryResponseFormatter } from "@brains/utils";
+import { DefaultQueryResponseFormatter } from "@brains/content-formatters";
 
 /**
  * Knowledge query template for shell queries

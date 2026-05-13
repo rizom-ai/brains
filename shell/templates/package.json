@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },

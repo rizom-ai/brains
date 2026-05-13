@@ -2,7 +2,7 @@ import { describe, it, expect, mock, spyOn } from "bun:test";
 import { TemplateCapabilities } from "../src/capabilities";
 import { createTemplate, type ComponentType } from "../src/types";
 import { z } from "@brains/utils";
-import type { ContentFormatter } from "@brains/utils";
+import type { ContentFormatter } from "@brains/content-formatters";
 import { createSilentLogger } from "@brains/test-utils";
 import { h } from "preact";
 

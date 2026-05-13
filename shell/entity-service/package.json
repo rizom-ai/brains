@@ -17,6 +17,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",

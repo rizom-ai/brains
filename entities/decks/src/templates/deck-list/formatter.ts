@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { deckListSchema, type DeckListData } from "./schema";
 
 export class DeckListFormatter extends StructuredContentFormatter<DeckListData> {

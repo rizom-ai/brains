@@ -8,7 +8,8 @@ import {
   baseEntitySchema,
   skillDataSchema,
 } from "@brains/plugins";
-import { StructuredContentFormatter, z } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
+import { z } from "@brains/utils";
 
 export interface CapabilityProfileSkill {
   name: string;

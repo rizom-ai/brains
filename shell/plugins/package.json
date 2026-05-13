@@ -29,6 +29,7 @@
     "lint:fix": "eslint src test --fix"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",

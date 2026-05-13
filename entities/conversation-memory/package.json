@@ -16,6 +16,7 @@
     "lint:fix": "eslint src test --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",

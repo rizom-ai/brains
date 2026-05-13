@@ -20,6 +20,7 @@
     "clean": "rm -rf .turbo"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",

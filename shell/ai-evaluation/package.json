@@ -18,6 +18,7 @@
   "dependencies": {
     "@brains/ai-service": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",

@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { productBodySchema, type ProductBody } from "../schemas/product";
 
 /**

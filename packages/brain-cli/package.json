@@ -80,6 +80,7 @@
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/mcp-service": "workspace:*",

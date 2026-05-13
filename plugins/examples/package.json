@@ -9,6 +9,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

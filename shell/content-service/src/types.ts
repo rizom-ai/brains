@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { ContentFormatter } from "@brains/utils";
+import type { ContentFormatter } from "@brains/content-formatters";
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)

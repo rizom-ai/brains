@@ -34,7 +34,8 @@ Generic, low-level primitives:
 
 - Ops/deployment/env/cert/CI helpers → private `@brains/deploy-support`, consumed internally by `@rizom/brain` and `@rizom/ops`
 - Public/shared schemas and result contracts → internal `@brains/contracts`, then curated `@rizom/brain/*` exports when public
-- Entity/site URL helpers and entity field formatters → owning entity/site/content package
+- Entity/site URL helpers → owning entity/site/content package
+- Content/schema/tool response formatters → private `@brains/content-formatters`
 - Publish/job contracts → contracts package if shared by multiple domains
 - Deck/presentation helpers → decks/presentation-owned package unless proven generic
 
@@ -77,8 +78,8 @@ Start with the least ambiguous moves:
 3. Move shared response schemas/types into `@brains/contracts`. ✅
 4. Move presentation/deck rendering helpers into `@brains/ui-library`. ✅
 5. Move entity URL generation into `@brains/site-composition`. ✅
-6. Keep primitive helpers and `z` in `@brains/utils`.
-7. Review formatter ownership separately.
+6. Move content/schema/tool formatters into `@brains/content-formatters`. ✅
+7. Keep primitive helpers and `z` in `@brains/utils`.
 8. Update imports repo-wide and run typecheck.
 
 ## Open questions

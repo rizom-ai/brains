@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { topicListSchema, type TopicListData } from "./schema";
 
 export class TopicListFormatter extends StructuredContentFormatter<TopicListData> {

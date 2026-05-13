@@ -1,5 +1,6 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z, StructuredContentFormatter, slugifyUrl } from "@brains/utils";
+import { z, slugifyUrl } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,

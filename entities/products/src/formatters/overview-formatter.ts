@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { overviewBodySchema, type OverviewBody } from "../schemas/overview";
 
 /**

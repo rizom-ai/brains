@@ -242,7 +242,8 @@ export { conversationDigestPayloadSchema } from "@brains/conversation-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
-export type { ProgressCallback, ContentFormatter } from "@brains/utils";
+export type { ContentFormatter } from "@brains/content-formatters";
+export type { ProgressCallback } from "@brains/utils";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {

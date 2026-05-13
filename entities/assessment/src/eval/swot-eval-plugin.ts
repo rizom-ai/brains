@@ -10,7 +10,8 @@ import {
   createEntityPluginContext,
   skillDataSchema,
 } from "@brains/plugins";
-import { ProgressReporter, StructuredContentFormatter, z } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
+import { ProgressReporter, z } from "@brains/utils";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";

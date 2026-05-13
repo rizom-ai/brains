@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { formatAsTable, formatAsList } from "@brains/utils";
+import { formatAsTable, formatAsList } from "@brains/content-formatters";
 
 import type { IReporter } from "../types";
 import type { EvaluationSummary } from "../schemas";

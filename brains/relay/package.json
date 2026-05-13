@@ -30,6 +30,7 @@
     "@brains/assessment": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/cms": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/conversation-memory": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",

@@ -1,4 +1,4 @@
-import { StructuredContentFormatter } from "@brains/utils";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { featuresSectionSchema, type FeaturesSection } from "./schema";
 
 export class FeaturesSectionFormatter extends StructuredContentFormatter<FeaturesSection> {

@@ -7,9 +7,9 @@ import * as yaml from "js-yaml";
  * Formats data as YAML within a markdown code block, making it easy
  * for humans to edit structured data in a familiar format.
  */
-export class DefaultYamlFormatter
-  implements ContentFormatter<Record<string, unknown>>
-{
+export class DefaultYamlFormatter implements ContentFormatter<
+  Record<string, unknown>
+> {
   protected yaml = yaml;
 
   format(data: Record<string, unknown>): string {

@@ -17,6 +17,7 @@
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
