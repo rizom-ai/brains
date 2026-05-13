@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.66
+
+### Patch Changes
+
+- [`c656221`](https://github.com/rizom-ai/brains/commit/c656221c4aafeee056c09b47d7fe2b2b63a27478) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align generated preview domains with origin certificate coverage by deriving them as `preview.<brain-domain>` for both apex and nested brain domains.
+
 ## 0.2.0-alpha.65
 
 ## 0.2.0-alpha.64

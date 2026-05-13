@@ -93,7 +93,10 @@
     "@brains/site-engine": "0.2.0-alpha.48",
     "@brains/rizom-ecosystem": "0.2.0-alpha.50",
     "@brains/auth-service": "0.2.0-alpha.54",
-    "@brains/conversation-memory": "0.2.0-alpha.59"
+    "@brains/conversation-memory": "0.2.0-alpha.59",
+    "@brains/content-formatters": "0.2.0-alpha.63",
+    "@brains/contracts": "0.2.0-alpha.63",
+    "@brains/deploy-support": "0.2.0-alpha.65"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -145,6 +148,7 @@
     "pipeline-tabs-last-widget",
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
+    "preview-domain-cert-alignment",
     "professional-site-rizom-typography",
     "public-entity-types-reconciliation",
     "relay-auth-service",
