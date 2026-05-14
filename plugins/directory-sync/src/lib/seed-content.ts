@@ -18,8 +18,11 @@ async function pathExists(path: string): Promise<boolean> {
  * Check whether a brain-data directory is effectively empty.
  *
  * Returns false (not empty) when:
- * - The directory contains content files (excluding .git and .gitkeep)
- * - The directory has a .git folder with a configured remote (git-sync will pull data)
+ * - The directory contains content files (excluding dotfiles / underscore dirs)
+ * - The directory has git history already
+ *
+ * A repo with a configured remote but no commits yet is still considered empty
+ * so seed content can bootstrap the first commit.
  */
 export async function isBrainDataEmpty(
   brainDataPath: string,
@@ -38,10 +41,12 @@ export async function isBrainDataEmpty(
     return false;
   }
 
-  if (await hasGitRemote(brainDataPath)) {
+  if (await hasGitCommits(brainDataPath)) {
     logger.debug(
-      "Git repository with remote detected - skipping seed content",
-      { path: brainDataPath },
+      "Git repository with history detected - skipping seed content",
+      {
+        path: brainDataPath,
+      },
     );
     return false;
   }
@@ -49,15 +54,15 @@ export async function isBrainDataEmpty(
   return true;
 }
 
-async function hasGitRemote(dirPath: string): Promise<boolean> {
+async function hasGitCommits(dirPath: string): Promise<boolean> {
   const gitDir = join(dirPath, ".git");
   if (!(await pathExists(gitDir))) {
     return false;
   }
 
   try {
-    const { stdout } = await execAsync("git remote", { cwd: dirPath });
-    return stdout.trim().length > 0;
+    await execAsync("git rev-parse --verify HEAD", { cwd: dirPath });
+    return true;
   } catch {
     return false;
   }

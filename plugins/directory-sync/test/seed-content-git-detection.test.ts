@@ -61,13 +61,46 @@ describe("Seed Content Git Detection", () => {
   }
 
   describe("isBrainDataEmpty with git repository", () => {
-    it("should NOT copy seed content when .git exists with a remote", async () => {
+    it("should copy seed content when .git exists with a remote but the repo has no commits yet", async () => {
       mkdirSync(brainDataPath, { recursive: true });
-      execSync("git init", { cwd: brainDataPath, stdio: "ignore" });
+      execSync("git init --initial-branch=main", {
+        cwd: brainDataPath,
+        stdio: "ignore",
+      });
       execSync("git remote add origin https://github.com/example/repo.git", {
         cwd: brainDataPath,
         stdio: "ignore",
       });
+
+      mkdirSync(join(seedContentPath, "post"), { recursive: true });
+      writeFileSync(
+        join(seedContentPath, "post", "test-post.md"),
+        "---\ntitle: Seed Post\n---\nThis seed content SHOULD be copied for unborn repos with a remote.",
+      );
+
+      await installAndTriggerReady("post");
+
+      expect(existsSync(join(brainDataPath, "post", "test-post.md"))).toBe(
+        true,
+      );
+    });
+
+    it("should NOT copy seed content when .git exists with a remote and local history already exists", async () => {
+      mkdirSync(brainDataPath, { recursive: true });
+      execSync("git init --initial-branch=main", {
+        cwd: brainDataPath,
+        stdio: "ignore",
+      });
+      execSync("git remote add origin https://github.com/example/repo.git", {
+        cwd: brainDataPath,
+        stdio: "ignore",
+      });
+      writeFileSync(join(brainDataPath, "existing.md"), "existing");
+      execSync("git add -A", { cwd: brainDataPath, stdio: "ignore" });
+      execSync(
+        'git -c user.name="Test" -c user.email="test@example.com" commit -m "initial"',
+        { cwd: brainDataPath, stdio: "ignore" },
+      );
 
       mkdirSync(join(seedContentPath, "post"), { recursive: true });
       writeFileSync(

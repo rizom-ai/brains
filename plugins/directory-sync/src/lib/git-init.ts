@@ -34,6 +34,7 @@ export async function initializeGitRepository(
     dataDir,
     remoteUrl,
     authenticatedUrl,
+    branch,
   });
 
   await configureIdentity(git, authorName, authorEmail);

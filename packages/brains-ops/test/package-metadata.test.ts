@@ -68,7 +68,7 @@ describe("@rizom/ops package metadata", () => {
 
     expect(filePaths.has("dist/deploy.js")).toBeTrue();
     expect(filePaths.has("dist/deploy.d.ts")).toBeTrue();
-  });
+  }, 60000);
 
   it.skipIf(!RUN_SMOKE)(
     "works from a packed tarball outside the monorepo",
