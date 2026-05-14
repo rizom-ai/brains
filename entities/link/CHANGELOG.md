@@ -1,5 +1,15 @@
 # @brains/link
 
+## 0.2.0-alpha.68
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.68
+  - @brains/contracts@0.2.0-alpha.68
+  - @brains/utils@0.2.0-alpha.68
+  - @brains/plugins@0.2.0-alpha.68
+
 ## 0.2.0-alpha.67
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.68
+
+### Patch Changes
+
+- [`1642455`](https://github.com/rizom-ai/brains/commit/16424552b04fe04dab37654fe581c3995e54c887) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix dashboard light mode so plugin-owned surfaces consume light theme surface tokens instead of inverse/dark background tokens.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.68
+  - @brains/auth-service@0.2.0-alpha.68
+  - @brains/plugins@0.2.0-alpha.68
+
 ## 0.2.0-alpha.67
 
 ### Patch Changes
