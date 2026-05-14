@@ -13,18 +13,21 @@ export type {
   BatchResult,
 } from "../types";
 
-/**
- * Manages batch operations for directory sync
- */
+export interface BatchOperationsManagerOptions {
+  logger: Logger;
+  syncPath: string;
+  deleteOnFileRemoval: boolean;
+}
+
 export class BatchOperationsManager {
   private readonly logger: Logger;
   private readonly syncPath: string;
   private readonly deleteOnFileRemoval: boolean;
 
-  constructor(logger: Logger, syncPath: string, deleteOnFileRemoval: boolean) {
-    this.logger = logger;
-    this.syncPath = syncPath;
-    this.deleteOnFileRemoval = deleteOnFileRemoval;
+  constructor(options: BatchOperationsManagerOptions) {
+    this.logger = options.logger;
+    this.syncPath = options.syncPath;
+    this.deleteOnFileRemoval = options.deleteOnFileRemoval;
   }
 
   /**
@@ -61,10 +64,6 @@ export class BatchOperationsManager {
     };
   }
 
-  /**
-   * Queue a sync batch operation
-   * Encapsulates the common pattern of preparing and queuing batch operations
-   */
   async queueSyncBatch(
     pluginContext: ServicePluginContext,
     source: string,
@@ -104,15 +103,11 @@ export class BatchOperationsManager {
     };
   }
 
-  /**
-   * Create import operations for files
-   */
   private createImportOperations(files: string[]): BatchOperation[] {
     if (files.length === 0) {
       return [];
     }
 
-    // Import operations - batch files for efficient processing
     const batchSize = 50;
     const operations: BatchOperation[] = [];
 

@@ -2,7 +2,7 @@ import { readdir, mkdir, copyFile } from "fs/promises";
 import { join, resolve } from "path";
 import type { Logger } from "@brains/utils";
 import { pathExists } from "./fs-utils";
-import { hasGitHead } from "./git-repository";
+import { hasGitHead } from "./git-state";
 
 /**
  * Check whether a brain-data directory is effectively empty.

@@ -28,12 +28,12 @@ export function createDirectorySyncDependencies(
 
   return {
     fileOperations,
-    batchQueue: new DirectoryBatchQueue(
+    batchQueue: new DirectoryBatchQueue({
       logger,
       syncPath,
       fileOperations,
       deleteOnFileRemoval,
-    ),
+    }),
     progressOperations: new ProgressOperations(
       logger,
       entityService,

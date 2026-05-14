@@ -31,7 +31,7 @@ export async function prepareGitRepository(
         branch,
       });
     } else {
-      await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+      await gitInit(dataDir, branch);
     }
   }
 
@@ -55,22 +55,30 @@ async function prepareRepositoryFromRemote(options: {
 }): Promise<void> {
   const { logger, dataDir, remoteUrl, authenticatedUrl, branch } = options;
 
+  const initLocally = async (
+    reason: string,
+    cleanupDir?: string,
+  ): Promise<void> => {
+    logger.info(reason, { gitUrl: remoteUrl });
+    if (cleanupDir) {
+      await rm(cleanupDir, { recursive: true, force: true });
+    }
+    await gitInit(dataDir, branch);
+  };
+
   let remoteHasHistory: boolean;
   try {
-    const refs = await simpleGit().listRemote(["--heads", authenticatedUrl]);
+    const refs = await simpleGit(dataDir).listRemote([
+      "--heads",
+      authenticatedUrl,
+    ]);
     remoteHasHistory = refs.trim().length > 0;
   } catch {
-    logger.info("ls-remote failed, initializing locally", {
-      gitUrl: remoteUrl,
-    });
-    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
-    return;
+    return initLocally("ls-remote failed, initializing locally");
   }
 
   if (!remoteHasHistory) {
-    logger.info("Remote is empty, initializing locally", { gitUrl: remoteUrl });
-    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
-    return;
+    return initLocally("Remote is empty, initializing locally");
   }
 
   logger.info("Cloning repository", { gitUrl: remoteUrl });
@@ -84,22 +92,12 @@ async function prepareRepositoryFromRemote(options: {
     await rm(dataDir, { recursive: true, force: true });
     await rename(cloneDir, dataDir);
   } catch {
-    logger.info("Clone failed, initializing locally");
-    await rm(cloneDir, { recursive: true, force: true });
-    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+    await initLocally("Clone failed, initializing locally", cloneDir);
   }
 }
 
-export async function hasGitHead(dir: string): Promise<boolean> {
-  if (!(await pathExists(join(dir, ".git")))) {
-    return false;
-  }
-  try {
-    await simpleGit(dir).revparse(["--verify", "HEAD"]);
-    return true;
-  } catch {
-    return false;
-  }
+async function gitInit(dataDir: string, branch: string): Promise<void> {
+  await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
 }
 
 async function repairInvalidPlaceholderHead(options: {

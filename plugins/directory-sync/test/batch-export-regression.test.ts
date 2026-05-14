@@ -17,14 +17,15 @@ import {
  * subscribers — the batch export is redundant and destructive.
  */
 describe("batch operations should not include exports (regression)", () => {
-  it("prepareBatchOperations should return zero export operations", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      true,
-    );
+  const makeManager = (deleteOnFileRemoval = true): BatchOperationsManager =>
+    new BatchOperationsManager({
+      logger: createSilentLogger("test"),
+      syncPath: "/tmp/test",
+      deleteOnFileRemoval,
+    });
 
-    const result = manager.prepareBatchOperations([
+  it("prepareBatchOperations should return zero export operations", () => {
+    const result = makeManager().prepareBatchOperations([
       "note/my-note.md",
       "blog-post/my-post.md",
     ]);
@@ -32,7 +33,6 @@ describe("batch operations should not include exports (regression)", () => {
     expect(result.exportOperationsCount).toBe(0);
     expect(result.importOperationsCount).toBeGreaterThan(0);
 
-    // No operation should have type "directory-export"
     const exportOps = result.operations.filter(
       (op) => op.type === "directory-export",
     );
@@ -40,13 +40,7 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("prepareBatchOperations should still create import operations", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      true,
-    );
-
-    const result = manager.prepareBatchOperations([
+    const result = makeManager().prepareBatchOperations([
       "note/a.md",
       "note/b.md",
       "note/c.md",
@@ -62,26 +56,17 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("prepareBatchOperations should append cleanup by default", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      true,
-    );
-
-    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"]);
+    const result = makeManager().prepareBatchOperations([
+      "note/a.md",
+      "note/b.md",
+    ]);
 
     const lastOp = result.operations[result.operations.length - 1];
     expect(lastOp?.type).toBe("directory-cleanup");
   });
 
   it("prepareBatchOperations should keep cleanup-only batches when no files", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      true,
-    );
-
-    const result = manager.prepareBatchOperations([]);
+    const result = makeManager().prepareBatchOperations([]);
 
     expect(result.operations).toEqual([
       { type: "directory-cleanup", data: {} },
@@ -92,16 +77,11 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("queueSyncBatch should enqueue cleanup-only batches when no files", async () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      true,
-    );
     const context = createMockServicePluginContext();
     const enqueueBatch = mock(async () => "batch-cleanup");
     context.jobs.enqueueBatch = enqueueBatch;
 
-    const result = await manager.queueSyncBatch(context, "test", []);
+    const result = await makeManager().queueSyncBatch(context, "test", []);
 
     expect(enqueueBatch).toHaveBeenCalledWith(
       [{ type: "directory-cleanup", data: {} }],
@@ -116,13 +96,7 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("prepareBatchOperations should skip cleanup when deleteOnFileRemoval is false", () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      false,
-    );
-
-    const result = manager.prepareBatchOperations(["note/a.md"]);
+    const result = makeManager(false).prepareBatchOperations(["note/a.md"]);
 
     const cleanupOps = result.operations.filter(
       (op) => op.type === "directory-cleanup",
@@ -131,16 +105,11 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("queueSyncBatch should skip empty batches entirely when deleteOnFileRemoval is false", async () => {
-    const manager = new BatchOperationsManager(
-      createSilentLogger("test"),
-      "/tmp/test",
-      false,
-    );
     const context = createMockServicePluginContext();
     const enqueueBatch = mock(async () => "batch-noop");
     context.jobs.enqueueBatch = enqueueBatch;
 
-    const result = await manager.queueSyncBatch(context, "test", []);
+    const result = await makeManager(false).queueSyncBatch(context, "test", []);
 
     expect(enqueueBatch).not.toHaveBeenCalled();
     expect(result).toBeNull();

@@ -4,21 +4,27 @@ import type { BatchMetadata, BatchResult } from "../types";
 import { BatchOperationsManager } from "./batch-operations";
 import type { FileOperations } from "./file-operations";
 
+export interface DirectoryBatchQueueOptions {
+  logger: Logger;
+  syncPath: string;
+  fileOperations: FileOperations;
+  deleteOnFileRemoval: boolean;
+}
+
 export class DirectoryBatchQueue {
   private syncInProgress = false;
+  private readonly logger: Logger;
+  private readonly fileOperations: FileOperations;
   private readonly batchOperationsManager: BatchOperationsManager;
 
-  constructor(
-    private readonly logger: Logger,
-    syncPath: string,
-    private readonly fileOperations: FileOperations,
-    deleteOnFileRemoval: boolean,
-  ) {
-    this.batchOperationsManager = new BatchOperationsManager(
-      logger,
-      syncPath,
-      deleteOnFileRemoval,
-    );
+  constructor(options: DirectoryBatchQueueOptions) {
+    this.logger = options.logger;
+    this.fileOperations = options.fileOperations;
+    this.batchOperationsManager = new BatchOperationsManager({
+      logger: options.logger,
+      syncPath: options.syncPath,
+      deleteOnFileRemoval: options.deleteOnFileRemoval,
+    });
   }
 
   async queueSyncBatch(
