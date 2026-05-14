@@ -32,8 +32,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test": "bun test --timeout 20000",
-    "test:smoke": "RUN_SMOKE_TESTS=1 bun test --timeout 60000"
+    "test": "bun run build && bun test --timeout 20000",
+    "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000"
   },
   "dependencies": {
     "age-encryption": "^0.3.0"
