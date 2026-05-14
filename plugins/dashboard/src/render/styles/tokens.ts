@@ -6,9 +6,9 @@ export const DASHBOARD_TOKENS = `
    * Existing component styles use the shorter legacy aliases below.
    */
   --dashboard-bg:          var(--color-bg, #0a0819);
-  --dashboard-card:        var(--color-bg-card, #14112b);
+  --dashboard-card:        var(--color-bg-card, var(--color-bg-subtle, #14112b));
   --dashboard-card-soft:   var(--color-bg-subtle, #1b1638);
-  --dashboard-bg-deep:     var(--color-bg-dark, #05040f);
+  --dashboard-bg-deep:     var(--color-bg-deep, var(--color-bg-dark, #05040f));
   --dashboard-text:        var(--color-text, #f1eadd);
   --dashboard-text-dim:    var(--color-text-muted, #bfb7a6);
   --dashboard-text-muted:  var(--color-text-light, #7a7263);
@@ -47,9 +47,9 @@ export const DASHBOARD_TOKENS = `
 
 [data-theme="light"] {
   --dashboard-bg:          var(--color-bg, #ece3cd);
-  --dashboard-card:        var(--color-bg-card, #f6efdc);
+  --dashboard-card:        var(--color-bg-card, var(--color-bg-subtle, #f6efdc));
   --dashboard-card-soft:   var(--color-bg-subtle, #e4dac1);
-  --dashboard-bg-deep:     var(--color-bg-dark, #d4c8a8);
+  --dashboard-bg-deep:     var(--color-bg-deep, var(--color-bg-subtle, #d4c8a8));
   --dashboard-text:        var(--color-text, #1a1528);
   --dashboard-text-dim:    var(--color-text-muted, #4a4257);
   --dashboard-text-muted:  var(--color-text-light, #7a7180);
