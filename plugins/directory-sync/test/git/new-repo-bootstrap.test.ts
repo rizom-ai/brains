@@ -57,8 +57,21 @@ describe("GitSync new-repo bootstrap regression", () => {
     }).trim();
   }
 
-  it("initializes cleanly when default files already exist and the remote is empty", async () => {
+  function writeDefault(): void {
     writeFileSync(join(dataDir, "default.md"), "# Default");
+  }
+
+  function listTracked(dir: string, ref?: string): string[] {
+    const cmd = ref ? `git ls-tree -r --name-only ${ref}` : "git ls-files";
+    return execSync(cmd, { cwd: dir, encoding: "utf-8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .sort();
+  }
+
+  it("initializes cleanly when default files already exist and the remote is empty", async () => {
+    writeDefault();
     mkdirSync(join(dataDir, "base"), { recursive: true });
     writeFileSync(join(dataDir, "base", "welcome.md"), "# Welcome");
 
@@ -68,21 +81,13 @@ describe("GitSync new-repo bootstrap regression", () => {
     expect(headFile()).toBe("ref: refs/heads/main");
     expect(symbolicHead()).toBe("refs/heads/main");
 
-    const tracked = execSync("git ls-files", {
-      cwd: dataDir,
-      encoding: "utf-8",
-    })
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .sort();
-
+    const tracked = listTracked(dataDir);
     expect(tracked).toContain("default.md");
     expect(tracked).toContain("base/welcome.md");
   });
 
   it("repairs an invalid HEAD left by a broken bootstrap", async () => {
-    writeFileSync(join(dataDir, "default.md"), "# Default");
+    writeDefault();
     execSync("git init --initial-branch=main", {
       cwd: dataDir,
       stdio: "ignore",
@@ -106,7 +111,7 @@ describe("GitSync new-repo bootstrap regression", () => {
   });
 
   it("uses the configured non-default branch for empty-remote bootstrap", async () => {
-    writeFileSync(join(dataDir, "default.md"), "# Default");
+    writeDefault();
 
     const gs = createGitSync("trunk");
     await gs.initialize();
@@ -122,11 +127,7 @@ describe("GitSync new-repo bootstrap regression", () => {
     });
     expect(remoteBranches).toContain("trunk");
 
-    const remoteTracked = execSync("git ls-tree -r --name-only trunk", {
-      cwd: remoteDir,
-      encoding: "utf-8",
-    }).trim();
-    expect(remoteTracked).toContain("default.md");
+    expect(listTracked(remoteDir, "trunk")).toContain("default.md");
   });
 
   it("prefers remote content over preexisting local defaults when the remote already has history", async () => {
@@ -143,22 +144,13 @@ describe("GitSync new-repo bootstrap regression", () => {
       stdio: "ignore",
     });
 
-    writeFileSync(join(dataDir, "default.md"), "# Default");
+    writeDefault();
 
     const gs = createGitSync();
     await gs.initialize();
     await gs.pull();
 
-    const tracked = execSync("git ls-files", {
-      cwd: dataDir,
-      encoding: "utf-8",
-    })
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .sort();
-
-    expect(tracked).toEqual(["post/remote.md"]);
+    expect(listTracked(dataDir)).toEqual(["post/remote.md"]);
     expect(existsSync(join(dataDir, "default.md"))).toBe(false);
     expect(existsSync(join(dataDir, "post", "remote.md"))).toBe(true);
   });

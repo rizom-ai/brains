@@ -1,18 +1,8 @@
-import { access, readdir, mkdir, copyFile } from "fs/promises";
-import { exec } from "child_process";
-import { promisify } from "util";
-const execAsync = promisify(exec);
+import { readdir, mkdir, copyFile } from "fs/promises";
 import { join, resolve } from "path";
 import type { Logger } from "@brains/utils";
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { pathExists } from "./fs-utils";
+import { hasGitHead } from "./git-repository";
 
 /**
  * Check whether a brain-data directory is effectively empty.
@@ -41,7 +31,7 @@ export async function isBrainDataEmpty(
     return false;
   }
 
-  if (await hasGitCommits(brainDataPath)) {
+  if (await hasGitHead(brainDataPath)) {
     logger.debug(
       "Git repository with history detected - skipping seed content",
       {
@@ -52,20 +42,6 @@ export async function isBrainDataEmpty(
   }
 
   return true;
-}
-
-async function hasGitCommits(dirPath: string): Promise<boolean> {
-  const gitDir = join(dirPath, ".git");
-  if (!(await pathExists(gitDir))) {
-    return false;
-  }
-
-  try {
-    await execAsync("git rev-parse --verify HEAD", { cwd: dirPath });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function copyDirectory(src: string, dest: string): Promise<void> {

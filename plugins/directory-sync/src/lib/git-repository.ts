@@ -31,13 +31,13 @@ export async function prepareGitRepository(
         branch,
       });
     } else {
-      await initializeLocalRepository(dataDir, branch);
+      await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
     }
   }
 
   const git = simpleGit(dataDir);
 
-  await repairGitHeadIfNeeded({ logger, dataDir, branch });
+  await repairInvalidPlaceholderHead({ logger, dataDir, branch });
 
   if (remoteUrl) {
     await configureRemote(git, authenticatedUrl);
@@ -54,8 +54,26 @@ async function prepareRepositoryFromRemote(options: {
   branch: string;
 }): Promise<void> {
   const { logger, dataDir, remoteUrl, authenticatedUrl, branch } = options;
-  logger.info("Cloning repository", { gitUrl: remoteUrl });
 
+  let remoteHasHistory: boolean;
+  try {
+    const refs = await simpleGit().listRemote(["--heads", authenticatedUrl]);
+    remoteHasHistory = refs.trim().length > 0;
+  } catch {
+    logger.info("ls-remote failed, initializing locally", {
+      gitUrl: remoteUrl,
+    });
+    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+    return;
+  }
+
+  if (!remoteHasHistory) {
+    logger.info("Remote is empty, initializing locally", { gitUrl: remoteUrl });
+    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+    return;
+  }
+
+  logger.info("Cloning repository", { gitUrl: remoteUrl });
   const parentDir = join(dataDir, "..");
   const cloneDir = await mkdtemp(
     join(parentDir, `${basename(dataDir)}-clone-`),
@@ -63,82 +81,46 @@ async function prepareRepositoryFromRemote(options: {
 
   try {
     await simpleGit(parentDir).clone(authenticatedUrl, cloneDir);
-
-    const clonedGit = simpleGit(cloneDir);
-    if (await repositoryHasCommits(clonedGit)) {
-      logger.info(
-        "Remote has history, replacing local directory with cloned repository",
-        { dataDir },
-      );
-      await rm(dataDir, { recursive: true, force: true });
-      await rename(cloneDir, dataDir);
-      return;
-    }
-
-    logger.info("Remote is empty, initializing locally");
-    await rm(cloneDir, { recursive: true, force: true });
-    await initializeLocalRepository(dataDir, branch);
+    await rm(dataDir, { recursive: true, force: true });
+    await rename(cloneDir, dataDir);
   } catch {
     logger.info("Clone failed, initializing locally");
     await rm(cloneDir, { recursive: true, force: true });
-    await initializeLocalRepository(dataDir, branch);
+    await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
   }
 }
 
-async function repositoryHasCommits(git: SimpleGit): Promise<boolean> {
+export async function hasGitHead(dir: string): Promise<boolean> {
+  if (!(await pathExists(join(dir, ".git")))) {
+    return false;
+  }
   try {
-    await git.revparse(["--verify", "HEAD"]);
+    await simpleGit(dir).revparse(["--verify", "HEAD"]);
     return true;
   } catch {
     return false;
   }
 }
 
-async function initializeLocalRepository(
-  dataDir: string,
-  branch: string,
-): Promise<void> {
-  await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
-}
-
-async function repairGitHeadIfNeeded(options: {
+async function repairInvalidPlaceholderHead(options: {
   logger: Logger;
   dataDir: string;
   branch: string;
 }): Promise<void> {
   const { logger, dataDir, branch } = options;
-  const gitDir = join(dataDir, ".git");
-  if (!(await pathExists(gitDir))) {
+  const headPath = join(dataDir, ".git", "HEAD");
+  const headContents = (await readFile(headPath, "utf8")).trim();
+
+  if (headContents !== "ref: refs/heads/.invalid") {
     return;
   }
 
-  const headPath = join(gitDir, "HEAD");
-  const targetHead = `ref: refs/heads/${branch}`;
-  let headContents: string;
-
-  try {
-    headContents = (await readFile(headPath, "utf8")).trim();
-  } catch {
-    logger.warn("Repairing missing or unreadable git HEAD", {
-      dataDir,
-      branch,
-    });
-    await writeFile(headPath, `${targetHead}\n`);
-    return;
-  }
-
-  if (headContents === targetHead) {
-    return;
-  }
-
-  if (headContents === "ref: refs/heads/.invalid") {
-    logger.warn("Repairing invalid git HEAD", {
-      dataDir,
-      branch,
-      head: headContents,
-    });
-    await writeFile(headPath, `${targetHead}\n`);
-  }
+  logger.warn("Repairing invalid git HEAD", {
+    dataDir,
+    branch,
+    head: headContents,
+  });
+  await writeFile(headPath, `ref: refs/heads/${branch}\n`);
 }
 
 async function configureRemote(

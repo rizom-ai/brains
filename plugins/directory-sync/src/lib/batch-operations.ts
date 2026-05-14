@@ -19,10 +19,12 @@ export type {
 export class BatchOperationsManager {
   private readonly logger: Logger;
   private readonly syncPath: string;
+  private readonly deleteOnFileRemoval: boolean;
 
-  constructor(logger: Logger, syncPath: string) {
+  constructor(logger: Logger, syncPath: string, deleteOnFileRemoval: boolean) {
     this.logger = logger;
     this.syncPath = syncPath;
+    this.deleteOnFileRemoval = deleteOnFileRemoval;
   }
 
   /**
@@ -39,7 +41,9 @@ export class BatchOperationsManager {
     operations.push(...importOps);
     const importOperationsCount = importOps.length;
 
-    operations.push({ type: "directory-cleanup", data: {} });
+    if (this.deleteOnFileRemoval) {
+      operations.push({ type: "directory-cleanup", data: {} });
+    }
 
     const totalFiles = files.length;
 

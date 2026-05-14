@@ -89,6 +89,7 @@ export class DirectorySync implements IDirectorySync {
       this.logger,
       this.entityService,
       this.syncPath,
+      this.deleteOnFileRemoval,
     );
     this.fileOperations = dependencies.fileOperations;
     this.batchQueue = dependencies.batchQueue;

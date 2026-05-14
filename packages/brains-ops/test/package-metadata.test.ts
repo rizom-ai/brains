@@ -68,6 +68,8 @@ describe("@rizom/ops package metadata", () => {
 
     expect(filePaths.has("dist/deploy.js")).toBeTrue();
     expect(filePaths.has("dist/deploy.d.ts")).toBeTrue();
+    // Timeout: cold `bun run build` + `npm pack --dry-run` exceeds bun's
+    // 20s default on shared CI runners.
   }, 60000);
 
   it.skipIf(!RUN_SMOKE)(

@@ -22,12 +22,18 @@ export function createDirectorySyncDependencies(
   logger: Logger,
   entityService: IEntityService,
   syncPath: string,
+  deleteOnFileRemoval: boolean,
 ): DirectorySyncDependencies {
   const fileOperations = new FileOperations(syncPath, entityService);
 
   return {
     fileOperations,
-    batchQueue: new DirectoryBatchQueue(logger, syncPath, fileOperations),
+    batchQueue: new DirectoryBatchQueue(
+      logger,
+      syncPath,
+      fileOperations,
+      deleteOnFileRemoval,
+    ),
     progressOperations: new ProgressOperations(
       logger,
       entityService,

@@ -33,7 +33,7 @@ export function setupPeriodicGitSync(
       const { files, result } = await gitSync.withLock(async () => {
         const pullResult = await gitSync.pull();
         if (pullResult.files.length === 0) {
-          return { files: pullResult.files, result: null };
+          return { files: [], result: null };
         }
         const batchResult = await directorySync.queueSyncBatch(
           pluginContext,

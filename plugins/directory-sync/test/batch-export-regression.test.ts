@@ -21,6 +21,7 @@ describe("batch operations should not include exports (regression)", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
+      true,
     );
 
     const result = manager.prepareBatchOperations([
@@ -42,6 +43,7 @@ describe("batch operations should not include exports (regression)", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
+      true,
     );
 
     const result = manager.prepareBatchOperations([
@@ -63,6 +65,7 @@ describe("batch operations should not include exports (regression)", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
+      true,
     );
 
     const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"]);
@@ -75,6 +78,7 @@ describe("batch operations should not include exports (regression)", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
+      true,
     );
 
     const result = manager.prepareBatchOperations([]);
@@ -91,6 +95,7 @@ describe("batch operations should not include exports (regression)", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
+      true,
     );
     const context = createMockServicePluginContext();
     const enqueueBatch = mock(async () => "batch-cleanup");
@@ -108,5 +113,36 @@ describe("batch operations should not include exports (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
+  });
+
+  it("prepareBatchOperations should skip cleanup when deleteOnFileRemoval is false", () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+      false,
+    );
+
+    const result = manager.prepareBatchOperations(["note/a.md"]);
+
+    const cleanupOps = result.operations.filter(
+      (op) => op.type === "directory-cleanup",
+    );
+    expect(cleanupOps).toHaveLength(0);
+  });
+
+  it("queueSyncBatch should skip empty batches entirely when deleteOnFileRemoval is false", async () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+      false,
+    );
+    const context = createMockServicePluginContext();
+    const enqueueBatch = mock(async () => "batch-noop");
+    context.jobs.enqueueBatch = enqueueBatch;
+
+    const result = await manager.queueSyncBatch(context, "test", []);
+
+    expect(enqueueBatch).not.toHaveBeenCalled();
+    expect(result).toBeNull();
   });
 });

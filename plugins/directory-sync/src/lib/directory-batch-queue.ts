@@ -12,8 +12,13 @@ export class DirectoryBatchQueue {
     private readonly logger: Logger,
     syncPath: string,
     private readonly fileOperations: FileOperations,
+    deleteOnFileRemoval: boolean,
   ) {
-    this.batchOperationsManager = new BatchOperationsManager(logger, syncPath);
+    this.batchOperationsManager = new BatchOperationsManager(
+      logger,
+      syncPath,
+      deleteOnFileRemoval,
+    );
   }
 
   async queueSyncBatch(
