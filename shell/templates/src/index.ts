@@ -17,6 +17,9 @@ export type {
   UserPermissionLevel,
   PermissionConfig,
   PermissionRule,
+  PermissionLookupContext,
+  SharedSpaceContext,
+  PermissionServiceOptions,
   WithVisibility,
 } from "./permission-service";
 

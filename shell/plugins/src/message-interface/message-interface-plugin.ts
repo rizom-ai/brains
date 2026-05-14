@@ -1,6 +1,7 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext } from "../interface/context";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import type { PermissionLookupContext } from "@brains/templates";
 import type { BaseJobTrackingInfo } from "../interfaces";
 import {
   setupProgressHandler,
@@ -122,11 +123,13 @@ export abstract class MessageInterfacePlugin<
     channelId: string,
     authorId: string,
     interfaceType: string,
+    permissionContext?: PermissionLookupContext,
   ): Promise<void> {
     if (!this.context) return;
     const userPermissionLevel = this.context.permissions.getUserLevel(
       interfaceType,
       authorId,
+      permissionContext,
     );
     await this.context.agent.chat(
       `Save this link: ${url}`,

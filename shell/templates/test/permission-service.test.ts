@@ -256,6 +256,123 @@ describe("PermissionService", () => {
     });
   });
 
+  describe("Shared spaces", () => {
+    it("should grant trusted access for exact configured spaces", () => {
+      const service = new PermissionService({}, { spaces: ["discord:123"] });
+
+      expect(
+        service.determineUserLevel("discord", "user-1", {
+          channelId: "123",
+        }),
+      ).toBe("trusted");
+    });
+
+    it("should grant trusted access for wildcard configured spaces", () => {
+      const service = new PermissionService(
+        {},
+        { spaces: ["discord:project-*"] },
+      );
+
+      expect(
+        service.determineUserLevel("discord", "user-1", {
+          channelId: "project-alpha",
+        }),
+      ).toBe("trusted");
+      expect(
+        service.determineUserLevel("discord", "user-1", {
+          channelId: "random",
+        }),
+      ).toBe("public");
+    });
+
+    it("should not grant trusted access without matching context", () => {
+      const service = new PermissionService({}, { spaces: ["discord:123"] });
+
+      expect(service.determineUserLevel("discord", "user-1")).toBe("public");
+      expect(
+        service.determineUserLevel("discord", "user-1", {
+          channelId: "456",
+        }),
+      ).toBe("public");
+    });
+
+    it("should prioritize explicit anchor and trusted users over spaces", () => {
+      const service = new PermissionService(
+        {
+          anchors: ["discord:owner"],
+          trusted: ["discord:helper"],
+        },
+        { spaces: ["discord:123"] },
+      );
+
+      expect(
+        service.determineUserLevel("discord", "owner", {
+          channelId: "123",
+        }),
+      ).toBe("anchor");
+      expect(
+        service.determineUserLevel("discord", "helper", {
+          channelId: "123",
+        }),
+      ).toBe("trusted");
+    });
+
+    it("should preserve elevated pattern rules over spaces", () => {
+      const service = new PermissionService(
+        {
+          rules: [
+            { pattern: "discord:admin-*", level: "anchor" },
+            { pattern: "discord:member-*", level: "trusted" },
+          ],
+        },
+        { spaces: ["discord:123"] },
+      );
+
+      expect(
+        service.determineUserLevel("discord", "admin-1", {
+          channelId: "123",
+        }),
+      ).toBe("anchor");
+      expect(
+        service.determineUserLevel("discord", "member-1", {
+          channelId: "123",
+        }),
+      ).toBe("trusted");
+    });
+
+    it("should allow spaces to raise users matched by public fallback rules", () => {
+      const service = new PermissionService(
+        {
+          rules: [{ pattern: "discord:*", level: "public" }],
+        },
+        { spaces: ["discord:123"] },
+      );
+
+      expect(
+        service.determineUserLevel("discord", "user-1", {
+          channelId: "123",
+        }),
+      ).toBe("trusted");
+    });
+
+    it("should not grant shared-space trust to bots or guests", () => {
+      const service = new PermissionService({}, { spaces: ["discord:123"] });
+
+      expect(
+        service.determineUserLevel("discord", "bot", {
+          channelId: "123",
+          isBot: true,
+        }),
+      ).toBe("public");
+      expect(
+        service.determineUserLevel("discord", "guest", {
+          channelId: "123",
+          isGuest: true,
+        }),
+      ).toBe("public");
+    });
+  });
+
   describe("Permission checking", () => {
     beforeEach(() => {
       permissionService = new PermissionService({});

@@ -60,7 +60,7 @@ export function createShellServices(options: {
     PluginManager.getInstance(logger, daemonRegistry);
   const permissionService =
     dependencies?.permissionService ??
-    new PermissionService(config.permissions);
+    new PermissionService(config.permissions, { spaces: config.spaces });
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 

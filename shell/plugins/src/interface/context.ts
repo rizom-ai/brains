@@ -9,7 +9,10 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type { Daemon } from "../manager/daemon-types";
-import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  PermissionLookupContext,
+  UserPermissionLevel,
+} from "@brains/templates";
 import type { AgentNamespace } from "../contracts/agent";
 import { createPublicAgentNamespace } from "../base/public-agent-service";
 import type {
@@ -27,7 +30,11 @@ import type { ToolInfo } from "@brains/mcp-service";
  */
 export interface IPermissionsNamespace {
   /** Get permission level for a user on an interface */
-  getUserLevel: (interfaceType: string, userId: string) => UserPermissionLevel;
+  getUserLevel: (
+    interfaceType: string,
+    userId: string,
+    context?: PermissionLookupContext,
+  ) => UserPermissionLevel;
 }
 
 /**
@@ -198,8 +205,13 @@ export function createInterfacePluginContext(
       getUserLevel: (
         interfaceType: string,
         userId: string,
+        context?: PermissionLookupContext,
       ): UserPermissionLevel => {
-        return permissionService.determineUserLevel(interfaceType, userId);
+        return permissionService.determineUserLevel(
+          interfaceType,
+          userId,
+          context,
+        );
       },
     },
 

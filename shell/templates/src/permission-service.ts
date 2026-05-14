@@ -36,6 +36,29 @@ export interface PermissionConfig {
 }
 
 /**
+ * Additional context interfaces can provide for shared-space permission checks.
+ */
+export interface PermissionLookupContext {
+  guildId?: string;
+  workspaceId?: string;
+  teamId?: string;
+  channelId?: string;
+  roomId?: string;
+  isBot?: boolean;
+  isGuest?: boolean;
+}
+
+export interface SharedSpaceContext extends PermissionLookupContext {
+  interfaceType: string;
+  userId: string;
+}
+
+export interface PermissionServiceOptions {
+  /** Shared conversation space selectors, e.g. discord:123 or discord:project-* */
+  spaces?: string[];
+}
+
+/**
  * Centralized permission service for determining user permission levels
  * Handles both explicit user lists and pattern-based rules
  * Replaces the old PermissionHandler from @brains/utils
@@ -44,11 +67,16 @@ export class PermissionService {
   private anchors: Set<string>;
   private trusted: Set<string>;
   private rules: PermissionRule[];
+  private spaces: string[];
 
-  constructor(config: PermissionConfig) {
+  constructor(
+    config: PermissionConfig,
+    options: PermissionServiceOptions = {},
+  ) {
     this.anchors = new Set(config.anchors ?? []);
     this.trusted = new Set(config.trusted ?? []);
     this.rules = config.rules ?? [];
+    this.spaces = options.spaces ?? [];
   }
 
   /**
@@ -60,6 +88,7 @@ export class PermissionService {
   determineUserLevel(
     interfaceType: string,
     userId: string,
+    context: PermissionLookupContext = {},
   ): UserPermissionLevel {
     const fullId = `${interfaceType}:${userId}`;
 
@@ -67,15 +96,22 @@ export class PermissionService {
     if (this.anchors.has(fullId)) return "anchor";
     if (this.trusted.has(fullId)) return "trusted";
 
-    // Then check pattern rules (in order)
-    for (const rule of this.rules) {
-      if (this.matchesPattern(fullId, rule.pattern)) {
-        return rule.level;
-      }
+    const patternLevel = this.getPatternLevel(fullId);
+    if (patternLevel === "anchor" || patternLevel === "trusted") {
+      return patternLevel;
     }
 
-    // Default to public for unknown users
-    return "public";
+    if (
+      this.matchesConfiguredSpace({
+        interfaceType,
+        userId,
+        ...context,
+      })
+    ) {
+      return "trusted";
+    }
+
+    return patternLevel ?? "public";
   }
 
   /**
@@ -129,11 +165,44 @@ export class PermissionService {
     return grantedLevel === "anchor";
   }
 
+  private getPatternLevel(id: string): UserPermissionLevel | undefined {
+    for (const rule of this.rules) {
+      if (this.matchesPattern(id, rule.pattern)) {
+        return rule.level;
+      }
+    }
+    return undefined;
+  }
+
   /**
-   * Check if a full user ID matches a pattern
-   * Supports wildcard (*) matching
-   * @param id The full user ID (e.g., "matrix:@user:example.org")
-   * @param pattern The pattern to match (e.g., "matrix:@*:admin.org")
+   * Check if the lookup context matches one of the configured shared spaces.
+   */
+  private matchesConfiguredSpace(context: SharedSpaceContext): boolean {
+    if (this.spaces.length === 0) return false;
+    if (context.isBot || context.isGuest) return false;
+
+    const candidates = this.getSpaceCandidates(context);
+    return candidates.some((spaceId) =>
+      this.spaces.some((selector) => this.matchesPattern(spaceId, selector)),
+    );
+  }
+
+  private getSpaceCandidates(context: SharedSpaceContext): string[] {
+    const candidates: string[] = [];
+    if (context.channelId) {
+      candidates.push(`${context.interfaceType}:${context.channelId}`);
+    }
+    if (context.roomId) {
+      candidates.push(`${context.interfaceType}:${context.roomId}`);
+    }
+    return candidates;
+  }
+
+  /**
+   * Check if an ID matches a pattern.
+   * Supports wildcard (*) matching.
+   * @param id The ID to test (e.g., "matrix:@user:example.org" or "discord:channel-id")
+   * @param pattern The pattern to match (e.g., "matrix:@*:admin.org" or "discord:project-*")
    * @returns True if the ID matches the pattern
    */
   private matchesPattern(id: string, pattern: string): boolean {

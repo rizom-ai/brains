@@ -47,38 +47,37 @@ For Relay, this means a Discord server/channel, Slack workspace/channel, Teams s
 
 ## Configuration shape
 
-Add an optional shared-space permission config alongside existing permission rules. Exact location can be decided during implementation; conceptually:
+Reuse the existing top-level `spaces` block in `brain.yaml` for the first implementation slice. This keeps the team boundary in one place instead of introducing a second shared-space configuration path.
 
 ```yaml
-permissions:
-  sharedSpaces:
-    - interface: discord
-      guildId: "123456789"
-      channelIds: ["987654321"] # optional; omitted means whole guild/server
-      level: trusted
-      includeBots: false
-    - interface: slack
-      workspaceId: T123
-      channelIds: [C123, C456]
-      level: trusted
+spaces:
+  - discord:987654321
+  - discord:project-*
+  - mcp:weekly-sync
 ```
+
+For Relay v1, `spaces` means: shared conversation locations for this brain/team. Those same configured spaces should be eligible to grant collaborator trust.
 
 Constraints:
 
-- `level` should initially only allow `trusted`.
-- `anchor` via shared-space config is out of scope.
+- `spaces` entries remain canonical selectors, e.g. `<interfaceType>:<channelId>` with wildcard support.
+- Matching a configured space can grant only `trusted`, never `anchor`.
 - Interface-specific ids should remain strings to avoid precision loss.
-- Config should support whole-space and narrower channel/room trust.
+- Do not add `permissions.sharedSpaces` in the first slice.
+- If future whole-server/workspace trust is needed, add a later structured config shape instead of overloading the selector list too early.
 
 ## Permission resolution
+
+Keep permission resolution centralized in `PermissionService`, but feed it the existing configured `spaces` from shell config.
 
 Before full runtime multi-user, resolve in this order at interface boundaries:
 
 1. Explicit deny/block checks, if the interface provides them.
 2. Existing explicit anchor/trusted user rules from `PermissionService`.
-3. Configured shared-space membership grants `trusted`.
-4. Existing pattern rules/fallback behavior.
-5. Default `public`.
+3. Existing pattern rules that grant `anchor` or `trusted`.
+4. Configured `spaces` membership grants `trusted`.
+5. Existing `public` pattern rules/fallback behavior.
+6. Default `public`.
 
 After runtime multi-user lands, the combined order should become:
 
@@ -86,11 +85,18 @@ After runtime multi-user lands, the combined order should become:
 2. Explicit runtime auth-user role.
 3. Interface deny/block checks.
 4. Existing explicit anchor/trusted user rules.
-5. Configured shared-space membership grants `trusted`.
-6. Existing pattern rules/fallback behavior.
-7. Default `public`.
+5. Existing pattern rules that grant `anchor` or `trusted`.
+6. Configured `spaces` membership grants `trusted`.
+7. Existing `public` pattern rules/fallback behavior.
+8. Default `public`.
 
-The important invariant: shared-space trust can raise a caller to `trusted`, but never to `anchor`.
+Implementation detail:
+
+- keep `determineUserLevel(interfaceType, userId)` for backward compatibility;
+- add a context-aware resolver path rather than moving matching logic into interfaces;
+- compute a canonical space id from context, e.g. `${interfaceType}:${channelId}`;
+- match that canonical id against the existing `spaces` selectors;
+- shared-space trust can raise an otherwise-public caller to `trusted`, but never to `anchor`.
 
 ## Interface requirements
 
@@ -109,6 +115,8 @@ interface SharedSpaceContext {
   isGuest?: boolean;
 }
 ```
+
+The interface API should stay additive. Extend the existing permission lookup with an optional context argument rather than replacing the old signature.
 
 Discord should be the first target for Relay if that is the active shared-space interface.
 
@@ -168,23 +176,38 @@ This is intentionally later than basic shared-space trust, but should happen bef
 
 ## Phased implementation
 
-### Phase 1 — Config and resolver
+### Phase 1 — Core resolver using existing spaces
 
-- Add shared-space config schema.
-- Add a resolver helper that checks whether interface context matches configured shared spaces.
-- Keep output limited to `trusted`.
-- Add tests for whole-space and channel-limited matches.
+Primary packages:
+
+- `shell/templates` — teach `PermissionService` to evaluate configured space selectors
+- `shell/core` — pass `ShellConfig.spaces` into `PermissionService` construction if needed
+- `shell/plugins` — expose an additive context-aware permission lookup to interfaces
+
+Implementation:
+
+- Reuse existing `spaces: string[]`; do not add `permissions.sharedSpaces`.
+- Keep `PermissionService` as the single place that evaluates explicit users, configured-space matches, and pattern rules.
+- Add a context-aware resolver path while keeping the current `(interfaceType, userId)` API working.
+- Add focused tests for exact and wildcard space selector matches.
 
 Validation:
 
 - matching configured space grants `trusted`
 - non-matching space remains `public`
-- configured channel grants `trusted` only in that channel
-- shared-space config cannot grant `anchor`
+- wildcard space selector grants `trusted` only for matching spaces
+- explicit anchor/trusted rules and elevated pattern rules still win
+- configured spaces cannot grant `anchor`
 
 ### Phase 2 — Discord/Relay integration
 
-- Pass Discord guild/channel/user/bot context into permission resolution.
+Primary package:
+
+- `interfaces/discord`
+
+Implementation:
+
+- Pass Discord guild/channel/user/bot context into the centralized permission resolver.
 - Enable Relay docs/config examples for trusted Discord spaces.
 - Ensure bots are excluded unless explicitly allowed.
 
@@ -197,9 +220,11 @@ Validation:
 
 ### Phase 3 — Other chat interfaces
 
-Add Slack/Teams/shared web workspace support as those interfaces mature.
+Add Slack/Teams/shared web workspace support as those interfaces mature, reusing the same centralized resolver.
 
 ### Phase 4 — Entity action policy overrides
+
+This is a follow-up plan, not part of the first shared-space-trust implementation slice.
 
 - Add entity-type/action permission policy config.
 - Enforce it in central system mutation tools.
@@ -230,6 +255,9 @@ Validation:
 - Full fine-grained RBAC.
 - Admin as a fourth permission level.
 - Public self-signup or invitations.
+- Slack/Teams implementation in the first slice.
+- Entity action policy enforcement in the first slice.
+- Moving permission matching logic into interface packages.
 
 ## Relationship to other plans
 

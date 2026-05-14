@@ -46,9 +46,7 @@ interface MockAgentService {
 }
 
 interface MockConversationService {
-  startConversation: Mock<
-    (request: { sessionId: string }) => Promise<string>
-  >;
+  startConversation: Mock<(request: { sessionId: string }) => Promise<string>>;
   addMessage: Mock<(_request: unknown) => Promise<void>>;
   getConversation: Mock<() => Promise<null>>;
   listConversations: Mock<() => Promise<never[]>>;
@@ -256,6 +254,15 @@ describe("DiscordInterface", () => {
     spaces: string[],
     conversationService: MockConversationService,
   ): Promise<void> {
+    harness.setPermissionService(
+      new PermissionService(
+        {
+          anchors: ["discord:anchor-user"],
+          trusted: ["discord:trusted-user"],
+        },
+        { spaces },
+      ),
+    );
     harness.getMockShell().getSpaces = (): string[] => spaces;
     harness.getMockShell().getConversationService =
       (): MockConversationService => conversationService;
@@ -577,7 +584,10 @@ describe("DiscordInterface", () => {
       expect(mockAgentService.chat).toHaveBeenCalledWith(
         "summarize this",
         expect.stringContaining("discord-"),
-        expect.objectContaining({ interfaceType: "discord" }),
+        expect.objectContaining({
+          interfaceType: "discord",
+          userPermissionLevel: "trusted",
+        }),
       );
     });
 

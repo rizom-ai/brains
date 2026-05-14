@@ -11,6 +11,7 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type { WebRouteDefinition } from "../types/web-routes";
+import type { PermissionLookupContext } from "@brains/templates";
 import type { z } from "@brains/utils";
 import { InterfacePlugin } from "./interface-plugin";
 import type {
@@ -129,8 +130,15 @@ class MessageInterfacePluginDelegate<
     channelId: string,
     authorId: string,
     interfaceType: string,
+    permissionContext?: PermissionLookupContext,
   ): Promise<void> {
-    return this.captureUrlViaAgent(url, channelId, authorId, interfaceType);
+    return this.captureUrlViaAgent(
+      url,
+      channelId,
+      authorId,
+      interfaceType,
+      permissionContext,
+    );
   }
 
   getCurrentChannelIdPublic(): string | null {
@@ -269,12 +277,14 @@ export abstract class MessageInterfacePlugin<
     channelId: string,
     authorId: string,
     interfaceType: string,
+    permissionContext?: PermissionLookupContext,
   ): Promise<void> {
     return this.messageDelegate.captureUrlViaAgentPublic(
       url,
       channelId,
       authorId,
       interfaceType,
+      permissionContext,
     );
   }
 

@@ -213,8 +213,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       "ownerId" in message.channel &&
       message.channel.ownerId === this.client?.user?.id;
     const spaceChannelId = this.getSpaceChannelId(message);
-    const isConfiguredSpace =
-      !isDM && this.isConfiguredSpace(spaceChannelId);
+    const isConfiguredSpace = !isDM && this.isConfiguredSpace(spaceChannelId);
 
     // allowedChannels gates chat, passive capture, and URL capture
     if (
@@ -262,6 +261,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
               message.channel.id,
               message.author.id,
               "discord",
+              this.getPermissionContext(message),
             ).catch((e: unknown) =>
               this.logger.error("URL capture failed", { error: e, url }),
             );
@@ -278,6 +278,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       const userLevel = this.context.permissions.getUserLevel(
         "discord",
         message.author.id,
+        this.getPermissionContext(message),
       );
       const canUpload = userLevel === "anchor" || userLevel === "trusted";
 
@@ -381,6 +382,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     const userPermissionLevel = this.context.permissions.getUserLevel(
       "discord",
       discordMessage.author.id,
+      this.getPermissionContext(discordMessage),
     );
     const channelName = this.getChannelName(discordMessage);
 
@@ -542,6 +544,18 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       return message.channel.parent.id;
     }
     return message.channel.id;
+  }
+
+  private getPermissionContext(message: Message): {
+    guildId?: string;
+    channelId: string;
+    isBot: boolean;
+  } {
+    return {
+      ...(message.guild ? { guildId: message.guild.id } : {}),
+      channelId: this.getSpaceChannelId(message),
+      isBot: message.author.bot,
+    };
   }
 
   private isConfiguredSpace(channelId: string): boolean {
