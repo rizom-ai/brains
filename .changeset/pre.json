@@ -133,6 +133,7 @@
     "fixed-group-alpha-republish",
     "hide-operator-routes-from-nav",
     "link-capture-alias-fix",
+    "local-auth-issuer-defaults",
     "mcp-forwarded-resource-metadata",
     "node24-action-upgrades",
     "oauth-inspector-compat",

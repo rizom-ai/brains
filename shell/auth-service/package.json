@@ -1,7 +1,7 @@
 {
   "name": "@brains/auth-service",
   "private": true,
-  "version": "0.2.0-alpha.66",
+  "version": "0.2.0-alpha.67",
   "description": "Embedded OAuth/OIDC auth service for brain operator authentication",
   "type": "module",
   "main": "./src/index.ts",

@@ -1,5 +1,14 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.67
+
+### Patch Changes
+
+- [`ace43f9`](https://github.com/rizom-ai/brains/commit/ace43f9c2c34db1159d6b91ba76411691e596c9f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Default local development auth issuer URLs to the running localhost origin while preserving explicit and production issuer behavior.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.67
+
 ## 0.2.0-alpha.66
 
 ### Patch Changes

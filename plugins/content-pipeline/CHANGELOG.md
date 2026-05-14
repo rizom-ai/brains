@@ -1,5 +1,14 @@
 # @brains/content-pipeline
 
+## 0.2.0-alpha.67
+
+### Patch Changes
+
+- Updated dependencies [[`ace43f9`](https://github.com/rizom-ai/brains/commit/ace43f9c2c34db1159d6b91ba76411691e596c9f)]:
+  - @brains/plugins@0.2.0-alpha.67
+  - @brains/contracts@0.2.0-alpha.67
+  - @brains/utils@0.2.0-alpha.67
+
 ## 0.2.0-alpha.66
 
 ### Patch Changes

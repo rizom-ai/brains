@@ -1,6 +1,6 @@
 {
   "name": "@brains/plugins",
-  "version": "0.2.0-alpha.66",
+  "version": "0.2.0-alpha.67",
   "private": true,
   "description": "Core plugin system implementation for Brains",
   "main": "./src/index.ts",

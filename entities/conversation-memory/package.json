@@ -1,7 +1,7 @@
 {
   "name": "@brains/conversation-memory",
   "private": true,
-  "version": "0.2.0-alpha.66",
+  "version": "0.2.0-alpha.67",
   "description": "Plugin for deriving durable conversation memory",
   "type": "module",
   "main": "./src/index.ts",

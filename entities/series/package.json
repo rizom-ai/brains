@@ -1,7 +1,7 @@
 {
   "name": "@brains/series",
   "private": true,
-  "version": "0.2.0-alpha.66",
+  "version": "0.2.0-alpha.67",
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
   "type": "module",
   "exports": {

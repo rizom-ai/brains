@@ -1,5 +1,40 @@
 # @brains/relay
 
+## 0.2.0-alpha.67
+
+### Patch Changes
+
+- Updated dependencies [[`ace43f9`](https://github.com/rizom-ai/brains/commit/ace43f9c2c34db1159d6b91ba76411691e596c9f)]:
+  - @brains/auth-service@0.2.0-alpha.67
+  - @brains/app@0.2.0-alpha.67
+  - @brains/plugins@0.2.0-alpha.67
+  - @brains/mcp@0.2.0-alpha.67
+  - @brains/dashboard@0.2.0-alpha.67
+  - @brains/decks@0.2.0-alpha.67
+  - @brains/link@0.2.0-alpha.67
+  - @brains/note@0.2.0-alpha.67
+  - @brains/discord@0.2.0-alpha.67
+  - @brains/agent-discovery@0.2.0-alpha.67
+  - @brains/assessment@0.2.0-alpha.67
+  - @brains/conversation-memory@0.2.0-alpha.67
+  - @brains/doc@0.2.0-alpha.67
+  - @brains/image-plugin@0.2.0-alpha.67
+  - @brains/prompt@0.2.0-alpha.67
+  - @brains/rizom-ecosystem@0.2.0-alpha.67
+  - @brains/site-info@0.2.0-alpha.67
+  - @brains/topics@0.2.0-alpha.67
+  - @brains/a2a@0.2.0-alpha.67
+  - @brains/webserver@0.2.0-alpha.67
+  - @brains/cms@0.2.0-alpha.67
+  - @brains/directory-sync@0.2.0-alpha.67
+  - @brains/site-builder-plugin@0.2.0-alpha.67
+  - @brains/site-content@0.2.0-alpha.67
+  - @brains/site-rizom@0.2.0-alpha.67
+  - @brains/content-formatters@0.2.0-alpha.67
+  - @brains/site-composition@0.2.0-alpha.67
+  - @brains/theme-rizom@0.2.0-alpha.67
+  - @brains/utils@0.2.0-alpha.67
+
 ## 0.2.0-alpha.66
 
 ### Patch Changes
