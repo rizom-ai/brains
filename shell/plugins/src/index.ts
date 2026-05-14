@@ -186,11 +186,13 @@ export type {
   ViewTemplate,
   OutputFormat,
   UserPermissionLevel,
+  PermissionLookupContext,
 } from "@brains/templates";
 export {
   createTemplate,
   PermissionService,
   UserPermissionLevelSchema,
+  matchSpaceSelector,
 } from "@brains/templates";
 
 export type { ResolutionOptions } from "@brains/content-service";

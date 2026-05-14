@@ -3,8 +3,8 @@ import type { Conversation, Message } from "@brains/plugins";
 import {
   evaluateSummaryEligibility,
   getConversationSpaceId,
-  isSpaceSelectorMatch,
 } from "../../src/lib/summary-space-eligibility";
+import { matchSpaceSelector } from "@brains/templates";
 
 const conversation: Conversation = {
   id: "conv-1",
@@ -37,18 +37,18 @@ describe("summary space eligibility", () => {
 
   it("matches exact space selectors", () => {
     expect(
-      isSpaceSelectorMatch("discord:project-alpha", "discord:project-alpha"),
+      matchSpaceSelector("discord:project-alpha", "discord:project-alpha"),
     ).toBe(true);
     expect(
-      isSpaceSelectorMatch("discord:project-beta", "discord:project-alpha"),
+      matchSpaceSelector("discord:project-beta", "discord:project-alpha"),
     ).toBe(false);
   });
 
   it("matches wildcard space selectors", () => {
     expect(
-      isSpaceSelectorMatch("discord:project-*", "discord:project-alpha"),
+      matchSpaceSelector("discord:project-*", "discord:project-alpha"),
     ).toBe(true);
-    expect(isSpaceSelectorMatch("mcp:*", "discord:project-alpha")).toBe(false);
+    expect(matchSpaceSelector("mcp:*", "discord:project-alpha")).toBe(false);
   });
 
   it("is ineligible when no spaces are configured", () => {

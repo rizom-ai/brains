@@ -1,7 +1,9 @@
 import {
   MessageInterfacePlugin,
   parseConfirmationResponse,
+  matchSpaceSelector,
   type InterfacePluginContext,
+  type PermissionLookupContext,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
 import { chunkMessage, truncateText, fetchAsText } from "@brains/utils";
@@ -214,6 +216,10 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       message.channel.ownerId === this.client?.user?.id;
     const spaceChannelId = this.getSpaceChannelId(message);
     const isConfiguredSpace = !isDM && this.isConfiguredSpace(spaceChannelId);
+    const permissionContext: PermissionLookupContext = {
+      channelId: spaceChannelId,
+      isBot: message.author.bot,
+    };
 
     // allowedChannels gates chat, passive capture, and URL capture
     if (
@@ -261,7 +267,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
               message.channel.id,
               message.author.id,
               "discord",
-              this.getPermissionContext(message),
+              permissionContext,
             ).catch((e: unknown) =>
               this.logger.error("URL capture failed", { error: e, url }),
             );
@@ -278,7 +284,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       const userLevel = this.context.permissions.getUserLevel(
         "discord",
         message.author.id,
-        this.getPermissionContext(message),
+        permissionContext,
       );
       const canUpload = userLevel === "anchor" || userLevel === "trusted";
 
@@ -309,7 +315,12 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     if (!agentMessage) return;
 
     const channelId = message.channel.id;
-    await this.routeToAgent(agentMessage, channelId, message);
+    await this.routeToAgent(
+      agentMessage,
+      channelId,
+      message,
+      permissionContext,
+    );
   }
 
   private async capturePassiveSpaceMessage(
@@ -356,6 +367,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     message: string,
     channelId: string,
     discordMessage: Message,
+    permissionContext: PermissionLookupContext,
   ): Promise<void> {
     if (!this.context) return;
 
@@ -382,7 +394,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     const userPermissionLevel = this.context.permissions.getUserLevel(
       "discord",
       discordMessage.author.id,
-      this.getPermissionContext(discordMessage),
+      permissionContext,
     );
     const channelName = this.getChannelName(discordMessage);
 
@@ -546,32 +558,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     return message.channel.id;
   }
 
-  private getPermissionContext(message: Message): {
-    guildId?: string;
-    channelId: string;
-    isBot: boolean;
-  } {
-    return {
-      ...(message.guild ? { guildId: message.guild.id } : {}),
-      channelId: this.getSpaceChannelId(message),
-      isBot: message.author.bot,
-    };
-  }
-
   private isConfiguredSpace(channelId: string): boolean {
     const spaceId = `discord:${channelId}`;
     return (
       this.context?.spaces.some((selector) =>
-        this.isSpaceSelectorMatch(selector, spaceId),
+        matchSpaceSelector(selector, spaceId),
       ) ?? false
     );
-  }
-
-  private isSpaceSelectorMatch(selector: string, spaceId: string): boolean {
-    if (selector === spaceId) return true;
-    const escaped = selector.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = `^${escaped.replace(/\*/g, ".*")}$`;
-    return new RegExp(pattern).test(spaceId);
   }
 
   private isAllowedChannel(channelId: string, spaceChannelId: string): boolean {

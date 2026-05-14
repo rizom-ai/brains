@@ -18,10 +18,10 @@ export type {
   PermissionConfig,
   PermissionRule,
   PermissionLookupContext,
-  SharedSpaceContext,
   PermissionServiceOptions,
   WithVisibility,
 } from "./permission-service";
+export { matchSpaceSelector } from "./space-selector";
 
 // Render service (merged from @brains/render-service)
 export { RenderService } from "./render-service";

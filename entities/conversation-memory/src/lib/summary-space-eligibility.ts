@@ -1,4 +1,5 @@
 import type { Conversation, Message } from "@brains/plugins";
+import { matchSpaceSelector } from "@brains/templates";
 
 export type SummaryEligibilityReason =
   | "configured-space"
@@ -19,17 +20,6 @@ export function getConversationSpaceId(scope: {
   return `${scope.interfaceType}:${scope.channelId}`;
 }
 
-export function isSpaceSelectorMatch(
-  selector: string,
-  spaceId: string,
-): boolean {
-  if (selector === spaceId) return true;
-
-  const escaped = selector.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = `^${escaped.replace(/\*/g, ".*")}$`;
-  return new RegExp(pattern).test(spaceId);
-}
-
 export function evaluateSummaryEligibility(params: {
   conversation: Conversation;
   spaces: string[];
@@ -42,7 +32,7 @@ export function evaluateSummaryEligibility(params: {
     return { eligible: false, reason: "no-spaces-configured", spaceId };
   }
 
-  if (!spaces.some((selector) => isSpaceSelectorMatch(selector, spaceId))) {
+  if (!spaces.some((selector) => matchSpaceSelector(selector, spaceId))) {
     return { eligible: false, reason: "space-not-configured", spaceId };
   }
 

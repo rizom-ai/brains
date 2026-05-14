@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { matchSpaceSelector } from "./space-selector";
 
 /**
  * User permission level schema
@@ -37,20 +38,19 @@ export interface PermissionConfig {
 
 /**
  * Additional context interfaces can provide for shared-space permission checks.
+ *
+ * Each interface normalizes its location concept (Discord channel/thread,
+ * Slack channel, Matrix room, ...) into the single canonical `channelId`
+ * before calling the resolver.
  */
 export interface PermissionLookupContext {
-  guildId?: string;
-  workspaceId?: string;
-  teamId?: string;
   channelId?: string;
-  roomId?: string;
   isBot?: boolean;
   isGuest?: boolean;
 }
 
-export interface SharedSpaceContext extends PermissionLookupContext {
+interface SharedSpaceContext extends PermissionLookupContext {
   interfaceType: string;
-  userId: string;
 }
 
 export interface PermissionServiceOptions {
@@ -80,10 +80,15 @@ export class PermissionService {
   }
 
   /**
-   * Determine the permission level for a user in a specific interface
-   * @param interfaceType The type of interface (e.g., "matrix", "cli", "discord")
-   * @param userId The user ID specific to that interface
-   * @returns The user's permission level
+   * Determine the permission level for a user in a specific interface.
+   *
+   * Resolution order (load-bearing — locks user-facing trust semantics):
+   *   1. Explicit anchor/trusted lists win — they encode operator intent.
+   *   2. Pattern rules granting anchor/trusted win — same intent, broader.
+   *   3. Configured shared-space membership grants `trusted` — only raises
+   *      otherwise-public callers; never elevates to `anchor`.
+   *   4. Public-fallback pattern rules apply.
+   *   5. Default `public`.
    */
   determineUserLevel(
     interfaceType: string,
@@ -92,7 +97,6 @@ export class PermissionService {
   ): UserPermissionLevel {
     const fullId = `${interfaceType}:${userId}`;
 
-    // Check explicit lists first (highest priority)
     if (this.anchors.has(fullId)) return "anchor";
     if (this.trusted.has(fullId)) return "trusted";
 
@@ -102,11 +106,8 @@ export class PermissionService {
     }
 
     if (
-      this.matchesConfiguredSpace({
-        interfaceType,
-        userId,
-        ...context,
-      })
+      this.spaces.length > 0 &&
+      this.matchesConfiguredSpace({ interfaceType, ...context })
     ) {
       return "trusted";
     }
@@ -167,51 +168,20 @@ export class PermissionService {
 
   private getPatternLevel(id: string): UserPermissionLevel | undefined {
     for (const rule of this.rules) {
-      if (this.matchesPattern(id, rule.pattern)) {
+      if (matchSpaceSelector(rule.pattern, id)) {
         return rule.level;
       }
     }
     return undefined;
   }
 
-  /**
-   * Check if the lookup context matches one of the configured shared spaces.
-   */
   private matchesConfiguredSpace(context: SharedSpaceContext): boolean {
-    if (this.spaces.length === 0) return false;
     if (context.isBot || context.isGuest) return false;
+    if (!context.channelId) return false;
 
-    const candidates = this.getSpaceCandidates(context);
-    return candidates.some((spaceId) =>
-      this.spaces.some((selector) => this.matchesPattern(spaceId, selector)),
+    const spaceId = `${context.interfaceType}:${context.channelId}`;
+    return this.spaces.some((selector) =>
+      matchSpaceSelector(selector, spaceId),
     );
-  }
-
-  private getSpaceCandidates(context: SharedSpaceContext): string[] {
-    const candidates: string[] = [];
-    if (context.channelId) {
-      candidates.push(`${context.interfaceType}:${context.channelId}`);
-    }
-    if (context.roomId) {
-      candidates.push(`${context.interfaceType}:${context.roomId}`);
-    }
-    return candidates;
-  }
-
-  /**
-   * Check if an ID matches a pattern.
-   * Supports wildcard (*) matching.
-   * @param id The ID to test (e.g., "matrix:@user:example.org" or "discord:channel-id")
-   * @param pattern The pattern to match (e.g., "matrix:@*:admin.org" or "discord:project-*")
-   * @returns True if the ID matches the pattern
-   */
-  private matchesPattern(id: string, pattern: string): boolean {
-    // Convert pattern to regex
-    // Escape regex special characters except *
-    const escapedPattern = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-    // Replace * with .* for wildcard matching
-    const regexPattern = "^" + escapedPattern.replace(/\*/g, ".*") + "$";
-    const regex = new RegExp(regexPattern);
-    return regex.test(id);
   }
 }
