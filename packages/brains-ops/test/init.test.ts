@@ -101,7 +101,20 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
+function ensureOpsPackageBuilt(): void {
+  if (existsSync(join(opsPackageDir, "dist", "deploy.js"))) {
+    return;
+  }
+
+  execFileSync("bun", ["run", "build"], {
+    cwd: opsPackageDir,
+    encoding: "utf8",
+  });
+}
+
 async function linkOpsPackage(repoDir: string): Promise<void> {
+  ensureOpsPackageBuilt();
+
   const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
   await symlink(opsPackageDir, target, "dir");
