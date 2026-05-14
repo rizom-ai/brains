@@ -35,11 +35,13 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Content, sync, and generation
 
+- [Directory-sync new-repo bootstrap recovery](./directory-sync-new-repo-bootstrap.md)
 - [Generic cover image orchestration](./generic-cover-image-orchestration.md)
 
 ### Auth, users, CMS, and HTTP
 
 - [A2A request signing](./a2a-request-signing.md)
+- [Local OAuth issuer defaults](./local-oauth-issuer-defaults.md)
 - [Multi-user and permissions](./multi-user.md)
 - [Shared space trust](./shared-space-trust.md)
 - [Passkey operator onboarding](./passkey-operator-onboarding.md)

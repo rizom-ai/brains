@@ -214,6 +214,7 @@ deploy/**/*.db-*
 
 # direnv
 .envrc
+.envrc.local
 .direnv/
 
 apps/test-brain/server.log

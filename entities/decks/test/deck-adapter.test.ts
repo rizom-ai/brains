@@ -41,6 +41,25 @@ describe("DeckAdapter", () => {
 
       expect(() => schema.parse(invalidDeck)).toThrow();
     });
+
+    it("should reject published metadata without publishedAt", () => {
+      const schema = adapter.schema;
+
+      const invalidDeck = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Published Without Date",
+        status: "published",
+        metadata: {
+          slug: "published-without-date",
+          title: "Published Without Date",
+          status: "published",
+        },
+      });
+
+      expect(() => schema.parse(invalidDeck)).toThrow(
+        "publishedAt is required when deck status is published",
+      );
+    });
   });
 
   describe("toMarkdown", () => {
@@ -51,10 +70,12 @@ describe("DeckAdapter", () => {
         description: "A test presentation",
         author: "Jane Developer",
         status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
         metadata: {
           slug: "test-deck",
           title: "Test Presentation",
           status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
         },
       });
 
@@ -65,6 +86,7 @@ describe("DeckAdapter", () => {
       expect(markdown).toContain("description: A test presentation");
       expect(markdown).toContain("author: Jane Developer");
       expect(markdown).toContain("status: published");
+      expect(markdown).toContain("publishedAt: '2025-01-01T10:00:00.000Z'");
       expect(markdown).toContain("# Welcome");
       expect(markdown).toContain("# Main Content");
     });
@@ -100,6 +122,7 @@ title: Test Presentation
 description: A test presentation
 author: Jane Developer
 status: published
+publishedAt: '2025-01-01T10:00:00.000Z'
 ---
 
 # Welcome
@@ -117,6 +140,7 @@ Key points`;
       expect(result.entityType).toBe("deck");
       expect(result.metadata?.title).toBe("Test Presentation");
       expect(result.metadata?.slug).toBe("test-presentation");
+      expect(result.metadata?.publishedAt).toBe("2025-01-01T10:00:00.000Z");
       // Content is the full markdown (frontmatter is preserved for storage)
       expect(result.content).toContain("title: Test Presentation");
       expect(result.content).toContain("# Welcome");
@@ -132,6 +156,23 @@ status: draft
 
       expect(() => adapter.fromMarkdown(markdown)).toThrow(
         "Invalid deck: markdown must contain slide separators (---)",
+      );
+    });
+
+    it("should reject published decks without publishedAt", () => {
+      const markdown = `---
+title: Published Without Date
+status: published
+---
+
+# Slide 1
+
+---
+
+# Slide 2`;
+
+      expect(() => adapter.fromMarkdown(markdown)).toThrow(
+        "publishedAt is required when deck status is published",
       );
     });
 
@@ -160,10 +201,12 @@ status: draft
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
         metadata: {
           slug: "test-deck",
           title: "Test Deck",
           status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
         },
       });
 
@@ -172,6 +215,7 @@ status: draft
       expect(metadata.slug).toBe("test-deck");
       expect(metadata.title).toBe("Test Deck");
       expect(metadata.status).toBe("published");
+      expect(metadata.publishedAt).toBe("2025-01-01T10:00:00.000Z");
     });
 
     it("should handle missing optional metadata", () => {

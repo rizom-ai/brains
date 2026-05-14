@@ -11,7 +11,32 @@ export type DeckStatus = z.infer<typeof deckStatusSchema>;
  * Deck frontmatter schema (stored in content as YAML frontmatter)
  * Contains all presentation data for human editing
  */
-export const deckFrontmatterSchema = z.object({
+const publishedAtRequiredMessage =
+  "publishedAt is required when deck status is published";
+
+export const assertPublishedDeckHasPublishedAt = (data: {
+  status: DeckStatus;
+  publishedAt?: string | undefined;
+}): void => {
+  if (data.status === "published" && !data.publishedAt) {
+    throw new Error(publishedAtRequiredMessage);
+  }
+};
+
+const requirePublishedAtForPublishedDeck = (
+  data: { status: DeckStatus; publishedAt?: string | undefined },
+  ctx: z.RefinementCtx,
+): void => {
+  if (data.status !== "published" || data.publishedAt) return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["publishedAt"],
+    message: publishedAtRequiredMessage,
+  });
+};
+
+const deckFrontmatterBaseSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
   description: z.string().optional(),
@@ -22,6 +47,8 @@ export const deckFrontmatterSchema = z.object({
   coverImageId: z.string().optional(), // References an image entity by ID
 });
 
+export const deckFrontmatterSchema = deckFrontmatterBaseSchema;
+
 export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 
 /**
@@ -29,7 +56,7 @@ export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const deckMetadataSchema = deckFrontmatterSchema
+export const deckMetadataSchema = deckFrontmatterBaseSchema
   .pick({
     title: true,
     description: true,
@@ -39,7 +66,8 @@ export const deckMetadataSchema = deckFrontmatterSchema
   })
   .extend({
     slug: z.string(), // Required in metadata (auto-generated from title)
-  });
+  })
+  .superRefine(requirePublishedAtForPublishedDeck);
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
 

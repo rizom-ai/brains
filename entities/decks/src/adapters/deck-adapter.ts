@@ -1,6 +1,7 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import { slugify } from "@brains/utils";
 import {
+  assertPublishedDeckHasPublishedAt,
   deckSchema,
   deckFrontmatterSchema,
   type DeckEntity,
@@ -47,22 +48,25 @@ export class DeckAdapter extends BaseEntityAdapter<
     // Validate before serializing
     this.validateSlideStructure(body);
 
+    let frontmatter: DeckFrontmatter;
     try {
-      const frontmatter = this.parseFrontMatter(
+      frontmatter = this.parseFrontMatter(
         entity.content,
         deckFrontmatterSchema,
       );
-
-      // Merge auto-generated slug from metadata if missing in frontmatter
-      const completeFrontmatter = {
-        ...frontmatter,
-        slug: frontmatter.slug ?? entity.metadata.slug,
-      };
-
-      return this.buildMarkdown(body, completeFrontmatter);
     } catch {
       return body;
     }
+
+    assertPublishedDeckHasPublishedAt(frontmatter);
+
+    // Merge auto-generated slug from metadata if missing in frontmatter
+    const completeFrontmatter = {
+      ...frontmatter,
+      slug: frontmatter.slug ?? entity.metadata.slug,
+    };
+
+    return this.buildMarkdown(body, completeFrontmatter);
   }
 
   /**
@@ -73,6 +77,8 @@ export class DeckAdapter extends BaseEntityAdapter<
   public fromMarkdown(markdown: string): Partial<DeckEntity> {
     const frontmatter = this.parseFrontmatter(markdown);
     const content = this.extractBody(markdown);
+
+    assertPublishedDeckHasPublishedAt(frontmatter);
 
     // Validate presentation structure
     this.validateSlideStructure(content);
