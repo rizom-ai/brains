@@ -129,7 +129,9 @@ export function createMockEntityPluginContext(
     domain: undefined,
     spaces,
     siteUrl: undefined,
+    localSiteUrl: undefined,
     previewUrl: undefined,
+    preferLocalUrls: false,
 
     conversations: {
       get: mock(() => Promise.resolve(null)),

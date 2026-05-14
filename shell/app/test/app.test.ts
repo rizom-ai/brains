@@ -1,8 +1,18 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterEach, spyOn } from "bun:test";
 import { App, STARTUP_CHECK_API_KEY } from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell, type Shell as ShellInstance } from "@brains/core";
+
+const originalNodeEnv = process.env["NODE_ENV"];
+
+afterEach(() => {
+  if (originalNodeEnv === undefined) {
+    delete process.env["NODE_ENV"];
+  } else {
+    process.env["NODE_ENV"] = originalNodeEnv;
+  }
+});
 
 // Create a mock Shell
 const createMockShell = (): ShellInstance => {
@@ -81,19 +91,18 @@ describe("App", () => {
     });
 
     it("should provide a startup-check API key placeholder when no key is configured", async () => {
-      const originalCreateFresh = Shell.createFresh;
-      const originalRunAllMigrations =
-        MigrationManager.prototype.runAllMigrations;
       const mockShell = createMockShell();
       let shellConfig: Parameters<typeof Shell.createFresh>[0];
-
-      MigrationManager.prototype.runAllMigrations = mock(() =>
-        Promise.resolve(),
-      ) as typeof MigrationManager.prototype.runAllMigrations;
-      Shell.createFresh = mock((config) => {
-        shellConfig = config;
-        return mockShell;
-      }) as typeof Shell.createFresh;
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
+        },
+      );
 
       try {
         const app = App.create({});
@@ -104,8 +113,76 @@ describe("App", () => {
           mode: "startup-check",
         });
       } finally {
-        Shell.createFresh = originalCreateFresh;
-        MigrationManager.prototype.runAllMigrations = originalRunAllMigrations;
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
+    });
+
+    it("should prefer localhost runtime URLs outside production", async () => {
+      const mockShell = createMockShell();
+      let shellConfig: Parameters<typeof Shell.createFresh>[0];
+
+      delete process.env["NODE_ENV"];
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
+        },
+      );
+
+      try {
+        const app = App.create({
+          deployment: {
+            domain: "brain.example.com",
+            ports: { production: 9090 },
+          },
+        });
+        await app.initialize();
+
+        expect(shellConfig?.siteBaseUrl).toBe("brain.example.com");
+        expect(shellConfig?.localSiteUrl).toBe("http://localhost:9090");
+        expect(shellConfig?.preferLocalUrls).toBe(true);
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
+    });
+
+    it("should prefer public URLs in production", async () => {
+      const mockShell = createMockShell();
+      let shellConfig: Parameters<typeof Shell.createFresh>[0];
+
+      process.env["NODE_ENV"] = "production";
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
+        },
+      );
+
+      try {
+        const app = App.create({
+          deployment: {
+            domain: "brain.example.com",
+            ports: { production: 9090 },
+          },
+        });
+        await app.initialize();
+
+        expect(shellConfig?.siteBaseUrl).toBe("brain.example.com");
+        expect(shellConfig?.localSiteUrl).toBe("http://localhost:9090");
+        expect(shellConfig?.preferLocalUrls).toBe(false);
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
       }
     });
   });

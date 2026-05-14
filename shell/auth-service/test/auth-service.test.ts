@@ -10,6 +10,7 @@ import {
   authServicePlugin,
   normalizeIssuer,
 } from "../src";
+import type { AuthServicePlugin } from "../src";
 
 const setupRequiredToolDataSchema = z.object({
   status: z.literal("setup_required"),
@@ -327,6 +328,80 @@ describe("AuthService", () => {
     const data = setupCompleteToolDataSchema.parse(response.data);
 
     expect(data).toEqual({ status: "complete" });
+  });
+
+  it("defaults passkey setup URLs to the local runtime issuer during local runs", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      localSiteUrl: "http://localhost:9090",
+      preferLocalUrls: true,
+    });
+    await harness.installPlugin(authServicePlugin({ storageDir }));
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+
+    expect(data.setupUrl).toStartWith(
+      "http://localhost:9090/setup?token=setup_",
+    );
+
+    const plugin = harness.getPlugin();
+    const setupPage = await plugin
+      .getService()
+      .handleRequest(new Request(data.setupUrl));
+    expect(setupPage.status).toBe(200);
+  });
+
+  it("keeps the public issuer during production runs", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      localSiteUrl: "http://localhost:9090",
+      preferLocalUrls: false,
+    });
+    await harness.installPlugin(authServicePlugin({ storageDir }));
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+
+    expect(data.setupUrl).toStartWith(
+      "https://brain.example.com/setup?token=setup_",
+    );
+  });
+
+  it("keeps an explicit auth-service issuer override even during local runs", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      localSiteUrl: "http://localhost:9090",
+      preferLocalUrls: true,
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+      }),
+    );
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+
+    expect(data.setupUrl).toStartWith(
+      "https://brain.example.com/setup?token=setup_",
+    );
   });
 
   it("rejects passkey authentication options before setup", async () => {

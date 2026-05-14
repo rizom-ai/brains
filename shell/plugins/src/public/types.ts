@@ -294,7 +294,9 @@ export interface BasePluginContext {
   readonly dataDir: string;
   readonly domain: string | undefined;
   readonly siteUrl: string | undefined;
+  readonly localSiteUrl: string | undefined;
   readonly previewUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
   readonly appInfo: () => Promise<AppInfo>;
   readonly entityService: IEntityService;
   readonly identity: IIdentityNamespace;

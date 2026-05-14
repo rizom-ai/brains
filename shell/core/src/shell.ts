@@ -477,6 +477,14 @@ export class Shell implements IShell {
     return this.config.siteBaseUrl;
   }
 
+  public getLocalSiteUrl(): string | undefined {
+    return this.config.localSiteUrl;
+  }
+
+  public shouldPreferLocalUrls(): boolean {
+    return this.config.preferLocalUrls;
+  }
+
   public getSpaces(): string[] {
     return this.config.spaces;
   }

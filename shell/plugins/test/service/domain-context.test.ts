@@ -75,6 +75,44 @@ describe("Top-level context properties", () => {
     });
   });
 
+  describe("context.localSiteUrl", () => {
+    it("should expose the local runtime site URL", () => {
+      const shell = createMockShell({
+        logger,
+        localSiteUrl: "http://localhost:9090",
+      });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.localSiteUrl).toBe("http://localhost:9090");
+    });
+
+    it("should return undefined when no local runtime site URL is set", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.localSiteUrl).toBeUndefined();
+    });
+  });
+
+  describe("context.preferLocalUrls", () => {
+    it("should expose the local URL preference", () => {
+      const shell = createMockShell({
+        logger,
+        preferLocalUrls: true,
+      });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.preferLocalUrls).toBe(true);
+    });
+
+    it("should default to false", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.preferLocalUrls).toBe(false);
+    });
+  });
+
   describe("context.spaces", () => {
     it("should expose configured shared conversation spaces", () => {
       const shell = createMockShell({
@@ -126,6 +164,18 @@ describe("Top-level context properties", () => {
       const context = createServicePluginContext(shell, "test-plugin");
 
       expect(context.previewUrl).toBe("https://preview.yeehaa.io");
+    });
+
+    it("should expose localSiteUrl and preferLocalUrls via service context", () => {
+      const shell = createMockShell({
+        logger,
+        localSiteUrl: "http://localhost:8080",
+        preferLocalUrls: true,
+      });
+      const context = createServicePluginContext(shell, "test-plugin");
+
+      expect(context.localSiteUrl).toBe("http://localhost:8080");
+      expect(context.preferLocalUrls).toBe(true);
     });
 
     it("should expose appInfo via service context", async () => {

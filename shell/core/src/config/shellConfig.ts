@@ -76,6 +76,8 @@ export const shellConfigSchema = z.object({
   dataDir: z.string().default("./brain-data"),
   spaces: z.array(z.string()).default([]),
   siteBaseUrl: z.string().optional(),
+  localSiteUrl: z.string().optional(),
+  preferLocalUrls: z.boolean().default(false),
   entityDisplay: z
     .record(
       z
@@ -145,8 +147,10 @@ export function createShellConfig(
     plugins: overrides.plugins ?? [],
     permissions: overrides.permissions ?? {},
     spaces: overrides.spaces ?? [],
+    preferLocalUrls: overrides.preferLocalUrls ?? false,
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
     ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
+    ...(overrides.localSiteUrl && { localSiteUrl: overrides.localSiteUrl }),
     ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),
   };
 
@@ -167,6 +171,10 @@ export function createShellConfig(
     result.evalHandlerRegistry = overrides.evalHandlerRegistry;
   if (overrides.siteBaseUrl !== undefined)
     result.siteBaseUrl = overrides.siteBaseUrl;
+  if (overrides.localSiteUrl !== undefined)
+    result.localSiteUrl = overrides.localSiteUrl;
+  if (overrides.preferLocalUrls !== undefined)
+    result.preferLocalUrls = overrides.preferLocalUrls;
   if (entityDisplay !== undefined)
     result.entityDisplay = entityDisplay as Record<string, EntityDisplayEntry>;
 

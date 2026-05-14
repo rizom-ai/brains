@@ -162,8 +162,14 @@ export interface BasePluginContext {
   /** Production site URL derived from domain (e.g. "https://yeehaa.io"), undefined if no domain */
   readonly siteUrl: string | undefined;
 
+  /** Local runtime site URL (e.g. "http://localhost:8080"), undefined when unavailable */
+  readonly localSiteUrl: string | undefined;
+
   /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://preview.recall.rizom.ai"), undefined if no domain */
   readonly previewUrl: string | undefined;
+
+  /** Prefer local runtime URLs over public domain URLs when both exist. */
+  readonly preferLocalUrls: boolean;
 
   /** Entity display metadata from the active site package, if any */
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
@@ -297,6 +303,8 @@ export function createBasePluginContext(
   const entityService = shell.getEntityService();
   const logger = shell.getLogger().child(pluginId);
   const domain = shell.getDomain();
+  const localSiteUrl = shell.getLocalSiteUrl();
+  const preferLocalUrls = shell.shouldPreferLocalUrls();
   const getAppInfo = createAppInfoGetter(shell);
 
   return {
@@ -310,7 +318,9 @@ export function createBasePluginContext(
 
     domain,
     siteUrl: domain ? `https://${domain}` : undefined,
+    localSiteUrl,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
+    preferLocalUrls,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),
 

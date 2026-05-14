@@ -75,6 +75,10 @@ export interface MockShellOptions {
   dataDir?: string;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
+  /** Local runtime site URL (e.g. "http://localhost:8080") */
+  localSiteUrl?: string;
+  /** Prefer local runtime URLs over public domain URLs */
+  preferLocalUrls?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
 }
@@ -557,6 +561,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       description: "Test profile for unit tests",
     }),
     getDomain: (): string | undefined => options.domain,
+    getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
+    shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,
     getSpaces: (): string[] => options.spaces ?? [],
 
     // Data directory

@@ -133,7 +133,9 @@ export function createMockServicePluginContext(
     domain: undefined,
     spaces,
     siteUrl: undefined,
+    localSiteUrl: undefined,
     previewUrl: undefined,
+    preferLocalUrls: false,
 
     // Conversations namespace (read-only)
     conversations: {

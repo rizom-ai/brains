@@ -21,7 +21,9 @@ function createProjectionContext(options?: {
     dataDir: "/tmp/projection-test",
     domain: undefined,
     siteUrl: undefined,
+    localSiteUrl: undefined,
     previewUrl: undefined,
+    preferLocalUrls: false,
     entityDisplay: undefined,
     appInfo: mock(() =>
       Promise.resolve({

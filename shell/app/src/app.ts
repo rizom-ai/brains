@@ -163,6 +163,9 @@ export class App {
     if (this.config.deployment?.domain) {
       shellConfig.siteBaseUrl = this.config.deployment.domain;
     }
+
+    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment?.ports?.production ?? 8080}`;
+    shellConfig.preferLocalUrls = process.env["NODE_ENV"] !== "production";
   }
 
   private async registerCLIInterface(): Promise<void> {

@@ -237,6 +237,8 @@ export interface IShell {
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;
+  getLocalSiteUrl(): string | undefined;
+  shouldPreferLocalUrls(): boolean;
 
   // Shared conversation spaces for this brain/team
   getSpaces(): string[];

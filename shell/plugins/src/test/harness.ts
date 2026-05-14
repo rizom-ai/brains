@@ -35,6 +35,10 @@ export interface HarnessOptions {
   dataDir?: string;
   /** Bare domain for context.domain/siteUrl/previewUrl */
   domain?: string;
+  /** Local runtime site URL for context.localSiteUrl */
+  localSiteUrl?: string;
+  /** Prefer local runtime URLs over public domain URLs */
+  preferLocalUrls?: boolean;
 }
 
 /**
@@ -55,12 +59,20 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       logger: Logger;
       dataDir?: string;
       domain?: string;
+      localSiteUrl?: string;
+      preferLocalUrls?: boolean;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
     }
     if (options.domain !== undefined) {
       mockShellOptions.domain = options.domain;
+    }
+    if (options.localSiteUrl !== undefined) {
+      mockShellOptions.localSiteUrl = options.localSiteUrl;
+    }
+    if (options.preferLocalUrls !== undefined) {
+      mockShellOptions.preferLocalUrls = options.preferLocalUrls;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -77,11 +89,26 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     if (!this.options.logger && !this.options.logContext) {
       const pluginType = this.getPluginType(plugin);
       const context = `${pluginType}-plugin-test`;
-      const mockShellOptions: { logger: Logger; dataDir?: string } = {
+      const mockShellOptions: {
+        logger: Logger;
+        dataDir?: string;
+        domain?: string;
+        localSiteUrl?: string;
+        preferLocalUrls?: boolean;
+      } = {
         logger: createSilentLogger(context),
       };
       if (this.options.dataDir !== undefined) {
         mockShellOptions.dataDir = this.options.dataDir;
+      }
+      if (this.options.domain !== undefined) {
+        mockShellOptions.domain = this.options.domain;
+      }
+      if (this.options.localSiteUrl !== undefined) {
+        mockShellOptions.localSiteUrl = this.options.localSiteUrl;
+      }
+      if (this.options.preferLocalUrls !== undefined) {
+        mockShellOptions.preferLocalUrls = this.options.preferLocalUrls;
       }
       this.mockShell = createMockShell(mockShellOptions);
     }

@@ -46,7 +46,11 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
   ): Promise<void> {
     await super.onRegister(context);
 
-    const issuer = this.config.issuer ?? context.siteUrl;
+    const issuer =
+      this.config.issuer ??
+      (context.preferLocalUrls
+        ? (context.localSiteUrl ?? context.siteUrl)
+        : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
       storageDir: this.config.storageDir,
       ...(issuer ? { issuer } : {}),
