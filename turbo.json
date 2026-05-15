@@ -8,6 +8,16 @@
       "cache": true
     },
     "lint": {
+      "inputs": [
+        "src/**",
+        "test/**",
+        "*.ts",
+        "*.tsx",
+        "eslint.config.*",
+        ".eslintrc*",
+        "tsconfig.json",
+        "package.json"
+      ],
       "outputs": [],
       "cache": true
     },
@@ -31,6 +41,7 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
+      "inputs": ["src/**", "test/**", "tsconfig.json", "package.json"],
       "outputs": [],
       "cache": true
     },

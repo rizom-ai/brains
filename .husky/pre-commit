@@ -18,14 +18,19 @@ bunx varlock scan --staged
 echo "📐 Formatting staged files..."
 bunx lint-staged
 
-# Run linting on all packages (cached by turbo)
-echo "🔍 Running linter..."
-bun run lint
+# Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
+if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
+  # Run linting on all packages (cached by turbo)
+  echo "🔍 Running linter..."
+  bun run lint
 
-# Run type checking on all packages (required for monorepo correctness)
-echo "🔍 Running type checks..."
-bun run typecheck
+  # Run type checking on all packages (required for monorepo correctness)
+  echo "🔍 Running type checks..."
+  bun run typecheck
 
-# Run tests on all packages (required for monorepo correctness)
-echo "🧪 Running tests..."
-bun run test
+  # Run tests on all packages (required for monorepo correctness)
+  echo "🧪 Running tests..."
+  bun run test
+else
+  echo "📝 Docs-only commit — skipping lint/typecheck/test"
+fi
