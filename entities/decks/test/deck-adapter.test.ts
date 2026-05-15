@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckAdapter } from "../src/adapters/deck-adapter";
+import { publishedAtRequiredMessage } from "../src/schemas/deck";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckAdapter", () => {
@@ -57,8 +58,27 @@ describe("DeckAdapter", () => {
       });
 
       expect(() => schema.parse(invalidDeck)).toThrow(
-        "publishedAt is required when deck status is published",
+        publishedAtRequiredMessage,
       );
+    });
+
+    it("should accept published metadata with publishedAt", () => {
+      const schema = adapter.schema;
+
+      const validDeck = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Published With Date",
+        status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          slug: "published-with-date",
+          title: "Published With Date",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        },
+      });
+
+      expect(() => schema.parse(validDeck)).not.toThrow();
     });
   });
 
@@ -172,7 +192,7 @@ status: published
 # Slide 2`;
 
       expect(() => adapter.fromMarkdown(markdown)).toThrow(
-        "publishedAt is required when deck status is published",
+        publishedAtRequiredMessage,
       );
     });
 

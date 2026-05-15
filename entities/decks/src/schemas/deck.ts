@@ -7,36 +7,30 @@ import { baseEntitySchema } from "@brains/plugins";
 export const deckStatusSchema = z.enum(["draft", "queued", "published"]);
 export type DeckStatus = z.infer<typeof deckStatusSchema>;
 
-/**
- * Deck frontmatter schema (stored in content as YAML frontmatter)
- * Contains all presentation data for human editing
- */
-const publishedAtRequiredMessage =
+export const publishedAtRequiredMessage =
   "publishedAt is required when deck status is published";
 
-export const assertPublishedDeckHasPublishedAt = (data: {
+interface PublishedAtCheckable {
   status: DeckStatus;
   publishedAt?: string | undefined;
-}): void => {
-  if (data.status === "published" && !data.publishedAt) {
+}
+
+const isMissingPublishedAt = (data: PublishedAtCheckable): boolean =>
+  data.status === "published" && !data.publishedAt;
+
+export const assertPublishedDeckHasPublishedAt = (
+  data: PublishedAtCheckable,
+): void => {
+  if (isMissingPublishedAt(data)) {
     throw new Error(publishedAtRequiredMessage);
   }
 };
 
-const requirePublishedAtForPublishedDeck = (
-  data: { status: DeckStatus; publishedAt?: string | undefined },
-  ctx: z.RefinementCtx,
-): void => {
-  if (data.status !== "published" || data.publishedAt) return;
-
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    path: ["publishedAt"],
-    message: publishedAtRequiredMessage,
-  });
-};
-
-const deckFrontmatterBaseSchema = z.object({
+/**
+ * Deck frontmatter schema (stored in content as YAML frontmatter)
+ * Contains all presentation data for human editing
+ */
+export const deckFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
   description: z.string().optional(),
@@ -47,8 +41,6 @@ const deckFrontmatterBaseSchema = z.object({
   coverImageId: z.string().optional(), // References an image entity by ID
 });
 
-export const deckFrontmatterSchema = deckFrontmatterBaseSchema;
-
 export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 
 /**
@@ -56,7 +48,7 @@ export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const deckMetadataSchema = deckFrontmatterBaseSchema
+export const deckMetadataSchema = deckFrontmatterSchema
   .pick({
     title: true,
     description: true,
@@ -67,7 +59,14 @@ export const deckMetadataSchema = deckFrontmatterBaseSchema
   .extend({
     slug: z.string(), // Required in metadata (auto-generated from title)
   })
-  .superRefine(requirePublishedAtForPublishedDeck);
+  .superRefine((data, ctx) => {
+    if (!isMissingPublishedAt(data)) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["publishedAt"],
+      message: publishedAtRequiredMessage,
+    });
+  });
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
 

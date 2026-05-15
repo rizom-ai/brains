@@ -45,18 +45,12 @@ export class DeckAdapter extends BaseEntityAdapter<
    */
   public override toMarkdown(entity: DeckEntity): string {
     const body = this.extractBody(entity.content);
-    // Validate before serializing
     this.validateSlideStructure(body);
 
-    let frontmatter: DeckFrontmatter;
-    try {
-      frontmatter = this.parseFrontMatter(
-        entity.content,
-        deckFrontmatterSchema,
-      );
-    } catch {
-      return body;
-    }
+    const frontmatter = this.parseFrontMatter(
+      entity.content,
+      deckFrontmatterSchema,
+    );
 
     assertPublishedDeckHasPublishedAt(frontmatter);
 
@@ -80,7 +74,6 @@ export class DeckAdapter extends BaseEntityAdapter<
 
     assertPublishedDeckHasPublishedAt(frontmatter);
 
-    // Validate presentation structure
     this.validateSlideStructure(content);
 
     // Auto-generate slug from title if not provided
