@@ -19,12 +19,12 @@ brain model + brain.yaml instance config = running brain
 2. **Entity-driven** — durable content lives as typed entities stored as markdown with frontmatter.
 3. **Schema-first** — Zod schemas define config, entities, tool inputs, and API contracts.
 4. **Plugin-based** — almost all product behavior is composed from EntityPlugins, ServicePlugins, and InterfacePlugins.
-5. **Brain model / instance separation** — reusable models live in `brains/`; deployable instances live in `apps/` as lightweight instance packages centered on `brain.yaml`.
-6. **Stable architectural boundaries** — plugin code should flow through `@brains/plugins` and shared packages rather than reaching directly into shell internals.
+5. **Brain model / instance separation** — reusable models live in `brains/`; running instances are lightweight directories centered on `brain.yaml`.
+6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
 ## Workspace structure
 
-The monorepo is organized into 8 workspace categories:
+The monorepo is organized into these main categories:
 
 ```text
 shell/          Core runtime, services, plugin framework
@@ -35,9 +35,10 @@ sites/          Structural site packages (routes, plugins, inherited composition
 interfaces/     InterfacePlugin packages for transports and daemons
 brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
+apps/           Local development / legacy instance directories
 ```
 
-`apps/` is intentionally **not** a workspace category anymore. In-repo `apps/<name>/` directories are lightweight instance directories centered on `brain.yaml` and optional deploy/config files, consumed by the CLI at runtime. The fuller standalone shape scaffolded by `brain init` outside the monorepo may also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css`.
+In-repo `apps/<name>/` directories are local instance directories centered on `brain.yaml` and optional deploy/config files. New user instances are normally scaffolded outside the monorepo with `brain init`; those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css` depending on model and options.
 
 ## Current package map
 
@@ -230,7 +231,7 @@ sites/       -> shared/, shell/*, other sites/ (explicit site composition and in
 shell/       -> shared/, other shell/
 ```
 
-Practical rule of thumb: when writing a plugin, prefer imports from `@brains/plugins` and shared packages instead of coupling directly to shell internals.
+Practical rule of thumb: external plugins should import from the public `@rizom/brain/*` authoring API instead of coupling directly to shell internals.
 
 ## Testing and quality
 

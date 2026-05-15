@@ -96,8 +96,8 @@ brain.yaml + brain-data/
 ## Models
 
 - `rover` — the public reference model for personal knowledge, publishing, and local-first use
-- `ranger` — internal/experimental community and organization model
-- `relay` — internal/experimental team-memory model
+- `ranger` — experimental community and organization model
+- `relay` — experimental team-memory model
 
 If you are trying `brains` for the first time, use `rover`.
 

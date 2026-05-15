@@ -2,14 +2,14 @@
 
 ## Status
 
-Proposed. Needs a fresh profile before implementation — some quick wins have already happened (e.g. the old hydration path was removed), so treat the phase list as a candidate checklist rather than current measurements.
+Proposed. Needs a fresh profile before implementation — some quick wins have already happened, so treat the phase list as a candidate checklist rather than current measurements.
 
 ## Context
 
 The app uses ~860MB at runtime. The user identified templates-in-memory and the proliferation of registries as likely contributors. Exploration confirmed:
 
 - **14 registries**, all singleton, all populated eagerly at startup, none with eviction
-- **~30 templates** in `TemplateRegistry` — including a 735KB compiled hydration JS string on the dashboard template (bloated by bundled Zod)
+- **~30 templates** in `TemplateRegistry` — this needs fresh measurement because older client-side template payloads have since been removed
 - **15 plugins** all loaded eagerly — no code splitting, no lazy imports
 - **25+ singleton services** created at startup in `shellInitializer.ts`, never freed
 - **3 SQLite connections** opened at startup (entity, job queue, conversation)
@@ -63,9 +63,9 @@ async function getOpenAI(apiKey: string) {
 
 **Expected savings:** 5-15MB (two SDK modules + their transitive deps not parsed by V8/JSC).
 
-### 1B. Hydration pipeline removed
+### 1B. Removed client-side template payloads
 
-The old hydration path was removed instead of optimized. See `docs/hydration-pattern.md` for the retired approach and recovery notes.
+The old client-side template payload path was removed instead of optimized. Recover it from git history only if a future feature proves it is needed again.
 
 ---
 
@@ -193,7 +193,7 @@ After each phase:
 
 1. Run `process.memoryUsage()` at the same checkpoints as Phase 0
 2. Run `bun run typecheck` and `bun test`
-3. Run a site build to verify templates/hydration still work
+3. Run a site build to verify templates still work
 4. Compare RSS before/after with `ps aux | grep bun`
 
 ## Execution Order

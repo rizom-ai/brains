@@ -5,11 +5,11 @@
 Brains follow a **model/instance** separation:
 
 - **Brain model** (`brains/`) — a reusable workspace package that defines what a brain _is_: its capabilities, interfaces, identity, permissions, and content model.
-- **Brain instance** (for example `~/mybrain/` or an in-repo `apps/<name>/`) — a lightweight instance package centered on `brain.yaml`, with per-instance support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts.
+- **Brain instance** (for example `~/mybrain/`) — a lightweight directory centered on `brain.yaml`, with per-instance support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts.
 
 The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
 
-**Apps are not workspace members.** `apps/*` was removed from `package.json` workspaces. Each instance directory is still a small package-like boundary for local execution and deploy scaffolding, but it is consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots. Deployable Rizom app instances (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, `yeehaa.io`) now live in standalone repos.
+Instance directories are small package-like boundaries for local execution and deploy scaffolding. They are consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, loads the referenced brain model, and boots. This repository may still contain `apps/*` directories for local development or legacy verification, but new user instances are normally created outside the monorepo with `brain init`.
 
 ## Directory Structure
 
@@ -21,7 +21,7 @@ brains/
     package.json            # Workspace member
 
 apps/
-  yeehaa.io/                # Brain instance (lightweight package, NOT a workspace member)
+  example-app/              # Optional local development instance
     brain.yaml              # Instance configuration
     .env                    # Secrets only
     .env.example            # Template for collaborators

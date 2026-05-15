@@ -169,7 +169,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **[Esbuild](https://esbuild.github.io/)** - JavaScript bundler
   - Fast compilation
-  - Used for hydration scripts
+  - Used by build scripts and package bundling
   - Tree shaking
 
 ## Development & Testing

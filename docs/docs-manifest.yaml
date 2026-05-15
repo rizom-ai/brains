@@ -101,33 +101,5 @@ docs:
     order: 160
     source: docs/brain-model.md
 
-  - id: tech-stack
-    title: Tech Stack
-    section: Architecture
-    order: 170
-    source: docs/tech-stack.md
 
-  - id: package-structure
-    title: Package Structure
-    section: Architecture
-    order: 180
-    source: docs/architecture/package-structure.md
-
-  - id: hydration-pattern
-    title: Hydration Pattern
-    section: Architecture
-    order: 190
-    source: docs/hydration-pattern.md
-
-  - id: development-workflow
-    title: Development Workflow
-    section: Architecture
-    order: 200
-    source: docs/development-workflow.md
-
-  - id: roadmap
-    title: Roadmap
-    section: Planning and release readiness
-    order: 210
-    source: docs/roadmap.md
 
