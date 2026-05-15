@@ -1,55 +1,53 @@
 # brains
 
-**Run an AI knowledge agent from your own markdown.**
+**A self-hosted AI knowledge agent that reads and writes your markdown.**
 
-`brains` is a Bun-first framework for self-hosted AI agents centered on durable content, MCP-native tooling, static-site publishing, and plugin-based composition. It lets you keep content as markdown files, expose that content to assistants over MCP, publish a site from the same source, and deploy the whole thing as one brain instance.
+`brains` lets you run an AI assistant around files you own. Your notes, posts, pages, images, and profile data live as markdown in a local `brain-data/` folder. The running brain can search that content, update it, expose it to tools like Claude or Cursor, and publish a static website from the same source.
 
-> **Status:** `brains` is pre-stable in the `0.x` series. The framework is usable today, but APIs and package surfaces will keep changing before `1.0`. See [STABILITY.md](STABILITY.md).
+> **Status:** pre-stable `0.x`. It works today, but APIs and package names can still change before `1.0`. See [STABILITY.md](STABILITY.md).
 
-## What this is for
+## Who this is for
 
-- building a personal or site-oriented AI agent around content you own
-- storing knowledge as markdown entities instead of locking it into a SaaS
-- exposing tools and resources to Claude Desktop, Cursor, and other MCP clients
-- publishing a static site from the same content graph
-- extending behavior with entity, service, and interface plugins
-- self-hosting on your own machine or a small VM
+Use `brains` if you want to:
 
-## What this is not for
+- keep your knowledge in markdown instead of a hosted app
+- run a personal or site-focused AI assistant on your own machine or server
+- connect that assistant to Claude Desktop, Cursor, or other MCP clients
+- publish a website from the same content the assistant uses
+- customize behavior with plugins when the defaults are not enough
 
-- a hosted product or managed SaaS
-- a generic multi-tenant agent platform
-- an autonomous-agent research framework
-- a drop-in Notion or Obsidian replacement
-- a stable plugin SDK yet
+It is **not** a hosted SaaS, a Notion/Obsidian clone, or a stable third-party plugin platform yet.
 
 ## Quickstart
+
+Install Bun first, then:
 
 ```bash
 bun add -g @rizom/brain
 brain init mybrain --model rover
 cd mybrain
 cp .env.example .env
-# set AI_API_KEY in .env
+# edit .env and set AI_API_KEY
 brain start
 ```
 
-That gives you a runnable brain instance with:
+This creates a new brain instance with:
 
-- `brain.yaml` for instance config
-- `package.json` pinned to `@rizom/brain`
-- `.env.example`, `.gitignore`, and `tsconfig.json`
-- `brain-data/` markdown content created/seeded on first run when directory-sync is active
+- `brain.yaml` — main configuration
+- `.env.example` and `.env.schema` — environment/secrets reference
+- `package.json` — pins the runtime package
+- `tsconfig.json`, `.gitignore`, and a local `README.md`
+- `brain-data/` — created/seeded on first run when file sync is active
 
-On first start, models that include `auth-service` print a one-shot `/setup` URL. Open it locally, register a passkey, and use that passkey for browser/OAuth-backed operator login. Runtime auth state is stored under `./data/auth` by default and must be preserved separately from `brain-data/`.
+On first start, models with browser login print a one-time `/setup` URL. Open it locally, register a passkey, and use that passkey for browser and OAuth-based MCP access. Auth state is stored in `./data/auth`; keep it when deploying or backing up.
 
-Some models also scaffold `src/site.ts` and `src/theme.css` for local site/theme authoring.
+For the full walkthrough, see [Getting Started](packages/brain-cli/docs/getting-started.md).
 
-For the full setup flow, see [packages/brain-cli/docs/getting-started.md](packages/brain-cli/docs/getting-started.md).
+## Connect Claude, Cursor, or another MCP client
 
-## Connect from an MCP client
+MCP is the protocol many AI apps use to connect to external tools and data.
 
-For local stdio MCP, use the generated instance directory as the working directory and run the normal start command:
+For local stdio MCP, point the client at your brain directory:
 
 ```json
 {
@@ -63,53 +61,49 @@ For local stdio MCP, use the generated instance directory as the working directo
 }
 ```
 
-For HTTP MCP, point OAuth-capable clients at `http://localhost:8080/mcp` or `https://your-domain.com/mcp`. The brain advertises OAuth metadata, performs browser/passkey login, and issues MCP-scoped bearer tokens. `MCP_AUTH_TOKEN` remains available only as a deprecated static fallback.
+For HTTP MCP, use:
+
+```text
+http://localhost:8080/mcp
+```
+
+or, after deployment:
+
+```text
+https://your-domain.com/mcp
+```
+
+OAuth-capable clients can use the built-in browser/passkey login. `MCP_AUTH_TOKEN` still exists as a legacy fallback for clients that cannot use OAuth.
 
 ## How it works
 
-```text
-brain.yaml (instance config)
-  + brain model
-  = running brain
-    ├── Entity plugins    typed markdown content
-    ├── Service plugins   tools, jobs, integrations, site building
-    └── Interface plugins MCP, web, Discord, A2A, chat REPL
-```
+A brain has three main pieces:
 
-A **brain model** is a curated package of plugins and defaults.
-
-A **brain instance** is a deployment of that model, configured in `brain.yaml` with its own domain, secrets, content, and optional site/theme overrides.
-
-A **typed entity** is markdown plus schema-backed frontmatter, indexed for search and exposed to tools, resources, and site rendering.
-
-## Repository layout
+1. **Content** — markdown files in `brain-data/`
+2. **Model** — a bundled set of plugins and defaults, such as `rover`
+3. **Runtime** — the `brain` process that loads the model, indexes content, serves tools, and optionally builds a site
 
 ```text
-shell/                 core runtime, orchestration, services, plugin lifecycle
-shared/                shared utilities, themes, UI, site engine, test helpers
-entities/              built-in entity plugins
-plugins/               built-in service plugins
-interfaces/            built-in interface plugins
-brains/                brain model packages
-sites/                 structural site packages
-packages/brain-cli/    published CLI and runtime package: @rizom/brain
-packages/brains-ops/   published operator CLI for fleets: @rizom/ops
-deploy/                deployment recipes and templates
-docs/                  architecture, theming, roadmap, plans
-apps/                  local runtime instance directories, not workspace packages
+brain.yaml + brain-data/
+  → brain start
+  → running AI knowledge agent
+     ├─ content tools
+     ├─ MCP endpoint
+     ├─ optional web dashboard / site
+     └─ optional integrations like Discord
 ```
 
-## Shipped models
+## Models
 
-- `rover` — public reference model for personal knowledge and publishing
-- `ranger` — internal-use model powering the extracted `rizom.ai` app
-- `relay` — internal-use model powering the extracted `rizom-foundation` app (POC: preset split, brain prompts, eval scaffold)
+- `rover` — the public reference model for personal knowledge, publishing, and local-first use
+- `ranger` — internal/experimental community and organization model
+- `relay` — internal/experimental team-memory model
 
-Use **`rover`** as the external reference model. Deployable Rizom apps (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, `yeehaa.io`) live in standalone repos and consume this monorepo's published runtime packages.
+If you are trying `brains` for the first time, use `rover`.
 
 ## Documentation
 
-### Start here
+Start here:
 
 - [Documentation Index](docs/README.md)
 - [Getting Started](packages/brain-cli/docs/getting-started.md)
@@ -117,31 +111,49 @@ Use **`rover`** as the external reference model. Deployable Rizom apps (`rizom.a
 - [CLI Reference](packages/brain-cli/docs/cli-reference.md)
 - [Deployment Guide](packages/brain-cli/docs/deployment-guide.md)
 
-### Architecture
+Deeper topics:
 
 - [Architecture Overview](docs/architecture-overview.md)
 - [Brain Models](docs/brain-model.md)
-- [Entity Model](docs/entity-model.md)
+- [Content Management](docs/content-management.md)
 - [Entity Types Reference](docs/entity-types-reference.md)
-- [Content Management Guide](docs/content-management.md)
-- [Interface Setup Guide](docs/interface-setup.md)
+- [Interface Setup](docs/interface-setup.md)
 - [Customization Guide](docs/customization-guide.md)
 - [Plugin System](docs/plugin-system.md)
 - [External Plugin Authoring](docs/external-plugin-authoring.md)
 - [Theming Guide](docs/theming-guide.md)
 - [Roadmap](docs/roadmap.md)
 
-## Compatibility
+## Repository map
+
+This is mainly useful if you are developing the framework itself:
+
+```text
+packages/brain-cli/    published CLI/runtime package: @rizom/brain
+packages/brains-ops/   operator CLI for fleets: @rizom/ops
+brains/                bundled brain models: rover, ranger, relay
+shell/                 core runtime and services
+plugins/               built-in service plugins
+entities/              built-in content/entity plugins
+interfaces/            built-in interfaces: MCP, web, Discord, etc.
+shared/                shared utilities, UI, themes, site engine
+sites/                 site packages
+deploy/                deployment templates and helper scripts
+docs/                  documentation and plans
+apps/                  local development / legacy instance directories
+```
+
+## Requirements
 
 | Requirement | Support                        |
 | ----------- | ------------------------------ |
 | Bun         | `>= 1.3.3`                     |
-| OS          | macOS, Linux, Windows via WSL2 |
 | Runtime     | Bun only                       |
+| OS          | macOS, Linux, Windows via WSL2 |
 
 ## Contributing
 
-This project is currently in maintainer-led development. Bug reports, documentation fixes, and focused patches are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+This project is currently maintainer-led. Bug reports, documentation fixes, and focused patches are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
