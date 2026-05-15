@@ -11,8 +11,8 @@ export interface ContentArchivePagination {
 }
 
 export interface ContentArchiveProps {
-  /** Screen-reader-only page heading. */
-  title: string;
+  /** Visual page label (e.g. "Essays"). No page-number suffix. */
+  label: string;
   items: ContentItem[];
   pagination?: ContentArchivePagination | null | undefined;
   baseUrl?: string | undefined;
@@ -52,9 +52,6 @@ const formatDayMonth = (date: string): string =>
     month: "short",
     day: "2-digit",
   });
-
-const normalizeArchiveTitle = (title: string): string =>
-  title.trim().replace(/\s+-\s+Page\s+\d+$/i, "");
 
 const getYear = (date: string): string => {
   const year = new Date(date).getFullYear();
@@ -260,7 +257,7 @@ const ArchivePagination = ({
 };
 
 export const ContentArchive = ({
-  title,
+  label,
   items,
   pagination,
   baseUrl = "",
@@ -268,29 +265,28 @@ export const ContentArchive = ({
 }: ContentArchiveProps): JSX.Element => {
   const totalItems = pagination?.totalItems ?? items.length;
   const currentPage = pagination?.currentPage ?? 1;
-  const normalizedTitle = normalizeArchiveTitle(title);
   const firstOrdinal = pagination
     ? totalItems - (currentPage - 1) * pagination.pageSize
     : totalItems;
   const ordinalWidth = Math.max(3, String(totalItems).length);
   const shouldFeature = currentPage === 1 && items.length > 0;
   const archiveItems = shouldFeature ? items.slice(1) : items;
-  const itemLabel = getItemLabel(normalizedTitle);
+  const itemLabel = getItemLabel(label);
 
   return (
     <section aria-labelledby="content-archive-title">
       <h1 id="content-archive-title" className="sr-only">
-        {normalizedTitle}
+        {label}
       </h1>
 
       <div className="mb-10 flex items-center gap-2.5 font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent">
         <span className="h-px w-[18px] bg-accent" aria-hidden="true" />
-        <span>{normalizedTitle}</span>
+        <span>{label}</span>
       </div>
 
       {items.length === 0 ? (
         <p className="text-theme-muted italic">
-          {emptyMessage ?? `No ${normalizedTitle.toLowerCase()} yet.`}
+          {emptyMessage ?? `No ${label.toLowerCase()} yet.`}
         </p>
       ) : (
         <>

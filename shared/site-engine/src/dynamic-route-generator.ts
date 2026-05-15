@@ -116,6 +116,7 @@ export class DynamicRouteGenerator {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
           title: label,
+          pageLabel: label,
           description: `Browse all ${pluralName}`,
           ...(layout && { layout }),
           navigation: {
@@ -265,6 +266,7 @@ export class DynamicRouteGenerator {
         id: `${entityType}-index${isFirstPage ? "" : `-page-${page}`}`,
         path,
         title: isFirstPage ? label : `${label} - Page ${page}`,
+        pageLabel: label,
         description: `Browse all ${pluralName}${isFirstPage ? "" : ` - Page ${page}`}`,
         ...(layout && { layout }),
         navigation: isFirstPage

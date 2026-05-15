@@ -14,10 +14,12 @@ export const deckListSchema = z.object({
 export const enrichedDeckListSchema = z.object({
   decks: z.array(enrichedDeckSchema),
   pageTitle: z.string().optional(),
+  pageLabel: z.string().optional(),
 });
 
 export type DeckListData = z.infer<typeof deckListSchema>;
 export interface EnrichedDeckListData {
   decks: EnrichedDeck[];
   pageTitle?: string;
+  pageLabel?: string;
 }

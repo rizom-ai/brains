@@ -432,6 +432,91 @@ describe("PreactBuilder", () => {
     expect(html).toContain("Entity Content");
   });
 
+  it("should inject route title and pageLabel into section content", async () => {
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    const injectedPropsSchema = z.object({
+      pageTitle: z.string().optional(),
+      pageLabel: z.string().optional(),
+    });
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): SiteViewTemplate => ({
+        name: "list",
+        schema: injectedPropsSchema,
+        pluginId: "test-plugin",
+        renderers: {
+          web: (props: Record<string, unknown>): VNode => {
+            const { pageTitle, pageLabel } = injectedPropsSchema.parse(props);
+            return h(
+              "div",
+              {},
+              `title=${pageTitle ?? ""}|label=${pageLabel ?? ""}`,
+            );
+          },
+        },
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): SiteViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): string[] => [],
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "post-index-page-2",
+          path: "/posts/page/2",
+          title: "Posts - Page 2",
+          pageLabel: "Posts",
+          description: "Browse all posts - Page 2",
+          layout: "default",
+          sections: [
+            {
+              id: "list",
+              template: "list",
+              content: {},
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      siteConfig: {
+        title: "Test Site",
+        description: "Test Site Description",
+      },
+      getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
+      getSiteLayoutInfo: async () => ({
+        title: "Test Site",
+        description: "Test Site Description",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    const html = await fs.readFile(
+      join(outputDir, "posts/page/2/index.html"),
+      "utf-8",
+    );
+    expect(html).toContain("title=Posts - Page 2|label=Posts");
+  });
+
   it("should clean up directories but preserve images/", async () => {
     const builder = createPreactBuilder({
       logger,

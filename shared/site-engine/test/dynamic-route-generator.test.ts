@@ -526,6 +526,7 @@ describe("DynamicRouteGenerator", () => {
       const indexRoute = routeRegistry.get("/posts");
       expect(indexRoute).toBeDefined();
       expect(indexRoute?.navigation?.label).toBe("Posts");
+      expect(indexRoute?.pageLabel).toBe("Posts");
 
       const detailRoute = routeRegistry.get("/posts/post-1");
       expect(detailRoute).toBeDefined();
@@ -554,12 +555,16 @@ describe("DynamicRouteGenerator", () => {
       const page1Route = routeRegistry.get("/posts");
       expect(page1Route).toBeDefined();
       expect(page1Route?.id).toBe("post-index");
+      expect(page1Route?.title).toBe("Posts");
+      expect(page1Route?.pageLabel).toBe("Posts");
       expect(page1Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(1);
       expect(page1Route?.sections[0]?.dataQuery?.query?.["pageSize"]).toBe(10);
 
       const page2Route = routeRegistry.get("/posts/page/2");
       expect(page2Route).toBeDefined();
       expect(page2Route?.id).toBe("post-index-page-2");
+      expect(page2Route?.title).toBe("Posts - Page 2");
+      expect(page2Route?.pageLabel).toBe("Posts");
       expect(page2Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(2);
     });
 

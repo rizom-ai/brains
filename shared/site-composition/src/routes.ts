@@ -59,6 +59,8 @@ export const RouteDefinitionSchema = z.object({
   id: z.string(),
   path: z.string(),
   title: z.string().default(""),
+  /** Bare display label without any page-suffix. Used for visual headings on list pages. */
+  pageLabel: z.string().optional(),
   description: z.string().default(""),
   sections: z.array(SectionDefinitionSchema).default([]),
   layout: z.string().default("default"),

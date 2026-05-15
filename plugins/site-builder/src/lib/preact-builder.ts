@@ -265,13 +265,16 @@ export class PreactBuilder implements StaticSiteBuilder {
       }
 
       // Validate content against schema
-      // Inject route title as pageTitle for templates that use it (e.g., list pages)
+      // Inject route title/pageLabel for templates that use them (e.g., list pages)
       try {
         const contentObj = z.record(z.unknown()).parse(content);
         const validatedContent = z.record(z.unknown()).parse(
           template.schema.parse({
             ...contentObj,
             pageTitle: route.title || context.siteConfig.title,
+            ...(route.pageLabel !== undefined && {
+              pageLabel: route.pageLabel,
+            }),
           }),
         );
 

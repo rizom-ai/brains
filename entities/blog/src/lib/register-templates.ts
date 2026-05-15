@@ -12,6 +12,7 @@ import { homepageTemplate } from "../templates/homepage";
 const postListSchema = z.object({
   posts: z.array(enrichedBlogPostSchema),
   pageTitle: z.string().optional(),
+  pageLabel: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
 });
