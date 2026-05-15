@@ -13,7 +13,6 @@
     "./contracts/identity": "./src/contracts/identity.ts",
     "./contracts/metadata": "./src/contracts/metadata.ts",
     "./contracts/messaging": "./src/contracts/messaging.ts",
-    "./contracts/routes": "./src/types/routes.ts",
     "./contracts/api-routes": "./src/types/api-routes.ts",
     "./contracts/web-routes": "./src/types/web-routes.ts",
     "./contracts/daemons": "./src/manager/daemon-types.ts",

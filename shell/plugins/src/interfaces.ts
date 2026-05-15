@@ -60,7 +60,7 @@ import type {
 } from "@brains/ai-service";
 import type { RegisteredApiRoute } from "./types/api-routes";
 import type { RegisteredWebRoute } from "./types/web-routes";
-import type { EntityDisplayEntry } from "./types/routes";
+import type { EntityDisplayEntry } from "@brains/site-composition";
 
 /**
  * Handler function for plugin evaluations

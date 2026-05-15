@@ -287,7 +287,7 @@ export type {
   NavigationItem,
   NavigationSlot,
   EntityDisplayEntry,
-} from "./types/routes";
+} from "@brains/site-composition";
 export type {
   WebRouteDefinition,
   RegisteredWebRoute,
@@ -301,7 +301,7 @@ export {
   UnregisterRoutesPayloadSchema,
   ListRoutesPayloadSchema,
   GetRoutePayloadSchema,
-} from "./types/routes";
+} from "@brains/site-composition";
 
 export type {
   ApiRouteDefinition,

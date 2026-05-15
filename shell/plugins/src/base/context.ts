@@ -19,7 +19,7 @@ import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { EntityDisplayEntry } from "../types/routes";
+import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
   createAppInfoGetter,

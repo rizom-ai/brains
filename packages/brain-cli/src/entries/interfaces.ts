@@ -20,7 +20,7 @@ export {
   UnregisterRoutesPayloadSchema,
   ListRoutesPayloadSchema,
   GetRoutePayloadSchema,
-} from "@brains/plugins/contracts/routes";
+} from "@brains/site-composition";
 export type {
   EntityDisplayEntry,
   NavigationItem,
@@ -28,7 +28,7 @@ export type {
   RouteDefinition,
   RouteDefinitionInput,
   SectionDefinition,
-} from "@brains/plugins/contracts/routes";
+} from "@brains/site-composition";
 
 export type {
   ApiRouteDefinition,
