@@ -1,9 +1,10 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
-import { dirname, extname } from "path";
+import { basename, dirname, extname } from "path";
 import { resolveInSyncPath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
   getDocumentMimeTypeForExtension,
+  getDocumentSidecarPath,
   isDocumentFile,
 } from "./document-file-utils";
 import {
@@ -29,6 +30,10 @@ export type FileOperationsEntityService = Pick<
   IEntityService,
   "serializeEntity" | "hasEntityType"
 >;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 /**
  * Handles file I/O operations for directory sync
@@ -59,6 +64,7 @@ export class FileOperations {
     const updated = stats.mtime;
 
     let content: string;
+    let metadata: Record<string, unknown> | undefined;
     if (isImageFile(filePath) || isDocumentFile(filePath)) {
       const buffer = await readFile(fullPath);
       const base64 = buffer.toString("base64");
@@ -67,17 +73,56 @@ export class FileOperations {
         ? getDocumentMimeTypeForExtension(ext)
         : getMimeTypeForExtension(ext);
       content = `data:${mimeType};base64,${base64}`;
+      if (isDocumentFile(filePath)) {
+        metadata = await this.readDocumentSidecar(fullPath, filePath);
+      }
     } else {
       content = await readFile(fullPath, "utf-8");
     }
 
-    return {
+    const result: RawEntity = {
       entityType,
       id,
       content,
       created,
       updated,
     };
+    if (metadata) {
+      result.metadata = metadata;
+    }
+    return result;
+  }
+
+  /**
+   * Read the sidecar JSON for a document file. Returns metadata enriched with
+   * a `filename` derived from the file path (acts as a default for documents
+   * dropped in by hand without a sidecar) so the document schema's required
+   * filename always has a value.
+   */
+  private async readDocumentSidecar(
+    fullPdfPath: string,
+    relativePath: string,
+  ): Promise<Record<string, unknown>> {
+    const defaults: Record<string, unknown> = {
+      mimeType: "application/pdf",
+      filename: basename(relativePath),
+    };
+    const sidecarPath = getDocumentSidecarPath(fullPdfPath);
+
+    if (!(await pathExists(sidecarPath))) {
+      return defaults;
+    }
+
+    try {
+      const raw = await readFile(sidecarPath, "utf-8");
+      const parsed: unknown = JSON.parse(raw);
+      const fromSidecar = isRecord(parsed) ? parsed : {};
+      return { ...defaults, ...fromSidecar };
+    } catch {
+      // Corrupt sidecar shouldn't block import; the schema will still pass
+      // because filename + mimeType come from defaults.
+      return defaults;
+    }
   }
 
   /**
@@ -98,6 +143,7 @@ export class FileOperations {
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");
 
+      let binaryUnchanged = false;
       if (await pathExists(filePath)) {
         const currentContent = await readFile(filePath);
         const currentHash = computeContentHash(
@@ -106,12 +152,22 @@ export class FileOperations {
         const newHash = computeContentHash(contentToWrite.toString("base64"));
 
         if (currentHash === newHash) {
-          return;
+          binaryUnchanged = true;
         }
       }
 
-      await this.ensureEntityDirectory(entity, filePath);
-      await writeFile(filePath, contentToWrite);
+      if (!binaryUnchanged) {
+        await this.ensureEntityDirectory(entity, filePath);
+        await writeFile(filePath, contentToWrite);
+      }
+
+      if (isDocument) {
+        await this.writeDocumentSidecar(entity, filePath);
+      }
+
+      if (binaryUnchanged) {
+        return;
+      }
     } else {
       const contentToWrite = this.entityService.serializeEntity(entity);
 
@@ -141,6 +197,38 @@ export class FileOperations {
     if (entity.entityType !== "base") {
       await mkdir(dirname(filePath), { recursive: true });
     }
+  }
+
+  /**
+   * Persist document metadata that does not survive in the PDF bytes
+   * (filename, page count, dedup key, source provenance) in a sidecar JSON
+   * file. `mimeType` is omitted because it is implicit in the .pdf extension
+   * and would be regenerated from the data URL on read.
+   */
+  private async writeDocumentSidecar(
+    entity: BaseEntity,
+    pdfPath: string,
+  ): Promise<void> {
+    const metadata = entity.metadata;
+    const persistable: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(metadata)) {
+      if (key === "mimeType") continue;
+      if (value === undefined) continue;
+      persistable[key] = value;
+    }
+
+    const sidecarPath = getDocumentSidecarPath(pdfPath);
+    const serialized = `${JSON.stringify(persistable, null, 2)}\n`;
+
+    if (await pathExists(sidecarPath)) {
+      const existing = await readFile(sidecarPath, "utf-8");
+      if (existing === serialized) {
+        return;
+      }
+    }
+
+    await this.ensureEntityDirectory(entity, sidecarPath);
+    await writeFile(sidecarPath, serialized, "utf-8");
   }
 
   getFilePath(

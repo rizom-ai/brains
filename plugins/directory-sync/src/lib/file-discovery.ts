@@ -2,7 +2,7 @@ import { join } from "path";
 import { mkdir, readdir, stat } from "fs/promises";
 import type { DirectorySyncStatus } from "../types";
 import { isImageFile } from "./image-file-utils";
-import { isDocumentFile } from "./document-file-utils";
+import { isDocumentFile, isDocumentSidecarFile } from "./document-file-utils";
 import { parseEntityPath } from "./entity-paths";
 import { pathExists } from "./fs-utils";
 
@@ -106,7 +106,11 @@ async function findFiles(
     for (const entry of entries) {
       const rel = relativePath ? join(relativePath, entry.name) : entry.name;
 
-      if (entry.isFile() && !entry.name.endsWith(".invalid")) {
+      if (
+        entry.isFile() &&
+        !entry.name.endsWith(".invalid") &&
+        !isDocumentSidecarFile(entry.name)
+      ) {
         if (entry.name.endsWith(".md")) {
           files.push(rel);
         } else if (

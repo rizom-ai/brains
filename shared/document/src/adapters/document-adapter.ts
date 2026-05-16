@@ -30,15 +30,15 @@ export class DocumentAdapter implements EntityAdapter<
   }
 
   public fromMarkdown(content: string): Partial<DocumentEntity> {
-    const { mimeType } = parseDocumentDataUrl(content);
+    // Validates the data URL shape; metadata (filename, mimeType, pageCount,
+    // dedupKey, source provenance) is supplied by directory-sync via the
+    // sidecar JSON / path-derived defaults and merged in by the import
+    // pipeline. The adapter cannot synthesize a valid filename on its own.
+    parseDocumentDataUrl(content);
 
     return {
       entityType: "document",
       content,
-      metadata: {
-        mimeType,
-        filename: "document.pdf",
-      },
     };
   }
 

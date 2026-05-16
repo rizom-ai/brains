@@ -99,7 +99,11 @@ export interface DeleteResult {
 }
 
 /**
- * Raw entity data from file
+ * Raw entity data from file.
+ *
+ * `metadata` carries fields the entity adapter cannot recover from `content`
+ * alone — currently used for document sidecar metadata (filename, page count,
+ * dedup key, etc.) and a path-derived filename fallback for documents.
  */
 export interface RawEntity {
   entityType: string;
@@ -107,6 +111,7 @@ export interface RawEntity {
   content: string;
   created: Date;
   updated: Date;
+  metadata?: Record<string, unknown>;
 }
 
 /**

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ProgressReporter, z } from "@brains/utils";
 import {
+  BaseEntityAdapter,
+  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
   type ServicePluginContext,
@@ -13,12 +15,38 @@ import {
 } from "@brains/document";
 import { MediaDocumentGenerationJobHandler } from "../../src/handlers/mediaDocumentGenerationHandler";
 
+const socialPostStubSchema = baseEntitySchema.extend({
+  entityType: z.literal("social-post"),
+});
+type SocialPostStub = z.infer<typeof socialPostStubSchema>;
+
+class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
+  constructor() {
+    super({
+      entityType: "social-post",
+      schema: socialPostStubSchema,
+      frontmatterSchema: z.object({}),
+    });
+  }
+
+  public fromMarkdown(content: string): Partial<SocialPostStub> {
+    return { entityType: "social-post", content };
+  }
+}
+
 const pdfBuffer = Buffer.from("%PDF-1.7\n%carousel");
 
 function progressReporter(): ProgressReporter {
   const reporter = ProgressReporter.from(async () => undefined);
   if (!reporter) throw new Error("Failed to create progress reporter");
   return reporter;
+}
+
+function expectErrorMessage(error: unknown, message: string): void {
+  if (!(error instanceof Error)) {
+    throw new Error("Expected an Error to be thrown");
+  }
+  expect(error.message).toContain(message);
 }
 
 describe("MediaDocumentGenerationJobHandler", () => {
@@ -31,7 +59,11 @@ describe("MediaDocumentGenerationJobHandler", () => {
       .registerEntityType("document", documentSchema, documentAdapter);
     shell
       .getEntityRegistry()
-      .registerEntityType("social-post", z.any(), {} as never);
+      .registerEntityType(
+        "social-post",
+        socialPostStubSchema,
+        new SocialPostStubAdapter(),
+      );
     context = createServicePluginContext(shell, "site-builder");
   });
 
@@ -186,10 +218,40 @@ describe("MediaDocumentGenerationJobHandler", () => {
       );
       throw new Error("Expected handler to reject");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain(
-        "Refusing to render 21 page PDF",
-      );
+      expectErrorMessage(error, "Refusing to render 21 page PDF");
     }
+  });
+
+  it("rejects rendered PDFs that exceed the max page count even when pageCount is not declared", async () => {
+    const oversizedPdf = Buffer.from(
+      `%PDF-1.7\n${"\n/Type /Pages /Count 30\n".repeat(1)}%%EOF`,
+    );
+    const handler = new MediaDocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => oversizedPdf },
+    );
+
+    try {
+      await handler.process(
+        {
+          renderUrl: "http://localhost/_media/carousel/template/post-1",
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          sourceTemplate: "carousel-template",
+          maxPageCount: 20,
+        },
+        "job-1",
+        progressReporter(),
+      );
+      throw new Error("Expected handler to reject");
+    } catch (error) {
+      expectErrorMessage(error, "Rendered PDF has 30 pages");
+    }
+
+    const stored = await context.entityService.listEntities({
+      entityType: "document",
+    });
+    expect(stored).toHaveLength(0);
   });
 });

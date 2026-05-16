@@ -36,15 +36,20 @@ describe("document adapter", () => {
     expect(parsed.metadata.dedupKey).toBe("social-carousel:post-1:hash");
   });
 
-  it("round-trips raw PDF content through markdown adapter methods", () => {
+  it("validates raw PDF content and leaves metadata to the import pipeline", () => {
     const partial = documentAdapter.fromMarkdown(pdfDataUrl);
 
     expect(partial.entityType).toBe("document");
     expect(partial.content).toBe(pdfDataUrl);
-    expect(partial.metadata).toEqual({
-      mimeType: "application/pdf",
-      filename: "document.pdf",
-    });
+    // metadata is intentionally absent: filename/mimeType/dedupKey/source
+    // provenance come from the directory-sync sidecar, not from the bytes.
+    expect(partial.metadata).toBeUndefined();
+  });
+
+  it("rejects non-PDF content via fromMarkdown", () => {
+    expect(() =>
+      documentAdapter.fromMarkdown("data:text/plain;base64,aGVsbG8="),
+    ).toThrow("Invalid PDF document data URL");
   });
 
   it("rejects non-PDF data URLs", () => {

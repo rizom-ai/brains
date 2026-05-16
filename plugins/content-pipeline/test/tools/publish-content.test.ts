@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { z } from "@brains/utils";
 import {
+  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
+  type EntityAdapter,
   type MockShell,
   type ServicePluginContext,
 } from "@brains/plugins/test";
@@ -10,6 +11,25 @@ import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
+
+/**
+ * Minimal entity adapter for test-only entity types where the registry only
+ * needs to know the type exists so `getEntity` / `createEntity` work.
+ * Implements EntityAdapter directly because BaseEntityAdapter requires a
+ * literal entityType discriminant which doesn't fit a generic helper.
+ */
+function createStubAdapter(entityType: string): EntityAdapter<BaseEntity> {
+  return {
+    entityType,
+    schema: baseEntitySchema,
+    toMarkdown: (entity) => entity.content,
+    fromMarkdown: (content) => ({ content }),
+    extractMetadata: (entity) => entity.metadata,
+    parseFrontMatter: (_markdown, schema) => schema.parse({}),
+    generateFrontMatter: () => "",
+    getBodyTemplate: () => "",
+  };
+}
 
 function createPublishableEntity(
   content: string,
@@ -34,10 +54,18 @@ describe("preparePublishContent", () => {
     context = createServicePluginContext(mockShell, "content-pipeline");
     mockShell
       .getEntityRegistry()
-      .registerEntityType("image", z.any(), {} as never);
+      .registerEntityType(
+        "image",
+        baseEntitySchema,
+        createStubAdapter("image"),
+      );
     mockShell
       .getEntityRegistry()
-      .registerEntityType("document", z.any(), {} as never);
+      .registerEntityType(
+        "document",
+        baseEntitySchema,
+        createStubAdapter("document"),
+      );
   });
 
   it("should strip markdown frontmatter", async () => {

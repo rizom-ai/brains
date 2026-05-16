@@ -39,12 +39,16 @@ export async function persistImportEntity(
 
     // Spread parsedEntity first so type-specific fields (e.g., title, status
     // for decks) are preserved, then override with canonical BaseEntity fields.
+    // rawEntity.metadata wins last because it carries fields the adapter
+    // cannot recover from content alone (e.g., document sidecar metadata).
+    const sidecarMetadata = rawEntity.metadata ?? {};
+    const adapterMetadata = parsedEntity.metadata ?? {};
     const entity: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
       content: parsedEntity.content ?? rawEntity.content,
-      metadata: parsedEntity.metadata ?? {},
+      metadata: { ...adapterMetadata, ...sidecarMetadata },
       created: existing?.created ?? rawEntity.created.toISOString(),
       updated: rawEntity.updated.toISOString(),
       contentHash: "",

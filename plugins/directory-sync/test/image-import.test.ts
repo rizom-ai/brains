@@ -203,6 +203,52 @@ describe("Image Import - Regression Tests", () => {
       ]);
     });
 
+    it("should preserve document sidecar metadata when importing", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+      writeFileSync(
+        join(testDir, "document", "carousel.pdf.meta.json"),
+        JSON.stringify({
+          filename: "carousel.pdf",
+          pageCount: 4,
+          dedupKey: "carousel:post-1",
+        }),
+      );
+
+      spyOn(mockEntityService, "deserializeEntity").mockImplementation(
+        (): Partial<BaseEntity> => ({
+          metadata: {
+            mimeType: "application/pdf",
+            filename: "document.pdf",
+          },
+        }),
+      );
+
+      let capturedMetadata: Record<string, unknown> | undefined;
+      spyOn(mockEntityService, "upsertEntity").mockImplementation(
+        async (request: { entity: Partial<BaseEntity> }) => {
+          const entity = request.entity;
+          capturedMetadata = entity.metadata;
+          return {
+            entityId: entity.id ?? "test-id",
+            jobId: "test-job",
+            created: true,
+            skipped: false,
+          };
+        },
+      );
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(capturedMetadata).toEqual({
+        mimeType: "application/pdf",
+        filename: "carousel.pdf",
+        pageCount: 4,
+        dedupKey: "carousel:post-1",
+      });
+    });
+
     it("should convert binary PDFs to application/pdf data URLs when importing", async () => {
       mkdirSync(join(testDir, "document"), { recursive: true });
       writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
