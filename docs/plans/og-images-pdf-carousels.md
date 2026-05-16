@@ -134,6 +134,7 @@ For carousels assembled from disparate sources (e.g., merging a cover page gener
 
 - New entity, parallel to `image`
 - Stores PDF binary as base64 data URL (same shape as `image.content`)
+- Must be durable brain-data content: exported/imported through the normal entity persistence and directory-sync path, with round-trip tests for PDF data URLs
 - Metadata should explicitly include:
   - `mimeType: "application/pdf"`
   - `filename`
@@ -224,7 +225,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 1. Audit current view-template renderer contracts and consumers
 2. Extend `ViewTemplate` and `SiteViewTemplate` with backward-compatible `image` and `pdf` renderer slots
 3. Create `shared/media-renderer/` package. Add Playwright (`playwright-core` + Chromium), on-demand browser lifecycle, render-by-URL helper exposing `screenshotPng(url, viewport)` and `renderPdf(url, options)`
-4. Add a `document` entity (schema, adapter, plugin) parallel to `image`, with metadata for filename/page count/source/dedup
+4. Add a `document` entity (schema, adapter, plugin) parallel to `image`, with metadata for filename/page count/source/dedup, and verify brain-data export/import round-trips
 5. Choose and implement the media route execution mode for the MVP: concrete generated internal HTML pages or a temporary local render server
 6. Ensure media template HTML participates in CSS/Tailwind generation
 7. Add the `/_media/carousel/:templateId/:entityId` render path. Build a single carousel slide as a PoC and render it via the helper
@@ -246,6 +247,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 - Verify PDF generation produces one page per carousel slide
 - Verify max page count and max output size safeguards fail safely
 - Verify document dedup key reuse on unchanged entity input
+- Verify generated `document` entities persist to brain-data and import/export PDF data URLs without corruption
 - Mock LinkedIn document upload/publish in tests
 - Smoke test: app image builds with Chromium installed; render job runs end-to-end without render-on-request
 - Phase 2: verify site head emits absolute `og:image` and `twitter:image` URLs
