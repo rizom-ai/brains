@@ -336,21 +336,28 @@ describe("AuthService", () => {
     expect(notifications).toHaveLength(1);
     const notification = z
       .object({
-        channel: z.literal("email"),
-        to: z.literal("user@example.com"),
-        subject: z.string(),
-        text: z.string(),
+        contacts: z.array(
+          z.object({
+            type: z.literal("email"),
+            address: z.literal("user@example.com"),
+          }),
+        ),
+        title: z.string(),
+        body: z.string(),
         sensitivity: z.literal("secret"),
         dedupeKey: z.string(),
       })
       .parse(notifications[0]);
 
-    expect(notification.subject).toContain("Set up your brain passkey");
-    expect(notification.text).toContain(
+    expect(notification.title).toContain("Set up your brain passkey");
+    expect(notification.contacts).toEqual([
+      { type: "email", address: "user@example.com" },
+    ]);
+    expect(notification.body).toContain(
       "https://brain.example.com/setup?token=setup_",
     );
-    expect(notification.text).toContain("single-use");
-    expect(notification.text).toContain("expires");
+    expect(notification.body).toContain("single-use");
+    expect(notification.body).toContain("expires");
     expect(notification.dedupeKey).toBe(
       "auth-service:first-passkey:https://brain.example.com:user@example.com",
     );

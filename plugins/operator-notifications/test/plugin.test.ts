@@ -26,10 +26,9 @@ describe("OperatorNotificationsPlugin", () => {
       unknown,
       SendTransactionalNotificationResult
     >(OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL, {
-      channel: "email",
-      to: "user@example.com",
-      subject: "Set up your Rover",
-      text: "Open the secret setup link.",
+      contacts: [{ type: "email", address: "user@example.com" }],
+      title: "Set up your Rover",
+      body: "Open the secret setup link.",
       sensitivity: "secret",
       dedupeKey: "setup:user",
     });
@@ -62,10 +61,9 @@ describe("OperatorNotificationsPlugin", () => {
     await harness.installPlugin(new OperatorNotificationsPlugin());
 
     const payload = {
-      channel: "email",
-      to: "user@example.com",
-      subject: "Set up your Rover",
-      text: "Open the secret setup link.",
+      contacts: [{ type: "email", address: "user@example.com" }],
+      title: "Set up your Rover",
+      body: "Open the secret setup link.",
       sensitivity: "secret",
       dedupeKey: "setup:user",
     };

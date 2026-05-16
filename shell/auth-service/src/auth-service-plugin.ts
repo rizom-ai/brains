@@ -270,10 +270,9 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     const response = await context.messaging.send({
       type: OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
       payload: {
-        channel: "email",
-        to: this.config.setupEmail,
-        subject: "Set up your brain passkey",
-        text: [
+        contacts: [{ type: "email", address: this.config.setupEmail }],
+        title: "Set up your brain passkey",
+        body: [
           "Set up your brain passkey using this single-use link:",
           "",
           setup.setupUrl,

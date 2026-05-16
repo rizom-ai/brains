@@ -13,12 +13,20 @@ export const OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL =
 
 const operatorNotificationsConfigSchema = z.object({});
 
+const notificationContactSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("email"),
+      address: z.string().email(),
+    })
+    .strict(),
+]);
+
 const sendTransactionalNotificationSchema = z
   .object({
-    channel: z.literal("email"),
-    to: z.string().email(),
-    subject: z.string().min(1),
-    text: z.string().min(1),
+    contacts: z.array(notificationContactSchema).min(1),
+    title: z.string().min(1),
+    body: z.string().min(1),
     html: z.string().min(1).optional(),
     sensitivity: z.enum(["normal", "secret"]).default("normal"),
     dedupeKey: z.string().min(1).optional(),
@@ -65,10 +73,15 @@ export class OperatorNotificationsPlugin extends ServicePlugin<OperatorNotificat
         return { success: true, data: { status: "duplicate" } };
       }
 
+      const [emailContact] = input.contacts;
+      if (!emailContact) {
+        return { success: false, error: "Notification delivery failed" };
+      }
+
       const emailPayload: SendEmailPayload = {
-        to: input.to,
-        subject: input.subject,
-        text: input.text,
+        to: emailContact.address,
+        subject: input.title,
+        text: input.body,
         ...(input.html ? { html: input.html } : {}),
       };
       const response = await context.messaging.send<
