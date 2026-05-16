@@ -106,6 +106,15 @@ Media renderers have access to the **full site theme** — Tailwind, theme token
 
 The PDF-first implementation must ensure media templates are included in Tailwind's content/source scan before Playwright captures output. If media pages are generated outside normal public routes, their HTML must still be present in the build/temp output used for CSS generation, or their templates must be explicitly included through Tailwind source configuration.
 
+## Media execution mode
+
+MVP uses generated internal HTML pages plus a temporary local static render server:
+
+- Render media templates into `/_media/.../index.html` inside the site build output
+- Keep `/_media` out of the route registry so it does not appear in navigation, sitemap, or SEO route output
+- Serve the build output from a temporary localhost server during Playwright capture so absolute paths such as `/styles/main.css` and site assets resolve exactly like normal pages
+- Treat `/_media` paths as internal render artifacts, not user-authored public routes
+
 ## Trigger model
 
 Generated media is produced via **explicit jobs**, not during site build or request handling.
@@ -226,7 +235,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 2. Extend `ViewTemplate` and `SiteViewTemplate` with backward-compatible `image` and `pdf` renderer slots
 3. Create `shared/media-renderer/` package. Add Playwright (`playwright-core` + Chromium), on-demand browser lifecycle, render-by-URL helper exposing `screenshotPng(url, viewport)` and `renderPdf(url, options)`
 4. Add a `document` entity (schema, adapter, plugin) parallel to `image`, with metadata for filename/page count/source/dedup, and verify brain-data export/import round-trips
-5. Choose and implement the media route execution mode for the MVP: concrete generated internal HTML pages or a temporary local render server
+5. Choose and implement the media route execution mode for the MVP: concrete generated internal HTML pages served by a temporary local render server
 6. Ensure media template HTML participates in CSS/Tailwind generation
 7. Add the `/_media/carousel/:templateId/:entityId` render path. Build a single carousel slide as a PoC and render it via the helper
 8. Render a full multi-page carousel route; capture via `page.pdf()`; store as `document`
