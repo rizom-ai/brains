@@ -104,12 +104,21 @@ export class PublishExecuteHandler {
         imageData = await this.fetchImageData(parsed.metadata.coverImageId);
       }
 
-      const documentData = await this.fetchDocumentData(
-        parsed.metadata.documents,
-      );
+      const requestedDocuments = parsed.metadata.documents ?? [];
+      const documentData = await this.fetchDocumentData(requestedDocuments);
 
       // Attempt to publish
       try {
+        // If the post explicitly references documents but none could be
+        // fetched, refuse to silently degrade to a text-only post — that
+        // would mislead the user about what was published. Throw here so
+        // the existing failed-publish path marks the entity as failed.
+        if (requestedDocuments.length > 0 && documentData.length === 0) {
+          throw new Error(
+            `Refusing to publish: ${requestedDocuments.length} document(s) referenced but none could be fetched`,
+          );
+        }
+
         const result = documentData.length
           ? await provider.publish(
               parsed.content,

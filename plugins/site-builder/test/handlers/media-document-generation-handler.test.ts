@@ -30,7 +30,7 @@ class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
   }
 
   public fromMarkdown(content: string): Partial<SocialPostStub> {
-    return { entityType: "social-post", content };
+    return { entityType: "social-post" as const, content };
   }
 }
 

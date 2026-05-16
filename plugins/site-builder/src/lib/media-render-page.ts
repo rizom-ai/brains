@@ -1,5 +1,5 @@
 import { createServer, type Server } from "http";
-import { mkdir, readFile, stat, writeFile } from "fs/promises";
+import { mkdir, lstat, readFile, writeFile } from "fs/promises";
 import { dirname, extname, join, resolve, sep } from "path";
 import { posix } from "path";
 import {
@@ -154,11 +154,21 @@ async function resolveServableFile(
   resolvedPath: string,
 ): Promise<string | null> {
   try {
-    const stats = await stat(resolvedPath);
-    if (stats.isDirectory()) {
-      return join(resolvedPath, "index.html");
+    // Refuse symlinks outright: even if the symlink target is currently within
+    // rootDir, the link can be repointed later, and the caller's downstream
+    // isWithinRoot check only validates the lexical path, not the resolved
+    // inode. lstat avoids the symlink-follow that `stat` would do.
+    const lstats = await lstat(resolvedPath);
+    if (lstats.isSymbolicLink()) {
+      return null;
     }
-    if (stats.isFile()) {
+    if (lstats.isDirectory()) {
+      const indexPath = join(resolvedPath, "index.html");
+      const indexStats = await lstat(indexPath).catch(() => null);
+      if (!indexStats || indexStats.isSymbolicLink()) return null;
+      return indexStats.isFile() ? indexPath : null;
+    }
+    if (lstats.isFile()) {
       return resolvedPath;
     }
     return null;
