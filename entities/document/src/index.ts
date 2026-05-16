@@ -1,5 +1,15 @@
 export { DocumentPlugin, documentPlugin } from "./plugin";
 export {
+  DocumentGenerationJobHandler,
+  documentGenerationJobSchema,
+  documentGenerationJobSchemaBase,
+  type DocumentGenerationHandlerDeps,
+  type DocumentGenerationJobData,
+  type DocumentGenerationResult,
+  type RenderPdf,
+} from "./handlers/documentGenerationHandler";
+export { createDocumentTools, type DocumentGenerateInput } from "./tools";
+export {
   DocumentAdapter,
   documentAdapter,
   documentMimeTypeSchema,

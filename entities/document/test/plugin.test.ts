@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { DocumentPlugin, documentPlugin } from "../src";
 
 describe("DocumentPlugin", () => {
@@ -11,5 +12,14 @@ describe("DocumentPlugin", () => {
 
   it("factory returns a plugin", () => {
     expect(documentPlugin().id).toBe("document");
+  });
+
+  it("registers the manual document_generate tool", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    const capabilities = await harness.installPlugin(new DocumentPlugin());
+
+    expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+      "document_generate",
+    ]);
   });
 });

@@ -117,8 +117,10 @@ MVP uses generated internal HTML pages plus a temporary local static render serv
 
 ## Trigger model
 
-Generated media is produced via **explicit jobs**, not during site build or request handling.
+Generated media is produced via **explicit document jobs**, not during site build or request handling.
 
+- The manual operator surface is `document_generate`; document generation owns durable PDF artifacts and optional `documents[]` attachment
+- Site-builder may provide internal HTML/media pages, but it should not own the public document-generation tool
 - Follows the existing job-handler pattern used by image generation, without coupling media generation to `ImageGenerationJobHandler`
 - Lets one entity change regenerate one artifact, instead of forcing a full rebuild
 - Keeps site builds fast
@@ -153,6 +155,7 @@ For carousels assembled from disparate sources (e.g., merging a cover page gener
   - `sourceTemplate`
   - deterministic `dedupKey`
 - Job-generated; not user-authored
+- The `document` plugin owns the generic PDF generation job/tool boundary; site-builder remains responsible only for site/media HTML composition helpers
 
 ## OG images (phase 2, follows carousel substrate)
 
@@ -239,7 +242,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 6. Ensure media template HTML participates in CSS/Tailwind generation
 7. Add the `/_media/carousel/:templateId/:entityId` render path. Build a single carousel slide as a PoC and render it via the helper
 8. Render a full multi-page carousel route; capture via `page.pdf()`; store as `document`
-9. Add/queue the explicit media generation job handler with timeout, max page count, max PDF size, and browser cleanup
+9. Add/queue the explicit `document_generate` job/tool with timeout, max page count, max PDF size, and browser cleanup
 10. Extend the publish contract with document attachment data
 11. Update publish preparation and social publishing to support `documents[]` while preserving `coverImageId` image behavior
 12. Add LinkedIn document upload/publish support; attach documents to `social-post` via `documents[]`
