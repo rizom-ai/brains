@@ -174,13 +174,28 @@ Runtime behavior:
 5. The user registers their passkey.
 6. Setup closes; future setup notifications report or record `complete` and do not resend the URL.
 
-Fleet/deploy configuration:
+Fleet/deploy configuration should target a generic transactional notification/email layer, not a one-off provider integration:
 
 ```env
-SETUP_EMAIL_PROVIDER=resend # or postmark; exact provider TBD
+SETUP_EMAIL_PROVIDER=resend # first adapter; exact provider TBD
 SETUP_EMAIL_API_KEY=...
 SETUP_EMAIL_FROM=Rover <setup@rizom.ai>
 ```
+
+The setup flow should call a transport-neutral interface such as:
+
+```ts
+sendTransactionalEmail({
+  to,
+  subject,
+  text,
+  html,
+  sensitivity: "secret",
+  dedupeKey,
+});
+```
+
+This leaves room for a future full email server inside the brain. In that future, setup email becomes another consumer of the same notification abstraction, with a different provider/transport adapter, for example `provider: local-mailserver`.
 
 Update `packages/brains-ops`:
 
@@ -191,8 +206,10 @@ Update `packages/brains-ops`:
 Update runtime/plugin support:
 
 - add a setup notification path from auth-service/plugin to a delivery layer
-- add a minimal email delivery implementation for setup links
+- add a minimal transactional email adapter for setup links
+- keep setup-link logic dependent on a notification/email abstraction, not directly on Resend/Postmark/etc.
 - dedupe setup emails so normal restarts do not spam users
+- store delivery/dedupe state in runtime storage, not the content repo or generated views
 - expose a safe resend path later if needed
 
 Security rules:
@@ -209,6 +226,11 @@ Non-goals for this batch:
 - SSH-based setup retrieval
 - pre-generating setup tokens in ops
 - private user-selected delivery providers
+- implementing the full in-brain email server now
+
+Design constraint:
+
+- do not couple setup email directly to a specific third-party provider; keep a provider adapter boundary so a later in-brain mail server can replace the transport without changing auth-service setup semantics
 
 Later enhancement:
 
