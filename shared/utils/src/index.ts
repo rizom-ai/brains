@@ -89,3 +89,4 @@ export { LeadingTrailingDebounce } from "./debounce";
 
 // HTTP response helpers
 export { readJsonBody, parseJsonResponse } from "./http-response";
+export type { FetchLike } from "./fetch-like";
