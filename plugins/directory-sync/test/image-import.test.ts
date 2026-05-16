@@ -8,7 +8,7 @@ import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-import { TINY_PNG_BYTES } from "./fixtures";
+import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
 
 describe("Image Import - Regression Tests", () => {
   let dirSync: DirectorySync;
@@ -22,7 +22,7 @@ describe("Image Import - Regression Tests", () => {
 
     upsertedEntities = [];
     mockEntityService = createMockEntityService({
-      entityTypes: ["topic", "image", "post"],
+      entityTypes: ["topic", "image", "post", "document"],
     });
 
     spyOn(mockEntityService, "serializeEntity").mockImplementation(
@@ -178,6 +178,61 @@ describe("Image Import - Regression Tests", () => {
       expect(result.imported).toBe(1);
       expect(upsertedEntities).toHaveLength(1);
       expect(upsertedEntities[0]).toEqual({ entityType: "topic", id: "test" });
+    });
+  });
+
+  describe("importEntities should include document files", () => {
+    it("should import PDF files from document/ directory when calling importEntities()", async () => {
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      mkdirSync(join(testDir, "document"), { recursive: true });
+
+      writeFileSync(join(testDir, "topic", "test-topic.md"), "# Test Topic");
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(2);
+      expect(result.failed).toBe(0);
+
+      const documentEntities = upsertedEntities.filter(
+        (e) => e.entityType === "document",
+      );
+
+      expect(documentEntities).toEqual([
+        { entityType: "document", id: "carousel" },
+      ]);
+    });
+
+    it("should convert binary PDFs to application/pdf data URLs when importing", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+
+      let capturedContent: string | undefined;
+      spyOn(mockEntityService, "upsertEntity").mockImplementation(
+        async (request: { entity: Partial<BaseEntity> }) => {
+          const entity = request.entity;
+          capturedContent = entity.content;
+          upsertedEntities.push({
+            entityType: entity.entityType ?? "unknown",
+            id: entity.id ?? "unknown",
+          });
+          return {
+            entityId: entity.id ?? "test-id",
+            jobId: "test-job",
+            created: true,
+            skipped: false,
+          };
+        },
+      );
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(upsertedEntities[0]).toEqual({
+        entityType: "document",
+        id: "carousel",
+      });
+      expect(capturedContent).toMatch(/^data:application\/pdf;base64,/);
     });
   });
 });

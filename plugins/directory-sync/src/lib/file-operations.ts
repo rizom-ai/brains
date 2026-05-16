@@ -3,6 +3,10 @@ import { dirname, extname } from "path";
 import { resolveInSyncPath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
+  getDocumentMimeTypeForExtension,
+  isDocumentFile,
+} from "./document-file-utils";
+import {
   buildEntityFilePath,
   getEntityFileExtension,
   parseEntityPath,
@@ -19,6 +23,7 @@ import {
 import { pathExists } from "./fs-utils";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
+export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   IEntityService,
@@ -54,11 +59,13 @@ export class FileOperations {
     const updated = stats.mtime;
 
     let content: string;
-    if (isImageFile(filePath)) {
+    if (isImageFile(filePath) || isDocumentFile(filePath)) {
       const buffer = await readFile(fullPath);
       const base64 = buffer.toString("base64");
       const ext = extname(filePath);
-      const mimeType = getMimeTypeForExtension(ext);
+      const mimeType = isDocumentFile(filePath)
+        ? getDocumentMimeTypeForExtension(ext)
+        : getMimeTypeForExtension(ext);
       content = `data:${mimeType};base64,${base64}`;
     } else {
       content = await readFile(fullPath, "utf-8");
@@ -80,51 +87,60 @@ export class FileOperations {
   async writeEntity(entity: BaseEntity): Promise<void> {
     const filePath = this.getEntityFilePath(entity);
     const isImage = entity.entityType === "image";
+    const isDocument = entity.entityType === "document";
 
-    let contentToWrite: Buffer | string;
-    if (isImage) {
-      const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
-      contentToWrite = match?.[1]
+    if (isImage || isDocument) {
+      const dataUrlPattern = isImage
+        ? /^data:image\/[a-z+]+;base64,(.+)$/i
+        : /^data:application\/pdf;base64,(.+)$/i;
+      const match = entity.content.match(dataUrlPattern);
+      const contentToWrite = match?.[1]
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");
-    } else {
-      contentToWrite = this.entityService.serializeEntity(entity);
-    }
 
-    if (await pathExists(filePath)) {
-      const currentContent = isImage
-        ? await readFile(filePath)
-        : await readFile(filePath, "utf-8");
+      if (await pathExists(filePath)) {
+        const currentContent = await readFile(filePath);
+        const currentHash = computeContentHash(
+          currentContent.toString("base64"),
+        );
+        const newHash = computeContentHash(contentToWrite.toString("base64"));
 
-      const currentHash = computeContentHash(
-        isImage
-          ? (currentContent as Buffer).toString("base64")
-          : (currentContent as string),
-      );
-      const newHash = computeContentHash(
-        isImage
-          ? (contentToWrite as Buffer).toString("base64")
-          : (contentToWrite as string),
-      );
-
-      if (currentHash === newHash) {
-        return;
+        if (currentHash === newHash) {
+          return;
+        }
       }
-    }
 
-    if (entity.entityType !== "base") {
-      await mkdir(dirname(filePath), { recursive: true });
-    }
-
-    if (isImage) {
-      await writeFile(filePath, contentToWrite as Buffer);
+      await this.ensureEntityDirectory(entity, filePath);
+      await writeFile(filePath, contentToWrite);
     } else {
-      await writeFile(filePath, contentToWrite as string, "utf-8");
+      const contentToWrite = this.entityService.serializeEntity(entity);
+
+      if (await pathExists(filePath)) {
+        const currentContent = await readFile(filePath, "utf-8");
+        const currentHash = computeContentHash(currentContent);
+        const newHash = computeContentHash(contentToWrite);
+
+        if (currentHash === newHash) {
+          return;
+        }
+      }
+
+      await this.ensureEntityDirectory(entity, filePath);
+      await writeFile(filePath, contentToWrite, "utf-8");
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
+  }
+
+  private async ensureEntityDirectory(
+    entity: BaseEntity,
+    filePath: string,
+  ): Promise<void> {
+    if (entity.entityType !== "base") {
+      await mkdir(dirname(filePath), { recursive: true });
+    }
   }
 
   getFilePath(
@@ -148,7 +164,7 @@ export class FileOperations {
   }
 
   /**
-   * Get all syncable files in sync directory (markdown + images in image/ dir)
+   * Get all syncable files in sync directory (markdown + binary media files)
    */
   async getAllSyncFiles(): Promise<string[]> {
     return findSyncFiles(this.syncPath, this.entityService);
