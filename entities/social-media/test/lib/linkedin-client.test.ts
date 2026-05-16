@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
@@ -9,15 +9,14 @@ const TINY_PNG_BASE64 =
 
 const TINY_PDF_BYTES = Buffer.from("%PDF-1.4\n%%EOF\n");
 
-const originalFetch = globalThis.fetch;
+type FetchHandler = (...args: unknown[]) => Promise<Partial<Response>>;
 
-// Centralizes the single `as unknown as typeof fetch` cast needed for bun's mock type
-function installFetchMock(
-  handler: (...args: unknown[]) => Promise<Partial<Response>>,
-): ReturnType<typeof mock> {
-  const mocked = mock(handler);
-  globalThis.fetch = mocked as unknown as typeof fetch;
-  return mocked;
+function createFetchStub(handler: FetchHandler): ReturnType<typeof mock> {
+  return mock(handler);
+}
+
+function asFetch(stub: ReturnType<typeof mock>): typeof fetch {
+  return stub as unknown as typeof fetch;
 }
 
 function getMockCall(
@@ -51,36 +50,32 @@ function parseRequestJson(options: RequestInit): unknown {
 }
 
 describe("LinkedInClient", () => {
-  let client: LinkedInClient;
   let config: LinkedinConfig;
   let logger: ReturnType<typeof createMockLogger>;
-  let fetchMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
     config = { accessToken: "test-token" };
     logger = createMockLogger();
-    client = new LinkedInClient(config, logger);
-
-    fetchMock = installFetchMock(() =>
-      Promise.resolve({
-        ok: true,
-        headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
-        json: () => Promise.resolve({ sub: "user123" }),
-        text: () => Promise.resolve(""),
-      }),
-    );
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
   });
 
   describe("publish without image", () => {
     it("should publish text-only post with shareMediaCategory NONE", async () => {
+      const fetchStub = createFetchStub(() =>
+        Promise.resolve({
+          ok: true,
+          headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
+          json: () => Promise.resolve({ sub: "user123" }),
+          text: () => Promise.resolve(""),
+        }),
+      );
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
+      });
+
       const result = await client.publish("Hello LinkedIn!", {});
 
-      expect(fetchMock).toHaveBeenCalled();
-      const [, options] = fetchMock.mock.calls[1] as [string, RequestInit];
+      expect(fetchStub).toHaveBeenCalled();
+      const [, options] = fetchStub.mock.calls[1] as [string, RequestInit];
       const body = JSON.parse(options.body as string);
 
       expect(
@@ -93,18 +88,15 @@ describe("LinkedInClient", () => {
 
   describe("publish with image", () => {
     it("should register upload, upload binary, then publish with IMAGE category", async () => {
-      // Mock responses for the 3-step flow
       let callCount = 0;
-      fetchMock = installFetchMock(() => {
+      const fetchStub = createFetchStub(() => {
         callCount++;
         if (callCount === 1) {
-          // getUserId call
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ sub: "user123" }),
           });
         } else if (callCount === 2) {
-          // registerUpload call
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -121,15 +113,16 @@ describe("LinkedInClient", () => {
               }),
           });
         } else if (callCount === 3) {
-          // uploadBinary call
           return Promise.resolve({ ok: true });
         } else {
-          // publishPost call
           return Promise.resolve({
             ok: true,
             headers: new Headers({ "X-RestLi-Id": "urn:li:share:456" }),
           });
         }
+      });
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
       });
 
       const imageData: PublishImageData = {
@@ -139,11 +132,10 @@ describe("LinkedInClient", () => {
 
       const result = await client.publish("Post with image!", {}, imageData);
 
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchStub).toHaveBeenCalledTimes(4);
       expect(result.id).toBe("urn:li:share:456");
 
-      // Verify the final post has IMAGE category
-      const [, options] = fetchMock.mock.calls[3] as [string, RequestInit];
+      const [, options] = fetchStub.mock.calls[3] as [string, RequestInit];
       const body = JSON.parse(options.body as string);
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -156,7 +148,7 @@ describe("LinkedInClient", () => {
 
     it("should fall back to text-only if image upload fails", async () => {
       let callCount = 0;
-      fetchMock = installFetchMock(() => {
+      const fetchStub = createFetchStub(() => {
         callCount++;
         if (callCount === 1) {
           return Promise.resolve({
@@ -164,19 +156,20 @@ describe("LinkedInClient", () => {
             json: () => Promise.resolve({ sub: "user123" }),
           });
         } else if (callCount === 2) {
-          // registerUpload fails
           return Promise.resolve({
             ok: false,
             status: 500,
             text: () => Promise.resolve("Upload service unavailable"),
           });
         } else {
-          // Should still publish text-only
           return Promise.resolve({
             ok: true,
             headers: new Headers({ "X-RestLi-Id": "urn:li:share:789" }),
           });
         }
+      });
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
       });
 
       const imageData: PublishImageData = {
@@ -190,12 +183,10 @@ describe("LinkedInClient", () => {
         imageData,
       );
 
-      // Should have logged warning and published without image
       expect(logger.warn).toHaveBeenCalled();
       expect(result.id).toBe("urn:li:share:789");
 
-      // Verify text-only post
-      const [, options] = fetchMock.mock.calls[2] as [string, RequestInit];
+      const [, options] = fetchStub.mock.calls[2] as [string, RequestInit];
       const body = JSON.parse(options.body as string);
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -207,7 +198,7 @@ describe("LinkedInClient", () => {
   describe("publish with document", () => {
     it("should register upload, upload PDF, then publish with DOCUMENT category", async () => {
       let callCount = 0;
-      fetchMock = installFetchMock(() => {
+      const fetchStub = createFetchStub(() => {
         callCount++;
         if (callCount === 1) {
           return Promise.resolve({
@@ -239,6 +230,9 @@ describe("LinkedInClient", () => {
           });
         }
       });
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
+      });
 
       const documentData: PublishMediaData[] = [
         {
@@ -256,10 +250,10 @@ describe("LinkedInClient", () => {
         documentData,
       );
 
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchStub).toHaveBeenCalledTimes(4);
       expect(result.id).toBe("urn:li:share:doc456");
 
-      const registerOptions = getRequestOptions(getMockCall(fetchMock, 1));
+      const registerOptions = getRequestOptions(getMockCall(fetchStub, 1));
       const registerBody = parseRequestJson(registerOptions);
       expect(registerBody).toMatchObject({
         registerUploadRequest: {
@@ -267,13 +261,13 @@ describe("LinkedInClient", () => {
         },
       });
 
-      const uploadOptions = getRequestOptions(getMockCall(fetchMock, 2));
+      const uploadOptions = getRequestOptions(getMockCall(fetchStub, 2));
       expect(uploadOptions.headers).toEqual({
         Authorization: "Bearer test-token",
         "Content-Type": "application/pdf",
       });
 
-      const publishOptions = getRequestOptions(getMockCall(fetchMock, 3));
+      const publishOptions = getRequestOptions(getMockCall(fetchStub, 3));
       const publishBody = parseRequestJson(publishOptions);
       expect(publishBody).toMatchObject({
         specificContent: {
@@ -293,7 +287,7 @@ describe("LinkedInClient", () => {
 
     it("should fall back to text-only if document upload fails", async () => {
       let callCount = 0;
-      fetchMock = installFetchMock(() => {
+      const fetchStub = createFetchStub(() => {
         callCount++;
         if (callCount === 1) {
           return Promise.resolve({
@@ -312,6 +306,9 @@ describe("LinkedInClient", () => {
             headers: new Headers({ "X-RestLi-Id": "urn:li:share:doc789" }),
           });
         }
+      });
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
       });
 
       const documentData: PublishMediaData[] = [
@@ -333,7 +330,7 @@ describe("LinkedInClient", () => {
       expect(logger.warn).toHaveBeenCalled();
       expect(result.id).toBe("urn:li:share:doc789");
 
-      const publishOptions = getRequestOptions(getMockCall(fetchMock, 2));
+      const publishOptions = getRequestOptions(getMockCall(fetchStub, 2));
       const publishBody = parseRequestJson(publishOptions);
       expect(publishBody).toMatchObject({
         specificContent: {
@@ -345,23 +342,60 @@ describe("LinkedInClient", () => {
     });
   });
 
-  describe("organization mode", () => {
-    let orgClient: LinkedInClient;
+  describe("error body scrubbing", () => {
+    it("should truncate oversized LinkedIn error bodies in the thrown message", async () => {
+      const longBody = "x".repeat(500);
+      const fetchStub = createFetchStub(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve(longBody),
+        }),
+      );
+      const orgClient = new LinkedInClient(
+        { accessToken: "test-token", organizationId: "12345" },
+        logger,
+        { fetch: asFetch(fetchStub) },
+      );
 
-    beforeEach(() => {
-      const orgConfig: LinkedinConfig = {
-        accessToken: "test-token",
-        organizationId: "12345",
-      };
-      orgClient = new LinkedInClient(orgConfig, logger);
+      let error: unknown;
+      try {
+        await orgClient.publish("Hello", {});
+      } catch (err) {
+        error = err;
+      }
+
+      expect(error).toBeInstanceOf(Error);
+      const message = (error as Error).message;
+      expect(message).toContain("truncated");
+      expect(message.length).toBeLessThan(longBody.length);
     });
+  });
+
+  describe("organization mode", () => {
+    function makeOrgClient(fetchStub: ReturnType<typeof mock>): LinkedInClient {
+      return new LinkedInClient(
+        { accessToken: "test-token", organizationId: "12345" },
+        logger,
+        { fetch: asFetch(fetchStub) },
+      );
+    }
 
     it("should use organization URN as author", async () => {
+      const fetchStub = createFetchStub(() =>
+        Promise.resolve({
+          ok: true,
+          headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(""),
+        }),
+      );
+      const orgClient = makeOrgClient(fetchStub);
+
       const result = await orgClient.publish("Hello org!", {});
 
-      // Only 1 fetch call — no getUserId needed
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+      const [url, options] = fetchStub.mock.calls[0] as [string, RequestInit];
       expect(url).toContain("/ugcPosts");
       const body = JSON.parse(options.body as string);
       expect(body.author).toBe("urn:li:organization:12345");
@@ -370,10 +404,9 @@ describe("LinkedInClient", () => {
 
     it("should use organization URN as owner in image upload", async () => {
       let callCount = 0;
-      fetchMock = installFetchMock(() => {
+      const fetchStub = createFetchStub(() => {
         callCount++;
         if (callCount === 1) {
-          // registerUpload (no getUserId — org mode skips it)
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -390,16 +423,15 @@ describe("LinkedInClient", () => {
               }),
           });
         } else if (callCount === 2) {
-          // uploadBinary
           return Promise.resolve({ ok: true });
         } else {
-          // publishPost
           return Promise.resolve({
             ok: true,
             headers: new Headers({ "X-RestLi-Id": "urn:li:share:org456" }),
           });
         }
       });
+      const orgClient = makeOrgClient(fetchStub);
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -408,11 +440,9 @@ describe("LinkedInClient", () => {
 
       await orgClient.publish("Org post with image!", {}, imageData);
 
-      // 3 calls: registerUpload, uploadBinary, publishPost (no getUserId)
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchStub).toHaveBeenCalledTimes(3);
 
-      // Verify register upload has org URN as owner
-      const [, registerOptions] = fetchMock.mock.calls[0] as [
+      const [, registerOptions] = fetchStub.mock.calls[0] as [
         string,
         RequestInit,
       ];
@@ -425,6 +455,16 @@ describe("LinkedInClient", () => {
 
   describe("validateCredentials", () => {
     it("should return true when token is valid", async () => {
+      const fetchStub = createFetchStub(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ sub: "user123" }),
+        }),
+      );
+      const client = new LinkedInClient(config, logger, {
+        fetch: asFetch(fetchStub),
+      });
+
       const result = await client.validateCredentials();
       expect(result).toBe(true);
     });
@@ -436,39 +476,37 @@ describe("LinkedInClient", () => {
     });
 
     it("should validate org credentials by fetching organization endpoint", async () => {
-      const orgConfig: LinkedinConfig = {
-        accessToken: "test-token",
-        organizationId: "12345",
-      };
-      const orgClient = new LinkedInClient(orgConfig, logger);
-
-      fetchMock = installFetchMock(() =>
+      const fetchStub = createFetchStub(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ id: 12345 }),
         }),
       );
+      const orgClient = new LinkedInClient(
+        { accessToken: "test-token", organizationId: "12345" },
+        logger,
+        { fetch: asFetch(fetchStub) },
+      );
 
       const result = await orgClient.validateCredentials();
       expect(result).toBe(true);
 
-      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const [url] = fetchStub.mock.calls[0] as [string, RequestInit];
       expect(url).toContain("/organizations/12345");
     });
 
     it("should return false when org validation fails", async () => {
-      const orgConfig: LinkedinConfig = {
-        accessToken: "test-token",
-        organizationId: "12345",
-      };
-      const orgClient = new LinkedInClient(orgConfig, logger);
-
-      fetchMock = installFetchMock(() =>
+      const fetchStub = createFetchStub(() =>
         Promise.resolve({
           ok: false,
           status: 403,
           text: () => Promise.resolve("Forbidden"),
         }),
+      );
+      const orgClient = new LinkedInClient(
+        { accessToken: "test-token", organizationId: "12345" },
+        logger,
+        { fetch: asFetch(fetchStub) },
       );
 
       const result = await orgClient.validateCredentials();

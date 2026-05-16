@@ -52,7 +52,11 @@ export {
 } from "./handlers";
 
 // Provider exports (uses PublishProvider from @brains/contracts)
-export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
+export {
+  LinkedInClient,
+  createLinkedInProvider,
+  type LinkedInClientDeps,
+} from "./lib/linkedin-client";
 
 // Template exports
 export {

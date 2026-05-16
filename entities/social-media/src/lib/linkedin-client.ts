@@ -8,6 +8,27 @@ import type {
 import type { LinkedinConfig } from "../config";
 
 /**
+ * External HTTP dependency for the LinkedIn client.
+ * Injected via the constructor so tests can pass a stub function instead of
+ * mocking globalThis.fetch.
+ */
+export interface LinkedInClientDeps {
+  fetch?: typeof fetch;
+}
+
+const ERROR_BODY_MAX_LENGTH = 200;
+
+/**
+ * Truncate raw LinkedIn API error bodies before logging or surfacing them in
+ * thrown errors. LinkedIn occasionally echoes scopes / auth context back in
+ * error bodies, and unbounded bodies can flood logs.
+ */
+function summarizeApiError(text: string): string {
+  if (text.length <= ERROR_BODY_MAX_LENGTH) return text;
+  return `${text.slice(0, ERROR_BODY_MAX_LENGTH)}… (truncated, ${text.length} bytes)`;
+}
+
+/**
  * LinkedIn API response for user info
  */
 interface LinkedInUserInfo {
@@ -89,12 +110,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export class LinkedInClient implements PublishProvider {
   public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
+  private readonly fetch: typeof fetch;
   private cachedUserId: string | null = null;
 
   constructor(
     private config: LinkedinConfig,
     private logger: Logger,
-  ) {}
+    deps: LinkedInClientDeps = {},
+  ) {
+    this.fetch = deps.fetch ?? globalThis.fetch.bind(globalThis);
+  }
 
   /**
    * Publish a post to LinkedIn, optionally with an image or PDF document.
@@ -149,7 +174,7 @@ export class LinkedInClient implements PublishProvider {
       }),
     };
 
-    const response = await fetch(`${this.apiBaseUrl}/ugcPosts`, {
+    const response = await this.fetch(`${this.apiBaseUrl}/ugcPosts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
@@ -169,7 +194,7 @@ export class LinkedInClient implements PublishProvider {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = summarizeApiError(await response.text());
       this.logger.error("LinkedIn API error", {
         status: response.status,
         error: errorText,
@@ -202,7 +227,7 @@ export class LinkedInClient implements PublishProvider {
   ): Promise<string | null> {
     try {
       // Step 1: Register the upload
-      const registerResponse = await fetch(
+      const registerResponse = await this.fetch(
         `${this.apiBaseUrl}/assets?action=registerUpload`,
         {
           method: "POST",
@@ -227,7 +252,7 @@ export class LinkedInClient implements PublishProvider {
       );
 
       if (!registerResponse.ok) {
-        const errorText = await registerResponse.text();
+        const errorText = summarizeApiError(await registerResponse.text());
         this.logger.warn("LinkedIn image upload registration failed", {
           status: registerResponse.status,
           error: errorText,
@@ -245,7 +270,7 @@ export class LinkedInClient implements PublishProvider {
 
       // Step 2: Upload the binary image data
       // Create Uint8Array view for fetch compatibility (works in Node, Bun, browser)
-      const uploadResponse = await fetch(uploadUrl, {
+      const uploadResponse = await this.fetch(uploadUrl, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${this.config.accessToken}`,
@@ -278,7 +303,7 @@ export class LinkedInClient implements PublishProvider {
     documentData: PublishMediaData,
   ): Promise<string | null> {
     try {
-      const registerResponse = await fetch(
+      const registerResponse = await this.fetch(
         `${this.apiBaseUrl}/assets?action=registerUpload`,
         {
           method: "POST",
@@ -303,7 +328,7 @@ export class LinkedInClient implements PublishProvider {
       );
 
       if (!registerResponse.ok) {
-        const errorText = await registerResponse.text();
+        const errorText = summarizeApiError(await registerResponse.text());
         this.logger.warn("LinkedIn document upload registration failed", {
           status: registerResponse.status,
           error: errorText,
@@ -317,7 +342,7 @@ export class LinkedInClient implements PublishProvider {
         return null;
       }
 
-      const uploadResponse = await fetch(uploadInfo.uploadUrl, {
+      const uploadResponse = await this.fetch(uploadInfo.uploadUrl, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${this.config.accessToken}`,
@@ -354,7 +379,7 @@ export class LinkedInClient implements PublishProvider {
 
     try {
       if (this.config.organizationId) {
-        const response = await fetch(
+        const response = await this.fetch(
           `${this.apiBaseUrl}/organizations/${this.config.organizationId}`,
           {
             headers: {
@@ -398,7 +423,7 @@ export class LinkedInClient implements PublishProvider {
 
     // Try OpenID Connect userinfo endpoint first (requires openid scope)
     try {
-      const userinfoResponse = await fetch(
+      const userinfoResponse = await this.fetch(
         "https://api.linkedin.com/v2/userinfo",
         {
           headers: {
@@ -417,14 +442,14 @@ export class LinkedInClient implements PublishProvider {
     }
 
     // Fall back to /v2/me endpoint (works with w_member_social)
-    const meResponse = await fetch("https://api.linkedin.com/v2/me", {
+    const meResponse = await this.fetch("https://api.linkedin.com/v2/me", {
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
       },
     });
 
     if (!meResponse.ok) {
-      const errorText = await meResponse.text();
+      const errorText = summarizeApiError(await meResponse.text());
       throw new Error(
         `Failed to get LinkedIn user ID: ${meResponse.status} - ${errorText}`,
       );
@@ -442,6 +467,7 @@ export class LinkedInClient implements PublishProvider {
 export function createLinkedInProvider(
   config: LinkedinConfig,
   logger: Logger,
+  deps: LinkedInClientDeps = {},
 ): PublishProvider {
-  return new LinkedInClient(config, logger);
+  return new LinkedInClient(config, logger, deps);
 }
