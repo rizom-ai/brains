@@ -363,6 +363,58 @@ describe("AuthService", () => {
     );
   });
 
+  it("does not fail registration when no notification subscriber is registered", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+    expect(data.status).toBe("setup_required");
+  });
+
+  it("does not fail registration when notification delivery returns failure", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    harness.subscribe(OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL, async () => ({
+      success: false,
+      error: "delivery failed",
+    }));
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+    expect(data.status).toBe("setup_required");
+  });
+
   it("does not request a setup email when setup email is not configured", async () => {
     const storageDir = await tempStorageDir();
     const harness = new PluginTestHarness<AuthServicePlugin>({

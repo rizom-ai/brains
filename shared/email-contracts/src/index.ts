@@ -8,6 +8,7 @@ export const sendEmailPayloadSchema = z
     subject: z.string().min(1),
     text: z.string().min(1),
     html: z.string().min(1).optional(),
+    sensitivity: z.enum(["normal", "secret"]).optional(),
   })
   .strict();
 

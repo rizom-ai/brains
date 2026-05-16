@@ -20,6 +20,17 @@ describe("email contracts", () => {
     });
   });
 
+  it("accepts secret sensitivity metadata", () => {
+    const parsed = sendEmailPayloadSchema.parse({
+      to: "user@example.com",
+      subject: "Set up your Rover",
+      text: "Open the setup link.",
+      sensitivity: "secret",
+    });
+
+    expect(parsed.sensitivity).toBe("secret");
+  });
+
   it("rejects invalid recipient email addresses", () => {
     expect(() =>
       sendEmailPayloadSchema.parse({

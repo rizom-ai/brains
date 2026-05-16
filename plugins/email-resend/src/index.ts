@@ -43,6 +43,7 @@ export class EmailResendPlugin extends ServicePlugin<EmailResendConfig> {
       return;
     }
 
+    const logger = this.logger;
     context.messaging.subscribe<SendEmailPayload, EmailSendResult>(
       EMAIL_SEND,
       async (message) => {
@@ -51,7 +52,16 @@ export class EmailResendPlugin extends ServicePlugin<EmailResendConfig> {
         try {
           const result = await this.sendWithResend(input);
           return { success: true, data: result };
-        } catch {
+        } catch (error) {
+          if (input.sensitivity === "secret") {
+            logger.warn("Email delivery failed for a secret message");
+          } else {
+            logger.warn("Email delivery failed", {
+              to: input.to,
+              subject: input.subject,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
           return { success: false, error: "Email delivery failed" };
         }
       },

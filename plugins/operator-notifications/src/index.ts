@@ -6,6 +6,7 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
+import { DedupeStore } from "./dedupe-store";
 import packageJson from "../package.json";
 
 export const OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL =
@@ -46,8 +47,6 @@ export type SendTransactionalNotificationResult =
   | { status: "duplicate" };
 
 export class OperatorNotificationsPlugin extends ServicePlugin<OperatorNotificationsConfig> {
-  private readonly deliveredDedupeKeys = new Set<string>();
-
   constructor(config: Partial<OperatorNotificationsConfig> = {}) {
     super(
       "operator-notifications",
@@ -60,6 +59,8 @@ export class OperatorNotificationsPlugin extends ServicePlugin<OperatorNotificat
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    const dedupeStore = new DedupeStore({ storageDir: context.dataDir });
+
     context.messaging.subscribe<
       SendTransactionalNotificationInput,
       SendTransactionalNotificationResult
@@ -68,45 +69,48 @@ export class OperatorNotificationsPlugin extends ServicePlugin<OperatorNotificat
 
       if (
         input.dedupeKey !== undefined &&
-        this.deliveredDedupeKeys.has(input.dedupeKey)
+        (await dedupeStore.has(input.dedupeKey))
       ) {
         return { success: true, data: { status: "duplicate" } };
       }
 
-      const [emailContact] = input.contacts;
-      if (!emailContact) {
-        return { success: false, error: "Notification delivery failed" };
-      }
+      const deliveryIds: string[] = [];
+      for (const contact of input.contacts) {
+        const emailPayload: SendEmailPayload = {
+          to: contact.address,
+          subject: input.title,
+          text: input.body,
+          ...(input.html ? { html: input.html } : {}),
+          sensitivity: input.sensitivity,
+        };
+        const response = await context.messaging.send<
+          SendEmailPayload,
+          SendEmailResult
+        >({
+          type: EMAIL_SEND,
+          payload: emailPayload,
+        });
 
-      const emailPayload: SendEmailPayload = {
-        to: emailContact.address,
-        subject: input.title,
-        text: input.body,
-        ...(input.html ? { html: input.html } : {}),
-      };
-      const response = await context.messaging.send<
-        SendEmailPayload,
-        SendEmailResult
-      >({
-        type: EMAIL_SEND,
-        payload: emailPayload,
-      });
+        if (!("success" in response) || !response.success || !response.data) {
+          return { success: false, error: "Notification delivery failed" };
+        }
 
-      if (!("success" in response) || !response.success || !response.data) {
-        return { success: false, error: "Notification delivery failed" };
-      }
-
-      const emailResult = response.data;
-      if (emailResult.status !== "sent") {
-        return { success: false, error: "Notification delivery failed" };
+        const emailResult = response.data;
+        if (emailResult.status !== "sent") {
+          return { success: false, error: "Notification delivery failed" };
+        }
+        if (emailResult.id) deliveryIds.push(emailResult.id);
       }
 
       if (input.dedupeKey !== undefined) {
-        this.deliveredDedupeKeys.add(input.dedupeKey);
+        await dedupeStore.markDelivered(
+          input.dedupeKey,
+          deliveryIds[0] ? { deliveryId: deliveryIds[0] } : {},
+        );
       }
 
-      const data: SendTransactionalNotificationResult = emailResult.id
-        ? { status: "sent", deliveryId: emailResult.id }
+      const data: SendTransactionalNotificationResult = deliveryIds[0]
+        ? { status: "sent", deliveryId: deliveryIds[0] }
         : { status: "sent" };
       return { success: true, data };
     });
