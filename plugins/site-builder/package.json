@@ -14,7 +14,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/document": "workspace:*",
     "@brains/image": "workspace:*",
+    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",

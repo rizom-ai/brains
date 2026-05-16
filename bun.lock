@@ -851,7 +851,9 @@
       "name": "@brains/site-builder-plugin",
       "version": "0.2.0-alpha.68",
       "dependencies": {
+        "@brains/document": "workspace:*",
         "@brains/image": "workspace:*",
+        "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-engine": "workspace:*",
