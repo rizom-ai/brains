@@ -8,7 +8,7 @@ Prepare the hosted Rover pilot flow for a second batch of users running `rover:d
 
 The first pilot batch used the core-oriented flow. `rover:default` adds the website and publishing surface, including site-building, browser/CMS expectations, and more background AI work. The existing ops tooling can already resolve cohort-level `presetOverride: default`, but the onboarding flow should be tightened before adding a larger batch.
 
-The second batch is expected to need per-user visual customization. Users do not edit generated `brain.yaml`; operators capture customization in desired-state user/cohort files, then `brains-ops` renders the effective `brain.yaml`.
+The second batch is expected to need per-user visual customization. Users do not edit generated `brain.yaml`; operators capture customization in desired-state user files, then `brains-ops` renders the effective `brain.yaml`.
 
 For now, custom site and theme packages may be required to be public npm packages. Private package registry/auth support is explicitly out of scope for this batch.
 
@@ -16,7 +16,7 @@ For now, custom site and theme packages may be required to be public npm package
 
 ### 1. Public npm package site/theme overrides
 
-Add optional user-level and cohort-level site override fields:
+Add optional user-level site override fields:
 
 ```yaml
 # users/<handle>.yaml
@@ -25,19 +25,12 @@ site:
   theme: "@scope/rover-theme"
 ```
 
-```yaml
-# cohorts/default-batch-2.yaml
-presetOverride: default
-site:
-  package: "@scope/default-site"
-  theme: "@scope/default-theme"
-```
-
 Behavior:
 
-- user `site` overrides win over cohort `site` overrides
-- cohort `site` overrides win over the Rover model defaults
-- `site.package` and `site.theme` are rendered into generated `users/<handle>/brain.yaml`
+- site/theme choices are per-user identity and branding choices, not batch/cohort rollout controls
+- cohorts must not define site/theme overrides
+- no user/cohort merge behavior is needed for site/theme
+- `site.package` and `site.theme` are rendered into generated `users/<handle>/brain.yaml` when present
 - refs must be npm package refs that can be installed by the deploy build without private registry credentials
 - if a package ref changes while the brain version stays the same, the fleet image must still rebuild and redeploy affected users
 
@@ -54,7 +47,7 @@ Update deploy support outside `packages/brains-ops`:
 
 - `shared/deploy-support` Dockerfile rendering so fleet images can install the selected public npm site/theme packages in addition to `@rizom/brain@$BRAIN_VERSION`
 - `packages/brains-ops` generated env/deploy metadata so image identity includes the effective package set, not just `brainVersion`
-- GitHub build workflow/template so changes to user/cohort site/theme refs trigger a build and affected deploys
+- GitHub build workflow/template so changes to user site/theme refs trigger a build and affected deploys
 
 Suggested image identity:
 
@@ -62,7 +55,7 @@ Suggested image identity:
 brain-${brainVersion}-pkg-${packageSetHash}
 ```
 
-The package-set hash should be derived from the unique package refs used by the deployed users/cohort. A simpler first step is acceptable if it reliably rebuilds whenever refs change.
+The package-set hash should be derived from the unique package refs used by the deployed users. A simpler first step is acceptable if it reliably rebuilds whenever refs change.
 
 Out of scope for this batch:
 
