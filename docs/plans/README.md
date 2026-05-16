@@ -50,6 +50,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Hosted, deployed, and monetized product
 
 - [Preview domain and origin cert alignment](./preview-domain-cert-alignment.md)
+- [Rover default batch onboarding](./rover-default-batch-onboarding.md)
 - [Hosted rovers on Kubernetes](./hosted-rovers.md)
 - [Hosted Rover Discord UX](./hosted-rover-discord.md)
 - [User offboarding workflow](./user-offboarding-plan.md)
