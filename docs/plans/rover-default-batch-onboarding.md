@@ -157,14 +157,73 @@ Include rollback notes:
 - reconcile generated outputs
 - rebuild/redeploy the affected user image/config
 
-### 6. Clarify passkey handoff
+### 6. Brain-initiated setup email when Discord is disabled
 
-Document two handoff modes:
+For `rover:default`, browser/CMS setup may be the primary onboarding path, so first-passkey setup must not depend on Discord, SSH, container logs, or operator-side setup URL retrieval.
 
-- **operator-first:** operator registers the first passkey, verifies the instance, then helps the user add their own access
-- **user-first:** operator retrieves the setup URL and sends it securely to the user
+Use a brain-initiated email flow: the running Rover generates the existing one-shot setup URL and sends it directly to the user's verified setup email.
 
-Also document setup URL expiry and one-shot behavior.
+Add optional user-level setup delivery metadata:
+
+```yaml
+# users/<handle>.yaml
+setup:
+  delivery: email
+  email: user@example.com
+```
+
+Runtime behavior:
+
+1. Rover boots.
+2. `auth-service` sees no passkey exists and generates the existing one-shot setup URL.
+3. The auth-service/plugin layer emits a setup-required notification.
+4. Email delivery sends the setup URL to `setup.email`.
+5. The user registers their passkey.
+6. Setup closes; future setup notifications report or record `complete` and do not resend the URL.
+
+Fleet/deploy configuration:
+
+```env
+SETUP_EMAIL_PROVIDER=resend # or postmark; exact provider TBD
+SETUP_EMAIL_API_KEY=...
+SETUP_EMAIL_FROM=Rover <setup@rizom.ai>
+```
+
+Update `packages/brains-ops`:
+
+- add `setup.email` and `setup.delivery` to user schema
+- render the effective setup delivery config into generated `brain.yaml` or another runtime config path
+- include non-secret setup status in operator docs/views if useful, but never include the setup URL
+
+Update runtime/plugin support:
+
+- add a setup notification path from auth-service/plugin to a delivery layer
+- add a minimal email delivery implementation for setup links
+- dedupe setup emails so normal restarts do not spam users
+- expose a safe resend path later if needed
+
+Security rules:
+
+- treat the setup URL as a secret bearer capability
+- send only after the public HTTPS domain is valid enough for user registration
+- do not store setup URLs in git, generated views, artifacts, checked-in docs, public channels, or hosted logs
+- user-facing email must state that the link is single-use and expires
+- delivery failure logs must not include the setup URL
+
+Non-goals for this batch:
+
+- operator scraping setup URLs from logs
+- SSH-based setup retrieval
+- pre-generating setup tokens in ops
+- private user-selected delivery providers
+
+Later enhancement:
+
+```sh
+bunx brains-ops setup:resend . <handle>
+```
+
+This can request a resend or rotate/reissue setup if the original email expired.
 
 ## Phase 3 — Nice-to-have tooling
 
@@ -207,7 +266,8 @@ Optionally add starter templates for:
 1. Public npm site/theme package overrides and deploy image installation
 2. Custom domains
 3. `--no-discord`
-4. Docs/checklist/canary/passkey updates
-5. Run tests/build
-6. Onboard one `rover:default` canary with a custom public npm theme
-7. Add `preflight` after batch 2 if still useful
+4. Brain-initiated setup email delivery
+5. Docs/checklist/canary/passkey updates
+6. Run tests/build
+7. Onboard one `rover:default` canary with a custom public npm theme
+8. Add `preflight` after batch 2 if still useful
