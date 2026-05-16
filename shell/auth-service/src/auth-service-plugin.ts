@@ -1,3 +1,4 @@
+import { OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL } from "@brains/operator-notifications";
 import type {
   ServicePluginContext,
   Tool,
@@ -17,6 +18,8 @@ const authServiceConfigSchema = z.object({
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
+  /** Optional first-passkey setup email recipient. */
+  setupEmail: z.string().email().optional(),
 });
 
 const getPasskeySetupUrlInputSchema = z.object({});
@@ -62,6 +65,8 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     });
     await this.service.initialize();
     activeAuthService = this.service;
+
+    await this.requestSetupEmailIfNeeded(context);
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -248,6 +253,42 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       throw new Error("AuthServicePlugin has not been registered");
     }
     return this.service;
+  }
+
+  private async requestSetupEmailIfNeeded(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.config.setupEmail) return;
+
+    const service = this.getService();
+    if (await service.hasPasskeyCredentials()) return;
+
+    const setup = await service.getOperatorSetupRequired();
+    if (!setup) return;
+
+    const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
+    const response = await context.messaging.send({
+      type: OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
+      payload: {
+        channel: "email",
+        to: this.config.setupEmail,
+        subject: "Set up your brain passkey",
+        text: [
+          "Set up your brain passkey using this single-use link:",
+          "",
+          setup.setupUrl,
+          "",
+          `This link expires at ${expiresAt}.`,
+          "The first successful passkey registration completes setup and closes this link.",
+        ].join("\n"),
+        sensitivity: "secret",
+        dedupeKey: `auth-service:first-passkey:${service.getIssuer()}:${this.config.setupEmail}`,
+      },
+    });
+
+    if (!("success" in response) || !response.success) {
+      context.logger.warn("Passkey setup email delivery was not confirmed");
+    }
   }
 }
 

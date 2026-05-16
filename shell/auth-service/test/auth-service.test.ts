@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { Logger, LogLevel, z } from "@brains/utils";
+import { OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL } from "@brains/operator-notifications";
 import {
   AuthService,
   PasskeyStore,
@@ -306,6 +307,107 @@ describe("AuthService", () => {
       "https://brain.example.com/setup?token=setup_",
     );
     expect(typeof data.expiresAt).toBe("number");
+  });
+
+  it("requests a setup email notification when setup email is configured", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    const notifications: unknown[] = [];
+
+    harness.subscribe(
+      OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
+      async (message) => {
+        notifications.push(message.payload);
+        return { success: true, data: { status: "sent" } };
+      },
+    );
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    expect(notifications).toHaveLength(1);
+    const notification = z
+      .object({
+        channel: z.literal("email"),
+        to: z.literal("user@example.com"),
+        subject: z.string(),
+        text: z.string(),
+        sensitivity: z.literal("secret"),
+        dedupeKey: z.string(),
+      })
+      .parse(notifications[0]);
+
+    expect(notification.subject).toContain("Set up your brain passkey");
+    expect(notification.text).toContain(
+      "https://brain.example.com/setup?token=setup_",
+    );
+    expect(notification.text).toContain("single-use");
+    expect(notification.text).toContain("expires");
+    expect(notification.dedupeKey).toBe(
+      "auth-service:first-passkey:https://brain.example.com:user@example.com",
+    );
+  });
+
+  it("does not request a setup email when setup email is not configured", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    const notifications: unknown[] = [];
+
+    harness.subscribe(
+      OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
+      async (message) => {
+        notifications.push(message.payload);
+        return { success: true, data: { status: "sent" } };
+      },
+    );
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+      }),
+    );
+
+    expect(notifications).toHaveLength(0);
+  });
+
+  it("does not request a setup email when a passkey already exists", async () => {
+    const storageDir = await tempStorageDir();
+    await seedPasskeyCredential(storageDir);
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    const notifications: unknown[] = [];
+
+    harness.subscribe(
+      OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
+      async (message) => {
+        notifications.push(message.payload);
+        return { success: true, data: { status: "sent" } };
+      },
+    );
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    expect(notifications).toHaveLength(0);
   });
 
   it("setup URL retrieval tool reports complete when a passkey exists", async () => {
