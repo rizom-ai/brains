@@ -19,6 +19,7 @@ function createMockEntityService(): {
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const TINY_PDF_BASE64 = Buffer.from("%PDF-1.4\n%%EOF\n").toString("base64");
 
 const samplePost: SocialPost = {
   id: "post-1",
@@ -61,6 +62,28 @@ This is a post with an image.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
+const samplePostWithDocument: SocialPost = {
+  id: "post-3",
+  entityType: "social-post",
+  content: `---
+title: Carousel LinkedIn Post
+platform: linkedin
+status: queued
+documents:
+  - id: carousel-pdf
+---
+This is a post with a PDF carousel.`,
+  metadata: {
+    title: "Carousel LinkedIn Post",
+    platform: "linkedin",
+    status: "queued",
+    slug: "linkedin-carousel-linkedin-post-20260114",
+  },
+  contentHash: "ghi789",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
 const sampleImage = {
   id: "image-123",
   entityType: "image",
@@ -73,6 +96,19 @@ const sampleImage = {
     height: 1,
   },
   contentHash: "img123",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
+const sampleDocument = {
+  id: "carousel-pdf",
+  entityType: "document",
+  content: `data:application/pdf;base64,${TINY_PDF_BASE64}`,
+  metadata: {
+    mimeType: "application/pdf",
+    filename: "carousel.pdf",
+  },
+  contentHash: "doc123",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
 };
@@ -284,6 +320,42 @@ describe("PublishExecuteHandler", () => {
           data: expect.any(Buffer),
           mimeType: "image/png",
         }),
+      );
+    });
+
+    it("should fetch and pass document data when documents are present", async () => {
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithDocument);
+          }
+          if (
+            request.entityType === "document" &&
+            request.id === "carousel-pdf"
+          ) {
+            return Promise.resolve(sampleDocument);
+          }
+          return Promise.resolve(null);
+        },
+      );
+
+      await handler.handle({
+        entityType: "social-post",
+        entityId: "post-3",
+      });
+
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a post with a PDF carousel.",
+        expect.any(Object),
+        undefined,
+        [
+          expect.objectContaining({
+            type: "document",
+            data: expect.any(Buffer),
+            mimeType: "application/pdf",
+            filename: "carousel.pdf",
+          }),
+        ],
       );
     });
 

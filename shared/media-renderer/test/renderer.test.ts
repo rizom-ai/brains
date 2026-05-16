@@ -51,10 +51,14 @@ class FakePage implements MediaPage {
 }
 
 class FakeBrowser implements MediaBrowser {
+  public closeCalls = 0;
   public closed = false;
   public receivedViewport: ViewportOptions | undefined;
 
-  constructor(public readonly page: FakePage) {}
+  constructor(
+    public readonly page: FakePage,
+    private readonly closeBehavior: "ok" | "throw" = "ok",
+  ) {}
 
   async newPage(options?: { viewport?: ViewportOptions }): Promise<MediaPage> {
     this.receivedViewport = options?.viewport;
@@ -62,7 +66,11 @@ class FakeBrowser implements MediaBrowser {
   }
 
   async close(): Promise<void> {
+    this.closeCalls++;
     this.closed = true;
+    if (this.closeBehavior === "throw") {
+      throw new Error("browser already closed");
+    }
   }
 }
 
@@ -113,6 +121,30 @@ describe("media renderer", () => {
 
     expect(page.closed).toBe(true);
     expect(browser.closed).toBe(true);
+  });
+
+  it("closes the browser only once when a timeout fires", async () => {
+    class SlowPage extends FakePage {
+      override async goto(): Promise<void> {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    const page = new SlowPage();
+    const browser = new FakeBrowser(page);
+
+    try {
+      await renderPdf("http://localhost/_media/carousel/slow", {
+        browserFactory: fakeFactory(browser),
+        timeoutMs: 10,
+      });
+      throw new Error("Expected renderPdf to reject");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "render-timeout" });
+    }
+
+    // Allow any straggling microtasks scheduled by Promise.race to settle.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(browser.closeCalls).toBe(1);
   });
 
   it("rejects invalid PDF output", async () => {

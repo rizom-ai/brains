@@ -9,6 +9,7 @@ import {
   z,
 } from "@brains/utils";
 import {
+  countPdfPages,
   createPdfDataUrl,
   documentAdapter,
   type DocumentEntity,
@@ -103,6 +104,8 @@ export class MediaDocumentGenerationJobHandler extends BaseJobHandler<
     const maxBytes = data.maxBytes ?? DEFAULT_MAX_BYTES;
     const timeoutMs = data.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
+    // Caller-supplied hint guards before render; the rendered PDF is measured
+    // after render so callers that omit pageCount cannot bypass the limit.
     if (data.pageCount !== undefined && data.pageCount > maxPageCount) {
       throw new Error(
         `Refusing to render ${data.pageCount} page PDF; maxPageCount=${maxPageCount}`,
@@ -135,6 +138,15 @@ export class MediaDocumentGenerationJobHandler extends BaseJobHandler<
         ...(data.format !== undefined && { format: data.format }),
       });
 
+      const measuredPageCount = countPdfPages(pdf);
+      if (measuredPageCount > maxPageCount) {
+        throw new Error(
+          `Rendered PDF has ${measuredPageCount} pages, exceeding maxPageCount=${maxPageCount}`,
+        );
+      }
+      const pageCount =
+        measuredPageCount > 0 ? measuredPageCount : data.pageCount;
+
       await this.reportProgress(progressReporter, {
         progress: 70,
         message: "Storing PDF document",
@@ -146,7 +158,7 @@ export class MediaDocumentGenerationJobHandler extends BaseJobHandler<
         dataUrl: createPdfDataUrl(pdf),
         filename,
         ...(data.title && { title: data.title }),
-        ...(data.pageCount !== undefined && { pageCount: data.pageCount }),
+        ...(pageCount !== undefined && { pageCount }),
         sourceEntityType: data.sourceEntityType,
         sourceEntityId: data.sourceEntityId,
         sourceTemplate: data.sourceTemplate,

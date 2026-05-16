@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
-import type { PublishImageData } from "@brains/contracts";
+import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+const TINY_PDF_BYTES = Buffer.from("%PDF-1.4\n%%EOF\n");
 
 const originalFetch = globalThis.fetch;
 
@@ -16,6 +18,36 @@ function installFetchMock(
   const mocked = mock(handler);
   globalThis.fetch = mocked as unknown as typeof fetch;
   return mocked;
+}
+
+function getMockCall(
+  mocked: ReturnType<typeof mock>,
+  index: number,
+): unknown[] {
+  const call = mocked.mock.calls[index];
+  if (!call) {
+    throw new Error(`Expected mock call at index ${index}`);
+  }
+  return call;
+}
+
+function getRequestOptions(call: unknown[]): RequestInit {
+  const options = call[1];
+  if (!isRequestInit(options)) {
+    throw new Error("Expected request options");
+  }
+  return options;
+}
+
+function isRequestInit(value: unknown): value is RequestInit {
+  return typeof value === "object" && value !== null;
+}
+
+function parseRequestJson(options: RequestInit): unknown {
+  if (typeof options.body !== "string") {
+    throw new Error("Expected string request body");
+  }
+  return JSON.parse(options.body);
 }
 
 describe("LinkedInClient", () => {
@@ -169,6 +201,147 @@ describe("LinkedInClient", () => {
         body.specificContent["com.linkedin.ugc.ShareContent"]
           .shareMediaCategory,
       ).toBe("NONE");
+    });
+  });
+
+  describe("publish with document", () => {
+    it("should register upload, upload PDF, then publish with DOCUMENT category", async () => {
+      let callCount = 0;
+      fetchMock = installFetchMock(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ sub: "user123" }),
+          });
+        } else if (callCount === 2) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                value: {
+                  uploadMechanism: {
+                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
+                      {
+                        uploadUrl: "https://api.linkedin.com/upload/doc123",
+                      },
+                  },
+                  asset: "urn:li:digitalmediaAsset:doc123",
+                },
+              }),
+          });
+        } else if (callCount === 3) {
+          return Promise.resolve({ ok: true });
+        } else {
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers({ "X-RestLi-Id": "urn:li:share:doc456" }),
+          });
+        }
+      });
+
+      const documentData: PublishMediaData[] = [
+        {
+          type: "document",
+          data: TINY_PDF_BYTES,
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+        },
+      ];
+
+      const result = await client.publish(
+        "Post with PDF carousel!",
+        {},
+        undefined,
+        documentData,
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(result.id).toBe("urn:li:share:doc456");
+
+      const registerOptions = getRequestOptions(getMockCall(fetchMock, 1));
+      const registerBody = parseRequestJson(registerOptions);
+      expect(registerBody).toMatchObject({
+        registerUploadRequest: {
+          recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+        },
+      });
+
+      const uploadOptions = getRequestOptions(getMockCall(fetchMock, 2));
+      expect(uploadOptions.headers).toEqual({
+        Authorization: "Bearer test-token",
+        "Content-Type": "application/pdf",
+      });
+
+      const publishOptions = getRequestOptions(getMockCall(fetchMock, 3));
+      const publishBody = parseRequestJson(publishOptions);
+      expect(publishBody).toMatchObject({
+        specificContent: {
+          "com.linkedin.ugc.ShareContent": {
+            shareMediaCategory: "DOCUMENT",
+            media: [
+              {
+                status: "READY",
+                media: "urn:li:digitalmediaAsset:doc123",
+                title: { text: "carousel.pdf" },
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it("should fall back to text-only if document upload fails", async () => {
+      let callCount = 0;
+      fetchMock = installFetchMock(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ sub: "user123" }),
+          });
+        } else if (callCount === 2) {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            text: () => Promise.resolve("Upload service unavailable"),
+          });
+        } else {
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers({ "X-RestLi-Id": "urn:li:share:doc789" }),
+          });
+        }
+      });
+
+      const documentData: PublishMediaData[] = [
+        {
+          type: "document",
+          data: TINY_PDF_BYTES,
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+        },
+      ];
+
+      const result = await client.publish(
+        "Post with failed document",
+        {},
+        undefined,
+        documentData,
+      );
+
+      expect(logger.warn).toHaveBeenCalled();
+      expect(result.id).toBe("urn:li:share:doc789");
+
+      const publishOptions = getRequestOptions(getMockCall(fetchMock, 2));
+      const publishBody = parseRequestJson(publishOptions);
+      expect(publishBody).toMatchObject({
+        specificContent: {
+          "com.linkedin.ugc.ShareContent": {
+            shareMediaCategory: "NONE",
+          },
+        },
+      });
     });
   });
 

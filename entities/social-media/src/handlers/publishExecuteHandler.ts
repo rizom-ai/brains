@@ -1,6 +1,10 @@
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import type { PublishProvider, PublishImageData } from "@brains/contracts";
+import type {
+  PublishProvider,
+  PublishImageData,
+  PublishMediaData,
+} from "@brains/contracts";
 import type {
   IEntityService,
   MessageSender,
@@ -100,13 +104,20 @@ export class PublishExecuteHandler {
         imageData = await this.fetchImageData(parsed.metadata.coverImageId);
       }
 
+      const documentData = await this.fetchDocumentData(
+        parsed.metadata.documents,
+      );
+
       // Attempt to publish
       try {
-        const result = await provider.publish(
-          parsed.content,
-          post.metadata,
-          imageData,
-        );
+        const result = documentData.length
+          ? await provider.publish(
+              parsed.content,
+              post.metadata,
+              imageData,
+              documentData,
+            )
+          : await provider.publish(parsed.content, post.metadata, imageData);
 
         // Update entity as published
         const publishedAt = new Date().toISOString();
@@ -221,6 +232,65 @@ export class PublishExecuteHandler {
         error,
       },
     });
+  }
+
+  /**
+   * Fetch document entities and extract binary PDF data for publishing
+   */
+  private async fetchDocumentData(
+    documents: Array<{ id: string }> | undefined,
+  ): Promise<PublishMediaData[]> {
+    if (!documents?.length) {
+      return [];
+    }
+
+    const result: PublishMediaData[] = [];
+    for (const documentRef of documents) {
+      const documentData = await this.fetchSingleDocumentData(documentRef.id);
+      if (documentData) {
+        result.push(documentData);
+      }
+    }
+    return result;
+  }
+
+  private async fetchSingleDocumentData(
+    documentId: string,
+  ): Promise<PublishMediaData | undefined> {
+    try {
+      const document = await this.entityService.getEntity<BaseEntity>({
+        entityType: "document",
+        id: documentId,
+      });
+
+      if (!document) {
+        this.logger.warn("Document not found", { documentId });
+        return undefined;
+      }
+
+      const match = document.content.match(
+        /^data:application\/pdf;base64,(.+)$/,
+      );
+      if (!match?.[1]) {
+        this.logger.warn("Invalid document data URL format", { documentId });
+        return undefined;
+      }
+
+      const filename =
+        typeof document.metadata["filename"] === "string"
+          ? document.metadata["filename"]
+          : `${documentId}.pdf`;
+
+      return {
+        type: "document",
+        data: Buffer.from(match[1], "base64"),
+        mimeType: "application/pdf",
+        filename,
+      };
+    } catch (error) {
+      this.logger.warn("Failed to fetch document", { documentId, error });
+      return undefined;
+    }
   }
 
   /**

@@ -14,6 +14,7 @@ export {
   type CreateDocumentInput,
 } from "./adapters/document-adapter";
 export {
+  countPdfPages,
   createPdfDataUrl,
   isPdfDataUrl,
   parseDocumentDataUrl,

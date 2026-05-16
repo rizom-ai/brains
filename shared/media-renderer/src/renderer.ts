@@ -215,13 +215,26 @@ async function withBrowser<T>(
 ): Promise<T> {
   const browser = await browserFactory.launch();
   const browserProcess = browser.process?.() ?? null;
+  let closed = false;
+
+  const closeOnce = async (): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    try {
+      await browser.close();
+    } catch {
+      try {
+        browserProcess?.kill("SIGKILL");
+      } catch {
+        // Process may already be dead; nothing more we can do.
+      }
+    }
+  };
 
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeout = setTimeout(() => {
-      void browser.close().catch(() => {
-        browserProcess?.kill("SIGKILL");
-      });
+      void closeOnce();
       reject(
         new MediaRenderError(
           `Media render timed out after ${timeoutMs}ms`,
@@ -235,9 +248,7 @@ async function withBrowser<T>(
     return await Promise.race([operation(browser), timeoutPromise]);
   } finally {
     if (timeout) clearTimeout(timeout);
-    await browser.close().catch(() => {
-      browserProcess?.kill("SIGKILL");
-    });
+    await closeOnce();
   }
 }
 

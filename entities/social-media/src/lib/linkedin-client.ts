@@ -3,6 +3,7 @@ import type {
   PublishProvider,
   PublishResult,
   PublishImageData,
+  PublishMediaData,
 } from "@brains/contracts";
 import type { LinkedinConfig } from "../config";
 
@@ -13,18 +14,67 @@ interface LinkedInUserInfo {
   sub: string; // User ID (URN format: urn:li:person:xxx)
 }
 
-/**
- * LinkedIn API response for image upload registration
- */
-interface LinkedInUploadResponse {
-  value: {
-    uploadMechanism: {
-      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest": {
-        uploadUrl: string;
-      };
-    };
-    asset: string; // URN of the asset (e.g., urn:li:digitalmediaAsset:xxx)
+interface LinkedInUploadInfo {
+  uploadUrl: string;
+  assetUrn: string;
+}
+
+interface LinkedInShareMediaAsset {
+  category: "DOCUMENT" | "IMAGE";
+  urn: string;
+  title?: string;
+}
+
+function createShareMediaEntry(
+  asset: LinkedInShareMediaAsset,
+): Record<string, unknown> {
+  const entry: Record<string, unknown> = {
+    status: "READY",
+    media: asset.urn,
   };
+
+  if (asset.title) {
+    entry["title"] = { text: asset.title };
+  }
+
+  return entry;
+}
+
+function parseUploadInfo(value: unknown): LinkedInUploadInfo | null {
+  if (!isRecord(value)) return null;
+
+  const responseValue = getRecordProperty(value, "value");
+  if (!responseValue) return null;
+
+  const uploadMechanism = getRecordProperty(responseValue, "uploadMechanism");
+  if (!uploadMechanism) return null;
+
+  const uploadRequest = getRecordProperty(
+    uploadMechanism,
+    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest",
+  );
+  if (!uploadRequest) return null;
+
+  const uploadUrl = uploadRequest["uploadUrl"];
+  const assetUrn = responseValue["asset"];
+
+  if (typeof uploadUrl !== "string" || typeof assetUrn !== "string") {
+    return null;
+  }
+
+  return { uploadUrl, assetUrn };
+}
+
+function getRecordProperty(
+  value: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null {
+  const property = value[key];
+  return isRecord(property) ? property : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 /**
@@ -47,12 +97,15 @@ export class LinkedInClient implements PublishProvider {
   ) {}
 
   /**
-   * Publish a post to LinkedIn, optionally with an image
+   * Publish a post to LinkedIn, optionally with an image or PDF document.
+   * Documents take precedence over images because LinkedIn carousels are
+   * represented as document posts.
    */
   async publish(
     content: string,
     _metadata: Record<string, unknown>,
     imageData?: PublishImageData,
+    documentData?: PublishMediaData[],
   ): Promise<PublishResult> {
     if (!this.config.accessToken) {
       throw new Error("LinkedIn access token not configured");
@@ -61,10 +114,28 @@ export class LinkedInClient implements PublishProvider {
     // Get author URN (organization or personal)
     const author = await this.getAuthor();
 
-    // Upload image if provided
-    let assetUrn: string | null = null;
-    if (imageData) {
-      assetUrn = await this.uploadImage(author, imageData);
+    const documentAttachment = documentData?.[0];
+    if (documentData && documentData.length > 1) {
+      this.logger.warn("LinkedIn document publishing supports one PDF", {
+        count: documentData.length,
+      });
+    }
+
+    let mediaAsset: LinkedInShareMediaAsset | null = null;
+    if (documentAttachment) {
+      const assetUrn = await this.uploadDocument(author, documentAttachment);
+      if (assetUrn) {
+        mediaAsset = {
+          category: "DOCUMENT",
+          urn: assetUrn,
+          title: documentAttachment.filename,
+        };
+      }
+    } else if (imageData) {
+      const assetUrn = await this.uploadImage(author, imageData);
+      if (assetUrn) {
+        mediaAsset = { category: "IMAGE", urn: assetUrn };
+      }
     }
 
     // Create the post using UGC Posts API
@@ -72,14 +143,9 @@ export class LinkedInClient implements PublishProvider {
       shareCommentary: {
         text: content,
       },
-      shareMediaCategory: assetUrn ? "IMAGE" : "NONE",
-      ...(assetUrn && {
-        media: [
-          {
-            status: "READY",
-            media: assetUrn,
-          },
-        ],
+      shareMediaCategory: mediaAsset?.category ?? "NONE",
+      ...(mediaAsset && {
+        media: [createShareMediaEntry(mediaAsset)],
       }),
     };
 
@@ -114,7 +180,10 @@ export class LinkedInClient implements PublishProvider {
     // Extract post ID from response headers or body
     const postId = response.headers.get("X-RestLi-Id") ?? "";
 
-    this.logger.info("LinkedIn post created", { postId, hasImage: !!assetUrn });
+    this.logger.info("LinkedIn post created", {
+      postId,
+      mediaCategory: mediaAsset?.category ?? "NONE",
+    });
 
     const result: PublishResult = { id: postId };
     if (postId) {
@@ -166,13 +235,13 @@ export class LinkedInClient implements PublishProvider {
         return null;
       }
 
-      const registerData =
-        (await registerResponse.json()) as LinkedInUploadResponse;
-      const uploadUrl =
-        registerData.value.uploadMechanism[
-          "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
-        ].uploadUrl;
-      const assetUrn = registerData.value.asset;
+      const uploadInfo = parseUploadInfo(await registerResponse.json());
+      if (!uploadInfo) {
+        this.logger.warn("LinkedIn image upload registration was malformed");
+        return null;
+      }
+
+      const { uploadUrl, assetUrn } = uploadInfo;
 
       // Step 2: Upload the binary image data
       // Create Uint8Array view for fetch compatibility (works in Node, Bun, browser)
@@ -196,6 +265,81 @@ export class LinkedInClient implements PublishProvider {
       return assetUrn;
     } catch (error) {
       this.logger.warn("LinkedIn image upload error", { error });
+      return null;
+    }
+  }
+
+  /**
+   * Upload a PDF document to LinkedIn and return the asset URN.
+   * Returns null if upload fails (allows graceful fallback to text-only).
+   */
+  private async uploadDocument(
+    author: string,
+    documentData: PublishMediaData,
+  ): Promise<string | null> {
+    try {
+      const registerResponse = await fetch(
+        `${this.apiBaseUrl}/assets?action=registerUpload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.config.accessToken}`,
+            "Content-Type": "application/json",
+            "X-Restli-Protocol-Version": "2.0.0",
+          },
+          body: JSON.stringify({
+            registerUploadRequest: {
+              recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+              owner: author,
+              serviceRelationships: [
+                {
+                  relationshipType: "OWNER",
+                  identifier: "urn:li:userGeneratedContent",
+                },
+              ],
+            },
+          }),
+        },
+      );
+
+      if (!registerResponse.ok) {
+        const errorText = await registerResponse.text();
+        this.logger.warn("LinkedIn document upload registration failed", {
+          status: registerResponse.status,
+          error: errorText,
+        });
+        return null;
+      }
+
+      const uploadInfo = parseUploadInfo(await registerResponse.json());
+      if (!uploadInfo) {
+        this.logger.warn("LinkedIn document upload registration was malformed");
+        return null;
+      }
+
+      const uploadResponse = await fetch(uploadInfo.uploadUrl, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${this.config.accessToken}`,
+          "Content-Type": documentData.mimeType,
+        },
+        body: new Uint8Array(documentData.data),
+      });
+
+      if (!uploadResponse.ok) {
+        this.logger.warn("LinkedIn document binary upload failed", {
+          status: uploadResponse.status,
+        });
+        return null;
+      }
+
+      this.logger.info("LinkedIn document uploaded", {
+        assetUrn: uploadInfo.assetUrn,
+        filename: documentData.filename,
+      });
+      return uploadInfo.assetUrn;
+    } catch (error) {
+      this.logger.warn("LinkedIn document upload error", { error });
       return null;
     }
   }
