@@ -35,6 +35,9 @@ describe("preparePublishContent", () => {
     mockShell
       .getEntityRegistry()
       .registerEntityType("image", z.any(), {} as never);
+    mockShell
+      .getEntityRegistry()
+      .registerEntityType("document", z.any(), {} as never);
   });
 
   it("should strip markdown frontmatter", async () => {
@@ -76,6 +79,54 @@ Post with image.`;
     expect(result.bodyContent).toBe("Post with image.");
     expect(result.imageData?.mimeType).toBe("image/png");
     expect(result.imageData?.data.toString("utf8")).toBe("hello");
+  });
+
+  it("should fetch structured document attachment data", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "carousel-pdf",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        metadata: { filename: "carousel.pdf" },
+      },
+    });
+
+    const content = `---
+documents:
+  - id: carousel-pdf
+---
+Post with PDF carousel.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe("Post with PDF carousel.");
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]).toMatchObject({
+      type: "document",
+      mimeType: "application/pdf",
+      filename: "carousel.pdf",
+    });
+    expect(result.documentData?.[0]?.data.toString("utf8")).toBe("%PDF-1.7");
+  });
+
+  it("should ignore invalid document references", async () => {
+    const content = `---
+documents:
+  - id: ""
+  - id: missing-doc
+---
+Post without usable documents.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe("Post without usable documents.");
+    expect(result.documentData).toBeUndefined();
   });
 
   it("should ignore missing or invalid image data", async () => {

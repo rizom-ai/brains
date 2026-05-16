@@ -1,0 +1,30 @@
+{
+  "name": "@brains/document",
+  "version": "0.2.0-alpha.68",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "@types/node": "^20.0.0",
+    "bun-types": "latest",
+    "typescript": "^5.3.3"
+  }
+}

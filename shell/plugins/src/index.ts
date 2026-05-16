@@ -190,6 +190,7 @@ export type {
 } from "@brains/templates";
 export {
   createTemplate,
+  OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,
   matchSpaceSelector,

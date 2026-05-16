@@ -6,6 +6,7 @@ import {
   platformSchema,
   socialPostStatusSchema,
   sourceEntityTypeSchema,
+  socialPostDocumentAttachmentSchema,
 } from "../../src/schemas/social-post";
 
 /**
@@ -49,6 +50,20 @@ describe("Social Post Schemas", () => {
     it("should reject 'summary'", () => {
       const result = sourceEntityTypeSchema.safeParse("summary");
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe("socialPostDocumentAttachmentSchema", () => {
+    it("should validate document attachments", () => {
+      expect(
+        socialPostDocumentAttachmentSchema.safeParse({ id: "doc-1" }).success,
+      ).toBe(true);
+    });
+
+    it("should reject empty document IDs", () => {
+      expect(
+        socialPostDocumentAttachmentSchema.safeParse({ id: "" }).success,
+      ).toBe(false);
     });
   });
 
@@ -171,6 +186,20 @@ describe("Social Post Schemas", () => {
       };
       const result = socialPostFrontmatterSchema.parse(noImage);
       expect(result.coverImageId).toBeUndefined();
+    });
+
+    it("should validate frontmatter with document attachments", () => {
+      const withDocuments = {
+        title: "PDF Carousel Post",
+        platform: "linkedin",
+        status: "draft",
+        documents: [{ id: "carousel-pdf" }],
+      };
+      const result = socialPostFrontmatterSchema.safeParse(withDocuments);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.documents).toEqual([{ id: "carousel-pdf" }]);
+      }
     });
   });
 

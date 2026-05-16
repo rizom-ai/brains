@@ -9,6 +9,7 @@ export type {
   PublishResult,
   PublishProvider,
   PublishImageData,
+  PublishMediaData,
 } from "./publish-types";
 export {
   defaultQueryResponseSchema,

@@ -1,0 +1,26 @@
+{
+  "name": "@brains/document-entity",
+  "private": true,
+  "version": "0.2.0-alpha.68",
+  "description": "Document entity type for generated PDFs and publishable document attachments",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/document": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "bun-types": "latest",
+    "typescript": "^5.3.3"
+  }
+}

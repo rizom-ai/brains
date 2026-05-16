@@ -8,6 +8,8 @@ export interface SiteViewTemplate {
   pluginId: string;
   renderers: {
     web?: ((props: Record<string, unknown>) => VNode) | string;
+    image?: ((props: Record<string, unknown>) => VNode) | string;
+    pdf?: ((props: Record<string, unknown>) => VNode) | string;
   };
   fullscreen?: boolean;
   runtimeScripts?: SiteRuntimeScript[];
