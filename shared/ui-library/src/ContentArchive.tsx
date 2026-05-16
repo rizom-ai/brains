@@ -21,8 +21,6 @@ export interface ContentArchiveProps {
 
 interface ArchiveRowProps {
   item: ContentItem;
-  ordinal: number;
-  ordinalWidth: number;
 }
 
 type FeaturedRowProps = ArchiveRowProps;
@@ -98,18 +96,14 @@ const SeriesLabel = ({
   );
 };
 
-const FeaturedRow = ({
-  item,
-  ordinal,
-  ordinalWidth,
-}: FeaturedRowProps): JSX.Element => (
+const FeaturedRow = ({ item }: FeaturedRowProps): JSX.Element => (
   <section
     aria-label="Latest"
     className={`${railGridClass} mb-14 border-b border-rule pb-[4.5rem]`}
   >
     <div className="flex flex-row items-baseline gap-6 pt-0.5 md:flex-col md:items-start md:gap-0">
-      <span className="font-heading text-[clamp(4rem,9vw,7.4rem)] font-light leading-[0.82] tracking-[-0.045em] text-accent [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_144,'SOFT'_30] md:mb-[18px]">
-        {formatOrdinal(ordinal, ordinalWidth)}
+      <span className="font-heading text-[clamp(3.2rem,7vw,5.4rem)] font-light leading-[0.9] tracking-[-0.03em] text-accent [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_144,'SOFT'_30] md:mb-5">
+        {getYear(item.date)}
       </span>
       <div className="flex w-full max-w-[168px] flex-col gap-1.5 border-rule-strong pt-2 font-mono md:border-t md:pt-3">
         <span className="text-[0.625rem] uppercase tracking-[0.26em] text-theme-light">
@@ -143,22 +137,18 @@ const FeaturedRow = ({
   </section>
 );
 
-const ArchiveRow = ({
-  item,
-  ordinal,
-  ordinalWidth,
-}: ArchiveRowProps): JSX.Element => (
+const ArchiveRow = ({ item }: ArchiveRowProps): JSX.Element => (
   <li className="group grid grid-cols-1 items-baseline gap-3 border-t border-rule py-[22px] transition-colors duration-150 hover:bg-[rgb(from_var(--color-accent)_r_g_b_/_0.025)] md:grid-cols-[200px_minmax(0,1fr)] md:gap-14">
     <a href={item.url} className="contents text-inherit no-underline">
-      <div className="flex flex-row items-baseline gap-3.5 pt-0.5 md:flex-col md:gap-1">
-        <span className="font-heading text-[1.55rem] font-normal leading-none tracking-[-0.02em] text-theme transition-colors duration-150 [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_72,'SOFT'_40] group-hover:text-accent">
-          {formatOrdinal(ordinal, ordinalWidth)}
+      <div className="flex flex-row items-baseline gap-3.5 pt-0.5 md:flex-col md:gap-1.5">
+        <span className="font-heading text-[1.55rem] font-normal leading-none tracking-[-0.018em] text-theme-muted transition-colors duration-150 [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_72,'SOFT'_50] group-hover:text-accent">
+          {formatDayMonth(item.date)}
         </span>
         <time
           dateTime={item.date}
-          className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-theme-light [font-variant-numeric:tabular-nums]"
+          className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-theme-light [font-variant-numeric:tabular-nums]"
         >
-          {formatArchiveDate(item.date)}
+          {getYear(item.date)}
         </time>
       </div>
       <div className="min-w-0">
@@ -263,12 +253,7 @@ export const ContentArchive = ({
   baseUrl = "",
   emptyMessage,
 }: ContentArchiveProps): JSX.Element => {
-  const totalItems = pagination?.totalItems ?? items.length;
   const currentPage = pagination?.currentPage ?? 1;
-  const firstOrdinal = pagination
-    ? totalItems - (currentPage - 1) * pagination.pageSize
-    : totalItems;
-  const ordinalWidth = Math.max(3, String(totalItems).length);
   const shouldFeature = currentPage === 1 && items.length > 0;
   const archiveItems = shouldFeature ? items.slice(1) : items;
   const itemLabel = getItemLabel(label);
@@ -290,13 +275,7 @@ export const ContentArchive = ({
         </p>
       ) : (
         <>
-          {shouldFeature && items[0] && (
-            <FeaturedRow
-              item={items[0]}
-              ordinal={firstOrdinal}
-              ordinalWidth={ordinalWidth}
-            />
-          )}
+          {shouldFeature && items[0] && <FeaturedRow item={items[0]} />}
 
           {archiveItems.length > 0 && (
             <>
@@ -311,8 +290,6 @@ export const ContentArchive = ({
 
               <ol className="m-0 list-none p-0">
                 {archiveItems.map((item, index) => {
-                  const absoluteIndex = shouldFeature ? index + 1 : index;
-                  const ordinal = firstOrdinal - absoluteIndex;
                   const year = getYear(item.date);
                   const previousYear =
                     index > 0
@@ -333,11 +310,7 @@ export const ContentArchive = ({
                           latestDate={item.date}
                         />
                       )}
-                      <ArchiveRow
-                        item={item}
-                        ordinal={ordinal}
-                        ordinalWidth={ordinalWidth}
-                      />
+                      <ArchiveRow item={item} />
                     </Fragment>
                   );
                 })}
