@@ -7,6 +7,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
+import { emailResendPlugin } from "@brains/email-resend";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
@@ -23,6 +24,7 @@ import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
+import { operatorNotificationsPlugin } from "@brains/operator-notifications";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -58,6 +60,8 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "operator-notifications",
+  "email-resend",
   "cms",
   "dashboard-root",
   "mcp",
@@ -114,6 +118,7 @@ export default defineBrain({
     "analytics",
     "dashboard",
     "dashboard-root",
+    "email-resend",
   ],
 
   agentInstructions,
@@ -123,6 +128,8 @@ export default defineBrain({
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
+    ["operator-notifications", operatorNotificationsPlugin, undefined],
+    ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
     ["blog", blogPlugin, {}],
