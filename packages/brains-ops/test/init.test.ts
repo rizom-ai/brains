@@ -203,6 +203,8 @@ describe("initPilotRepo", () => {
     expect(envSchema).toContain("# Rover pilot instance env schema");
     expect(envSchema).toContain("single source of truth");
     expect(envSchema).toContain("AI_API_KEY=");
+    expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
+    expect(envSchema).toContain("SETUP_EMAIL_FROM=");
     expect(envSchema).toContain("HCLOUD_TOKEN=");
     expect(envSchema).toContain("PRIVATE_KEY_PEM=");
 
@@ -301,6 +303,12 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain(
       'export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"',
+    );
+    expect(deployWorkflow).toContain(
+      "SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}",
+    );
+    expect(deployWorkflow).toContain(
+      "SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}",
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
@@ -426,6 +434,8 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
+    expect(deployConfig).toContain("- SETUP_EMAIL_API_KEY");
+    expect(deployConfig).toContain("- SETUP_EMAIL_FROM");
 
     const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");
     const preDeployHook = await readFile(preDeployHookPath, "utf8");

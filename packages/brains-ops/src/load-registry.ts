@@ -48,6 +48,11 @@ export interface ResolvedAnchorProfile {
   socialLinks?: ResolvedAnchorProfileSocialLink[];
 }
 
+export interface ResolvedSetupDelivery {
+  delivery: "email";
+  email: string;
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -61,6 +66,7 @@ export interface ResolvedUserIdentity {
   effectiveAiApiKey: string;
   effectiveGitSyncToken: string;
   effectiveMcpAuthToken: string;
+  setup?: ResolvedSetupDelivery;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
@@ -162,6 +168,7 @@ export async function loadPilotRegistry(
           userFile.data.mcpAuthTokenOverride ??
           cohort.data.mcpAuthTokenOverride ??
           pilot.mcpAuthToken,
+        ...(userFile.data.setup ? { setup: userFile.data.setup } : {}),
         anchorProfile: resolveAnchorProfile(
           userFile.data.handle,
           userFile.data.anchorProfile,

@@ -95,8 +95,15 @@ const reconcilableStarterFiles: Partial<
   "deploy/kamal/deploy.yml": legacyDeployYmlContents,
 };
 
+function normalizePilotDeploySecretList(content: string): string {
+  return content.replace(
+    /\n {2}secret:\n(?: {4}- .*\n)+\nvolumes:\n/,
+    "\n  secret:\n    - __DYNAMIC_SECRETS__\n\nvolumes:\n",
+  );
+}
+
 function isStalePilotDeployYml(current: string): boolean {
-  return isStaleDeployMounts(current, "rover");
+  return isStaleDeployMounts(current, "rover", normalizePilotDeploySecretList);
 }
 
 function isStaleResolveDeployHandlesScript(current: string): boolean {

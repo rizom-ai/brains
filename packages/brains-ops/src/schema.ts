@@ -50,6 +50,13 @@ const anchorProfileSchema = z
   })
   .strict();
 
+const setupDeliverySchema = z
+  .object({
+    delivery: z.literal("email"),
+    email: z.string().email(),
+  })
+  .strict();
+
 export const userSchema = z
   .object({
     handle: handleSchema,
@@ -62,6 +69,7 @@ export const userSchema = z
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
     mcpAuthTokenOverride: secretNameSchema.optional(),
+    setup: setupDeliverySchema.optional(),
     anchorProfile: anchorProfileSchema.optional(),
   })
   .strict();

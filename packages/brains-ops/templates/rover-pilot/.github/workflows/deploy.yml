@@ -104,6 +104,8 @@ jobs:
           SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
           SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
           SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
+          SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
+          SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
           HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
@@ -176,6 +178,8 @@ jobs:
           SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
           SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
           SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
+          SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
+          SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}

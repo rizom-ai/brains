@@ -120,6 +120,41 @@ members:
     ]);
   });
 
+  it("loads user-level setup email delivery metadata", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.14
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/alice.yaml": `handle: alice
+setup:
+  delivery: email
+  email: alice@example.com
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.users[0]?.setup).toEqual({
+      delivery: "email",
+      email: "alice@example.com",
+    });
+  });
+
   it("fails when user belongs to no cohort", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1

@@ -99,7 +99,7 @@ describe("reconcile scripts", () => {
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -118,6 +118,25 @@ describe("reconcile scripts", () => {
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
       "| alice | canary | rover | default | 0.1.1-alpha.15 |",
+    );
+  });
+
+  it("renders setup email delivery config into generated brain config", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/alice.yaml": `handle: alice
+setup:
+  delivery: email
+  email: alice@example.com
+discord:
+  enabled: false
+`,
+    });
+
+    await onboardUser(root, "alice");
+
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email-resend:\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
     );
   });
 
