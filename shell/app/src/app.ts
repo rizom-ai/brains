@@ -2,6 +2,7 @@ import { Shell } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
 import { appConfigSchema, type AppConfig } from "./types";
 import { MigrationManager } from "./migration-manager";
+import { preferLocalUrlsForRuntime } from "./runtime-env";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -165,7 +166,7 @@ export class App {
     }
 
     shellConfig.localSiteUrl = `http://localhost:${this.config.deployment?.ports?.production ?? 8080}`;
-    shellConfig.preferLocalUrls = process.env["NODE_ENV"] !== "production";
+    shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
   }
 
   private async registerCLIInterface(): Promise<void> {
