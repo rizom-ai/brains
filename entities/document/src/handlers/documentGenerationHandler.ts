@@ -1,5 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
+import type { PublishMediaData } from "@brains/contracts";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
   getErrorMessage,
@@ -22,10 +23,10 @@ const DEFAULT_MAX_PAGE_COUNT = 20;
 const DEFAULT_TIMEOUT_MS = 60_000;
 
 export const documentGenerationJobSchemaBase = z.object({
-  renderUrl: z.string().url(),
+  renderUrl: z.string().url().optional(),
   sourceEntityType: z.string().min(1),
   sourceEntityId: z.string().min(1),
-  sourceTemplate: z.string().min(1),
+  attachmentType: z.string().min(1),
   documentId: z.string().min(1).optional(),
   title: z.string().min(1).optional(),
   filename: z.string().min(1).optional(),
@@ -82,7 +83,10 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 
   constructor(
     logger: Logger,
-    private readonly context: Pick<ServicePluginContext, "entityService">,
+    private readonly context: Pick<
+      ServicePluginContext,
+      "entityService" | "attachments"
+    >,
     deps: DocumentGenerationHandlerDeps = {},
   ) {
     super(logger, {
@@ -101,7 +105,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       jobId,
       sourceEntityType: data.sourceEntityType,
       sourceEntityId: data.sourceEntityId,
-      sourceTemplate: data.sourceTemplate,
+      attachmentType: data.attachmentType,
     });
 
     const maxPageCount = data.maxPageCount ?? DEFAULT_MAX_PAGE_COUNT;
@@ -130,15 +134,16 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     });
 
     try {
-      const pdf = await this.renderPdf(data.renderUrl, {
+      const attachment = await this.resolveDocumentAttachment(data, {
         timeoutMs,
         maxBytes,
-        printBackground: true,
-        preferCSSPageSize: true,
-        ...(data.width !== undefined && { width: data.width }),
-        ...(data.height !== undefined && { height: data.height }),
-        ...(data.format !== undefined && { format: data.format }),
       });
+      const pdf = attachment.data;
+      if (pdf.byteLength > maxBytes) {
+        throw new Error(
+          `Rendered PDF exceeds maxBytes=${maxBytes}: ${pdf.byteLength} bytes`,
+        );
+      }
 
       const measuredPageCount = countPdfPages(pdf);
       if (measuredPageCount > maxPageCount) {
@@ -155,7 +160,11 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       });
 
       const documentId = getDocumentId(data, jobId);
-      const filename = data.filename ?? `${documentId}.pdf`;
+      const filename =
+        data.filename ??
+        (data.renderUrl === undefined
+          ? attachment.filename
+          : `${documentId}.pdf`);
       const entityData = documentAdapter.createDocumentEntity({
         dataUrl: createPdfDataUrl(pdf),
         filename,
@@ -163,7 +172,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         ...(pageCount !== undefined && { pageCount }),
         sourceEntityType: data.sourceEntityType,
         sourceEntityId: data.sourceEntityId,
-        sourceTemplate: data.sourceTemplate,
+        attachmentType: data.attachmentType,
         dedupKey,
       });
 
@@ -206,6 +215,40 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       });
       throw error;
     }
+  }
+
+  private async resolveDocumentAttachment(
+    data: DocumentGenerationJobData,
+    limits: { timeoutMs: number; maxBytes: number },
+  ): Promise<PublishMediaData> {
+    if (data.renderUrl !== undefined) {
+      return {
+        type: "document",
+        data: await this.renderPdf(data.renderUrl, {
+          timeoutMs: limits.timeoutMs,
+          maxBytes: limits.maxBytes,
+          printBackground: true,
+          preferCSSPageSize: true,
+          ...(data.width !== undefined && { width: data.width }),
+          ...(data.height !== undefined && { height: data.height }),
+          ...(data.format !== undefined && { format: data.format }),
+        }),
+        mimeType: "application/pdf",
+        filename: data.filename ?? `${getDocumentId(data, "document")}.pdf`,
+      };
+    }
+
+    const attachment = await this.context.attachments.resolve({
+      sourceEntityType: data.sourceEntityType,
+      sourceEntityId: data.sourceEntityId,
+      attachmentType: data.attachmentType,
+    });
+    if (!attachment) {
+      throw new Error(
+        `No attachment provider found for ${data.sourceEntityType}/${data.attachmentType}`,
+      );
+    }
+    return attachment;
   }
 
   private async findDocumentByDedupKey(
@@ -253,7 +296,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 function getDedupKey(data: DocumentGenerationJobData): string {
   return (
     data.dedupKey ??
-    `${data.sourceTemplate}:${data.sourceEntityType}:${data.sourceEntityId}:${data.renderUrl}`
+    `${data.attachmentType}:${data.sourceEntityType}:${data.sourceEntityId}:${data.renderUrl ?? "resolved-attachment"}`
   );
 }
 
@@ -261,7 +304,7 @@ function getDocumentId(data: DocumentGenerationJobData, jobId: string): string {
   const base =
     data.documentId ??
     data.filename?.replace(/\.pdf$/i, "") ??
-    `${data.sourceTemplate}-${data.sourceEntityType}-${data.sourceEntityId}-${jobId}`;
+    `${data.attachmentType}-${data.sourceEntityType}-${data.sourceEntityId}-${jobId}`;
   return slugify(base);
 }
 

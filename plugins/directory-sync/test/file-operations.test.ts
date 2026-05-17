@@ -550,7 +550,7 @@ describe("FileOperations", () => {
           pageCount: 7,
           sourceEntityType: "social-post",
           sourceEntityId: "post-1",
-          sourceTemplate: "carousel-template",
+          attachmentType: "carousel",
           dedupKey: "carousel-template:social-post:post-1:abc",
         },
       });
@@ -566,7 +566,7 @@ describe("FileOperations", () => {
         pageCount: 7,
         sourceEntityType: "social-post",
         sourceEntityId: "post-1",
-        sourceTemplate: "carousel-template",
+        attachmentType: "carousel",
         dedupKey: "carousel-template:social-post:post-1:abc",
       });
     });

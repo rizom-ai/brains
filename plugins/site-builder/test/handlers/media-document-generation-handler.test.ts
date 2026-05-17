@@ -79,7 +79,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
         renderUrl: "http://localhost/_media/carousel/template/post-1",
         sourceEntityType: "social-post",
         sourceEntityId: "post-1",
-        sourceTemplate: "carousel-template",
+        attachmentType: "carousel",
         filename: "carousel.pdf",
         pageCount: 3,
         maxPageCount: 10,
@@ -107,7 +107,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
       pageCount: 3,
       sourceEntityType: "social-post",
       sourceEntityId: "post-1",
-      sourceTemplate: "carousel-template",
+      attachmentType: "carousel",
     });
   });
 
@@ -140,7 +140,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
         renderUrl: "http://localhost/_media/carousel/template/post-1",
         sourceEntityType: "social-post",
         sourceEntityId: "post-1",
-        sourceTemplate: "carousel-template",
+        attachmentType: "carousel",
         dedupKey: "same-key",
       },
       "job-1",
@@ -151,6 +151,55 @@ describe("MediaDocumentGenerationJobHandler", () => {
       success: true,
       documentId: "existing-doc",
       reused: true,
+    });
+  });
+
+  it("freezes a source-derived document attachment into a document entity", async () => {
+    context.attachments.register("social-post", "carousel", {
+      resolve: async () => ({
+        type: "document",
+        data: pdfBuffer,
+        mimeType: "application/pdf",
+        filename: "from-provider.pdf",
+      }),
+    });
+    const handler = new MediaDocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<Buffer> => {
+          throw new Error("should resolve attachment instead of render URL");
+        },
+      },
+    );
+
+    const result = await handler.process(
+      {
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        documentId: "frozen-carousel",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    expect(result).toEqual({
+      success: true,
+      documentId: "frozen-carousel",
+      reused: false,
+    });
+
+    const document = await context.entityService.getEntity({
+      entityType: "document",
+      id: "frozen-carousel",
+    });
+    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect(document?.metadata).toMatchObject({
+      filename: "from-provider.pdf",
+      attachmentType: "carousel",
+      sourceEntityType: "social-post",
+      sourceEntityId: "post-1",
     });
   });
 
@@ -175,7 +224,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
         renderUrl: "http://localhost/_media/carousel/template/post-1",
         sourceEntityType: "social-post",
         sourceEntityId: "post-1",
-        sourceTemplate: "carousel-template",
+        attachmentType: "carousel",
         documentId: "carousel-pdf",
         targetEntityType: "social-post",
         targetEntityId: "post-1",
@@ -209,7 +258,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
           renderUrl: "http://localhost/_media/carousel/template/post-1",
           sourceEntityType: "social-post",
           sourceEntityId: "post-1",
-          sourceTemplate: "carousel-template",
+          attachmentType: "carousel",
           pageCount: 21,
           maxPageCount: 20,
         },
@@ -238,7 +287,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
           renderUrl: "http://localhost/_media/carousel/template/post-1",
           sourceEntityType: "social-post",
           sourceEntityId: "post-1",
-          sourceTemplate: "carousel-template",
+          attachmentType: "carousel",
           maxPageCount: 20,
         },
         "job-1",

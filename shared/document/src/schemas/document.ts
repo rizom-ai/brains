@@ -11,7 +11,7 @@ export const documentMetadataSchema = z.object({
   pageCount: z.number().int().min(0).optional(),
   sourceEntityType: z.string().min(1).optional(),
   sourceEntityId: z.string().min(1).optional(),
-  sourceTemplate: z.string().min(1).optional(),
+  attachmentType: z.string().min(1).optional(),
   dedupKey: z.string().min(1).optional(),
 });
 

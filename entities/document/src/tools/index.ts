@@ -21,7 +21,7 @@ export function createDocumentTools(
     createTool(
       pluginId,
       "generate",
-      "Generate a durable PDF document entity from a render URL, with optional provenance and target documents[] attachment.",
+      "Generate a durable PDF document entity from a source attachment or render URL, with optional target documents[] attachment.",
       documentGenerationJobSchemaBase,
       async (input, context) => {
         const result = documentGenerationJobSchema.safeParse(input);

@@ -17,7 +17,6 @@ import { setupRouteHandlers } from "./lib/route-handlers";
 import { registerConfigRoutes } from "./lib/route-helpers";
 import { subscribeBuildCompleted } from "./lib/seo-file-handler";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
-import { MediaCarouselGenerationJobHandler } from "./handlers/mediaCarouselGenerationHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
@@ -139,15 +138,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.routeRegistry,
       this.profileService,
       this.config.entityDisplay,
-    );
-
-    // Register explicit carousel generation job handler
-    context.jobs.registerHandler(
-      "media-carousel-generate",
-      new MediaCarouselGenerationJobHandler(
-        this.logger.child("MediaCarouselGenerationJobHandler"),
-        context,
-      ),
     );
 
     // Register site-build job handler

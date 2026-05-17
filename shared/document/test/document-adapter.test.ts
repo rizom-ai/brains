@@ -17,7 +17,7 @@ describe("document adapter", () => {
       pageCount: 5,
       sourceEntityType: "social-post",
       sourceEntityId: "post-1",
-      sourceTemplate: "social-carousel",
+      attachmentType: "carousel",
       dedupKey: "social-carousel:post-1:hash",
     });
 
@@ -33,6 +33,7 @@ describe("document adapter", () => {
     expect(parsed.metadata.mimeType).toBe("application/pdf");
     expect(parsed.metadata.filename).toBe("carousel.pdf");
     expect(parsed.metadata.pageCount).toBe(5);
+    expect(parsed.metadata.attachmentType).toBe("carousel");
     expect(parsed.metadata.dedupKey).toBe("social-carousel:post-1:hash");
   });
 

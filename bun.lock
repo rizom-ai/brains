@@ -261,6 +261,7 @@
       "name": "@brains/document-entity",
       "version": "0.2.0-alpha.68",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/document": "workspace:*",
         "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",

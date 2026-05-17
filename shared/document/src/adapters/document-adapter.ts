@@ -14,7 +14,7 @@ export interface CreateDocumentInput {
   pageCount?: number;
   sourceEntityType?: string;
   sourceEntityId?: string;
-  sourceTemplate?: string;
+  attachmentType?: string;
   dedupKey?: string;
 }
 
