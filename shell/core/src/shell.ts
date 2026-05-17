@@ -19,7 +19,7 @@ import type {
 } from "@brains/plugins";
 
 // Plugin manager
-import type { PluginManager } from "@brains/plugins";
+import type { AttachmentRegistry, PluginManager } from "@brains/plugins";
 
 // Entity service types
 import type {
@@ -305,6 +305,10 @@ export class Shell implements IShell {
 
   public getRenderService(): RenderService {
     return this.services.renderService;
+  }
+
+  public getAttachmentRegistry(): AttachmentRegistry {
+    return this.services.attachmentRegistry;
   }
 
   public getMessageBus(): IMessageBus {

@@ -22,7 +22,6 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
-  AttachmentRegistry,
   createAttachmentsNamespace,
   type IAttachmentsNamespace,
 } from "../service/attachment-registry";
@@ -318,7 +317,7 @@ export function createBasePluginContext(
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
   const getAppInfo = createAppInfoGetter(shell);
-  const attachmentRegistry = AttachmentRegistry.getInstance();
+  const attachmentRegistry = shell.getAttachmentRegistry();
 
   return {
     pluginId,

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import type { PublishMediaData } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { AttachmentRegistry } from "../../src/service/attachment-registry";
@@ -16,10 +16,6 @@ function createPdfAttachment(filename: string): PublishMediaData {
 }
 
 describe("AttachmentRegistry", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
-
   it("resolves a registered source attachment provider", async () => {
     const registry = AttachmentRegistry.createFresh();
     const attachment = createPdfAttachment("deck-carousel.pdf");
@@ -67,10 +63,6 @@ describe("AttachmentRegistry", () => {
 });
 
 describe("plugin context attachments namespace", () => {
-  beforeEach(() => {
-    AttachmentRegistry.resetInstance();
-  });
-
   it("registers and resolves attachments through service plugin context", async () => {
     const shell = createMockShell({ logger: createSilentLogger() });
     const context = createServicePluginContext(shell, "test-plugin");

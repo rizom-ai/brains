@@ -7,7 +7,7 @@ import {
   type MockShell,
   type ServicePluginContext,
 } from "@brains/plugins/test";
-import { AttachmentRegistry, type BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
@@ -50,7 +50,6 @@ describe("preparePublishContent", () => {
   let mockShell: MockShell;
 
   beforeEach(() => {
-    AttachmentRegistry.resetInstance();
     mockShell = createMockShell({ logger: createSilentLogger() });
     context = createServicePluginContext(mockShell, "content-pipeline");
     mockShell
