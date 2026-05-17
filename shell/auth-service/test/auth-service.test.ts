@@ -31,6 +31,12 @@ async function tempStorageDir(): Promise<string> {
   return dir;
 }
 
+async function readyAuthPlugin(
+  harness: PluginTestHarness<AuthServicePlugin>,
+): Promise<void> {
+  await harness.getPlugin().ready();
+}
+
 async function seedPasskeyCredential(storageDir: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   await new PasskeyStore({ storageDir }).addCredential({
@@ -329,6 +335,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     expect(notifications).toHaveLength(1);
     const notification = z
@@ -355,6 +362,32 @@ describe("AuthService", () => {
     expect(notification.body).toContain("expires");
   });
 
+  it("waits until ready hooks to request setup email so notification routing is registered", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    const notifications: unknown[] = [];
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+      notifications.push(message.payload);
+      return { success: true, data: { status: "sent" } };
+    });
+
+    expect(notifications).toHaveLength(0);
+    await readyAuthPlugin(harness);
+    expect(notifications).toHaveLength(1);
+  });
+
   it("does not fail registration when no notification subscriber is registered", async () => {
     const storageDir = await tempStorageDir();
     const harness = new PluginTestHarness<AuthServicePlugin>({
@@ -369,6 +402,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     const response = await harness.executeTool(
       "auth-service_get_passkey_setup_url",
@@ -397,6 +431,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     const response = await harness.executeTool(
       "auth-service_get_passkey_setup_url",
@@ -426,6 +461,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(firstHarness);
     expect(firstNotifications).toHaveLength(1);
 
     const firstResponse = await firstHarness.executeTool(
@@ -452,6 +488,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(secondHarness);
 
     const secondResponse = await secondHarness.executeTool(
       "auth-service_get_passkey_setup_url",
@@ -482,6 +519,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     const storeFile = join(storageDir, "oauth-setup-state.json");
     const fileStats = await stat(storeFile);
@@ -533,6 +571,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(firstHarness);
     expect(failedNotifications).toHaveLength(1);
 
     const secondHarness = new PluginTestHarness<AuthServicePlugin>({
@@ -552,6 +591,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(secondHarness);
 
     expect(retriedNotifications).toHaveLength(1);
   });
@@ -593,6 +633,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     expect(notifications).toHaveLength(1);
     const notification = z.object({ body: z.string() }).parse(notifications[0]);
@@ -644,6 +685,7 @@ describe("AuthService", () => {
         setupEmail: "user@example.com",
       }),
     );
+    await readyAuthPlugin(harness);
 
     expect(notifications).toHaveLength(0);
   });

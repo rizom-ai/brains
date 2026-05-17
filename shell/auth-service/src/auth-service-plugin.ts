@@ -68,7 +68,11 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     });
     await this.service.initialize();
     activeAuthService = this.service;
+  }
 
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
     await this.requestSetupEmailIfNeeded(context);
   }
 
