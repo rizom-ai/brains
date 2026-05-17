@@ -14,6 +14,10 @@ on:
       - "**/*.md"
       - ".claude/**"
 
+# Turbo Remote Cache: populated by Vercel-hosted cache server. TURBO_TOKEN
+# is a Vercel CLI token; TURBO_TEAM is the Vercel team slug. With both set,
+# turbo reads/writes cache entries shared with developer machines. Without,
+# turbo falls back to local actions/cache restore only.
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
