@@ -1,5 +1,7 @@
 # @brains/theme-base
 
+## 0.2.0-alpha.72
+
 ## 0.2.0-alpha.71
 
 ## 0.2.0-alpha.70

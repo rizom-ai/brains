@@ -1,5 +1,17 @@
 # @brains/series
 
+## 0.2.0-alpha.72
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.72
+  - @brains/utils@0.2.0-alpha.72
+  - @brains/entity-service@0.2.0-alpha.72
+  - @brains/job-queue@0.2.0-alpha.72
+  - @brains/plugins@0.2.0-alpha.72
+  - @brains/templates@0.2.0-alpha.72
+
 ## 0.2.0-alpha.71
 
 ### Patch Changes

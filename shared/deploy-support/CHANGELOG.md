@@ -1,5 +1,16 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.72
+
+### Minor Changes
+
+- [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `MCP_AUTH_TOKEN` is now a local-only override. Removed from the shared Kamal deploy template, the bundled brain-cli env schemas for rover/ranger/relay, and the rover pilot template. Rover deployments authenticate via OAuth/passkey through `auth-service`; existing operators using `MCP_AUTH_TOKEN` can still set it locally if needed.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.72
+
 ## 0.2.0-alpha.71
 
 ### Patch Changes

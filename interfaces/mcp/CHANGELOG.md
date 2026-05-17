@@ -1,5 +1,14 @@
 # @brains/mcp
 
+## 0.2.0-alpha.72
+
+### Patch Changes
+
+- Updated dependencies [[`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf)]:
+  - @brains/auth-service@0.2.0-alpha.72
+  - @brains/mcp-service@0.2.0-alpha.72
+  - @brains/plugins@0.2.0-alpha.72
+
 ## 0.2.0-alpha.71
 
 ### Patch Changes

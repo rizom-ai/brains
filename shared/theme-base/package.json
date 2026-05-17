@@ -1,7 +1,7 @@
 {
   "name": "@brains/theme-base",
   "private": true,
-  "version": "0.2.0-alpha.71",
+  "version": "0.2.0-alpha.72",
   "description": "Shared base CSS utilities for all Brain themes",
   "type": "module",
   "exports": {

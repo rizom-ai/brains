@@ -1,5 +1,48 @@
 # @brains/rover
 
+## 0.2.0-alpha.72
+
+### Minor Changes
+
+- [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Auth-service can now request passkey setup emails via the notifications router, with persistent dedupe keyed to the active setup token (SHA-256 hashed at rest, 0o600). Rover bundles the setup email delivery plugins by default, and brains-ops renders `setup.delivery: email` configuration for pilot users — including the required `SETUP_EMAIL_API_KEY` and `SETUP_EMAIL_FROM` GitHub Secrets.
+
+### Patch Changes
+
+- Updated dependencies [[`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf), [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf)]:
+  - @brains/auth-service@0.2.0-alpha.72
+  - @brains/notifications@0.2.0-alpha.72
+  - @brains/email-resend@0.2.0-alpha.72
+  - @brains/mcp@0.2.0-alpha.72
+  - @brains/dashboard@0.2.0-alpha.72
+  - @brains/agent-discovery@0.2.0-alpha.72
+  - @brains/assessment@0.2.0-alpha.72
+  - @brains/blog@0.2.0-alpha.72
+  - @brains/decks@0.2.0-alpha.72
+  - @brains/image-plugin@0.2.0-alpha.72
+  - @brains/link@0.2.0-alpha.72
+  - @brains/note@0.2.0-alpha.72
+  - @brains/portfolio@0.2.0-alpha.72
+  - @brains/prompt@0.2.0-alpha.72
+  - @brains/rizom-ecosystem@0.2.0-alpha.72
+  - @brains/series@0.2.0-alpha.72
+  - @brains/site-info@0.2.0-alpha.72
+  - @brains/social-media@0.2.0-alpha.72
+  - @brains/topics@0.2.0-alpha.72
+  - @brains/wishlist@0.2.0-alpha.72
+  - @brains/a2a@0.2.0-alpha.72
+  - @brains/discord@0.2.0-alpha.72
+  - @brains/webserver@0.2.0-alpha.72
+  - @brains/analytics@0.2.0-alpha.72
+  - @brains/cms@0.2.0-alpha.72
+  - @brains/content-pipeline@0.2.0-alpha.72
+  - @brains/directory-sync@0.2.0-alpha.72
+  - @brains/newsletter@0.2.0-alpha.72
+  - @brains/obsidian-vault@0.2.0-alpha.72
+  - @brains/site-builder-plugin@0.2.0-alpha.72
+  - @brains/stock-photo@0.2.0-alpha.72
+  - @brains/app@0.2.0-alpha.72
+  - @brains/site-default@0.2.0-alpha.72
+
 ## 0.2.0-alpha.71
 
 ### Patch Changes

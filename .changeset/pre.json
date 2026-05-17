@@ -96,11 +96,15 @@
     "@brains/conversation-memory": "0.2.0-alpha.59",
     "@brains/content-formatters": "0.2.0-alpha.63",
     "@brains/contracts": "0.2.0-alpha.63",
-    "@brains/deploy-support": "0.2.0-alpha.65"
+    "@brains/deploy-support": "0.2.0-alpha.65",
+    "@brains/email-resend": "0.2.0-alpha.68",
+    "@brains/notifications": "0.2.0-alpha.68",
+    "@brains/email-contracts": "0.2.0-alpha.68"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
+    "auth-service-setup-email",
     "bitwarden-deploy-workflow-template",
     "bitwarden-secrets-push",
     "brain-cli-register-override-packages",
@@ -135,9 +139,11 @@
     "fix-startup-order-singletons",
     "fix-system-create-link-routing",
     "fixed-group-alpha-republish",
+    "generic-notifications-routing",
     "hide-operator-routes-from-nav",
     "link-capture-alias-fix",
     "local-auth-issuer-defaults",
+    "mcp-auth-token-local-override",
     "mcp-forwarded-resource-metadata",
     "node24-action-upgrades",
     "oauth-inspector-compat",
