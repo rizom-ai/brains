@@ -1,4 +1,4 @@
-import { OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL } from "@brains/operator-notifications";
+import { NOTIFICATIONS_SEND } from "@brains/notifications";
 import type {
   ServicePluginContext,
   Tool,
@@ -266,11 +266,20 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     const setup = await service.getOperatorSetupRequired();
     if (!setup) return;
 
+    if (
+      await service.hasSetupEmailDelivery(
+        setup.setupTokenId,
+        this.config.setupEmail,
+      )
+    ) {
+      return;
+    }
+
     const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
     const response = await context.messaging.send({
-      type: OPERATOR_NOTIFICATIONS_SEND_TRANSACTIONAL,
+      type: NOTIFICATIONS_SEND,
       payload: {
-        contacts: [{ type: "email", address: this.config.setupEmail }],
+        recipient: { type: "email", address: this.config.setupEmail },
         title: "Set up your brain passkey",
         body: [
           "Set up your brain passkey using this single-use link:",
@@ -281,13 +290,25 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
           "The first successful passkey registration completes setup and closes this link.",
         ].join("\n"),
         sensitivity: "secret",
-        dedupeKey: `auth-service:first-passkey:${service.getIssuer()}:${this.config.setupEmail}`,
       },
     });
 
-    if (!("success" in response) || !response.success) {
+    if (!("success" in response) || !response.success || !response.data) {
       context.logger.warn("Passkey setup email delivery was not confirmed");
+      return;
     }
+
+    const result = response.data as { status?: string; deliveryId?: string };
+    if (result.status !== "sent") {
+      context.logger.warn("Passkey setup email delivery was not confirmed");
+      return;
+    }
+
+    await service.recordSetupEmailDelivery(
+      setup.setupTokenId,
+      this.config.setupEmail,
+      result.deliveryId ? { deliveryId: result.deliveryId } : {},
+    );
   }
 }
 

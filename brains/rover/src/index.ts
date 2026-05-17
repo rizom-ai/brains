@@ -24,7 +24,7 @@ import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
-import { operatorNotificationsPlugin } from "@brains/operator-notifications";
+import { notificationsPlugin } from "@brains/notifications";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -60,7 +60,7 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
-  "operator-notifications",
+  "notifications",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -128,7 +128,7 @@ export default defineBrain({
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["auth-service", authServicePlugin, undefined],
-    ["operator-notifications", operatorNotificationsPlugin, undefined],
+    ["notifications", notificationsPlugin, undefined],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

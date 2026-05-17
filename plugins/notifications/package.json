@@ -1,8 +1,8 @@
 {
-  "name": "@brains/operator-notifications",
+  "name": "@brains/notifications",
   "private": true,
   "version": "0.2.0-alpha.68",
-  "description": "Operator notification delivery for transactional setup and administrative messages",
+  "description": "Generic notification routing for transactional and administrative messages",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

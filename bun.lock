@@ -111,11 +111,13 @@
         "@brains/decks": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/discord": "workspace:*",
+        "@brains/email-resend": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
         "@brains/newsletter": "workspace:*",
         "@brains/note": "workspace:*",
+        "@brains/notifications": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
         "@brains/portfolio": "workspace:*",
         "@brains/prompt": "workspace:*",
@@ -820,6 +822,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/notifications": {
+      "name": "@brains/notifications",
+      "version": "0.2.0-alpha.68",
+      "dependencies": {
+        "@brains/email-contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/notion": {
       "name": "@brains/notion",
       "version": "0.2.0-alpha.68",
@@ -844,24 +864,6 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/operator-notifications": {
-      "name": "@brains/operator-notifications",
-      "version": "0.2.0-alpha.68",
-      "dependencies": {
-        "@brains/email-contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
@@ -1306,6 +1308,7 @@
       "name": "@brains/auth-service",
       "version": "0.2.0-alpha.68",
       "dependencies": {
+        "@brains/notifications": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@simplewebauthn/server": "^13.3.0",
@@ -1710,11 +1713,11 @@
 
     "@brains/note": ["@brains/note@workspace:entities/note"],
 
+    "@brains/notifications": ["@brains/notifications@workspace:plugins/notifications"],
+
     "@brains/notion": ["@brains/notion@workspace:plugins/notion"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
-
-    "@brains/operator-notifications": ["@brains/operator-notifications@workspace:plugins/operator-notifications"],
 
     "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
 
