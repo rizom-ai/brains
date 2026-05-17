@@ -179,7 +179,7 @@ const YearBreak = ({
   <div
     className={`${railGridClass} relative items-baseline py-3 before:absolute before:left-0 before:right-0 before:top-3.5 before:h-px before:bg-rule-strong md:py-[18px] md:pt-14 md:before:top-6`}
   >
-    <span className="pt-7 font-heading text-[clamp(2.4rem,5.4vw,3.6rem)] font-light italic leading-[0.95] tracking-[-0.025em] text-accent [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_144,'SOFT'_30] md:pt-0">
+    <span className="pt-7 font-heading text-[clamp(2.4rem,5.4vw,3.6rem)] font-light leading-[0.95] tracking-[-0.025em] text-accent [font-variant-numeric:tabular-nums] [font-variation-settings:'opsz'_144,'SOFT'_30] md:pt-0">
       {year}
     </span>
     <span className="font-mono text-[0.68rem] uppercase tracking-[0.22em] text-theme-light [font-variant-numeric:tabular-nums] md:pt-1.5">
