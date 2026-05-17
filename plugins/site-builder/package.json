@@ -17,6 +17,7 @@
     "@brains/document": "workspace:*",
     "@brains/document-entity": "workspace:*",
     "@brains/image": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",

@@ -16,14 +16,22 @@ import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
 import type { DeckEntity } from "./schemas/deck";
+import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./attachments/carousel-template";
+import {
+  DeckCarouselAttachmentProvider,
+  type DeckCarouselAttachmentProviderDeps,
+} from "./attachments/carousel-provider";
 import packageJson from "../package.json";
+
+export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
 
 export class DecksPlugin extends EntityPlugin<DeckEntity> {
   readonly entityType = deckAdapter.entityType;
   readonly schema = deckAdapter.schema;
   readonly adapter = deckAdapter;
+  private unregisterCarouselAttachmentProvider: (() => void) | undefined;
 
-  constructor() {
+  constructor(private readonly deps: DecksPluginDeps = {}) {
     super("decks", packageJson);
   }
 
@@ -58,9 +66,15 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   ): Promise<void> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
+    this.registerCarouselAttachmentProvider(context);
     this.registerEvalHandlers(context);
 
     this.logger.info("Decks plugin registered");
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterCarouselAttachmentProvider?.();
+    this.unregisterCarouselAttachmentProvider = undefined;
   }
 
   private async registerWithPublishPipeline(
@@ -139,6 +153,16 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
 
       return { success: true };
     });
+  }
+
+  private registerCarouselAttachmentProvider(
+    context: EntityPluginContext,
+  ): void {
+    this.unregisterCarouselAttachmentProvider = context.attachments.register(
+      "deck",
+      DECK_CAROUSEL_ATTACHMENT_TYPE,
+      new DeckCarouselAttachmentProvider(context, this.deps),
+    );
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {

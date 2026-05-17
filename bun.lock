@@ -224,7 +224,10 @@
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
+        "@brains/media-page-composer": "workspace:*",
+        "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -855,6 +858,7 @@
         "@brains/document": "workspace:*",
         "@brains/document-entity": "workspace:*",
         "@brains/image": "workspace:*",
+        "@brains/media-page-composer": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-engine": "workspace:*",
@@ -1023,6 +1027,23 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/media-page-composer": {
+      "name": "@brains/media-page-composer",
+      "version": "0.2.0-alpha.68",
+      "dependencies": {
+        "@brains/site-engine": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.27.2",
+        "preact-render-to-string": "^6.3.1",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
         "typescript": "^5.3.3",
       },
     },
@@ -1698,6 +1719,8 @@
     "@brains/mcp-bridge": ["@brains/mcp-bridge@workspace:shared/mcp-bridge"],
 
     "@brains/mcp-service": ["@brains/mcp-service@workspace:shell/mcp-service"],
+
+    "@brains/media-page-composer": ["@brains/media-page-composer@workspace:shared/media-page-composer"],
 
     "@brains/media-renderer": ["@brains/media-renderer@workspace:shared/media-renderer"],
 
