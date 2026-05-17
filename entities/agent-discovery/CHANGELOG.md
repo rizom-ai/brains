@@ -1,5 +1,18 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.73
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.73
+  - @brains/content-formatters@0.2.0-alpha.73
+  - @brains/contracts@0.2.0-alpha.73
+  - @brains/ui-library@0.2.0-alpha.73
+  - @brains/utils@0.2.0-alpha.73
+  - @brains/plugins@0.2.0-alpha.73
+  - @brains/templates@0.2.0-alpha.73
+
 ## 0.2.0-alpha.72
 
 ### Patch Changes

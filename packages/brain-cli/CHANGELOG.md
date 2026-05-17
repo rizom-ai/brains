@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.73
+
+### Patch Changes
+
+- [#4](https://github.com/rizom-ai/brains/pull/4) [`e900705`](https://github.com/rizom-ai/brains/commit/e90070555e140057860d5fc4a06d289f5e218640) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Send first-passkey setup email notifications after all plugins are ready so notification routing and email delivery subscribers can confirm delivery.
+
 ## 0.2.0-alpha.72
 
 ### Minor Changes

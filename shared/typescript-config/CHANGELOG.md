@@ -1,5 +1,7 @@
 # @brains/typescript-config
 
+## 0.2.0-alpha.73
+
 ## 0.2.0-alpha.72
 
 ## 0.2.0-alpha.71
