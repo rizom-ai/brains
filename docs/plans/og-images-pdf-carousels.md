@@ -128,6 +128,8 @@ The response declares the concrete output:
 
 Do not include `mimeType` in the MVP request. If one `attachmentType` later supports multiple formats, add explicit negotiation then.
 
+The MVP has exactly one `attachmentType` (`"carousel"`), so the registry indirection is not fully exercised yet — the publisher still hardcodes the string `"carousel"`. That is acceptable; the abstraction earns its keep when a second attachment type lands. Until then, treat the registry as the seam that lets the deck plugin choose its renderer without the publisher importing deck internals, rather than as a fully-general capability lookup.
+
 ## Theme data for media renderers
 
 Media renderers have access to the **full site theme** — Tailwind, theme tokens, design system components. Since rendering goes through a real browser, there is no CSS subset to work around.
@@ -149,6 +151,7 @@ Generated media is produced via **explicit attachment/artifact resolution**, not
 
 - The social post stores source intent (`sourceEntityType`, `sourceEntityId`), not generated carousel document IDs by default
 - Publishing resolves a source-derived attachment by semantic type, e.g. `attachmentType: "carousel"`
+- For LinkedIn MVP, the trigger is provider availability: if a social post has `sourceEntityType/sourceEntityId`, ask for `attachmentType: "carousel"`; use it only if a provider exists
 - The manual operator surface, if needed, is `document_generate` over the same attachment contract; it freezes the result as a durable artifact instead of being required for normal publishing
 - Site-builder may provide internal HTML/media pages, but it should not own the public document-generation or publishing contract
 - Follows the existing job-handler pattern used by image generation, without coupling media generation to `ImageGenerationJobHandler`
@@ -231,15 +234,18 @@ For the idempotent carousel path, the publish preparation flow should:
 
 Do not require `documents[]` for this path. Keep `coverImageId` as the image/visual-preview path.
 
-`documents[]` remains useful only for explicitly frozen or manually attached artifacts. In that case, `document` entities store base64 data URLs and publishers convert to `Buffer` at the boundary.
+Keep `documents[]` as a layered, explicit override path rather than ripping it out immediately. Publish preparation should prefer explicit frozen/manual documents when present, then try source-derived attachments. In the explicit path, `document` entities store base64 data URLs and publishers convert to `Buffer` at the boundary.
 
 For LinkedIn, publish PDF carousels as document/PDF posts rather than ad carousel posts.
 
 ## Dedup
 
-Generated attachments should use a deterministic key for cache/reuse decisions, based on source entity content hash, attachment type, renderer/provider version, and relevant theme/build inputs.
+Generated attachments should use a deterministic key derived from source entity content hash, attachment type, and renderer/provider version.
 
-Do not treat `document` entities as the default cache. Store a `dedupKey`/snapshot key on `document` metadata only when freezing a durable artifact. Do not overload `sourceUrl`, because generated artifacts do not necessarily come from URLs.
+- **Non-frozen publish path: no cache.** Publishing is one-shot per `social-post` (early-exit on `status: "published"`, max ~4 attempts via `RetryTracker`), and the existing `ImageGenerationJobHandler` doesn't cache either. A 5–15s Playwright render at most a few times per post lifetime does not justify a separate cache layer.
+- **Frozen path: dedup on `document` entity metadata.** When `document_generate` freezes an attachment, store `dedupKey` on the resulting `document` and reuse by `dedupKey` lookup, the way `DocumentGenerationJobHandler.findDocumentByDedupKey` already does.
+- Do not overload `sourceUrl` for the key — generated artifacts do not necessarily come from URLs.
+- If render volume later proves the per-publish regenerate cost is real, introduce a content-addressed cache then, scoped to a single provider and keyed exactly the same way as the frozen-document `dedupKey` so freeze can promote a cache entry by copy.
 
 ## Bundling & deployment
 
@@ -269,6 +275,37 @@ Operational safeguards for same-process MVP:
 
 Future split is still useful for blast-radius control, but should wait until the runtime supports process roles, role-aware plugin ready hooks, and job type filtering.
 
+## Migration from the current WIP
+
+The current implementation has useful pieces from the old plan: document entity storage, LinkedIn document publishing, `documents[]` support, internal media pages, and Playwright PDF rendering. Migrate in layers rather than ripping these out.
+
+1. Keep `documents[]` publishing as the explicit/frozen artifact path.
+2. Add the attachment/artifact registry alongside it.
+3. Register the deck `attachmentType: "carousel"` provider.
+4. Update publish preparation to prefer explicit `documents[]`, then resolve source-derived carousel attachments when a provider exists.
+5. Refactor `document_generate` to freeze a resolved attachment into a `document` entity.
+6. Move carousel orchestration out of site-builder and into the deck-owned provider; site-builder remains only an HTML/media-page composition helper.
+
+The seam between a deck provider and rendering infrastructure should be explicit: provider code owns deck semantics and attachment selection; shared media-renderer owns browser/PDF capture; shared media-page-composer helpers may compose the temporary HTML page.
+
+### Registry home
+
+The attachment registry lives at `shell/plugins/src/service/attachment-registry.ts`, exposed through `ServicePluginContext` (`shell/plugins/src/service/context.ts`). It follows the singleton + `getInstance`/`createFresh` pattern used by `TemplateRegistry`, `HandlerRegistry`, and `ProviderRegistry`. `publishExecuteHandler` already has `ServicePluginContext`, so no new wiring is needed at the call site. Shape mirrors `ProviderRegistry` (per-`sourceEntityType` strategy), with `register(sourceEntityType, attachmentType, provider)` and `resolve({sourceEntityType, sourceEntityId, attachmentType})`.
+
+### Field rename: `sourceTemplate` → `attachmentType`
+
+Confirmed safe to do as a pure code rename: no `document` entities exist on disk anywhere in `brains/`, no PDF entities have ever been committed (`git log --all --diff-filter=A -- '*.pdf'` is empty), no `.meta.json` sidecars exist. The field lives only in code (`shared/document/src/schemas/document.ts`, `shared/document/src/adapters/document-adapter.ts`) and any runtime `custom.db` rows on dev machines, which are regeneratable. Rename in one pass, update brain-data round-trip tests to assert the new field, no migration shim needed.
+
+### Promoting the media-page composer to shared API
+
+Extract to a new `shared/media-page-composer/` package (preferred) or fold into `shared/media-renderer/`. The composer is loosely coupled:
+
+- **Generic and extractable**: `plugins/site-builder/src/lib/media-render-page.ts` (tmp-dir + ephemeral HTTP server, only depends on `fs`/`http`/`path` + the template renderer) and `plugins/site-builder/src/lib/media-template-renderer.ts` (preact + `@brains/ui-library` + `@brains/site-engine` primitives — `HeadCollector`, `createHTMLShell`, `SiteImageRendererService`).
+- **Only site-builder coupling**: a single `SiteBuilderOptions["siteConfig"]` type import (2 fields: `title`, `themeMode`). Replace with a local `MediaSiteConfig` interface during the move.
+- Estimated effort: a few hours, mostly mechanical. After the move, both site-builder and the deck provider import from `shared/media-page-composer/`.
+
+Lock the function signature and add a public-surface test before deck code starts depending on it.
+
 ## Implementation order
 
 PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn document publishing are proven.
@@ -283,7 +320,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 8. Register a deck-owned `attachmentType: "carousel"` provider that renders normal deck content as a multi-page PDF
 9. Update `document_generate` to use the attachment contract and freeze the returned document only when explicitly requested
 10. Extend the publish contract with document attachment data
-11. Update publish preparation and social publishing to resolve source-derived carousel attachments while preserving `coverImageId` image behavior
+11. Update publish preparation and social publishing to prefer explicit `documents[]`, then resolve source-derived carousel attachments while preserving `coverImageId` image behavior
 12. Add LinkedIn document upload/publish support without requiring `social-post.documents[]` for generated carousels
 13. Add the `/_media/og/:templateId/:entityId` route. Build OG component PoC
 14. Generate OG PNGs into existing `image` entities via the helper; add `ogImageId` to selected entities with fallback to `coverImageId` and site default OG image
@@ -300,6 +337,7 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 - Verify attachment cache/reuse key stability on unchanged entity input
 - Verify frozen `document` entities persist to brain-data and import/export PDF data URLs without corruption
 - Verify normal carousel publish does not require `social-post.documents[]`
+- Verify explicit `documents[]` still publishes frozen/manual document artifacts
 - Mock LinkedIn document upload/publish in tests
 - Smoke test: app image builds with Chromium installed; render job runs end-to-end without render-on-request
 - Phase 2: verify site head emits absolute `og:image` and `twitter:image` URLs
