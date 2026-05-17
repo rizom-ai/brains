@@ -119,12 +119,14 @@ The response declares the concrete output:
 
 ```ts
 {
-  kind: "document",
+  type: "document",
   mimeType: "application/pdf",
   filename: "ai-stress-test-carousel.pdf",
   data: Buffer,
 }
 ```
+
+(The `type` discriminant matches `PublishMediaData` in `@brains/contracts`, which the publisher already consumes.)
 
 Do not include `mimeType` in the MVP request. If one `attachmentType` later supports multiple formats, add explicit negotiation then.
 
