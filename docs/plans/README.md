@@ -45,7 +45,8 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Multi-user and permissions](./multi-user.md)
 - [Shared space trust](./shared-space-trust.md)
 - [Passkey operator onboarding](./passkey-operator-onboarding.md)
-- [CMS heavy backend](./cms-heavy-backend.md) — includes the GitHub OAuth proxy interim
+- [CMS GitHub OAuth proxy](./cms-github-oauth-proxy.md) — small interim proxy for Sveltia's existing GitHub backend
+- [CMS heavy backend](./cms-heavy-backend.md) — long-term brain-hosted git gateway for CMS writes
 
 ### Hosted, deployed, and monetized product
 
