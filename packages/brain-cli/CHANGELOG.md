@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.71
+
+### Patch Changes
+
+- [`003099e`](https://github.com/rizom-ai/brains/commit/003099e298a2e75933ca60161658db024497f943) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render ContentArchive year-break headings upright so older archive years match the latest featured year treatment.
+
 ## 0.2.0-alpha.70
 
 ### Patch Changes
