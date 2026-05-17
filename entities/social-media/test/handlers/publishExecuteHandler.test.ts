@@ -100,6 +100,28 @@ const sampleImage = {
   updated: "2024-01-01T00:00:00Z",
 };
 
+const samplePostWithSource: SocialPost = {
+  id: "post-4",
+  entityType: "social-post",
+  content: `---
+title: Source-Derived LinkedIn Post
+platform: linkedin
+status: queued
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Carousel from source deck.`,
+  metadata: {
+    title: "Source-Derived LinkedIn Post",
+    platform: "linkedin",
+    status: "queued",
+    slug: "linkedin-source-derived-linkedin-post-20260114",
+  },
+  contentHash: "src001",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
 const sampleDocument = {
   id: "carousel-pdf",
   entityType: "document",
@@ -380,6 +402,129 @@ describe("PublishExecuteHandler", () => {
         undefined,
       );
       expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it("should resolve source-derived carousel attachment when no documents are set", async () => {
+      entityService.getEntity = mock(() =>
+        Promise.resolve(samplePostWithSource),
+      );
+      const carouselPdf = {
+        type: "document" as const,
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf" as const,
+        filename: "deck-carousel.pdf",
+      };
+      const resolveAttachment = mock(() => Promise.resolve(carouselPdf));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-4",
+      });
+
+      expect(resolveAttachment).toHaveBeenCalledWith({
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+      });
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Carousel from source deck.",
+        expect.any(Object),
+        undefined,
+        [carouselPdf],
+      );
+    });
+
+    it("should publish text-only when source fields are set but no provider resolves an attachment", async () => {
+      entityService.getEntity = mock(() =>
+        Promise.resolve(samplePostWithSource),
+      );
+      const resolveAttachment = mock(() => Promise.resolve(undefined));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-4",
+      });
+
+      expect(resolveAttachment).toHaveBeenCalled();
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Carousel from source deck.",
+        expect.any(Object),
+        undefined,
+      );
+    });
+
+    it("should prefer explicit documents over source-derived attachment", async () => {
+      const postWithBoth: SocialPost = {
+        ...samplePostWithDocument,
+        id: "post-5",
+        content: `---
+title: Mixed LinkedIn Post
+platform: linkedin
+status: queued
+sourceEntityType: deck
+sourceEntityId: deck-1
+documents:
+  - id: carousel-pdf
+---
+Post with both explicit doc and source.`,
+      };
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(postWithBoth);
+          }
+          if (
+            request.entityType === "document" &&
+            request.id === "carousel-pdf"
+          ) {
+            return Promise.resolve(sampleDocument);
+          }
+          return Promise.resolve(null);
+        },
+      );
+      const resolveAttachment = mock(() => Promise.resolve(undefined));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-5",
+      });
+
+      expect(resolveAttachment).not.toHaveBeenCalled();
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        undefined,
+        [
+          expect.objectContaining({
+            type: "document",
+            filename: "carousel.pdf",
+          }),
+        ],
+      );
     });
 
     it("should publish without image if coverImageId not present", async () => {

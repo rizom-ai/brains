@@ -16,7 +16,6 @@ interface ParsedPublishContent {
   bodyContent: string;
   coverImageId?: string;
   documents?: PublishDocumentReference[];
-  documentsRequested?: boolean;
   sourceEntityType?: string;
   sourceEntityId?: string;
 }
@@ -35,20 +34,29 @@ export async function preparePublishContent(
     bodyContent,
     coverImageId,
     documents,
-    documentsRequested,
     sourceEntityType,
     sourceEntityId,
   } = parsePublishContent(entity.content);
   const imageData = coverImageId
     ? await fetchPublishImageData(context, coverImageId)
     : undefined;
-  const documentData = documentsRequested
-    ? await fetchPublishDocumentData(context, documents ?? [])
-    : await resolveSourceAttachmentData(
-        context,
-        sourceEntityType,
-        sourceEntityId,
-      );
+
+  // Explicit documents[] wins when it yields any data; otherwise fall through
+  // to source-derived attachment resolution. An empty `documents: []` array,
+  // or one whose entries all fail to fetch, should not silently suppress a
+  // valid source-derived attachment.
+  let documentData: PublishMediaData[] | undefined;
+  if (documents && documents.length > 0) {
+    const fetched = await fetchPublishDocumentData(context, documents);
+    if (fetched.length > 0) {
+      documentData = fetched;
+    }
+  }
+  documentData ??= await resolveSourceAttachmentData(
+    context,
+    sourceEntityType,
+    sourceEntityId,
+  );
 
   const prepared: PreparedPublishContent = { bodyContent };
   if (imageData) {
@@ -66,9 +74,7 @@ function parsePublishContent(content: string): ParsedPublishContent {
     const rawCoverImageId = parsed.metadata["coverImageId"];
     const coverImageId =
       typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
-    const documentsField = parsed.metadata["documents"];
-    const documents = parseDocumentReferences(documentsField);
-    const documentsRequested = documentsField !== undefined;
+    const documents = parseDocumentReferences(parsed.metadata["documents"]);
     const sourceEntityType = parseStringField(
       parsed.metadata["sourceEntityType"],
     );
@@ -77,7 +83,6 @@ function parsePublishContent(content: string): ParsedPublishContent {
     return {
       bodyContent: parsed.content,
       ...(coverImageId && { coverImageId }),
-      documentsRequested,
       ...(documents.length > 0 && { documents }),
       ...(sourceEntityType && { sourceEntityType }),
       ...(sourceEntityId && { sourceEntityId }),

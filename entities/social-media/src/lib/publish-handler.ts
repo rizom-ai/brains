@@ -46,6 +46,7 @@ export function subscribeToPublishExecute(
     logger: logger.child("PublishExecuteHandler"),
     entityService: context.entityService,
     providers,
+    resolveAttachment: context.attachments.resolve,
   });
 
   context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(

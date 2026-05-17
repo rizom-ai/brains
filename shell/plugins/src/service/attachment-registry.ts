@@ -12,6 +12,52 @@ export interface AttachmentProvider {
   ): Promise<PublishMediaData | undefined> | PublishMediaData | undefined;
 }
 
+/**
+ * Attachment namespace — source-derived publish artifacts.
+ * Source plugins register providers; publishers resolve by semantic attachment type.
+ */
+export interface IAttachmentsNamespace {
+  /** Register an attachment provider for a source entity type and semantic attachment type. */
+  register: (
+    sourceEntityType: string,
+    attachmentType: string,
+    provider: AttachmentProvider,
+  ) => () => void;
+
+  /** Resolve a source-derived attachment if a provider is available. */
+  resolve: (
+    request: AttachmentResolveRequest,
+  ) => Promise<PublishMediaData | undefined>;
+
+  /** Check whether a provider exists for the requested source/attachment type. */
+  hasProvider: (sourceEntityType: string, attachmentType: string) => boolean;
+}
+
+export function createAttachmentsNamespace(
+  registry: AttachmentRegistry,
+): IAttachmentsNamespace {
+  return {
+    register: (
+      sourceEntityType: string,
+      attachmentType: string,
+      provider: AttachmentProvider,
+    ): (() => void) => {
+      return registry.register(sourceEntityType, attachmentType, provider);
+    },
+    resolve: (
+      request: AttachmentResolveRequest,
+    ): Promise<PublishMediaData | undefined> => {
+      return registry.resolve(request);
+    },
+    hasProvider: (
+      sourceEntityType: string,
+      attachmentType: string,
+    ): boolean => {
+      return registry.has(sourceEntityType, attachmentType);
+    },
+  };
+}
+
 export class AttachmentRegistry {
   private static instance: AttachmentRegistry | null = null;
 

@@ -22,6 +22,11 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
+  AttachmentRegistry,
+  createAttachmentsNamespace,
+  type IAttachmentsNamespace,
+} from "../service/attachment-registry";
+import {
   createAppInfoGetter,
   createConversationsNamespace,
   createEndpointsNamespace,
@@ -218,6 +223,13 @@ export interface BasePluginContext {
   readonly jobs: JobsNamespace;
 
   // ============================================================================
+  // Source-derived Attachments
+  // ============================================================================
+
+  /** Source-derived publish attachment resolution namespace */
+  readonly attachments: IAttachmentsNamespace;
+
+  // ============================================================================
   // Conversations (Read-Only)
   // ============================================================================
 
@@ -306,6 +318,7 @@ export function createBasePluginContext(
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
   const getAppInfo = createAppInfoGetter(shell);
+  const attachmentRegistry = AttachmentRegistry.getInstance();
 
   return {
     pluginId,
@@ -327,6 +340,8 @@ export function createBasePluginContext(
     messaging: createMessagingNamespace(shell, pluginId, logger),
 
     jobs: createJobsNamespace(shell, pluginId),
+
+    attachments: createAttachmentsNamespace(attachmentRegistry),
 
     conversations: createConversationsNamespace(shell),
 

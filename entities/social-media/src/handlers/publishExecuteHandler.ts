@@ -20,11 +20,27 @@ export interface PublishExecutePayload {
   entityId: string;
 }
 
+export interface AttachmentResolveRequest {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+}
+
+export type ResolveAttachmentFn = (
+  request: AttachmentResolveRequest,
+) => Promise<PublishMediaData | undefined>;
+
 export interface PublishExecuteHandlerConfig {
   sendMessage: MessageSender;
   logger: Logger;
   entityService: IEntityService;
   providers: Map<string, PublishProvider>;
+  /**
+   * Optional attachment resolver. When set, posts with `sourceEntityType` /
+   * `sourceEntityId` but no explicit `documents[]` will ask the registry for
+   * `attachmentType: "carousel"` and use the result as the published document.
+   */
+  resolveAttachment?: ResolveAttachmentFn;
 }
 
 /**
@@ -36,12 +52,14 @@ export class PublishExecuteHandler {
   private logger: Logger;
   private entityService: IEntityService;
   private providers: Map<string, PublishProvider>;
+  private resolveAttachment: ResolveAttachmentFn | undefined;
 
   constructor(config: PublishExecuteHandlerConfig) {
     this.sendMessage = config.sendMessage;
     this.logger = config.logger;
     this.entityService = config.entityService;
     this.providers = config.providers;
+    this.resolveAttachment = config.resolveAttachment;
   }
 
   /**
@@ -105,7 +123,8 @@ export class PublishExecuteHandler {
       }
 
       const requestedDocuments = parsed.metadata.documents ?? [];
-      const documentData = await this.fetchDocumentData(requestedDocuments);
+      const explicitDocumentData =
+        await this.fetchDocumentData(requestedDocuments);
 
       // Attempt to publish
       try {
@@ -113,11 +132,26 @@ export class PublishExecuteHandler {
         // fetched, refuse to silently degrade to a text-only post — that
         // would mislead the user about what was published. Throw here so
         // the existing failed-publish path marks the entity as failed.
-        if (requestedDocuments.length > 0 && documentData.length === 0) {
+        if (
+          requestedDocuments.length > 0 &&
+          explicitDocumentData.length === 0
+        ) {
           throw new Error(
             `Refusing to publish: ${requestedDocuments.length} document(s) referenced but none could be fetched`,
           );
         }
+
+        // When no explicit documents are referenced, try to resolve a
+        // source-derived attachment (e.g. a deck-owned carousel).
+        const sourceDocumentData =
+          requestedDocuments.length === 0
+            ? await this.resolveSourceAttachment(parsed.metadata)
+            : [];
+
+        const documentData =
+          explicitDocumentData.length > 0
+            ? explicitDocumentData
+            : sourceDocumentData;
 
         const result = documentData.length
           ? await provider.publish(
@@ -241,6 +275,31 @@ export class PublishExecuteHandler {
         error,
       },
     });
+  }
+
+  /**
+   * Resolve a source-derived carousel attachment when the post carries
+   * `sourceEntityType` / `sourceEntityId` and an attachment provider is
+   * registered for that source.
+   */
+  private async resolveSourceAttachment(metadata: {
+    sourceEntityType?: string | undefined;
+    sourceEntityId?: string | undefined;
+  }): Promise<PublishMediaData[]> {
+    if (
+      !this.resolveAttachment ||
+      !metadata.sourceEntityType ||
+      !metadata.sourceEntityId
+    ) {
+      return [];
+    }
+
+    const attachment = await this.resolveAttachment({
+      sourceEntityType: metadata.sourceEntityType,
+      sourceEntityId: metadata.sourceEntityId,
+      attachmentType: "carousel",
+    });
+    return attachment ? [attachment] : [];
   }
 
   /**

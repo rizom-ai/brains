@@ -8,12 +8,6 @@ import {
 } from "../entity/namespaces";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
-import { AttachmentRegistry } from "./attachment-registry";
-import type {
-  AttachmentProvider,
-  AttachmentResolveRequest,
-} from "./attachment-registry";
-import type { PublishMediaData } from "@brains/contracts";
 import { TemplateCapabilities } from "@brains/templates";
 import type {
   OutputFormat,
@@ -75,27 +69,6 @@ export interface IViewsNamespace {
 }
 
 /**
- * Attachment namespace — source-derived publish artifacts.
- * Source plugins register providers; publishers resolve by semantic attachment type.
- */
-export interface IAttachmentsNamespace {
-  /** Register an attachment provider for a source entity type and semantic attachment type. */
-  register: (
-    sourceEntityType: string,
-    attachmentType: string,
-    provider: AttachmentProvider,
-  ) => () => void;
-
-  /** Resolve a source-derived attachment if a provider is available. */
-  resolve: (
-    request: AttachmentResolveRequest,
-  ) => Promise<PublishMediaData | undefined>;
-
-  /** Check whether a provider exists for the requested source/attachment type. */
-  hasProvider: (sourceEntityType: string, attachmentType: string) => boolean;
-}
-
-/**
  * Context for service plugins.
  *
  * Includes: entity management, templates, views, prompt resolution, messaging, jobs.
@@ -117,9 +90,6 @@ export interface ServicePluginContext extends BasePluginContext {
   /** Prompt resolution namespace */
   readonly prompts: IPromptsNamespace;
 
-  /** Source-derived publish attachment resolution namespace */
-  readonly attachments: IAttachmentsNamespace;
-
   /** Register or update plugin instructions for the agent system prompt */
   registerInstructions: (instructions: string) => void;
 }
@@ -140,7 +110,6 @@ export function createServicePluginContext(
   const entityService = shell.getEntityService();
   const renderService = shell.getRenderService();
   const contentService = shell.getContentService();
-  const attachmentRegistry = AttachmentRegistry.getInstance();
 
   return {
     ...baseContext,
@@ -221,31 +190,6 @@ export function createServicePluginContext(
     },
 
     prompts: createPromptsNamespace(entityService),
-
-    attachments: {
-      register: (
-        sourceEntityType: string,
-        attachmentType: string,
-        provider: AttachmentProvider,
-      ): (() => void) => {
-        return attachmentRegistry.register(
-          sourceEntityType,
-          attachmentType,
-          provider,
-        );
-      },
-      resolve: (
-        request: AttachmentResolveRequest,
-      ): Promise<PublishMediaData | undefined> => {
-        return attachmentRegistry.resolve(request);
-      },
-      hasProvider: (
-        sourceEntityType: string,
-        attachmentType: string,
-      ): boolean => {
-        return attachmentRegistry.has(sourceEntityType, attachmentType);
-      },
-    },
 
     registerInstructions: (instructions: string): void => {
       shell.registerInstructions(pluginId, instructions);

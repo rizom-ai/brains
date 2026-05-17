@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { PublishMediaData } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { AttachmentRegistry } from "../../src/service/attachment-registry";
+import { createEntityPluginContext } from "../../src/entity/context";
 import { createServicePluginContext } from "../../src/service/context";
 import { createMockShell } from "../../src/test/mock-shell";
 
@@ -65,14 +66,33 @@ describe("AttachmentRegistry", () => {
   });
 });
 
-describe("ServicePluginContext attachments namespace", () => {
+describe("plugin context attachments namespace", () => {
   beforeEach(() => {
     AttachmentRegistry.resetInstance();
   });
 
-  it("registers and resolves attachments through plugin context", async () => {
+  it("registers and resolves attachments through service plugin context", async () => {
     const shell = createMockShell({ logger: createSilentLogger() });
     const context = createServicePluginContext(shell, "test-plugin");
+    const attachment = createPdfAttachment("deck-carousel.pdf");
+
+    context.attachments.register("deck", "carousel", {
+      resolve: () => attachment,
+    });
+
+    expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
+    const result = await context.attachments.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expect(result).toEqual(attachment);
+  });
+
+  it("registers and resolves attachments through entity plugin context", async () => {
+    const shell = createMockShell({ logger: createSilentLogger() });
+    const context = createEntityPluginContext(shell, "decks");
     const attachment = createPdfAttachment("deck-carousel.pdf");
 
     context.attachments.register("deck", "carousel", {

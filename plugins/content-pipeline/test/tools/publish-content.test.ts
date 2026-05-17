@@ -231,6 +231,59 @@ Post without usable documents.`;
     expect(result.documentData).toBeUndefined();
   });
 
+  it("should fall through to source-derived attachment when documents is an empty array", async () => {
+    context.attachments.register("deck", "carousel", {
+      resolve: () => ({
+        type: "document",
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf",
+        filename: "deck-carousel.pdf",
+      }),
+    });
+
+    const content = `---
+documents: []
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Post with empty documents array.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("deck-carousel.pdf");
+  });
+
+  it("should fall through to source-derived attachment when all explicit document refs fail to fetch", async () => {
+    context.attachments.register("deck", "carousel", {
+      resolve: () => ({
+        type: "document",
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf",
+        filename: "deck-carousel.pdf",
+      }),
+    });
+
+    const content = `---
+documents:
+  - id: missing-doc
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Post with unresolvable document refs.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("deck-carousel.pdf");
+  });
+
   it("should ignore missing or invalid image data", async () => {
     await context.entityService.createEntity({
       entity: {

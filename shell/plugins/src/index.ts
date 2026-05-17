@@ -37,12 +37,12 @@ export type {
   ServicePluginContext,
   IServiceTemplatesNamespace,
   IViewsNamespace,
-  IAttachmentsNamespace,
 } from "./service/context";
 export {
   AttachmentRegistry,
   type AttachmentProvider,
   type AttachmentResolveRequest,
+  type IAttachmentsNamespace,
 } from "./service/attachment-registry";
 export type {
   BasePluginContext,
