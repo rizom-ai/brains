@@ -16,6 +16,9 @@ interface ParsedPublishContent {
   bodyContent: string;
   coverImageId?: string;
   documents?: PublishDocumentReference[];
+  documentsRequested?: boolean;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
 }
 
 export interface PreparedPublishContent {
@@ -28,15 +31,24 @@ export async function preparePublishContent(
   context: ServicePluginContext,
   entity: PublishableEntity,
 ): Promise<PreparedPublishContent> {
-  const { bodyContent, coverImageId, documents } = parsePublishContent(
-    entity.content,
-  );
+  const {
+    bodyContent,
+    coverImageId,
+    documents,
+    documentsRequested,
+    sourceEntityType,
+    sourceEntityId,
+  } = parsePublishContent(entity.content);
   const imageData = coverImageId
     ? await fetchPublishImageData(context, coverImageId)
     : undefined;
-  const documentData = documents
-    ? await fetchPublishDocumentData(context, documents)
-    : undefined;
+  const documentData = documentsRequested
+    ? await fetchPublishDocumentData(context, documents ?? [])
+    : await resolveSourceAttachmentData(
+        context,
+        sourceEntityType,
+        sourceEntityId,
+      );
 
   const prepared: PreparedPublishContent = { bodyContent };
   if (imageData) {
@@ -54,12 +66,21 @@ function parsePublishContent(content: string): ParsedPublishContent {
     const rawCoverImageId = parsed.metadata["coverImageId"];
     const coverImageId =
       typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
-    const documents = parseDocumentReferences(parsed.metadata["documents"]);
+    const documentsField = parsed.metadata["documents"];
+    const documents = parseDocumentReferences(documentsField);
+    const documentsRequested = documentsField !== undefined;
+    const sourceEntityType = parseStringField(
+      parsed.metadata["sourceEntityType"],
+    );
+    const sourceEntityId = parseStringField(parsed.metadata["sourceEntityId"]);
 
     return {
       bodyContent: parsed.content,
       ...(coverImageId && { coverImageId }),
+      documentsRequested,
       ...(documents.length > 0 && { documents }),
+      ...(sourceEntityType && { sourceEntityType }),
+      ...(sourceEntityId && { sourceEntityId }),
     };
   } catch {
     return { bodyContent: content };
@@ -74,6 +95,28 @@ function parseDocumentReferences(value: unknown): PublishDocumentReference[] {
   });
 }
 
+function parseStringField(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+async function resolveSourceAttachmentData(
+  context: ServicePluginContext,
+  sourceEntityType: string | undefined,
+  sourceEntityId: string | undefined,
+): Promise<PublishMediaData[] | undefined> {
+  if (!sourceEntityType || !sourceEntityId) {
+    return undefined;
+  }
+
+  const attachment = await context.attachments.resolve({
+    sourceEntityType,
+    sourceEntityId,
+    attachmentType: "carousel",
+  });
+
+  return attachment ? [attachment] : undefined;
+}
+
 async function fetchPublishImageData(
   context: ServicePluginContext,
   coverImageId: string,
@@ -85,7 +128,7 @@ async function fetchPublishImageData(
   if (!image?.content) return undefined;
 
   const parsed = parseBase64DataUrl(image.content);
-  if (!parsed || !parsed.mimeType.startsWith("image/")) return undefined;
+  if (!parsed?.mimeType.startsWith("image/")) return undefined;
 
   return {
     data: parsed.data,
@@ -114,7 +157,7 @@ async function fetchPublishDocumentItem(
   if (!entity?.content) return undefined;
 
   const parsed = parseBase64DataUrl(entity.content);
-  if (!parsed || parsed.mimeType !== "application/pdf") return undefined;
+  if (parsed?.mimeType !== "application/pdf") return undefined;
 
   return {
     type: "document",
