@@ -141,7 +141,7 @@ Two layers:
 
 Until this plan ships, the CMS surface needs a server-side OAuth code-exchange for Sveltia's GitHub login flow (the client secret can't live in the browser). The brain can host a minimal proxy inside `plugins/cms` so operators don't need an external proxy (Netlify, Cloudflare Worker, etc.).
 
-This proxy is **explicitly throwaway** — it gets deleted when the gateway in this plan lands. Build with that retirement in mind.
+This proxy is **explicitly throwaway** — it gets deleted when the gateway in this plan lands. Build with that retirement in mind. This is not the brain's passkey/OAuth identity system; it is only a temporary GitHub OAuth proxy for Sveltia's existing GitHub backend.
 
 ### Setup
 
@@ -149,48 +149,101 @@ Per brain deployment, the operator registers a GitHub OAuth App at `github.com/s
 
 - Authorization callback URL: `https://<brain-domain>/auth/callback`
 
-Resulting credentials go into env:
+Resulting credentials stay in env, but are mapped into `plugins/cms` config by the brain definition rather than read directly by the plugin:
 
-```bash
-GITHUB_OAUTH_CLIENT_ID=...
-GITHUB_OAUTH_CLIENT_SECRET=...
+```ts
+cmsPlugin({
+  githubOAuth: {
+    clientId: env.GITHUB_OAUTH_CLIENT_ID,
+    clientSecret: env.GITHUB_OAUTH_CLIENT_SECRET,
+    scope: "repo", // or "public_repo" for public-only repos
+  },
+});
 ```
+
+The proxy is disabled unless both `clientId` and `clientSecret` are configured.
 
 ### Endpoints (mounted by `plugins/cms`)
 
-**`GET /auth`** — initiates the flow. Generates a `state` cookie and redirects to `https://github.com/login/oauth/authorize` with `client_id`, `redirect_uri`, `scope=repo` (or `public_repo`), `state`.
+**`GET /auth`** — initiates the flow. Generates a cryptographically random `state`, stores it in a short-lived cookie, and redirects to `https://github.com/login/oauth/authorize` with `client_id`, `redirect_uri`, `scope`, and `state`.
 
-**`GET /auth/callback`** — completes the flow. Verifies `state`, exchanges `code` + `client_secret` at GitHub's token endpoint, returns an HTML page that runs the Decap/Sveltia popup handshake:
+State cookie requirements:
+
+- `HttpOnly`
+- `Secure` outside local development
+- `SameSite=Lax`
+- short max age, e.g. 10 minutes
+- deleted after callback completion
+
+**`GET /auth/callback`** — completes the flow. Verifies `state`, exchanges `code` + `client_secret` at GitHub's token endpoint, and returns an HTML page that runs the Decap/Sveltia popup handshake.
+
+The callback page must not blindly post the GitHub token with `targetOrigin: "*"`. It should target the brain/CMS origin derived from `context.siteUrl` (or the incoming request origin in local development) and support Sveltia's `authorizing:github` handshake:
 
 ```js
-window.opener.postMessage(
-  `authorization:github:success:${JSON.stringify({ token, provider: "github" })}`,
-  "*",
+const data = JSON.stringify({ token, provider: "github" });
+const message = `authorization:github:success:${data}`;
+const targetOrigin = "https://<brain-domain>";
+
+function sendToken() {
+  window.opener.postMessage(message, targetOrigin);
+  window.close();
+}
+
+window.addEventListener(
+  "message",
+  (event) => {
+    if (event.origin === targetOrigin && event.data === "authorizing:github") {
+      sendToken();
+    }
+  },
+  false,
 );
-window.close();
+
+// Decap-style readiness signal; Sveltia replies with `authorizing:github`.
+window.opener.postMessage("authorizing:github", targetOrigin);
 ```
 
-Sveltia listens for this exact message format on the opener window.
+If GitHub returns an OAuth error or no `access_token`, the callback should return a clear 400 HTML/text response instead of a 500.
 
 ### Sveltia config delta
+
+When the proxy is enabled, `/cms/config.yml` includes `base_url` and `auth_endpoint`:
 
 ```yaml
 backend:
   name: github
   repo: <org>/<content-repo>
+  branch: main
   base_url: https://<brain-domain>
   auth_endpoint: auth
 ```
 
 `base_url` + `auth_endpoint` tell Sveltia to open `https://<brain-domain>/auth` in a popup instead of going to Netlify's default proxy.
 
-### Implementation size
+When the proxy is disabled, `auth_endpoint` must be omitted. `@brains/cms-config` needs to add explicit `auth_endpoint` support to `CmsConfig.backend`; emitting `base_url` alone should not accidentally imply that the proxy exists.
 
-Two endpoints, ~80 lines of Hono. Reference: the Netlify CMS OAuth proxy and `vencax/netlify-cms-github-oauth-provider`.
+### Implementation shape
+
+- Add optional `githubOAuth` config to `plugins/cms`.
+- Add `auth_endpoint` support to `shared/cms-config`.
+- Register `/auth` and `/auth/callback` only when the proxy is configured.
+- Keep the implementation small and isolated so deletion is straightforward.
+
+Reference: the Netlify CMS OAuth proxy and `vencax/netlify-cms-github-oauth-provider`, plus Sveltia-compatible callback behavior that waits for `authorizing:github` before sending the token.
+
+### Verification
+
+1. With no `githubOAuth` config, `/cms/config.yml` omits `auth_endpoint` and no `/auth` routes are registered.
+2. With `githubOAuth` config, `/cms/config.yml` includes `base_url` and `auth_endpoint: auth`.
+3. `GET /auth` sets a secure state cookie and redirects to GitHub with the configured scope.
+4. `GET /auth/callback` rejects missing or mismatched state.
+5. Successful callback exchanges the code server-side and returns a popup page that posts `authorization:github:success:{...}` only to the expected origin.
+6. GitHub token-exchange errors return a clear 400.
+7. Existing CMS shell and config routes keep working without OAuth config.
 
 ### Retirement
 
-When the gateway ships: delete `/auth` endpoints, drop the env vars from the schema, switch Sveltia config to `git-gateway`. No migration shim, no compatibility code.
+When the gateway ships: delete `/auth` endpoints, drop `githubOAuth` config/env mapping, drop `auth_endpoint` generation, and switch Sveltia config to `git-gateway`. No migration shim, no compatibility code.
 
 ## Rollout
 
