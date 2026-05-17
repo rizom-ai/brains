@@ -13,6 +13,9 @@ import {
 describe("deploy templates", () => {
   it("renders shared Docker and Kamal templates", () => {
     expect(renderDockerfile()).toContain("EXPOSE 8080");
+    expect(renderDockerfile()).toContain(
+      "bunx playwright-core install --with-deps chromium-headless-shell",
+    );
     expect(renderKamalDeploy({ serviceName: "brain" })).toContain(
       "service: brain",
     );

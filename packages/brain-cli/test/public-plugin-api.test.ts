@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
@@ -62,17 +62,6 @@ function listTypedPublicExports(): TypedPublicExport[] {
 }
 
 describe("@rizom/brain public plugin API surface", () => {
-  beforeAll(() => {
-    const result = spawnSync("bun", ["scripts/build.ts"], {
-      cwd: pkgDir,
-      encoding: "utf-8",
-    });
-
-    if (result.status !== 0) {
-      throw new Error(`${result.stdout}\n${result.stderr}`);
-    }
-  }, 60_000);
-
   it("declares root and plugin-author subpath exports", () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));
 

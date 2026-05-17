@@ -44,6 +44,40 @@ describe("Deck carousel attachment provider", () => {
     expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
   });
 
+  it("refuses to render decks that exceed the max slide count", async () => {
+    const renderPdf = mock(async () => Buffer.from("%PDF"));
+    const harness = createPluginHarness<DecksPlugin>();
+    const deps: DecksPluginDeps = { renderPdf };
+
+    await harness.installPlugin(new DecksPlugin(deps));
+    const slides = Array.from(
+      { length: 21 },
+      (_, i) => `# Slide ${i + 1}`,
+    ).join("\n\n---\n\n");
+    await harness.getEntityService().createEntity({
+      entity: {
+        ...sampleDeck,
+        id: "deck-oversized",
+        content: `---\ntitle: Oversized\nstatus: draft\nslug: oversized\n---\n${slides}`,
+      },
+    });
+
+    try {
+      await harness.getEntityContext("test").attachments.resolve({
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-oversized",
+        attachmentType: "carousel",
+      });
+      throw new Error("Expected carousel resolution to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      if (error instanceof Error) {
+        expect(error.message).toContain("21 slides");
+      }
+    }
+    expect(renderPdf).not.toHaveBeenCalled();
+  });
+
   it("resolves a deck into a PDF carousel attachment", async () => {
     const renderPdf = mock(async (url: string) => {
       expect(url).toContain("/_media/carousel/deck-1/");

@@ -19,7 +19,9 @@ CMD ["./node_modules/.bin/brain", "start"]
 # --- standalone: bake full project into image (brain-cli deploy) ---
 FROM runtime AS standalone
 COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
+RUN bun install --production --ignore-scripts \
+ && bunx playwright-core install --with-deps chromium-headless-shell \
+ && rm -rf /var/lib/apt/lists/* /tmp/*
 COPY . .
 
 # --- fleet: install published brain at pinned version (ops deploy) ---
@@ -27,4 +29,6 @@ FROM runtime AS fleet
 ARG BRAIN_VERSION
 RUN test -n "$BRAIN_VERSION" \
  && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
- && bun add @rizom/brain@$BRAIN_VERSION
+ && bun add @rizom/brain@$BRAIN_VERSION \
+ && bunx playwright-core install --with-deps chromium-headless-shell \
+ && rm -rf /var/lib/apt/lists/* /tmp/*

@@ -18,6 +18,7 @@ import {
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_MAX_SLIDES = 20;
 
 export type RenderPdf = (
   url: string,
@@ -56,6 +57,11 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
     }
 
     const carouselContent = buildCarouselContent(deck);
+    if (carouselContent.slides.length > DEFAULT_MAX_SLIDES) {
+      throw new Error(
+        `Refusing to render carousel with ${carouselContent.slides.length} slides; maxSlides=${DEFAULT_MAX_SLIDES}`,
+      );
+    }
     const outputDir = await mkdtemp(join(tmpdir(), "brain-deck-carousel-"));
 
     try {

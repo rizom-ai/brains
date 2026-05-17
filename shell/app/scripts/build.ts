@@ -79,6 +79,7 @@ try {
       "libsql",
       "lightningcss",
       "@tailwindcss/oxide",
+      "playwright-core",
     ],
   });
 

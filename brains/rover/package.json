@@ -32,6 +32,7 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
+    "@brains/document-plugin": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
@@ -47,6 +48,7 @@
     "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/stock-photo": "workspace:*",
+    "@brains/theme-default": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*"
