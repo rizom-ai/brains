@@ -255,6 +255,8 @@ export const ContentArchive = ({
 }: ContentArchiveProps): JSX.Element => {
   const currentPage = pagination?.currentPage ?? 1;
   const shouldFeature = currentPage === 1 && items.length > 0;
+  const featuredYear =
+    shouldFeature && items[0] ? getYear(items[0].date) : undefined;
   const archiveItems = shouldFeature ? items.slice(1) : items;
   const itemLabel = getItemLabel(label);
 
@@ -294,8 +296,9 @@ export const ContentArchive = ({
                   const previousYear =
                     index > 0
                       ? getYear(archiveItems[index - 1]?.date ?? "")
-                      : year;
-                  const showYearBreak = index > 0 && year !== previousYear;
+                      : featuredYear;
+                  const showYearBreak =
+                    previousYear === undefined || year !== previousYear;
                   const yearCount = archiveItems.filter(
                     (archiveItem) => getYear(archiveItem.date) === year,
                   ).length;
