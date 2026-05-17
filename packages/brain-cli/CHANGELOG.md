@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.69
+
+### Patch Changes
+
+- [`a44a686`](https://github.com/rizom-ai/brains/commit/a44a686b3ba1ce490e44b815666790c97d150f4c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ship the current ContentArchive implementation in the bundled brain runtime.
+
+  This includes the year-based archive rail typography refinement and the split between the visual archive label and paginated page title so generated archive pages keep stable headings while still rendering pagination metadata correctly.
+
 ## 0.2.0-alpha.68
 
 ### Patch Changes
