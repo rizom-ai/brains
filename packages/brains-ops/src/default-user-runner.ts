@@ -21,17 +21,24 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     renderAnchors(user),
     "",
     "plugins:",
+    ...(user.setup?.delivery === "email"
+      ? ["  auth-service:", `    setupEmail: ${user.setup.email}`]
+      : []),
     "  directory-sync:",
     "    git:",
     `      repo: ${githubOrg}/${user.contentRepo}`,
     "      authToken: ${GIT_SYNC_TOKEN}",
-    "  mcp:",
-    "    authToken: ${MCP_AUTH_TOKEN}",
   ];
 
   if (user.discordEnabled) {
     lines.push("  discord:");
     lines.push("    botToken: ${DISCORD_BOT_TOKEN}");
+  }
+
+  if (user.setup?.delivery === "email") {
+    lines.push("  email-resend:");
+    lines.push("    apiKey: ${SETUP_EMAIL_API_KEY}");
+    lines.push("    from: ${SETUP_EMAIL_FROM}");
   }
 
   lines.push("");

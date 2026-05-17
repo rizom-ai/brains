@@ -169,12 +169,21 @@ Runtime behavior:
 
 1. Rover boots.
 2. `auth-service` sees no passkey exists and generates the existing one-shot setup URL.
-3. The auth-service/plugin layer emits a setup-required notification.
-4. Email delivery sends the setup URL to `setup.email`.
-5. The user registers their passkey.
-6. Setup closes; future setup notifications report or record `complete` and do not resend the URL.
+3. `auth-service` checks its own persistent "setup email sent" record. If already sent for the current setup token, it skips delivery.
+4. Otherwise `auth-service` calls the generic notifications layer with a recipient and a typed channel preference (today: `email`).
+5. The notifications layer routes the message to the matching transport adapter (today: Resend) over a channel-specific contract (`email:send`).
+6. On confirmed delivery, `auth-service` records the send so normal restarts do not re-spam users.
+7. The user registers their passkey; setup closes; the record is invalidated when the setup token rotates.
 
-Fleet/deploy configuration should target a generic transactional notification/email layer, not a one-off provider integration:
+Architecture: three layers, audience-agnostic
+
+- `@brains/notifications` (generic routing) — owns recipient/channel modelling, picks the transport adapter, plumbs `sensitivity` through. Knows nothing about who the recipient is (operator, user, anchor, team member).
+- `@brains/email-contracts` + transport adapters (`email-resend`, future `email-local-mailserver`, ...) — own the wire format and provider integration.
+- Consumers (today: `auth-service`) — own audience semantics, the _reason_ a notification is sent, and one-shot/dedupe state tied to that reason.
+
+Operator-only concepts (which identity gets the email, why, when not to resend) live in the consumer, not in the notifications layer. The notifications layer must not grow operator-specific defaults; a future `user-notifications` consumer should sit alongside `auth-service` at the same layer, both calling the same generic `notifications:send`.
+
+Fleet/deploy configuration should target the generic transport layer, not a one-off provider integration:
 
 ```env
 SETUP_EMAIL_PROVIDER=resend # first adapter; exact provider TBD
@@ -182,20 +191,20 @@ SETUP_EMAIL_API_KEY=...
 SETUP_EMAIL_FROM=Rover <setup@rizom.ai>
 ```
 
-The setup flow should call a transport-neutral interface such as:
+Consumers call the routing layer with a recipient + channel preference:
 
 ```ts
-sendTransactionalEmail({
-  to,
-  subject,
-  text,
-  html,
+notifications.send({
+  recipient: { type: "email", address: "user@example.com" },
+  title: "Set up your brain passkey",
+  body: "...",
   sensitivity: "secret",
-  dedupeKey,
 });
 ```
 
-This leaves room for a future full email server inside the brain. In that future, setup email becomes another consumer of the same notification abstraction, with a different provider/transport adapter, for example `provider: local-mailserver`.
+The routing layer dispatches to the channel-specific transport contract (e.g. `email:send`). Future channels (matrix DM, push) plug in as additional `recipient.type` variants and additional transport adapters without touching consumers.
+
+This leaves room for a future full email server inside the brain: setup email becomes the same consumer with a different transport adapter, for example `provider: local-mailserver`.
 
 Update `packages/brains-ops`:
 
@@ -205,11 +214,12 @@ Update `packages/brains-ops`:
 
 Update runtime/plugin support:
 
-- add a setup notification path from auth-service/plugin to a delivery layer
-- add a minimal transactional email adapter for setup links
-- keep setup-link logic dependent on a notification/email abstraction, not directly on Resend/Postmark/etc.
-- dedupe setup emails so normal restarts do not spam users
-- store delivery/dedupe state in runtime storage, not the content repo or generated views
+- ship a generic `@brains/notifications` routing layer that depends only on channel-specific transport contracts, never on a specific provider
+- ship at least one transport adapter (`@brains/email-resend`) behind the email contract
+- `auth-service` calls the routing layer; it must not import a provider package directly
+- `auth-service` owns the one-shot/dedupe state for setup email, persisted alongside its other runtime state (same `storageDir`), keyed to the active setup token so the record invalidates when the token rotates
+- the notifications layer itself stays stateless; it does no audience-level dedupe
+- store any delivery state in runtime storage, not the content repo or generated views
 - expose a safe resend path later if needed
 
 Security rules:
@@ -228,9 +238,10 @@ Non-goals for this batch:
 - private user-selected delivery providers
 - implementing the full in-brain email server now
 
-Design constraint:
+Design constraints:
 
 - do not couple setup email directly to a specific third-party provider; keep a provider adapter boundary so a later in-brain mail server can replace the transport without changing auth-service setup semantics
+- the notifications routing layer must remain audience-agnostic; do not bake operator/user/anchor semantics into it. Audience-specific policy (who to send to, when not to resend) lives in the calling consumer
 
 Later enhancement:
 

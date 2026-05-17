@@ -37,7 +37,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
@@ -58,7 +57,6 @@ gitSyncTokenOverride: BOB_GIT_SYNC_TOKEN
       "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
 presetOverride: default
 aiApiKeyOverride: CANARY_AI_API_KEY
-mcpAuthTokenOverride: CANARY_MCP_AUTH_TOKEN
 members:
   - alice
 `,
@@ -87,7 +85,6 @@ members:
         domain: "alice.rizom.ai",
         effectiveAiApiKey: "CANARY_AI_API_KEY",
         effectiveGitSyncToken: "GIT_SYNC_TOKEN",
-        effectiveMcpAuthToken: "CANARY_MCP_AUTH_TOKEN",
         handle: "alice",
         mcpStatus: "unknown",
         model: "rover",
@@ -109,7 +106,6 @@ members:
         domain: "bob.rizom.ai",
         effectiveAiApiKey: "BOB_AI_API_KEY",
         effectiveGitSyncToken: "BOB_GIT_SYNC_TOKEN",
-        effectiveMcpAuthToken: "MCP_AUTH_TOKEN",
         handle: "bob",
         mcpStatus: "unknown",
         model: "rover",
@@ -118,6 +114,40 @@ members:
         snapshotStatus: "missing",
       },
     ]);
+  });
+
+  it("loads user-level setup email delivery metadata", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.14
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/alice.yaml": `handle: alice
+setup:
+  delivery: email
+  email: alice@example.com
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.users[0]?.setup).toEqual({
+      delivery: "email",
+      email: "alice@example.com",
+    });
   });
 
   it("fails when user belongs to no cohort", async () => {
@@ -132,7 +162,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
@@ -170,7 +199,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
@@ -207,7 +235,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
@@ -254,7 +281,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: bob

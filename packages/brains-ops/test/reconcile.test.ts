@@ -27,7 +27,7 @@ function getErrorMessage(error: unknown): string {
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
   return async (user: ResolvedUser): Promise<void> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
   };
 }
@@ -37,7 +37,7 @@ function createSnapshotRunner(
 ): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
   return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
 
     return {
@@ -57,7 +57,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
   "users/alice.yaml": `handle: alice
@@ -77,12 +76,10 @@ discord:
   enabled: false
 aiApiKeyOverride: CARA_AI_API_KEY
 gitSyncTokenOverride: CARA_GIT_SYNC_TOKEN
-mcpAuthTokenOverride: CARA_MCP_AUTH_TOKEN
 `,
   "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
 presetOverride: default
 aiApiKeyOverride: CANARY_AI_API_KEY
-mcpAuthTokenOverride: CANARY_MCP_AUTH_TOKEN
 members:
   - bob
   - alice
@@ -99,7 +96,7 @@ describe("reconcile scripts", () => {
     await onboardUser(root, "alice");
 
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -118,6 +115,25 @@ describe("reconcile scripts", () => {
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
       "| alice | canary | rover | default | 0.1.1-alpha.15 |",
+    );
+  });
+
+  it("renders setup email delivery config into generated brain config", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/alice.yaml": `handle: alice
+setup:
+  delivery: email
+  email: alice@example.com
+discord:
+  enabled: false
+`,
+    });
+
+    await onboardUser(root, "alice");
+
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email-resend:\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
     );
   });
 
@@ -141,8 +157,8 @@ describe("reconcile scripts", () => {
     await reconcileCohort(root, "canary", createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
-      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
+      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
     ]);
   });
 
@@ -183,7 +199,7 @@ describe("reconcile scripts", () => {
     await onboardUser(root, "cara", createSnapshotRunner(calls));
 
     expect(calls).toEqual([
-      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY:CARA_GIT_SYNC_TOKEN:CARA_MCP_AUTH_TOKEN",
+      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY:CARA_GIT_SYNC_TOKEN",
     ]);
 
     const snapshot = await readFile(
@@ -215,7 +231,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/mary-jane.yaml": `handle: mary-jane\ndiscord:\n  enabled: true\n`,

@@ -13,6 +13,7 @@ import {
   InvalidRefreshTokenError,
   RefreshTokenStore,
 } from "./refresh-token-store";
+import { SetupStateStore, setupTokenId } from "./setup-state-store";
 import {
   clearOperatorSessionCookie,
   OperatorSessionStore,
@@ -58,6 +59,7 @@ interface SetupTokenState {
 export interface OperatorSetupRequired {
   setupUrl: string;
   expiresAt: number;
+  setupTokenId: string;
 }
 
 interface AuthorizationApprovalTokenState {
@@ -84,6 +86,7 @@ export class AuthService {
   private readonly sessionStore: OperatorSessionStore;
   private readonly passkeyService: PasskeyService;
   private readonly refreshTokenStore: RefreshTokenStore;
+  private readonly setupStateStore: SetupStateStore;
   private readonly logger: Logger | undefined;
   private setupToken: SetupTokenState | undefined;
   private readonly authorizationApprovalTokens = new Map<
@@ -116,6 +119,9 @@ export class AuthService {
     this.refreshTokenStore = new RefreshTokenStore({
       storageDir: options.storageDir,
     });
+    this.setupStateStore = new SetupStateStore({
+      storageDir: options.storageDir,
+    });
     this.logger = options.logger;
   }
 
@@ -128,7 +134,7 @@ export class AuthService {
     this.logger?.debug("Auth service signing key loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
-      this.createSetupToken();
+      await this.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {
         if (isLoopbackIssuer(this.issuer)) {
@@ -254,6 +260,7 @@ export class AuthService {
         `/setup?token=${encodeURIComponent(setupToken.token)}`,
       ),
       expiresAt: setupToken.expiresAt,
+      setupTokenId: setupTokenId(setupToken.token),
     };
   }
 
@@ -440,17 +447,54 @@ export class AuthService {
     }
 
     this.setupToken = undefined;
+    await this.setupStateStore.clearSetupState();
     const session = await this.createOperatorSession(result.subject);
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
   }
 
-  private createSetupToken(): void {
+  async hasSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+  ): Promise<boolean> {
+    return this.setupStateStore.hasDelivery(setupTokenIdValue, recipient);
+  }
+
+  async recordSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+    options: { deliveryId?: string } = {},
+  ): Promise<void> {
+    await this.setupStateStore.recordDelivery(
+      setupTokenIdValue,
+      recipient,
+      options,
+    );
+  }
+
+  private async ensureSetupToken(): Promise<SetupTokenState> {
+    const currentSetupToken = this.getValidSetupToken();
+    if (currentSetupToken) return currentSetupToken;
+
+    const storedSetupToken = await this.setupStateStore.getValidSetupToken(
+      Math.floor(Date.now() / 1000),
+    );
+    if (storedSetupToken) {
+      this.setupToken = storedSetupToken;
+      return storedSetupToken;
+    }
+
+    return this.createSetupToken();
+  }
+
+  private async createSetupToken(): Promise<SetupTokenState> {
     this.setupToken = {
       token: `setup_${randomUUID()}`,
       expiresAt: Math.floor(Date.now() / 1000) + SETUP_TOKEN_TTL_SECONDS,
     };
+    await this.setupStateStore.saveSetupToken(this.setupToken);
+    return this.setupToken;
   }
 
   private getValidSetupToken(): SetupTokenState | undefined {

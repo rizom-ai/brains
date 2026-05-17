@@ -128,7 +128,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
     "users/alice.yaml": `handle: alice
@@ -402,7 +401,7 @@ discord:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
+      "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",

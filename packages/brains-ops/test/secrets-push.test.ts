@@ -24,8 +24,6 @@ describe("pushPilotSecrets", () => {
 AI_API_KEY=
 # @required @sensitive
 GIT_SYNC_TOKEN=
-# @required @sensitive
-MCP_AUTH_TOKEN=
 # @sensitive
 DISCORD_BOT_TOKEN=
 # @required @sensitive
@@ -49,7 +47,6 @@ CERTIFICATE_PEM=
       [
         "AI_API_KEY=shared-ai-key",
         "GIT_SYNC_TOKEN=git-token",
-        "MCP_AUTH_TOKEN=mcp-token",
         "DISCORD_BOT_TOKEN=should-not-push",
         "HCLOUD_TOKEN=hcloud-token",
         "KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/pilot_ed25519",
@@ -78,7 +75,6 @@ CERTIFICATE_PEM=
       expect(result.pushedKeys).toEqual([
         "AI_API_KEY",
         "GIT_SYNC_TOKEN",
-        "MCP_AUTH_TOKEN",
         "HCLOUD_TOKEN",
         "KAMAL_SSH_PRIVATE_KEY",
         "CERTIFICATE_PEM",
@@ -88,11 +84,6 @@ CERTIFICATE_PEM=
         command: "gh",
         args: ["secret", "set", "GIT_SYNC_TOKEN"],
         stdin: "git-token",
-      });
-      expect(calls).toContainEqual({
-        command: "gh",
-        args: ["secret", "set", "MCP_AUTH_TOKEN"],
-        stdin: "mcp-token",
       });
       expect(calls).toContainEqual({
         command: "gh",
@@ -119,8 +110,6 @@ AI_API_KEY=
 # @required @sensitive
 GIT_SYNC_TOKEN=
 # @required @sensitive
-MCP_AUTH_TOKEN=
-# @required @sensitive
 HCLOUD_TOKEN=
 # @sensitive
 DISCORD_BOT_TOKEN=
@@ -136,16 +125,11 @@ DISCORD_BOT_TOKEN=
 
     expect(result.dryRun).toBe(true);
     expect(result.pushedKeys).toEqual(["AI_API_KEY"]);
-    expect(result.skippedKeys).toEqual([
-      "GIT_SYNC_TOKEN",
-      "MCP_AUTH_TOKEN",
-      "HCLOUD_TOKEN",
-    ]);
+    expect(result.skippedKeys).toEqual(["GIT_SYNC_TOKEN", "HCLOUD_TOKEN"]);
     expect(logs[0]).toContain("Dry run: would push 1 secrets");
     expect(logs[1]).toContain("Secrets: AI_API_KEY");
-    expect(logs).toContain("Required before first deploy (3):");
+    expect(logs).toContain("Required before first deploy (2):");
     expect(logs).toContain("  - GIT_SYNC_TOKEN");
-    expect(logs).toContain("  - MCP_AUTH_TOKEN");
     expect(logs).toContain("  - HCLOUD_TOKEN");
   });
 });

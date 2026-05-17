@@ -30,7 +30,6 @@ export interface ResolvedCohort {
   presetOverride?: PilotPreset;
   aiApiKeyOverride?: string;
   gitSyncTokenOverride?: string;
-  mcpAuthTokenOverride?: string;
 }
 
 export interface ResolvedAnchorProfileSocialLink {
@@ -48,6 +47,11 @@ export interface ResolvedAnchorProfile {
   socialLinks?: ResolvedAnchorProfileSocialLink[];
 }
 
+export interface ResolvedSetupDelivery {
+  delivery: "email";
+  email: string;
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -60,7 +64,7 @@ export interface ResolvedUserIdentity {
   discordAnchorUserId?: string;
   effectiveAiApiKey: string;
   effectiveGitSyncToken: string;
-  effectiveMcpAuthToken: string;
+  setup?: ResolvedSetupDelivery;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
@@ -123,9 +127,6 @@ export async function loadPilotRegistry(
       ...(cohortFile.data.gitSyncTokenOverride
         ? { gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride }
         : {}),
-      ...(cohortFile.data.mcpAuthTokenOverride
-        ? { mcpAuthTokenOverride: cohortFile.data.mcpAuthTokenOverride }
-        : {}),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -158,10 +159,7 @@ export async function loadPilotRegistry(
           userFile.data.gitSyncTokenOverride ??
           cohort.data.gitSyncTokenOverride ??
           pilot.gitSyncToken,
-        effectiveMcpAuthToken:
-          userFile.data.mcpAuthTokenOverride ??
-          cohort.data.mcpAuthTokenOverride ??
-          pilot.mcpAuthToken,
+        ...(userFile.data.setup ? { setup: userFile.data.setup } : {}),
         anchorProfile: resolveAnchorProfile(
           userFile.data.handle,
           userFile.data.anchorProfile,

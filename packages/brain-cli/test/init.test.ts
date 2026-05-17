@@ -804,7 +804,7 @@ describe("brain init", () => {
       expect(workflow).not.toContain("secrets.OP_TOKEN");
       expect(workflow).toContain("secrets.AI_API_KEY");
       expect(workflow).toContain("secrets.GIT_SYNC_TOKEN");
-      expect(workflow).toContain("secrets.MCP_AUTH_TOKEN");
+      expect(workflow).not.toContain("secrets.MCP_AUTH_TOKEN");
       expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");
       expect(workflow).toContain("HCLOUD_SERVER_TYPE");
       expect(workflow).toContain("HCLOUD_LOCATION");
