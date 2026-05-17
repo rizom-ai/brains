@@ -19,11 +19,12 @@ Add media render outputs by introducing a Playwright-based renderer on the view-
 
 ## Goal
 
-Support template-driven media generation:
+Support source-entity-driven media generation:
 
-- multiple PNG slides for social carousels
-- PDFs assembled from carousel slides (and other future PDF document types)
-- single PNGs for OG images
+- decks can provide carousel attachments through entity-owned renderers/providers
+- carousel attachments are emitted as PDFs for social publishing
+- other future document/image artifacts can reuse the same substrate
+- single PNGs for OG images remain phase 2
 
 PDF carousels are the primary deliverable and should ship first. OG images and other PDF document types reuse the same substrate after the PDF path is proven.
 
@@ -36,12 +37,16 @@ PDF carousels are the primary deliverable and should ship first. OG images and o
 - Do not overload `image` entities for PDFs
 - Do not require OG image generation for the PDF-first MVP
 - Do not expose media render routes as public/indexable site content
+- Do not introduce a separate `carousel` entity while carousels are still authored as ordinary decks
+- Do not require `social-post.documents[]` for idempotent, source-derived carousel PDFs
+- Do not make publishers depend on deck renderer names such as `carousel` or `pdf`
 
 ## Rendering approach
 
 ```text
-TSX template + data
-  -> media route in site (server-rendered)
+source entity + attachment request
+  -> source plugin resolves an artifact provider
+  -> provider renders an internal media page
   -> Playwright navigates and captures
      - PNG via page.screenshot() for images
      - PDF via page.pdf() for documents
@@ -76,11 +81,11 @@ Because the current site builder is static, the implementation must choose one e
 
 The MVP should prefer the smallest route that reuses the existing Preact rendering/data-resolution path without registering media pages as normal public routes.
 
-This also enables a "render an existing Reveal deck as a PDF carousel" path later: navigate the existing deck route with `?print-pdf`, capture via `page.pdf()`.
+This also enables a deck-owned carousel path: a deck can map `attachmentType: "carousel"` to whatever renderer it owns internally, whether that is a static media template, a Reveal print route, or a future dedicated deck PDF renderer.
 
 ## Template integration
 
-Extend the **view-template** renderer contracts, not `createTemplate`.
+Extend the **view-template** renderer contracts, not `createTemplate`, but keep renderer names as source-plugin implementation details.
 
 - `ViewTemplate` at `shell/templates/src/render-types.ts` currently exposes `renderers: { web?: WebRenderer<T> }`
 - `SiteViewTemplate` at `plugins/site-builder/src/lib/site-view-template.ts` mirrors this
@@ -100,6 +105,29 @@ renderers: {
 
 Media renderers are ordinary Preact/JSX components that mount on media routes — same JSX style, same Tailwind, same primitives as the rest of the site. No "Satori-safe" parallel component system.
 
+For cross-plugin use, expose **artifact/attachment capabilities**, not renderer names. A caller should ask for a semantic attachment, and the source plugin should choose the renderer:
+
+```ts
+resolveAttachment({
+  sourceEntityType: "deck",
+  sourceEntityId: "ai-stress-test",
+  attachmentType: "carousel",
+});
+```
+
+The response declares the concrete output:
+
+```ts
+{
+  kind: "document",
+  mimeType: "application/pdf",
+  filename: "ai-stress-test-carousel.pdf",
+  data: Buffer,
+}
+```
+
+Do not include `mimeType` in the MVP request. If one `attachmentType` later supports multiple formats, add explicit negotiation then.
+
 ## Theme data for media renderers
 
 Media renderers have access to the **full site theme** — Tailwind, theme tokens, design system components. Since rendering goes through a real browser, there is no CSS subset to work around.
@@ -117,14 +145,16 @@ MVP uses generated internal HTML pages plus a temporary local static render serv
 
 ## Trigger model
 
-Generated media is produced via **explicit document jobs**, not during site build or request handling.
+Generated media is produced via **explicit attachment/artifact resolution**, not during site build or request handling.
 
-- The manual operator surface is `document_generate`; document generation owns durable PDF artifacts and optional `documents[]` attachment
-- Site-builder may provide internal HTML/media pages, but it should not own the public document-generation tool
+- The social post stores source intent (`sourceEntityType`, `sourceEntityId`), not generated carousel document IDs by default
+- Publishing resolves a source-derived attachment by semantic type, e.g. `attachmentType: "carousel"`
+- The manual operator surface, if needed, is `document_generate` over the same attachment contract; it freezes the result as a durable artifact instead of being required for normal publishing
+- Site-builder may provide internal HTML/media pages, but it should not own the public document-generation or publishing contract
 - Follows the existing job-handler pattern used by image generation, without coupling media generation to `ImageGenerationJobHandler`
 - Lets one entity change regenerate one artifact, instead of forcing a full rebuild
 - Keeps site builds fast
-- Carousels can be generated on `social-post` draft, independent of build cadence
+- Carousels can be generated from a `social-post` draft source, independent of build cadence
 
 MVP browser lifecycle: launch Chromium **on demand per media job or short batch**, then close it in `finally`. If shutdown fails or the job times out, kill the browser process. This is slower than a warm pool, but safer for the current single-process brain deployment.
 
@@ -132,10 +162,13 @@ A warm browser pool can be added later only if media generation volume justifies
 
 ## PDF carousels (primary path)
 
+- Author carousels as ordinary `deck` entities for the MVP
+- The deck plugin owns the mapping from `attachmentType: "carousel"` to an internal renderer/provider
 - Render each carousel as a multi-page route — one HTML "page" per slide with `@page` CSS sizing
 - Capture once via `page.pdf({ width, height, printBackground: true })` — Playwright handles multi-page natively
-- Store the PDF as a new `document` entity
-- Attach the document entity to a `social-post` via the planned `documents[]` field
+- Return the generated PDF as a publish attachment (`kind: "document"`, `mimeType: "application/pdf"`, `filename`, `data`)
+- Do **not** store the PDF as a `document` entity or attach it to `social-post.documents[]` for the normal idempotent path
+- Store a `document` entity only when explicitly freezing/approving/auditing a concrete artifact
 - Enforce a maximum slide/page count before rendering
 - Enforce a maximum output PDF size before storing/publishing
 
@@ -143,19 +176,19 @@ For carousels assembled from disparate sources (e.g., merging a cover page gener
 
 ### `document` entity
 
-- New entity, parallel to `image`
+- New entity, parallel to `image`, but reserved for frozen/approved artifacts rather than required render cache
 - Stores PDF binary as base64 data URL (same shape as `image.content`)
-- Must be durable brain-data content: exported/imported through the normal entity persistence and directory-sync path, with round-trip tests for PDF data URLs
+- Must be durable brain-data content when used: exported/imported through the normal entity persistence and directory-sync path, with round-trip tests for PDF data URLs
 - Metadata should explicitly include:
   - `mimeType: "application/pdf"`
   - `filename`
   - `pageCount`
   - `sourceEntityType`
   - `sourceEntityId`
-  - `sourceTemplate`
-  - deterministic `dedupKey`
+  - `attachmentType` such as `"carousel"`
+  - deterministic `dedupKey` or snapshot key
 - Job-generated; not user-authored
-- The `document` plugin owns the generic PDF generation job/tool boundary; site-builder remains responsible only for site/media HTML composition helpers
+- The `document` plugin owns freezing/storing durable document artifacts; site-builder remains responsible only for site/media HTML composition helpers
 
 ## OG images (phase 2, follows carousel substrate)
 
@@ -188,19 +221,25 @@ type PublishMediaData = {
 // Existing PublishImageData remains the coverImageId path for image posts.
 ```
 
-Then update social publishing to support document attachments via `documents[]`.
+Then update social publishing to support resolved document attachments.
 
-This must include the content-pipeline/social publish preparation path, which currently extracts a single `coverImageId` and passes one optional `imageData`. Keep `coverImageId` as the image/visual-preview path while adding `documents[]` for document attachments.
+For the idempotent carousel path, the publish preparation flow should:
 
-Note: `image` and `document` entities store base64 data URLs; publishers convert to `Buffer` at the boundary.
+1. read the `social-post` source reference (`sourceEntityType`, `sourceEntityId`)
+2. ask the attachment/artifact registry for `attachmentType: "carousel"`
+3. pass the returned `PublishMediaData` to the provider
+
+Do not require `documents[]` for this path. Keep `coverImageId` as the image/visual-preview path.
+
+`documents[]` remains useful only for explicitly frozen or manually attached artifacts. In that case, `document` entities store base64 data URLs and publishers convert to `Buffer` at the boundary.
 
 For LinkedIn, publish PDF carousels as document/PDF posts rather than ad carousel posts.
 
 ## Dedup
 
-Generated artifacts set a deterministic `dedupKey` (template id + source entity id + content/template hash) on the `image`/`document` metadata, so a job for an unchanged entity reuses the existing artifact instead of regenerating.
+Generated attachments should use a deterministic key for cache/reuse decisions, based on source entity content hash, attachment type, renderer/provider version, and relevant theme/build inputs.
 
-Add explicit schema support for `dedupKey` before relying on it. Do not overload `sourceUrl` for this, because generated artifacts do not necessarily come from URLs.
+Do not treat `document` entities as the default cache. Store a `dedupKey`/snapshot key on `document` metadata only when freezing a durable artifact. Do not overload `sourceUrl`, because generated artifacts do not necessarily come from URLs.
 
 ## Bundling & deployment
 
@@ -237,15 +276,15 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 1. Audit current view-template renderer contracts and consumers
 2. Extend `ViewTemplate` and `SiteViewTemplate` with backward-compatible `image` and `pdf` renderer slots
 3. Create `shared/media-renderer/` package. Add Playwright (`playwright-core` + Chromium), on-demand browser lifecycle, render-by-URL helper exposing `screenshotPng(url, viewport)` and `renderPdf(url, options)`
-4. Add a `document` entity (schema, adapter, plugin) parallel to `image`, with metadata for filename/page count/source/dedup, and verify brain-data export/import round-trips
+4. Add a `document` entity (schema, adapter, plugin) parallel to `image`, but use it for frozen/approved artifacts rather than default cache; verify brain-data export/import round-trips
 5. Choose and implement the media route execution mode for the MVP: concrete generated internal HTML pages served by a temporary local render server
 6. Ensure media template HTML participates in CSS/Tailwind generation
-7. Add the `/_media/carousel/:templateId/:entityId` render path. Build a single carousel slide as a PoC and render it via the helper
-8. Render a full multi-page carousel route; capture via `page.pdf()`; store as `document`
-9. Add/queue the explicit `document_generate` job/tool with timeout, max page count, max PDF size, and browser cleanup
+7. Add an attachment/artifact capability registry with request shape `{ sourceEntityType, sourceEntityId, attachmentType }`
+8. Register a deck-owned `attachmentType: "carousel"` provider that renders normal deck content as a multi-page PDF
+9. Update `document_generate` to use the attachment contract and freeze the returned document only when explicitly requested
 10. Extend the publish contract with document attachment data
-11. Update publish preparation and social publishing to support `documents[]` while preserving `coverImageId` image behavior
-12. Add LinkedIn document upload/publish support; attach documents to `social-post` via `documents[]`
+11. Update publish preparation and social publishing to resolve source-derived carousel attachments while preserving `coverImageId` image behavior
+12. Add LinkedIn document upload/publish support without requiring `social-post.documents[]` for generated carousels
 13. Add the `/_media/og/:templateId/:entityId` route. Build OG component PoC
 14. Generate OG PNGs into existing `image` entities via the helper; add `ogImageId` to selected entities with fallback to `coverImageId` and site default OG image
 15. Resolve `ogImageId`/fallbacks before `<Head />`, and ensure `HeadCollector` emits absolute `og:image` and `twitter:image` URLs
@@ -258,8 +297,9 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 - Verify media template styles are present in captured PDF output
 - Verify PDF generation produces one page per carousel slide
 - Verify max page count and max output size safeguards fail safely
-- Verify document dedup key reuse on unchanged entity input
-- Verify generated `document` entities persist to brain-data and import/export PDF data URLs without corruption
+- Verify attachment cache/reuse key stability on unchanged entity input
+- Verify frozen `document` entities persist to brain-data and import/export PDF data URLs without corruption
+- Verify normal carousel publish does not require `social-post.documents[]`
 - Mock LinkedIn document upload/publish in tests
 - Smoke test: app image builds with Chromium installed; render job runs end-to-end without render-on-request
 - Phase 2: verify site head emits absolute `og:image` and `twitter:image` URLs
