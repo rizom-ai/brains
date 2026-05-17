@@ -4,7 +4,7 @@
 2. Run `bunx brains-ops age-key:bootstrap <repo> --push-to gh`.
 3. Fill in `pilot.yaml`.
    - keep your pinned `brainVersion`
-   - confirm shared selectors for `aiApiKey`, `gitSyncToken`, `contentRepoAdminToken`, and `mcpAuthToken`
+   - confirm shared selectors for `aiApiKey`, `gitSyncToken`, and `contentRepoAdminToken`
    - use different tokens for `contentRepoAdminToken` and `gitSyncToken`: admin creates/checks content repos; sync is used by runtime directory-sync
    - confirm `agePublicKey`
 4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.

@@ -103,7 +103,6 @@ jobs:
         env:
           SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
           SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-          SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
           SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
           SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
@@ -119,7 +118,6 @@ jobs:
         run: |
           export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
           export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"
           bun deploy/scripts/validate-secrets.ts
 
       - name: Seed content repo
@@ -177,7 +175,6 @@ jobs:
         env:
           SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
           SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
-          SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
           SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}
           SETUP_EMAIL_FROM: ${{ secrets.SETUP_EMAIL_FROM }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
@@ -186,7 +183,6 @@ jobs:
         run: |
           export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
           export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
-          export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"
           bun deploy/scripts/write-kamal-secrets.ts
 
       - name: Provision server

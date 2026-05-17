@@ -51,7 +51,6 @@ env:
   secret:
     - AI_API_KEY
     - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
 
 volumes:
@@ -93,7 +92,6 @@ env:
   secret:
     - AI_API_KEY
     - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
 
 volumes:
@@ -194,7 +192,6 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).toContain(
       "contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN",
     );
-    expect(pilotYaml).toContain("mcpAuthToken: MCP_AUTH_TOKEN");
     expect(pilotYaml).toContain(
       "agePublicKey: age1replace-with-your-public-key",
     );
@@ -301,9 +298,7 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       'export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"',
     );
-    expect(deployWorkflow).toContain(
-      'export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"',
-    );
+    expect(deployWorkflow).not.toContain("MCP_AUTH_TOKEN");
     expect(deployWorkflow).toContain(
       "SETUP_EMAIL_API_KEY: ${{ secrets.SETUP_EMAIL_API_KEY }}",
     );
@@ -561,7 +556,7 @@ describe("initPilotRepo", () => {
     await mkdir(repo, { recursive: true });
     await writeFile(
       join(repo, "pilot.yaml"),
-      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nmcpAuthToken: CUSTOM_MCP_AUTH_TOKEN\nagePublicKey: age1custompublickey\n",
+      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nagePublicKey: age1custompublickey\n",
     );
 
     await initPilotRepo(repo);

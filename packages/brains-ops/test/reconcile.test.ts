@@ -27,7 +27,7 @@ function getErrorMessage(error: unknown): string {
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
   return async (user: ResolvedUser): Promise<void> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
   };
 }
@@ -37,7 +37,7 @@ function createSnapshotRunner(
 ): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
   return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
     );
 
     return {
@@ -57,7 +57,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
   "users/alice.yaml": `handle: alice
@@ -77,12 +76,10 @@ discord:
   enabled: false
 aiApiKeyOverride: CARA_AI_API_KEY
 gitSyncTokenOverride: CARA_GIT_SYNC_TOKEN
-mcpAuthTokenOverride: CARA_MCP_AUTH_TOKEN
 `,
   "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
 presetOverride: default
 aiApiKeyOverride: CANARY_AI_API_KEY
-mcpAuthTokenOverride: CANARY_MCP_AUTH_TOKEN
 members:
   - bob
   - alice
@@ -160,8 +157,8 @@ discord:
     await reconcileCohort(root, "canary", createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
-      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
+      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN",
     ]);
   });
 
@@ -202,7 +199,7 @@ discord:
     await onboardUser(root, "cara", createSnapshotRunner(calls));
 
     expect(calls).toEqual([
-      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY:CARA_GIT_SYNC_TOKEN:CARA_MCP_AUTH_TOKEN",
+      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY:CARA_GIT_SYNC_TOKEN",
     ]);
 
     const snapshot = await readFile(
@@ -234,7 +231,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
       "users/mary-jane.yaml": `handle: mary-jane\ndiscord:\n  enabled: true\n`,

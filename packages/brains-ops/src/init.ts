@@ -80,7 +80,6 @@ env:
   secret:
     - AI_API_KEY
     - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
 
 volumes:

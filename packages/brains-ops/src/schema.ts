@@ -26,7 +26,6 @@ export const pilotSchema = z
     aiApiKey: secretNameSchema,
     gitSyncToken: secretNameSchema,
     contentRepoAdminToken: secretNameSchema,
-    mcpAuthToken: secretNameSchema,
     agePublicKey: agePublicKeySchema,
   })
   .strict();
@@ -68,7 +67,6 @@ export const userSchema = z
       .strict(),
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
-    mcpAuthTokenOverride: secretNameSchema.optional(),
     setup: setupDeliverySchema.optional(),
     anchorProfile: anchorProfileSchema.optional(),
   })
@@ -81,7 +79,6 @@ export const cohortSchema = z
     presetOverride: presetSchema.optional(),
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
-    mcpAuthTokenOverride: secretNameSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

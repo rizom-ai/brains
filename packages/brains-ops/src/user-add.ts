@@ -141,9 +141,6 @@ function formatCohortFile(cohort: CohortConfig): string {
     ...(cohort.gitSyncTokenOverride
       ? [`gitSyncTokenOverride: ${cohort.gitSyncTokenOverride}`]
       : []),
-    ...(cohort.mcpAuthTokenOverride
-      ? [`mcpAuthTokenOverride: ${cohort.mcpAuthTokenOverride}`]
-      : []),
     "",
   ].join("\n");
 }

@@ -20,7 +20,6 @@ const pilot = parseFlatYaml(readFileSync("pilot.yaml", "utf8"));
 
 writeGitHubEnv("AI_API_KEY", secrets["aiApiKey"] ?? "");
 writeGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"] ?? "");
-writeGitHubEnv("MCP_AUTH_TOKEN", secrets["mcpAuthToken"] ?? "");
 writeGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"] ?? "");
 
 writeGitHubOutput(
@@ -30,10 +29,6 @@ writeGitHubOutput(
 writeGitHubOutput(
   "shared_git_sync_token_secret_name",
   requireFlatValue(pilot, "gitSyncToken", "pilot.yaml"),
-);
-writeGitHubOutput(
-  "shared_mcp_auth_token_secret_name",
-  requireFlatValue(pilot, "mcpAuthToken", "pilot.yaml"),
 );
 
 function extractAgeIdentity(contents: string): string {
