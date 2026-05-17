@@ -431,6 +431,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
     expect(deployConfig).toContain("- SETUP_EMAIL_API_KEY");
     expect(deployConfig).toContain("- SETUP_EMAIL_FROM");
+    expect(deployConfig).not.toContain("MCP_AUTH_TOKEN");
 
     const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");
     const preDeployHook = await readFile(preDeployHookPath, "utf8");
