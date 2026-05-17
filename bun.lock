@@ -111,6 +111,7 @@
         "@brains/decks": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/discord": "workspace:*",
+        "@brains/document-plugin": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -126,6 +127,7 @@
         "@brains/site-info": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/stock-photo": "workspace:*",
+        "@brains/theme-default": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
@@ -258,7 +260,7 @@
       },
     },
     "entities/document": {
-      "name": "@brains/document-entity",
+      "name": "@brains/document-plugin",
       "version": "0.2.0-alpha.68",
       "dependencies": {
         "@brains/contracts": "workspace:*",
@@ -645,6 +647,7 @@
         "@tailwindcss/oxide": "^4.1.4",
         "better-sqlite3": "^11.8.1",
         "lightningcss": "^1.29.2",
+        "playwright-core": "^1.56.0",
         "react-devtools-core": "^6.1.1",
         "sharp": "^0.34.5",
       },
@@ -856,10 +859,7 @@
       "name": "@brains/site-builder-plugin",
       "version": "0.2.0-alpha.68",
       "dependencies": {
-        "@brains/document": "workspace:*",
-        "@brains/document-entity": "workspace:*",
         "@brains/image": "workspace:*",
-        "@brains/media-page-composer": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-engine": "workspace:*",
@@ -1697,7 +1697,7 @@
 
     "@brains/document": ["@brains/document@workspace:shared/document"],
 
-    "@brains/document-entity": ["@brains/document-entity@workspace:entities/document"],
+    "@brains/document-plugin": ["@brains/document-plugin@workspace:entities/document"],
 
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 

@@ -302,11 +302,9 @@ Completed as a pure code rename: no `document` entities exist on disk anywhere i
 
 Extract to a new `shared/media-page-composer/` package (preferred) or fold into `shared/media-renderer/`. The composer is loosely coupled:
 
-- **Generic and extractable**: `plugins/site-builder/src/lib/media-render-page.ts` (tmp-dir + ephemeral HTTP server, only depends on `fs`/`http`/`path` + the template renderer) and `plugins/site-builder/src/lib/media-template-renderer.ts` (preact + `@brains/ui-library` + `@brains/site-engine` primitives — `HeadCollector`, `createHTMLShell`, `SiteImageRendererService`).
-- **Only site-builder coupling**: a single `SiteBuilderOptions["siteConfig"]` type import (2 fields: `title`, `themeMode`). Replace with a local `MediaSiteConfig` interface during the move.
-- Estimated effort: a few hours, mostly mechanical. After the move, both site-builder and the deck provider import from `shared/media-page-composer/`.
-
-Lock the function signature and add a public-surface test before deck code starts depending on it.
+- **Extracted shared package**: `shared/media-page-composer/` now owns temporary media HTML rendering, internal `_media` page writing, and the static render server.
+- **No site-builder dependency**: site-builder no longer exports compatibility wrappers for media-page composition or document generation. Deck carousel providers import the shared composer directly.
+- **Public surface tests**: shared package tests lock `renderMediaTemplateHtml`, `writeMediaRenderPage`, and `startStaticRenderServer` behavior.
 
 ## Implementation order
 

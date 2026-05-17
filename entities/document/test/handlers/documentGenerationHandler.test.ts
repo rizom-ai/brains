@@ -9,11 +9,11 @@ import {
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
+  createPdfDataUrl,
   documentAdapter,
   documentSchema,
-  createPdfDataUrl,
 } from "@brains/document";
-import { MediaDocumentGenerationJobHandler } from "../../src/handlers/mediaDocumentGenerationHandler";
+import { DocumentGenerationJobHandler } from "../../src/handlers/documentGenerationHandler";
 
 const socialPostStubSchema = baseEntitySchema.extend({
   entityType: z.literal("social-post"),
@@ -49,7 +49,7 @@ function expectErrorMessage(error: unknown, message: string): void {
   expect(error.message).toContain(message);
 }
 
-describe("MediaDocumentGenerationJobHandler", () => {
+describe("DocumentGenerationJobHandler", () => {
   let context: ServicePluginContext;
 
   beforeEach((): void => {
@@ -64,11 +64,11 @@ describe("MediaDocumentGenerationJobHandler", () => {
         socialPostStubSchema,
         new SocialPostStubAdapter(),
       );
-    context = createServicePluginContext(shell, "site-builder");
+    context = createServicePluginContext(shell, "document");
   });
 
   it("renders and stores a generated PDF document", async () => {
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       { renderPdf: async (): Promise<Buffer> => pdfBuffer },
@@ -125,7 +125,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       {
@@ -163,7 +163,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
         filename: "from-provider.pdf",
       }),
     });
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       {
@@ -213,7 +213,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       { renderPdf: async (): Promise<Buffer> => pdfBuffer },
@@ -242,7 +242,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
   });
 
   it("rejects jobs exceeding the max page count before rendering", async () => {
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       {
@@ -275,7 +275,7 @@ describe("MediaDocumentGenerationJobHandler", () => {
     const oversizedPdf = Buffer.from(
       `%PDF-1.7\n${"\n/Type /Pages /Count 30\n".repeat(1)}%%EOF`,
     );
-    const handler = new MediaDocumentGenerationJobHandler(
+    const handler = new DocumentGenerationJobHandler(
       createSilentLogger(),
       context,
       { renderPdf: async (): Promise<Buffer> => oversizedPdf },
