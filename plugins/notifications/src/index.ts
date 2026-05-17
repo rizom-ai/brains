@@ -35,9 +35,19 @@ type NotificationsConfig = z.infer<typeof notificationsConfigSchema>;
 
 export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
 
-export type SendNotificationResult =
-  | { status: "sent"; deliveryId?: string }
-  | { status: "failed" };
+export const sendNotificationResultSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      status: z.literal("sent"),
+      deliveryId: z.string().optional(),
+    })
+    .strict(),
+  z.object({ status: z.literal("failed") }).strict(),
+]);
+
+export type SendNotificationResult = z.infer<
+  typeof sendNotificationResultSchema
+>;
 
 export class NotificationsPlugin extends ServicePlugin<NotificationsConfig> {
   constructor(config: Partial<NotificationsConfig> = {}) {

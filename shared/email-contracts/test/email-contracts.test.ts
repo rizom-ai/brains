@@ -17,6 +17,7 @@ describe("email contracts", () => {
       to: "user@example.com",
       subject: "Set up your Rover",
       text: "Open the setup link.",
+      sensitivity: "normal",
     });
   });
 

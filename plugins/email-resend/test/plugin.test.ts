@@ -77,6 +77,7 @@ describe("EmailResendPlugin", () => {
           to: "user@example.com",
           subject: "Set up your Rover",
           text: "SECRET_SETUP_URL",
+          sensitivity: "secret",
         },
       });
 

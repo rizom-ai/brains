@@ -464,6 +464,56 @@ describe("AuthService", () => {
     expect(secondSetup.setupUrl).toBe(firstSetup.setupUrl);
   });
 
+  it("persists hashed setup-token id and recipient — not raw values — at 0o600", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    harness.subscribe(NOTIFICATIONS_SEND, async () => ({
+      success: true,
+      data: { status: "sent", deliveryId: "email_1" },
+    }));
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+
+    const storeFile = join(storageDir, "oauth-setup-state.json");
+    const fileStats = await stat(storeFile);
+    expect(fileStats.mode & 0o777).toBe(0o600);
+
+    const raw = await readFile(storeFile, "utf8");
+    expect(raw).not.toContain("user@example.com");
+
+    const parsed = z
+      .object({
+        setupToken: z.object({
+          token: z.string(),
+          expiresAt: z.number(),
+        }),
+        deliveries: z.array(
+          z.object({
+            setupTokenId: z.string(),
+            recipientHash: z.string(),
+            deliveredAt: z.number(),
+            deliveryId: z.string().optional(),
+          }),
+        ),
+      })
+      .parse(JSON.parse(raw));
+
+    expect(parsed.deliveries).toHaveLength(1);
+    const delivery = parsed.deliveries[0];
+    expect(delivery?.recipientHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(delivery?.setupTokenId).toMatch(/^[0-9a-f]{64}$/);
+    expect(delivery?.setupTokenId).not.toBe(parsed.setupToken.token);
+  });
+
   it("retries setup email after a failed delivery because no delivery is recorded", async () => {
     const storageDir = await tempStorageDir();
     const firstHarness = new PluginTestHarness<AuthServicePlugin>({

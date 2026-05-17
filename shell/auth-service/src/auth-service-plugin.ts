@@ -1,4 +1,7 @@
-import { NOTIFICATIONS_SEND } from "@brains/notifications";
+import {
+  NOTIFICATIONS_SEND,
+  sendNotificationResultSchema,
+} from "@brains/notifications";
 import type {
   ServicePluginContext,
   Tool,
@@ -298,8 +301,8 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       return;
     }
 
-    const result = response.data as { status?: string; deliveryId?: string };
-    if (result.status !== "sent") {
+    const parsed = sendNotificationResultSchema.safeParse(response.data);
+    if (!parsed.success || parsed.data.status !== "sent") {
       context.logger.warn("Passkey setup email delivery was not confirmed");
       return;
     }
@@ -307,7 +310,7 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     await service.recordSetupEmailDelivery(
       setup.setupTokenId,
       this.config.setupEmail,
-      result.deliveryId ? { deliveryId: result.deliveryId } : {},
+      parsed.data.deliveryId ? { deliveryId: parsed.data.deliveryId } : {},
     );
   }
 }
