@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.74
+
+### Patch Changes
+
+- [#5](https://github.com/rizom-ai/brains/pull/5) [`b104383`](https://github.com/rizom-ai/brains/commit/b104383d3a70e5f5f8852ef3116a6ab28ddff638) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read `NODE_ENV` at container runtime instead of Bun bundle time so hosted deployments prefer public URLs when `NODE_ENV=production` is supplied by deploy configuration.
+
 ## 0.2.0-alpha.73
 
 ### Patch Changes
