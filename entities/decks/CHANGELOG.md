@@ -1,5 +1,16 @@
 # @brains/decks
 
+## 0.2.0-alpha.70
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.70
+  - @brains/contracts@0.2.0-alpha.70
+  - @brains/image@0.2.0-alpha.70
+  - @brains/utils@0.2.0-alpha.70
+  - @brains/plugins@0.2.0-alpha.70
+
 ## 0.2.0-alpha.69
 
 ### Patch Changes

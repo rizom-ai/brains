@@ -1,6 +1,6 @@
 {
   "name": "@brains/content-formatters",
-  "version": "0.2.0-alpha.69",
+  "version": "0.2.0-alpha.70",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

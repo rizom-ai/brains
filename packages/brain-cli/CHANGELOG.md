@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.70
+
+### Patch Changes
+
+- [`55e5ca4`](https://github.com/rizom-ai/brains/commit/55e5ca404c10e24e4f511911fdf29ec1143f6970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix ContentArchive year breaks so the first archived year after the featured latest item is rendered as a large year heading when it differs from the featured item's year.
+
 ## 0.2.0-alpha.69
 
 ### Patch Changes

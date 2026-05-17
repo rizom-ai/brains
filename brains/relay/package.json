@@ -1,7 +1,7 @@
 {
   "name": "@brains/relay",
   "private": true,
-  "version": "0.2.0-alpha.69",
+  "version": "0.2.0-alpha.70",
   "description": "Relay brain model — collaborative knowledge management",
   "type": "module",
   "files": [
