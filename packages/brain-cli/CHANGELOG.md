@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.78
+
+### Patch Changes
+
+- [`5aa339d`](https://github.com/rizom-ai/brains/commit/5aa339d7da43876e0e641567fbf1414387ad440c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make first-passkey setup emails configurable with product-specific onboarding copy, render Rover pilot onboarding copy in generated configs, and update the pilot user guide for the current passkey/OAuth core flow.
+
 ## 0.2.0-alpha.77
 
 ## 0.2.0-alpha.76
