@@ -152,6 +152,7 @@
     "ops-deploy-finalize-push-ref",
     "ops-dockerfile-reconcile",
     "ops-per-user-plaintext-secrets",
+    "ops-verify-user-command",
     "ops-workflow-race-reconcile",
     "passkey-setup-url-tool",
     "personal-layout-mobile-correctness",

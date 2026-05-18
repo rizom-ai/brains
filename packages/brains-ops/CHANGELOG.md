@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.76
+
+### Patch Changes
+
+- [`fe7c610`](https://github.com/rizom-ai/brains/commit/fe7c6101ec5a4ac21966788128ee0d9f3f7fde5c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brains-ops verify-user <repo> <handle>` to check deployed Rover health, unauthenticated MCP auth gating, and default-preset browser/CMS routes during canary verification.
+
 ## 0.2.0-alpha.75
 
 ### Patch Changes

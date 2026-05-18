@@ -1,7 +1,7 @@
 {
   "name": "@brains/notifications",
   "private": true,
-  "version": "0.2.0-alpha.75",
+  "version": "0.2.0-alpha.76",
   "description": "Generic notification routing for transactional and administrative messages",
   "type": "module",
   "exports": {
