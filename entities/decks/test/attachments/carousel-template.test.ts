@@ -17,5 +17,9 @@ describe("deck carousel template", () => {
     expect(html).toContain("Hello Carousel");
     expect(html).toContain("1 / 1");
     expect(html).toContain("deck-carousel-slide");
+    expect(html).toContain("deck-carousel-frame");
+    expect(html).toContain("deck-carousel-accent");
+    expect(html).toContain("--carousel-surface");
+    expect(html).toContain("--color-accent");
   });
 });

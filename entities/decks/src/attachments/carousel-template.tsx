@@ -50,28 +50,66 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             }
 
             .deck-carousel-pdf {
-              color: var(--color-text, #f5f5f5);
+              --carousel-surface: var(--color-bg, #0b0b0f);
+              --carousel-surface-strong: var(--color-bg-subtle, #14112b);
+              --carousel-ink: var(--color-text, #f5f5f5);
+              --carousel-heading: var(--color-heading, #ffffff);
+              --carousel-muted: var(--color-text-muted, #a3a3a3);
+              --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
+              color: var(--carousel-ink);
               font-family: var(--font-sans, system-ui, sans-serif);
-              background: var(--color-bg, #0b0b0f);
+              background: var(--carousel-surface);
             }
 
             .deck-carousel-slide {
               box-sizing: border-box;
+              position: relative;
               width: 1080px;
               height: 1350px;
               page-break-after: always;
               break-after: page;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              padding: 96px;
-              background: var(--color-bg-gradient, var(--color-bg, #0b0b0f));
+              display: grid;
+              grid-template-rows: 1fr auto;
+              padding: 104px 108px 88px;
+              background:
+                radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--carousel-accent) 20%, transparent), transparent 30%),
+                linear-gradient(180deg, var(--carousel-surface-strong) 0%, var(--carousel-surface) 100%);
               overflow: hidden;
+            }
+
+            .deck-carousel-slide::before {
+              content: "";
+              position: absolute;
+              inset: 0;
+              background-image:
+                linear-gradient(90deg, color-mix(in srgb, var(--carousel-ink) 7%, transparent) 1px, transparent 1px),
+                linear-gradient(180deg, color-mix(in srgb, var(--carousel-ink) 7%, transparent) 1px, transparent 1px);
+              background-size: 72px 72px;
+              mask-image: linear-gradient(135deg, transparent 0%, black 18%, transparent 58%);
+              opacity: 0.22;
+              pointer-events: none;
             }
 
             .deck-carousel-slide:last-child {
               page-break-after: auto;
               break-after: auto;
+            }
+
+            .deck-carousel-frame {
+              align-self: center;
+              position: relative;
+              z-index: 1;
+              max-width: 864px;
+              transform: translateY(-3%);
+            }
+
+            .deck-carousel-accent {
+              width: 104px;
+              height: 9px;
+              margin: 0 0 48px;
+              border-radius: 999px;
+              background: var(--carousel-accent);
+              box-shadow: 0 0 42px color-mix(in srgb, var(--carousel-accent) 45%, transparent);
             }
 
             .deck-carousel-content {
@@ -80,46 +118,64 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
 
             .deck-carousel-content h1,
             .deck-carousel-content h2 {
-              color: var(--color-heading, #ffffff);
+              color: var(--carousel-heading);
               font-family: var(--font-heading, var(--font-sans, system-ui, sans-serif));
-              font-size: 72px;
-              line-height: 0.98;
-              letter-spacing: -0.04em;
-              margin: 0 0 40px;
+              font-size: 78px;
+              line-height: 0.96;
+              letter-spacing: -0.045em;
+              margin: 0 0 42px;
               text-wrap: balance;
             }
 
+            .deck-carousel-slide:first-of-type .deck-carousel-content h1 {
+              font-size: 84px;
+              max-width: 820px;
+            }
+
             .deck-carousel-content h3 {
-              color: var(--color-heading, #ffffff);
-              font-size: 48px;
-              line-height: 1.05;
-              margin: 0 0 32px;
+              color: var(--carousel-heading);
+              font-size: 52px;
+              line-height: 1.04;
+              margin: 0 0 34px;
               text-wrap: balance;
             }
 
             .deck-carousel-content p,
             .deck-carousel-content li {
-              color: var(--color-text, #f5f5f5);
-              font-size: 36px;
-              line-height: 1.22;
+              color: var(--carousel-ink);
+              font-size: 34px;
+              line-height: 1.24;
             }
 
             .deck-carousel-content p {
-              margin: 0 0 28px;
+              margin: 0 0 30px;
             }
 
             .deck-carousel-content ul,
             .deck-carousel-content ol {
-              margin: 28px 0 0;
+              margin: 30px 0 0;
               padding-left: 44px;
             }
 
+            .deck-carousel-content li {
+              margin: 0 0 10px;
+            }
+
+            .deck-carousel-content strong {
+              color: var(--carousel-heading);
+              font-weight: 700;
+            }
+
             .deck-carousel-footer {
+              position: relative;
+              z-index: 1;
               display: flex;
               justify-content: space-between;
               gap: 48px;
-              color: var(--color-text-muted, #a3a3a3);
-              font-size: 24px;
+              padding-top: 28px;
+              border-top: 1px solid color-mix(in srgb, var(--carousel-ink) 16%, transparent);
+              color: var(--carousel-muted);
+              font-size: 23px;
               line-height: 1.3;
             }
           `,
@@ -127,10 +183,13 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
       />
       {slides.map((slide, index) => (
         <section className="deck-carousel-slide" key={index}>
-          <div
-            className="deck-carousel-content"
-            dangerouslySetInnerHTML={{ __html: toHtml(slide.markdown) }}
-          />
+          <div className="deck-carousel-frame">
+            <div className="deck-carousel-accent" />
+            <div
+              className="deck-carousel-content"
+              dangerouslySetInnerHTML={{ __html: toHtml(slide.markdown) }}
+            />
+          </div>
           <footer className="deck-carousel-footer">
             <span>{title}</span>
             <span>
