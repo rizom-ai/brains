@@ -56,7 +56,7 @@
     "prepublishOnly": "bun scripts/build.ts",
     "dev:start": "bun dist/brain.js start",
     "typecheck": "tsc --noEmit",
-    "test": "bun run build && bun test",
+    "test": "bun test",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
