@@ -2,6 +2,8 @@ id: tool-invocation-set-cover-generate-by-title
 name: Generate Cover Image for Entity Resolved by Title
 description: Verifies that the agent resolves a quoted post title before generating a new cover image and uses the canonical target entity id without falling back to the wishlist
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - image

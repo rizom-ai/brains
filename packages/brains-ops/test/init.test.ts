@@ -461,10 +461,10 @@ describe("initPilotRepo", () => {
     expect(userOnboarding).toContain("Rover Pilot User Onboarding");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
-    expect(userOnboarding).toContain("https://<handle>.rizom.ai/mcp");
+    expect(userOnboarding).toContain("MCP setup: sent separately if enabled");
     expect(userOnboarding).toContain("GitHub token");
     expect(userOnboarding).toContain("Working in the CMS");
-    expect(userOnboarding).toContain("Bearer token");
+    expect(userOnboarding).toContain("MCP connection details we sent you");
     expect(userOnboarding).toContain("Claude Desktop");
     expect(userOnboarding).toContain("Obsidian");
     expect(userOnboarding).toContain(

@@ -2,6 +2,8 @@ id: tool-invocation-repeated-actions
 name: Repeated Action Requests Must Invoke Tools
 description: Tests that repeated requests for the same action actually invoke the tool each time, not mimic previous responses
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - critical

@@ -2,6 +2,8 @@ id: tool-invocation-update-title
 name: Update Entity Title
 description: Tests that the agent uses system_update with correct entity reference to change a title
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

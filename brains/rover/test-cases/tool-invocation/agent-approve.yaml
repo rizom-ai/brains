@@ -2,6 +2,8 @@ id: tool-invocation-agent-approve
 name: Approve Discovered Agent
 description: Tests that the agent approves a discovered contact via system_update fields instead of trying full content replacement
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

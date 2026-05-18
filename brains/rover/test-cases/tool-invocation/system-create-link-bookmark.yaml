@@ -2,6 +2,8 @@ id: tool-invocation-system-create-link-bookmark
 name: Bookmark Link via system_create
 description: Verifies that bookmark phrasing still maps to system_create with entityType link
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

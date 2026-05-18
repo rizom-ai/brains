@@ -2,6 +2,8 @@ id: tool-invocation-delete-nonexistent
 name: Delete Non-existent Entity
 description: Tests that the agent handles deletion of a non-existent entity gracefully
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

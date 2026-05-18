@@ -2,6 +2,8 @@ id: tool-invocation-agent-list
 name: List Agents in Directory
 description: Tests that the agent uses system_list with entityType agent when asked about contacts
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - tool-invocation

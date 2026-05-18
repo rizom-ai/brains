@@ -123,9 +123,11 @@ export class TestRunner implements ITestRunner {
   }
 
   private buildChatContext(testCase: AgentTestCase): ChatContext {
+    const userPermissionLevel: UserPermissionLevel =
+      testCase.setup?.permissionLevel ?? "public";
+
     return {
-      userPermissionLevel: (testCase.setup?.permissionLevel ??
-        "anchor") as UserPermissionLevel,
+      userPermissionLevel,
       interfaceType: "evaluation",
     };
   }

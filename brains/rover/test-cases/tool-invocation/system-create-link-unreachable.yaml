@@ -2,6 +2,8 @@ id: tool-invocation-system-create-link-unreachable
 name: Unreachable Link Still Uses system_create
 description: Verifies that the agent still invokes system_create for link capture requests with unreachable URLs instead of refusing preemptively or hallucinating success
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

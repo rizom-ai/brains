@@ -2,6 +2,8 @@ id: tool-invocation-newsletter-generate-variations
 name: Newsletter Generate Natural Language Variations
 description: Tests that various phrasings of newsletter generation requests use system_create
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - newsletter
   - natural-language

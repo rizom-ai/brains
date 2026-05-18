@@ -2,6 +2,8 @@ id: tool-invocation-system-update
 name: Entity Update via system_update
 description: Verifies that the agent uses system_update to modify entity fields
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

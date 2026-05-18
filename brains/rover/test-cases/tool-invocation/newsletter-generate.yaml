@@ -2,6 +2,8 @@ id: tool-invocation-newsletter-generate
 name: Newsletter Generation via system_create
 description: Verifies that the agent uses system_create to generate a newsletter
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - newsletter

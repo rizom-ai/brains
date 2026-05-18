@@ -2,6 +2,8 @@ id: tool-invocation-list
 name: System List Entities
 description: Verifies that the agent correctly uses system_list to list blog posts
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - list

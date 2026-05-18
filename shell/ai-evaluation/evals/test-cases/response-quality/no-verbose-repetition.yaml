@@ -2,6 +2,8 @@ id: shell-no-verbose-repetition
 name: No Verbose Repetition
 description: Tests that agent answers identity/profile questions concisely from its system prompt without repetition
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - shell
   - quality

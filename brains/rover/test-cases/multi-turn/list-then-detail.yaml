@@ -2,6 +2,8 @@ id: multi-turn-list-detail
 name: List Then Get Details
 description: Tests context retention - list posts then ask about a specific one
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - multi-turn

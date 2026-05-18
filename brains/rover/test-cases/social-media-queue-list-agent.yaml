@@ -2,6 +2,8 @@ id: social-media-queue-list-agent
 name: List social media publish queue
 description: Tests that the agent uses the content pipeline queue tool to show queued social posts
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - social-media
   - queue
