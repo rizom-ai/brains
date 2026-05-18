@@ -415,6 +415,12 @@ describe("AuthService", () => {
 
     expect(notification.title).toBe("Set up your brain passkey");
     expect(notification.body).toContain("Set up your brain passkey");
+    expect(notification.body).toContain(
+      "Dashboard: https://brain.example.com/",
+    );
+    expect(notification.body).toContain(
+      "MCP endpoint: https://brain.example.com/mcp",
+    );
     expect(notification.body).not.toContain("Rover");
   });
 
