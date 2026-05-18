@@ -92,9 +92,23 @@ Or:
 
 Rover should save the link and, when possible, keep a short description of why it matters.
 
-### 4. Ask Rover about what you just added
+### 4. Upload an existing Markdown doc
 
-After you have saved a note or link, ask Rover to reflect it back:
+If you already have notes or docs in Markdown, you do not need to retype them.
+
+Upload a `.md` file and ask Rover to save or import it:
+
+> Save this Markdown doc in my notes.
+
+Or:
+
+> Import this doc and tell me what it is about.
+
+This is often the fastest way to give Rover useful context.
+
+### 5. Ask Rover about what you just added
+
+After you have saved a note, link, or Markdown doc, ask Rover to reflect it back:
 
 > What have I added so far?
 
@@ -104,7 +118,7 @@ Or:
 
 This is the basic Rover loop: add material, then ask Rover to help you think with it.
 
-### 5. Try a more useful task
+### 6. Try a more useful task
 
 Once Rover has a little context, try one of these:
 
@@ -120,7 +134,7 @@ Once Rover has a little context, try one of these:
 
 These examples show the main scope of Rover: saving material, organizing it, reflecting on it, and helping you make something from it.
 
-### 6. Ask another agent
+### 7. Ask another agent
 
 Rover can also talk to other saved agents when that workflow is enabled.
 
@@ -152,7 +166,7 @@ Open:
 
 - `https://<handle>.rizom.ai/cms`
 
-Use the CMS when you want to create or edit content more deliberately than you would in chat.
+Use the CMS when you want to create or edit content more deliberately than you would in chat. You can also use it to add existing Markdown docs instead of starting from scratch.
 
 A good first CMS task is:
 
@@ -204,6 +218,7 @@ The CMS is the easiest way to edit Rover content in the browser.
 Use it when you want to:
 
 - create notes without touching git directly
+- add existing Markdown docs
 - edit existing content in a structured form
 - browse your collections in one place
 - make quick updates from the browser
