@@ -252,9 +252,20 @@ export async function runCommand(
           : {}),
         ...(dependencies.logger ? { logger: dependencies.logger } : {}),
       });
+      const passedSummary =
+        result.checks.length > 0 ? result.checks.join(", ") : "none";
+      if (result.failedChecks.length > 0) {
+        const failedDetail = result.failedChecks
+          .map((failure) => `  ${failure.name}: ${failure.message}`)
+          .join("\n");
+        return {
+          success: false,
+          message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: passed ${passedSummary}; failed:\n${failedDetail}`,
+        };
+      }
       return {
         success: true,
-        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${result.checks.join(", ")}`,
+        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${passedSummary}`,
       };
     }
 

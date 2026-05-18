@@ -1,4 +1,5 @@
 import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import { z } from "@brains/utils";
 
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
 
@@ -7,23 +8,37 @@ export interface VerifyPilotUserOptions {
   logger?: (message: string) => void;
 }
 
+export interface FailedCheck {
+  name: string;
+  message: string;
+}
+
 export interface VerifyPilotUserResult {
   handle: string;
   preset: ResolvedUser["preset"];
   domain: string;
   contentRepo: string;
   checks: string[];
-  warnings: string[];
+  failedChecks: FailedCheck[];
 }
 
-interface HealthResponse {
-  status?: string;
-  daemons?: Array<{
-    name?: string;
-    status?: string;
-    health?: { status?: string; message?: string };
-  }>;
-}
+const healthResponseSchema = z.object({
+  status: z.string().optional(),
+  daemons: z
+    .array(
+      z.object({
+        name: z.string().optional(),
+        status: z.string().optional(),
+        health: z
+          .object({
+            status: z.string().optional(),
+            message: z.string().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .optional(),
+});
 
 export async function verifyPilotUser(
   rootDir: string,
@@ -39,28 +54,37 @@ export async function verifyPilotUser(
 
   const baseUrl = `https://${user.domain}`;
   const checks: string[] = [];
-  const warnings: string[] = [];
+  const failedChecks: FailedCheck[] = [];
 
-  await verifyHealth(fetchImpl, baseUrl);
-  checks.push("health");
-
-  await verifyMcpAuthGate(fetchImpl, baseUrl);
-  checks.push("mcp-auth-gate");
+  await runCheck(
+    "health",
+    () => verifyHealth(fetchImpl, baseUrl),
+    checks,
+    failedChecks,
+  );
+  await runCheck(
+    "mcp-auth-gate",
+    () => verifyMcpAuthGate(fetchImpl, baseUrl),
+    checks,
+    failedChecks,
+  );
 
   if (user.preset === "default") {
-    await verifyLoads(fetchImpl, `${baseUrl}/`, "site");
-    checks.push("site");
-
-    await verifyLoads(fetchImpl, `${baseUrl}/cms`, "cms");
-    checks.push("cms");
-
-    warnings.push(
-      "Manual check still required: passkey setup/handoff completed from the setup email.",
+    await runCheck(
+      "site",
+      () => verifyLoads(fetchImpl, `${baseUrl}/`, "site"),
+      checks,
+      failedChecks,
     );
-  }
-
-  for (const warning of warnings) {
-    options.logger?.(`WARN ${warning}`);
+    await runCheck(
+      "cms",
+      () => verifyLoads(fetchImpl, `${baseUrl}/cms`, "cms"),
+      checks,
+      failedChecks,
+    );
+    options.logger?.(
+      "WARN Manual check still required: passkey setup/handoff completed from the setup email.",
+    );
   }
 
   return {
@@ -69,8 +93,25 @@ export async function verifyPilotUser(
     domain: user.domain,
     contentRepo: user.contentRepo,
     checks,
-    warnings,
+    failedChecks,
   };
+}
+
+async function runCheck(
+  name: string,
+  fn: () => Promise<void>,
+  passed: string[],
+  failed: FailedCheck[],
+): Promise<void> {
+  try {
+    await fn();
+    passed.push(name);
+  } catch (err) {
+    failed.push({
+      name,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 async function verifyHealth(
@@ -84,7 +125,14 @@ async function verifyHealth(
     throw new Error(`/health returned ${response.status}, expected 200`);
   }
 
-  const health = (await response.json()) as HealthResponse;
+  const parsed = healthResponseSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new Error(
+      `/health response did not match expected shape: ${parsed.error.message}`,
+    );
+  }
+  const health = parsed.data;
+
   if (health.status && health.status !== "healthy") {
     throw new Error(`/health status is ${health.status}, expected healthy`);
   }

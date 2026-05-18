@@ -403,6 +403,106 @@ members:
     );
   });
 
+  it("reports an unhealthy daemon as a failed health check", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health") {
+            return Promise.resolve(
+              Response.json({
+                status: "healthy",
+                daemons: [
+                  {
+                    name: "site-builder",
+                    status: "error",
+                    health: { status: "unhealthy", message: "build failed" },
+                  },
+                ],
+              }),
+            );
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("passed mcp-auth-gate");
+    expect(result.message).toContain("failed:");
+    expect(result.message).toContain(
+      "health: daemon site-builder is unhealthy",
+    );
+  });
+
+  it("reports a non-gating /mcp response as a failed mcp-auth-gate check", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health") {
+            return Promise.resolve(Response.json({ status: "healthy" }));
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(new Response("ok", { status: 200 }));
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("passed health");
+    expect(result.message).toContain(
+      "mcp-auth-gate: unauthenticated POST /mcp returned 200",
+    );
+  });
+
+  it("throws when verify-user is given an unknown handle", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    let caught: Error | undefined;
+    try {
+      await runCommand(
+        {
+          command: "verify-user",
+          args: [root, "carol"],
+          flags: {},
+        },
+        {
+          fetchImpl() {
+            throw new Error("fetch should not run for unknown handle");
+          },
+        },
+      );
+    } catch (err) {
+      if (err instanceof Error) {
+        caught = err;
+      }
+    }
+
+    expect(caught?.message).toContain("Unknown pilot user: carol");
+  });
+
   it("returns usage error when reconcile-cohort missing cohort", async () => {
     const result = await runCommand({
       command: "reconcile-cohort",

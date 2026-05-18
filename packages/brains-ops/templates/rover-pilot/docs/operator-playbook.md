@@ -82,12 +82,11 @@ For `preset: default`, the script also checks:
 
 - `https://<handle>.rizom.ai/` loads the browser/site surface
 - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
-- the generated user config has a content repo
 
 Manual checks that remain:
 
 - initial site build is correct for the expected content/theme
-- runtime sync is healthy beyond the basic `/health` response
+- content repo exists and runtime sync is healthy beyond the basic `/health` response
 - passkey setup/handoff is completed from the setup email
 
 ## One-user `rover:default` baseline canary
