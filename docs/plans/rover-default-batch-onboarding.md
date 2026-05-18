@@ -12,36 +12,9 @@ The second batch is expected to need per-user visual customization. Users do not
 
 For now, custom site and theme packages may be required to be public npm packages. Private package registry/auth support is explicitly out of scope for this batch.
 
-## Phase 1 — Browser-first onboarding baseline
+## Phase 1 — Per-user visual customization
 
-### 1. Add `user:add --no-discord`
-
-Add CLI support:
-
-```sh
-bunx brains-ops user:add . alice --cohort batch-2 --no-discord
-```
-
-Update:
-
-- `packages/brains-ops/src/run-command.ts`
-- `packages/brains-ops/src/user-add.ts`
-- CLI/user-add tests
-- onboarding docs
-
-Behavior:
-
-- keep Discord enabled by default for backward compatibility
-- `--no-discord` writes:
-
-```yaml
-discord:
-  enabled: false
-```
-
-## Phase 2 — Per-user visual customization
-
-### 2. Public npm package site/theme overrides
+### 1. Public npm package site/theme overrides
 
 Add optional user-level site override fields:
 
@@ -90,7 +63,7 @@ Out of scope for this batch:
 - per-user registry credentials
 - arbitrary user editing of generated `brain.yaml`
 
-### 3. Package authoring docs/templates
+### 2. Package authoring docs/templates
 
 Document minimal package contracts before asking users/operators to supply packages:
 
@@ -104,7 +77,7 @@ Optionally add starter templates for:
 - `rover-theme-*`
 - `rover-site-*`
 
-### 4. Custom-theme canary procedure
+### 3. Custom-theme canary procedure
 
 After site/theme refs and package docs exist, extend the canary flow:
 
@@ -123,9 +96,9 @@ Include rollback notes:
 - reconcile generated outputs
 - rebuild/redeploy the affected user image/config
 
-## Phase 3 — Domain customization
+## Phase 2 — Domain customization
 
-### 5. Per-user custom domain support
+### 4. Per-user custom domain support
 
 Add optional user-level domain fields:
 
@@ -151,9 +124,9 @@ Behavior:
 - `previewDomainOverride` replaces deploy's derived preview domain when provided
 - if the custom domain is outside the configured Cloudflare zone/cert coverage, docs should flag that manual DNS/cert work may be required
 
-## Phase 4 — Nice-to-have tooling
+## Phase 3 — Nice-to-have tooling
 
-### 6. Add `brains-ops preflight`
+### 5. Add `brains-ops preflight`
 
 Potential command:
 
@@ -175,9 +148,8 @@ Checks:
 
 ## Suggested implementation order
 
-1. `user:add --no-discord`
-2. Public npm site/theme overrides and deploy image installation
-3. Package authoring docs/templates
-4. One-user custom-theme canary
-5. Per-user custom domains
-6. `preflight`, if still useful after the batch workflow is clearer
+1. Public npm site/theme overrides and deploy image installation
+2. Package authoring docs/templates
+3. One-user custom-theme canary
+4. Per-user custom domains
+5. `preflight`, if still useful after the batch workflow is clearer
