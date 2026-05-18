@@ -2,6 +2,11 @@ name: Build
 
 on:
   workflow_dispatch:
+    inputs:
+      brain_version:
+        description: Brain version to build; defaults to pilot.yaml brainVersion
+        required: false
+        type: string
   push:
     branches: ["main"]
     paths:
@@ -23,7 +28,10 @@ jobs:
 
       - name: Extract image metadata inputs
         run: |
-          BRAIN_VERSION="$(grep '^brainVersion:' pilot.yaml | sed 's/^brainVersion:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          BRAIN_VERSION="${{ inputs.brain_version || '' }}"
+          if [ -z "$BRAIN_VERSION" ]; then
+            BRAIN_VERSION="$(grep '^brainVersion:' pilot.yaml | sed 's/^brainVersion:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          fi
           if [ -z "$BRAIN_VERSION" ]; then
             echo "Missing brainVersion in pilot.yaml" >&2
             exit 1

@@ -228,6 +228,8 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain("docker/build-push-action@v7");
     expect(buildWorkflow).toContain("target: fleet");
     expect(buildWorkflow).toContain("brainVersion");
+    expect(buildWorkflow).toContain("brain_version:");
+    expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
     expect(buildWorkflow).toContain(
       "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
     );
