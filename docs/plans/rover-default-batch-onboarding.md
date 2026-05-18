@@ -12,6 +12,28 @@ The second batch is expected to need per-user visual customization. Users do not
 
 For now, custom site and theme packages may be required to be public npm packages. Private package registry/auth support is explicitly out of scope for this batch.
 
+## Implementation status — 2026-05-18
+
+Completed:
+
+- Brain-initiated setup email architecture is implemented with generic notifications routing, email contracts, and the Resend adapter.
+- `auth-service` owns setup-email token/delivery state, sends after plugins are ready, retries failed delivery, and avoids resending for the same delivered setup token.
+- Hosted setup links now use the public domain in production; the runtime reads `NODE_ENV` at container runtime instead of Bun bundle time.
+- `brains-ops` renders user-level setup email config and setup email delivery env wiring.
+- The generated rover-pilot Build workflow supports a manual `brain_version` input for smoke/cohort runtime canaries without changing `pilot.yaml`.
+- Smoke canary validated setup email delivery and passkey setup using the public `https://smoke.rizom.ai/setup?...` link.
+- The rover pilot fleet was upgraded to `@rizom/brain@0.2.0-alpha.75` and `@rizom/ops@0.2.0-alpha.75`.
+- Deprecated Rover `mcpAuthToken` / `MCP_AUTH_TOKEN` config was removed from desired state, generated user configs, deploy scripts, and Kamal runtime env.
+- Legacy `MCP_AUTH_TOKEN` was deleted from Bitwarden after all deployed users were healthy without it.
+
+Still open from this broader Rover-default plan:
+
+- Public npm site/theme overrides and image rebuild identity.
+- Per-user custom domains.
+- `brains-ops user:add --no-discord`.
+- `rover:default` browser/CMS verification checklist hardening.
+- Optional `brains-ops preflight` and package authoring templates/docs.
+
 ## Phase 1 — Must-have before onboarding
 
 ### 1. Public npm package site/theme overrides
