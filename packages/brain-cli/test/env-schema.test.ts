@@ -15,6 +15,6 @@ describe("env schema resolution", () => {
     ).toContain("LINKEDIN_ORGANIZATION_ID=");
     expect(
       resolveModelEnvSchema("relay", unavailableWorkspaceLookup),
-    ).toContain("MCP_AUTH_TOKEN=");
+    ).not.toContain("DISCORD_BOT_TOKEN=");
   });
 });

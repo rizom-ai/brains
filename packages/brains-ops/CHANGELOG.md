@@ -1,5 +1,21 @@
 # @brains/ops
 
+## 0.2.0-alpha.74
+
+## 0.2.0-alpha.73
+
+## 0.2.0-alpha.72
+
+### Minor Changes
+
+- [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Auth-service can now request passkey setup emails via the notifications router, with persistent dedupe keyed to the active setup token (SHA-256 hashed at rest, 0o600). Rover bundles the setup email delivery plugins by default, and brains-ops renders `setup.delivery: email` configuration for pilot users — including the required `SETUP_EMAIL_API_KEY` and `SETUP_EMAIL_FROM` GitHub Secrets.
+
+## 0.2.0-alpha.71
+
+## 0.2.0-alpha.70
+
+## 0.2.0-alpha.69
+
 ## 0.2.0-alpha.68
 
 ## 0.2.0-alpha.67

@@ -1,3 +1,7 @@
+import {
+  NOTIFICATIONS_SEND,
+  sendNotificationResultSchema,
+} from "@brains/notifications";
 import type {
   ServicePluginContext,
   Tool,
@@ -17,6 +21,8 @@ const authServiceConfigSchema = z.object({
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
+  /** Optional first-passkey setup email recipient. */
+  setupEmail: z.string().email().optional(),
 });
 
 const getPasskeySetupUrlInputSchema = z.object({});
@@ -62,6 +68,12 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     });
     await this.service.initialize();
     activeAuthService = this.service;
+  }
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await this.requestSetupEmailIfNeeded(context);
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -248,6 +260,62 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       throw new Error("AuthServicePlugin has not been registered");
     }
     return this.service;
+  }
+
+  private async requestSetupEmailIfNeeded(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.config.setupEmail) return;
+
+    const service = this.getService();
+    if (await service.hasPasskeyCredentials()) return;
+
+    const setup = await service.getOperatorSetupRequired();
+    if (!setup) return;
+
+    if (
+      await service.hasSetupEmailDelivery(
+        setup.setupTokenId,
+        this.config.setupEmail,
+      )
+    ) {
+      return;
+    }
+
+    const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
+    const response = await context.messaging.send({
+      type: NOTIFICATIONS_SEND,
+      payload: {
+        recipient: { type: "email", address: this.config.setupEmail },
+        title: "Set up your brain passkey",
+        body: [
+          "Set up your brain passkey using this single-use link:",
+          "",
+          setup.setupUrl,
+          "",
+          `This link expires at ${expiresAt}.`,
+          "The first successful passkey registration completes setup and closes this link.",
+        ].join("\n"),
+        sensitivity: "secret",
+      },
+    });
+
+    if (!("success" in response) || !response.success || !response.data) {
+      context.logger.warn("Passkey setup email delivery was not confirmed");
+      return;
+    }
+
+    const parsed = sendNotificationResultSchema.safeParse(response.data);
+    if (!parsed.success || parsed.data.status !== "sent") {
+      context.logger.warn("Passkey setup email delivery was not confirmed");
+      return;
+    }
+
+    await service.recordSetupEmailDelivery(
+      setup.setupTokenId,
+      this.config.setupEmail,
+      parsed.data.deliveryId ? { deliveryId: parsed.data.deliveryId } : {},
+    );
   }
 }
 

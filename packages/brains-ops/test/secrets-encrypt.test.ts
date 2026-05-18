@@ -51,7 +51,6 @@ preset: core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: SHARED_MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
       "users/alice.yaml": `handle: alice
@@ -66,7 +65,6 @@ members:
       ".env.local": [
         "ALICE_AI_KEY=alice-ai-key",
         "CANARY_GIT_SYNC_TOKEN=git-token",
-        "SHARED_MCP_AUTH_TOKEN=shared-mcp-token",
         "",
       ].join("\n"),
       "users/alice.secrets.yaml": "discordBotToken: discord-token\n",
@@ -106,7 +104,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
       "users/alice.yaml": `handle: alice
@@ -146,7 +143,6 @@ preset: core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: SHARED_MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
       "users/alice.yaml": `handle: alice
@@ -176,7 +172,6 @@ aiApiKeyOverride: ALICE_AI_KEY
     expect(plaintextTemplate).toContain("aiApiKey: ");
     expect(plaintextTemplate).toContain("discordBotToken: ");
     expect(plaintextTemplate).not.toContain("gitSyncToken: ");
-    expect(plaintextTemplate).not.toContain("mcpAuthToken: ");
   });
 
   it("still supports env fallback when no plaintext per-user file exists", async () => {
@@ -194,7 +189,6 @@ preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
-mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
       "users/alice.yaml": `handle: alice

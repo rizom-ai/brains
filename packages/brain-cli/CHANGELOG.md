@@ -1,5 +1,43 @@
 # @rizom/brain
 
+## 0.2.0-alpha.74
+
+### Patch Changes
+
+- [#5](https://github.com/rizom-ai/brains/pull/5) [`b104383`](https://github.com/rizom-ai/brains/commit/b104383d3a70e5f5f8852ef3116a6ab28ddff638) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read `NODE_ENV` at container runtime instead of Bun bundle time so hosted deployments prefer public URLs when `NODE_ENV=production` is supplied by deploy configuration.
+
+## 0.2.0-alpha.73
+
+### Patch Changes
+
+- [#4](https://github.com/rizom-ai/brains/pull/4) [`e900705`](https://github.com/rizom-ai/brains/commit/e90070555e140057860d5fc4a06d289f5e218640) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Send first-passkey setup email notifications after all plugins are ready so notification routing and email delivery subscribers can confirm delivery.
+
+## 0.2.0-alpha.72
+
+### Minor Changes
+
+- [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `MCP_AUTH_TOKEN` is now a local-only override. Removed from the shared Kamal deploy template, the bundled brain-cli env schemas for rover/ranger/relay, and the rover pilot template. Rover deployments authenticate via OAuth/passkey through `auth-service`; existing operators using `MCP_AUTH_TOKEN` can still set it locally if needed.
+
+## 0.2.0-alpha.71
+
+### Patch Changes
+
+- [`003099e`](https://github.com/rizom-ai/brains/commit/003099e298a2e75933ca60161658db024497f943) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render ContentArchive year-break headings upright so older archive years match the latest featured year treatment.
+
+## 0.2.0-alpha.70
+
+### Patch Changes
+
+- [`55e5ca4`](https://github.com/rizom-ai/brains/commit/55e5ca404c10e24e4f511911fdf29ec1143f6970) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix ContentArchive year breaks so the first archived year after the featured latest item is rendered as a large year heading when it differs from the featured item's year.
+
+## 0.2.0-alpha.69
+
+### Patch Changes
+
+- [`a44a686`](https://github.com/rizom-ai/brains/commit/a44a686b3ba1ce490e44b815666790c97d150f4c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ship the current ContentArchive implementation in the bundled brain runtime.
+
+  This includes the year-based archive rail typography refinement and the split between the visual archive label and paginated page title so generated archive pages keep stable headings while still rendering pagination metadata correctly.
+
 ## 0.2.0-alpha.68
 
 ### Patch Changes

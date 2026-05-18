@@ -1,5 +1,237 @@
 # @brains/rover
 
+## 0.2.0-alpha.74
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.74
+  - @brains/assessment@0.2.0-alpha.74
+  - @brains/blog@0.2.0-alpha.74
+  - @brains/decks@0.2.0-alpha.74
+  - @brains/image-plugin@0.2.0-alpha.74
+  - @brains/link@0.2.0-alpha.74
+  - @brains/note@0.2.0-alpha.74
+  - @brains/portfolio@0.2.0-alpha.74
+  - @brains/prompt@0.2.0-alpha.74
+  - @brains/rizom-ecosystem@0.2.0-alpha.74
+  - @brains/series@0.2.0-alpha.74
+  - @brains/site-info@0.2.0-alpha.74
+  - @brains/social-media@0.2.0-alpha.74
+  - @brains/topics@0.2.0-alpha.74
+  - @brains/wishlist@0.2.0-alpha.74
+  - @brains/a2a@0.2.0-alpha.74
+  - @brains/discord@0.2.0-alpha.74
+  - @brains/mcp@0.2.0-alpha.74
+  - @brains/webserver@0.2.0-alpha.74
+  - @brains/analytics@0.2.0-alpha.74
+  - @brains/cms@0.2.0-alpha.74
+  - @brains/content-pipeline@0.2.0-alpha.74
+  - @brains/dashboard@0.2.0-alpha.74
+  - @brains/directory-sync@0.2.0-alpha.74
+  - @brains/email-resend@0.2.0-alpha.74
+  - @brains/newsletter@0.2.0-alpha.74
+  - @brains/notifications@0.2.0-alpha.74
+  - @brains/obsidian-vault@0.2.0-alpha.74
+  - @brains/site-builder-plugin@0.2.0-alpha.74
+  - @brains/stock-photo@0.2.0-alpha.74
+  - @brains/app@0.2.0-alpha.74
+  - @brains/auth-service@0.2.0-alpha.74
+  - @brains/site-default@0.2.0-alpha.74
+
+## 0.2.0-alpha.73
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.73
+  - @brains/assessment@0.2.0-alpha.73
+  - @brains/blog@0.2.0-alpha.73
+  - @brains/decks@0.2.0-alpha.73
+  - @brains/image-plugin@0.2.0-alpha.73
+  - @brains/link@0.2.0-alpha.73
+  - @brains/note@0.2.0-alpha.73
+  - @brains/portfolio@0.2.0-alpha.73
+  - @brains/prompt@0.2.0-alpha.73
+  - @brains/rizom-ecosystem@0.2.0-alpha.73
+  - @brains/series@0.2.0-alpha.73
+  - @brains/site-info@0.2.0-alpha.73
+  - @brains/social-media@0.2.0-alpha.73
+  - @brains/topics@0.2.0-alpha.73
+  - @brains/wishlist@0.2.0-alpha.73
+  - @brains/a2a@0.2.0-alpha.73
+  - @brains/discord@0.2.0-alpha.73
+  - @brains/mcp@0.2.0-alpha.73
+  - @brains/webserver@0.2.0-alpha.73
+  - @brains/analytics@0.2.0-alpha.73
+  - @brains/cms@0.2.0-alpha.73
+  - @brains/content-pipeline@0.2.0-alpha.73
+  - @brains/dashboard@0.2.0-alpha.73
+  - @brains/directory-sync@0.2.0-alpha.73
+  - @brains/email-resend@0.2.0-alpha.73
+  - @brains/newsletter@0.2.0-alpha.73
+  - @brains/notifications@0.2.0-alpha.73
+  - @brains/obsidian-vault@0.2.0-alpha.73
+  - @brains/site-builder-plugin@0.2.0-alpha.73
+  - @brains/stock-photo@0.2.0-alpha.73
+  - @brains/app@0.2.0-alpha.73
+  - @brains/auth-service@0.2.0-alpha.73
+  - @brains/site-default@0.2.0-alpha.73
+
+## 0.2.0-alpha.72
+
+### Minor Changes
+
+- [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Auth-service can now request passkey setup emails via the notifications router, with persistent dedupe keyed to the active setup token (SHA-256 hashed at rest, 0o600). Rover bundles the setup email delivery plugins by default, and brains-ops renders `setup.delivery: email` configuration for pilot users — including the required `SETUP_EMAIL_API_KEY` and `SETUP_EMAIL_FROM` GitHub Secrets.
+
+### Patch Changes
+
+- Updated dependencies [[`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf), [`e7e4205`](https://github.com/rizom-ai/brains/commit/e7e4205282726e6c092841bc4a4c9a6b9d35efdf)]:
+  - @brains/auth-service@0.2.0-alpha.72
+  - @brains/notifications@0.2.0-alpha.72
+  - @brains/email-resend@0.2.0-alpha.72
+  - @brains/mcp@0.2.0-alpha.72
+  - @brains/dashboard@0.2.0-alpha.72
+  - @brains/agent-discovery@0.2.0-alpha.72
+  - @brains/assessment@0.2.0-alpha.72
+  - @brains/blog@0.2.0-alpha.72
+  - @brains/decks@0.2.0-alpha.72
+  - @brains/image-plugin@0.2.0-alpha.72
+  - @brains/link@0.2.0-alpha.72
+  - @brains/note@0.2.0-alpha.72
+  - @brains/portfolio@0.2.0-alpha.72
+  - @brains/prompt@0.2.0-alpha.72
+  - @brains/rizom-ecosystem@0.2.0-alpha.72
+  - @brains/series@0.2.0-alpha.72
+  - @brains/site-info@0.2.0-alpha.72
+  - @brains/social-media@0.2.0-alpha.72
+  - @brains/topics@0.2.0-alpha.72
+  - @brains/wishlist@0.2.0-alpha.72
+  - @brains/a2a@0.2.0-alpha.72
+  - @brains/discord@0.2.0-alpha.72
+  - @brains/webserver@0.2.0-alpha.72
+  - @brains/analytics@0.2.0-alpha.72
+  - @brains/cms@0.2.0-alpha.72
+  - @brains/content-pipeline@0.2.0-alpha.72
+  - @brains/directory-sync@0.2.0-alpha.72
+  - @brains/newsletter@0.2.0-alpha.72
+  - @brains/obsidian-vault@0.2.0-alpha.72
+  - @brains/site-builder-plugin@0.2.0-alpha.72
+  - @brains/stock-photo@0.2.0-alpha.72
+  - @brains/app@0.2.0-alpha.72
+  - @brains/site-default@0.2.0-alpha.72
+
+## 0.2.0-alpha.71
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.71
+  - @brains/assessment@0.2.0-alpha.71
+  - @brains/blog@0.2.0-alpha.71
+  - @brains/decks@0.2.0-alpha.71
+  - @brains/image-plugin@0.2.0-alpha.71
+  - @brains/link@0.2.0-alpha.71
+  - @brains/note@0.2.0-alpha.71
+  - @brains/portfolio@0.2.0-alpha.71
+  - @brains/prompt@0.2.0-alpha.71
+  - @brains/rizom-ecosystem@0.2.0-alpha.71
+  - @brains/series@0.2.0-alpha.71
+  - @brains/site-info@0.2.0-alpha.71
+  - @brains/social-media@0.2.0-alpha.71
+  - @brains/topics@0.2.0-alpha.71
+  - @brains/wishlist@0.2.0-alpha.71
+  - @brains/a2a@0.2.0-alpha.71
+  - @brains/discord@0.2.0-alpha.71
+  - @brains/mcp@0.2.0-alpha.71
+  - @brains/webserver@0.2.0-alpha.71
+  - @brains/analytics@0.2.0-alpha.71
+  - @brains/cms@0.2.0-alpha.71
+  - @brains/content-pipeline@0.2.0-alpha.71
+  - @brains/dashboard@0.2.0-alpha.71
+  - @brains/directory-sync@0.2.0-alpha.71
+  - @brains/newsletter@0.2.0-alpha.71
+  - @brains/obsidian-vault@0.2.0-alpha.71
+  - @brains/site-builder-plugin@0.2.0-alpha.71
+  - @brains/stock-photo@0.2.0-alpha.71
+  - @brains/app@0.2.0-alpha.71
+  - @brains/auth-service@0.2.0-alpha.71
+  - @brains/site-default@0.2.0-alpha.71
+
+## 0.2.0-alpha.70
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.70
+  - @brains/assessment@0.2.0-alpha.70
+  - @brains/blog@0.2.0-alpha.70
+  - @brains/decks@0.2.0-alpha.70
+  - @brains/image-plugin@0.2.0-alpha.70
+  - @brains/link@0.2.0-alpha.70
+  - @brains/note@0.2.0-alpha.70
+  - @brains/portfolio@0.2.0-alpha.70
+  - @brains/prompt@0.2.0-alpha.70
+  - @brains/rizom-ecosystem@0.2.0-alpha.70
+  - @brains/series@0.2.0-alpha.70
+  - @brains/site-info@0.2.0-alpha.70
+  - @brains/social-media@0.2.0-alpha.70
+  - @brains/topics@0.2.0-alpha.70
+  - @brains/wishlist@0.2.0-alpha.70
+  - @brains/a2a@0.2.0-alpha.70
+  - @brains/discord@0.2.0-alpha.70
+  - @brains/mcp@0.2.0-alpha.70
+  - @brains/webserver@0.2.0-alpha.70
+  - @brains/analytics@0.2.0-alpha.70
+  - @brains/cms@0.2.0-alpha.70
+  - @brains/content-pipeline@0.2.0-alpha.70
+  - @brains/dashboard@0.2.0-alpha.70
+  - @brains/directory-sync@0.2.0-alpha.70
+  - @brains/newsletter@0.2.0-alpha.70
+  - @brains/obsidian-vault@0.2.0-alpha.70
+  - @brains/site-builder-plugin@0.2.0-alpha.70
+  - @brains/stock-photo@0.2.0-alpha.70
+  - @brains/app@0.2.0-alpha.70
+  - @brains/auth-service@0.2.0-alpha.70
+  - @brains/site-default@0.2.0-alpha.70
+
+## 0.2.0-alpha.69
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.69
+  - @brains/assessment@0.2.0-alpha.69
+  - @brains/blog@0.2.0-alpha.69
+  - @brains/decks@0.2.0-alpha.69
+  - @brains/image-plugin@0.2.0-alpha.69
+  - @brains/link@0.2.0-alpha.69
+  - @brains/note@0.2.0-alpha.69
+  - @brains/portfolio@0.2.0-alpha.69
+  - @brains/prompt@0.2.0-alpha.69
+  - @brains/rizom-ecosystem@0.2.0-alpha.69
+  - @brains/series@0.2.0-alpha.69
+  - @brains/site-info@0.2.0-alpha.69
+  - @brains/social-media@0.2.0-alpha.69
+  - @brains/topics@0.2.0-alpha.69
+  - @brains/wishlist@0.2.0-alpha.69
+  - @brains/a2a@0.2.0-alpha.69
+  - @brains/discord@0.2.0-alpha.69
+  - @brains/mcp@0.2.0-alpha.69
+  - @brains/webserver@0.2.0-alpha.69
+  - @brains/analytics@0.2.0-alpha.69
+  - @brains/cms@0.2.0-alpha.69
+  - @brains/content-pipeline@0.2.0-alpha.69
+  - @brains/dashboard@0.2.0-alpha.69
+  - @brains/directory-sync@0.2.0-alpha.69
+  - @brains/newsletter@0.2.0-alpha.69
+  - @brains/obsidian-vault@0.2.0-alpha.69
+  - @brains/site-builder-plugin@0.2.0-alpha.69
+  - @brains/stock-photo@0.2.0-alpha.69
+  - @brains/app@0.2.0-alpha.69
+  - @brains/auth-service@0.2.0-alpha.69
+  - @brains/site-default@0.2.0-alpha.69
+
 ## 0.2.0-alpha.68
 
 ### Patch Changes

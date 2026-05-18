@@ -15,7 +15,6 @@ import { findUser } from "./reconcile-lib";
 const encryptedUserSecretsSchema = z
   .object({
     gitSyncToken: z.string().min(1).optional(),
-    mcpAuthToken: z.string().min(1).optional(),
     discordBotToken: z.string().min(1).optional(),
     aiApiKey: z.string().min(1).optional(),
   })
@@ -55,10 +54,8 @@ export async function encryptPilotSecrets(
   const secretResolutionOptions = {
     sharedAiApiKeySelector: registry.pilot.aiApiKey,
     sharedGitSyncTokenSelector: registry.pilot.gitSyncToken,
-    sharedMcpAuthTokenSelector: registry.pilot.mcpAuthToken,
     effectiveAiApiKeySelector: user.effectiveAiApiKey,
     effectiveGitSyncTokenSelector: user.effectiveGitSyncToken,
-    effectiveMcpAuthTokenSelector: user.effectiveMcpAuthToken,
     discordEnabled: user.discordEnabled,
   };
 
@@ -145,10 +142,8 @@ function buildEncryptedUserSecrets(
   options: {
     sharedAiApiKeySelector: string;
     sharedGitSyncTokenSelector: string;
-    sharedMcpAuthTokenSelector: string;
     effectiveAiApiKeySelector: string;
     effectiveGitSyncTokenSelector: string;
-    effectiveMcpAuthTokenSelector: string;
     discordEnabled: boolean;
   },
 ): EncryptedUserSecrets {
@@ -170,15 +165,6 @@ function buildEncryptedUserSecrets(
     options.effectiveGitSyncTokenSelector,
     options.sharedGitSyncTokenSelector,
   );
-  const mcpAuthToken = resolveOverrideSecretValue(
-    rootDir,
-    env,
-    localEnvValues,
-    plaintextSecrets,
-    "mcpAuthToken",
-    options.effectiveMcpAuthTokenSelector,
-    options.sharedMcpAuthTokenSelector,
-  );
   const discordBotToken = options.discordEnabled
     ? resolveRequiredSecretValue(
         rootDir,
@@ -193,7 +179,6 @@ function buildEncryptedUserSecrets(
   return encryptedUserSecretsSchema.parse({
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
-    ...(mcpAuthToken ? { mcpAuthToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
   });
 }
@@ -317,10 +302,8 @@ function parseFlatYaml(contents: string): Record<string, string> {
 function listExpectedSecretKeys(options: {
   sharedAiApiKeySelector: string;
   sharedGitSyncTokenSelector: string;
-  sharedMcpAuthTokenSelector: string;
   effectiveAiApiKeySelector: string;
   effectiveGitSyncTokenSelector: string;
-  effectiveMcpAuthTokenSelector: string;
   discordEnabled: boolean;
 }): Array<keyof EncryptedUserSecrets> {
   return [
@@ -330,10 +313,6 @@ function listExpectedSecretKeys(options: {
     ...(options.effectiveGitSyncTokenSelector !==
     options.sharedGitSyncTokenSelector
       ? ["gitSyncToken" as const]
-      : []),
-    ...(options.effectiveMcpAuthTokenSelector !==
-    options.sharedMcpAuthTokenSelector
-      ? ["mcpAuthToken" as const]
       : []),
     ...(options.discordEnabled ? ["discordBotToken" as const] : []),
   ];

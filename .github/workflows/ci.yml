@@ -14,12 +14,19 @@ on:
       - "**/*.md"
       - ".claude/**"
 
+# Turbo Remote Cache: populated by Vercel-hosted cache server. TURBO_TOKEN
+# is a Vercel CLI token; TURBO_TEAM is the Vercel team slug. With both set,
+# turbo reads/writes cache entries shared with developer machines. Without,
+# turbo falls back to local actions/cache restore only.
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
 jobs:
-  build:
-    name: Build and Test
+  lint:
+    name: Lint
     timeout-minutes: 15
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v5
@@ -38,15 +45,70 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
+          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
+            turbo-lint-${{ runner.os }}-
+            turbo-${{ runner.os }}-
+
+      - name: Lint
+        run: bun run lint
+
+  typecheck:
+    name: Type check
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-typecheck-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-typecheck-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
       - name: Type check
         run: bun run typecheck
 
-      - name: Lint
-        run: bun run lint
+  test:
+    name: Test
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-test-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-test-${{ runner.os }}-
+            turbo-${{ runner.os }}-
 
       - name: Test
         run: bun run test

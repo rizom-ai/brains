@@ -130,7 +130,8 @@ Tracked but not sequenced yet. Grouped by theme.
 
 **CMS evolution**
 
-- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — backend-heavier CMS using the existing auth-service foundation; includes the GitHub OAuth proxy interim
+- [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — small interim proxy for Sveltia's existing GitHub backend
+- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — backend-heavier CMS using the existing auth-service foundation
 
 **Renderer**
 

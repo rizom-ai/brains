@@ -139,58 +139,9 @@ Two layers:
 
 ## Tactical interim: GitHub OAuth proxy
 
-Until this plan ships, the CMS surface needs a server-side OAuth code-exchange for Sveltia's GitHub login flow (the client secret can't live in the browser). The brain can host a minimal proxy inside `plugins/cms` so operators don't need an external proxy (Netlify, Cloudflare Worker, etc.).
+The small interim OAuth proxy now lives in its own plan: [CMS GitHub OAuth Proxy](./cms-github-oauth-proxy.md).
 
-This proxy is **explicitly throwaway** — it gets deleted when the gateway in this plan lands. Build with that retirement in mind.
-
-### Setup
-
-Per brain deployment, the operator registers a GitHub OAuth App at `github.com/settings/developers`:
-
-- Authorization callback URL: `https://<brain-domain>/auth/callback`
-
-Resulting credentials go into env:
-
-```bash
-GITHUB_OAUTH_CLIENT_ID=...
-GITHUB_OAUTH_CLIENT_SECRET=...
-```
-
-### Endpoints (mounted by `plugins/cms`)
-
-**`GET /auth`** — initiates the flow. Generates a `state` cookie and redirects to `https://github.com/login/oauth/authorize` with `client_id`, `redirect_uri`, `scope=repo` (or `public_repo`), `state`.
-
-**`GET /auth/callback`** — completes the flow. Verifies `state`, exchanges `code` + `client_secret` at GitHub's token endpoint, returns an HTML page that runs the Decap/Sveltia popup handshake:
-
-```js
-window.opener.postMessage(
-  `authorization:github:success:${JSON.stringify({ token, provider: "github" })}`,
-  "*",
-);
-window.close();
-```
-
-Sveltia listens for this exact message format on the opener window.
-
-### Sveltia config delta
-
-```yaml
-backend:
-  name: github
-  repo: <org>/<content-repo>
-  base_url: https://<brain-domain>
-  auth_endpoint: auth
-```
-
-`base_url` + `auth_endpoint` tell Sveltia to open `https://<brain-domain>/auth` in a popup instead of going to Netlify's default proxy.
-
-### Implementation size
-
-Two endpoints, ~80 lines of Hono. Reference: the Netlify CMS OAuth proxy and `vencax/netlify-cms-github-oauth-provider`.
-
-### Retirement
-
-When the gateway ships: delete `/auth` endpoints, drop the env vars from the schema, switch Sveltia config to `git-gateway`. No migration shim, no compatibility code.
+That plan keeps Sveltia on its existing GitHub backend but lets the brain perform the server-side GitHub OAuth code exchange until this heavier git-gateway architecture replaces the direct GitHub write path.
 
 ## Rollout
 

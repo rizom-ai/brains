@@ -1,5 +1,89 @@
 # @brains/plugins
 
+## 0.2.0-alpha.74
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.74
+  - @brains/contracts@0.2.0-alpha.74
+  - @brains/site-composition@0.2.0-alpha.74
+  - @brains/utils@0.2.0-alpha.74
+  - @brains/identity-service@0.2.0-alpha.74
+  - @brains/job-queue@0.2.0-alpha.74
+  - @brains/messaging-service@0.2.0-alpha.74
+  - @brains/templates@0.2.0-alpha.74
+
+## 0.2.0-alpha.73
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.73
+  - @brains/contracts@0.2.0-alpha.73
+  - @brains/site-composition@0.2.0-alpha.73
+  - @brains/utils@0.2.0-alpha.73
+  - @brains/identity-service@0.2.0-alpha.73
+  - @brains/job-queue@0.2.0-alpha.73
+  - @brains/messaging-service@0.2.0-alpha.73
+  - @brains/templates@0.2.0-alpha.73
+
+## 0.2.0-alpha.72
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.72
+  - @brains/contracts@0.2.0-alpha.72
+  - @brains/site-composition@0.2.0-alpha.72
+  - @brains/utils@0.2.0-alpha.72
+  - @brains/identity-service@0.2.0-alpha.72
+  - @brains/job-queue@0.2.0-alpha.72
+  - @brains/messaging-service@0.2.0-alpha.72
+  - @brains/templates@0.2.0-alpha.72
+
+## 0.2.0-alpha.71
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.71
+  - @brains/contracts@0.2.0-alpha.71
+  - @brains/site-composition@0.2.0-alpha.71
+  - @brains/utils@0.2.0-alpha.71
+  - @brains/identity-service@0.2.0-alpha.71
+  - @brains/job-queue@0.2.0-alpha.71
+  - @brains/messaging-service@0.2.0-alpha.71
+  - @brains/templates@0.2.0-alpha.71
+
+## 0.2.0-alpha.70
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.70
+  - @brains/contracts@0.2.0-alpha.70
+  - @brains/site-composition@0.2.0-alpha.70
+  - @brains/utils@0.2.0-alpha.70
+  - @brains/identity-service@0.2.0-alpha.70
+  - @brains/job-queue@0.2.0-alpha.70
+  - @brains/messaging-service@0.2.0-alpha.70
+  - @brains/templates@0.2.0-alpha.70
+
+## 0.2.0-alpha.69
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.69
+  - @brains/contracts@0.2.0-alpha.69
+  - @brains/site-composition@0.2.0-alpha.69
+  - @brains/utils@0.2.0-alpha.69
+  - @brains/identity-service@0.2.0-alpha.69
+  - @brains/job-queue@0.2.0-alpha.69
+  - @brains/messaging-service@0.2.0-alpha.69
+  - @brains/templates@0.2.0-alpha.69
+
 ## 0.2.0-alpha.68
 
 ### Patch Changes
