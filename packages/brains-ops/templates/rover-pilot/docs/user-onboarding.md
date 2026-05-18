@@ -56,31 +56,125 @@ That usually includes:
 
 If we give you a **Bearer token**, treat it like a password. Do not share it.
 
-## Start here: your first 5 minutes
+## Start here: your first Rover session
 
-For most users, the best first setup is:
+Start in **Discord**. That is the normal first interface for this pilot.
 
-1. join the Discord server we send you
-2. open your Dashboard at `https://<handle>.rizom.ai/`
-3. open the CMS at `https://<handle>.rizom.ai/cms`
-4. when the CMS asks for GitHub access, use a fine-grained GitHub token with access to your private Rover content repo
-5. send a first message in Discord and make one small edit in the CMS
+### 1. Join Discord and say hello
 
-A simple first chat message is:
+Open the invite or setup instructions we sent you. Find the Rover channel or direct message flow, then send:
 
 > What can you help me do, and what should I use you for?
 
-Or:
+Rover should answer with a short overview of what it can do.
+
+### 2. Create your first note
+
+Ask Rover to save a simple note for you:
+
+> Save a note: I am trying Rover because I want a better way to collect ideas, links, and questions in one place.
+
+You can also be more conversational:
 
 > Help me save my first note.
 
-A simple first CMS action is:
+Rover should either save the note or ask a follow-up question if it needs more detail.
 
-- open the **Notes** collection
-- create a short note about why you want to use Rover
-- save it
+### 3. Add your first link
 
-If Discord is not enabled for you yet, tell us and we will share the right next step.
+Send Rover a link you want to remember. For example:
+
+> Save this link and tell me why it might be useful later: https://example.com
+
+Or:
+
+> Add this as a link about tools I want to revisit: https://example.com
+
+Rover should save the link and, when possible, keep a short description of why it matters.
+
+### 4. Ask Rover about what you just added
+
+After you have saved a note or link, ask Rover to reflect it back:
+
+> What have I added so far?
+
+Or:
+
+> What do you know about what I am interested in so far?
+
+This is the basic Rover loop: add material, then ask Rover to help you think with it.
+
+### 5. Try a more useful task
+
+Once Rover has a little context, try one of these:
+
+> Summarize my notes so far.
+
+> What themes do you see in what I have added?
+
+> What should I add next to make you more useful?
+
+> Turn my rough note into a clearer paragraph.
+
+> Help me make a small reading list from the links I saved.
+
+These examples show the main scope of Rover: saving material, organizing it, reflecting on it, and helping you make something from it.
+
+### 6. Ask another agent
+
+Rover can also talk to other saved agents when that workflow is enabled.
+
+For now, try `yeehaa.io`:
+
+> Ask yeehaa.io what it knows about ecosystem architecture.
+
+Or:
+
+> Ask yeehaa.io for one question I should think about based on my Rover notes.
+
+If agent-to-agent access is not enabled for your pilot yet, Rover should tell you that clearly.
+
+At this point, you have done the most important part: you have started using Rover through Discord.
+
+### Next: open your Dashboard
+
+After you have tried Discord, open your Dashboard:
+
+- `https://<handle>.rizom.ai/`
+
+The Dashboard is your browser landing page for Rover. Use it to confirm your Rover instance is live and to find browser-based tools like the CMS.
+
+### Then: try the CMS
+
+The CMS is the browser editing interface for your Rover content.
+
+Open:
+
+- `https://<handle>.rizom.ai/cms`
+
+Use the CMS when you want to create or edit content more deliberately than you would in chat.
+
+A good first CMS task is:
+
+1. open the **Notes** collection
+2. create a note titled `Why I’m using Rover`
+3. write 3 to 5 sentences
+4. save it
+5. refresh the CMS and confirm the note is still there
+
+If the CMS asks for GitHub access, use the fine-grained GitHub token for your private Rover content repo.
+
+### Do not worry about MCP yet
+
+MCP is optional. You only need it if we specifically ask you to test direct client access from another AI tool.
+
+For your first session, focus on:
+
+1. Discord
+2. Dashboard
+3. CMS
+
+If any step does not work, tell us what you were trying to do and include the exact error message or a screenshot if possible.
 
 ## One important idea: Discord + Dashboard + CMS are the default, MCP is optional
 
@@ -203,38 +297,49 @@ Please tell us:
 
 We want to improve this workflow.
 
-## Optional: direct MCP access
+## Optional: MCP setup
 
-If we have asked you to use an MCP client, use one that supports:
+MCP is optional. You only need this section if we have specifically asked you to connect Rover to an MCP-capable AI client.
 
-- **HTTP / Streamable HTTP MCP**
-- **Bearer token authentication**
+MCP lets another AI client talk directly to your Rover instance. It is useful when you want to use Rover from a tool outside Discord, but it is not required for the normal pilot workflow.
 
-When your client asks for connection details, use:
+### What you need
 
+Before setting up MCP, make sure you have:
+
+- an MCP client that supports **HTTP / Streamable HTTP MCP**
+- support for **Bearer token authentication**
+- your Rover MCP URL: `https://<handle>.rizom.ai/mcp`
+- the Bearer token we sent you
+
+If you do not have a Bearer token, you probably do not need MCP yet.
+
+### Connection details
+
+When your MCP client asks for connection details, use:
+
+- **Name:** `Rover (<handle>)`
 - **Server URL:** `https://<handle>.rizom.ai/mcp`
 - **Authentication type:** Bearer token
 - **Bearer token:** the token we sent you
 
-If the client asks for a name, use something simple like:
+Treat the Bearer token like a password. Do not share it.
 
-- `Rover (<handle>)`
+### First MCP test
 
-## Optional: Claude Desktop setup
-
-If we ask you to connect through Claude Desktop and your version supports a **remote HTTP / Streamable HTTP MCP server**, enter:
-
-- **Server URL:** `https://<handle>.rizom.ai/mcp`
-- **Authentication:** Bearer token
-- **Token:** the token we sent you
-
-Then try a first message like:
+After connecting, send a simple first message from your MCP client:
 
 > What can you help me do, and what should I use you for?
 
 Or:
 
 > Help me save my first note.
+
+If the client connects and Rover responds, MCP is working.
+
+### Claude Desktop notes
+
+If we ask you to connect through Claude Desktop and your version supports a **remote HTTP / Streamable HTTP MCP server**, use the same MCP connection details above.
 
 If your Claude Desktop version only supports local MCP servers and not remote HTTP MCP cleanly, tell us what version you are using and we will help you.
 
