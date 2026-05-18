@@ -21,10 +21,7 @@ import type { AppInfo } from "../contracts/app-info";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
-import {
-  createAttachmentsNamespace,
-  type IAttachmentsNamespace,
-} from "../service/attachment-registry";
+import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import {
   createAppInfoGetter,
   createConversationsNamespace,
@@ -321,7 +318,7 @@ export function createBasePluginContext(
   const preferLocalUrls = shell.shouldPreferLocalUrls();
   const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
-  const attachmentRegistry = shell.getAttachmentRegistry();
+  const attachments = shell.getAttachmentRegistry();
 
   return {
     pluginId,
@@ -345,7 +342,7 @@ export function createBasePluginContext(
 
     jobs: createJobsNamespace(shell, pluginId),
 
-    attachments: createAttachmentsNamespace(attachmentRegistry),
+    attachments,
 
     conversations: createConversationsNamespace(shell),
 

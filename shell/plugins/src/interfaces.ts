@@ -54,7 +54,7 @@ import type { DataSourceRegistry } from "@brains/entity-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
-import type { AttachmentRegistry } from "./service/attachment-registry";
+import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -231,7 +231,7 @@ export interface IShell {
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
-  getAttachmentRegistry(): AttachmentRegistry;
+  getAttachmentRegistry(): IAttachmentsNamespace;
 
   // Identity and Profile
   getIdentity(): BrainCharacter;

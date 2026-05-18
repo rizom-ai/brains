@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import type { FetchLike, Logger } from "@brains/utils";
 import type {
   PublishProvider,
   PublishResult,
@@ -13,7 +13,7 @@ import type { LinkedinConfig } from "../config";
  * mocking globalThis.fetch.
  */
 export interface LinkedInClientDeps {
-  fetch?: typeof fetch;
+  fetch?: FetchLike;
 }
 
 const ERROR_BODY_MAX_LENGTH = 200;
@@ -110,7 +110,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export class LinkedInClient implements PublishProvider {
   public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
-  private readonly fetch: typeof fetch;
+  private readonly fetch: FetchLike;
   private cachedUserId: string | null = null;
 
   constructor(

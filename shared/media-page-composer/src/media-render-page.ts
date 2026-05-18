@@ -124,7 +124,8 @@ function getMediaPageFilePath(outputDir: string, urlPath: string): string {
   return filePath;
 }
 
-function containsTraversal(pathname: string): boolean {
+/** @internal exported for direct testing of decoded-traversal handling. */
+export function containsTraversal(pathname: string): boolean {
   return pathname.split("/").some((segment) => segment === "..");
 }
 

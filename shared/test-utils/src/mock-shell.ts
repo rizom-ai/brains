@@ -1,4 +1,7 @@
-import { AttachmentRegistry } from "@brains/plugins";
+import {
+  AttachmentRegistry,
+  createAttachmentsNamespace,
+} from "@brains/plugins";
 import type {
   IShell,
   Plugin,
@@ -529,7 +532,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         hasRenderer: () => false,
         listFormats: () => [],
       }) as unknown as RenderService,
-    getAttachmentRegistry: () => attachmentRegistry,
+    getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
     getConversationService: () =>
       ({
         startConversation: async () => `conv-${Date.now()}`,

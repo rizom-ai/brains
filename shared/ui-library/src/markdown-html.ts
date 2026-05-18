@@ -85,8 +85,10 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     // `entity:` is the project-internal scheme for unresolved image refs;
     // the image renderer normally rewrites these to http(s) before sanitize
     // runs, but unresolved refs need to survive so they show up visibly
-    // instead of being silently dropped.
-    img: ["http", "https", "data", "entity"],
+    // instead of being silently dropped. `data:` is intentionally excluded —
+    // SVG payloads (`data:image/svg+xml`) can execute scripts in Chromium
+    // during PDF capture.
+    img: ["http", "https", "entity"],
   },
   allowProtocolRelative: false,
   disallowedTagsMode: "discard",

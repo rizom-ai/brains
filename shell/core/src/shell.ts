@@ -19,7 +19,11 @@ import type {
 } from "@brains/plugins";
 
 // Plugin manager
-import type { AttachmentRegistry, PluginManager } from "@brains/plugins";
+import {
+  createAttachmentsNamespace,
+  type IAttachmentsNamespace,
+  type PluginManager,
+} from "@brains/plugins";
 
 // Entity service types
 import type {
@@ -307,8 +311,8 @@ export class Shell implements IShell {
     return this.services.renderService;
   }
 
-  public getAttachmentRegistry(): AttachmentRegistry {
-    return this.services.attachmentRegistry;
+  public getAttachmentRegistry(): IAttachmentsNamespace {
+    return createAttachmentsNamespace(this.services.attachmentRegistry);
   }
 
   public getMessageBus(): IMessageBus {

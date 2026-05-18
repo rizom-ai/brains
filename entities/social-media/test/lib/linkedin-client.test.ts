@@ -15,10 +15,6 @@ function createFetchStub(handler: FetchHandler): ReturnType<typeof mock> {
   return mock(handler);
 }
 
-function asFetch(stub: ReturnType<typeof mock>): typeof fetch {
-  return stub as unknown as typeof fetch;
-}
-
 function getMockCall(
   mocked: ReturnType<typeof mock>,
   index: number,
@@ -69,7 +65,7 @@ describe("LinkedInClient", () => {
         }),
       );
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const result = await client.publish("Hello LinkedIn!", {});
@@ -122,7 +118,7 @@ describe("LinkedInClient", () => {
         }
       });
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const imageData: PublishImageData = {
@@ -169,7 +165,7 @@ describe("LinkedInClient", () => {
         }
       });
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const imageData: PublishImageData = {
@@ -231,7 +227,7 @@ describe("LinkedInClient", () => {
         }
       });
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const documentData: PublishMediaData[] = [
@@ -308,7 +304,7 @@ describe("LinkedInClient", () => {
         }
       });
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const documentData: PublishMediaData[] = [
@@ -355,7 +351,7 @@ describe("LinkedInClient", () => {
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: asFetch(fetchStub) },
+        { fetch: fetchStub },
       );
 
       let error: unknown;
@@ -377,7 +373,7 @@ describe("LinkedInClient", () => {
       return new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: asFetch(fetchStub) },
+        { fetch: fetchStub },
       );
     }
 
@@ -462,7 +458,7 @@ describe("LinkedInClient", () => {
         }),
       );
       const client = new LinkedInClient(config, logger, {
-        fetch: asFetch(fetchStub),
+        fetch: fetchStub,
       });
 
       const result = await client.validateCredentials();
@@ -485,7 +481,7 @@ describe("LinkedInClient", () => {
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: asFetch(fetchStub) },
+        { fetch: fetchStub },
       );
 
       const result = await orgClient.validateCredentials();
@@ -506,7 +502,7 @@ describe("LinkedInClient", () => {
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: asFetch(fetchStub) },
+        { fetch: fetchStub },
       );
 
       const result = await orgClient.validateCredentials();

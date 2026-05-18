@@ -9,6 +9,7 @@ import {
   writeMediaRenderPage,
   type MediaPageTemplate,
 } from "../src";
+import { containsTraversal } from "../src/media-render-page";
 
 const tempDirs: string[] = [];
 
@@ -129,6 +130,36 @@ describe("writeMediaRenderPage", () => {
     }
 
     expectErrorMessage(error, "Media render path cannot contain traversal");
+  });
+});
+
+describe("containsTraversal", () => {
+  it("detects literal '..' segments", () => {
+    expect(containsTraversal("/_media/../etc/passwd")).toBe(true);
+    expect(containsTraversal("..")).toBe(true);
+    expect(containsTraversal("/a/../b")).toBe(true);
+  });
+
+  it("allows paths without '..' segments", () => {
+    expect(containsTraversal("/_media/carousel/index.html")).toBe(false);
+    expect(containsTraversal("/")).toBe(false);
+    expect(containsTraversal("")).toBe(false);
+  });
+
+  it("does not catch percent-encoded traversal without prior decoding", () => {
+    // The static server is expected to decodeURIComponent BEFORE calling
+    // containsTraversal — this test pins that contract so any refactor that
+    // moves containsTraversal earlier in the pipeline reveals the assumption.
+    expect(containsTraversal("/_media/%2e%2e/etc")).toBe(false);
+    expect(containsTraversal(decodeURIComponent("/_media/%2e%2e/etc"))).toBe(
+      true,
+    );
+  });
+
+  it("treats partial '..' lookalikes as safe", () => {
+    expect(containsTraversal("/a/..b/c")).toBe(false);
+    expect(containsTraversal("/a/.../c")).toBe(false);
+    expect(containsTraversal("/a/.b/c")).toBe(false);
   });
 });
 

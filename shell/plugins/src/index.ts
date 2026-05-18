@@ -40,6 +40,7 @@ export type {
 } from "./service/context";
 export {
   AttachmentRegistry,
+  createAttachmentsNamespace,
   type AttachmentProvider,
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,

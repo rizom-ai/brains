@@ -31,6 +31,14 @@ describe("markdownToHtml sanitization", () => {
     expect(dataHtml).not.toContain("data:text/html");
   });
 
+  it("rejects data: URLs on images so SVG payloads cannot run scripts in Chromium", () => {
+    const svgPayload =
+      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxzY3JpcHQ+YWxlcnQoMSk8L3NjcmlwdD48L3N2Zz4=";
+    const html = markdownToHtml(`![bad](${svgPayload})`);
+    expect(html).not.toContain("data:image/svg+xml");
+    expect(html).not.toContain("base64");
+  });
+
   it("preserves standard markdown output (headings, lists, links, code)", () => {
     const html = markdownToHtml(
       "# Title\n\n- a\n- b\n\n[link](https://example.com)\n\n`inline code`",
