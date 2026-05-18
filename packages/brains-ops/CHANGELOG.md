@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.77
+
+### Patch Changes
+
+- [`31601f2`](https://github.com/rizom-ai/brains/commit/31601f2a6b669c4cc9a8660811e34e15f5257150) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `verify-user`: parse `/health` response with Zod instead of a cast, collect per-check failures so an early failure doesn't hide later ones, and report passed and failed checks together. Drop the misleading "content repo" claim from the docs.
+
 ## 0.2.0-alpha.76
 
 ### Patch Changes

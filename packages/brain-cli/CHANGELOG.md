@@ -1,5 +1,7 @@
 # @rizom/brain
 
+## 0.2.0-alpha.77
+
 ## 0.2.0-alpha.76
 
 ## 0.2.0-alpha.75
