@@ -14,7 +14,39 @@ For now, custom site and theme packages may be required to be public npm package
 
 ## Phase 1 — Browser-first onboarding baseline
 
-### 1. Add `user:add --no-discord`
+### 1. Default-preset verification checklist
+
+Update the operator checklist for `rover:default` deployments:
+
+- `GET /health` returns `200`
+- `GET /` loads the browser/site surface with the selected site/theme package
+- `GET /cms` loads the CMS/login surface
+- unauthenticated `POST /mcp` returns the expected auth failure
+- initial site build completes
+- content repo exists and syncs
+- passkey setup/handoff is completed
+- background jobs are not repeatedly failing, except for expected missing optional integrations
+
+### 2. Document a one-user default canary procedure
+
+Recommended baseline flow before adding custom visual packages:
+
+```text
+create batch-2 cohort with presetOverride: default
+add one canary user with setup delivery by email
+encrypt secrets
+onboard canary
+verify web/CMS/site/sync/auth with the default site/theme
+then proceed to customization work
+```
+
+Include rollback notes:
+
+- remove the user from the default cohort, or set the cohort back to `core`
+- reconcile generated outputs
+- rebuild/redeploy the affected user image/config
+
+### 3. Add `user:add --no-discord`
 
 Add CLI support:
 
@@ -38,38 +70,6 @@ Behavior:
 discord:
   enabled: false
 ```
-
-### 2. Default-preset verification checklist
-
-Update the operator checklist for `rover:default` deployments:
-
-- `GET /health` returns `200`
-- `GET /` loads the browser/site surface with the selected site/theme package
-- `GET /cms` loads the CMS/login surface
-- unauthenticated `POST /mcp` returns the expected auth failure
-- initial site build completes
-- content repo exists and syncs
-- passkey setup/handoff is completed
-- background jobs are not repeatedly failing, except for expected missing optional integrations
-
-### 3. Document a one-user default canary procedure
-
-Recommended baseline flow before adding custom visual packages:
-
-```text
-create batch-2 cohort with presetOverride: default
-add one canary user, preferably with --no-discord and setup delivery by email
-encrypt secrets
-onboard canary
-verify web/CMS/site/sync/auth with the default site/theme
-then proceed to customization work
-```
-
-Include rollback notes:
-
-- remove the user from the default cohort, or set the cohort back to `core`
-- reconcile generated outputs
-- rebuild/redeploy the affected user image/config
 
 ## Phase 2 — Per-user visual customization
 
@@ -207,9 +207,9 @@ Checks:
 
 ## Suggested implementation order
 
-1. `user:add --no-discord`
-2. Default-preset verification checklist
-3. One-user `rover:default` baseline canary using the default site/theme
+1. Default-preset verification checklist
+2. One-user `rover:default` baseline canary using the default site/theme
+3. `user:add --no-discord`
 4. Public npm site/theme overrides and deploy image installation
 5. Package authoring docs/templates
 6. One-user custom-theme canary
