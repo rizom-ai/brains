@@ -14,20 +14,7 @@ For now, custom site and theme packages may be required to be public npm package
 
 ## Phase 1 — Browser-first onboarding baseline
 
-### 1. Default-preset verification checklist
-
-Update the operator checklist for `rover:default` deployments:
-
-- `GET /health` returns `200`
-- `GET /` loads the browser/site surface with the selected site/theme package
-- `GET /cms` loads the CMS/login surface
-- unauthenticated `POST /mcp` returns the expected auth failure
-- initial site build completes
-- content repo exists and syncs
-- passkey setup/handoff is completed
-- background jobs are not repeatedly failing, except for expected missing optional integrations
-
-### 2. Document a one-user default canary procedure
+### 1. Document a one-user default canary procedure
 
 Recommended baseline flow before adding custom visual packages:
 
@@ -46,7 +33,7 @@ Include rollback notes:
 - reconcile generated outputs
 - rebuild/redeploy the affected user image/config
 
-### 3. Add `user:add --no-discord`
+### 2. Add `user:add --no-discord`
 
 Add CLI support:
 
@@ -73,7 +60,7 @@ discord:
 
 ## Phase 2 — Per-user visual customization
 
-### 4. Public npm package site/theme overrides
+### 3. Public npm package site/theme overrides
 
 Add optional user-level site override fields:
 
@@ -122,7 +109,7 @@ Out of scope for this batch:
 - per-user registry credentials
 - arbitrary user editing of generated `brain.yaml`
 
-### 5. Package authoring docs/templates
+### 4. Package authoring docs/templates
 
 Document minimal package contracts before asking users/operators to supply packages:
 
@@ -136,7 +123,7 @@ Optionally add starter templates for:
 - `rover-theme-*`
 - `rover-site-*`
 
-### 6. Custom-theme canary procedure
+### 5. Custom-theme canary procedure
 
 After site/theme refs and package docs exist, extend the canary flow:
 
@@ -157,7 +144,7 @@ Include rollback notes:
 
 ## Phase 3 — Domain customization
 
-### 7. Per-user custom domain support
+### 6. Per-user custom domain support
 
 Add optional user-level domain fields:
 
@@ -185,7 +172,7 @@ Behavior:
 
 ## Phase 4 — Nice-to-have tooling
 
-### 8. Add `brains-ops preflight`
+### 7. Add `brains-ops preflight`
 
 Potential command:
 
@@ -207,11 +194,10 @@ Checks:
 
 ## Suggested implementation order
 
-1. Default-preset verification checklist
-2. One-user `rover:default` baseline canary using the default site/theme
-3. `user:add --no-discord`
-4. Public npm site/theme overrides and deploy image installation
-5. Package authoring docs/templates
-6. One-user custom-theme canary
-7. Per-user custom domains
-8. `preflight`, if still useful after the batch workflow is clearer
+1. One-user `rover:default` baseline canary using the default site/theme
+2. `user:add --no-discord`
+3. Public npm site/theme overrides and deploy image installation
+4. Package authoring docs/templates
+5. One-user custom-theme canary
+6. Per-user custom domains
+7. `preflight`, if still useful after the batch workflow is clearer
