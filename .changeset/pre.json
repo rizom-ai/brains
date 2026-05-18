@@ -148,6 +148,7 @@
     "node24-action-upgrades",
     "oauth-inspector-compat",
     "ops-anchor-profile-content-seeding",
+    "ops-build-brain-version-input",
     "ops-deploy-finalize-push-ref",
     "ops-dockerfile-reconcile",
     "ops-per-user-plaintext-secrets",

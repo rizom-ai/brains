@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.75
+
+### Patch Changes
+
+- [#6](https://github.com/rizom-ai/brains/pull/6) [`60b5632`](https://github.com/rizom-ai/brains/commit/60b5632ee9d98a95e577d3a9574fd67b87d99b4c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a manual `brain_version` input to the generated rover-pilot Build workflow so operators can build smoke or cohort override runtime versions without changing `pilot.yaml`.
+
 ## 0.2.0-alpha.74
 
 ## 0.2.0-alpha.73
