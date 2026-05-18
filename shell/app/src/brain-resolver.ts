@@ -374,6 +374,18 @@ function applyExtraConfig(
   }
 }
 
+function applySharedTheme(
+  appConfig: AppConfig,
+  themeCSS: string | undefined,
+): void {
+  if (themeCSS === undefined) return;
+
+  appConfig.shellConfig = {
+    ...appConfig.shellConfig,
+    themeCSS,
+  };
+}
+
 function applySiteEntityDisplay(
   appConfig: AppConfig,
   site: SitePackage | undefined,
@@ -479,6 +491,7 @@ export function resolve(
 
   // Merge any extra config (escape hatch)
   applyExtraConfig(appConfig, definition);
+  applySharedTheme(appConfig, theme);
   applySiteEntityDisplay(appConfig, site);
 
   return defineConfig(appConfig);

@@ -38,6 +38,7 @@ export interface WriteMediaRenderPageOptions {
   content: unknown;
   siteConfig: MediaSiteConfig;
   imageBuildService?: SiteImageRendererService | null | undefined;
+  themeCSS: string;
 }
 
 export interface WriteMediaRenderPageResult {

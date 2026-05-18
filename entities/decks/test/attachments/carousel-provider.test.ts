@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AttachmentRegistry } from "@brains/plugins";
 import { DecksPlugin, type DecksPluginDeps } from "../../src/plugin";
+import { DeckCarouselAttachmentProvider } from "../../src/attachments/carousel-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
 
 const sampleDeck: DeckEntity = {
@@ -76,6 +77,41 @@ describe("Deck carousel attachment provider", () => {
       }
     }
     expect(renderPdf).not.toHaveBeenCalled();
+  });
+
+  it("passes active theme CSS through to the media render page", async () => {
+    const harness = createPluginHarness<DecksPlugin>();
+    await harness.installPlugin(new DecksPlugin());
+    await harness.getEntityService().createEntity({ entity: sampleDeck });
+
+    const provider = new DeckCarouselAttachmentProvider(
+      {
+        entityService: harness.getEntityService(),
+        themeCSS: ":root { --carousel-test-token: #123456; }",
+      },
+      {
+        renderPdf: async (url: string): Promise<Buffer> => {
+          const stylesUrl = new URL("/styles/main.css", url).toString();
+          const response = await fetch(stylesUrl);
+          expect(response.status).toBe(200);
+          expect(await response.text()).toContain("--carousel-test-token");
+          return Buffer.from("%PDF-themed-carousel");
+        },
+      },
+    );
+
+    const attachment = await provider.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expect(attachment).toEqual({
+      type: "document",
+      data: Buffer.from("%PDF-themed-carousel"),
+      mimeType: "application/pdf",
+      filename: "test-deck-carousel.pdf",
+    });
   });
 
   it("resolves a deck into a PDF carousel attachment", async () => {

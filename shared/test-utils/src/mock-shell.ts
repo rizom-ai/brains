@@ -82,6 +82,8 @@ export interface MockShellOptions {
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
+  /** Active resolved theme CSS */
+  themeCSS?: string;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -569,6 +571,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,
+    getThemeCSS: (): string => options.themeCSS ?? "",
     getSpaces: (): string[] => options.spaces ?? [],
 
     // Data directory

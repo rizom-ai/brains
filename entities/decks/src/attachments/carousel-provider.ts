@@ -33,7 +33,10 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   private readonly renderPdf: RenderPdf;
 
   constructor(
-    private readonly context: Pick<EntityPluginContext, "entityService">,
+    private readonly context: Pick<
+      EntityPluginContext,
+      "entityService" | "themeCSS"
+    >,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
@@ -72,6 +75,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
         format: "pdf",
         content: carouselContent,
         siteConfig: { title: carouselContent.title },
+        themeCSS: this.context.themeCSS,
       });
 
       const server = await startStaticRenderServer({ rootDir: outputDir });

@@ -489,6 +489,10 @@ export class Shell implements IShell {
     return this.config.preferLocalUrls;
   }
 
+  public getThemeCSS(): string {
+    return this.config.themeCSS;
+  }
+
   public getSpaces(): string[] {
     return this.config.spaces;
   }

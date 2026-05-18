@@ -24,8 +24,18 @@ export async function writeMediaRenderPage(
 
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, html, "utf-8");
+  await writeMediaStyles(options.outputDir, options.themeCSS);
 
   return { urlPath, filePath };
+}
+
+async function writeMediaStyles(
+  outputDir: string,
+  themeCSS: string,
+): Promise<void> {
+  const stylesDir = join(outputDir, "styles");
+  await mkdir(stylesDir, { recursive: true });
+  await writeFile(join(stylesDir, "main.css"), themeCSS, "utf-8");
 }
 
 export async function startStaticRenderServer(

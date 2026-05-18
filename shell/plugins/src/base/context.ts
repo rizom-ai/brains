@@ -175,6 +175,9 @@ export interface BasePluginContext {
   /** Prefer local runtime URLs over public domain URLs when both exist. */
   readonly preferLocalUrls: boolean;
 
+  /** Active resolved theme CSS for site, dashboard, and media rendering. */
+  readonly themeCSS: string;
+
   /** Entity display metadata from the active site package, if any */
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
 
@@ -316,6 +319,7 @@ export function createBasePluginContext(
   const domain = shell.getDomain();
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
+  const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
   const attachmentRegistry = shell.getAttachmentRegistry();
 
@@ -333,6 +337,7 @@ export function createBasePluginContext(
     localSiteUrl,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
     preferLocalUrls,
+    themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),
 

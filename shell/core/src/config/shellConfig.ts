@@ -78,6 +78,7 @@ export const shellConfigSchema = z.object({
   siteBaseUrl: z.string().optional(),
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
+  themeCSS: z.string().default(""),
   entityDisplay: z
     .record(
       z
@@ -151,6 +152,7 @@ export function createShellConfig(
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
     ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
     ...(overrides.localSiteUrl && { localSiteUrl: overrides.localSiteUrl }),
+    themeCSS: overrides.themeCSS ?? "",
     ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),
   };
 
@@ -175,6 +177,7 @@ export function createShellConfig(
     result.localSiteUrl = overrides.localSiteUrl;
   if (overrides.preferLocalUrls !== undefined)
     result.preferLocalUrls = overrides.preferLocalUrls;
+  result.themeCSS = overrides.themeCSS ?? "";
   if (entityDisplay !== undefined)
     result.entityDisplay = entityDisplay as Record<string, EntityDisplayEntry>;
 

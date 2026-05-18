@@ -57,6 +57,7 @@ describe("writeMediaRenderPage", () => {
       format: "pdf",
       content: { title: "Carousel" },
       siteConfig: { title: "Test Site", themeMode: "dark" },
+      themeCSS: "",
     });
 
     expect(result.urlPath).toBe("/_media/carousel/template/post-1/");
@@ -71,6 +72,23 @@ describe("writeMediaRenderPage", () => {
     expect(html).toContain('<link rel="stylesheet" href="/styles/main.css">');
   });
 
+  it("always writes theme token CSS for media render pages", async () => {
+    const outputDir = await createTempDir();
+
+    await writeMediaRenderPage({
+      outputDir,
+      mediaPath: "/_media/carousel/template/post-1",
+      template: createTemplate(),
+      format: "pdf",
+      content: { title: "Carousel" },
+      siteConfig: { title: "Test Site" },
+      themeCSS: ":root { --carousel-test-token: #abcdef; }",
+    });
+
+    const css = await readFile(join(outputDir, "styles", "main.css"), "utf-8");
+    expect(css).toBe(":root { --carousel-test-token: #abcdef; }");
+  });
+
   it("rejects paths outside the internal media namespace", async () => {
     const outputDir = await createTempDir();
 
@@ -83,6 +101,7 @@ describe("writeMediaRenderPage", () => {
         format: "pdf",
         content: { title: "Carousel" },
         siteConfig: { title: "Test Site" },
+        themeCSS: "",
       });
     } catch (caught) {
       error = caught;
@@ -103,6 +122,7 @@ describe("writeMediaRenderPage", () => {
         format: "pdf",
         content: { title: "Carousel" },
         siteConfig: { title: "Test Site" },
+        themeCSS: "",
       });
     } catch (caught) {
       error = caught;
@@ -129,6 +149,7 @@ describe("startStaticRenderServer", () => {
       format: "pdf",
       content: { title: "Carousel" },
       siteConfig: { title: "Test Site" },
+      themeCSS: ".carousel-slide { color: red; }",
     });
 
     const server = await startStaticRenderServer({ rootDir: outputDir });
