@@ -332,7 +332,22 @@ describe("AuthService", () => {
       authServicePlugin({
         storageDir,
         issuer: "https://brain.example.com",
-        setupEmail: "user@example.com",
+        setupEmail: {
+          to: "user@example.com",
+          subject: "Welcome to Rover — set up your passkey",
+          body: [
+            "Hi,",
+            "",
+            "Your Rover is ready.",
+            "",
+            "Set up your passkey:",
+            "{{setupUrl}}",
+            "",
+            "This link is single-use and expires at {{expiresAt}}.",
+            "Dashboard: {{origin}}/",
+            "MCP endpoint: {{origin}}/mcp",
+          ].join("\n"),
+        },
       }),
     );
     await readyAuthPlugin(harness);
@@ -350,16 +365,57 @@ describe("AuthService", () => {
       })
       .parse(notifications[0]);
 
-    expect(notification.title).toContain("Set up your brain passkey");
+    expect(notification.title).toBe("Welcome to Rover — set up your passkey");
     expect(notification.recipient).toEqual({
       type: "email",
       address: "user@example.com",
     });
+    expect(notification.body).toContain("Your Rover is ready.");
     expect(notification.body).toContain(
       "https://brain.example.com/setup?token=setup_",
     );
     expect(notification.body).toContain("single-use");
-    expect(notification.body).toContain("expires");
+    expect(notification.body).toContain("expires at");
+    expect(notification.body).toContain(
+      "Dashboard: https://brain.example.com/",
+    );
+    expect(notification.body).toContain(
+      "MCP endpoint: https://brain.example.com/mcp",
+    );
+    expect(notification.body).not.toContain("{{setupUrl}}");
+    expect(notification.body).not.toContain("{{expiresAt}}");
+    expect(notification.body).not.toContain("{{origin}}");
+  });
+
+  it("keeps setup email copy generic when only a recipient is configured", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+      logContext: "auth-service-test",
+    });
+    const notifications: unknown[] = [];
+
+    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+      notifications.push(message.payload);
+      return { success: true, data: { status: "sent" } };
+    });
+
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+        setupEmail: "user@example.com",
+      }),
+    );
+    await readyAuthPlugin(harness);
+
+    const notification = z
+      .object({ title: z.string(), body: z.string() })
+      .parse(notifications[0]);
+
+    expect(notification.title).toBe("Set up your brain passkey");
+    expect(notification.body).toContain("Set up your brain passkey");
+    expect(notification.body).not.toContain("Rover");
   });
 
   it("waits until ready hooks to request setup email so notification routing is registered", async () => {
