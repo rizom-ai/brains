@@ -50,11 +50,9 @@ That usually includes:
 - your **Dashboard URL**: `https://<handle>.rizom.ai/`
 - your **CMS URL**: `https://<handle>.rizom.ai/cms`
 - if you will use the CMS, an invite to your **private** Rover content repo plus instructions for creating a GitHub token
-- if needed, your Rover MCP URL: `https://<handle>.rizom.ai/mcp`
-- if needed, your **Bearer token**
 - any extra instructions if we are testing a specific workflow with your cohort
 
-If we give you a **Bearer token**, treat it like a password. Do not share it.
+If we ask you to test MCP, we will send those instructions separately.
 
 ## Start here: your first Rover session
 
@@ -209,7 +207,7 @@ For most users, the practical meaning is simple:
 - use the CMS when you want to edit structured content directly
 - start using it
 
-If your cohort is also testing MCP, we will send the URL, Bearer token, and setup help separately.
+If your cohort is also testing MCP, we will send the connection details and setup help separately.
 
 ## Working in the CMS
 
@@ -323,22 +321,19 @@ MCP lets another AI client talk directly to your Rover instance. It is useful wh
 Before setting up MCP, make sure you have:
 
 - an MCP client that supports **HTTP / Streamable HTTP MCP**
-- support for **Bearer token authentication**
-- your Rover MCP URL: `https://<handle>.rizom.ai/mcp`
-- the Bearer token we sent you
+- the MCP connection details we sent you
 
-If you do not have a Bearer token, you probably do not need MCP yet.
+If we have not sent you MCP connection details, you probably do not need MCP yet.
 
 ### Connection details
 
-When your MCP client asks for connection details, use:
+When your MCP client asks for connection details, use the values we sent you separately.
 
-- **Name:** `Rover (<handle>)`
-- **Server URL:** `https://<handle>.rizom.ai/mcp`
-- **Authentication type:** Bearer token
-- **Bearer token:** the token we sent you
+If the client asks for a name, use:
 
-Treat the Bearer token like a password. Do not share it.
+- `Rover (<handle>)`
+
+Treat any MCP credentials like a password. Do not share them.
 
 ### First MCP test
 
@@ -407,7 +402,7 @@ Usually the easiest order is:
 4. **SSH key** only if you already use git that way
 
 You do **not** need a GitHub token just to use Rover in Discord.
-You do **not** need an MCP Bearer token unless we explicitly ask you to use MCP.
+You do **not** need MCP unless we explicitly ask you to test it.
 
 ### If you want the local file workflow
 
@@ -530,7 +525,7 @@ That is normal. The point of the pilot is to learn from real use.
 For the pilot:
 
 - your Rover is deployed specifically for you
-- if you are using MCP, access to `/mcp` is protected by your Bearer token
+- if you are using MCP, we will send separate access instructions
 - your content repo is private
 - you should avoid putting highly sensitive material into the pilot unless we have explicitly agreed that it is in scope
 
@@ -568,17 +563,14 @@ If anything in that loop feels unclear, tell us exactly where it became confusin
 
 ### I got an authentication error in MCP
 
-Usually this means one of three things:
+If we asked you to test MCP and you get an authentication error, check the MCP setup instructions we sent you separately.
 
-- the Bearer token was missing
-- the Bearer token was pasted incorrectly
-- the client is using the wrong authentication type
+If it still fails, send us:
 
-Double-check that you are using:
-
-- URL: `https://<handle>.rizom.ai/mcp`
-- auth type: **Bearer token**
-- token: exactly the token we sent you
+- the name of the client
+- the version you are using
+- the exact error message
+- a screenshot if possible
 
 ### My MCP client says it cannot connect
 
@@ -615,11 +607,7 @@ Dashboard URL: https://<handle>.rizom.ai/
 CMS URL: https://<handle>.rizom.ai/cms
 CMS auth: GitHub token with access to your private Rover content repo
 MCP access: optional / enabled / not enabled
-
-If MCP is enabled:
-MCP URL: https://<handle>.rizom.ai/mcp
-Auth type: Bearer token
-Bearer token: <token>
+MCP setup: sent separately if enabled
 ```
 
 If anything is unclear, reply with the exact error text or a screenshot and we will help.
