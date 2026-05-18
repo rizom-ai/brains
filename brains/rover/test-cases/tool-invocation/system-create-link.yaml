@@ -2,6 +2,8 @@ id: tool-invocation-system-create-link
 name: Link Save via system_create
 description: Verifies that the agent uses system_create with entityType link when asked to save a link
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

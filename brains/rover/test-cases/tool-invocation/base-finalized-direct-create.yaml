@@ -2,6 +2,8 @@ id: tool-invocation-base-finalized-direct-create
 name: Exact Note Uses Direct Create
 description: Verifies exact note/base content is persisted directly, not regenerated via prompt.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - shell
   - base

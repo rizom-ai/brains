@@ -2,6 +2,8 @@ id: tool-invocation-blog-finalized-direct-create
 name: Finalized Blog Post Uses Direct Create
 description: Verifies finalized blog/post content is persisted with content, not regenerated via prompt.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - blog
   - finalized-content

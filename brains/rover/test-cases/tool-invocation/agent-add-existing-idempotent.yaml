@@ -2,6 +2,8 @@ id: tool-invocation-agent-add-existing-idempotent
 name: Saving an Existing Agent Is Idempotent
 description: Tests that saving an agent that already exists in the directory does not enqueue a duplicate generation and does not return a failure message
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

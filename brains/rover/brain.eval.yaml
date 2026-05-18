@@ -16,5 +16,6 @@ keys:
 
 plugins:
   directory-sync:
+    seedContentPath: eval-content
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"

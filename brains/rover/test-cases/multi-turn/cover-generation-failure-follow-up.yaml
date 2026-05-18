@@ -2,6 +2,8 @@ id: cover-generation-failure-follow-up
 name: Cover generation failure follow-up reports failure, not pending status
 description: Verifies that after a cover-image request fails because the target post cannot be found, a follow-up like "is it ready?" does not imply the job is still pending
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - image
   - cover

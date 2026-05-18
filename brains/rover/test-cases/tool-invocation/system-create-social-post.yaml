@@ -2,6 +2,8 @@ id: tool-invocation-system-create-social-post
 name: Social Post Creation via system_create
 description: Verifies the agent uses system_create with entityType social-post
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - social-media

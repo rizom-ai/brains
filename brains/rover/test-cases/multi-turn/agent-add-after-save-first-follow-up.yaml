@@ -2,6 +2,8 @@ id: multi-turn-agent-add-after-save-first-follow-up
 name: Save Agent After Bare Save-First Follow-Up
 description: Verifies that after refusing an unsaved A2A call, the agent treats a bare affirmative follow-up as consent to save the same agent domain
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

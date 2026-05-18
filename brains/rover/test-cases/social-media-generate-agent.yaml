@@ -2,6 +2,8 @@ id: social-media-generate-agent
 name: Generate LinkedIn post via natural language
 description: Tests that the agent uses system_create to create a social post when asked
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - social-media
   - linkedin

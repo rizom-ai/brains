@@ -2,6 +2,8 @@ id: response-quality-data-in-response
 name: Agent Shows Actual Data
 description: Tests that the agent includes actual data from tool results in its response
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - quality
   - formatted-output

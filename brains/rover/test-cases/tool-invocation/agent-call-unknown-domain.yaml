@@ -2,6 +2,8 @@ id: tool-invocation-agent-call-unknown-domain
 name: Refuse Unknown Agent by Domain
 description: Tests that the agent refuses to call an agent that is not already saved in the local directory
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

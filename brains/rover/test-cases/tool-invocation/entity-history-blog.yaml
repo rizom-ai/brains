@@ -2,6 +2,8 @@ id: tool-invocation-entity-history-blog
 name: Entity History for Blog Post
 description: Tests that the agent maps "blog post" or "essay" to entityType "post" when looking up history
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - history

@@ -2,6 +2,8 @@ id: tool-invocation-decks-generate
 name: Deck Creation via system_create
 description: Verifies that the agent uses system_create with entityType deck instead of old decks_generate tool
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - decks

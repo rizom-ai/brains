@@ -47,14 +47,27 @@ describe("buildInstructions", () => {
     expect(instructions).not.toContain("system_get-profile");
   });
 
-  it("should include anchor name in user context for anchor users", () => {
+  it("should describe anchor permission as authorization, not profile identity", () => {
     const instructions = buildInstructions(identity, "anchor", undefined, {
       name: "Jan Hein",
       kind: "professional" as const,
       description: "Builder",
     });
     expect(instructions).toContain("Jan Hein");
-    expect(instructions).toContain("ANCHOR");
+    expect(instructions).toContain("anchor-level operator permissions");
+    expect(instructions).toContain(
+      "does not prove the caller's real-world identity or profile name",
+    );
+    expect(instructions).not.toContain(
+      "You are speaking with your ANCHOR (Jan Hein)",
+    );
+  });
+
+  it("should tell public users they are not the anchor and cannot mutate content", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain("public user");
+    expect(instructions).toContain("Public users are not the anchor");
+    expect(instructions).toContain("generally cannot create, update, delete");
   });
 
   it("should show trusted user context for trusted users", () => {

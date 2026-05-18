@@ -2,6 +2,8 @@ id: tool-invocation-agent-add
 name: Add Agent to Directory
 description: Tests that the agent uses system_create for agent type when asked to add a contact
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - tool-invocation

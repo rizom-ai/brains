@@ -2,6 +2,8 @@ id: tool-invocation-blog-generate
 name: Blog Post Creation via system_create
 description: Verifies that the agent uses system_create with entityType post instead of old blog_generate tool
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - blog

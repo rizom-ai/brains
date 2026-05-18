@@ -2,6 +2,8 @@ id: tool-invocation-set-cover-generate-by-reference
 name: Generate Cover Image for Entity Resolved by Fuzzy Reference
 description: Verifies that the agent searches for an existing post from a partial natural-language reference before generating a new cover image and uses the canonical target entity id
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - image

@@ -2,6 +2,8 @@ id: tool-invocation-system-create-note
 name: Direct Note Creation via system_create
 description: Verifies that the agent uses system_create with content for direct note creation
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

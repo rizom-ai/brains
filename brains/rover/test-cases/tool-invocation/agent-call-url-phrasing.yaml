@@ -2,6 +2,8 @@ id: tool-invocation-agent-call-url-phrasing
 name: Refuse URL-Only Agent Contact Request
 description: Tests that URL-style agent contact requests still follow the save-first directory flow
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

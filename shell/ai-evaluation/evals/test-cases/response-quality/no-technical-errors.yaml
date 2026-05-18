@@ -6,6 +6,8 @@ description: >-
   as a safe fallback; judge helpfulness on whether the response avoids raw
   errors and explains the unsupported request clearly.
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - shell
   - quality
