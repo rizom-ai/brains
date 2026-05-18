@@ -12,9 +12,68 @@ The second batch is expected to need per-user visual customization. Users do not
 
 For now, custom site and theme packages may be required to be public npm packages. Private package registry/auth support is explicitly out of scope for this batch.
 
-## Phase 1 — Must-have before onboarding
+## Phase 1 — Browser-first onboarding baseline
 
-### 1. Public npm package site/theme overrides
+### 1. Add `user:add --no-discord`
+
+Add CLI support:
+
+```sh
+bunx brains-ops user:add . alice --cohort batch-2 --no-discord
+```
+
+Update:
+
+- `packages/brains-ops/src/run-command.ts`
+- `packages/brains-ops/src/user-add.ts`
+- CLI/user-add tests
+- onboarding docs
+
+Behavior:
+
+- keep Discord enabled by default for backward compatibility
+- `--no-discord` writes:
+
+```yaml
+discord:
+  enabled: false
+```
+
+### 2. Default-preset verification checklist
+
+Update the operator checklist for `rover:default` deployments:
+
+- `GET /health` returns `200`
+- `GET /` loads the browser/site surface with the selected site/theme package
+- `GET /cms` loads the CMS/login surface
+- unauthenticated `POST /mcp` returns the expected auth failure
+- initial site build completes
+- content repo exists and syncs
+- passkey setup/handoff is completed
+- background jobs are not repeatedly failing, except for expected missing optional integrations
+
+### 3. Document a one-user default canary procedure
+
+Recommended baseline flow before adding custom visual packages:
+
+```text
+create batch-2 cohort with presetOverride: default
+add one canary user, preferably with --no-discord and setup delivery by email
+encrypt secrets
+onboard canary
+verify web/CMS/site/sync/auth with the default site/theme
+then proceed to customization work
+```
+
+Include rollback notes:
+
+- remove the user from the default cohort, or set the cohort back to `core`
+- reconcile generated outputs
+- rebuild/redeploy the affected user image/config
+
+## Phase 2 — Per-user visual customization
+
+### 4. Public npm package site/theme overrides
 
 Add optional user-level site override fields:
 
@@ -63,7 +122,42 @@ Out of scope for this batch:
 - per-user registry credentials
 - arbitrary user editing of generated `brain.yaml`
 
-### 2. Per-user custom domain support
+### 5. Package authoring docs/templates
+
+Document minimal package contracts before asking users/operators to supply packages:
+
+- theme package exports a CSS string as default export
+- site package exports a valid `SitePackage`
+- packages must be compatible with the pinned `@rizom/brain` public API
+- packages must be public npm packages for this batch
+
+Optionally add starter templates for:
+
+- `rover-theme-*`
+- `rover-site-*`
+
+### 6. Custom-theme canary procedure
+
+After site/theme refs and package docs exist, extend the canary flow:
+
+```text
+choose public npm site/theme package refs
+apply them to one canary user
+reconcile generated outputs
+build/redeploy
+verify web/CMS/site/theme/sync/auth
+then add remaining users
+```
+
+Include rollback notes:
+
+- remove or change site/theme overrides if the package fails
+- reconcile generated outputs
+- rebuild/redeploy the affected user image/config
+
+## Phase 3 — Domain customization
+
+### 7. Per-user custom domain support
 
 Add optional user-level domain fields:
 
@@ -89,70 +183,9 @@ Behavior:
 - `previewDomainOverride` replaces deploy's derived preview domain when provided
 - if the custom domain is outside the configured Cloudflare zone/cert coverage, docs should flag that manual DNS/cert work may be required
 
-### 3. Add `user:add --no-discord`
+## Phase 4 — Nice-to-have tooling
 
-Add CLI support:
-
-```sh
-bunx brains-ops user:add . alice --cohort batch-2 --no-discord
-```
-
-Update:
-
-- `packages/brains-ops/src/run-command.ts`
-- `packages/brains-ops/src/user-add.ts`
-- CLI/user-add tests
-- onboarding docs
-
-Behavior:
-
-- keep Discord enabled by default for backward compatibility
-- `--no-discord` writes:
-
-```yaml
-discord:
-  enabled: false
-```
-
-### 4. Default-preset verification checklist
-
-Update the operator checklist for `rover:default` deployments:
-
-- `GET /health` returns `200`
-- `GET /` loads the browser/site surface with the selected site/theme package
-- `GET /cms` loads the CMS/login surface
-- unauthenticated `POST /mcp` returns the expected auth failure
-- initial site build completes
-- content repo exists and syncs
-- passkey setup/handoff is completed
-- background jobs are not repeatedly failing, except for expected missing optional integrations
-
-## Phase 2 — Safer rollout flow
-
-### 5. Document a one-user canary procedure
-
-Recommended flow:
-
-```text
-create batch-2 cohort with presetOverride: default
-choose public npm site/theme package refs
-add one canary user
-encrypt secrets
-onboard canary
-verify web/CMS/site/theme/sync/auth
-then add remaining users
-```
-
-Include rollback notes:
-
-- remove the user from the default cohort, or set the cohort back to `core`
-- remove or change site/theme overrides if the package fails
-- reconcile generated outputs
-- rebuild/redeploy the affected user image/config
-
-## Phase 3 — Nice-to-have tooling
-
-### 6. Add `brains-ops preflight`
+### 8. Add `brains-ops preflight`
 
 Potential command:
 
@@ -172,26 +205,13 @@ Checks:
 - warns if Discord is enabled without obvious bot-token staging
 - warns if default-preset users are missing browser/passkey handoff notes
 
-### 7. Better package authoring docs/templates
-
-Document minimal package contracts:
-
-- theme package exports a CSS string as default export
-- site package exports a valid `SitePackage`
-- packages must be compatible with the pinned `@rizom/brain` public API
-- packages must be public npm packages for this batch
-
-Optionally add starter templates for:
-
-- `rover-theme-*`
-- `rover-site-*`
-
 ## Suggested implementation order
 
-1. Public npm site/theme package overrides and deploy image installation
-2. Custom domains
-3. `--no-discord`
-4. Docs/checklist/canary updates
-5. Run tests/build
-6. Onboard one `rover:default` canary with a custom public npm theme
-7. Add `preflight` after batch 2 if still useful
+1. `user:add --no-discord`
+2. Default-preset verification checklist
+3. One-user `rover:default` baseline canary using the default site/theme
+4. Public npm site/theme overrides and deploy image installation
+5. Package authoring docs/templates
+6. One-user custom-theme canary
+7. Per-user custom domains
+8. `preflight`, if still useful after the batch workflow is clearer
