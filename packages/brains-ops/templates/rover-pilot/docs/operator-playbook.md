@@ -62,7 +62,13 @@ When `@rizom/ops` changes the scaffolded deploy contract:
 
 ## Rover verification notes
 
-Use these checks after deploy for every Rover preset:
+Use the verification script after deploy:
+
+```sh
+bunx brains-ops verify-user . <handle>
+```
+
+It checks every Rover preset:
 
 - `https://<handle>.rizom.ai/health` should return `200`
 - unauthenticated `POST https://<handle>.rizom.ai/mcp` should return the expected auth failure
@@ -72,13 +78,17 @@ Additional `rover:core` note:
 
 - Rover core is MCP-only; a bare `GET /` may return `401`, which does not indicate a bad deploy.
 
-Additional `rover:default` checks:
+For `preset: default`, the script also checks:
 
 - `https://<handle>.rizom.ai/` loads the browser/site surface
 - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
-- initial site build completes
-- content repo exists and runtime sync is healthy
-- passkey setup/handoff is completed
+- the generated user config has a content repo
+
+Manual checks that remain:
+
+- initial site build is correct for the expected content/theme
+- runtime sync is healthy beyond the basic `/health` response
+- passkey setup/handoff is completed from the setup email
 
 ## One-user `rover:default` baseline canary
 
@@ -101,7 +111,7 @@ Run this before adding custom site/theme packages or rolling a larger browser/CM
 
 4. Encrypt the user's secrets and commit only the `.age` file.
 5. Run `bunx brains-ops onboard . <handle>`.
-6. Use the Rover verification notes above against the default site/theme.
+6. Run `bunx brains-ops verify-user . <handle>` with no custom site/theme overrides.
 7. Ask the user to complete passkey setup from the setup email.
 8. Continue to visual customization only after the canary is healthy.
 

@@ -20,6 +20,7 @@ import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import { addPilotUser } from "./user-add";
 import type { UserRunner } from "./user-runner";
+import { verifyPilotUser } from "./verify-user";
 
 export interface CommandResult {
   success: boolean;
@@ -235,6 +236,28 @@ export async function runCommand(
       };
     }
 
+    case "verify-user": {
+      const repo = parsed.args[0];
+      const handle = parsed.args[1];
+      if (!repo || !handle) {
+        return {
+          success: false,
+          message: "Usage: brains-ops verify-user <repo> <handle>",
+        };
+      }
+
+      const result = await verifyPilotUser(repo, handle, {
+        ...(dependencies.fetchImpl
+          ? { fetchImpl: dependencies.fetchImpl }
+          : {}),
+        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      });
+      return {
+        success: true,
+        message: `Verified ${result.handle} (${result.preset}) at https://${result.domain}: ${result.checks.join(", ")}`,
+      };
+    }
+
     case "reconcile-cohort": {
       const repo = parsed.args[0];
       const cohort = parsed.args[1];
@@ -290,6 +313,7 @@ export async function runCommand(
           "  cert:bootstrap <repo>",
           "  secrets:push <repo>",
           "  secrets:encrypt <repo> <handle>",
+          "  verify-user <repo> <handle>",
           "  reconcile-cohort <repo> <cohort>",
           "  reconcile-all <repo>",
           "  help",

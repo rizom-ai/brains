@@ -13,6 +13,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops cert:bootstrap <repo>`
 - `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
+- `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and default-preset browser/CMS routes
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
 
