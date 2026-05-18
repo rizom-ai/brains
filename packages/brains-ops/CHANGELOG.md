@@ -1,5 +1,29 @@
 # @brains/ops
 
+## 0.2.0-alpha.78
+
+### Patch Changes
+
+- [`5aa339d`](https://github.com/rizom-ai/brains/commit/5aa339d7da43876e0e641567fbf1414387ad440c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make first-passkey setup emails configurable with product-specific onboarding copy, render Rover pilot onboarding copy in generated configs, and update the pilot user guide for the current passkey/OAuth core flow.
+
+## 0.2.0-alpha.77
+
+### Patch Changes
+
+- [`31601f2`](https://github.com/rizom-ai/brains/commit/31601f2a6b669c4cc9a8660811e34e15f5257150) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `verify-user`: parse `/health` response with Zod instead of a cast, collect per-check failures so an early failure doesn't hide later ones, and report passed and failed checks together. Drop the misleading "content repo" claim from the docs.
+
+## 0.2.0-alpha.76
+
+### Patch Changes
+
+- [`fe7c610`](https://github.com/rizom-ai/brains/commit/fe7c6101ec5a4ac21966788128ee0d9f3f7fde5c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brains-ops verify-user <repo> <handle>` to check deployed Rover health, unauthenticated MCP auth gating, and default-preset browser/CMS routes during canary verification.
+
+## 0.2.0-alpha.75
+
+### Patch Changes
+
+- [#6](https://github.com/rizom-ai/brains/pull/6) [`60b5632`](https://github.com/rizom-ai/brains/commit/60b5632ee9d98a95e577d3a9574fd67b87d99b4c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a manual `brain_version` input to the generated rover-pilot Build workflow so operators can build smoke or cohort override runtime versions without changing `pilot.yaml`.
+
 ## 0.2.0-alpha.74
 
 ## 0.2.0-alpha.73

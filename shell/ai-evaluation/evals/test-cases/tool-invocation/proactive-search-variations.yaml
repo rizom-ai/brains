@@ -2,6 +2,8 @@ id: shell-proactive-search-variations
 name: Proactive Search - Question Variations
 description: Tests that agent proactively searches for various question patterns about user content
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - shell
   - tool-invocation

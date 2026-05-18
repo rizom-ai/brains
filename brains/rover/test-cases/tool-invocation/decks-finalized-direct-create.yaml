@@ -2,6 +2,8 @@ id: tool-invocation-decks-finalized-direct-create
 name: Finalized Deck Uses Direct Create
 description: Verifies finalized/approved deck content is persisted with content, not regenerated via prompt.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - decks

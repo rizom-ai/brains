@@ -2,6 +2,8 @@ id: tool-invocation-agent-call-archived
 name: Refuse Archived Agent Call
 description: Tests that the agent refuses to call an archived agent from the local directory
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

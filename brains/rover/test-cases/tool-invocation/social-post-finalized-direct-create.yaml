@@ -2,6 +2,8 @@ id: tool-invocation-social-post-finalized-direct-create
 name: Exact Social Post Uses Direct Create
 description: Verifies an explicitly exact social post is persisted directly, while preserving generation for non-exact social drafting flows.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - social-media
   - finalized-content

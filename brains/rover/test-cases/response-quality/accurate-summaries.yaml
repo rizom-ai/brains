@@ -2,6 +2,8 @@ id: app-accurate-summaries
 name: Accurate Content Summaries
 description: Tests that agent accurately summarizes what content exists
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - app
   - quality

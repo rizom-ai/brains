@@ -45,6 +45,47 @@ describe("TestRunner", () => {
       expect(result.failures).toHaveLength(0);
     });
 
+    it("should default eval callers to public permission", async () => {
+      const testCase: TestCase = {
+        id: "test-default-public",
+        name: "Default Public Permission Test",
+        type: "response_quality",
+        turns: [{ userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+      });
+    });
+
+    it("should use explicit eval permission when provided", async () => {
+      const testCase: TestCase = {
+        id: "test-explicit-anchor",
+        name: "Explicit Anchor Permission Test",
+        type: "tool_invocation",
+        setup: { permissionLevel: "anchor" },
+        turns: [{ userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+      });
+    });
+
     it("should fail when responseContains criteria not met", async () => {
       const testCase: TestCase = {
         id: "test-2",

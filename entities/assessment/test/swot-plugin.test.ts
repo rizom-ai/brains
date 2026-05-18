@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { randomUUID } from "node:crypto";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAssessmentPlugin } from "../src";
 
@@ -6,7 +7,9 @@ describe("SwotAssessmentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-swot" });
+    harness = createPluginHarness({
+      dataDir: `/tmp/test-swot-${randomUUID()}`,
+    });
   });
 
   it("registers the swot entity type", async () => {
@@ -90,13 +93,26 @@ describe("SwotAssessmentPlugin", () => {
       jobId: string;
     }> = [];
 
+    const coalescedJobs = new Map<string, string>();
+    let nextJobId = 0;
+
     mockShell.getJobQueueService = (): ReturnType<
       typeof mockShell.getJobQueueService
     > =>
       ({
         ...origJobQueue,
         enqueue: async (request) => {
-          const jobId = await origJobQueue.enqueue(request);
+          const dedupeKey = request.options?.deduplicationKey;
+          const coalesceKey =
+            request.options?.deduplication === "coalesce" && dedupeKey
+              ? `${request.type}:${dedupeKey}`
+              : undefined;
+          const jobId = coalesceKey
+            ? (coalescedJobs.get(coalesceKey) ?? `job-${++nextJobId}`)
+            : `job-${++nextJobId}`;
+          if (coalesceKey) {
+            coalescedJobs.set(coalesceKey, jobId);
+          }
           enqueued.push({
             type: request.type,
             data: request.data,

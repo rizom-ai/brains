@@ -2,6 +2,8 @@ id: tool-invocation-system-delete
 name: Entity Delete via system_delete
 description: Verifies that the agent uses system_delete when asked to remove content
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - system

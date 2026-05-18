@@ -2,6 +2,8 @@ id: tool-invocation-agent-call-ambiguous-name
 name: Clarify Ambiguous Saved Agent Name
 description: Tests that the agent asks for clarification when multiple saved agents match a name-based reference
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - agent-discovery
   - a2a

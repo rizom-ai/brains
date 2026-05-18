@@ -2,6 +2,8 @@ id: tool-invocation-entity-history
 name: Entity History Lookup
 description: Tests that the agent uses the history tool with correct entity type when asked about version history
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - history

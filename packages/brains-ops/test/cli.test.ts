@@ -110,6 +110,12 @@ describe("brains-ops parseArgs", () => {
     expect(result.flags.pushTo).toBe("gh");
   });
 
+  it("parses verify-user with repo path and handle", () => {
+    const result = parseArgs(["verify-user", "/tmp/rover-pilot", "alice"]);
+    expect(result.command).toBe("verify-user");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
+  });
+
   it("defaults to help when no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
@@ -316,6 +322,187 @@ discord:
     );
   });
 
+  it("verifies a default-preset user from the CLI", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "cohorts/canary.yaml": `presetOverride: default
+members:
+  - alice
+  - bob
+`,
+    });
+    const requestedUrls: string[] = [];
+    const warnings: string[] = [];
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        logger(message) {
+          warnings.push(message);
+        },
+        fetchImpl(input, init) {
+          const url = typeof input === "string" ? input : input.toString();
+          requestedUrls.push(`${init?.method ?? "GET"} ${url}`);
+
+          if (url === "https://alice.rizom.ai/health") {
+            return Promise.resolve(
+              Response.json({
+                status: "healthy",
+                daemons: [{ name: "webserver", status: "running" }],
+              }),
+            );
+          }
+
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+
+          if (
+            url === "https://alice.rizom.ai/" ||
+            url === "https://alice.rizom.ai/cms"
+          ) {
+            return Promise.resolve(new Response("ok", { status: 200 }));
+          }
+
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe(
+      "Verified alice (default) at https://alice.rizom.ai: health, mcp-auth-gate, site, cms",
+    );
+    expect(requestedUrls).toEqual([
+      "GET https://alice.rizom.ai/health",
+      "POST https://alice.rizom.ai/mcp",
+      "GET https://alice.rizom.ai/",
+      "GET https://alice.rizom.ai/cms",
+    ]);
+    expect(warnings).toEqual([
+      "WARN Manual check still required: passkey setup/handoff completed from the setup email.",
+    ]);
+  });
+
+  it("returns usage error when verify-user is missing a handle", async () => {
+    const result = await runCommand({
+      command: "verify-user",
+      args: ["/tmp/rover-pilot"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops verify-user <repo> <handle>",
+    );
+  });
+
+  it("reports an unhealthy daemon as a failed health check", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health") {
+            return Promise.resolve(
+              Response.json({
+                status: "healthy",
+                daemons: [
+                  {
+                    name: "site-builder",
+                    status: "error",
+                    health: { status: "unhealthy", message: "build failed" },
+                  },
+                ],
+              }),
+            );
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("passed mcp-auth-gate");
+    expect(result.message).toContain("failed:");
+    expect(result.message).toContain(
+      "health: daemon site-builder is unhealthy",
+    );
+  });
+
+  it("reports a non-gating /mcp response as a failed mcp-auth-gate check", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health") {
+            return Promise.resolve(Response.json({ status: "healthy" }));
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(new Response("ok", { status: 200 }));
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("passed health");
+    expect(result.message).toContain(
+      "mcp-auth-gate: unauthenticated POST /mcp returned 200",
+    );
+  });
+
+  it("throws when verify-user is given an unknown handle", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    let caught: Error | undefined;
+    try {
+      await runCommand(
+        {
+          command: "verify-user",
+          args: [root, "carol"],
+          flags: {},
+        },
+        {
+          fetchImpl() {
+            throw new Error("fetch should not run for unknown handle");
+          },
+        },
+      );
+    } catch (err) {
+      if (err instanceof Error) {
+        caught = err;
+      }
+    }
+
+    expect(caught?.message).toContain("Unknown pilot user: carol");
+  });
+
   it("returns usage error when reconcile-cohort missing cohort", async () => {
     const result = await runCommand({
       command: "reconcile-cohort",
@@ -515,6 +702,7 @@ discord:
     expect(result.message).toContain("cert:bootstrap <repo>");
     expect(result.message).toContain("secrets:push <repo>");
     expect(result.message).toContain("secrets:encrypt <repo> <handle>");
+    expect(result.message).toContain("verify-user <repo> <handle>");
     expect(result.message).not.toContain("requires operator runner");
   });
 

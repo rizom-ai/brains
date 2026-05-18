@@ -1,0 +1,46 @@
+id: tool-invocation-extract-topics-broad-request
+name: Extract Topics From Broad Request
+description: >
+  Regression test for the exact broad topic-generation request that previously
+  got routed into note search + clarification. Rover should treat "can you
+  generate topics for me" as a request to derive topic entities from existing
+  content, not as a request to search for notes or ask the user to paste source
+  text.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - system
+  - topics
+  - extract
+  - regression
+
+turns:
+  - userMessage: "can you generate topics for me"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_extract
+      shouldBeCalled: true
+      argsContain:
+        entityType: "topic"
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseNotContains:
+    - "send me the content"
+    - "send me the text"
+    - "source notes"
+    - "existing notes"
+    - "couldn’t extract topics"
+    - "couldn't extract topics"
+    - "I didn’t find any existing notes"
+    - "I didn't find any existing notes"
+    - "I need to create them"
+    - "If you want"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 30000

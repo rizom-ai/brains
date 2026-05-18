@@ -2,6 +2,8 @@ id: response-quality-search-with-results
 name: Search With Results
 description: Tests that the agent searches for content and references actual results in its response
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - search

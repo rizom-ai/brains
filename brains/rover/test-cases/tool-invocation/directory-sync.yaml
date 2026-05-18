@@ -2,6 +2,8 @@ id: tool-invocation-directory-sync
 name: Directory Sync Refresh Request
 description: Tests that agent calls directory-sync tool when user wants to refresh content from filesystem
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - directory-sync

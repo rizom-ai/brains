@@ -21,15 +21,23 @@
 10. Run `bunx brains-ops secrets:encrypt <repo> <handle>`.
 11. Commit and push `users/<handle>.secrets.yaml.age`.
 12. Run `bunx brains-ops onboard <repo> <handle>`.
-13. Verify the deployed rover core contract:
-    - `https://<handle>.rizom.ai/health` returns `200`
-    - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns `401`
+13. Verify the deployed Rover contract:
+    - all presets:
+      - `https://<handle>.rizom.ai/health` returns `200`
+      - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
+      - background jobs are not repeatedly failing, except for expected missing optional integrations
+    - for `presetOverride: default` users:
+      - `https://<handle>.rizom.ai/` loads the browser/site surface
+      - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
+      - initial site build completes
+      - content repo exists and runtime sync is healthy
+      - passkey setup/handoff is completed
 14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
 15. For Discord users, hand the Discord setup details to the user. For email-setup users, confirm they received the setup email and completed passkey registration.
 16. Hand over the browser defaults:
     - Dashboard: `https://<handle>.rizom.ai/`
     - CMS: `https://<handle>.rizom.ai/cms`
     - GitHub token guidance for CMS access to the user's private content repo
-17. If they need direct client access, use OAuth/passkey-capable clients where possible; do not use the deprecated static `MCP_AUTH_TOKEN` path for Rover pilot users.
+17. If they need direct client access, use OAuth/passkey-capable clients where possible.
 18. If you are also giving them a content repo workflow, describe it as optional and frame git/Obsidian as an advanced file-based path, not the default.
 19. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.

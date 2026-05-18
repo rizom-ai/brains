@@ -2,6 +2,8 @@ id: shell-helpful-guidance
 name: Helpful Guidance on Capabilities
 description: Tests that agent helpfully explains what it can do
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - shell
   - quality

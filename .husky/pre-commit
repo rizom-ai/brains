@@ -1,3 +1,14 @@
+# Source local env so TURBO_TOKEN/TURBO_TEAM (if set) reach turbo and pre-commit
+# can read/write the same Vercel-hosted remote cache as CI. Get a token at
+# https://vercel.com/account/tokens, set TURBO_TEAM to the Vercel team slug.
+# Only env values — `.env.local` is NOT in turbo's globalDependencies, so file
+# contents do not affect cache keys; these vars only affect transport.
+if [ -f .env.local ]; then
+  set -a
+  . ./.env.local
+  set +a
+fi
+
 # Validate workspace structure
 echo "☔️ Checking workspace..."
 bun run workspace:check
@@ -20,17 +31,20 @@ bunx lint-staged
 
 # Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
 if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
-  # Run linting on all packages (cached by turbo)
+  # Run linting on all packages (cached by turbo).
+  # --continue: keep running sibling tasks after one fails so their successful
+  # results still seal the turbo cache — avoids re-running the same packages
+  # on every retry after a single broken file.
   echo "🔍 Running linter..."
-  bun run lint
+  bun run lint -- --continue
 
-  # Run type checking on all packages (required for monorepo correctness)
+  # Run type checking on all packages (required for monorepo correctness).
   echo "🔍 Running type checks..."
-  bun run typecheck
+  bun run typecheck -- --continue
 
-  # Run tests on all packages (required for monorepo correctness)
+  # Run tests on all packages (required for monorepo correctness).
   echo "🧪 Running tests..."
-  bun run test
+  bun run test -- --continue
 else
   echo "📝 Docs-only commit — skipping lint/typecheck/test"
 fi

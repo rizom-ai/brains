@@ -22,7 +22,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     "",
     "plugins:",
     ...(user.setup?.delivery === "email"
-      ? ["  auth-service:", `    setupEmail: ${user.setup.email}`]
+      ? ["  auth-service:", ...renderSetupEmailConfig(user.setup.email)]
       : []),
     "  directory-sync:",
     "    git:",
@@ -44,6 +44,36 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderSetupEmailConfig(email: string): string[] {
+  return [
+    "    setupEmail:",
+    `      to: ${email}`,
+    "      subject: Welcome to Rover — set up your passkey",
+    "      body: |",
+    "        Hi,",
+    "",
+    "        Your Rover is ready.",
+    "",
+    "        Rover is your private AI assistant for working with your own notes, links, and ideas.",
+    "",
+    "        Set up your passkey:",
+    "        {{setupUrl}}",
+    "",
+    "        This link is single-use. Do not forward it.",
+    "        It expires at {{expiresAt}}.",
+    "",
+    "        After setup:",
+    "        - Open your dashboard: {{origin}}/",
+    "        - If Discord is enabled for your pilot, start there.",
+    "        - If you are testing MCP, connect your client to {{origin}}/mcp and use OAuth/browser login with your passkey.",
+    "",
+    "        Read the Rover Pilot User Onboarding guide for Discord, content repo, CMS, and client-specific MCP details:",
+    "        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md",
+    "",
+    "        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.",
+  ];
 }
 
 function renderAnchors(user: ResolvedUser): string {

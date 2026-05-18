@@ -2,6 +2,8 @@ id: tool-invocation-site-build
 name: Site Builder Build Request
 description: Tests that agent calls site-builder build tool when user wants to build their website
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - site-builder

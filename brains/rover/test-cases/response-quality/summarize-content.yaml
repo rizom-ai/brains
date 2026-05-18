@@ -2,6 +2,8 @@ id: response-quality-summarize-content
 name: Summarize Blog Posts
 description: Tests that the agent can list and summarize existing blog posts
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - list

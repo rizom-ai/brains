@@ -9,8 +9,22 @@ import type {
 } from "@brains/plugins";
 import { createTool, ServicePlugin, toolSuccess } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { AuthService } from "./auth-service";
+import { AuthService, type OperatorSetupRequired } from "./auth-service";
 import packageJson from "../package.json";
+
+const setupEmailSchema = z.union([
+  z.string().email(),
+  z
+    .object({
+      /** Setup email recipient. */
+      to: z.string().email(),
+      /** Notification subject. */
+      subject: z.string().min(1),
+      /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
+      body: z.string().min(1),
+    })
+    .strict(),
+]);
 
 const authServiceConfigSchema = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
@@ -21,8 +35,8 @@ const authServiceConfigSchema = z.object({
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
-  /** Optional first-passkey setup email recipient. */
-  setupEmail: z.string().email().optional(),
+  /** Optional first-passkey setup email recipient or template. */
+  setupEmail: setupEmailSchema.optional(),
 });
 
 const getPasskeySetupUrlInputSchema = z.object({});
@@ -273,29 +287,20 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     const setup = await service.getOperatorSetupRequired();
     if (!setup) return;
 
+    const setupEmail = resolveSetupEmail(this.config.setupEmail, setup);
+
     if (
-      await service.hasSetupEmailDelivery(
-        setup.setupTokenId,
-        this.config.setupEmail,
-      )
+      await service.hasSetupEmailDelivery(setup.setupTokenId, setupEmail.to)
     ) {
       return;
     }
 
-    const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
     const response = await context.messaging.send({
       type: NOTIFICATIONS_SEND,
       payload: {
-        recipient: { type: "email", address: this.config.setupEmail },
-        title: "Set up your brain passkey",
-        body: [
-          "Set up your brain passkey using this single-use link:",
-          "",
-          setup.setupUrl,
-          "",
-          `This link expires at ${expiresAt}.`,
-          "The first successful passkey registration completes setup and closes this link.",
-        ].join("\n"),
+        recipient: { type: "email", address: setupEmail.to },
+        title: setupEmail.subject,
+        body: setupEmail.body,
         sensitivity: "secret",
       },
     });
@@ -313,10 +318,52 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
 
     await service.recordSetupEmailDelivery(
       setup.setupTokenId,
-      this.config.setupEmail,
+      setupEmail.to,
       parsed.data.deliveryId ? { deliveryId: parsed.data.deliveryId } : {},
     );
   }
+}
+
+function resolveSetupEmail(
+  config: NonNullable<AuthServiceConfig["setupEmail"]>,
+  setup: OperatorSetupRequired,
+): { to: string; subject: string; body: string } {
+  if (typeof config === "string") {
+    const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
+    const origin = new URL(setup.setupUrl).origin;
+    return {
+      to: config,
+      subject: "Set up your brain passkey",
+      body: [
+        "Set up your brain passkey using this single-use link:",
+        "",
+        setup.setupUrl,
+        "",
+        `This link expires at ${expiresAt}.`,
+        `Dashboard: ${origin}/`,
+        `MCP endpoint: ${origin}/mcp`,
+        "The first successful passkey registration completes setup and closes this link.",
+      ].join("\n"),
+    };
+  }
+
+  return {
+    to: config.to,
+    subject: interpolateSetupEmailTemplate(config.subject, setup),
+    body: interpolateSetupEmailTemplate(config.body, setup),
+  };
+}
+
+function interpolateSetupEmailTemplate(
+  template: string,
+  setup: OperatorSetupRequired,
+): string {
+  const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
+  const origin = new URL(setup.setupUrl).origin;
+  return template
+    .replaceAll("{{setupUrl}}", setup.setupUrl)
+    .replaceAll("{{expiresAt}}", expiresAt)
+    .replaceAll("{{origin}}", origin);
 }
 
 export function authServicePlugin(

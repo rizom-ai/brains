@@ -24,4 +24,5 @@ export {
 } from "./cert-bootstrap";
 export { encryptPilotSecrets } from "./secrets-encrypt";
 export { pushPilotSecrets } from "./secrets-push";
+export { verifyPilotUser } from "./verify-user";
 export { runCommand, type CommandResult } from "./run-command";

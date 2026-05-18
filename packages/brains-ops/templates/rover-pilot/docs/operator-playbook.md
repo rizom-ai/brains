@@ -60,15 +60,65 @@ When `@rizom/ops` changes the scaffolded deploy contract:
 3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
 4. commit the updated deploy artifacts together
 
-## Rover-core verification notes
+## Rover verification notes
 
-Rover core is MCP-only. Do not expect the bare domain to serve a website.
+Use the verification script after deploy:
 
-Use these checks after deploy:
+```sh
+bunx brains-ops verify-user . <handle>
+```
+
+It checks every Rover preset:
 
 - `https://<handle>.rizom.ai/health` should return `200`
-- unauthenticated `POST https://<handle>.rizom.ai/mcp` should return `401 Unauthorized: Bearer token required`
-- a bare `GET /` may also return `401`; that is expected for rover core and does not indicate a bad deploy
+- unauthenticated `POST https://<handle>.rizom.ai/mcp` should return the expected auth failure
+- background jobs should not be repeatedly failing, except for expected missing optional integrations
+
+Additional `rover:core` note:
+
+- Rover core is MCP-only; a bare `GET /` may return `401`, which does not indicate a bad deploy.
+
+For `preset: default`, the script also checks:
+
+- `https://<handle>.rizom.ai/` loads the browser/site surface
+- `https://<handle>.rizom.ai/cms` loads the CMS/login surface
+
+Manual checks that remain:
+
+- initial site build is correct for the expected content/theme
+- content repo exists and runtime sync is healthy beyond the basic `/health` response
+- passkey setup/handoff is completed from the setup email
+
+## One-user `rover:default` baseline canary
+
+Run this before adding custom site/theme packages or rolling a larger browser/CMS-first cohort.
+
+1. Create or choose a canary cohort with the default preset:
+
+   ```yaml
+   presetOverride: default
+   ```
+
+2. Add exactly one canary user to that cohort.
+3. For browser/CMS-first onboarding, configure setup email in `users/<handle>.yaml`:
+
+   ```yaml
+   setup:
+     delivery: email
+     email: user@example.com
+   ```
+
+4. Encrypt the user's secrets and commit only the `.age` file.
+5. Run `bunx brains-ops onboard . <handle>`.
+6. Run `bunx brains-ops verify-user . <handle>` with no custom site/theme overrides.
+7. Ask the user to complete passkey setup from the setup email.
+8. Continue to visual customization only after the canary is healthy.
+
+Rollback:
+
+- move the canary back to a core cohort, or remove `presetOverride: default` from the cohort
+- reconcile generated outputs
+- rebuild/redeploy the affected user
 
 ## Setup email checklist
 
@@ -101,38 +151,6 @@ Notes:
 - The auth service owns setup email dedupe. It should not resend for the same persisted setup token after restart, but should retry failed delivery and resend after token rotation.
 - `SETUP_EMAIL_FROM` is not marked required because fleets without email setup can omit it, but it is required for users with `setup.delivery: email`.
 
-## Legacy MCP token cleanup
-
-Rover pilot onboarding no longer uses the deprecated static `MCP_AUTH_TOKEN` fallback. OAuth/passkeys and setup email are the default browser/CMS path.
-
-For existing Rover pilot repos:
-
-1. Update the checked-in deploy contract first:
-   - remove `mcpAuthToken` from `pilot.yaml`
-   - remove `MCP_AUTH_TOKEN` from `.env.schema`
-   - remove `SHARED_MCP_AUTH_TOKEN` / `MCP_AUTH_TOKEN` exports from `.github/workflows/deploy.yml`
-   - update `deploy/scripts/decrypt-user-secrets.ts` so it no longer reads or writes `mcpAuthToken`
-
-2. Confirm no per-user or cohort MCP overrides exist:
-
-   ```sh
-   rg "mcpAuthToken|MCP_AUTH_TOKEN" users cohorts pilot.yaml
-   ```
-
-3. If there were no user/cohort overrides, no `.age` re-encryption is needed: the default token lived only as the GitHub Secret named `MCP_AUTH_TOKEN`, not inside `users/<handle>.secrets.yaml.age`.
-4. Redeploy all existing Rover users while the GitHub Secret still exists. A secret existing in GitHub is not inherited by jobs or containers unless the workflow references it.
-5. Verify the new deploy does not pass the token:
-   - generated `.kamal/secrets` does not contain `MCP_AUTH_TOKEN`
-   - the running container environment does not contain `MCP_AUTH_TOKEN`
-
-6. Delete the unused GitHub Secret last:
-
-   ```sh
-   gh secret delete MCP_AUTH_TOKEN
-   ```
-
-Only decrypt and re-encrypt `users/<handle>.secrets.yaml.age` files if step 2 or a direct audit shows an actual `mcpAuthToken` override was stored there.
-
 ## Discord bot token checklist
 
 Use this when enabling Discord for a pilot user.
@@ -160,7 +178,7 @@ Notes:
 - Do not reuse the same Discord bot token across multiple pilot users.
 - Discord is the default pilot interface moving forward.
 - The encrypted `users/<handle>.secrets.yaml.age` file is the durable checked-in deploy input; your local env is only the operator staging source.
-- Direct MCP client access should use OAuth/passkey-capable clients where possible; do not reintroduce `MCP_AUTH_TOKEN` for Rover pilot users.
+- Direct MCP client access should use OAuth/passkey-capable clients where possible.
 - When explaining the content workflow, describe it first as a normal **git repo** of **markdown/text files**.
 - Position **Obsidian** as optional: it is just one possible editor for those same files, not the default requirement.
 

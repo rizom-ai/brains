@@ -35,6 +35,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Content, sync, and generation
 
+- [Entity visibility and derived scope](./entity-visibility-and-derived-scope.md)
 - [Directory-sync new-repo bootstrap recovery](./directory-sync-new-repo-bootstrap.md)
 - [Generic cover image orchestration](./generic-cover-image-orchestration.md)
 

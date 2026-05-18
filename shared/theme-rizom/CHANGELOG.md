@@ -1,5 +1,37 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.78
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.78
+  - @brains/theme-default@0.2.0-alpha.78
+
+## 0.2.0-alpha.77
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.77
+  - @brains/theme-default@0.2.0-alpha.77
+
+## 0.2.0-alpha.76
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.76
+  - @brains/theme-default@0.2.0-alpha.76
+
+## 0.2.0-alpha.75
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.75
+  - @brains/theme-default@0.2.0-alpha.75
+
 ## 0.2.0-alpha.74
 
 ### Patch Changes

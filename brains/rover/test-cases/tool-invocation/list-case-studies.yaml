@@ -2,6 +2,8 @@ id: tool-invocation-list-case-studies
 name: List Case Studies (entity type mapping)
 description: Tests that the agent maps "case studies" to entity type "project"
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - list

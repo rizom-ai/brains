@@ -2,6 +2,8 @@ id: social-media-publish-agent
 name: Handle publish request with no posts
 description: Tests that the agent checks the latest LinkedIn draft/post state and responds clearly
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - social-media
   - linkedin

@@ -228,6 +228,8 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain("docker/build-push-action@v7");
     expect(buildWorkflow).toContain("target: fleet");
     expect(buildWorkflow).toContain("brainVersion");
+    expect(buildWorkflow).toContain("brain_version:");
+    expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
     expect(buildWorkflow).toContain(
       "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
     );
@@ -459,10 +461,12 @@ describe("initPilotRepo", () => {
     expect(userOnboarding).toContain("Rover Pilot User Onboarding");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
-    expect(userOnboarding).toContain("https://<handle>.rizom.ai/mcp");
+    expect(userOnboarding).toContain("MCP setup: sent separately if enabled");
     expect(userOnboarding).toContain("GitHub token");
     expect(userOnboarding).toContain("Working in the CMS");
-    expect(userOnboarding).toContain("Bearer token");
+    expect(userOnboarding).toContain("OAuth / browser login");
+    expect(userOnboarding).toContain("What the MCP login flow looks like");
+    expect(userOnboarding).toContain("Do not paste your passkey setup link");
     expect(userOnboarding).toContain("Claude Desktop");
     expect(userOnboarding).toContain("Obsidian");
     expect(userOnboarding).toContain(

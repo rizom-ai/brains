@@ -2,6 +2,8 @@ id: tool-invocation-newsletter-generate-from-post
 name: Newsletter Generate From Blog Post
 description: Verifies the agent uses system_create to generate a newsletter based on blog content
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - core
   - newsletter
