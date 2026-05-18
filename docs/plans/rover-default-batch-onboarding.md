@@ -14,26 +14,7 @@ For now, custom site and theme packages may be required to be public npm package
 
 ## Phase 1 — Browser-first onboarding baseline
 
-### 1. Document a one-user default canary procedure
-
-Recommended baseline flow before adding custom visual packages:
-
-```text
-create batch-2 cohort with presetOverride: default
-add one canary user with setup delivery by email
-encrypt secrets
-onboard canary
-verify web/CMS/site/sync/auth with the default site/theme
-then proceed to customization work
-```
-
-Include rollback notes:
-
-- remove the user from the default cohort, or set the cohort back to `core`
-- reconcile generated outputs
-- rebuild/redeploy the affected user image/config
-
-### 2. Add `user:add --no-discord`
+### 1. Add `user:add --no-discord`
 
 Add CLI support:
 
@@ -60,7 +41,7 @@ discord:
 
 ## Phase 2 — Per-user visual customization
 
-### 3. Public npm package site/theme overrides
+### 2. Public npm package site/theme overrides
 
 Add optional user-level site override fields:
 
@@ -109,7 +90,7 @@ Out of scope for this batch:
 - per-user registry credentials
 - arbitrary user editing of generated `brain.yaml`
 
-### 4. Package authoring docs/templates
+### 3. Package authoring docs/templates
 
 Document minimal package contracts before asking users/operators to supply packages:
 
@@ -123,7 +104,7 @@ Optionally add starter templates for:
 - `rover-theme-*`
 - `rover-site-*`
 
-### 5. Custom-theme canary procedure
+### 4. Custom-theme canary procedure
 
 After site/theme refs and package docs exist, extend the canary flow:
 
@@ -144,7 +125,7 @@ Include rollback notes:
 
 ## Phase 3 — Domain customization
 
-### 6. Per-user custom domain support
+### 5. Per-user custom domain support
 
 Add optional user-level domain fields:
 
@@ -172,7 +153,7 @@ Behavior:
 
 ## Phase 4 — Nice-to-have tooling
 
-### 7. Add `brains-ops preflight`
+### 6. Add `brains-ops preflight`
 
 Potential command:
 
@@ -194,10 +175,9 @@ Checks:
 
 ## Suggested implementation order
 
-1. One-user `rover:default` baseline canary using the default site/theme
-2. `user:add --no-discord`
-3. Public npm site/theme overrides and deploy image installation
-4. Package authoring docs/templates
-5. One-user custom-theme canary
-6. Per-user custom domains
-7. `preflight`, if still useful after the batch workflow is clearer
+1. `user:add --no-discord`
+2. Public npm site/theme overrides and deploy image installation
+3. Package authoring docs/templates
+4. One-user custom-theme canary
+5. Per-user custom domains
+6. `preflight`, if still useful after the batch workflow is clearer

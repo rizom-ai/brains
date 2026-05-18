@@ -80,6 +80,37 @@ Additional `rover:default` checks:
 - content repo exists and runtime sync is healthy
 - passkey setup/handoff is completed
 
+## One-user `rover:default` baseline canary
+
+Run this before adding custom site/theme packages or rolling a larger browser/CMS-first cohort.
+
+1. Create or choose a canary cohort with the default preset:
+
+   ```yaml
+   presetOverride: default
+   ```
+
+2. Add exactly one canary user to that cohort.
+3. For browser/CMS-first onboarding, configure setup email in `users/<handle>.yaml`:
+
+   ```yaml
+   setup:
+     delivery: email
+     email: user@example.com
+   ```
+
+4. Encrypt the user's secrets and commit only the `.age` file.
+5. Run `bunx brains-ops onboard . <handle>`.
+6. Use the Rover verification notes above against the default site/theme.
+7. Ask the user to complete passkey setup from the setup email.
+8. Continue to visual customization only after the canary is healthy.
+
+Rollback:
+
+- move the canary back to a core cohort, or remove `presetOverride: default` from the cohort
+- reconcile generated outputs
+- rebuild/redeploy the affected user
+
 ## Setup email checklist
 
 Use this for browser/CMS-first users who should receive their own first-passkey setup link by email.
