@@ -80,6 +80,7 @@ function createMockEntity(content: string): BaseEntity {
     id: "test-entity-1",
     entityType: "test",
     content,
+    visibility: "public",
     metadata: {},
     created: new Date().toISOString(),
     updated: new Date().toISOString(),

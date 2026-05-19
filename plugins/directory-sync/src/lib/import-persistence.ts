@@ -44,6 +44,7 @@ export async function persistImportEntity(
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
       content: parsedEntity.content ?? rawEntity.content,
+      visibility: parsedEntity.visibility ?? "public",
       metadata: parsedEntity.metadata ?? {},
       created: existing?.created ?? rawEntity.created.toISOString(),
       updated: rawEntity.updated.toISOString(),

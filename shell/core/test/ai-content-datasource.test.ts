@@ -51,6 +51,7 @@ function createSearchEntity(overrides: {
       entityType: overrides.entityType,
       content: overrides.content,
       metadata: overrides.metadata ?? {},
+      visibility: "public",
       contentHash: "abc",
       created: "2024-01-01",
       updated: "2024-01-01",

@@ -10,7 +10,7 @@ export interface EntityData {
   entityType: string;
   content: string;
   contentHash: string;
-  visibility?: ContentVisibility;
+  visibility: ContentVisibility;
   created: number;
   updated: number;
   metadata: Record<string, unknown>;

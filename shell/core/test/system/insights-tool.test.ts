@@ -43,6 +43,7 @@ function makeEntity(
     contentHash: "abc",
     created: overrides.created ?? now,
     updated: overrides.updated ?? now,
+    visibility: overrides.visibility ?? "public",
     metadata: overrides.metadata ?? { title: id },
   };
 }

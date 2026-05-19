@@ -155,7 +155,7 @@ export interface BaseEntity<TMetadata = Record<string, unknown>> {
   content: string;
   created: string;
   updated: string;
-  visibility?: ContentVisibility;
+  visibility: ContentVisibility;
   metadata: TMetadata;
   /** SHA256 hash of content for change detection */
   contentHash: string;

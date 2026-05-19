@@ -7,7 +7,7 @@ import {
   createSilentLogger,
   createMockEntityPluginContext,
 } from "@brains/test-utils";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
 
@@ -185,10 +185,11 @@ describe("ImageGenerationJobHandler", () => {
 
     it("should delete existing image before creating when regenerating", async () => {
       // Setup: existing image with same ID
-      const existingImage = {
+      const existingImage: BaseEntity = {
         id: "sunset-image",
         entityType: "image",
         content: "old-data",
+        visibility: "public",
         metadata: { title: "Old Image" },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -297,10 +298,11 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should update target entity coverImageId when specified", async () => {
-      const mockTargetEntity = {
+      const mockTargetEntity: BaseEntity = {
         id: "my-post",
         entityType: "post",
         content: "---\ntitle: My Post\n---\nContent",
+        visibility: "public",
         metadata: { title: "My Post", slug: "my-post" },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -349,11 +351,12 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should resolve target entities by title before updating coverImageId", async () => {
-      const mockTargetEntity = {
+      const mockTargetEntity: BaseEntity = {
         id: "resilience-in-distributed-systems",
         entityType: "post",
         content:
           "---\ntitle: Resilience Is Not Redundancy\nslug: resilience-in-distributed-systems\n---\nContent",
+        visibility: "public",
         metadata: {
           title: "Resilience Is Not Redundancy",
           slug: "resilience-in-distributed-systems",

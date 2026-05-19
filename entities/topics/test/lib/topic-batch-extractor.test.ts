@@ -26,6 +26,7 @@ function makeEntity(
     entityType,
     content,
     contentHash: "x",
+    visibility: "public",
     metadata: { title },
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:00Z",
@@ -76,12 +77,13 @@ describe("buildBatchPrompt", () => {
   });
 
   it("should use entity id as title fallback", () => {
-    const entities = [
+    const entities: BaseEntity[] = [
       {
         id: "my-entity",
         entityType: "post",
         content: "content",
         contentHash: "x",
+        visibility: "public",
         metadata: {},
         created: "2026-01-01T00:00:00Z",
         updated: "2026-01-01T00:00:00Z",

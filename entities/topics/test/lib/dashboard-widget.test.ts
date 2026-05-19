@@ -12,6 +12,7 @@ function createTopic(id: string, title: string, content: string): BaseEntity {
     entityType: "topic",
     content: adapter.createTopicBody({ title, content }),
     contentHash: "hash",
+    visibility: "public",
     metadata: {},
     created: now,
     updated: now,

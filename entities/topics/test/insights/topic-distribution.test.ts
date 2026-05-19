@@ -12,6 +12,7 @@ function makeTopicEntity(id: string, title: string): BaseEntity {
     entityType: "topic",
     content,
     contentHash: "x",
+    visibility: "public",
     metadata: {},
     created: new Date().toISOString(),
     updated: new Date().toISOString(),

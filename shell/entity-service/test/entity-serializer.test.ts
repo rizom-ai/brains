@@ -64,6 +64,7 @@ describe("EntitySerializer.reconstructEntity", () => {
       // Stale frontmatter says discovered; DB metadata says approved.
       content: `---\nstatus: discovered\n---\n\nsome body\n`,
       contentHash: "h",
+      visibility: "public",
       created: 0,
       updated: 0,
       metadata: { status: "approved" },
@@ -79,6 +80,7 @@ describe("EntitySerializer.reconstructEntity", () => {
       entityType: "test",
       content: `---\nstatus: discovered\ntitle: Old Title\n---\n\nbody\n`,
       contentHash: "h",
+      visibility: "public",
       created: 0,
       updated: 0,
       metadata: { status: "approved", title: "New Title" },
@@ -97,6 +99,7 @@ describe("EntitySerializer.reconstructEntity", () => {
       entityType: "test",
       content: `---\nstatus: approved\n---\n\nAbout text here.\n`,
       contentHash: "h",
+      visibility: "public",
       created: 0,
       updated: 0,
       metadata: { status: "approved" },

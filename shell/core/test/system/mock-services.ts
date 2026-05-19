@@ -8,6 +8,10 @@ import {
   type ListEntitiesRequest,
 } from "@brains/entity-service";
 import { z } from "@brains/utils";
+
+type SeedEntity = Omit<BaseEntity, "visibility"> & {
+  visibility?: BaseEntity["visibility"];
+};
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -20,7 +24,7 @@ export function createMockSystemServices(
   /** Access the in-memory entity store */
   getEntities: () => Map<string, BaseEntity>;
   /** Seed entities for testing */
-  addEntities: (entities: BaseEntity[]) => void;
+  addEntities: (entities: SeedEntity[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** Get the last direct markdown create call */
@@ -31,10 +35,11 @@ export function createMockSystemServices(
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
 
-  const addEntities = (ents: BaseEntity[]): void => {
+  const addEntities = (ents: SeedEntity[]): void => {
     for (const e of ents) {
-      entities.set(e.id, e);
-      entityTypes.add(e.entityType);
+      const entity: BaseEntity = { ...e, visibility: e.visibility ?? "public" };
+      entities.set(entity.id, entity);
+      entityTypes.add(entity.entityType);
     }
   };
 
@@ -157,7 +162,7 @@ export function createMockSystemServices(
         .filter((e) => {
           if (typeFilter?.length && !typeFilter.includes(e.entityType))
             return false;
-          if (allowed && !allowed.has(e.visibility ?? "public")) return false;
+          if (allowed && !allowed.has(e.visibility)) return false;
           return true;
         })
         .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
@@ -174,7 +179,7 @@ export function createMockSystemServices(
       const metadataFilter = request.options?.filter?.metadata;
       return Array.from(entities.values()).filter((e) => {
         if (e.entityType !== request.entityType) return false;
-        if (allowed && !allowed.has(e.visibility ?? "public")) return false;
+        if (allowed && !allowed.has(e.visibility)) return false;
         if (!metadataFilter) return true;
         return Object.entries(metadataFilter).every(
           ([key, value]) => e.metadata[key] === value,
@@ -200,6 +205,7 @@ export function createMockSystemServices(
         entityType: input.entityType,
         content: input.markdown,
         contentHash: "",
+        visibility: "public",
         metadata: { title: input.id },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

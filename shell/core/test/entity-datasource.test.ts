@@ -16,6 +16,7 @@ function createMockEntity(overrides: {
     entityType: overrides.entityType,
     content: overrides.content,
     metadata: {},
+    visibility: "public",
     contentHash: "abc123",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),

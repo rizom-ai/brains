@@ -210,6 +210,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       content: string;
       metadata: Record<string, unknown>;
       contentHash?: string;
+      visibility?: "public" | "shared" | "restricted";
       created?: string;
       updated?: string;
     }>,
@@ -217,6 +218,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.mockShell.addEntities(
       entities.map((e) => ({
         contentHash: "test",
+        visibility: "public",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         ...e,

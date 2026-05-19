@@ -13,6 +13,7 @@ function makeEntity(id: string, content: string): BaseEntity {
     entityType: "post",
     content,
     contentHash: "x",
+    visibility: "public",
     metadata: { title: id },
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:00Z",

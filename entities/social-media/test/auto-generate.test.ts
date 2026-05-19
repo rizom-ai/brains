@@ -23,6 +23,7 @@ This is the content of the blog post.`,
     publishedAt: "2024-01-01T10:00:00Z",
   },
   contentHash: "abc123",
+  visibility: "public",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T10:00:00Z",
 };

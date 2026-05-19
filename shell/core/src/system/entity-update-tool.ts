@@ -14,9 +14,7 @@ import {
 } from "./tool-helpers";
 
 function currentFieldValue(entity: BaseEntity, key: string): unknown {
-  return key === "visibility"
-    ? (entity.visibility ?? "public")
-    : entity.metadata[key];
+  return key === "visibility" ? entity.visibility : entity.metadata[key];
 }
 
 function applyFieldUpdates(
@@ -26,7 +24,7 @@ function applyFieldUpdates(
   const { visibility, ...metadataFields } = fields;
   const nextVisibility =
     visibility === undefined
-      ? (entity.visibility ?? "public")
+      ? entity.visibility
       : contentVisibilitySchema.parse(visibility);
 
   return {

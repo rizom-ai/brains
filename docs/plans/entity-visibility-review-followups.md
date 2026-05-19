@@ -10,7 +10,7 @@ Close the remaining gaps before merging canonical entity visibility, especially 
 
 ## Must fix before merge
 
-### 1. Make hydrated `BaseEntity.visibility` required
+### 1. Make hydrated `BaseEntity.visibility` required ✅
 
 Problem: runtime code normalizes visibility, but the TypeScript interface still marks `BaseEntity.visibility` optional. The intended contract is: raw create/import/markdown inputs may omit visibility, while hydrated runtime/DB entities always carry normalized canonical visibility.
 

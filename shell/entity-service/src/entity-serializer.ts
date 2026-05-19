@@ -28,7 +28,7 @@ export class EntitySerializer {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
     return applyVisibilityToMarkdown(
       adapter.toMarkdown(entity),
-      entity.visibility ?? "public",
+      entity.visibility,
     );
   }
 
@@ -119,7 +119,7 @@ export class EntitySerializer {
       contentHash: entityData.contentHash,
       created: new Date(entityData.created).toISOString(),
       updated: new Date(entityData.updated).toISOString(),
-      visibility: entityData.visibility ?? "public",
+      visibility: entityData.visibility,
       ...parsedRest,
       ...this.stripPolicyMetadata(entityData.metadata),
       metadata: this.stripPolicyMetadata(entityData.metadata),
@@ -144,7 +144,7 @@ export class EntitySerializer {
     // Convert to markdown using adapter
     const markdown = applyVisibilityToMarkdown(
       adapter.toMarkdown(entity),
-      entity.visibility ?? "public",
+      entity.visibility,
     );
 
     // Extract metadata using adapter, keeping visibility as a top-level field.

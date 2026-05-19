@@ -170,7 +170,7 @@ describe("TopicService", () => {
 
   it("createTopicOptimistic recovers from concurrent insert races", async () => {
     const logger = createSilentLogger();
-    const existingTopic = {
+    const existingTopic: TopicEntity = {
       id: "race-topic",
       entityType: "topic",
       content: topicAdapter.createTopicBody({
@@ -178,6 +178,7 @@ describe("TopicService", () => {
         content: "Created by another worker.",
       }),
       contentHash: "hash",
+      visibility: "public",
       metadata: {},
       created: "2026-01-01T00:00:00Z",
       updated: "2026-01-01T00:00:00Z",

@@ -121,6 +121,7 @@ function entity(
     entityType: "derived",
     content: `content:${id}`,
     contentHash: `hash:${id}`,
+    visibility: "public",
     metadata,
     created: "2026-01-01T00:00:00.000Z",
     updated: "2026-01-01T00:00:00.000Z",

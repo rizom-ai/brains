@@ -714,6 +714,7 @@ describe("ContentService.resolveContent", () => {
         id: "test-id",
         entityType: "post",
         content: "test",
+        visibility: "public",
         created: "2025-01-01",
         updated: "2025-01-01",
         metadata: {},
