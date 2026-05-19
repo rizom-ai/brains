@@ -27,6 +27,9 @@ export interface ToolContext {
   userId: string; // User who invoked the tool
   channelId?: string; // Channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
+  /** Caller's permission level. Tools that read/write entities use this to derive
+   *  the content-visibility scope they are allowed to see. */
+  userPermissionLevel?: UserPermissionLevel;
 }
 
 /**
@@ -38,6 +41,7 @@ export const ToolContextRoutingSchema = z.object({
   userId: z.string(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
+  userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
 });
 
 /**

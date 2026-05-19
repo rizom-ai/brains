@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { IMCPService, Tool } from "@brains/mcp-service";
 import type {
@@ -34,25 +34,6 @@ const mockAgent: BrainAgent = { generate: mockGenerate };
 const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
-
-// Mock MCPService
-const createMockMCPService = (): IMCPService => ({
-  listTools: mock(() => []),
-  getCliTools: mock(() => []),
-  listToolsForPermissionLevel: mock(() => []),
-  listResources: mock(() => []),
-  registerTool: mock(() => {}),
-  registerResource: mock(() => {}),
-  registerResourceTemplate: mock(() => {}),
-  registerPrompt: mock(() => {}),
-  getMcpServer: mock(() => ({}) as ReturnType<IMCPService["getMcpServer"]>),
-  createMcpServer: mock(
-    () => ({}) as ReturnType<IMCPService["createMcpServer"]>,
-  ),
-  setPermissionLevel: mock(() => {}),
-  registerInstructions: mock(() => {}),
-  getInstructions: mock(() => []),
-});
 
 // Mock BrainCharacterService
 const createMockCharacterService = (): IBrainCharacterService => ({

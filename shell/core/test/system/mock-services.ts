@@ -1,6 +1,12 @@
 import type { SystemServices } from "../../src/system/types";
 import { createSilentLogger } from "@brains/test-utils";
-import type { BaseEntity } from "@brains/entity-service";
+import {
+  getVisibleContentVisibilities,
+  parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type EntitySearchRequest,
+  type ListEntitiesRequest,
+} from "@brains/entity-service";
 import { z } from "@brains/utils";
 import { createInsightsRegistry } from "../../src/system/insights";
 
@@ -41,6 +47,9 @@ export function createMockSystemServices(
     title: z.string().optional(),
   });
 
+  const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
+    parseMarkdownWithFrontmatter(markdown, schema).metadata;
+
   const entityRegistry = {
     getAdapter: (
       type: string,
@@ -49,6 +58,7 @@ export function createMockSystemServices(
       hasBody: boolean;
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
+      parseFrontMatter: <T>(markdown: string, schema: z.ZodSchema<T>) => T;
     } => {
       const coverImageEntityTypes = new Set([
         "deck",
@@ -63,6 +73,7 @@ export function createMockSystemServices(
           supportsCoverImage: false,
           hasBody: true,
           isSingleton: false,
+          parseFrontMatter,
           fromMarkdown: (markdown: string): unknown => {
             const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
             if (!match) {
@@ -112,6 +123,7 @@ export function createMockSystemServices(
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
         isSingleton: false,
+        parseFrontMatter,
         fromMarkdown: (): unknown => ({}),
       };
     },
@@ -135,23 +147,40 @@ export function createMockSystemServices(
   }> = [];
 
   const entityService = {
-    search: async () => [],
+    search: async (request: EntitySearchRequest) => {
+      const scope = request.options?.visibilityScope;
+      const allowed = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
+      const typeFilter = request.options?.types;
+      return Array.from(entities.values())
+        .filter((e) => {
+          if (typeFilter?.length && !typeFilter.includes(e.entityType))
+            return false;
+          if (allowed && !allowed.has(e.visibility ?? "public")) return false;
+          return true;
+        })
+        .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
+    },
     getEntity: async (request: { entityType: string; id: string }) => {
       const entity = entities.get(request.id);
       return entity?.entityType === request.entityType ? entity : null;
     },
-    listEntities: async (request: {
-      entityType: string;
-      options?: { filter?: { metadata?: Record<string, unknown> } };
-    }) =>
-      Array.from(entities.values()).filter((e) => {
+    listEntities: async (request: ListEntitiesRequest) => {
+      const scope = request.options?.filter?.visibilityScope;
+      const allowed = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
+      const metadataFilter = request.options?.filter?.metadata;
+      return Array.from(entities.values()).filter((e) => {
         if (e.entityType !== request.entityType) return false;
-        const metadataFilter = request.options?.filter?.metadata;
+        if (allowed && !allowed.has(e.visibility ?? "public")) return false;
         if (!metadataFilter) return true;
         return Object.entries(metadataFilter).every(
           ([key, value]) => e.metadata[key] === value,
         );
-      }),
+      });
+    },
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     createEntity: async (request: { entity: BaseEntity }) => {

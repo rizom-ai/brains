@@ -1,5 +1,6 @@
 import {
   contentVisibilitySchema,
+  extractVisibilityFromMarkdown,
   resolveEntityOrError,
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
@@ -149,7 +150,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
         const updated =
           normalizedInput.content !== undefined
-            ? { ...entity, content: normalizedInput.content }
+            ? {
+                ...entity,
+                content: normalizedInput.content,
+                visibility: extractVisibilityFromMarkdown(
+                  normalizedInput.content,
+                ),
+              }
             : applyFieldUpdates(entity, normalizedInput.fields ?? {});
         try {
           await entityService.updateEntity({ entity: updated });

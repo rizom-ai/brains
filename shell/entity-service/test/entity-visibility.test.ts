@@ -220,10 +220,19 @@ describe("entity visibility", () => {
       entityType: "visibility-note",
       options: { filter: { visibilityScope: "shared" } },
     });
+    const anchorScope = await ctx.entityService.listEntities<VisibilityNote>({
+      entityType: "visibility-note",
+      options: { filter: { visibilityScope: "restricted" } },
+    });
 
     expect(publicOnly.map((entity) => entity.id)).toEqual(["public-doc"]);
     expect(sharedScope.map((entity) => entity.id).sort()).toEqual([
       "public-doc",
+      "shared-doc",
+    ]);
+    expect(anchorScope.map((entity) => entity.id).sort()).toEqual([
+      "public-doc",
+      "restricted-doc",
       "shared-doc",
     ]);
   });
@@ -235,6 +244,12 @@ describe("entity visibility", () => {
       visibility: "public",
       metadata: { title: "Public" },
     });
+    const sharedEntity = createTestEntity<VisibilityNote>("visibility-note", {
+      id: "shared-search-doc",
+      content: "Visibility filtering keyword",
+      visibility: "shared",
+      metadata: { title: "Shared" },
+    });
     const restrictedEntity = createTestEntity<VisibilityNote>(
       "visibility-note",
       {
@@ -245,36 +260,40 @@ describe("entity visibility", () => {
       },
     );
 
-    await ctx.entityService.createEntity({ entity: publicEntity });
-    await ctx.entityService.createEntity({ entity: restrictedEntity });
-    await ctx.entityService.storeEmbedding({
-      entityId: publicEntity.id,
-      entityType: publicEntity.entityType,
-      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-      contentHash: publicEntity.contentHash,
-    });
-    await ctx.entityService.storeEmbedding({
-      entityId: restrictedEntity.id,
-      entityType: restrictedEntity.entityType,
-      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-      contentHash: restrictedEntity.contentHash,
-    });
+    for (const entity of [publicEntity, sharedEntity, restrictedEntity]) {
+      await ctx.entityService.createEntity({ entity });
+      await ctx.entityService.storeEmbedding({
+        entityId: entity.id,
+        entityType: entity.entityType,
+        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+        contentHash: entity.contentHash,
+      });
+    }
 
     const publicResults = await ctx.entityService.search<VisibilityNote>({
       query: "Visibility filtering keyword",
       options: { types: ["visibility-note"], visibilityScope: "public" },
+    });
+    const trustedResults = await ctx.entityService.search<VisibilityNote>({
+      query: "Visibility filtering keyword",
+      options: { types: ["visibility-note"], visibilityScope: "shared" },
     });
     const anchorResults = await ctx.entityService.search<VisibilityNote>({
       query: "Visibility filtering keyword",
       options: { types: ["visibility-note"], visibilityScope: "restricted" },
     });
 
-    expect(publicResults.map((result) => result.entity.id)).toEqual([
+    expect(publicResults.map((result) => result.entity.id).sort()).toEqual([
       "public-search-doc",
+    ]);
+    expect(trustedResults.map((result) => result.entity.id).sort()).toEqual([
+      "public-search-doc",
+      "shared-search-doc",
     ]);
     expect(anchorResults.map((result) => result.entity.id).sort()).toEqual([
       "public-search-doc",
       "restricted-search-doc",
+      "shared-search-doc",
     ]);
   });
 
@@ -382,5 +401,29 @@ describe("entity visibility database mapping", () => {
 
     expect(rows[0]?.visibility).toBe("shared");
     expect(rows[0]?.metadata).not.toHaveProperty("visibility");
+  });
+
+  test("rejects invalid visibility values at the database layer", async () => {
+    const { db, client } = createEntityDatabase(ctx.dbConfig);
+    let caught: unknown;
+    try {
+      // SQLite's typed driver still emits the value; the CHECK constraint
+      // is what rejects values outside the canonical enum.
+      await db.insert(entities).values({
+        id: "bad-visibility",
+        entityType: "note",
+        content: "body",
+        contentHash: "hash",
+        visibility: "secret" as unknown as "public",
+        metadata: {},
+        created: Date.now(),
+        updated: Date.now(),
+      });
+    } catch (error) {
+      caught = error;
+    } finally {
+      client.close();
+    }
+    expect(caught).toBeInstanceOf(Error);
   });
 });

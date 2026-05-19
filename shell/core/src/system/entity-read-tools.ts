@@ -1,6 +1,10 @@
 import type { Tool } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
-import { resolveEntityOrError } from "@brains/entity-service";
+import {
+  isVisibleWithinScope,
+  permissionToVisibilityScope,
+  resolveEntityOrError,
+} from "@brains/entity-service";
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
@@ -14,20 +18,26 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "search",
       "Search entities using semantic search. Optionally filter by entity type.",
       searchInputSchema,
-      async (input) => ({
-        success: true,
-        data: {
-          results: (
-            await entityService.search({
-              query: input.query,
-              options: {
-                limit: input.limit ?? services.searchLimit,
-                ...(input.entityType && { types: [input.entityType] }),
-              },
-            })
-          ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
-        },
-      }),
+      async (input, context) => {
+        const visibilityScope = permissionToVisibilityScope(
+          context.userPermissionLevel,
+        );
+        return {
+          success: true,
+          data: {
+            results: (
+              await entityService.search({
+                query: input.query,
+                options: {
+                  limit: input.limit ?? services.searchLimit,
+                  ...(input.entityType && { types: [input.entityType] }),
+                  visibilityScope,
+                },
+              })
+            ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
+          },
+        };
+      },
       {
         visibility: "public",
         cli: {
@@ -41,7 +51,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "get",
       "Retrieve a specific entity by type and identifier (ID, slug, or title).",
       getInputSchema,
-      async (input) => {
+      async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {
           return {
             success: false,
@@ -54,9 +64,24 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           input.id,
           logger,
         );
-        return result.ok
-          ? { success: true, data: { entity: sanitizeEntity(result.entity) } }
-          : { success: false, error: result.error };
+        if (!result.ok) {
+          return { success: false, error: result.error };
+        }
+        const visibilityScope = permissionToVisibilityScope(
+          context.userPermissionLevel,
+        );
+        if (!isVisibleWithinScope(result.entity.visibility, visibilityScope)) {
+          // Don't leak existence of out-of-scope entities — return the same
+          // shape resolveEntityOrError uses for genuine misses.
+          return {
+            success: false,
+            error: `Entity not found: ${input.entityType}/${input.id}`,
+          };
+        }
+        return {
+          success: true,
+          data: { entity: sanitizeEntity(result.entity) },
+        };
       },
       {
         visibility: "public",
@@ -71,21 +96,26 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "list",
       "List entities by type. Returns metadata only — use system_get for full content.",
       listInputSchema,
-      async (input) => {
+      async (input, context) => {
         if (!entityService.getEntityTypes().includes(input.entityType)) {
           return {
             success: false,
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
           };
         }
-        const options: { limit: number; filter?: Record<string, unknown> } = {
-          limit: input.limit ?? 20,
+        const visibilityScope = permissionToVisibilityScope(
+          context.userPermissionLevel,
+        );
+        const filter: {
+          metadata?: Record<string, unknown>;
+          visibilityScope: typeof visibilityScope;
+        } = {
+          visibilityScope,
         };
-        if (input.status)
-          options.filter = { metadata: { status: input.status } };
+        if (input.status) filter.metadata = { status: input.status };
         const entities = await entityService.listEntities({
           entityType: input.entityType,
-          options: options,
+          options: { limit: input.limit ?? 20, filter },
         });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,

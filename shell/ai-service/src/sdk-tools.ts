@@ -1,6 +1,7 @@
 import { dynamicTool, type ToolSet } from "ai";
 import { z } from "@brains/utils";
 import type { Tool, ToolContext } from "@brains/mcp-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 
 export interface ToolContextInfo {
@@ -8,6 +9,7 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
+  userPermissionLevel?: UserPermissionLevel;
 }
 
 export function convertToSDKTools(
@@ -27,6 +29,9 @@ export function convertToSDKTools(
           channelId: contextInfo.channelId ?? contextInfo.conversationId,
           ...(contextInfo.channelName && {
             channelName: contextInfo.channelName,
+          }),
+          ...(contextInfo.userPermissionLevel && {
+            userPermissionLevel: contextInfo.userPermissionLevel,
           }),
         };
         return t.handler(args, context);

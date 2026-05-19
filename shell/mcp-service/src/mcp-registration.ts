@@ -75,6 +75,7 @@ export function registerToolOnServer(
   tool: Tool,
   messageBus: IMessageBus,
   logger: Logger,
+  permissionLevel: UserPermissionLevel,
 ): void {
   server.tool(
     tool.name,
@@ -95,6 +96,7 @@ export function registerToolOnServer(
         channelId,
         channelName,
         progressToken,
+        userPermissionLevel: permissionLevel,
       });
 
       try {
@@ -109,6 +111,7 @@ export function registerToolOnServer(
             userId,
             channelId,
             channelName,
+            userPermissionLevel: permissionLevel,
           },
           sender: "MCPService",
         });

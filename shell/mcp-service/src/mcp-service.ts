@@ -126,7 +126,12 @@ export class MCPService implements IMCPService {
 
     // Only expose on the MCP protocol server if transport permission allows.
     if (canExposeTool(this.permissionLevel, tool)) {
-      this.registerToolOnServer(this.mcpServer, pluginId, tool);
+      this.registerToolOnServer(
+        this.mcpServer,
+        pluginId,
+        tool,
+        this.permissionLevel,
+      );
     }
 
     this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
@@ -216,7 +221,7 @@ export class MCPService implements IMCPService {
   ): void {
     for (const { pluginId, tool } of this.registeredTools.values()) {
       if (canExposeTool(permissionLevel, tool)) {
-        this.registerToolOnServer(server, pluginId, tool);
+        this.registerToolOnServer(server, pluginId, tool, permissionLevel);
       }
     }
 
@@ -237,7 +242,15 @@ export class MCPService implements IMCPService {
     server: McpServer,
     pluginId: string,
     tool: Tool,
+    permissionLevel: UserPermissionLevel,
   ): void {
-    registerToolOnServer(server, pluginId, tool, this.messageBus, this.logger);
+    registerToolOnServer(
+      server,
+      pluginId,
+      tool,
+      this.messageBus,
+      this.logger,
+      permissionLevel,
+    );
   }
 }

@@ -4,6 +4,7 @@ import {
   text,
   integer,
   primaryKey,
+  check,
 } from "drizzle-orm/sqlite-core";
 
 /**
@@ -54,6 +55,10 @@ export const entities = sqliteTable(
     return {
       // Composite primary key on id + entityType
       pk: primaryKey({ columns: [table.id, table.entityType] }),
+      visibilityCheck: check(
+        "entities_visibility_check",
+        sql`${table.visibility} IN ('public', 'shared', 'restricted')`,
+      ),
     };
   },
 );

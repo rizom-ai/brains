@@ -107,6 +107,7 @@ export function createBrainAgentFactory(
             channelId: callOptions.channelId,
             channelName: callOptions.channelName,
             interfaceType: callOptions.interfaceType,
+            userPermissionLevel: callOptions.userPermissionLevel,
           },
           emitter,
         );

@@ -161,6 +161,55 @@ describe("system_update tool", () => {
     expect(updated?.metadata).not.toHaveProperty("visibility");
   });
 
+  it("re-parses visibility from frontmatter on full content replacement", async () => {
+    const newMarkdown =
+      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";
+
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      content: newMarkdown,
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "old-agent.io" },
+    });
+
+    const updated = services.getEntities().get("old-agent.io");
+    expect(updated?.visibility).toBe("restricted");
+  });
+
+  it("clears non-default visibility when replacement markdown omits the field", async () => {
+    // Seed agent as restricted, then replace with markdown that has no visibility key.
+    const restricted = services.getEntities().get("old-agent.io");
+    if (restricted) {
+      services.getEntities().set("old-agent.io", {
+        ...restricted,
+        visibility: "restricted",
+      });
+    }
+
+    const newMarkdown =
+      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n";
+
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      content: newMarkdown,
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "old-agent.io" },
+    });
+
+    const updated = services.getEntities().get("old-agent.io");
+    expect(updated?.visibility).toBe("public");
+  });
+
   it("normalizes plain JSON objects passed via content into field updates", async () => {
     const result = await exec({
       entityType: "agent",

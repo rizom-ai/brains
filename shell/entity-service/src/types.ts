@@ -79,6 +79,23 @@ export function isVisibleWithinScope(
 }
 
 /**
+ * Map a caller's permission level to the content-visibility scope they may see.
+ * public  → public         (only public content)
+ * trusted → shared         (public + shared)
+ * anchor  → restricted     (public + shared + restricted)
+ *
+ * Defaults to "public" when no permission level is provided, so missing
+ * context fails closed.
+ */
+export function permissionToVisibilityScope(
+  level: "anchor" | "trusted" | "public" | undefined,
+): ContentVisibility {
+  if (level === "anchor") return "restricted";
+  if (level === "trusted") return "shared";
+  return "public";
+}
+
+/**
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
 export interface CreateEntityOptions extends EntityJobOptions {

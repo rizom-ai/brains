@@ -75,7 +75,12 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "entities_visibility_check": {
+          "name": "entities_visibility_check",
+          "value": "\"entities\".\"visibility\" IN ('public', 'shared', 'restricted')"
+        }
+      }
     },
     "embeddings": {
       "name": "embeddings",

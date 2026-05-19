@@ -195,6 +195,7 @@ describe("MCPService", () => {
           userId: "user-1",
           channelId: "room-1",
           channelName: "Room One",
+          userPermissionLevel: "anchor",
         },
         sender: "MCPService",
       });

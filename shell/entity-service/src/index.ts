@@ -67,12 +67,16 @@ export {
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   normalizeContentVisibility,
+  permissionToVisibilityScope,
 } from "./types";
 
 export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
+  extractVisibilityFromMarkdown,
+  applyVisibilityToMarkdown,
+  hasVisibilityFrontmatter,
   type FrontmatterConfig,
 } from "./frontmatter";
 

@@ -135,6 +135,7 @@ export {
   baseEntitySchema,
   contentVisibilitySchema,
   isVisibleWithinScope,
+  permissionToVisibilityScope,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";

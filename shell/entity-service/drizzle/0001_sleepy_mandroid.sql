@@ -1,1 +1,1 @@
-ALTER TABLE `entities` ADD `visibility` text DEFAULT 'public' NOT NULL;
+ALTER TABLE `entities` ADD `visibility` text DEFAULT 'public' NOT NULL CHECK (`visibility` IN ('public', 'shared', 'restricted'));

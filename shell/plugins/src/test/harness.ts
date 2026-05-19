@@ -316,7 +316,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   async executeTool(
     toolName: string,
     input: Record<string, unknown> = {},
-    context?: { interfaceType?: string; userId?: string; channelId?: string },
+    context?: {
+      interfaceType?: string;
+      userId?: string;
+      channelId?: string;
+      userPermissionLevel?: "anchor" | "trusted" | "public";
+    },
   ): Promise<ToolResponse> {
     if (!this.capabilities) {
       throw new Error("No plugin installed. Call installPlugin() first.");
@@ -330,14 +335,17 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       );
     }
 
-    // Create a default test context
+    // Default test context to anchor so existing plugin tests can see
+    // entities across all visibility levels unless they opt into a lower scope.
     const toolContext: {
       interfaceType: string;
       userId: string;
       channelId?: string;
+      userPermissionLevel: "anchor" | "trusted" | "public";
     } = {
       interfaceType: context?.interfaceType ?? "test",
       userId: context?.userId ?? "test-user",
+      userPermissionLevel: context?.userPermissionLevel ?? "anchor",
     };
     if (context?.channelId) {
       toolContext.channelId = context.channelId;
