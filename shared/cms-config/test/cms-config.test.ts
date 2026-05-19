@@ -93,16 +93,28 @@ describe("generateCmsConfig", () => {
     expect(config.backend.branch).toBe("main");
   });
 
-  it("should emit base collection as Notes at repo root", () => {
+  it("should emit base collection as raw Markdown notes at repo root", () => {
     const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
 
     const baseCollection = config.collections.find((c) => c.name === "base");
     expect(baseCollection?.label).toBe("Notes");
     expect(baseCollection?.folder).toBe(".");
-    expect(baseCollection?.format).toBe("frontmatter");
+    expect(baseCollection?.format).toBe("raw");
     expect(baseCollection?.fields).toEqual([
       { name: "body", label: "Body", widget: "markdown" },
     ]);
+  });
+
+  it("should configure base notes to avoid parsing body horizontal rules as frontmatter", () => {
+    const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
+
+    const baseCollection = config.collections.find((c) => c.name === "base");
+    expect(baseCollection).toMatchObject({
+      name: "base",
+      extension: "md",
+      format: "raw",
+      fields: [{ name: "body", widget: "markdown" }],
+    });
   });
 
   it("should keep typed collections on the frontmatter format", () => {
