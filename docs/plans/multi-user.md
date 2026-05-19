@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed, refined against the current implemented baseline. The OAuth/passkey foundation exists today, but it is still single-operator at runtime: passkeys, operator sessions, and OAuth tokens use `single-operator`, and OAuth-authenticated MCP currently receives global `anchor` authority. This plan is the next layer: replace `single-operator` as the canonical subject with real runtime auth users, then add roles, per-session permissions, and management UX while keeping existing permission-rule fallback compatible.
+Proposed, refined against the current implemented baseline. The OAuth/passkey foundation exists today, but it is still single-operator at runtime: passkeys, operator sessions, and OAuth tokens use `single-operator`, and OAuth-authenticated MCP currently receives global `anchor` authority. This plan is the product/runtime behavior layer: replace `single-operator` as the canonical subject with real runtime auth users, then add roles, per-session permissions, and management UX while keeping existing permission-rule fallback compatible. Storage details are consolidated in [Auth runtime database](./auth-runtime-db.md).
 
 ## Goal
 
@@ -61,7 +61,7 @@ The first version should stay small: coarse permission levels, explicit operator
 
 ## Runtime user record
 
-Store in runtime auth storage, e.g. `./data/auth/auth-users.json`.
+Store in the runtime auth database described in [Auth runtime database](./auth-runtime-db.md), not in git-backed content. The TypeScript shape remains:
 
 ```ts
 interface AuthUserRecord {
@@ -91,7 +91,7 @@ Identity keys should normalize to strings for lookup, for example:
 - `email:<lowercase-email>`
 - `did:<did>`
 
-Passkey credential public keys remain in the passkey store; user records only bind to credential ids/subjects.
+Passkey credential public keys are managed by the auth-service credential store; user records/identity rows bind credentials to user ids without exposing them as content.
 
 ## Architecture
 
@@ -100,7 +100,7 @@ Passkey credential public keys remain in the passkey store; user records only bi
 Add `shell/auth-service` user-store support rather than a separate content entity plugin for v1:
 
 - `AuthUserStore`
-  - loads/saves `auth-users.json`
+  - uses the auth runtime DB user/identity tables
   - creates first anchor user
   - lists users
   - finds user by id
@@ -243,7 +243,7 @@ On startup or first successful login:
 
 This is the safest first slice: real users without collaborator management yet.
 
-- Add `AuthUserStore` and tests.
+- Add the auth runtime DB foundation / `AuthUserStore` from [Auth runtime database](./auth-runtime-db.md) and tests.
 - Create first active `anchor` user during setup.
 - Let setup collect an optional display name; default to `Operator`.
 - Bind new passkey credentials to `usr_<uuid>` instead of `single-operator`.

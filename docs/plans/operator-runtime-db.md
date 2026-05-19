@@ -2,7 +2,7 @@
 
 ## Goal
 
-Introduce a dedicated operator runtime database for private, non-content state that currently lives in small plugin-local files. This should make hosted Rover operations safer and easier to evolve without mixing operator/security state into entity content.
+Introduce a dedicated operator runtime database for private, non-content state that currently lives in small plugin-local files. This should make hosted Rover operations safer and easier to evolve without mixing operator/security state into entity content. Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md).
 
 ## Scope
 
@@ -46,7 +46,7 @@ Suggested properties:
 3. Keep immediate Rover setup-email dedupe file-backed behind a small storage interface until the DB service exists.
 4. Define the operator DB service contract and ownership boundary in shell/app or a shared shell package.
 5. Move setup-email/notification dedupe to the operator DB as the first low-risk consumer.
-6. Migrate auth-service JSON runtime stores once the DB lifecycle and backup/restore story is proven.
+6. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven.
 7. Add optional audit/delivery history only after dedupe/auth use cases are stable.
 
 ## Compatibility and migration notes
