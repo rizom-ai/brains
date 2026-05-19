@@ -2,36 +2,43 @@
 
 ## Goal
 
-Prepare the hosted Rover pilot flow for a second batch of users running `rover:default` instead of `rover:core`, while keeping the rollout safe, customizable, reversible, and clear for operators and users.
+Prepare the hosted Rover pilot flow for a second batch of users running `rover:default`, with safe per-user customization, predictable builds, and clear operator rollback.
 
-## Context
+## Active scope
 
-The first pilot batch used the core-oriented flow. `rover:default` adds the website and publishing surface, including site-building, browser/CMS expectations, and more background AI work. The existing ops tooling can already resolve cohort-level `presetOverride: default`, but the onboarding flow should be tightened before adding a larger batch.
+The next batch needs user-specific presentation without letting users edit generated deploy artifacts directly.
 
-The second batch is expected to need per-user visual customization. Users do not edit generated `brain.yaml`; operators capture customization in desired-state user files, then `brains-ops` renders the effective `brain.yaml`.
+Operators should express desired state in `users/<handle>.yaml`; `brains-ops` should render the effective `users/<handle>/brain.yaml` and deploy metadata.
 
-For now, custom site and theme packages may be required to be public npm packages. Private package registry/auth support is explicitly out of scope for this batch.
+For this batch:
+
+- custom site/theme packages must be public npm packages
+- private npm registry/auth support is out of scope
+- arbitrary user edits to generated `brain.yaml` are out of scope
+- cohort-level site/theme inheritance is out of scope
 
 ## Phase 1 — Per-user visual customization
 
 ### 1. Public npm package site/theme overrides
 
-Add optional user-level site override fields:
+Add optional user-level site override fields with exact package refs:
 
 ```yaml
 # users/<handle>.yaml
 site:
-  package: "@scope/rover-site"
-  theme: "@scope/rover-theme"
+  package: "@scope/rover-site@1.2.3"
+  theme: "@scope/rover-theme@0.4.0"
 ```
 
 Behavior:
 
-- site/theme choices are per-user identity and branding choices, not batch/cohort rollout controls
+- site/theme choices are per-user identity and branding choices, not cohort rollout controls
 - cohorts must not define site/theme overrides
 - no user/cohort merge behavior is needed for site/theme
 - `site.package` and `site.theme` are rendered into generated `users/<handle>/brain.yaml` when present
-- refs must be npm package refs that can be installed by the deploy build without private registry credentials
+- refs must be exact public npm package refs that can be installed without private registry credentials
+- no `latest`, semver ranges, `^`, `~`, or `*`; prerelease versions are allowed when exact
+- package upgrades and rollbacks must be explicit user YAML changes
 - if a package ref changes while the brain version stays the same, the fleet image must still rebuild and redeploy affected users
 
 Update `packages/brains-ops`:
@@ -41,13 +48,14 @@ Update `packages/brains-ops`:
 - `src/default-user-runner.ts`
 - `src/render-users-table.ts` if we want site/theme columns or a compact customization indicator
 - registry/reconcile/render tests
-- operator and user docs
+- operator docs
 
-Update deploy support outside `packages/brains-ops`:
+Update deploy support:
 
-- `shared/deploy-support` Dockerfile rendering so fleet images can install the selected public npm site/theme packages in addition to `@rizom/brain@$BRAIN_VERSION`
-- `packages/brains-ops` generated env/deploy metadata so image identity includes the effective package set, not just `brainVersion`
-- GitHub build workflow/template so changes to user site/theme refs trigger a build and affected deploys
+- fleet Dockerfile/build path must install selected public npm site/theme packages in addition to `@rizom/brain@$BRAIN_VERSION`
+- generated deploy metadata must include the effective package set, not just `brainVersion`
+- package-set metadata should be derived from registry/generated config, not stored in `.env`
+- GitHub build/deploy workflows must rebuild/redeploy when user site/theme refs change
 
 Suggested image identity:
 
@@ -55,13 +63,26 @@ Suggested image identity:
 brain-${brainVersion}-pkg-${packageSetHash}
 ```
 
-The package-set hash should be derived from the unique package refs used by the deployed users. A simpler first step is acceptable if it reliably rebuilds whenever refs change.
+The package-set hash should be derived from the unique exact package refs used by the deployed users. A simpler first step is acceptable only if it reliably rebuilds whenever refs change.
 
-Out of scope for this batch:
+### Runtime vs install-time contract
 
-- private npm packages
-- per-user registry credentials
-- arbitrary user editing of generated `brain.yaml`
+The app already dynamically imports package refs from `brain.yaml` at runtime through `registerOverridePackages()`, but those imports only work if the packages are already available in `node_modules`. The current fleet image only installs `@rizom/brain@$BRAIN_VERSION`, so custom site/theme packages still need an install step before runtime.
+
+For this batch:
+
+- user YAML should store exact install refs, including versions
+- generated `brain.yaml` should remain the canonical runtime declaration
+- `.env` should not store package refs, package hashes, or image identity
+- if runtime import needs a bare import specifier, derive it from the exact install ref rather than asking operators to enter two values
+- a generated checked-in manifest under `views/` is acceptable for derived build metadata, for example package set hash and image tag
+
+Target architecture later:
+
+- keep the same `brain.yaml` contract
+- move package installation/resolution into the app runtime with a persistent package cache and integrity checks
+- stop rebuilding the shared image just to change site/theme refs
+- migrate by changing the resolver/install implementation, not user config
 
 ### 2. Package authoring docs/templates
 
@@ -90,7 +111,7 @@ verify web/CMS/site/theme/sync/auth
 then add remaining users
 ```
 
-Include rollback notes:
+Rollback:
 
 - remove or change site/theme overrides if the package fails
 - reconcile generated outputs
@@ -148,8 +169,9 @@ Checks:
 
 ## Suggested implementation order
 
-1. Public npm site/theme overrides and deploy image installation
-2. Package authoring docs/templates
-3. One-user custom-theme canary
-4. Per-user custom domains
-5. `preflight`, if still useful after the batch workflow is clearer
+1. Registry/schema/render support for per-user public npm site/theme refs
+2. Deploy image installation and image identity for effective package sets
+3. Package authoring docs/templates
+4. One-user custom-theme canary
+5. Per-user custom domains
+6. `preflight`, if still useful after the batch workflow is clearer
