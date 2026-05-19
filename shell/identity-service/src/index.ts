@@ -31,17 +31,8 @@ export {
 // Canonical identity links
 export {
   CanonicalIdentityService,
+  type CanonicalIdentityActor,
+  type CanonicalIdentityLink,
   type CanonicalIdentityResolution,
   type ICanonicalIdentityService,
 } from "./canonical-identity-service";
-export { CanonicalIdentityLinkAdapter } from "./canonical-identity-link-adapter";
-export {
-  CANONICAL_IDENTITY_LINK_ENTITY_TYPE,
-  canonicalIdentityActorSchema,
-  canonicalIdentityLinkBodySchema,
-  canonicalIdentityLinkFrontmatterSchema,
-  canonicalIdentityLinkSchema,
-  type CanonicalIdentityActor,
-  type CanonicalIdentityLink,
-  type CanonicalIdentityLinkEntity,
-} from "./canonical-identity-link-schema";

@@ -79,7 +79,6 @@ export function initializeIdentityAndAgentServices(
   const {
     config,
     entityService,
-    entityRegistry,
     logger,
     messageBus,
     aiService,
@@ -110,29 +109,7 @@ export function initializeIdentityAndAgentServices(
     config.profile,
   );
 
-  const canonicalIdentityService = CanonicalIdentityService.getInstance(
-    entityService,
-    logger,
-  );
-
-  entityRegistry.registerPersistValidator(
-    SHELL_ENTITY_TYPES.CANONICAL_IDENTITY_LINK,
-    (entity, context) =>
-      canonicalIdentityService.validateLink(
-        entity as Parameters<typeof canonicalIdentityService.validateLink>[0],
-        context,
-      ),
-  );
-
-  disposables.push(
-    ...subscribeToEntityCacheInvalidation(
-      messageBus,
-      SHELL_ENTITY_TYPES.CANONICAL_IDENTITY_LINK,
-      null,
-      () => canonicalIdentityService.refreshCache(),
-      logger,
-    ),
-  );
+  const canonicalIdentityService = CanonicalIdentityService.getInstance(logger);
 
   const agentFactory = createBrainAgentFactory({
     model: aiService.getModel(),
