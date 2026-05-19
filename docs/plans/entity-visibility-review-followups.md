@@ -32,7 +32,7 @@ Plan:
 
 ### 2. Keep topic merging within the target visibility boundary
 
-Problem: topic extraction currently uses visibility _scope_ for merge candidates. A restricted extraction can merge into a public/shared topic and preserve that topic's broader visibility.
+Problem: topic extraction uses `extractionVisibility` as a read threshold, but topic writes must stay partitioned by target visibility. A restricted extraction may read public + shared + restricted sources, but it must not merge restricted-derived evidence into a public/shared topic and preserve that topic's broader visibility.
 
 Relevant files:
 
@@ -41,8 +41,10 @@ Relevant files:
 
 Plan:
 
+- Treat `extractionVisibility` as both the maximum source visibility to read and the target topic visibility to write.
 - Add same-visibility candidate filtering for topic merge candidates.
 - Ensure `applySynthesizedMerge()`/`updateTopic()` cannot broaden restricted/shared-derived content into public topics.
+- Allow same-name public/shared/restricted topic partitions to coexist when needed.
 - Add tests for public, shared, and restricted extraction when matching topics already exist at other visibilities.
 
 ### 3. Prevent existing topic titles from leaking across visibility boundaries
@@ -74,6 +76,7 @@ Plan:
 
 - Rebuild only topics at the configured target visibility.
 - Initial sync should check for persisted targets at the configured target visibility.
+- Public rebuilds must not delete shared/restricted topics; restricted rebuilds must not rewrite public topics unless explicitly running a public rebuild.
 - Add tests for public rebuild preserving shared/restricted topics.
 
 ### 5. Filter public site generation by visibility
@@ -140,9 +143,46 @@ Plan:
 - Reject non-public entities for public publishing providers, or require providers to declare supported visibility boundaries.
 - Add tests for shared/restricted publish rejection.
 
+### 9. Make skill derivation visibility explicit
+
+Problem: skills are derived from topics, so unrestricted skill derivation can leak restricted topic evidence into public skill/capability surfaces.
+
+Relevant files:
+
+- `entities/agent-discovery/src/*skill*`
+- `entities/agent-discovery/test/*skill*`
+- topic-to-skill derivation callers/configuration, if separate from agent discovery
+
+Plan:
+
+- Add or document a skill derivation target visibility, defaulting to `public`.
+- Skill derivation should read only topics visible within the configured threshold, and should write/merge/delete only skills at the target visibility partition.
+- A skill must never be more public than the topics used to derive it.
+- Public skill derivation reads public topics and writes public skills; restricted skill derivation may read public + shared + restricted topics but writes restricted skills.
+- Add tests proving public skill derivation excludes shared/restricted topics and does not merge into shared/restricted skill partitions.
+
+### 10. Make A2A/public capability exposure visibility-scoped
+
+Problem: A2A and remote-agent capability surfaces can expose derived skills/topics. If those surfaces list all skills/topics, restricted derived knowledge can leak through capability descriptions or resource/tool results.
+
+Relevant files:
+
+- `shell/core/src/system/*`
+- `shell/mcp-service/src/*`
+- A2A agent/card/capability registration code
+- skill/topic datasource code used by remote-agent capability surfaces
+
+Plan:
+
+- Default unauthenticated A2A/remote-agent callers to public visibility scope.
+- Expose only public topics/skills in public A2A agent identity/capability surfaces.
+- Map future trusted remote agents to shared visibility scope only through explicit trust/auth configuration.
+- Ensure A2A tools/resources reuse the same visibility enforcement as system read tools and MCP resources.
+- Add tests proving public A2A/capability listings exclude shared/restricted skills and topics.
+
 ## Cleanup
 
-### 9. Reduce new casts introduced during tests/mocks
+### 11. Reduce new casts introduced during tests/mocks
 
 Problem: the branch still adds a few casts in tests/mocks, despite the no-casts preference.
 
@@ -168,7 +208,8 @@ bun test shell/entity-service/test/entity-visibility.test.ts \
   shell/core/test/system/register.test.ts \
   entities/topics/test/lib/topic-projection.test.ts \
   entities/topics/test/lib/topic-batch-extractor.test.ts \
-  entities/topics/test/lib/topic-service.test.ts
+  entities/topics/test/lib/topic-service.test.ts \
+  entities/agent-discovery/test/skill-deriver.test.ts
 
 bun run typecheck
 bun run lint
