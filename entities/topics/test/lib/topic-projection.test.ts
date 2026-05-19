@@ -28,6 +28,7 @@ const config: TopicsPluginConfig = {
   autoMerge: true,
   extractableStatuses: ["published"],
   enableAutoExtraction: true,
+  extractionVisibility: "public",
   sourceChangeBatchDelayMs: 1000,
 };
 
@@ -38,6 +39,7 @@ function createTopic(id: string): BaseEntity {
     entityType: "topic",
     content: `---\ntitle: ${id}\n---\n${id}`,
     contentHash: "hash",
+    visibility: "public",
     metadata: {},
     created: now,
     updated: now,
@@ -221,6 +223,102 @@ describe("topic projection helpers", () => {
     });
     expect(context.ai.generate).toHaveBeenCalledTimes(1);
     expect(sourceBatch.drain()).toEqual([]);
+  });
+
+  it("filters source-change extraction by configured visibility scope", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const sourceBatch = new TopicSourceBatchBuffer();
+    const now = new Date().toISOString();
+
+    mockShell.addEntities([
+      {
+        id: "public-post",
+        entityType: "post",
+        content: "Public source content",
+        contentHash: "public-hash",
+        visibility: "public",
+        metadata: { status: "published", title: "Public" },
+        created: now,
+        updated: now,
+      },
+      {
+        id: "shared-post",
+        entityType: "post",
+        content: "Shared source content",
+        contentHash: "shared-hash",
+        visibility: "shared",
+        metadata: { status: "published", title: "Shared" },
+        created: now,
+        updated: now,
+      },
+      {
+        id: "restricted-post",
+        entityType: "post",
+        content: "Restricted source content",
+        contentHash: "restricted-hash",
+        visibility: "restricted",
+        metadata: { status: "published", title: "Restricted" },
+        created: now,
+        updated: now,
+      },
+    ]);
+
+    sourceBatch.add({
+      entityId: "public-post",
+      entityType: "post",
+      contentHash: "public-hash",
+    });
+    sourceBatch.add({
+      entityId: "shared-post",
+      entityType: "post",
+      contentHash: "shared-hash",
+    });
+    sourceBatch.add({
+      entityId: "restricted-post",
+      entityType: "post",
+      contentHash: "restricted-hash",
+    });
+
+    const generateSpy = spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "Visible Sources",
+          content: "Only visible sources are extracted.",
+          relevanceScore: 0.9,
+        },
+      ],
+    });
+
+    const handler = createTopicProjectionHandler({
+      context,
+      logger,
+      config: { ...config, extractionVisibility: "shared" },
+      sourceBatch,
+      isEntityPublished: (entity) =>
+        entity.metadata["status"] === undefined ||
+        entity.metadata["status"] === "published",
+      extractAllTopics: mock(async (): Promise<void> => undefined),
+      rebuildAllTopics: mock(async (): Promise<void> => undefined),
+    });
+
+    const result = await handler.process(
+      { mode: "source-batch", minRelevanceScore: 0.5 },
+      "source-batch-visibility-job",
+      progressReporter,
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      sources: 3,
+      created: 1,
+      hidden: 1,
+    });
+    const generatedPrompt = generateSpy.mock.calls[0]?.[0].prompt ?? "";
+    expect(generatedPrompt).toContain("Public source content");
+    expect(generatedPrompt).toContain("Shared source content");
+    expect(generatedPrompt).not.toContain("Restricted source content");
   });
 
   it("keeps only the latest content hash for repeated source changes", () => {

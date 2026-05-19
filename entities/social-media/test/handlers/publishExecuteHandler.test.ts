@@ -23,6 +23,7 @@ const TINY_PNG_BASE64 =
 const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Test LinkedIn Post
 platform: linkedin
@@ -43,6 +44,7 @@ This is a test post for LinkedIn.`,
 const samplePostWithImage: SocialPost = {
   id: "post-2",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Visual LinkedIn Post
 platform: linkedin

@@ -84,7 +84,7 @@ export class EntityMutations {
     };
 
     // Validate entity against its schema
-    const validatedEntity = this.entityRegistry.validateEntity<T>(
+    const validatedEntity = this.entityRegistry.validateEntity(
       entity["entityType"],
       entityWithDefaults,
     );
@@ -121,6 +121,7 @@ export class EntityMutations {
       entityType: validatedEntity.entityType,
       content: markdown,
       contentHash,
+      visibility: validatedEntity.visibility,
       metadata,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
@@ -173,7 +174,7 @@ export class EntityMutations {
       contentHash: computeContentHash(entity.content),
     };
 
-    const validatedEntity = this.entityRegistry.validateEntity<T>(
+    const validatedEntity = this.entityRegistry.validateEntity(
       entity.entityType,
       updatedEntity,
     );
@@ -217,6 +218,7 @@ export class EntityMutations {
       .set({
         content: markdown,
         contentHash,
+        visibility: validatedEntity.visibility,
         metadata,
         updated: new Date(validatedEntity.updated).getTime(),
       })

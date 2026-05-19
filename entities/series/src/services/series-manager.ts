@@ -51,6 +51,7 @@ export class SeriesManager {
         contentHash,
         created: existing?.created ?? new Date().toISOString(),
         updated: new Date().toISOString(),
+        visibility: "public",
         metadata: { title: seriesName, slug: slugify(seriesName) },
       };
 
@@ -123,6 +124,7 @@ export class SeriesManager {
       contentHash: computeContentHash(content),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
+      visibility: "public",
       metadata: { title: seriesName, slug: slugify(seriesName) },
     };
 

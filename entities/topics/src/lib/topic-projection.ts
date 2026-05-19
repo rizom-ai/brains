@@ -1,7 +1,8 @@
-import type {
-  BaseEntity,
-  EntityPluginContext,
-  JobHandler,
+import {
+  isVisibleWithinScope,
+  type BaseEntity,
+  type EntityPluginContext,
+  type JobHandler,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
@@ -41,6 +42,7 @@ export interface TopicSourceBatchResult {
   stale: number;
   missing: number;
   unpublished: number;
+  hidden: number;
 }
 
 export interface TopicSourceBatchStore {
@@ -141,6 +143,7 @@ async function processSourceBatch(params: {
   let stale = 0;
   let missing = 0;
   let unpublished = 0;
+  let hidden = 0;
   const toExtract: BaseEntity[] = [];
 
   for (const { ref, entity } of fetched) {
@@ -154,6 +157,15 @@ async function processSourceBatch(params: {
     }
     if (!params.isEntityPublished(entity)) {
       unpublished++;
+      continue;
+    }
+    if (
+      !isVisibleWithinScope(
+        entity.visibility,
+        params.config.extractionVisibility,
+      )
+    ) {
+      hidden++;
       continue;
     }
     toExtract.push(entity);
@@ -170,6 +182,7 @@ async function processSourceBatch(params: {
       stale,
       missing,
       unpublished,
+      hidden,
     };
   }
 
@@ -181,6 +194,7 @@ async function processSourceBatch(params: {
       minRelevanceScore: params.minRelevanceScore,
       autoMerge: params.config.autoMerge,
       mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      targetVisibility: params.config.extractionVisibility,
     },
   );
 
@@ -191,6 +205,7 @@ async function processSourceBatch(params: {
     stale,
     missing,
     unpublished,
+    hidden,
   };
 }
 
@@ -242,6 +257,7 @@ export async function extractAllTopics(
       minRelevanceScore: params.config.minRelevanceScore,
       autoMerge: params.config.autoMerge,
       mergeSimilarityThreshold: params.config.mergeSimilarityThreshold,
+      targetVisibility: params.config.extractionVisibility,
     },
   );
 
@@ -291,6 +307,7 @@ export async function replaceAllTopics(
     minRelevanceScore: config.minRelevanceScore,
     autoMerge: config.autoMerge,
     mergeSimilarityThreshold: config.mergeSimilarityThreshold,
+    targetVisibility: config.extractionVisibility,
   });
   return {
     deleted: existingTopics.length,
@@ -307,6 +324,9 @@ async function getEntitiesToExtract(
   for (const type of typesToProcess) {
     const entities = await params.context.entityService.listEntities({
       entityType: type,
+      options: {
+        filter: { visibilityScope: params.config.extractionVisibility },
+      },
     });
     for (const entity of entities) {
       if (!params.isEntityPublished(entity)) continue;

@@ -25,6 +25,13 @@ export const entities = sqliteTable(
     // Used by plugins to detect if content has changed without comparing full text
     contentHash: text("contentHash").notNull(),
 
+    // Visibility boundary for read/search/derivation policies
+    visibility: text("visibility", {
+      enum: ["public", "shared", "restricted"],
+    })
+      .notNull()
+      .default("public"),
+
     // Metadata from frontmatter (includes title, tags, and entity-specific fields)
     metadata: text("metadata", { mode: "json" })
       .$type<Record<string, unknown>>()

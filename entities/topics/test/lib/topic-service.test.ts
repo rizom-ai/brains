@@ -18,6 +18,7 @@ function makeTopic(id: string, title: string, content = "Body."): TopicEntity {
     entityType: "topic",
     content: topicAdapter.createTopicBody({ title, content }),
     contentHash: `hash-${id}`,
+    visibility: "public",
     metadata: {},
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:00Z",
@@ -83,7 +84,10 @@ describe("TopicService", () => {
   describe("findMergeCandidate", () => {
     it("returns search-result candidate above threshold", async () => {
       const logger = createSilentLogger();
-      const existing = makeTopic("human-ai-collaboration", "Human-AI Collaboration");
+      const existing = makeTopic(
+        "human-ai-collaboration",
+        "Human-AI Collaboration",
+      );
       const entityService = createMockEntityService({
         returns: {
           search: [{ entity: existing, score: 0.9, excerpt: "" }],
@@ -102,8 +106,13 @@ describe("TopicService", () => {
 
     it("returns additionalCandidates hit when search is empty", async () => {
       const logger = createSilentLogger();
-      const existing = makeTopic("human-ai-collaboration", "Human-AI Collaboration");
-      const entityService = createMockEntityService({ returns: { search: [] } });
+      const existing = makeTopic(
+        "human-ai-collaboration",
+        "Human-AI Collaboration",
+      );
+      const entityService = createMockEntityService({
+        returns: { search: [] },
+      });
       const service = new TopicService(entityService, logger);
 
       const candidate = await service.findMergeCandidate({
@@ -117,17 +126,17 @@ describe("TopicService", () => {
 
     it("dedupes a topic appearing in both search and additionalCandidates", async () => {
       const logger = createSilentLogger();
-      const existing = makeTopic("human-ai-collaboration", "Human-AI Collaboration");
+      const existing = makeTopic(
+        "human-ai-collaboration",
+        "Human-AI Collaboration",
+      );
       const entityService = createMockEntityService({
         returns: {
           search: [{ entity: existing, score: 0.9, excerpt: "" }],
         },
       });
       const service = new TopicService(entityService, logger);
-      const adapterSpy = spyOn(
-        TopicAdapter.prototype,
-        "parseTopicBody",
-      );
+      const adapterSpy = spyOn(TopicAdapter.prototype, "parseTopicBody");
 
       const candidate = await service.findMergeCandidate({
         incoming: { title: "Human-Agent Collaboration" },

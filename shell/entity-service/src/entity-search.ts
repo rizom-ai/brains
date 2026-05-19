@@ -1,9 +1,15 @@
 import type { EntityDB } from "./db";
-import type { BaseEntity, SearchResult, SearchOptions } from "./types";
+import {
+  getVisibleContentVisibilities,
+  type BaseEntity,
+  type ContentVisibility,
+  type SearchResult,
+  type SearchOptions,
+} from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { z, type Logger } from "@brains/utils";
-import { sql, and, desc, type SQL } from "drizzle-orm";
+import { sql, and, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
@@ -36,6 +42,7 @@ const searchOptionsSchema = z.object({
   types: z.array(z.string()).optional().default([]),
   excludeTypes: z.array(z.string()).optional().default([]),
   weight: z.record(z.string(), z.number()).optional(),
+  visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
 });
 
 /**
@@ -68,7 +75,8 @@ export class EntitySearch {
     options?: SearchOptions,
   ): Promise<SearchResult<T>[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
-    const { limit, offset, types, excludeTypes, weight } = validatedOptions;
+    const { limit, offset, types, excludeTypes, weight, visibilityScope } =
+      validatedOptions;
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
@@ -111,11 +119,26 @@ export class EntitySearch {
     return this.searchWithAttachedDb<T>(
       embeddingArray,
       weightMultiplier,
-      typeConditions,
+      [...typeConditions, ...this.buildVisibilityConditions(visibilityScope)],
       limit,
       offset,
       preparedQuery,
     );
+  }
+
+  private buildVisibilityConditions(
+    visibilityScope?: ContentVisibility,
+  ): SQL[] {
+    if (visibilityScope === undefined || visibilityScope === "restricted") {
+      return [];
+    }
+
+    return [
+      inArray(
+        entities.visibility,
+        getVisibleContentVisibilities(visibilityScope),
+      ),
+    ];
   }
 
   /**
@@ -181,6 +204,7 @@ export class EntitySearch {
         entityType: entities.entityType,
         content: entities.content,
         contentHash: entities.contentHash,
+        visibility: entities.visibility,
         created: entities.created,
         updated: entities.updated,
         metadata: entities.metadata,
@@ -262,6 +286,7 @@ export class EntitySearch {
       entityType: string;
       content: string;
       contentHash: string;
+      visibility: ContentVisibility;
       created: number;
       updated: number;
       metadata: unknown;
@@ -283,6 +308,7 @@ export class EntitySearch {
           entityType: row.entityType,
           content: row.content,
           contentHash: row.contentHash,
+          visibility: row.visibility,
           created: row.created,
           updated: row.updated,
           metadata,

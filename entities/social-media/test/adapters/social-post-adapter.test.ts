@@ -135,6 +135,7 @@ Post with an image`;
       const entity: SocialPost = {
         id: "social-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: Hello World Post
 platform: linkedin
@@ -174,6 +175,7 @@ Test roundtrip content`;
       const entity: SocialPost = {
         id: "test-123",
         entityType: "social-post",
+        visibility: "public",
         content: partialEntity.content as string,
         metadata: partialEntity.metadata as SocialPost["metadata"],
         contentHash: "abc",
@@ -194,6 +196,7 @@ Test roundtrip content`;
       const entity: SocialPost = {
         id: "social-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: "test",
         metadata: {
           title: "Test Post Title",
@@ -253,6 +256,7 @@ Test roundtrip content`;
       const entity: SocialPost = {
         id: "test-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: My Published Post
 platform: linkedin

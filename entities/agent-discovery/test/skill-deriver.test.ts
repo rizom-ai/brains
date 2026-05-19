@@ -19,6 +19,7 @@ function skillEntity(id: string, metadata: SkillFrontmatter): SkillEntity {
     entityType: "skill",
     content,
     contentHash: "hash",
+    visibility: "public",
     created: now,
     updated: now,
     metadata,

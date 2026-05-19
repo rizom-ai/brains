@@ -1,4 +1,5 @@
 import type { z, Logger } from "@brains/utils";
+import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import type {
   BaseEntity,
   CreateInterceptor,
@@ -143,9 +144,41 @@ export class EntityRegistry implements IEntityRegistry {
   /**
    * Validate entity against its schema
    */
-  validateEntity<TData = unknown>(type: string, entity: unknown): TData {
+  validateEntity(type: string, entity: unknown): BaseEntity {
     const schema = this.getSchema(type);
-    return schema.parse(entity) as TData;
+    const parsed = schema.parse(this.normalizePolicyFields(entity));
+    const base = baseEntitySchema.parse(parsed);
+    const parsedFields =
+      parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+        ? Object.fromEntries(Object.entries(parsed))
+        : {};
+    return {
+      ...parsedFields,
+      id: base.id,
+      entityType: base.entityType,
+      content: base.content,
+      created: base.created,
+      updated: base.updated,
+      visibility: base.visibility,
+      metadata: base.metadata,
+      contentHash: base.contentHash,
+    };
+  }
+
+  private normalizePolicyFields(entity: unknown): unknown {
+    if (
+      entity === null ||
+      typeof entity !== "object" ||
+      Array.isArray(entity)
+    ) {
+      return entity;
+    }
+
+    const normalized = Object.fromEntries(Object.entries(entity));
+    normalized["visibility"] = contentVisibilitySchema.parse(
+      normalized["visibility"],
+    );
+    return normalized;
   }
 
   /**

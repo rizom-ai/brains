@@ -305,7 +305,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return adapter as unknown as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
-    validateEntity: <TData>(_type: string, entity: unknown) => entity as TData,
+    validateEntity: (type: string, entity: unknown): BaseEntity => {
+      const adapter = entityAdapters.get(type);
+      if (adapter) return adapter.schema.parse(entity);
+      throw new Error(`No schema registered for entity type: ${type}`);
+    },
     getAllEntityTypes: () => Array.from(entityTypes),
     getEntityTypeConfig,
     getWeightMap: () => ({}),

@@ -1,6 +1,7 @@
 import matter from "gray-matter";
-import type { z } from "@brains/utils";
-import type { BaseEntity } from "./types";
+import { z } from "@brains/utils";
+import type { BaseEntity, ContentVisibility } from "./types";
+import { contentVisibilitySchema } from "./types";
 
 /**
  * Configuration for frontmatter handling
@@ -41,6 +42,7 @@ const DEFAULT_SYSTEM_FIELDS: Array<keyof BaseEntity> = [
   "contentHash",
   "created",
   "updated",
+  "visibility",
 ];
 
 /**
@@ -51,11 +53,11 @@ export function extractMetadata<T extends BaseEntity>(
   entity: T,
   config?: FrontmatterConfig<T>,
 ): Record<string, unknown> {
-  const {
-    includeFields,
-    excludeFields = DEFAULT_SYSTEM_FIELDS,
-    customSerializers,
-  } = config ?? {};
+  const { includeFields, excludeFields = [], customSerializers } = config ?? {};
+  const excludedFieldNames = new Set<string>([
+    ...DEFAULT_SYSTEM_FIELDS.map(String),
+    ...excludeFields.map(String),
+  ]);
 
   const metadata: Record<string, unknown> = {};
 
@@ -66,11 +68,13 @@ export function extractMetadata<T extends BaseEntity>(
   let fieldsToProcess: Array<keyof T>;
   if (includeFields) {
     // If includeFields is specified, only include those
-    fieldsToProcess = includeFields;
+    fieldsToProcess = includeFields.filter(
+      (field) => !excludedFieldNames.has(String(field)),
+    );
   } else {
     // Otherwise include all fields except excluded ones
     fieldsToProcess = allFields.filter(
-      (field) => !excludeFields.includes(field as keyof BaseEntity),
+      (field) => !excludedFieldNames.has(String(field)),
     );
   }
 
@@ -194,4 +198,41 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
   // Extract just the frontmatter part
   const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
   return match ? match[0] : "";
+}
+
+const visibilityFrontmatterSchema = z.object({
+  visibility: contentVisibilitySchema,
+});
+
+export function extractVisibilityFromMarkdown(
+  markdown: string,
+): ContentVisibility {
+  const parsed = matter(markdown);
+  return visibilityFrontmatterSchema.parse(parsed.data).visibility;
+}
+
+export function hasVisibilityFrontmatter(markdown: string): boolean {
+  const frontmatterMatch = markdown.match(/^---\r?\n[\s\S]*?\r?\n---/);
+  const visibilityMatch = frontmatterMatch?.[0].match(/^visibility:/m);
+  return visibilityMatch !== null && visibilityMatch !== undefined;
+}
+
+export function applyVisibilityToMarkdown(
+  markdown: string,
+  visibility: ContentVisibility,
+): string {
+  if (visibility === "public" && !hasVisibilityFrontmatter(markdown)) {
+    return markdown;
+  }
+
+  const parsed = matter(markdown);
+  const frontmatter = Object.fromEntries(
+    Object.entries(parsed.data).filter(([key]) => key !== "visibility"),
+  );
+
+  if (visibility !== "public") {
+    frontmatter["visibility"] = visibility;
+  }
+
+  return generateMarkdownWithFrontmatter(parsed.content.trim(), frontmatter);
 }

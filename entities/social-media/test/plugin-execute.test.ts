@@ -9,6 +9,7 @@ import type { SocialPost } from "../src/schemas/social-post";
 const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Test LinkedIn Post
 platform: linkedin
@@ -139,6 +140,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
       await providerHarness.sendMessage("publish:execute", {
         entityType: "social-post",
+        visibility: "public",
         entityId: "post-1",
       });
 

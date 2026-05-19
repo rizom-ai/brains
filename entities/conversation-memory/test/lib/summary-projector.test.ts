@@ -199,8 +199,53 @@ describe("SummaryProjector", () => {
     expect(entity?.id).toBe("conv-1");
     expect(entity?.metadata["conversationId"]).toBe("conv-1");
     expect(entity?.metadata["messageCount"]).toBe(2);
+    expect(entity?.visibility).toBe(
+      summaryConfigSchema.parse({}).memoryVisibility,
+    );
     expect(entity?.content).toContain("# Conversation Summary");
     expect(entity?.content).toContain("Projection source");
+  });
+
+  it("uses configured visibility for projected memory entities", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      attributedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Onboarding pilot",
+          summary: "Mira chose the onboarding format.",
+          startMessageIndex: 1,
+          endMessageIndex: 3,
+          keyPoints: [],
+          decisions: ["Mira Ops decided to keep the guide short."],
+          actionItems: ["Daniel will update the checklist."],
+        },
+      ],
+    });
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+
+    const result = await projector.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy.mock.calls).toHaveLength(3);
+    expect(
+      upsertSpy.mock.calls.map((call) => call[0].entity.visibility),
+    ).toEqual(["shared", "shared", "shared"]);
   });
 
   it("stores participants and attributed decision/action metadata", async () => {

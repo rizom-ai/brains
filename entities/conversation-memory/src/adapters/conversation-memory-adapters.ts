@@ -30,7 +30,7 @@ class ConversationMemoryEntityAdapter<
 
   constructor(config: {
     entityType: string;
-    schema: z.ZodSchema<TEntity>;
+    schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
     metadataSchema: z.ZodObject<z.ZodRawShape>;
   }) {
     super({

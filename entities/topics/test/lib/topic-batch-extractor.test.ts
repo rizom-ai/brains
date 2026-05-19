@@ -154,6 +154,37 @@ describe("extractTopicsBatched", () => {
     expect(topicListCalls).toBe(1);
   });
 
+  it("creates derived topics with the configured target visibility", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+
+    spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [
+        {
+          title: "Shared Derived Topic",
+          content: "Derived from shared-scope sources.",
+          relevanceScore: 0.9,
+        },
+      ],
+    });
+
+    const result = await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+      { targetVisibility: "shared" },
+    );
+
+    const topic = await mockShell.getEntityService().getEntity({
+      entityType: "topic",
+      id: "shared-derived-topic",
+    });
+
+    expect(result.created).toBe(1);
+    expect(topic?.visibility).toBe("shared");
+  });
+
   it("emits one topic batch completion event after creating topics", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
@@ -476,9 +507,7 @@ describe("extractTopicsBatched", () => {
       });
       expect(topics).toHaveLength(1);
       expect(topics[0]?.id).toBe("human-ai-collaboration");
-      expect(topics[0]?.content).toContain(
-        "Second, should merge with first.",
-      );
+      expect(topics[0]?.content).toContain("Second, should merge with first.");
     });
 
     it("filters topics below minRelevanceScore before merge/create", async () => {

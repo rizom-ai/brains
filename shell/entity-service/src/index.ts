@@ -51,6 +51,8 @@ export type {
   EntityTypeConfig,
   EntityJobOptions,
   EntityEventBus,
+  ContentVisibility,
+  RawContentVisibility,
   CreateEntityOptions,
   CreateEntityFromMarkdownInput,
   EntityMutationResult,
@@ -58,7 +60,14 @@ export type {
   SortField,
 } from "./types";
 
-export { baseEntitySchema, BASE_ENTITY_TYPE } from "./types";
+export {
+  baseEntitySchema,
+  BASE_ENTITY_TYPE,
+  contentVisibilitySchema,
+  getVisibleContentVisibilities,
+  isVisibleWithinScope,
+  normalizeContentVisibility,
+} from "./types";
 
 export {
   generateMarkdownWithFrontmatter,

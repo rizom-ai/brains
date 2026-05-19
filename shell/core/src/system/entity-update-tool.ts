@@ -1,4 +1,7 @@
-import { resolveEntityOrError } from "@brains/entity-service";
+import {
+  contentVisibilitySchema,
+  resolveEntityOrError,
+} from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { updateInputSchema } from "./schemas";
@@ -9,6 +12,29 @@ import {
   normalizeUpdateInput,
 } from "./tool-helpers";
 
+function currentFieldValue(entity: BaseEntity, key: string): unknown {
+  return key === "visibility"
+    ? (entity.visibility ?? "public")
+    : entity.metadata[key];
+}
+
+function applyFieldUpdates(
+  entity: BaseEntity,
+  fields: Record<string, unknown>,
+): BaseEntity {
+  const { visibility, ...metadataFields } = fields;
+  const nextVisibility =
+    visibility === undefined
+      ? (entity.visibility ?? "public")
+      : contentVisibilitySchema.parse(visibility);
+
+  return {
+    ...entity,
+    visibility: nextVisibility,
+    metadata: { ...entity.metadata, ...metadataFields },
+  };
+}
+
 function buildUpdateDiff(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
@@ -17,7 +43,7 @@ function buildUpdateDiff(
     return Object.entries(normalizedInput.fields)
       .map(
         ([key, val]) =>
-          `${key}: ${String(entity.metadata[key] ?? "(empty)")} → ${String(val)}`,
+          `${key}: ${String(currentFieldValue(entity, key) ?? "(empty)")} → ${String(val)}`,
       )
       .join("\n");
   }
@@ -124,10 +150,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         const updated =
           normalizedInput.content !== undefined
             ? { ...entity, content: normalizedInput.content }
-            : {
-                ...entity,
-                metadata: { ...entity.metadata, ...normalizedInput.fields },
-              };
+            : applyFieldUpdates(entity, normalizedInput.fields ?? {});
         try {
           await entityService.updateEntity({ entity: updated });
         } catch (error) {

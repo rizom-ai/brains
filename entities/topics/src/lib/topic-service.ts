@@ -1,4 +1,8 @@
-import type { IEntityService, SearchResult } from "@brains/plugins";
+import type {
+  ContentVisibility,
+  IEntityService,
+  SearchResult,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { ExtractedTopicData } from "../schemas/extraction";
@@ -29,6 +33,7 @@ export class TopicService {
     title: string;
     content: string;
     metadata?: TopicMetadata;
+    visibility?: ContentVisibility;
   }): Promise<TopicEntity | null> {
     const topicId = generateIdFromText(params.title);
 
@@ -55,6 +60,7 @@ export class TopicService {
     title: string;
     content: string;
     metadata?: TopicMetadata;
+    visibility?: ContentVisibility;
   }): Promise<{ topic: TopicEntity | null; created: boolean }> {
     const topicId = generateIdFromText(params.title);
 
@@ -84,6 +90,7 @@ export class TopicService {
       title: string;
       content: string;
       metadata?: TopicMetadata;
+      visibility?: ContentVisibility;
     },
   ): Promise<TopicEntity> {
     const metadata: TopicMetadata = params.metadata ?? {};
@@ -98,6 +105,7 @@ export class TopicService {
         id: topicId,
         entityType: TOPIC_ENTITY_TYPE,
         content: body,
+        visibility: params.visibility ?? "public",
         metadata,
       },
     });
@@ -107,6 +115,7 @@ export class TopicService {
       entityType: TOPIC_ENTITY_TYPE,
       content: body,
       contentHash: computeContentHash(body),
+      visibility: params.visibility ?? "public",
       metadata,
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
@@ -186,12 +195,14 @@ export class TopicService {
   public async searchTopics(
     query: string,
     limit = 10,
+    visibilityScope?: ContentVisibility,
   ): Promise<SearchResult<TopicEntity>[]> {
     return this.entityService.search<TopicEntity>({
       query,
       options: {
         types: [TOPIC_ENTITY_TYPE],
         limit,
+        ...(visibilityScope !== undefined ? { visibilityScope } : {}),
       },
     });
   }
@@ -209,10 +220,12 @@ export class TopicService {
     threshold: number;
     searchLimit?: number;
     additionalCandidates?: TopicEntity[];
+    visibilityScope?: ContentVisibility;
   }): Promise<TopicMergeCandidate | null> {
     const searchResults = await this.searchTopics(
       params.incoming.title,
       params.searchLimit ?? 20,
+      params.visibilityScope,
     );
 
     const candidates = new Map<string, TopicEntity>();

@@ -9,6 +9,7 @@ function createTestSeries(overrides: Partial<Series> = {}): Series {
     content:
       "---\ntitle: Test Series\nslug: test-series\n---\n# Test Series\n\n## Description\n\nA test series.",
     contentHash: "abc123",
+    visibility: "public",
     metadata: { title: "Test Series", slug: "test-series" },
     created: new Date().toISOString(),
     updated: new Date().toISOString(),

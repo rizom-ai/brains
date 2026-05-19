@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntitySchema, contentVisibilitySchema } from "@brains/plugins";
 
 export const summaryTimeRangeSchema = z.object({
   start: z.string().datetime(),
@@ -93,6 +93,9 @@ export const summaryConfigSchema = z.object({
     .describe("Target maximum length of each generated summary entry"),
   includeKeyPoints: z.boolean().default(true),
   projectionVersion: z.number().int().min(1).default(1),
+  memoryVisibility: contentVisibilitySchema.describe(
+    "Visibility applied to projected summaries, decisions, and action items",
+  ),
 });
 
 export type SummaryConfig = z.infer<typeof summaryConfigSchema>;

@@ -1,5 +1,9 @@
 import { getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "./types";
+import {
+  applyVisibilityToMarkdown,
+  extractVisibilityFromMarkdown,
+} from "./frontmatter";
 import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils";
 import type { EntityData } from "./entity-data";
@@ -22,7 +26,10 @@ export class EntitySerializer {
    */
   public serializeEntity(entity: BaseEntity): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
-    return adapter.toMarkdown(entity);
+    return applyVisibilityToMarkdown(
+      adapter.toMarkdown(entity),
+      entity.visibility ?? "public",
+    );
   }
 
   /**
@@ -34,7 +41,18 @@ export class EntitySerializer {
     entityType: string,
   ): Partial<BaseEntity> {
     const adapter = this.entityRegistry.getAdapter(entityType);
-    return adapter.fromMarkdown(markdown);
+    const {
+      metadata: parsedMetadata,
+      visibility: _parsedVisibility,
+      ...parsed
+    } = adapter.fromMarkdown(markdown);
+    const visibility = extractVisibilityFromMarkdown(markdown);
+    const metadata = this.stripPolicyMetadata(parsedMetadata ?? {});
+    return {
+      ...parsed,
+      visibility,
+      metadata,
+    };
   }
 
   /**
@@ -88,7 +106,11 @@ export class EntitySerializer {
     // `system_update({ fields })` mutates DB metadata without touching
     // markdown, so parsed frontmatter can be stale. Body-parsed top-level
     // fields (e.g. `about`, `skills`) still land via parsedRest.
-    const { metadata: _parsedMeta, ...parsedRest } = parsedContent;
+    const {
+      metadata: _parsedMeta,
+      visibility: _parsedVisibility,
+      ...parsedRest
+    } = parsedContent;
 
     const entity: unknown = {
       id: entityData.id,
@@ -97,12 +119,13 @@ export class EntitySerializer {
       contentHash: entityData.contentHash,
       created: new Date(entityData.created).toISOString(),
       updated: new Date(entityData.updated).toISOString(),
+      visibility: entityData.visibility ?? "public",
       ...parsedRest,
-      ...entityData.metadata,
-      metadata: entityData.metadata,
+      ...this.stripPolicyMetadata(entityData.metadata),
+      metadata: this.stripPolicyMetadata(entityData.metadata),
     };
 
-    return this.entityRegistry.validateEntity<T>(entityData.entityType, entity);
+    return adapter.schema.parse(entity);
   }
 
   /**
@@ -119,11 +142,21 @@ export class EntitySerializer {
     const adapter = this.entityRegistry.getAdapter<T>(entityType);
 
     // Convert to markdown using adapter
-    const markdown = adapter.toMarkdown(entity);
+    const markdown = applyVisibilityToMarkdown(
+      adapter.toMarkdown(entity),
+      entity.visibility ?? "public",
+    );
 
-    // Extract metadata using adapter
-    const metadata = adapter.extractMetadata(entity);
+    // Extract metadata using adapter, keeping visibility as a top-level field.
+    const metadata = this.stripPolicyMetadata(adapter.extractMetadata(entity));
 
     return { markdown, metadata };
+  }
+
+  private stripPolicyMetadata(
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const { visibility: _visibility, ...rest } = metadata;
+    return rest;
   }
 }

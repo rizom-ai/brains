@@ -7,6 +7,7 @@ import {
   type BaseEntity,
   type DerivedEntityProjection,
   hasPersistedTargets,
+  isVisibleWithinScope,
 } from "@brains/plugins";
 import {
   topicsPluginConfigSchema,
@@ -116,6 +117,14 @@ export class TopicsPlugin extends EntityPlugin<
               return null;
             }
             if (!this.isEntityPublished(entity)) return null;
+            if (
+              !isVisibleWithinScope(
+                entity.visibility,
+                this.config.extractionVisibility,
+              )
+            ) {
+              return null;
+            }
             this.sourceBatch.add({
               entityId: entity.id,
               entityType: entity.entityType,

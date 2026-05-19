@@ -1,9 +1,22 @@
 import type { EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
-import type { BaseEntity } from "./types";
+import {
+  getVisibleContentVisibilities,
+  type BaseEntity,
+  type ContentVisibility,
+} from "./types";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
-import { eq, and, desc, asc, sql, isNotNull, type SQL } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  sql,
+  isNotNull,
+  inArray,
+  type SQL,
+} from "drizzle-orm";
 import { z, type Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
 import { normalizeEntityRow, type EntityData } from "./entity-data";
@@ -27,6 +40,7 @@ const listOptionsSchema = z.object({
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
     })
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
@@ -108,6 +122,7 @@ export class EntityQueries {
       entityType,
       publishedOnly,
       filter?.metadata,
+      filter?.visibilityScope,
     );
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
@@ -141,12 +156,22 @@ export class EntityQueries {
     entityType: string,
     publishedOnly?: boolean,
     metadataFilter?: Record<string, unknown>,
+    visibilityScope?: ContentVisibility,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
       conditions.push(
         sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') = 'active' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
+      );
+    }
+
+    if (visibilityScope !== undefined && visibilityScope !== "restricted") {
+      conditions.push(
+        inArray(
+          entities.visibility,
+          getVisibleContentVisibilities(visibilityScope),
+        ),
       );
     }
 
@@ -217,13 +242,17 @@ export class EntityQueries {
     entityType: string,
     options: {
       publishedOnly?: boolean;
-      filter?: { metadata?: Record<string, unknown> };
+      filter?: {
+        metadata?: Record<string, unknown>;
+        visibilityScope?: ContentVisibility;
+      };
     } = {},
   ): Promise<number> {
     const whereConditions = this.buildWhereConditions(
       entityType,
       options.publishedOnly,
       options.filter?.metadata,
+      options.filter?.visibilityScope,
     );
 
     const result = await this.db

@@ -61,6 +61,7 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
       slug: slugifyUrl(url),
     },
     contentHash: "abc123",
+    visibility: "public",
     created: discoveredAt,
     updated: discoveredAt,
   };
