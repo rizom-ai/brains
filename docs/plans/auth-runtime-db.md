@@ -35,10 +35,10 @@ The runtime subject is still `single-operator`. Canonical identity plumbing exis
 
 ## Core decisions
 
-1. **Use SQLite/libSQL under runtime auth storage.**
+1. **Use libSQL + Drizzle, matching the repo's existing pattern.**
    - Default local path: `./data/auth/auth.db`.
    - Keep the parent directory private (`0700`) and database files private (`0600`) where the platform supports it.
-   - Use the repo's existing SQLite/libSQL patterns if available; do not introduce a second ad hoc DB stack.
+   - Follow the precedent in `shell/entity-service` and `shell/job-queue` (`@libsql/client` + `drizzle-orm/libsql`, migrations via `drizzle-kit`). Do not introduce `bun:sqlite` or a second DB stack.
 2. **The auth DB owns auth truth.**
    - Users, roles, identities, passkeys, sessions, OAuth grants, refresh tokens, setup tokens, and auth audit live here.
    - Content entities may reference safe public/person labels later, but never become the source of auth truth.
@@ -66,10 +66,9 @@ Names are illustrative; final migrations should use snake_case tables and explic
 interface AuthUserRow {
   id: string; // usr_<uuid>
   display_name: string;
-  email?: string; // optional; useful for CMS commit authoring
   role: "anchor" | "trusted" | "public";
   status: "active" | "invited" | "suspended";
-  canonical_id?: string; // optional safe label, e.g. person:daniel
+  canonical_id?: string; // generated `user:<id-suffix>` by default; operator-renameable later
   created_at: number;
   updated_at: number;
 }
@@ -83,7 +82,8 @@ interface AuthIdentityRow {
   user_id: string;
   type: "passkey" | "discord" | "mcp" | "oauth" | "email" | "did" | "a2a";
   issuer?: string;
-  identity_key_hash: string; // sha256(normalized identity key)
+  identity_key_hash: string; // sha256(normalized identity key) — used for lookup
+  delivery_subject?: string; // raw deliverable address (e.g. email) — only set for delivery-capable types; only used for sending when verified_at is set
   label?: string; // redacted/display-safe label, e.g. Daniel#1234
   verified_at?: number;
   revoked_at?: number;
@@ -101,6 +101,8 @@ Normalized lookup keys:
 - `did:<did>`
 
 Active identities should be unique by `identity_key_hash`.
+
+Delivery model: the auth DB does not store user emails on `auth_users`. When a user verifies an email identity (or other addressable channel), the raw deliverable address lands on the corresponding `auth_identities` row as `delivery_subject`. Operator-supplied setup emails continue to use existing config + recipient-hash dedupe (`shell/auth-service/src/setup-state-store.ts`) and are not affected. CMS commit attribution keeps using the configured `directory-sync` `git.authorEmail` (`Brain <brain@localhost>` by default); per-user attribution, if needed later, goes in commit trailers, not the author line.
 
 ### Credentials and grants
 
@@ -198,7 +200,7 @@ The auth DB becomes the private canonical identity backend. Do not add a separat
 ### Fresh installs
 
 1. DB starts empty.
-2. First setup creates `usr_<uuid>` with role `anchor`, status `active`.
+2. First setup creates `usr_<uuid>` with role `anchor`, status `active`, and `canonical_id = user:<id-suffix>` generated from the user id.
 3. Passkey registration binds the credential to that user.
 4. Sessions, auth codes, access tokens, and refresh tokens use `sub = usr_<uuid>`.
 
@@ -280,15 +282,15 @@ Validation: linked Discord user maps to a brain user; CMS commits show editor at
 - Role downgrades, suspension, and identity detach should revoke affected sessions and refresh tokens.
 - Never auto-link identities by display name or email similarity.
 - Reject changes that leave zero active anchors.
-- Add a backup/restore note before hosted deployments depend on the DB.
+- Auth DB is backed up via the same mechanism as the rest of the runtime data dir. No SQLite-specific backup tooling required; WAL mode keeps the main file consistent at checkpoint boundaries.
 
-## Open questions
+## Resolved decisions
 
-1. Use Bun SQLite directly or the repo's existing libSQL/Drizzle pattern?
-2. Should user emails be stored directly for CMS git authoring, or should we generate no-reply commit emails by default?
-3. Should `canonical_id` be operator-chosen (`person:daniel`) or generated (`user:<id>`) for first release?
-4. Should OAuth clients migrate in the same phase as grants, or can client metadata remain JSON briefly behind the same store interface?
-5. What hosted backup/restore policy is required before moving pilot users to DB-backed auth?
+1. **DB stack**: libSQL + Drizzle, following `shell/entity-service` and `shell/job-queue`. No `bun:sqlite`, no second stack.
+2. **User emails**: not stored on `auth_users`. Deliverable addresses live on `auth_identities.delivery_subject` for verified email (and other delivery-capable) identities. Operator setup emails keep the existing recipient-hash pattern; CMS commits keep the existing `directory-sync` author config.
+3. **`canonical_id`**: generated `user:<id-suffix>` on user creation. Operator-renameable later when a People management surface lands; field is a nullable string so rename is a column update with no migration.
+4. **OAuth clients**: migrate in the same phase as grants (Phase 3). Avoids a JSON/SQL hybrid with weak referential integrity.
+5. **Backup/restore**: no auth-specific policy. Auth DB lives under the runtime data dir and is covered by whatever already backs it up.
 
 ## Related plans
 
