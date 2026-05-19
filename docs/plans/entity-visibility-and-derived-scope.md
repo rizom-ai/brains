@@ -1,4 +1,4 @@
-# Entity visibility and derived scope
+# Entity audience and derived scope
 
 ## Status
 
@@ -14,7 +14,7 @@ Brains currently mix several concerns when deciding which entities can be read, 
 
 This makes broad requests like “generate topics from my current content” fragile. The assistant may search for notes instead of invoking derivation, while the topic plugin cannot safely whitelist more entity types without risking private-content leakage.
 
-We need a small, general abstraction for content visibility that can be shared by search, publication, derivation, remote context, and site generation.
+We need a small, general abstraction for content audience that can be shared by search, publication, derivation, remote context, and site generation.
 
 ## Goals
 
@@ -27,7 +27,7 @@ We need a small, general abstraction for content visibility that can be shared b
 ## Non-goals
 
 - Full multi-user access-control lists.
-- Per-field visibility inside a single entity body.
+- Per-field audience/access control inside a single entity body.
 - Retrofitting every entity with custom permission logic in the first pass.
 - Automatically making public derived entities from restricted sources.
 
@@ -64,7 +64,38 @@ Do not require every existing entity to physically carry this field. Raw frontma
 - audience is a cross-cutting entity concern (like status and timestamps), not type-specific metadata;
 - existing apps automigrate via drizzle (`shell/entity-service/src/migrate.ts` → `shell/entity-service/drizzle/`); adding the column with `DEFAULT 'public' NOT NULL` backfills existing rows on next startup, with no content rewrite required.
 
+Use a DB-level constraint if supported by the existing migration pattern:
+
+```sql
+audience TEXT NOT NULL DEFAULT 'public' CHECK (audience IN ('public', 'shared', 'private'))
+```
+
+If the migration tooling makes a check constraint awkward, enforce the same enum strictly at all mutation/import boundaries.
+
 On-disk markdown stays untouched unless an author writes `audience:` in frontmatter; the adapter normalizes missing audience to `public` on read.
+
+### Source of truth
+
+The runtime/source-of-truth value is the `entities.audience` column.
+
+Frontmatter `audience:` is the import/export authoring representation. It should be parsed into the top-level column and removed from metadata before persistence. Runtime code should not read `metadata.audience` as policy state.
+
+Hydrated runtime entities should expose a normalized top-level field:
+
+```ts
+interface BaseEntity {
+  id: string;
+  entityType: string;
+  content: string;
+  audience: ContentAudience; // normalized, defaults to "public"
+  metadata: Record<string, unknown>;
+  created: string;
+  updated: string;
+  contentHash: string;
+}
+```
+
+Raw create/import inputs may omit audience; entity-service persistence should normalize it to `public`.
 
 #### Frontmatter round-trip
 
@@ -75,6 +106,29 @@ The serialization rule is **omit-if-default**:
 - a `public`-audience entity must round-trip with no `audience` line added.
 
 This matters especially for base notes, which must remain valid with **no frontmatter at all**. The adapter must not introduce a frontmatter block (or an `audience:` line within an existing block) on a `public` entity, even after a regeneration pass. Authors mark restriction explicitly; the absence of any marker is the signal for `public`.
+
+#### Import/export and update semantics
+
+Directory-sync/import should:
+
+- parse `audience:` from frontmatter into the top-level DB column;
+- normalize missing `audience` to `public`;
+- reject invalid audience values;
+- avoid storing `audience` inside metadata JSON.
+
+Directory-sync/export should:
+
+- omit `audience:` for public entities;
+- write `audience: shared` or `audience: private` for restricted entities;
+- continue allowing base notes with no frontmatter when no other frontmatter is needed.
+
+System update flows should treat `audience` like a top-level entity field, not metadata. A request such as:
+
+```json
+{ "fields": { "audience": "shared" } }
+```
+
+updates the `entities.audience` column. It must not write `metadata.audience`.
 
 ### Audience levels
 
@@ -104,7 +158,7 @@ This keeps content authoring language separate from permission-system language.
 
 ## Keep status separate
 
-Do not encode visibility in `status`.
+Do not encode audience in `status`.
 
 Examples:
 
@@ -202,7 +256,7 @@ Relay is one likely example: shared extraction would let it extract useful share
 
 ## Entity-type inclusion
 
-Visibility lets us broaden extraction without treating notes/base as inherently special.
+Audience lets us broaden extraction without treating notes/base as inherently special.
 
 Do not literally extract from every registered entity type. Instead define “extractable content entity types” and include those broadly:
 
@@ -251,13 +305,14 @@ Remote agent context should default to public-only unless the calling workflow e
 
 1. Add the audience type and schema/helper in a shared package.
 2. Add the `audience` column to the `entities` table with `DEFAULT 'public' NOT NULL`; generate the drizzle migration so existing apps automigrate on next startup.
-3. Update markdown adapters to preserve/read/write optional `audience` where available.
-4. Normalize missing audience to effective `public` during policy checks.
-5. Add search/index filters by caller scope (filter in the SQL query, not after results return).
-6. Add derivation source filtering by target audience.
-7. Add topic extraction audience config with default `public`.
-8. Broaden topic source entity configuration to extractable content types.
-9. Let each brain app set its own topic `extractionAudience`; configure Relay with `"shared"` if product behavior confirms that shared-space topics should not be public.
+3. Update `BaseEntity`, `baseEntitySchema`, DB row mapping, entity reconstruction, and create/update/upsert paths to carry normalized top-level `audience`.
+4. Update markdown adapters/import/export to preserve/read/write optional `audience` where available, with omit-if-default serialization.
+5. Normalize missing audience to effective `public` during policy checks.
+6. Add search/index filters by caller scope (filter in the SQL query, not after results return).
+7. Add derivation source filtering by target audience.
+8. Add topic extraction audience config with default `public`.
+9. Broaden topic source entity configuration to extractable content types.
+10. Let each brain app set its own topic `extractionAudience`; configure Relay with `"shared"` if product behavior confirms that shared-space topics should not be public.
 
 No bulk content migration is required for existing public content. Operators can mark specific entities as restricted by adding frontmatter:
 
@@ -276,7 +331,11 @@ audience: shared
 Add tests for:
 
 - policy helpers treating missing audience as `public`;
-- markdown round-tripping optional audience;
+- base entity schema and DB row mapping exposing normalized top-level `audience`;
+- mutation/import rejecting invalid audience values;
+- `system_update({ fields: { audience } })` updating the top-level column, not metadata;
+- markdown round-tripping optional audience with omit-if-default behavior;
+- directory import/export keeping public base notes frontmatter-free when possible;
 - public search excluding shared/private entities;
 - trusted search including public+shared but excluding private;
 - anchor search including all levels;
@@ -294,6 +353,8 @@ Resolved for v1:
 - Do not merge derived topics across audience boundaries in v1; public, shared, and private topics remain distinct if their audiences differ.
 - Do not add a separate `shareableWithAgents` policy in v1; shared audience is enough.
 
-Remaining question:
+No remaining v1 open questions.
 
-- Should we support `private: true` as a backward-compatible authoring alias for `audience: private`, or avoid aliases until there is clear demand?
+Explicitly not included in v1:
+
+- Do not support `private: true` as an alias for `audience: private`. `audience` is the canonical authoring field.
