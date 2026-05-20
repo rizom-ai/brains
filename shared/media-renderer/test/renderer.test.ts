@@ -147,6 +147,55 @@ describe("media renderer", () => {
     expect(browser.closeCalls).toBe(1);
   });
 
+  it("times out when browser launch hangs", async () => {
+    let launchCalled = false;
+    const slowFactory: BrowserFactory = {
+      async launch(): Promise<MediaBrowser> {
+        launchCalled = true;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return new FakeBrowser(new FakePage());
+      },
+    };
+
+    try {
+      await renderPdf("http://localhost/_media/carousel/hang", {
+        browserFactory: slowFactory,
+        timeoutMs: 10,
+      });
+      throw new Error("Expected renderPdf to reject");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "render-timeout" });
+    }
+
+    expect(launchCalled).toBe(true);
+  });
+
+  it("kills a late-arriving browser when launch resolves after timeout", async () => {
+    let createdBrowser: FakeBrowser | undefined;
+    const slowFactory: BrowserFactory = {
+      async launch(): Promise<MediaBrowser> {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        createdBrowser = new FakeBrowser(new FakePage());
+        return createdBrowser;
+      },
+    };
+
+    try {
+      await renderPdf("http://localhost/_media/carousel/late", {
+        browserFactory: slowFactory,
+        timeoutMs: 10,
+      });
+      throw new Error("Expected renderPdf to reject");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "render-timeout" });
+    }
+
+    // Wait long enough for the late launch to resolve and the cleanup .then() to run.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(createdBrowser).toBeDefined();
+    expect(createdBrowser?.closeCalls).toBe(1);
+  });
+
   it("rejects invalid PDF output", async () => {
     const page = new FakePage(pngBuffer, Buffer.from("not a pdf"));
     const browser = new FakeBrowser(page);

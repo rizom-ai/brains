@@ -213,28 +213,26 @@ async function withBrowser<T>(
   timeoutMs: number,
   operation: (browser: MediaBrowser) => Promise<T>,
 ): Promise<T> {
-  const browser = await browserFactory.launch();
-  const browserProcess = browser.process?.() ?? null;
-  let closed = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let aborted = false;
+  // Ref object so the timeout handler can see late-arriving browsers without
+  // TS narrowing the closed-over `let` to `null`.
+  const slot: { browser: MediaBrowser | null } = { browser: null };
 
-  const closeOnce = async (): Promise<void> => {
-    if (closed) return;
-    closed = true;
-    try {
-      await browser.close();
-    } catch {
+  const killBrowser = (b: MediaBrowser): void => {
+    void b.close().catch(() => {
       try {
-        browserProcess?.kill("SIGKILL");
+        b.process?.()?.kill("SIGKILL");
       } catch {
         // Process may already be dead; nothing more we can do.
       }
-    }
+    });
   };
 
-  let timeout: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeout = setTimeout(() => {
-      void closeOnce();
+      aborted = true;
+      if (slot.browser) killBrowser(slot.browser);
       reject(
         new MediaRenderError(
           `Media render timed out after ${timeoutMs}ms`,
@@ -244,11 +242,34 @@ async function withBrowser<T>(
     }, timeoutMs);
   });
 
+  // Cover the launch with the same timeout. If launch resolves after the
+  // timeout already fired (slow Chromium spawn), the .then() still records
+  // the browser so we can kill the latecomer instead of leaking it.
+  const launchPromise = browserFactory.launch().then((b) => {
+    slot.browser = b;
+    if (aborted) killBrowser(b);
+    return b;
+  });
+
   try {
-    return await Promise.race([operation(browser), timeoutPromise]);
+    const browser = await Promise.race([launchPromise, timeoutPromise]);
+    try {
+      return await Promise.race([operation(browser), timeoutPromise]);
+    } finally {
+      if (!aborted) {
+        try {
+          await browser.close();
+        } catch {
+          try {
+            browser.process?.()?.kill("SIGKILL");
+          } catch {
+            // Process may already be dead; nothing more we can do.
+          }
+        }
+      }
+    }
   } finally {
     if (timeout) clearTimeout(timeout);
-    await closeOnce();
   }
 }
 
