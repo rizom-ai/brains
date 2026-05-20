@@ -59,24 +59,40 @@ describe("deck carousel template", () => {
     expect(html).toContain("deck-carousel-slide is-cover");
   });
 
-  it("renders the brand wordmark from brandLabel", () => {
+  it("splits a brandLabel containing a dot into masthead parts", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,
       format: "pdf",
       content: {
         title: "Sample Deck",
-        brandLabel: "Acme Corp",
+        brandLabel: "rizom.ai",
         slides: [{ markdown: "# Hi" }],
       },
       siteConfig: { title: "Sample Deck", themeMode: "dark" },
     });
 
-    expect(html).toContain('class="deck-carousel-wordmark"');
-    expect(html).toContain("Acme Corp");
-    const wordmarkSection = html.match(
-      /<span class="deck-carousel-wordmark">([^<]+)<\/span>/,
-    );
-    expect(wordmarkSection?.[1]).toBe("Acme Corp");
+    expect(html).toContain('aria-label="rizom.ai"');
+    expect(html).toContain('<span class="wm-primary">rizom</span>');
+    expect(html).toContain('<span class="wm-dot">.</span>');
+    expect(html).toContain('<span class="wm-secondary">ai</span>');
+  });
+
+  it("splits a two-word brand into first.last lowercased", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Sample Deck",
+        brandLabel: "Alex Chen",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Sample Deck", themeMode: "dark" },
+    });
+
+    expect(html).toContain('aria-label="Alex Chen"');
+    expect(html).toContain('<span class="wm-primary">alex</span>');
+    expect(html).toContain('<span class="wm-dot">.</span>');
+    expect(html).toContain('<span class="wm-secondary">chen</span>');
   });
 
   it("falls back to deck title when brandLabel is not provided", () => {
@@ -90,10 +106,43 @@ describe("deck carousel template", () => {
       siteConfig: { title: "Deck Without Brand", themeMode: "dark" },
     });
 
-    const wordmarkSection = html.match(
-      /<span class="deck-carousel-wordmark">([^<]+)<\/span>/,
+    expect(html).toContain('aria-label="Deck Without Brand"');
+    expect(html).toContain('<span class="wm-primary">deck</span>');
+    expect(html).toContain('<span class="wm-secondary">without brand</span>');
+  });
+
+  it("renders the deck title in the footer meta by default", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Distributed Systems",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Distributed Systems", themeMode: "dark" },
+    });
+
+    expect(html).toContain(
+      'class="deck-carousel-footer-meta">Distributed Systems',
     );
-    expect(wordmarkSection?.[1]).toBe("Deck Without Brand");
+  });
+
+  it("overrides the footer meta with eyebrow when present", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Sample Deck",
+        eyebrow: "React Summit 2026",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Sample Deck", themeMode: "dark" },
+    });
+
+    expect(html).toContain(
+      'class="deck-carousel-footer-meta">React Summit 2026',
+    );
+    expect(html).not.toContain('class="deck-carousel-footer-meta">Sample Deck');
   });
 
   it("ships both dark and light palettes scoped under [data-theme]", () => {

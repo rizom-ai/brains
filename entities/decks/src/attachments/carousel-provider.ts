@@ -124,6 +124,10 @@ function buildCarouselContent(
     typeof frontmatter["title"] === "string"
       ? frontmatter["title"]
       : deck.metadata.title;
+  const eyebrow =
+    typeof frontmatter["event"] === "string" && frontmatter["event"].length > 0
+      ? frontmatter["event"]
+      : undefined;
   const slides = content
     .split(/^---$/gm)
     .map((slide) => slide.trim())
@@ -134,6 +138,7 @@ function buildCarouselContent(
     title,
     slides,
     ...(options.brandLabel ? { brandLabel: options.brandLabel } : {}),
+    ...(eyebrow ? { eyebrow } : {}),
   };
 }
 

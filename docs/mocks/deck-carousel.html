@@ -177,26 +177,30 @@
       .deck-carousel-header {
         display: flex;
         align-items: center;
-        gap: 14px;
       }
+      /* Editorial masthead pattern, matching the rizom.ai wordmark:
+         <primary><accent dot><italic muted secondary>. */
       .deck-carousel-wordmark {
+        display: inline-flex;
+        align-items: baseline;
         font-family: var(--font-display);
         font-weight: 500;
-        font-size: 38px;
-        letter-spacing: -0.015em;
+        font-size: 48px;
+        letter-spacing: -0.02em;
+        /* opsz 24 keeps Fraunces tight and editorial at display sizes. */
+        font-variation-settings: "opsz" 24;
+        line-height: 1;
+      }
+      .deck-carousel-wordmark .wm-primary {
         color: var(--carousel-heading);
       }
-      .deck-carousel-wordmark::before {
-        content: "";
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        margin-right: 18px;
-        border-radius: 4px;
-        background: var(--carousel-accent);
-        vertical-align: middle;
-        position: relative;
-        top: -4px;
+      .deck-carousel-wordmark .wm-dot {
+        color: var(--carousel-accent);
+      }
+      .deck-carousel-wordmark .wm-secondary {
+        color: var(--carousel-ink-muted);
+        font-style: italic;
+        font-weight: 400;
       }
 
       .deck-carousel-body {
@@ -238,6 +242,7 @@
       .deck-carousel-content p,
       .deck-carousel-content li {
         color: var(--carousel-ink);
+        font-weight: 400;
         font-size: 32px;
         line-height: var(--carousel-body-line-height);
       }
@@ -341,7 +346,9 @@
       <!-- Cover -->
       <article class="deck-carousel-slide is-cover">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -360,7 +367,9 @@
       <!-- Body with prose + emphasis -->
       <article class="deck-carousel-slide">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -384,7 +393,9 @@
       <!-- Body with bullet list -->
       <article class="deck-carousel-slide">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -408,7 +419,9 @@
       <!-- Body with numbered list -->
       <article class="deck-carousel-slide">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -432,7 +445,9 @@
       <!-- Body with strong emphasis -->
       <article class="deck-carousel-slide">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -456,7 +471,9 @@
       <!-- Closer / CTA -->
       <article class="deck-carousel-slide">
         <header class="deck-carousel-header">
-          <span class="deck-carousel-wordmark">Alex Chen</span>
+          <span class="deck-carousel-wordmark">
+            <span class="wm-primary">alex</span><span class="wm-dot">.</span><span class="wm-secondary">chen</span>
+          </span>
         </header>
         <div class="deck-carousel-body">
           <div class="deck-carousel-content">
@@ -476,7 +493,7 @@
 
     <script>
       // Render the same slide set into both rows, wrapped in a per-frame
-      // theme container so light and dark can sit side by side on one page.
+      // theme container so light and dark sit side by side on one page.
       const template = document.getElementById("slides");
       const slides = Array.from(template.content.children).map((s) =>
         s.cloneNode(true),

@@ -141,11 +141,11 @@ describe("Deck carousel attachment provider", () => {
       attachmentType: "carousel",
     });
 
-    // Harness mock returns name: "Test Owner" — should land in the wordmark.
-    const wordmark = renderedHtml.match(
-      /<span class="deck-carousel-wordmark">([^<]+)<\/span>/,
-    );
-    expect(wordmark?.[1]).toBe("Test Owner");
+    // Harness mock returns name: "Test Owner" — split into "test" + "owner"
+    // by the template's masthead formatter, with the full name on aria-label.
+    expect(renderedHtml).toContain('aria-label="Test Owner"');
+    expect(renderedHtml).toContain('<span class="wm-primary">test</span>');
+    expect(renderedHtml).toContain('<span class="wm-secondary">owner</span>');
   });
 
   it("reads themeMode from the site-info entity by default", async () => {

@@ -13,6 +13,7 @@ export const deckCarouselSlideSchema = z.object({
 export const deckCarouselTemplateSchema = z.object({
   title: z.string().min(1),
   brandLabel: z.string().min(1).optional(),
+  eyebrow: z.string().min(1).optional(),
   slides: z.array(deckCarouselSlideSchema).min(1),
 });
 
@@ -29,9 +30,37 @@ export const deckCarouselTemplate: MediaPageTemplate = {
   },
 };
 
+interface WordmarkParts {
+  primary: string;
+  secondary: string | undefined;
+}
+
+// Split a brand label into the editorial masthead pattern `<primary>.<secondary>`
+// matching the rizom.ai wordmark. Prefers an existing dot ("rizom.ai"), falls back
+// to first-space ("Alex Chen" → "alex.chen"), or single-part when neither.
+function splitWordmark(label: string): WordmarkParts {
+  const trimmed = label.trim();
+  const dot = trimmed.lastIndexOf(".");
+  if (dot > 0 && dot < trimmed.length - 1) {
+    return {
+      primary: trimmed.slice(0, dot).toLowerCase(),
+      secondary: trimmed.slice(dot + 1).toLowerCase(),
+    };
+  }
+  const space = trimmed.indexOf(" ");
+  if (space > 0) {
+    return {
+      primary: trimmed.slice(0, space).toLowerCase(),
+      secondary: trimmed.slice(space + 1).toLowerCase(),
+    };
+  }
+  return { primary: trimmed.toLowerCase(), secondary: undefined };
+}
+
 function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
-  const { title, brandLabel, slides } = deckCarouselTemplateSchema.parse(props);
-  const wordmark = brandLabel ?? title;
+  const { title, brandLabel, eyebrow, slides } =
+    deckCarouselTemplateSchema.parse(props);
+  const wordmark = splitWordmark(brandLabel ?? title);
   const total = slides.length;
   const totalLabel = String(total).padStart(2, "0");
   const toHtml = useMarkdownToHtml();
@@ -41,6 +70,11 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
       <style
         dangerouslySetInnerHTML={{
           __html: `
+            /* Fonts ship inline so the PDF renderer doesn't fall through to
+               heavy Linux system-ui. The site theme can override via
+               --font-sans / --font-heading / --font-mono. */
+            @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap");
+
             @page {
               size: 1080px 1350px;
               margin: 0;
@@ -54,28 +88,35 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
 
             .deck-carousel-pdf {
               color: var(--carousel-ink);
-              font-family: var(--font-sans, -apple-system, "Helvetica Neue", system-ui, sans-serif);
+              font-family: var(--font-sans, "IBM Plex Sans", -apple-system, system-ui, sans-serif);
+              font-weight: 400;
               background: var(--carousel-surface);
             }
 
             [data-theme="dark"] .deck-carousel-pdf {
               --carousel-surface: var(--color-bg, #0c0c10);
+              --carousel-surface-deep: #050507;
+              --carousel-surface-glow: #1a1530;
               --carousel-ink: var(--color-text, #f0ede5);
-              --carousel-heading: var(--color-heading, var(--carousel-ink));
-              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 45%, transparent);
+              --carousel-heading: var(--color-heading, #f7f3e6);
+              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 50%, transparent);
               --carousel-divider: color-mix(in srgb, var(--carousel-ink) 12%, transparent);
               --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
-              --carousel-body-line-height: 1.32;
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 22%, transparent);
+              --carousel-body-line-height: 1.3;
             }
 
             [data-theme="light"] .deck-carousel-pdf {
               --carousel-surface: var(--color-bg, #f4ede0);
+              --carousel-surface-deep: #ebe2d0;
+              --carousel-surface-glow: #fbf6ea;
               --carousel-ink: var(--color-text, #15171a);
-              --carousel-heading: var(--color-heading, var(--carousel-ink));
+              --carousel-heading: var(--color-heading, #0a0c10);
               --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 55%, transparent);
               --carousel-divider: color-mix(in srgb, var(--carousel-ink) 18%, transparent);
-              --carousel-accent: var(--color-accent, var(--color-brand, #d36420));
-              --carousel-body-line-height: 1.28;
+              --carousel-accent: var(--color-accent, var(--color-brand, #c5500e));
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 14%, transparent);
+              --carousel-body-line-height: 1.26;
             }
 
             .deck-carousel-slide {
@@ -88,7 +129,17 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               display: grid;
               grid-template-rows: auto 1fr auto;
               padding: 88px 108px;
-              background: var(--carousel-surface);
+              background:
+                radial-gradient(circle at 100% 0%, var(--carousel-accent-soft), transparent 42%),
+                radial-gradient(circle at 0% 100%, var(--carousel-surface-glow), transparent 55%),
+                linear-gradient(165deg, var(--carousel-surface) 0%, var(--carousel-surface-deep) 100%);
+            }
+
+            .deck-carousel-slide.is-cover {
+              background:
+                radial-gradient(circle at 12% 14%, var(--carousel-accent-soft), transparent 48%),
+                radial-gradient(circle at 92% 92%, var(--carousel-surface-glow), transparent 60%),
+                linear-gradient(155deg, var(--carousel-surface-deep) 0%, var(--carousel-surface) 60%, var(--carousel-surface-deep) 100%);
             }
 
             .deck-carousel-slide:last-child {
@@ -102,19 +153,32 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             }
 
             .deck-carousel-wordmark {
-              font-family: var(--font-heading, var(--font-sans, system-ui, sans-serif));
-              font-weight: 600;
-              font-size: 44px;
+              display: inline-flex;
+              align-items: baseline;
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 500;
+              font-size: 48px;
               letter-spacing: -0.02em;
+              line-height: 1;
+              font-variation-settings: "opsz" 24;
+            }
+            .deck-carousel-wordmark .wm-primary {
               color: var(--carousel-heading);
+            }
+            .deck-carousel-wordmark .wm-dot {
+              color: var(--carousel-accent);
+            }
+            .deck-carousel-wordmark .wm-secondary {
+              color: var(--carousel-ink-muted);
+              font-style: italic;
+              font-weight: 400;
             }
 
             .deck-carousel-body {
               display: flex;
               align-items: center;
-              padding: 64px 0;
+              padding: 56px 0;
             }
-
             .deck-carousel-content {
               max-width: 100%;
             }
@@ -123,108 +187,112 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             .deck-carousel-content h2,
             .deck-carousel-content h3 {
               color: var(--carousel-heading);
-              font-family: var(--font-heading, var(--font-sans, system-ui, sans-serif));
-              font-weight: 700;
-              letter-spacing: -0.035em;
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 600;
+              letter-spacing: -0.025em;
               text-wrap: balance;
               margin: 0 0 36px;
             }
-
             .deck-carousel-content h1,
             .deck-carousel-content h2 {
-              font-size: 76px;
-              line-height: 1.0;
+              font-size: 82px;
+              line-height: 1;
             }
-
             .deck-carousel-content h3 {
-              font-size: 50px;
-              line-height: 1.05;
+              font-size: 54px;
+              line-height: 1.06;
             }
-
             .deck-carousel-slide.is-cover .deck-carousel-content h1,
             .deck-carousel-slide.is-cover .deck-carousel-content h2 {
-              font-size: 110px;
-              line-height: 0.96;
-              letter-spacing: -0.045em;
+              font-size: 118px;
+              line-height: 0.94;
+              letter-spacing: -0.035em;
+              max-width: 880px;
             }
 
             .deck-carousel-content p,
             .deck-carousel-content li {
               color: var(--carousel-ink);
+              font-weight: 400;
               font-size: 32px;
               line-height: var(--carousel-body-line-height);
             }
-
             .deck-carousel-content p {
-              margin: 0 0 28px;
+              margin: 0 0 26px;
             }
-
             .deck-carousel-content ul,
             .deck-carousel-content ol {
               list-style: none;
-              margin: 24px 0 0;
+              margin: 28px 0 0;
               padding: 0;
             }
-
             .deck-carousel-content li {
               position: relative;
+              padding-left: 56px;
               margin: 0 0 22px;
-              padding-left: 44px;
             }
-
             .deck-carousel-content ul > li::before {
-              content: "—";
+              content: "";
               position: absolute;
               left: 0;
-              top: 0;
-              color: var(--carousel-accent);
-              font-weight: 700;
-              line-height: var(--carousel-body-line-height);
+              top: 0.62em;
+              width: 28px;
+              height: 2px;
+              background: var(--carousel-accent);
             }
-
             .deck-carousel-content ol {
-              counter-reset: deck-carousel-ol;
+              counter-reset: deck-ol;
             }
-
             .deck-carousel-content ol > li {
-              counter-increment: deck-carousel-ol;
+              counter-increment: deck-ol;
             }
-
             .deck-carousel-content ol > li::before {
-              content: counter(deck-carousel-ol, decimal-leading-zero) ".";
+              content: counter(deck-ol, decimal-leading-zero);
               position: absolute;
               left: 0;
               top: 0;
               color: var(--carousel-accent);
-              font-weight: 700;
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-weight: 500;
+              font-size: 26px;
               font-variant-numeric: tabular-nums;
               line-height: var(--carousel-body-line-height);
             }
-
             .deck-carousel-content strong {
               color: var(--carousel-heading);
-              font-weight: 700;
+              font-weight: 600;
+            }
+            .deck-carousel-content em {
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-style: italic;
+              color: var(--carousel-heading);
             }
 
             .deck-carousel-footer {
               display: flex;
               align-items: center;
-              justify-content: flex-end;
-              padding-top: 24px;
+              justify-content: space-between;
+              padding-top: 22px;
               border-top: 1px solid var(--carousel-divider);
             }
-
+            .deck-carousel-footer-meta {
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-size: 22px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--carousel-ink-muted);
+            }
             .deck-carousel-counter {
-              font-family: var(--font-heading, var(--font-sans, system-ui, sans-serif));
-              font-size: 26px;
-              letter-spacing: 0.04em;
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-size: 22px;
+              letter-spacing: 0.06em;
               color: var(--carousel-ink-muted);
               font-variant-numeric: tabular-nums;
+              margin-left: auto;
             }
-
             .deck-carousel-counter-current {
               color: var(--carousel-accent);
-              font-weight: 700;
+              font-weight: 600;
             }
           `,
         }}
@@ -235,7 +303,18 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
           key={index}
         >
           <header className="deck-carousel-header">
-            <span className="deck-carousel-wordmark">{wordmark}</span>
+            <span
+              className="deck-carousel-wordmark"
+              aria-label={brandLabel ?? title}
+            >
+              <span className="wm-primary">{wordmark.primary}</span>
+              {wordmark.secondary !== undefined && (
+                <>
+                  <span className="wm-dot">.</span>
+                  <span className="wm-secondary">{wordmark.secondary}</span>
+                </>
+              )}
+            </span>
           </header>
           <div className="deck-carousel-body">
             <div
@@ -244,6 +323,9 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             />
           </div>
           <footer className="deck-carousel-footer">
+            <span className="deck-carousel-footer-meta">
+              {eyebrow ?? title}
+            </span>
             <span
               className="deck-carousel-counter"
               aria-label={`Slide ${index + 1} of ${total}`}
