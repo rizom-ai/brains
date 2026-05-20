@@ -95,6 +95,13 @@ export function createPublishTool(
         };
       }
 
+      if (entity.visibility !== "public") {
+        return {
+          success: false,
+          error: `Cannot publish ${entityType}:${entity.id} to a public provider because visibility is ${entity.visibility}`,
+        };
+      }
+
       // Check if already published
       if (entity.metadata.status === "published") {
         return {

@@ -129,7 +129,7 @@ Plan:
 - Pass explicit scopes for public/shared contexts.
 - Decide whether service-level omission means anchor/internal-only or should default closed to public.
 
-### 8. Guard public publishing against non-public entities
+### 8. Guard public publishing against non-public entities ✅
 
 Problem: direct publishing can publish shared/restricted entities without checking visibility.
 
