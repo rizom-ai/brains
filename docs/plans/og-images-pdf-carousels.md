@@ -306,9 +306,27 @@ Extract to a new `shared/media-page-composer/` package (preferred) or fold into 
 - **No site-builder dependency**: site-builder no longer exports compatibility wrappers for media-page composition or document generation. Deck carousel providers import the shared composer directly.
 - **Public surface tests**: shared package tests lock `renderMediaTemplateHtml`, `writeMediaRenderPage`, and `startStaticRenderServer` behavior.
 
+## Open follow-ups (review findings)
+
+Issues uncovered after the carousel PDF path landed. Resolve before starting OG image work.
+
+### Correctness
+
+1. **Carousel theme fallback.** `DeckCarouselAttachmentProvider` does not pass `themeMode`, and the template inherits `--color-bg` etc. from site theme tokens. If a site's theme CSS is unconditional (no `[data-theme]` scoping) and light, the carousel renders unreadable. Fix by baking the dark palette into `.deck-carousel-pdf` directly so the carousel owns its identity instead of inheriting site tokens.
+2. **LinkedIn upload silent text-fallback.** `uploadDocument`/`uploadImage` return `null` on failure and `publish()` continues with `shareMediaCategory: "NONE"`. The carousel-resolved path has no equivalent of the explicit-`documents[]` guard in `publishExecuteHandler`. Throw on upload failure so the post is marked failed and retried.
+3. **Browser launch outside timeout.** `withBrowser`'s timeout starts after `browserFactory.launch()` resolves; a hung Chromium spawn has no cap. Wrap launch in the same race or add an explicit launch timeout.
+4. **`findDocumentByDedupKey` silent multi-match.** Returns `documents[0]` with no warning when more than one document carries the same `dedupKey`. Log at warn level so stale dedup state is debuggable.
+
+### Visual polish (after correctness)
+
+5. Progress dots in slide footer (filled accent for current, muted for others) replacing plain `1 / N`.
+6. Accent-colored bullet markers in place of default discs.
+7. Stronger cover-slide treatment (wider/repositioned accent bar; cover reads as distinct from content slides).
+8. Drop the `transform: translateY(-3%)` magic in `.deck-carousel-frame`; use proper grid alignment.
+
 ## Implementation order
 
-PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn document publishing are proven.
+PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn document publishing are proven, and once the review follow-ups above are resolved.
 
 1. Audit current view-template renderer contracts and consumers
 2. Extend `ViewTemplate` and `SiteViewTemplate` with backward-compatible `image` and `pdf` renderer slots
@@ -322,9 +340,14 @@ PDF-first ordering. OG image wiring follows once the PDF substrate and LinkedIn 
 10. [x] Extend the publish contract with document attachment data
 11. [x] Update publish preparation and social publishing to prefer explicit `documents[]`, then resolve source-derived carousel attachments while preserving `coverImageId` image behavior
 12. [x] Add LinkedIn document upload/publish support without requiring `social-post.documents[]` for generated carousels
-13. Add the `/_media/og/:templateId/:entityId` route. Build OG component PoC
-14. Generate OG PNGs into existing `image` entities via the helper; add `ogImageId` to selected entities with fallback to `coverImageId` and site default OG image
-15. Resolve `ogImageId`/fallbacks before `<Head />`, and ensure `HeadCollector` emits absolute `og:image` and `twitter:image` URLs
+13. Bake dark palette into `.deck-carousel-pdf` so the carousel owns its identity instead of inheriting site theme tokens (follow-up 1)
+14. Surface LinkedIn upload failures instead of degrading to text-only (follow-up 2)
+15. Cover Chromium launch with the render timeout (follow-up 3)
+16. Warn on `findDocumentByDedupKey` multi-match (follow-up 4)
+17. Apply carousel visual polish (follow-ups 5–8)
+18. Add the `/_media/og/:templateId/:entityId` route. Build OG component PoC
+19. Generate OG PNGs into existing `image` entities via the helper; add `ogImageId` to selected entities with fallback to `coverImageId` and site default OG image
+20. Resolve `ogImageId`/fallbacks before `<Head />`, and ensure `HeadCollector` emits absolute `og:image` and `twitter:image` URLs
 
 ## Validation
 
