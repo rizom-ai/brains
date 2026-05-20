@@ -25,12 +25,16 @@ export type RenderPdf = (
   options?: PdfRenderOptions,
 ) => Promise<Buffer>;
 
+export type GetThemeMode = () => Promise<"light" | "dark">;
+
 export interface DeckCarouselAttachmentProviderDeps {
   renderPdf?: RenderPdf;
+  getThemeMode?: GetThemeMode;
 }
 
 export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   private readonly renderPdf: RenderPdf;
+  private readonly getThemeMode: GetThemeMode;
 
   constructor(
     private readonly context: Pick<
@@ -40,6 +44,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
+    this.getThemeMode = deps.getThemeMode ?? (async () => "dark");
   }
 
   async resolve(request: {
@@ -67,6 +72,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
         `Refusing to render carousel with ${carouselContent.slides.length} slides; maxSlides=${DEFAULT_MAX_SLIDES}`,
       );
     }
+    const themeMode = await this.getThemeMode();
     const outputDir = await mkdtemp(join(tmpdir(), "brain-deck-carousel-"));
 
     try {
@@ -76,7 +82,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
         template: deckCarouselTemplate,
         format: "pdf",
         content: carouselContent,
-        siteConfig: { title: carouselContent.title },
+        siteConfig: { title: carouselContent.title, themeMode },
         themeCSS: this.context.themeCSS,
       });
 

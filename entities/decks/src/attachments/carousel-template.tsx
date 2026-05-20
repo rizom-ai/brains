@@ -48,19 +48,44 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             body {
               margin: 0;
               padding: 0;
-              background: var(--color-bg, #0b0b0f);
             }
 
             .deck-carousel-pdf {
+              color: var(--carousel-ink);
+              font-family: var(--font-sans, system-ui, sans-serif);
+              background: var(--carousel-surface);
+            }
+
+            [data-theme="dark"] .deck-carousel-pdf {
               --carousel-surface: var(--color-bg, #0b0b0f);
               --carousel-surface-strong: var(--color-bg-subtle, #14112b);
               --carousel-ink: var(--color-text, #f5f5f5);
               --carousel-heading: var(--color-heading, #ffffff);
               --carousel-muted: var(--color-text-muted, #a3a3a3);
               --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
-              color: var(--carousel-ink);
-              font-family: var(--font-sans, system-ui, sans-serif);
-              background: var(--carousel-surface);
+              --carousel-grid-ink: var(--carousel-ink);
+              --carousel-grid-opacity: 0.22;
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 16%, transparent);
+              --carousel-bullet-shadow: 0 0 18px color-mix(in srgb, var(--carousel-accent) 50%, transparent);
+              --carousel-accent-shadow: 0 0 42px color-mix(in srgb, var(--carousel-accent) 45%, transparent);
+              --carousel-dot-shadow: 0 0 14px color-mix(in srgb, var(--carousel-accent) 55%, transparent);
+              --carousel-dot-rest: color-mix(in srgb, var(--carousel-ink) 22%, transparent);
+            }
+
+            [data-theme="light"] .deck-carousel-pdf {
+              --carousel-surface: var(--color-bg, #faf7f2);
+              --carousel-surface-strong: var(--color-bg-subtle, #ffffff);
+              --carousel-ink: var(--color-text, #1c1d22);
+              --carousel-heading: var(--color-heading, #0b0b0f);
+              --carousel-muted: var(--color-text-muted, #5b5f66);
+              --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
+              --carousel-grid-ink: var(--carousel-heading);
+              --carousel-grid-opacity: 0.14;
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 18%, transparent);
+              --carousel-bullet-shadow: none;
+              --carousel-accent-shadow: 0 0 26px color-mix(in srgb, var(--carousel-accent) 28%, transparent);
+              --carousel-dot-shadow: none;
+              --carousel-dot-rest: color-mix(in srgb, var(--carousel-ink) 28%, transparent);
             }
 
             .deck-carousel-slide {
@@ -92,11 +117,11 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               position: absolute;
               inset: 0;
               background-image:
-                linear-gradient(90deg, color-mix(in srgb, var(--carousel-ink) 7%, transparent) 1px, transparent 1px),
-                linear-gradient(180deg, color-mix(in srgb, var(--carousel-ink) 7%, transparent) 1px, transparent 1px);
+                linear-gradient(90deg, color-mix(in srgb, var(--carousel-grid-ink) 7%, transparent) 1px, transparent 1px),
+                linear-gradient(180deg, color-mix(in srgb, var(--carousel-grid-ink) 7%, transparent) 1px, transparent 1px);
               background-size: 72px 72px;
               mask-image: linear-gradient(135deg, transparent 0%, black 18%, transparent 58%);
-              opacity: 0.22;
+              opacity: var(--carousel-grid-opacity);
               pointer-events: none;
             }
 
@@ -117,7 +142,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               margin: 0 0 48px;
               border-radius: 999px;
               background: var(--carousel-accent);
-              box-shadow: 0 0 42px color-mix(in srgb, var(--carousel-accent) 45%, transparent);
+              box-shadow: var(--carousel-accent-shadow);
             }
 
             .deck-carousel-slide.is-cover .deck-carousel-accent {
@@ -187,7 +212,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               height: 16px;
               border-radius: 4px;
               background: var(--carousel-accent);
-              box-shadow: 0 0 18px color-mix(in srgb, var(--carousel-accent) 50%, transparent);
+              box-shadow: var(--carousel-bullet-shadow);
             }
 
             .deck-carousel-content ol {
@@ -222,7 +247,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               justify-content: space-between;
               gap: 48px;
               padding-top: 28px;
-              border-top: 1px solid color-mix(in srgb, var(--carousel-ink) 16%, transparent);
+              border-top: 1px solid var(--carousel-divider);
               color: var(--carousel-muted);
               font-size: 23px;
               line-height: 1.3;
@@ -247,12 +272,12 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               width: 10px;
               height: 10px;
               border-radius: 999px;
-              background: color-mix(in srgb, var(--carousel-ink) 22%, transparent);
+              background: var(--carousel-dot-rest);
             }
 
             .deck-carousel-dot.is-active {
               background: var(--carousel-accent);
-              box-shadow: 0 0 14px color-mix(in srgb, var(--carousel-accent) 55%, transparent);
+              box-shadow: var(--carousel-dot-shadow);
             }
           `,
         }}

@@ -37,6 +37,7 @@
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/media-tools": "workspace:*",
     "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",

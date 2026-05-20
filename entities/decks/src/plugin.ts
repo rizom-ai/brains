@@ -7,6 +7,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { fetchSiteInfo } from "@brains/site-info";
 import { getErrorMessage, z } from "@brains/utils";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
@@ -158,10 +159,23 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   private registerCarouselAttachmentProvider(
     context: EntityPluginContext,
   ): void {
+    const deps: DecksPluginDeps = {
+      ...this.deps,
+      getThemeMode:
+        this.deps.getThemeMode ??
+        (async () => {
+          try {
+            const info = await fetchSiteInfo(context.entityService);
+            return info.themeMode ?? "dark";
+          } catch {
+            return "dark";
+          }
+        }),
+    };
     this.unregisterCarouselAttachmentProvider = context.attachments.register(
       "deck",
       DECK_CAROUSEL_ATTACHMENT_TYPE,
-      new DeckCarouselAttachmentProvider(context, this.deps),
+      new DeckCarouselAttachmentProvider(context, deps),
     );
   }
 

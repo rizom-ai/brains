@@ -148,6 +148,103 @@ describe("Deck carousel attachment provider", () => {
     expect(wordmark?.[1]).toBe("Test Owner");
   });
 
+  it("reads themeMode from the site-info entity by default", async () => {
+    const harness = createPluginHarness<DecksPlugin>();
+
+    let renderedHtml = "";
+    await harness.installPlugin(
+      new DecksPlugin({
+        renderPdf: async (url: string): Promise<Buffer> => {
+          renderedHtml = await (await fetch(url)).text();
+          return Buffer.from("%PDF-site-info");
+        },
+      }),
+    );
+
+    await harness.getEntityService().createEntity({ entity: sampleDeck });
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "site-info",
+        entityType: "site-info",
+        content: `---
+title: Test Site
+description: Test
+themeMode: light
+---`,
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T00:00:00Z",
+        metadata: {},
+      },
+    });
+
+    await harness.getEntityContext("test").attachments.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expect(renderedHtml).toContain('data-theme="light"');
+  });
+
+  it("passes themeMode from getThemeMode dep through to the rendered page", async () => {
+    const harness = createPluginHarness<DecksPlugin>();
+    await harness.installPlugin(new DecksPlugin());
+    await harness.getEntityService().createEntity({ entity: sampleDeck });
+
+    let renderedHtml = "";
+    const provider = new DeckCarouselAttachmentProvider(
+      {
+        entityService: harness.getEntityService(),
+        themeCSS: "",
+        identity: harness.getEntityContext("test").identity,
+      },
+      {
+        renderPdf: async (url: string): Promise<Buffer> => {
+          renderedHtml = await (await fetch(url)).text();
+          return Buffer.from("%PDF-light");
+        },
+        getThemeMode: async () => "light",
+      },
+    );
+
+    await provider.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expect(renderedHtml).toContain('data-theme="light"');
+  });
+
+  it("defaults to dark mode when getThemeMode is not provided", async () => {
+    const harness = createPluginHarness<DecksPlugin>();
+    await harness.installPlugin(new DecksPlugin());
+    await harness.getEntityService().createEntity({ entity: sampleDeck });
+
+    let renderedHtml = "";
+    const provider = new DeckCarouselAttachmentProvider(
+      {
+        entityService: harness.getEntityService(),
+        themeCSS: "",
+        identity: harness.getEntityContext("test").identity,
+      },
+      {
+        renderPdf: async (url: string): Promise<Buffer> => {
+          renderedHtml = await (await fetch(url)).text();
+          return Buffer.from("%PDF-dark");
+        },
+      },
+    );
+
+    await provider.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expect(renderedHtml).toContain('data-theme="dark"');
+  });
+
   it("resolves a deck into a PDF carousel attachment", async () => {
     const renderPdf = mock(async (url: string) => {
       expect(url).toContain("/_media/carousel/deck-1/");

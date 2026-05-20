@@ -95,4 +95,33 @@ describe("deck carousel template", () => {
     );
     expect(wordmarkSection?.[1]).toBe("Deck Without Brand");
   });
+
+  it("ships both dark and light palettes scoped under [data-theme]", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Modes",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Modes", themeMode: "dark" },
+    });
+
+    expect(html).toContain('[data-theme="dark"] .deck-carousel-pdf');
+    expect(html).toContain('[data-theme="light"] .deck-carousel-pdf');
+  });
+
+  it('emits data-theme="light" on <html> when siteConfig.themeMode is light', () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Light",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Light", themeMode: "light" },
+    });
+
+    expect(html).toContain('data-theme="light"');
+  });
 });
