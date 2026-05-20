@@ -148,14 +148,16 @@ export class LinkedInClient implements PublishProvider {
 
     let mediaAsset: LinkedInShareMediaAsset | null = null;
     if (documentAttachment) {
+      // Document uploads must succeed: the document IS the post (PDF carousel),
+      // so a silent text-only fallback would publish something the caller never
+      // asked for. uploadImage stays best-effort because cover images are
+      // decoration for an otherwise-meaningful text post.
       const assetUrn = await this.uploadDocument(author, documentAttachment);
-      if (assetUrn) {
-        mediaAsset = {
-          category: "DOCUMENT",
-          urn: assetUrn,
-          title: documentAttachment.filename,
-        };
-      }
+      mediaAsset = {
+        category: "DOCUMENT",
+        urn: assetUrn,
+        title: documentAttachment.filename,
+      };
     } else if (imageData) {
       const assetUrn = await this.uploadImage(author, imageData);
       if (assetUrn) {
@@ -296,77 +298,69 @@ export class LinkedInClient implements PublishProvider {
 
   /**
    * Upload a PDF document to LinkedIn and return the asset URN.
-   * Returns null if upload fails (allows graceful fallback to text-only).
+   * Throws on any failure — the document is the post, so silent fallback
+   * would mislead the caller about what was published.
    */
   private async uploadDocument(
     author: string,
     documentData: PublishMediaData,
-  ): Promise<string | null> {
-    try {
-      const registerResponse = await this.fetch(
-        `${this.apiBaseUrl}/assets?action=registerUpload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.config.accessToken}`,
-            "Content-Type": "application/json",
-            "X-Restli-Protocol-Version": "2.0.0",
-          },
-          body: JSON.stringify({
-            registerUploadRequest: {
-              recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
-              owner: author,
-              serviceRelationships: [
-                {
-                  relationshipType: "OWNER",
-                  identifier: "urn:li:userGeneratedContent",
-                },
-              ],
-            },
-          }),
-        },
-      );
-
-      if (!registerResponse.ok) {
-        const errorText = summarizeApiError(await registerResponse.text());
-        this.logger.warn("LinkedIn document upload registration failed", {
-          status: registerResponse.status,
-          error: errorText,
-        });
-        return null;
-      }
-
-      const uploadInfo = parseUploadInfo(await registerResponse.json());
-      if (!uploadInfo) {
-        this.logger.warn("LinkedIn document upload registration was malformed");
-        return null;
-      }
-
-      const uploadResponse = await this.fetch(uploadInfo.uploadUrl, {
-        method: "PUT",
+  ): Promise<string> {
+    const registerResponse = await this.fetch(
+      `${this.apiBaseUrl}/assets?action=registerUpload`,
+      {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${this.config.accessToken}`,
-          "Content-Type": documentData.mimeType,
+          "Content-Type": "application/json",
+          "X-Restli-Protocol-Version": "2.0.0",
         },
-        body: new Uint8Array(documentData.data),
-      });
+        body: JSON.stringify({
+          registerUploadRequest: {
+            recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+            owner: author,
+            serviceRelationships: [
+              {
+                relationshipType: "OWNER",
+                identifier: "urn:li:userGeneratedContent",
+              },
+            ],
+          },
+        }),
+      },
+    );
 
-      if (!uploadResponse.ok) {
-        this.logger.warn("LinkedIn document binary upload failed", {
-          status: uploadResponse.status,
-        });
-        return null;
-      }
-
-      this.logger.info("LinkedIn document uploaded", {
-        assetUrn: uploadInfo.assetUrn,
-        filename: documentData.filename,
-      });
-      return uploadInfo.assetUrn;
-    } catch (error) {
-      this.logger.warn("LinkedIn document upload error", { error });
-      return null;
+    if (!registerResponse.ok) {
+      const errorText = summarizeApiError(await registerResponse.text());
+      throw new Error(
+        `LinkedIn document upload registration failed: ${registerResponse.status} - ${errorText}`,
+      );
     }
+
+    const uploadInfo = parseUploadInfo(await registerResponse.json());
+    if (!uploadInfo) {
+      throw new Error("LinkedIn document upload registration was malformed");
+    }
+
+    const uploadResponse = await this.fetch(uploadInfo.uploadUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${this.config.accessToken}`,
+        "Content-Type": documentData.mimeType,
+      },
+      body: new Uint8Array(documentData.data),
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(
+        `LinkedIn document binary upload failed: ${uploadResponse.status}`,
+      );
+    }
+
+    this.logger.info("LinkedIn document uploaded", {
+      assetUrn: uploadInfo.assetUrn,
+      filename: documentData.filename,
+    });
+    return uploadInfo.assetUrn;
   }
 
   /**

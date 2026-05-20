@@ -281,7 +281,7 @@ describe("LinkedInClient", () => {
       });
     });
 
-    it("should fall back to text-only if document upload fails", async () => {
+    it("should throw if document upload fails and skip the publish call", async () => {
       let callCount = 0;
       const fetchStub = createFetchStub(() => {
         callCount++;
@@ -290,18 +290,12 @@ describe("LinkedInClient", () => {
             ok: true,
             json: () => Promise.resolve({ sub: "user123" }),
           });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: false,
-            status: 500,
-            text: () => Promise.resolve("Upload service unavailable"),
-          });
-        } else {
-          return Promise.resolve({
-            ok: true,
-            headers: new Headers({ "X-RestLi-Id": "urn:li:share:doc789" }),
-          });
         }
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve("Upload service unavailable"),
+        });
       });
       const client = new LinkedInClient(config, logger, {
         fetch: fetchStub,
@@ -316,25 +310,71 @@ describe("LinkedInClient", () => {
         },
       ];
 
-      const result = await client.publish(
-        "Post with failed document",
-        {},
-        undefined,
-        documentData,
-      );
+      expect(
+        client.publish(
+          "Post with failed document",
+          {},
+          undefined,
+          documentData,
+        ),
+      ).rejects.toThrow(/document upload registration failed: 500/);
 
-      expect(logger.warn).toHaveBeenCalled();
-      expect(result.id).toBe("urn:li:share:doc789");
+      // userinfo + register upload only; no publish call attempted.
+      expect(fetchStub).toHaveBeenCalledTimes(2);
+    });
 
-      const publishOptions = getRequestOptions(getMockCall(fetchStub, 2));
-      const publishBody = parseRequestJson(publishOptions);
-      expect(publishBody).toMatchObject({
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareMediaCategory: "NONE",
-          },
-        },
+    it("should throw if document binary upload fails", async () => {
+      let callCount = 0;
+      const fetchStub = createFetchStub(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ sub: "user123" }),
+          });
+        } else if (callCount === 2) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                value: {
+                  uploadMechanism: {
+                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
+                      {
+                        uploadUrl: "https://api.linkedin.com/upload/doc-err",
+                      },
+                  },
+                  asset: "urn:li:digitalmediaAsset:doc-err",
+                },
+              }),
+          });
+        }
+        return Promise.resolve({ ok: false, status: 502 });
       });
+      const client = new LinkedInClient(config, logger, {
+        fetch: fetchStub,
+      });
+
+      const documentData: PublishMediaData[] = [
+        {
+          type: "document",
+          data: TINY_PDF_BYTES,
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+        },
+      ];
+
+      expect(
+        client.publish(
+          "Post with failed binary upload",
+          {},
+          undefined,
+          documentData,
+        ),
+      ).rejects.toThrow(/document binary upload failed: 502/);
+
+      // userinfo + register + binary PUT; no publish call attempted.
+      expect(fetchStub).toHaveBeenCalledTimes(3);
     });
   });
 
