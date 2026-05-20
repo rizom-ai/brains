@@ -8,6 +8,7 @@ import type { Daemon, DaemonHealth, WebRouteDefinition } from "@brains/plugins";
 import { Chat, type Message, type SentMessage, type Thread } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
+import { chunkMessage } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
@@ -17,6 +18,9 @@ import { ThreadRegistry } from "./thread-registry";
 import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
+const PLATFORM_MESSAGE_LIMITS: Partial<Record<string, number>> = {
+  discord: 2000,
+};
 
 interface GatewayDiscordAdapter {
   startGatewayListener(
@@ -117,11 +121,16 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }): void {
     const thread = this.threadRegistry.get(channelId);
     if (!thread) return;
-    thread
-      .post(message)
-      .catch((error: unknown) =>
-        this.logger.error("Failed to send chat message", { error, channelId }),
-      );
+    for (const chunk of this.chunkForChannel(channelId, message)) {
+      thread
+        .post(chunk)
+        .catch((error: unknown) =>
+          this.logger.error("Failed to send chat message", {
+            error,
+            channelId,
+          }),
+        );
+    }
   }
 
   protected override async sendMessageWithId({
@@ -133,9 +142,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }): Promise<string | undefined> {
     const thread = this.threadRegistry.get(channelId);
     if (!thread) return undefined;
-    const sent: SentMessage = await thread.post(message);
-    this.threadRegistry.trackMessage(thread.id, sent);
-    return sent.id;
+    let lastSent: SentMessage | undefined;
+    for (const chunk of this.chunkForChannel(channelId, message)) {
+      lastSent = await thread.post(chunk);
+      this.threadRegistry.trackMessage(thread.id, lastSent);
+    }
+    return lastSent?.id;
   }
 
   protected override async editMessage({
@@ -160,6 +172,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   protected override supportsMessageEditing(): boolean {
     return true;
+  }
+
+  private chunkForChannel(channelId: string | null, message: string): string[] {
+    const platform = channelId?.split(":")[0];
+    const limit = platform ? PLATFORM_MESSAGE_LIMITS[platform] : undefined;
+    return limit ? chunkMessage(message, limit) : [message];
   }
 
   private createChatApp(): ChatSdkApp {

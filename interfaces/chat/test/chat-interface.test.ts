@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
+import { chunkMessage } from "@brains/utils";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import type { Mock } from "bun:test";
 
@@ -336,6 +337,28 @@ describe("ChatInterface", () => {
     expect(context?.userPermissionLevel).toBe("trusted");
   });
 
+  it("chunks long Discord responses instead of letting the adapter truncate", async () => {
+    const longResponse = "word ".repeat(500);
+    agentService.chat.mockResolvedValueOnce({
+      text: longResponse,
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post.mock.calls.length).toBeGreaterThan(1);
+    expect(thread.post.mock.calls.map((call) => String(call[0]))).toEqual(
+      chunkMessage(longResponse, 2000),
+    );
+    for (const call of thread.post.mock.calls) {
+      expect(String(call[0]).length).toBeLessThanOrEqual(2000);
+    }
+  });
+
   it("captures URLs from unmentioned Discord messages without posting a reply", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -360,6 +383,89 @@ describe("ChatInterface", () => {
       }),
     );
     expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not capture URLs when Discord URL capture is disabled", async () => {
+    const plugin = createPlugin({ captureUrls: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const message = createMessage({
+      text: "do not save https://example.com/a",
+      isMention: false,
+    });
+
+    const urlHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(message.text),
+    );
+    await urlHandler?.handler(thread, message);
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not capture blocked URL domains", async () => {
+    const plugin = createPlugin({ blockedUrlDomains: ["example.com"] });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const message = createMessage({
+      text: "blocked https://example.com/a",
+      isMention: false,
+    });
+
+    const urlHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(message.text),
+    );
+    await urlHandler?.handler(thread, message);
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not route Discord DMs when DMs are disabled", async () => {
+    const plugin = createPlugin({ allowDMs: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "discord:@me:dm-channel-123",
+      channelId: "discord:@me:dm-channel-123",
+      isDM: true,
+    });
+
+    await chat?.handlers.directMessages[0]?.(
+      thread,
+      createMessage({ threadId: thread.id }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("routes Discord DMs when DMs are enabled", async () => {
+    const plugin = createPlugin({ allowDMs: true });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "discord:@me:dm-channel-123",
+      channelId: "discord:@me:dm-channel-123",
+      isDM: true,
+    });
+
+    await chat?.handlers.directMessages[0]?.(
+      thread,
+      createMessage({ threadId: thread.id }),
+    );
+
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "discord-discord:@me:dm-channel-123",
+      expect.objectContaining({
+        channelName: "DM",
+        interfaceType: "discord",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
   it("gates Discord chat and URL capture by allowed channels", async () => {
