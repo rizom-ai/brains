@@ -57,20 +57,6 @@ Plan:
 - Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
 - Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
 
-### 4. Non-public topic merge/update paths still default to public
-
-Problem: `getTopic()` has no visibility parameter and defaults to public scope. This affects `createTopic`, `createTopicOptimistic` conflict recovery, `applySynthesizedMerge`, `updateTopic`, and `mergeTopics`. Non-public extraction fails to find/update the very topics it just matched.
-
-Relevant files:
-
-- `entities/topics/src/lib/topic-service.ts`
-- `entities/topics/src/lib/topic-merge.ts`
-
-Plan:
-
-- Thread visibility through `getTopic`, the merge paths, and the conflict-recovery branch.
-- Add tests for shared/restricted topic lookup, merge candidacy, and synthesized merge update.
-
 ### 5. Conversation memory non-public mode is incomplete
 
 Problem: `summary-projector.ts` existing-summary lookup and decision/action-item cleanup don't pass `memoryVisibility`. With `memoryVisibility: "shared"` or `"restricted"`, existing summaries become invisible, causing repeated regeneration and stale child memory persisting.

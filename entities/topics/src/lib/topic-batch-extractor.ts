@@ -145,6 +145,7 @@ export async function extractTopicsBatched(
               const mergedTopic = await topicService.applySynthesizedMerge({
                 existingId: candidate.topic.id,
                 synthesized: { ...synthesized, title: candidate.title },
+                visibility: targetVisibility,
               });
 
               if (!mergedTopic) {

@@ -239,4 +239,158 @@ describe("TopicService", () => {
     expect(result.created).toBe(false);
     expect(result.topic?.id).toBe("race-topic");
   });
+
+  describe("visibility threading", () => {
+    it("getTopic passes visibility to entityService.getEntity", async () => {
+      const logger = createSilentLogger();
+      const entityService = createMockEntityService();
+      const service = new TopicService(entityService, logger);
+
+      await service.getTopic("some-id", "restricted");
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "some-id",
+        visibilityScope: "restricted",
+      });
+    });
+
+    it("getTopic defaults visibility to public when omitted", async () => {
+      const logger = createSilentLogger();
+      const entityService = createMockEntityService();
+      const service = new TopicService(entityService, logger);
+
+      await service.getTopic("some-id");
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "some-id",
+        visibilityScope: "public",
+      });
+    });
+
+    it("createTopic checks existence within the requested visibility partition", async () => {
+      const logger = createSilentLogger();
+      const entityService = createMockEntityService();
+      const service = new TopicService(entityService, logger);
+
+      await service.createTopic({
+        title: "Shared Topic",
+        content: "Body.",
+        visibility: "shared",
+      });
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: expect.stringContaining("shared"),
+        visibilityScope: "shared",
+      });
+    });
+
+    it("createTopicOptimistic recovers an existing topic within the requested visibility partition", async () => {
+      const logger = createSilentLogger();
+      const existingRestricted = makeTopic(
+        "race-topic-restricted",
+        "Race Topic",
+        "Created by another worker.",
+        "restricted",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: existingRestricted },
+      });
+      spyOn(entityService, "createEntity").mockRejectedValue(
+        new Error("Entity already exists"),
+      );
+      const service = new TopicService(entityService, logger);
+
+      const result = await service.createTopicOptimistic({
+        title: "Race Topic",
+        content: "Incoming.",
+        visibility: "restricted",
+      });
+
+      expect(result.created).toBe(false);
+      expect(result.topic?.id).toBe("race-topic-restricted");
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "race-topic-restricted",
+        visibilityScope: "restricted",
+      });
+    });
+
+    it("updateTopic looks up the existing topic within the requested visibility partition", async () => {
+      const logger = createSilentLogger();
+      const existing = makeTopic(
+        "shared-topic-shared",
+        "Shared Topic",
+        "Original body.",
+        "shared",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: existing },
+      });
+      const service = new TopicService(entityService, logger);
+
+      await service.updateTopic(
+        "shared-topic-shared",
+        { content: "Updated body." },
+        "shared",
+      );
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "shared-topic-shared",
+        visibilityScope: "shared",
+      });
+    });
+
+    it("applySynthesizedMerge looks up and updates the existing topic at the requested visibility", async () => {
+      const logger = createSilentLogger();
+      const existing = makeTopic(
+        "restricted-topic-restricted",
+        "Restricted Topic",
+        "Body.",
+        "restricted",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: existing },
+      });
+      const service = new TopicService(entityService, logger);
+
+      await service.applySynthesizedMerge({
+        existingId: "restricted-topic-restricted",
+        synthesized: { title: "Restricted Topic", content: "Merged body." },
+        visibility: "restricted",
+      });
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "restricted-topic-restricted",
+        visibilityScope: "restricted",
+      });
+    });
+
+    it("mergeTopics looks up each topic at the requested visibility", async () => {
+      const logger = createSilentLogger();
+      const entityService = createMockEntityService();
+      const service = new TopicService(entityService, logger);
+
+      await service.mergeTopics(
+        ["topic-a-shared", "topic-b-shared"],
+        undefined,
+        "shared",
+      );
+
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "topic-a-shared",
+        visibilityScope: "shared",
+      });
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "topic-b-shared",
+        visibilityScope: "shared",
+      });
+    });
+  });
 });

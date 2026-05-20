@@ -40,7 +40,7 @@ export class TopicService {
     const topicId = this.getTopicIdForTitle(params.title, visibility);
 
     // If topic exists in this visibility partition, skip (preserves user edits)
-    const existing = await this.getTopic(topicId);
+    const existing = await this.getTopic(topicId, visibility);
     if (existing) {
       this.logger.debug("Topic already exists, skipping", {
         id: topicId,
@@ -79,7 +79,7 @@ export class TopicService {
           title: params.title,
         });
         return {
-          topic: await this.getTopic(topicId),
+          topic: await this.getTopic(topicId, visibility),
           created: false,
         };
       }
@@ -146,8 +146,9 @@ export class TopicService {
       content?: string;
       metadata?: TopicMetadata;
     },
+    visibility: ContentVisibility = "public",
   ): Promise<TopicEntity | null> {
-    const existing = await this.getTopic(id);
+    const existing = await this.getTopic(id, visibility);
     if (!existing) {
       return null;
     }
@@ -185,10 +186,14 @@ export class TopicService {
     return updatedTopic;
   }
 
-  public async getTopic(id: string): Promise<TopicEntity | null> {
+  public async getTopic(
+    id: string,
+    visibility: ContentVisibility = "public",
+  ): Promise<TopicEntity | null> {
     return this.entityService.getEntity<TopicEntity>({
       entityType: TOPIC_ENTITY_TYPE,
       id,
+      visibilityScope: visibility,
     });
   }
 
@@ -285,14 +290,20 @@ export class TopicService {
       title: string;
       content: string;
     };
+    visibility?: ContentVisibility;
   }): Promise<TopicEntity | null> {
-    const existing = await this.getTopic(params.existingId);
+    const visibility = params.visibility ?? "public";
+    const existing = await this.getTopic(params.existingId, visibility);
     if (!existing) return null;
 
-    return this.updateTopic(params.existingId, {
-      title: params.synthesized.title,
-      content: params.synthesized.content,
-    });
+    return this.updateTopic(
+      params.existingId,
+      {
+        title: params.synthesized.title,
+        content: params.synthesized.content,
+      },
+      visibility,
+    );
   }
 
   public async deleteTopic(id: string): Promise<boolean> {
@@ -309,8 +320,11 @@ export class TopicService {
   public async mergeTopics(
     topicIds: string[],
     targetId?: string,
+    visibility: ContentVisibility = "public",
   ): Promise<TopicEntity | null> {
-    const topics = await Promise.all(topicIds.map((id) => this.getTopic(id)));
+    const topics = await Promise.all(
+      topicIds.map((id) => this.getTopic(id, visibility)),
+    );
     const validTopics = topics.filter((t): t is TopicEntity => t !== null);
 
     if (validTopics.length < 2) {
@@ -342,9 +356,13 @@ export class TopicService {
       "\n\n---\n\n",
     );
 
-    const merged = await this.updateTopic(target.id, {
-      content: mergedContent,
-    });
+    const merged = await this.updateTopic(
+      target.id,
+      {
+        content: mergedContent,
+      },
+      visibility,
+    );
 
     if (merged) {
       for (const topic of validTopics) {
