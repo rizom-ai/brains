@@ -259,6 +259,13 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         entityType: "document",
         options: { filter: { metadata: { dedupKey } } },
       });
+    if (documents.length > 1) {
+      this.logger.warn("Multiple documents share dedupKey; using first", {
+        dedupKey,
+        count: documents.length,
+        ids: documents.map((d) => d.id),
+      });
+    }
     return documents[0];
   }
 

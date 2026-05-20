@@ -7,7 +7,7 @@ import {
   createServicePluginContext,
   type ServicePluginContext,
 } from "@brains/plugins/test";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import {
   createPdfDataUrl,
   documentAdapter,
@@ -239,6 +239,45 @@ describe("DocumentGenerationJobHandler", () => {
     });
     expect(post?.content).toContain("documents:");
     expect(post?.content).toContain("id: carousel-pdf");
+  });
+
+  it("warns when multiple documents share a dedup key and reuses the first", async () => {
+    for (const id of ["dup-a", "dup-b"]) {
+      await context.entityService.createEntity({
+        entity: {
+          id,
+          entityType: "document",
+          content: createPdfDataUrl(pdfBuffer),
+          metadata: {
+            mimeType: "application/pdf",
+            filename: `${id}.pdf`,
+            dedupKey: "shared-key",
+          },
+        },
+      });
+    }
+
+    const logger = createMockLogger();
+    const handler = new DocumentGenerationJobHandler(logger, context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should not render");
+      },
+    });
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/template/post-1",
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        dedupKey: "shared-key",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    expect(result).toMatchObject({ success: true, reused: true });
+    expect(logger.warn).toHaveBeenCalled();
   });
 
   it("rejects jobs exceeding the max page count before rendering", async () => {
