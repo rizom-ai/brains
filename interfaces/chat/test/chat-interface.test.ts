@@ -4,7 +4,11 @@ import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils";
 import type { DiscordChatAdapterConfig } from "../src/config";
-import type { ChatAdapterMap, DiscordChatAdapter } from "../src/types";
+import type {
+  ChatAdapterMap,
+  DiscordChatAdapter,
+  GatewayListenerOptions,
+} from "../src/types";
 import type { Mock } from "bun:test";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
@@ -29,22 +33,46 @@ interface MockAgentService extends HarnessAgentService {
 
 interface MockDiscordAdapter extends DiscordChatAdapter {
   name: "discord";
-  startGatewayListener: Mock<() => Promise<Response>>;
+  startGatewayListener: Mock<
+    (
+      options: GatewayListenerOptions,
+      durationMs?: number,
+      abortSignal?: AbortSignal,
+      webhookUrl?: string,
+    ) => Promise<Response>
+  >;
   handleWebhook: Mock<() => Promise<Response>>;
+}
+
+interface DiscordAdapterFactoryConfig {
+  botToken: string;
+  publicKey: string;
+  applicationId: string;
+  mentionRoleIds: string[];
 }
 
 let lastDiscordAdapter: MockDiscordAdapter | undefined;
 
-const createDiscordAdapterMock = mock((_config: Record<string, unknown>) => {
-  lastDiscordAdapter = {
-    name: "discord",
-    startGatewayListener: mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ status: "listening" }))),
-    ),
-    handleWebhook: mock(() => Promise.resolve(new Response("ok"))),
-  };
-  return lastDiscordAdapter;
-});
+const createDiscordAdapterMock = mock(
+  (_config: DiscordAdapterFactoryConfig) => {
+    lastDiscordAdapter = {
+      name: "discord",
+      startGatewayListener: mock(
+        (
+          _options: GatewayListenerOptions,
+          _durationMs?: number,
+          _abortSignal?: AbortSignal,
+          _webhookUrl?: string,
+        ) =>
+          Promise.resolve(
+            new Response(JSON.stringify({ status: "listening" })),
+          ),
+      ),
+      handleWebhook: mock(() => Promise.resolve(new Response("ok"))),
+    };
+    return lastDiscordAdapter;
+  },
+);
 
 const createMemoryStateMock = mock(() => ({
   connect: mock(() => Promise.resolve()),
@@ -173,7 +201,10 @@ interface MockMessage {
     url?: string;
     fetchData?: () => Promise<Buffer>;
   }>;
-  raw: unknown;
+  raw: {
+    guild_id: string;
+    channel_id: string;
+  };
 }
 
 function createAgentService(): MockAgentService {
@@ -304,6 +335,35 @@ describe("ChatInterface", () => {
     });
   });
 
+  it("does not create a Discord adapter or daemon when Discord is not configured", async () => {
+    const plugin = new ChatInterface();
+
+    await harness.installPlugin(plugin);
+
+    expect(createDiscordAdapterMock).not.toHaveBeenCalled();
+    expect(createMemoryStateMock).toHaveBeenCalledTimes(1);
+    expect(MockChatSdk.instances[0]?.config.adapters.discord).toBeUndefined();
+    expect(
+      harness.getMockShell().getDaemonRegistry().getByPlugin("chat"),
+    ).toEqual([]);
+  });
+
+  it("ignores non-Discord threads until their adapters are enabled", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: "slack:workspace-123:channel-123:thread-456",
+      channelId: "slack:workspace-123:channel-123",
+      adapter: { name: "slack" },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
   it("routes Discord mentions to AgentService with discord permission namespace", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -329,6 +389,32 @@ describe("ChatInterface", () => {
         }),
       }),
     );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("does not subscribe Discord mention threads when thread mode is disabled", async () => {
+    const plugin = createPlugin({ useThreads: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.subscribe).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenCalled();
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("does not start Discord typing indicators when disabled", async () => {
+    const plugin = createPlugin({ showTypingIndicator: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.startTyping).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenCalled();
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
@@ -548,6 +634,25 @@ describe("ChatInterface", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
+  it("allows Discord thread messages when the parent channel is allowlisted", async () => {
+    const plugin = createPlugin({ allowedChannels: ["channel-123"] });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        interfaceType: "discord",
+        channelId: "discord:guild-123:channel-123:thread-456",
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
   it("ignores bot messages unless the bot is explicitly mentioned", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -567,6 +672,32 @@ describe("ChatInterface", () => {
         },
       }),
     );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not passively capture URLs from bot messages", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const urlMessage = createMessage({
+      text: "bot saw https://example.com/a",
+      isMention: false,
+      author: {
+        userId: "bot-456",
+        userName: "helper-bot",
+        fullName: "Helper Bot",
+        isBot: true,
+        isMe: false,
+      },
+    });
+    const urlHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(urlMessage.text),
+    );
+
+    await urlHandler?.handler(thread, urlMessage);
 
     expect(agentService.chat).not.toHaveBeenCalled();
     expect(thread.post).not.toHaveBeenCalled();
@@ -629,6 +760,46 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read this");
   });
 
+  it("ignores unsupported and oversized uploads", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const binaryFetchData = mock(() => Promise.resolve(Buffer.from("binary")));
+    const oversizedFetchData = mock(() =>
+      Promise.resolve(Buffer.from("large")),
+    );
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({
+        text: "Read these",
+        attachments: [
+          {
+            name: "image.png",
+            mimeType: "image/png",
+            size: 10,
+            fetchData: binaryFetchData,
+          },
+          {
+            name: "huge.txt",
+            mimeType: "text/plain",
+            size: 1024 * 1024 + 1,
+            fetchData: oversizedFetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(binaryFetchData).not.toHaveBeenCalled();
+    expect(oversizedFetchData).not.toHaveBeenCalled();
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read these");
+  });
+
   it("continues pending confirmations in the same conversation", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
@@ -655,6 +826,117 @@ describe("ChatInterface", () => {
       true,
     );
     expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
+  });
+
+  it("cancels pending confirmations in the same conversation", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmation: {
+        toolName: "system_delete",
+        description: "Delete thing",
+        args: {},
+      },
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "cancel", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      false,
+    );
+    expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
+  });
+
+  it("keeps pending confirmations open after unrecognized replies", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmation: {
+        toolName: "system_delete",
+        description: "Delete thing",
+        args: {},
+      },
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "maybe", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(thread.post).toHaveBeenCalledWith(
+      "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+    );
+  });
+
+  it("sends an error message when agent chat fails", async () => {
+    agentService.chat.mockRejectedValueOnce(new Error("Agent failed"));
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith("**Error:** Agent failed");
+  });
+
+  it("edits tracked Discord agent responses for async job progress", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-123" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: string) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await new Promise((resolve) => setTimeout(resolve, 510));
+    await harness.sendMessage("job-progress", {
+      id: "job-123",
+      type: "job",
+      status: "processing",
+      message: "Building routes",
+      progress: { current: 2, total: 4, percentage: 50 },
+      metadata: {
+        rootJobId: "job-123",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledWith(
+      "🔄 **content operations: Site** 2/4 (50%)\nBuilding routes",
+    );
   });
 
   it("edits tracked Discord agent responses when async jobs complete", async () => {
@@ -733,5 +1015,8 @@ describe("ChatInterface", () => {
 
     expect(lastDiscordAdapter?.startGatewayListener).toHaveBeenCalled();
     expect(MockChatSdk.instances[0]?.shutdown).toHaveBeenCalled();
+    expect(
+      lastDiscordAdapter?.startGatewayListener.mock.calls[0]?.[2]?.aborted,
+    ).toBe(true);
   });
 });

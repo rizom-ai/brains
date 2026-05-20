@@ -1,8 +1,12 @@
 import type { Adapter } from "chat";
 
-export const CHAT_PLATFORMS = ["discord", "matrix", "slack"] as const;
+export type ChatPlatform = "discord" | "matrix" | "slack";
 
-export type ChatPlatform = (typeof CHAT_PLATFORMS)[number];
+export const CHAT_PLATFORMS: readonly ChatPlatform[] = [
+  "discord",
+  "matrix",
+  "slack",
+];
 
 export interface GatewayListenerOptions {
   waitUntil: (task: Promise<unknown>) => void;

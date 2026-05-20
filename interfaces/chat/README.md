@@ -61,21 +61,28 @@ permissions:
       level: trusted
 ```
 
+When a brain model adopts this package, add `"chat"` to `evalDisable` so live chat sockets/webhooks do not start during evaluation runs.
+
 ## Current Discord parity coverage
 
 Covered by tests:
 
 - Discord adapter credentials and memory state wiring
+- no Discord adapter or daemon registration when Discord is not configured
+- non-Discord Chat SDK threads ignored until those adapters are enabled
 - platform-scoped permission lookup (`discord:*`, not `chat:*`)
 - mentions and subscribed thread routing
+- thread subscription policy when `useThreads` is disabled
+- typing indicator policy when `showTypingIndicator` is disabled
 - unmentioned channel routing when `requireMention: false`
 - DMs with `allowDMs`
 - allowed-channel gating for chat and URL capture
 - URL capture, disabled URL capture, and blocked domains
-- bot-message filtering unless mentioned
-- trusted text-file uploads
-- confirmation flow
-- async job completion edits for tracked responses
+- bot-message filtering unless mentioned, including passive URL capture
+- trusted text-file uploads plus unsupported/oversized upload filtering
+- yes/no/cancel confirmation flow, including unrecognized replies
+- agent error responses
+- async job progress and completion edits for tracked responses
 - platform response chunking for Discord's 2000-character limit
 - Discord webhook route delegation
 - abortable direct-mode gateway loop

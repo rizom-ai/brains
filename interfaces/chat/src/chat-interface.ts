@@ -405,6 +405,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!platformConfig?.captureUrls) return;
     if (!platformConfig.requireMention) return;
     if (!this.isAllowedChannel(thread, platformConfig)) return;
+    if (message.author.isBot) return;
     if (message.isMention) return;
 
     const urls = this.extractCaptureableUrls(
