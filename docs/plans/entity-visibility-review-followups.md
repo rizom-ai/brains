@@ -59,25 +59,6 @@ Plan:
 
 ## Should fix before merge if scope allows
 
-### 10. Make A2A/public capability exposure visibility-scoped
-
-Problem: A2A and remote-agent capability surfaces can expose derived skills/topics. If those surfaces list all skills/topics, restricted derived knowledge can leak through capability descriptions or resource/tool results.
-
-Relevant files:
-
-- `shell/core/src/system/*`
-- `shell/mcp-service/src/*`
-- A2A agent/card/capability registration code
-- skill/topic datasource code used by remote-agent capability surfaces
-
-Plan:
-
-- Default unauthenticated A2A/remote-agent callers to public visibility scope.
-- Expose only public topics/skills in public A2A agent identity/capability surfaces.
-- Map future trusted remote agents to shared visibility scope only through explicit trust/auth configuration.
-- Ensure A2A tools/resources reuse the same visibility enforcement as system read tools and MCP resources.
-- Add tests proving public A2A/capability listings exclude shared/restricted skills and topics.
-
 ## Cleanup
 
 ### 11. Reduce new casts introduced during tests/mocks

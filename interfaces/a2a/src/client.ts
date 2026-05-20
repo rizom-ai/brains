@@ -1,6 +1,11 @@
 import { z } from "@brains/utils";
-import type { Tool, ToolResponse, ParsedAgentCard } from "@brains/plugins";
-import { parseAgentCard } from "@brains/plugins";
+import type {
+  ContentVisibility,
+  Tool,
+  ToolResponse,
+  ParsedAgentCard,
+} from "@brains/plugins";
+import { internalFullScope, parseAgentCard } from "@brains/plugins";
 
 interface A2ASuccess {
   success: true;
@@ -425,7 +430,11 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   outboundTokens?: Record<string, string>;
   /** Entity service for agent directory resolution */
   entityService?: {
-    getEntity(request: { entityType: string; id: string }): Promise<{
+    getEntity(request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility;
+    }): Promise<{
       id: string;
       content: string;
       metadata: Record<string, unknown>;
@@ -482,6 +491,9 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
       const entity = await deps.entityService.getEntity({
         entityType: "agent",
         id: agentId,
+        visibilityScope: internalFullScope(
+          "a2a_call tool is anchor-only and resolves saved remote agents at any visibility",
+        ),
       });
       if (!entity) {
         return {
