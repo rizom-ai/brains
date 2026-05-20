@@ -145,6 +145,11 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("createEntityPluginContext");
     expect(pluginsTypes).not.toContain("createServicePluginContext");
     expect(pluginsTypes).not.toContain("createInterfacePluginContext");
+    expect(pluginsTypes).not.toContain("AttachmentRegistry");
+    expect(pluginsTypes).not.toContain("IAttachmentsNamespace");
+    expect(pluginsTypes).not.toContain("AttachmentProvider");
+    expect(pluginsTypes).not.toContain("AttachmentResolveRequest");
+    expect(pluginsTypes).not.toContain("themeCSS");
   });
 
   it("keeps the external plugin fixture on public @rizom/brain subpaths", () => {

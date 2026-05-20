@@ -1,5 +1,4 @@
 import { describe, it, expect } from "bun:test";
-import { spawnSync } from "node:child_process";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
@@ -45,12 +44,6 @@ describe("@rizom/brain/themes export", () => {
   });
 
   it("generated dist/themes.d.ts declares composeTheme without coupling themes to SitePackage", () => {
-    const build = spawnSync("bun", ["scripts/build.ts"], {
-      cwd: pkgDir,
-      encoding: "utf-8",
-    });
-    expect(build.status).toBe(0);
-
     const path = join(pkgDir, "dist", "themes.d.ts");
     expect(existsSync(path)).toBe(true);
     const src = readFileSync(path, "utf-8");
@@ -58,7 +51,7 @@ describe("@rizom/brain/themes export", () => {
     expect(src).not.toContain("@brains/");
     expect(src).not.toContain("SitePackage.theme");
     expect(src).not.toContain("theme: composeTheme");
-  }, 60_000);
+  });
 
   it("package.json exports ./themes with types + import", () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));

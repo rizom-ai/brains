@@ -1,5 +1,5 @@
-import { beforeAll, describe, expect, it } from "bun:test";
-import { readFileSync } from "fs";
+import { describe, expect, it } from "bun:test";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "node:child_process";
 
@@ -10,16 +10,9 @@ describe("@rizom/brain/site type contract", () => {
   const siteTypesPath = join(pkgDir, "dist", "site.d.ts");
   const siteEntryPath = join(pkgDir, "src", "entries", "site.ts");
 
-  beforeAll(() => {
-    const result = spawnSync("bun", ["scripts/build.ts"], {
-      cwd: pkgDir,
-      encoding: "utf-8",
-    });
-
-    if (result.status !== 0) {
-      throw new Error(`${result.stdout}\n${result.stderr}`);
-    }
-  }, 60_000);
+  it("has a generated site declaration from the Turbo build", () => {
+    expect(existsSync(siteTypesPath)).toBe(true);
+  });
 
   it("generates the site declaration from the public entry source", () => {
     const types = readFileSync(siteTypesPath, "utf-8");
