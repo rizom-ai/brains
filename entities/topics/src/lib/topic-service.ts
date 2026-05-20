@@ -35,9 +35,10 @@ export class TopicService {
     metadata?: TopicMetadata;
     visibility?: ContentVisibility;
   }): Promise<TopicEntity | null> {
-    const topicId = generateIdFromText(params.title);
+    const visibility = params.visibility ?? "public";
+    const topicId = this.getTopicIdForTitle(params.title, visibility);
 
-    // If topic exists by slug, skip (preserves user edits)
+    // If topic exists in this visibility partition, skip (preserves user edits)
     const existing = await this.getTopic(topicId);
     if (existing) {
       this.logger.debug("Topic already exists, skipping", {
@@ -62,7 +63,8 @@ export class TopicService {
     metadata?: TopicMetadata;
     visibility?: ContentVisibility;
   }): Promise<{ topic: TopicEntity | null; created: boolean }> {
-    const topicId = generateIdFromText(params.title);
+    const visibility = params.visibility ?? "public";
+    const topicId = this.getTopicIdForTitle(params.title, visibility);
 
     try {
       return {
@@ -82,6 +84,14 @@ export class TopicService {
       }
       throw error;
     }
+  }
+
+  public getTopicIdForTitle(
+    title: string,
+    visibility: ContentVisibility = "public",
+  ): string {
+    const slug = generateIdFromText(title);
+    return visibility === "public" ? slug : `${slug}-${visibility}`;
   }
 
   private async insertTopic(
@@ -185,11 +195,23 @@ export class TopicService {
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
+    visibility?: ContentVisibility;
   }): Promise<TopicEntity[]> {
-    return this.entityService.listEntities<TopicEntity>({
+    const listOptions = {
+      ...(params?.limit !== undefined ? { limit: params.limit } : {}),
+      ...(params?.offset !== undefined ? { offset: params.offset } : {}),
+      ...(params?.visibility !== undefined
+        ? { filter: { visibilityScope: params.visibility } }
+        : {}),
+    };
+    const topics = await this.entityService.listEntities<TopicEntity>({
       entityType: TOPIC_ENTITY_TYPE,
-      ...(params !== undefined ? { options: params } : {}),
+      ...(params !== undefined ? { options: listOptions } : {}),
     });
+
+    return params?.visibility === undefined
+      ? topics
+      : topics.filter((topic) => topic.visibility === params.visibility);
   }
 
   public async searchTopics(
@@ -220,12 +242,12 @@ export class TopicService {
     threshold: number;
     searchLimit?: number;
     additionalCandidates?: TopicEntity[];
-    visibilityScope?: ContentVisibility;
+    targetVisibility?: ContentVisibility;
   }): Promise<TopicMergeCandidate | null> {
     const searchResults = await this.searchTopics(
       params.incoming.title,
       params.searchLimit ?? 20,
-      params.visibilityScope,
+      params.targetVisibility,
     );
 
     const candidates = new Map<string, TopicEntity>();
@@ -234,6 +256,15 @@ export class TopicService {
     }
     for (const topic of params.additionalCandidates ?? []) {
       candidates.set(topic.id, topic);
+    }
+
+    for (const [id, topic] of candidates) {
+      if (
+        params.targetVisibility !== undefined &&
+        topic.visibility !== params.targetVisibility
+      ) {
+        candidates.delete(id);
+      }
     }
 
     let best: TopicMergeCandidate | null = null;

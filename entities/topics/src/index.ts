@@ -98,7 +98,9 @@ export class TopicsPlugin extends EntityPlugin<
         },
         initialSync: {
           shouldEnqueue: async () =>
-            !(await hasPersistedTargets(context, TOPIC_ENTITY_TYPE)),
+            !(await hasPersistedTargets(context, TOPIC_ENTITY_TYPE, {
+              visibility: this.config.extractionVisibility,
+            })),
           jobData: { mode: "derive", reason: "initial-sync" },
           jobOptions: getInitialProjectionJobOptions(),
         },

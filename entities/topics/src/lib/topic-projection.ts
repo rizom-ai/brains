@@ -287,7 +287,9 @@ export async function replaceAllTopics(
   config: TopicsPluginConfig,
 ): Promise<Required<TopicBatchResult>> {
   const topicService = new TopicService(context.entityService, logger);
-  const existingTopics = await topicService.listTopics();
+  const existingTopics = await topicService.listTopics({
+    visibility: config.extractionVisibility,
+  });
 
   for (const topic of existingTopics) {
     await topicService.deleteTopic(topic.id);

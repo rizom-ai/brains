@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn } from "bun:test";
+import type { ContentVisibility } from "@brains/plugins";
 import type { TopicMetadata } from "../../src/schemas/topic";
 import type { TopicEntity } from "../../src/types";
 import { TopicService } from "../../src/lib/topic-service";
@@ -12,13 +13,18 @@ import {
 } from "@brains/plugins/test";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
-function makeTopic(id: string, title: string, content = "Body."): TopicEntity {
+function makeTopic(
+  id: string,
+  title: string,
+  content = "Body.",
+  visibility: ContentVisibility = "public",
+): TopicEntity {
   return {
     id,
     entityType: "topic",
     content: topicAdapter.createTopicBody({ title, content }),
     contentHash: `hash-${id}`,
-    visibility: "public",
+    visibility,
     metadata: {},
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:00Z",
@@ -165,6 +171,40 @@ describe("TopicService", () => {
       });
 
       expect(candidate).toBeNull();
+    });
+
+    it("ignores candidates outside the target visibility partition", async () => {
+      const logger = createSilentLogger();
+      const publicTopic = makeTopic(
+        "human-ai-collaboration",
+        "Human-AI Collaboration",
+        "Public body.",
+        "public",
+      );
+      const restrictedTopic = makeTopic(
+        "human-ai-collaboration-restricted",
+        "Human-AI Collaboration",
+        "Restricted body.",
+        "restricted",
+      );
+      const entityService = createMockEntityService({
+        returns: {
+          search: [
+            { entity: publicTopic, score: 0.9, excerpt: "" },
+            { entity: restrictedTopic, score: 0.9, excerpt: "" },
+          ],
+        },
+      });
+      const service = new TopicService(entityService, logger);
+
+      const candidate = await service.findMergeCandidate({
+        incoming: { title: "Human-Agent Collaboration" },
+        threshold: 0.85,
+        targetVisibility: "restricted",
+        additionalCandidates: [publicTopic],
+      });
+
+      expect(candidate?.topic.id).toBe("human-ai-collaboration-restricted");
     });
   });
 

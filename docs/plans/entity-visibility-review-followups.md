@@ -30,7 +30,7 @@ Plan:
 - Preserve public base note round-trip: required runtime `visibility: "public"` must still serialize with no `visibility:` frontmatter.
 - Update fixtures/tests to include `visibility: "public"` or use helpers that default it.
 
-### 2. Keep topic merging within the target visibility boundary
+### 2. Keep topic merging within the target visibility boundary ✅
 
 Problem: topic extraction uses `extractionVisibility` as a read threshold, but topic writes must stay partitioned by target visibility. A restricted extraction may read public + shared + restricted sources, but it must not merge restricted-derived evidence into a public/shared topic and preserve that topic's broader visibility.
 
@@ -47,7 +47,7 @@ Plan:
 - Allow same-name public/shared/restricted topic partitions to coexist when needed.
 - Add tests for public, shared, and restricted extraction when matching topics already exist at other visibilities.
 
-### 3. Prevent existing topic titles from leaking across visibility boundaries
+### 3. Prevent existing topic titles from leaking across visibility boundaries ✅
 
 Problem: `listExistingTopicTitles()` lists existing topic titles without visibility filtering and injects them into extraction prompts.
 
@@ -62,7 +62,7 @@ Plan:
 - Prefer same-visibility existing topics for canonicalization guidance.
 - Add tests proving public extraction does not see shared/restricted topic titles.
 
-### 4. Scope topic rebuild and initial sync by visibility
+### 4. Scope topic rebuild and initial sync by visibility ✅
 
 Problem: `replaceAllTopics()` deletes all topics, and initial sync skips if any topic exists, regardless of configured extraction visibility.
 

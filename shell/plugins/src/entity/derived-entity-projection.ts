@@ -1,4 +1,8 @@
-import type { BaseEntity, EntityInput } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityInput,
+} from "@brains/entity-service";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { getErrorMessage, type Logger } from "@brains/utils";
 import type { EntityPluginContext } from "./context";
@@ -163,14 +167,18 @@ function getProjectionSourceType(
 export async function hasPersistedTargets(
   context: EntityPluginContext,
   targetType: string,
+  options?: { visibility?: ContentVisibility },
 ): Promise<boolean> {
   const existing = await context.entityService.listEntities({
     entityType: targetType,
-    options: {
-      limit: 1,
-    },
+    options:
+      options?.visibility === undefined
+        ? { limit: 1 }
+        : { filter: { visibilityScope: options.visibility } },
   });
-  return existing.length > 0;
+  return options?.visibility === undefined
+    ? existing.length > 0
+    : existing.some((entity) => entity.visibility === options.visibility);
 }
 
 export interface ReconcileDerivedEntitiesOptions<

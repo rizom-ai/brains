@@ -4,7 +4,7 @@ import type {
   EntityPluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { generateIdFromText, getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";
@@ -94,6 +94,8 @@ export async function extractTopicsBatched(
 
   const existingTopicTitles = await listExistingTopicTitles(
     context.entityService,
+    undefined,
+    targetVisibility,
   );
   const inBatch = new Map<string, TopicEntity>();
 
@@ -131,7 +133,7 @@ export async function extractTopicsBatched(
               incoming: topic,
               threshold,
               additionalCandidates: Array.from(inBatch.values()),
-              visibilityScope: targetVisibility,
+              targetVisibility,
             });
 
             if (candidate) {
@@ -155,7 +157,10 @@ export async function extractTopicsBatched(
             }
           }
 
-          const slug = generateIdFromText(topic.title);
+          const slug = topicService.getTopicIdForTitle(
+            topic.title,
+            targetVisibility,
+          );
           if (inBatch.has(slug)) {
             skipped++;
             continue;

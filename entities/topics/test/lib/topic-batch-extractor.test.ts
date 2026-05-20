@@ -180,11 +180,58 @@ describe("extractTopicsBatched", () => {
 
     const topic = await mockShell.getEntityService().getEntity({
       entityType: "topic",
-      id: "shared-derived-topic",
+      id: "shared-derived-topic-shared",
     });
 
     expect(result.created).toBe(1);
     expect(topic?.visibility).toBe("shared");
+  });
+
+  it("shows only same-visibility existing topic titles in extraction prompts", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const entityService = mockShell.getEntityService();
+
+    await entityService.createEntity({
+      entity: {
+        id: "public-topic",
+        entityType: "topic",
+        content: topicAdapter.createTopicBody({
+          title: "Public Topic",
+          content: "Public.",
+        }),
+        visibility: "public",
+        metadata: {},
+      },
+    });
+    await entityService.createEntity({
+      entity: {
+        id: "restricted-topic",
+        entityType: "topic",
+        content: topicAdapter.createTopicBody({
+          title: "Restricted Topic",
+          content: "Restricted.",
+        }),
+        visibility: "restricted",
+        metadata: {},
+      },
+    });
+
+    const generateSpy = spyOn(context.ai, "generate").mockResolvedValue({
+      topics: [],
+    });
+
+    await extractTopicsBatched(
+      [makeEntity("p1", "post", "Post 1", "Content 1")],
+      context,
+      logger,
+      { targetVisibility: "public" },
+    );
+
+    const prompt = generateSpy.mock.calls[0]?.[0].prompt ?? "";
+    expect(prompt).toContain("Public Topic");
+    expect(prompt).not.toContain("Restricted Topic");
   });
 
   it("emits one topic batch completion event after creating topics", async () => {
@@ -428,6 +475,7 @@ describe("extractTopicsBatched", () => {
             title: "Human-AI Collaboration",
             content: "Existing body.",
           }),
+          visibility: "public",
           metadata: {},
         },
       });
@@ -468,6 +516,69 @@ describe("extractTopicsBatched", () => {
       expect(topics).toHaveLength(1);
       expect(topics[0]?.id).toBe("human-ai-collaboration");
       expect(topics[0]?.content).toContain("Agents collaborate with humans.");
+    });
+
+    it("does not merge restricted extraction into matching public topic", async () => {
+      const logger = createSilentLogger();
+      const mockShell = createMockShell({ logger });
+      const context = createEntityPluginContext(mockShell, "topics");
+      const entityService = mockShell.getEntityService();
+
+      await entityService.createEntity({
+        entity: {
+          id: "human-ai-collaboration",
+          entityType: "topic",
+          content: topicAdapter.createTopicBody({
+            title: "Human-AI Collaboration",
+            content: "Public body.",
+          }),
+          visibility: "public",
+          metadata: {},
+        },
+      });
+
+      const publicTopic = await entityService.getEntity({
+        entityType: "topic",
+        id: "human-ai-collaboration",
+      });
+      spyOn(entityService, "search").mockResolvedValue(
+        publicTopic ? [{ entity: publicTopic, score: 0.95, excerpt: "" }] : [],
+      );
+      spyOn(context.ai, "generate").mockResolvedValue({
+        topics: [
+          {
+            title: "Human-AI Collaboration",
+            content: "Restricted evidence.",
+            relevanceScore: 0.92,
+          },
+        ],
+      });
+
+      const result = await extractTopicsBatched(
+        [makeEntity("p1", "post", "Post 1", "Content 1")],
+        context,
+        logger,
+        {
+          autoMerge: true,
+          targetVisibility: "restricted",
+          mergeSimilarityThreshold: 0.85,
+          topicMergeSynthesizer: makeSynthesizer(),
+        },
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.merged).toBe(0);
+
+      const topics = await entityService.listEntities({ entityType: "topic" });
+      expect(topics).toHaveLength(2);
+      expect(
+        topics.find((topic) => topic.id === "human-ai-collaboration")
+          ?.visibility,
+      ).toBe("public");
+      expect(
+        topics.find((topic) => topic.id === "human-ai-collaboration-restricted")
+          ?.visibility,
+      ).toBe("restricted");
     });
 
     it("merges a later in-batch topic with an earlier one created the same run", async () => {

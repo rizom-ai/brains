@@ -1,5 +1,9 @@
 import { describe, expect, it, mock, spyOn } from "bun:test";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityPluginContext,
+} from "@brains/plugins";
 import {
   createEntityPluginContext,
   createMockShell,
@@ -32,14 +36,17 @@ const config: TopicsPluginConfig = {
   sourceChangeBatchDelayMs: 1000,
 };
 
-function createTopic(id: string): BaseEntity {
+function createTopic(
+  id: string,
+  visibility: ContentVisibility = "public",
+): BaseEntity {
   const now = new Date().toISOString();
   return {
     id,
     entityType: "topic",
     content: `---\ntitle: ${id}\n---\n${id}`,
     contentHash: "hash",
-    visibility: "public",
+    visibility,
     metadata: {},
     created: now,
     updated: now,
@@ -347,14 +354,15 @@ describe("topic projection helpers", () => {
     ]);
   });
 
-  it("deletes existing topics without extraction when replacing with no entities", async () => {
+  it("deletes only target-visibility topics when replacing with no entities", async () => {
     const deleteEntity = mock(async (): Promise<boolean> => true);
     const context = {
       entityService: {
         listEntities: mock(
           async (): Promise<BaseEntity[]> => [
-            createTopic("topic-a"),
-            createTopic("topic-b"),
+            createTopic("topic-a", "public"),
+            createTopic("topic-b", "shared"),
+            createTopic("topic-c", "restricted"),
           ],
         ),
         deleteEntity,
@@ -369,20 +377,17 @@ describe("topic projection helpers", () => {
     );
 
     expect(result).toEqual({
-      deleted: 2,
+      deleted: 1,
       created: 0,
       merged: 0,
       skipped: 0,
       batches: 0,
     });
 
+    expect(deleteEntity).toHaveBeenCalledTimes(1);
     expect(deleteEntity).toHaveBeenCalledWith({
       entityType: "topic",
       id: "topic-a",
-    });
-    expect(deleteEntity).toHaveBeenCalledWith({
-      entityType: "topic",
-      id: "topic-b",
     });
   });
 });
