@@ -16,13 +16,14 @@ describe("deck carousel template", () => {
 
     expect(html).toContain("Hello Carousel");
     expect(html).toContain("deck-carousel-slide");
-    expect(html).toContain("deck-carousel-frame");
-    expect(html).toContain("deck-carousel-accent");
+    expect(html).toContain("deck-carousel-header");
+    expect(html).toContain("deck-carousel-body");
+    expect(html).toContain("deck-carousel-counter");
     expect(html).toContain("--carousel-surface");
     expect(html).toContain("--color-accent");
   });
 
-  it("renders one progress dot per slide and marks the current slide active", () => {
+  it("renders a zero-padded counter per slide showing current and total", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,
       format: "pdf",
@@ -33,14 +34,15 @@ describe("deck carousel template", () => {
       siteConfig: { title: "Multi", themeMode: "dark" },
     });
 
-    // Three slides → three dots per slide × three slides = nine dot spans.
-    const dots = html.match(/class="deck-carousel-dot/g) ?? [];
-    expect(dots.length).toBe(9);
-    // Each slide marks exactly one dot active.
-    const active = html.match(/class="deck-carousel-dot is-active"/g) ?? [];
-    expect(active.length).toBe(3);
-    // Plain "1 / N" text is gone in favor of dots.
-    expect(html).not.toContain(" / 3");
+    const counters = html.match(/class="deck-carousel-counter[^-]/g) ?? [];
+    expect(counters.length).toBe(3);
+    // Current-slide highlight runs once per slide.
+    const current = html.match(/class="deck-carousel-counter-current"/g) ?? [];
+    expect(current.length).toBe(3);
+    // Zero-padded numerals so "1/3" reads as "01 / 03".
+    expect(html).toContain(">01<");
+    expect(html).toContain(">02<");
+    expect(html).toContain(">03<");
   });
 
   it("flags the first slide as the cover so it can receive distinct styling", () => {
@@ -57,7 +59,7 @@ describe("deck carousel template", () => {
     expect(html).toContain("deck-carousel-slide is-cover");
   });
 
-  it("renders the brand wordmark from brandLabel in the footer", () => {
+  it("renders the brand wordmark from brandLabel", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,
       format: "pdf",
@@ -71,8 +73,6 @@ describe("deck carousel template", () => {
 
     expect(html).toContain('class="deck-carousel-wordmark"');
     expect(html).toContain("Acme Corp");
-    // Brand label takes the wordmark slot; deck title still appears in the
-    // slide body / aria-label, but is no longer the footer label.
     const wordmarkSection = html.match(
       /<span class="deck-carousel-wordmark">([^<]+)<\/span>/,
     );

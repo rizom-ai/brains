@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deck Carousel · mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ────────────────────────────────────────────────────────────
+         Page chrome — for the mock only, not the carousel.
+         ──────────────────────────────────────────────────────────── */
+      :root {
+        --font-display: "Fraunces", "Times New Roman", serif;
+        --font-body:
+          "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1b1729;
+        color: #e8e2cf;
+        font-family: var(--font-body);
+      }
+      header.mock-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        gap: 24px;
+        align-items: baseline;
+        padding: 18px 32px;
+        background: rgba(15, 12, 28, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid rgba(232, 226, 207, 0.08);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(232, 226, 207, 0.65);
+      }
+      header.mock-toolbar h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 22px;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #f5eed8;
+      }
+      .mock-section {
+        padding: 32px 32px 48px;
+      }
+      .mock-section-title {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(232, 226, 207, 0.55);
+        margin: 0 0 18px;
+      }
+      .mock-row {
+        display: flex;
+        gap: 28px;
+        overflow-x: auto;
+        padding-bottom: 24px;
+      }
+      .mock-slide-frame {
+        flex: 0 0 auto;
+        transform: scale(0.42);
+        transform-origin: top left;
+        width: 1080px;
+        height: 1350px;
+        margin-right: -626px; /* compensate for scale gap */
+        margin-bottom: -780px;
+        box-shadow: 0 32px 60px -20px rgba(0, 0, 0, 0.55);
+        border-radius: 24px;
+        overflow: hidden;
+      }
+      /* Two-color theme isolation: each frame gets its own data-theme. */
+      .mock-slide-frame[data-theme="dark"] {
+        outline: 1px solid rgba(232, 226, 207, 0.08);
+      }
+      .mock-slide-frame[data-theme="light"] {
+        outline: 1px solid rgba(15, 12, 28, 0.18);
+      }
+
+      /* ────────────────────────────────────────────────────────────
+         Carousel — this is the part we're iterating on.
+         Selectors mirror the production template so we can port back.
+         ──────────────────────────────────────────────────────────── */
+      [data-theme="dark"] .deck-carousel-pdf {
+        --carousel-surface: #0c0c10;
+        --carousel-surface-deep: #050507;
+        --carousel-surface-glow: #1a1530;
+        --carousel-ink: #f0ede5;
+        --carousel-heading: #f7f3e6;
+        --carousel-ink-muted: rgba(240, 237, 229, 0.5);
+        --carousel-divider: rgba(240, 237, 229, 0.12);
+        --carousel-accent: #ff8b3d;
+        --carousel-accent-soft: rgba(255, 139, 61, 0.22);
+        --carousel-body-line-height: 1.3;
+      }
+      [data-theme="light"] .deck-carousel-pdf {
+        --carousel-surface: #f4ede0;
+        --carousel-surface-deep: #ebe2d0;
+        --carousel-surface-glow: #fbf6ea;
+        --carousel-ink: #15171a;
+        --carousel-heading: #0a0c10;
+        --carousel-ink-muted: rgba(21, 23, 26, 0.55);
+        --carousel-divider: rgba(21, 23, 26, 0.18);
+        --carousel-accent: #c5500e;
+        --carousel-accent-soft: rgba(197, 80, 14, 0.14);
+        --carousel-body-line-height: 1.26;
+      }
+
+      .deck-carousel-pdf {
+        color: var(--carousel-ink);
+        font-family: var(--font-body);
+        background: var(--carousel-surface);
+        width: 1080px;
+        height: 1350px;
+      }
+
+      .deck-carousel-slide {
+        box-sizing: border-box;
+        position: relative;
+        width: 1080px;
+        height: 1350px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: 88px 108px;
+        background:
+          radial-gradient(
+            circle at 100% 0%,
+            var(--carousel-accent-soft),
+            transparent 42%
+          ),
+          radial-gradient(
+            circle at 0% 100%,
+            var(--carousel-surface-glow),
+            transparent 55%
+          ),
+          linear-gradient(
+            165deg,
+            var(--carousel-surface) 0%,
+            var(--carousel-surface-deep) 100%
+          );
+      }
+
+      .deck-carousel-slide.is-cover {
+        background:
+          radial-gradient(
+            circle at 12% 14%,
+            var(--carousel-accent-soft),
+            transparent 48%
+          ),
+          radial-gradient(
+            circle at 92% 92%,
+            var(--carousel-surface-glow),
+            transparent 60%
+          ),
+          linear-gradient(
+            155deg,
+            var(--carousel-surface-deep) 0%,
+            var(--carousel-surface) 60%,
+            var(--carousel-surface-deep) 100%
+          );
+      }
+
+      .deck-carousel-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .deck-carousel-wordmark {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 38px;
+        letter-spacing: -0.015em;
+        color: var(--carousel-heading);
+      }
+      .deck-carousel-wordmark::before {
+        content: "";
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 18px;
+        border-radius: 4px;
+        background: var(--carousel-accent);
+        vertical-align: middle;
+        position: relative;
+        top: -4px;
+      }
+
+      .deck-carousel-body {
+        display: flex;
+        align-items: center;
+        padding: 56px 0;
+      }
+      .deck-carousel-content {
+        max-width: 100%;
+      }
+
+      .deck-carousel-content h1,
+      .deck-carousel-content h2,
+      .deck-carousel-content h3 {
+        color: var(--carousel-heading);
+        font-family: var(--font-display);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        text-wrap: balance;
+        margin: 0 0 36px;
+      }
+      .deck-carousel-content h1,
+      .deck-carousel-content h2 {
+        font-size: 82px;
+        line-height: 1;
+      }
+      .deck-carousel-content h3 {
+        font-size: 54px;
+        line-height: 1.06;
+      }
+      .deck-carousel-slide.is-cover .deck-carousel-content h1,
+      .deck-carousel-slide.is-cover .deck-carousel-content h2 {
+        font-size: 118px;
+        line-height: 0.94;
+        letter-spacing: -0.035em;
+        max-width: 880px;
+      }
+
+      .deck-carousel-content p,
+      .deck-carousel-content li {
+        color: var(--carousel-ink);
+        font-size: 32px;
+        line-height: var(--carousel-body-line-height);
+      }
+      .deck-carousel-content p {
+        margin: 0 0 26px;
+      }
+      .deck-carousel-content ul,
+      .deck-carousel-content ol {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+      }
+      .deck-carousel-content li {
+        position: relative;
+        padding-left: 56px;
+        margin: 0 0 22px;
+      }
+      .deck-carousel-content ul > li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.62em;
+        width: 28px;
+        height: 2px;
+        background: var(--carousel-accent);
+      }
+      .deck-carousel-content ol {
+        counter-reset: deck-ol;
+      }
+      .deck-carousel-content ol > li {
+        counter-increment: deck-ol;
+      }
+      .deck-carousel-content ol > li::before {
+        content: counter(deck-ol, decimal-leading-zero);
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: var(--carousel-accent);
+        font-family: var(--font-mono);
+        font-weight: 500;
+        font-size: 26px;
+        font-variant-numeric: tabular-nums;
+        line-height: var(--carousel-body-line-height);
+      }
+
+      .deck-carousel-content strong {
+        color: var(--carousel-heading);
+        font-weight: 600;
+        font-family: var(--font-display);
+      }
+      .deck-carousel-content em {
+        font-family: var(--font-display);
+        font-style: italic;
+        color: var(--carousel-heading);
+      }
+
+      .deck-carousel-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 22px;
+        border-top: 1px solid var(--carousel-divider);
+      }
+      .deck-carousel-footer-meta {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--carousel-ink-muted);
+      }
+      .deck-carousel-counter {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        color: var(--carousel-ink-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .deck-carousel-counter-current {
+        color: var(--carousel-accent);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mock-toolbar">
+      <h1>Deck Carousel</h1>
+      <span>1080 × 1350 · scaled 0.42 · scroll →</span>
+    </header>
+
+    <section class="mock-section">
+      <p class="mock-section-title">Dark · default mode</p>
+      <div class="mock-row" id="row-dark"></div>
+    </section>
+
+    <section class="mock-section">
+      <p class="mock-section-title">Light · paper</p>
+      <div class="mock-row" id="row-light"></div>
+    </section>
+
+    <template id="slides">
+      <!-- Cover -->
+      <article class="deck-carousel-slide is-cover">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h1>Distributed systems, demystified.</h1>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">01</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+
+      <!-- Body with prose + emphasis -->
+      <article class="deck-carousel-slide">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h2>What is a distributed system, really?</h2>
+            <p>
+              A handful of computers, pretending to be one. They fail
+              independently and recover together — and most of the
+              <em>weirdness</em> in production comes from that gap.
+            </p>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">02</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+
+      <!-- Body with bullet list -->
+      <article class="deck-carousel-slide">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h3>The three things you cannot dodge</h3>
+            <ul>
+              <li>Networks lose messages. Sometimes for a while.</li>
+              <li>Clocks lie. Especially across machines.</li>
+              <li>State diverges. Reconcile or lose data.</li>
+            </ul>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">03</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+
+      <!-- Body with numbered list -->
+      <article class="deck-carousel-slide">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h3>A debugging checklist</h3>
+            <ol>
+              <li>Did the request even arrive?</li>
+              <li>Did the work happen exactly once?</li>
+              <li>Is the answer fresh, or are we looking at a replica?</li>
+            </ol>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">04</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+
+      <!-- Body with strong emphasis -->
+      <article class="deck-carousel-slide">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h2>The cheap fix is <em>always</em> a queue.</h2>
+            <p>
+              You don't need exactly-once. You need <strong>retries</strong>
+              and <strong>idempotency keys</strong>. The queue gives you both,
+              with a paper trail.
+            </p>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">05</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+
+      <!-- Closer / CTA -->
+      <article class="deck-carousel-slide">
+        <header class="deck-carousel-header">
+          <span class="deck-carousel-wordmark">Alex Chen</span>
+        </header>
+        <div class="deck-carousel-body">
+          <div class="deck-carousel-content">
+            <h2>More notes like this →</h2>
+            <p>Find the long-form essays at <strong>alexchen.dev</strong>.</p>
+          </div>
+        </div>
+        <footer class="deck-carousel-footer">
+          <span class="deck-carousel-footer-meta">A short primer</span>
+          <span class="deck-carousel-counter">
+            <span class="deck-carousel-counter-current">06</span>
+            <span> / 06</span>
+          </span>
+        </footer>
+      </article>
+    </template>
+
+    <script>
+      // Render the same slide set into both rows, wrapped in a per-frame
+      // theme container so light and dark can sit side by side on one page.
+      const template = document.getElementById("slides");
+      const slides = Array.from(template.content.children).map((s) =>
+        s.cloneNode(true),
+      );
+
+      function render(rowId, mode) {
+        const row = document.getElementById(rowId);
+        for (const slide of slides) {
+          const frame = document.createElement("div");
+          frame.className = "mock-slide-frame";
+          frame.dataset.theme = mode;
+          const pdf = document.createElement("div");
+          pdf.className = "deck-carousel-pdf";
+          pdf.appendChild(slide.cloneNode(true));
+          frame.appendChild(pdf);
+          row.appendChild(frame);
+        }
+      }
+      render("row-dark", "dark");
+      render("row-light", "light");
+    </script>
+  </body>
+</html>
