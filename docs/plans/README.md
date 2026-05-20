@@ -44,6 +44,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [A2A request signing](./a2a-request-signing.md)
 - [Local OAuth issuer defaults](./local-oauth-issuer-defaults.md)
 - [Multi-user and permissions](./multi-user.md)
+- [Auth runtime database](./auth-runtime-db.md)
 - [Shared space trust](./shared-space-trust.md)
 - [Passkey operator onboarding](./passkey-operator-onboarding.md)
 - [Operator runtime database](./operator-runtime-db.md)

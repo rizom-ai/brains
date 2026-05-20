@@ -4,7 +4,9 @@
 
 Implemented for the first attribution pass. Conversation messages now preserve actor/source metadata through Discord and agent persistence, conversation-memory prompts are speaker-aware, summaries store participants, decision/action-item metadata stores explicit attribution when safely recoverable, and multi-speaker eval coverage is passing.
 
-Still deferred: cross-interface canonical identity linking and a formal brain-instance assistant actor id.
+Partially implemented beyond the original first pass: canonical identity plumbing now exists (`canonicalId`, `CanonicalIdentityService`, agent enrichment, and memory retrieval by canonical id). The git-backed `canonical-identity-link` entity path was removed before adoption because raw actor-to-person links should not be treated as ordinary git-synced content.
+
+Still deferred: auth-runtime-DB-backed canonical identity lookup, management UX/tooling for identity links, and a formal brain-instance assistant actor id.
 
 ## Problem
 
@@ -32,7 +34,7 @@ This is not enough for team memory. Relay needs to preserve who said, decided, a
 ## Non-goals
 
 - Full multi-user auth/session redesign.
-- Cross-platform identity resolution beyond stable per-interface actor ids.
+- Using git-synced content as the primary store for private cross-platform identity bindings.
 - A people/contact entity system.
 - Retroactively attributing old messages that lack metadata.
 
@@ -81,6 +83,30 @@ Speaker identity has two layers:
    - linked actors could include `discord:123456789`, `mcp:daniel`, and `github:daniel`
 
 The first implementation should not try to infer cross-interface identity. It should persist actor ids now and leave room for `canonicalId` later. This keeps attribution reliable while allowing future memory retrieval to merge activity from the same person across Discord, MCP, CLI, or other interfaces.
+
+## Canonical identity storage boundary
+
+Canonical identity has different privacy requirements than normal content. The durable content layer can describe people in a curated, non-secret way, but raw account bindings are private runtime state.
+
+Decision:
+
+1. **Runtime/private identity links are authoritative.**
+   - Actor-to-person mappings such as `discord:<snowflake> -> person:daniel`, email addresses, OAuth subjects, passkey subjects, and other account identifiers belong in runtime storage, not git-synced `brain-data`.
+   - Use the auth runtime database identity tables described in [Auth runtime database](./auth-runtime-db.md) as the source for actor enrichment and memory retrieval.
+   - Do not add a separate JSON identity-link bridge unless the auth DB work is explicitly postponed again.
+2. **Git-backed canonical identity entities are optional curated knowledge only.**
+   - A content entity may describe a public or team-known person label such as `person:daniel`, preferred display name, or biography when the operator explicitly wants that in the brain's content corpus.
+   - It must not contain raw platform ids, email addresses, OAuth subjects, passkey credential ids, or private account-link metadata.
+   - It must not be required for permissions or authentication.
+3. **Derived memory may store only safe canonical ids.**
+   - Storing `canonicalId: person:<slug>` in summaries/decisions/action items is acceptable only when the id is an intentionally non-secret pseudonym/label.
+   - Derived content should not store raw actor ids unless explicitly needed for provenance and the storage target is runtime-only.
+   - If privacy mode is stricter, derived content can omit `canonicalId` and rely on the runtime identity index at retrieval time.
+4. **Do not keep a git-backed identity-link entity type.**
+   - The earlier `canonical-identity-link` entity path proved the shape, but it was removed before adoption.
+   - If curated person/profile content is needed later, add a separate non-sensitive profile/alias entity that does not contain raw account bindings.
+
+This split aligns with `multi-user.md`: auth users and identity bindings are runtime state; content may link to people only as curated knowledge, not as auth truth.
 
 ## Data flow
 
@@ -255,8 +281,8 @@ Expected behavior:
 
 ## Current remaining work
 
-Tracked in `conversation-identity-followup.md`:
-
-- Add cross-interface `canonicalId` identity linking only after an explicit identity layer exists.
+- Wire canonical identity lookup to the auth runtime database once user/identity tables exist.
+- Keep git-backed person/canonical identity out of scope unless it is redesigned later as curated non-sensitive profile/alias content only.
+- Add management tooling for canonical identity links that makes the storage boundary explicit.
 - Replace the assistant fallback actor id with a formal brain-instance id when that service boundary exposes one.
 - Consider richer attribution extraction later if we need requester/assignee attribution for delegated work where the requester and owner are different people.
