@@ -119,6 +119,10 @@ try {
       // installed as a transitive dep on CI. Mark external here, install in
       // package.prod.json for Docker runtime.
       "react-devtools-core",
+      // Playwright is lazy-loaded by @brains/media-renderer; keep it external
+      // so Bun's bundler does not try to trace optional chromium-bidi requires.
+      // package.prod.json installs playwright-core in the Docker runtime.
+      "playwright-core",
     ],
   });
 
