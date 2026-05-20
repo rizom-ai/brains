@@ -57,19 +57,6 @@ Plan:
 - Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
 - Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
 
-### 7. System mutation/extract tools still need caller scope
-
-Problem: `entity-cover-tool.ts` and `entity-extract-tool.ts` resolve entities without passing the caller's permission level. Trusted/anchor callers can't operate on non-public entities through these tools.
-
-Relevant files:
-
-- `shell/core/src/system/entity-cover-tool.ts`
-- `shell/core/src/system/entity-extract-tool.ts`
-
-Plan:
-
-- Apply the same `permissionToVisibilityScope(context.userPermissionLevel)` pattern used by system_get/update/delete.
-
 ## Should fix before merge if scope allows
 
 ### 9. Make skill derivation visibility explicit
