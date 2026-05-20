@@ -88,6 +88,7 @@ describe("Deck carousel attachment provider", () => {
       {
         entityService: harness.getEntityService(),
         themeCSS: ":root { --carousel-test-token: #123456; }",
+        identity: harness.getEntityContext("test").identity,
       },
       {
         renderPdf: async (url: string): Promise<Buffer> => {
@@ -112,6 +113,39 @@ describe("Deck carousel attachment provider", () => {
       mimeType: "application/pdf",
       filename: "test-deck-carousel.pdf",
     });
+  });
+
+  it("uses the brain identity name as the carousel brand wordmark", async () => {
+    const harness = createPluginHarness<DecksPlugin>();
+    await harness.installPlugin(new DecksPlugin());
+    await harness.getEntityService().createEntity({ entity: sampleDeck });
+
+    let renderedHtml = "";
+    const provider = new DeckCarouselAttachmentProvider(
+      {
+        entityService: harness.getEntityService(),
+        themeCSS: "",
+        identity: harness.getEntityContext("test").identity,
+      },
+      {
+        renderPdf: async (url: string): Promise<Buffer> => {
+          renderedHtml = await (await fetch(url)).text();
+          return Buffer.from("%PDF-brand");
+        },
+      },
+    );
+
+    await provider.resolve({
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    // Harness mock returns name: "Test Owner" — should land in the wordmark.
+    const wordmark = renderedHtml.match(
+      /<span class="deck-carousel-wordmark">([^<]+)<\/span>/,
+    );
+    expect(wordmark?.[1]).toBe("Test Owner");
   });
 
   it("resolves a deck into a PDF carousel attachment", async () => {

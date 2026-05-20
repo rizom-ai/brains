@@ -12,6 +12,7 @@ export const deckCarouselSlideSchema = z.object({
 
 export const deckCarouselTemplateSchema = z.object({
   title: z.string().min(1),
+  brandLabel: z.string().min(1).optional(),
   slides: z.array(deckCarouselSlideSchema).min(1),
 });
 
@@ -29,7 +30,8 @@ export const deckCarouselTemplate: MediaPageTemplate = {
 };
 
 function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
-  const { title, slides } = deckCarouselTemplateSchema.parse(props);
+  const { title, brandLabel, slides } = deckCarouselTemplateSchema.parse(props);
+  const wordmark = brandLabel ?? title;
   const toHtml = useMarkdownToHtml();
 
   return (
@@ -226,6 +228,14 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               line-height: 1.3;
             }
 
+            .deck-carousel-wordmark {
+              font-family: var(--font-heading, var(--font-sans, system-ui, sans-serif));
+              font-weight: 600;
+              font-size: 28px;
+              letter-spacing: -0.01em;
+              color: var(--carousel-heading);
+            }
+
             .deck-carousel-progress {
               display: inline-flex;
               gap: 10px;
@@ -260,7 +270,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             />
           </div>
           <footer className="deck-carousel-footer">
-            <span>{title}</span>
+            <span className="deck-carousel-wordmark">{wordmark}</span>
             <span
               className="deck-carousel-progress"
               aria-label={`Slide ${index + 1} of ${slides.length}`}

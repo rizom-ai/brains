@@ -35,7 +35,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   constructor(
     private readonly context: Pick<
       EntityPluginContext,
-      "entityService" | "themeCSS"
+      "entityService" | "themeCSS" | "identity"
     >,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
@@ -59,7 +59,9 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
       return undefined;
     }
 
-    const carouselContent = buildCarouselContent(deck);
+    const carouselContent = buildCarouselContent(deck, {
+      brandLabel: this.resolveBrandLabel(),
+    });
     if (carouselContent.slides.length > DEFAULT_MAX_SLIDES) {
       throw new Error(
         `Refusing to render carousel with ${carouselContent.slides.length} slides; maxSlides=${DEFAULT_MAX_SLIDES}`,
@@ -100,9 +102,17 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
       await rm(outputDir, { recursive: true, force: true });
     }
   }
+
+  private resolveBrandLabel(): string | undefined {
+    const name = this.context.identity.getProfile().name;
+    return name.length > 0 ? name : undefined;
+  }
 }
 
-function buildCarouselContent(deck: DeckEntity): DeckCarouselTemplateData {
+function buildCarouselContent(
+  deck: DeckEntity,
+  options: { brandLabel?: string | undefined } = {},
+): DeckCarouselTemplateData {
   const { frontmatter, content } = parseMarkdown(deck.content);
   const title =
     typeof frontmatter["title"] === "string"
@@ -114,7 +124,11 @@ function buildCarouselContent(deck: DeckEntity): DeckCarouselTemplateData {
     .filter((slide) => slide.length > 0)
     .map((markdown) => ({ markdown }));
 
-  return { title, slides };
+  return {
+    title,
+    slides,
+    ...(options.brandLabel ? { brandLabel: options.brandLabel } : {}),
+  };
 }
 
 function getDeckSlug(deck: DeckEntity): string {
