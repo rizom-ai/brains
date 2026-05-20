@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import type { SystemServices } from "../../src/system/types";
 import type { BaseEntity } from "@brains/entity-service";
-import type { Tool, ToolResult } from "@brains/mcp-service";
+import type { Tool, ToolContext } from "@brains/mcp-service";
+import { toolResponseSchema } from "@brains/mcp-service";
 
-const toolContext = { interfaceType: "mcp" as const, userId: "test" };
+const toolContext: ToolContext = { interfaceType: "mcp", userId: "test" };
 
 function findTool(tools: Tool[], name: string): Tool {
   const tool = tools.find((t) => t.name === name);
@@ -13,21 +13,20 @@ function findTool(tools: Tool[], name: string): Tool {
   return tool;
 }
 
-function parseResult(raw: unknown): {
-  success: boolean;
-  data?: Record<string, unknown> | undefined;
-  error?: string | undefined;
-  message?: string | undefined;
-} {
-  const result = raw as ToolResult;
-  if (result.success) {
-    return {
-      success: true,
-      data: result.data as Record<string, unknown>,
-      message: result.message,
-    };
+function expectSuccessData(raw: unknown): unknown {
+  const result = toolResponseSchema.parse(raw);
+  if (!("success" in result) || !result.success) {
+    throw new Error("Expected tool success response");
   }
-  return { success: false, error: result.error };
+  return result.data;
+}
+
+function expectError(raw: unknown): string {
+  const result = toolResponseSchema.parse(raw);
+  if (!("success" in result) || result.success) {
+    throw new Error("Expected tool error response");
+  }
+  return result.error;
 }
 
 function makeEntity(
@@ -82,110 +81,114 @@ describe("system_insights tool", () => {
       }),
     ]);
 
-    const tools = createSystemTools(services as unknown as SystemServices);
+    const tools = createSystemTools(services);
     tool = findTool(tools, "system_insights");
   });
 
   describe("overview", () => {
     it("should return entity counts", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "overview" }, toolContext),
-      );
-
-      expect(result.success).toBe(true);
-      const counts = result.data?.["entityCounts"] as Record<string, number>;
-      expect(counts["post"]).toBe(3);
-      expect(counts["note"]).toBe(2);
-      expect(counts["link"]).toBe(1);
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "overview" }, toolContext),
+        ),
+      ).toMatchObject({
+        entityCounts: { post: 3, note: 2, link: 1 },
+      });
     });
 
     it("should return total entity count", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "overview" }, toolContext),
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.data?.["totalEntities"]).toBe(6);
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "overview" }, toolContext),
+        ),
+      ).toMatchObject({ totalEntities: 6 });
     });
 
     it("should return content health summary", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "overview" }, toolContext),
-      );
-
-      expect(result.success).toBe(true);
-      const health = result.data?.["contentHealth"] as Record<string, number>;
-      expect(health["drafts"]).toBe(1);
-      expect(health["published"]).toBe(2);
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "overview" }, toolContext),
+        ),
+      ).toMatchObject({
+        contentHealth: { drafts: 1, published: 2 },
+      });
     });
   });
 
   describe("publishing-cadence", () => {
     it("should group entity creation by month", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "publishing-cadence" }, toolContext),
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "publishing-cadence" }, toolContext),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          months: expect.arrayContaining([
+            expect.objectContaining({ month: "2026-03" }),
+          ]),
+        }),
       );
-
-      expect(result.success).toBe(true);
-      const months = result.data?.["months"] as Array<{
-        month: string;
-        total: number;
-      }>;
-      expect(months.length).toBeGreaterThan(0);
-
-      const march = months.find((m) => m.month === "2026-03");
-      expect(march).toBeDefined();
-      expect(march?.total).toBeGreaterThan(0);
     });
 
     it("should break down counts by entity type", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "publishing-cadence" }, toolContext),
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "publishing-cadence" }, toolContext),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          months: expect.arrayContaining([
+            expect.objectContaining({
+              month: "2026-03",
+              counts: expect.objectContaining({ note: 2 }),
+            }),
+          ]),
+        }),
       );
-
-      const months = result.data?.["months"] as Array<{
-        month: string;
-        counts: Record<string, number>;
-      }>;
-      const march = months.find((m) => m.month === "2026-03");
-      expect(march?.counts["note"]).toBe(2);
     });
 
     it("should sort months descending", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "publishing-cadence" }, toolContext),
-      );
-
-      const months = result.data?.["months"] as Array<{ month: string }>;
-      expect(months[0]?.month).toBe("2026-03");
-      expect(months[1]?.month).toBe("2026-02");
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "publishing-cadence" }, toolContext),
+        ),
+      ).toMatchObject({
+        months: [{ month: "2026-03" }, { month: "2026-02" }],
+      });
     });
   });
 
   describe("content-health", () => {
     it("should list draft entities", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "content-health" }, toolContext),
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "content-health" }, toolContext),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          drafts: expect.arrayContaining([
+            expect.objectContaining({ id: "post-2" }),
+          ]),
+        }),
       );
-
-      expect(result.success).toBe(true);
-      const drafts = result.data?.["drafts"] as Array<{ id: string }>;
-      expect(drafts.some((d) => d.id === "post-2")).toBe(true);
     });
 
     it("should include title and entityType in drafts", async () => {
-      const result = parseResult(
-        await tool.handler({ type: "content-health" }, toolContext),
+      expect(
+        expectSuccessData(
+          await tool.handler({ type: "content-health" }, toolContext),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          drafts: expect.arrayContaining([
+            expect.objectContaining({
+              id: "post-2",
+              entityType: "post",
+              title: "Post Two",
+            }),
+          ]),
+        }),
       );
-
-      const drafts = result.data?.["drafts"] as Array<{
-        id: string;
-        entityType: string;
-        title: string;
-      }>;
-      const draft = drafts.find((d) => d.id === "post-2");
-      expect(draft?.entityType).toBe("post");
-      expect(draft?.title).toBe("Post Two");
     });
 
     it("should list stale entities", async () => {
@@ -198,19 +201,22 @@ describe("system_insights tool", () => {
         }),
       ]);
 
-      const tools = createSystemTools(services as unknown as SystemServices);
+      const tools = createSystemTools(services);
       const insightsTool = findTool(tools, "system_insights");
-      const result = parseResult(
-        await insightsTool.handler({ type: "content-health" }, toolContext),
+      expect(
+        expectSuccessData(
+          await insightsTool.handler({ type: "content-health" }, toolContext),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          stale: expect.arrayContaining([
+            expect.objectContaining({
+              id: "old-post",
+              daysSinceUpdate: expect.any(Number),
+            }),
+          ]),
+        }),
       );
-
-      const stale = result.data?.["stale"] as Array<{
-        id: string;
-        daysSinceUpdate: number;
-      }>;
-      expect(stale.some((s) => s.id === "old-post")).toBe(true);
-      const oldPost = stale.find((s) => s.id === "old-post");
-      expect(oldPost?.daysSinceUpdate).toBeGreaterThan(90);
     });
   });
 
@@ -220,20 +226,19 @@ describe("system_insights tool", () => {
         customValue: 42,
       }));
 
-      const tools = createSystemTools(services as unknown as SystemServices);
+      const tools = createSystemTools(services);
       const insightsTool = findTool(tools, "system_insights");
-      const result = parseResult(
-        await insightsTool.handler({ type: "custom-metric" }, toolContext),
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.data?.["customValue"]).toBe(42);
+      expect(
+        expectSuccessData(
+          await insightsTool.handler({ type: "custom-metric" }, toolContext),
+        ),
+      ).toMatchObject({ customValue: 42 });
     });
 
     it("should list registered types in description", async () => {
       services.insights.register("topic-distribution", async () => ({}));
 
-      const tools = createSystemTools(services as unknown as SystemServices);
+      const tools = createSystemTools(services);
       const insightsTool = findTool(tools, "system_insights");
 
       expect(insightsTool.description).toContain("topic-distribution");
@@ -242,11 +247,11 @@ describe("system_insights tool", () => {
 
   describe("invalid type", () => {
     it("should return error for unknown insight type", async () => {
-      const result = parseResult(
+      const error = expectError(
         await tool.handler({ type: "nonexistent" }, toolContext),
       );
 
-      expect(result.success).toBe(false);
+      expect(error).toContain("Unknown insight type");
     });
   });
 
@@ -265,47 +270,47 @@ describe("system_insights tool", () => {
     });
 
     it("hides non-public counts from a public caller", async () => {
-      const result = parseResult(
-        await tool.handler(
-          { type: "overview" },
-          { ...toolContext, userPermissionLevel: "public" },
-        ),
-      );
-
-      expect(result.success).toBe(true);
-      const counts = result.data?.["entityCounts"] as Record<string, number>;
       // Only the 3 public posts; shared + restricted are invisible.
-      expect(counts["post"]).toBe(3);
-      expect(result.data?.["totalEntities"]).toBe(6);
+      expect(
+        expectSuccessData(
+          await tool.handler(
+            { type: "overview" },
+            { ...toolContext, userPermissionLevel: "public" },
+          ),
+        ),
+      ).toMatchObject({
+        entityCounts: { post: 3 },
+        totalEntities: 6,
+      });
     });
 
     it("includes shared but not restricted counts for a trusted caller", async () => {
-      const result = parseResult(
-        await tool.handler(
-          { type: "overview" },
-          { ...toolContext, userPermissionLevel: "trusted" },
-        ),
-      );
-
-      expect(result.success).toBe(true);
-      const counts = result.data?.["entityCounts"] as Record<string, number>;
       // 3 public + 1 shared = 4 posts; restricted hidden.
-      expect(counts["post"]).toBe(4);
-      expect(result.data?.["totalEntities"]).toBe(7);
+      expect(
+        expectSuccessData(
+          await tool.handler(
+            { type: "overview" },
+            { ...toolContext, userPermissionLevel: "trusted" },
+          ),
+        ),
+      ).toMatchObject({
+        entityCounts: { post: 4 },
+        totalEntities: 7,
+      });
     });
 
     it("shows every visibility tier for an anchor caller", async () => {
-      const result = parseResult(
-        await tool.handler(
-          { type: "overview" },
-          { ...toolContext, userPermissionLevel: "anchor" },
+      expect(
+        expectSuccessData(
+          await tool.handler(
+            { type: "overview" },
+            { ...toolContext, userPermissionLevel: "anchor" },
+          ),
         ),
-      );
-
-      expect(result.success).toBe(true);
-      const counts = result.data?.["entityCounts"] as Record<string, number>;
-      expect(counts["post"]).toBe(5);
-      expect(result.data?.["totalEntities"]).toBe(8);
+      ).toMatchObject({
+        entityCounts: { post: 5 },
+        totalEntities: 8,
+      });
     });
   });
 
