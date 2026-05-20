@@ -1,7 +1,19 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import type { ContentVisibility } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { A2AInterface } from "../src/a2a-interface";
+
+interface SkillFixture {
+  id: string;
+  visibility: ContentVisibility;
+  metadata: {
+    name: string;
+    description: string;
+    tags: string[];
+    examples: string[];
+  };
+}
 
 describe("agent card excludes non-public skills", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -15,10 +27,10 @@ describe("agent card excludes non-public skills", () => {
   it("includes only public skill entities when building the public agent card", async () => {
     const entityService = harness.getMockShell().getEntityService();
 
-    const skills = [
+    const skills: SkillFixture[] = [
       {
         id: "public-skill",
-        visibility: "public" as const,
+        visibility: "public",
         metadata: {
           name: "Public Skill",
           description: "Public capability",
@@ -28,7 +40,7 @@ describe("agent card excludes non-public skills", () => {
       },
       {
         id: "shared-skill",
-        visibility: "shared" as const,
+        visibility: "shared",
         metadata: {
           name: "Shared Skill",
           description: "Shared capability",
@@ -38,7 +50,7 @@ describe("agent card excludes non-public skills", () => {
       },
       {
         id: "restricted-skill",
-        visibility: "restricted" as const,
+        visibility: "restricted",
         metadata: {
           name: "Restricted Skill",
           description: "Restricted capability",

@@ -43,39 +43,7 @@ Plan:
 - Avoid leaking entity existence through resource listing/completion.
 - Add tests for public/trusted/anchor MCP resource access.
 
-### 3. `outputVisibility` is a scope, not an exact partition
-
-Problem: `reconcileDerivedEntities` reads existing targets with `visibilityScope: outputVisibility`, which returns entities at-or-below that level. A `shared` projection sees public + shared targets and can treat public entries as its own — claiming them as "existing", deleting them as stale, or rewriting their visibility on update.
-
-Relevant files:
-
-- `shell/plugins/src/entity/derived-entity-projection.ts`
-
-Plan:
-
-- After listing at scope, filter to entities whose `visibility === outputVisibility` so each projection operates only on its own partition.
-- Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
-- Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
-
 ## Should fix before merge if scope allows
-
-## Cleanup
-
-### 11. Reduce new casts introduced during tests/mocks
-
-Problem: the branch still adds a few casts in tests/mocks, despite the no-casts preference.
-
-Relevant examples:
-
-- `shell/entity-service/test/entity-visibility.test.ts`
-- `shell/core/test/system/read-tools-visibility.test.ts`
-- `shared/test-utils/src/mock-mcp-service.ts`
-
-Plan:
-
-- Replace response-shape casts with typed helper functions or assertions.
-- Replace invalid DB test cast with a lower-level SQL insert or a dedicated typed test helper.
-- Keep unavoidable framework boundary casts out of production code.
 
 ## Validation
 

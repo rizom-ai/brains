@@ -173,7 +173,7 @@ export function createMockSystemServices(
       visibilityScope?: BaseEntity["visibility"];
     }) => {
       const entity = entities.get(request.id);
-      if (!entity || entity.entityType !== request.entityType) return null;
+      if (entity?.entityType !== request.entityType) return null;
       const scope = request.visibilityScope ?? "public";
       const allowed = new Set(getVisibleContentVisibilities(scope));
       return allowed.has(entity.visibility) ? entity : null;
@@ -195,7 +195,7 @@ export function createMockSystemServices(
     },
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
-    createEntity: async (request: { entity: BaseEntity }) => {
+    createEntity: async (request: { entity: SeedEntity }) => {
       const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
       entities.set(id, {

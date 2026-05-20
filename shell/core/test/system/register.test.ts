@@ -2,8 +2,22 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils";
 import { registerSystemCapabilities } from "../../src/system/register";
 import { createMockSystemServices } from "./mock-services";
+
+// The message bus delivers tool results wrapped as { data: <ToolResponse> }.
+// The inner success response is { success: true, data: { entities: [...] } }.
+const systemListResponseSchema = z.object({
+  data: z.object({
+    success: z.literal(true),
+    data: z.object({
+      entities: z.array(z.unknown()),
+    }),
+  }),
+});
+
+const entityIdsSchema = z.array(z.object({ id: z.string() }).passthrough());
 
 const makeEntity = (id: string, visibility: ContentVisibility): BaseEntity => ({
   id,
@@ -44,8 +58,8 @@ describe("registerSystemCapabilities message bus wiring", () => {
 
   const callSystemList = async (
     userPermissionLevel?: "anchor" | "trusted" | "public",
-  ): Promise<BaseEntity[]> => {
-    const response = await messageBus.send<unknown, { data: unknown }>({
+  ): Promise<string[]> => {
+    const response = await messageBus.send({
       type: "plugin:system:tool:execute",
       payload: {
         toolName: "system_list",
@@ -57,27 +71,27 @@ describe("registerSystemCapabilities message bus wiring", () => {
       sender: "test",
     });
 
-    const inner = (response as { data: unknown }).data as {
-      data: { entities: BaseEntity[] };
-    };
-    return inner.data.entities;
+    const parsed = systemListResponseSchema.parse(response);
+    const entities = entityIdsSchema.parse(parsed.data.data.entities);
+    return entities.map((e) => e.id).sort();
   };
 
   it("propagates anchor userPermissionLevel from message payload to tool context", async () => {
-    const entities = await callSystemList("anchor");
-    const ids = entities.map((e) => e.id).sort();
-    expect(ids).toEqual(["doc-public", "doc-restricted", "doc-shared"]);
+    expect(await callSystemList("anchor")).toEqual([
+      "doc-public",
+      "doc-restricted",
+      "doc-shared",
+    ]);
   });
 
   it("propagates trusted userPermissionLevel from message payload to tool context", async () => {
-    const entities = await callSystemList("trusted");
-    const ids = entities.map((e) => e.id).sort();
-    expect(ids).toEqual(["doc-public", "doc-shared"]);
+    expect(await callSystemList("trusted")).toEqual([
+      "doc-public",
+      "doc-shared",
+    ]);
   });
 
   it("defaults to public scope when userPermissionLevel is absent in payload", async () => {
-    const entities = await callSystemList();
-    const ids = entities.map((e) => e.id).sort();
-    expect(ids).toEqual(["doc-public"]);
+    expect(await callSystemList()).toEqual(["doc-public"]);
   });
 });
