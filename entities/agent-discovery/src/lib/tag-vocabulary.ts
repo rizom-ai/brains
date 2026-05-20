@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AgentAdapter } from "../adapters/agent-adapter";
@@ -39,18 +39,25 @@ function sortVocabulary(a: TagVocabularyEntry, b: TagVocabularyEntry): number {
 
 export async function collectTagVocabulary(
   context: EntityPluginContext,
-  opts: { minCount?: number; topN?: number } = {},
+  opts: {
+    minCount?: number;
+    topN?: number;
+    visibilityScope?: ContentVisibility;
+  } = {},
 ): Promise<TagVocabularyEntry[]> {
   const minCount = opts.minCount ?? 1;
   const topN = opts.topN ?? 12;
+  const visibilityScope: ContentVisibility = opts.visibilityScope ?? "public";
   const counts = new Map<string, number>();
 
   const [skills, agents] = await Promise.all([
     context.entityService.listEntities<SkillEntity>({
       entityType: SKILL_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
     }),
     context.entityService.listEntities<AgentEntity>({
       entityType: AGENT_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
     }),
   ]);
 

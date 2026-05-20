@@ -59,24 +59,6 @@ Plan:
 
 ## Should fix before merge if scope allows
 
-### 9. Make skill derivation visibility explicit
-
-Problem: skills are derived from topics, so unrestricted skill derivation can leak restricted topic evidence into public skill/capability surfaces.
-
-Relevant files:
-
-- `entities/agent-discovery/src/*skill*`
-- `entities/agent-discovery/test/*skill*`
-- topic-to-skill derivation callers/configuration, if separate from agent discovery
-
-Plan:
-
-- Add or document a skill derivation target visibility, defaulting to `public`.
-- Skill derivation should read only topics visible within the configured threshold, and should write/merge/delete only skills at the target visibility partition.
-- A skill must never be more public than the topics used to derive it.
-- Public skill derivation reads public topics and writes public skills; restricted skill derivation may read public + shared + restricted topics but writes restricted skills.
-- Add tests proving public skill derivation excludes shared/restricted topics and does not merge into shared/restricted skill partitions.
-
 ### 10. Make A2A/public capability exposure visibility-scoped
 
 Problem: A2A and remote-agent capability surfaces can expose derived skills/topics. If those surfaces list all skills/topics, restricted derived knowledge can leak through capability descriptions or resource/tool results.

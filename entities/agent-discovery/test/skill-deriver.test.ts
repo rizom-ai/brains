@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
+import { z } from "@brains/utils";
 import {
   buildSkillPrompt,
   deriveSkills,
@@ -8,6 +9,28 @@ import {
 } from "../src/lib/skill-deriver";
 import { SkillAdapter } from "../src/adapters/skill-adapter";
 import type { SkillEntity, SkillFrontmatter } from "../src/schemas/skill";
+
+const listEntitiesRequestSchema = z.object({
+  entityType: z.string(),
+  options: z
+    .object({
+      filter: z
+        .object({
+          visibilityScope: z.string().optional(),
+        })
+        .partial()
+        .optional(),
+    })
+    .partial()
+    .optional(),
+});
+
+const createEntityRequestSchema = z.object({
+  entity: z.object({
+    id: z.string(),
+    visibility: z.string(),
+  }),
+});
 
 const adapter = new SkillAdapter();
 const now = "2026-04-30T00:00:00.000Z";
@@ -31,6 +54,7 @@ function contextForSkills(
   generatedSkills: SkillFrontmatter[],
 ): {
   context: EntityPluginContext;
+  listEntities: ReturnType<typeof mock>;
   createEntity: ReturnType<typeof mock>;
   updateEntity: ReturnType<typeof mock>;
   deleteEntity: ReturnType<typeof mock>;
@@ -38,27 +62,28 @@ function contextForSkills(
   const createEntity = mock(async () => ({ entityId: "created", jobId: "" }));
   const updateEntity = mock(async () => ({ entityId: "updated", jobId: "" }));
   const deleteEntity = mock(async () => true);
+  const listEntities = mock(async (request: { entityType: string }) => {
+    if (request.entityType === "topic") {
+      return [
+        {
+          id: "topic-1",
+          entityType: "topic",
+          content: "---\nname: Topic 1\n---\n",
+          contentHash: "topic-hash",
+          created: now,
+          updated: now,
+          metadata: { name: "Topic 1" },
+        },
+      ];
+    }
+    if (request.entityType === "skill") return existingSkills;
+    if (request.entityType === "agent") return [];
+    return [];
+  });
 
   const context = {
     entityService: {
-      listEntities: mock(async (request: { entityType: string }) => {
-        if (request.entityType === "topic") {
-          return [
-            {
-              id: "topic-1",
-              entityType: "topic",
-              content: "---\nname: Topic 1\n---\n",
-              contentHash: "topic-hash",
-              created: now,
-              updated: now,
-              metadata: { name: "Topic 1" },
-            },
-          ];
-        }
-        if (request.entityType === "skill") return existingSkills;
-        if (request.entityType === "agent") return [];
-        return [];
-      }),
+      listEntities,
       createEntity,
       updateEntity,
       deleteEntity,
@@ -68,7 +93,19 @@ function contextForSkills(
     },
   } as unknown as EntityPluginContext;
 
-  return { context, createEntity, updateEntity, deleteEntity };
+  return { context, listEntities, createEntity, updateEntity, deleteEntity };
+}
+
+function listEntityCalls(
+  spy: ReturnType<typeof mock>,
+): z.infer<typeof listEntitiesRequestSchema>[] {
+  return spy.mock.calls.map((call) => listEntitiesRequestSchema.parse(call[0]));
+}
+
+function createEntityCalls(
+  spy: ReturnType<typeof mock>,
+): z.infer<typeof createEntityRequestSchema>[] {
+  return spy.mock.calls.map((call) => createEntityRequestSchema.parse(call[0]));
 }
 
 describe("deriveSkills", () => {
@@ -146,6 +183,33 @@ describe("deriveSkills", () => {
 
     expect(result.created).toBe(8);
     expect(createEntity).toHaveBeenCalledTimes(8);
+  });
+
+  it("scopes topic listing and stamps skill visibility to targetVisibility", async () => {
+    const { context, listEntities, createEntity } = contextForSkills(
+      [],
+      [
+        {
+          name: "Research",
+          description: "Investigate things",
+          tags: ["research"],
+          examples: ["What should I read?"],
+        },
+      ],
+    );
+
+    await deriveSkills(context, createSilentLogger(), {
+      replaceAll: true,
+      targetVisibility: "shared",
+    });
+
+    const listCalls = listEntityCalls(listEntities);
+    const topicRequest = listCalls.find((call) => call.entityType === "topic");
+    expect(topicRequest?.options?.filter?.visibilityScope).toBe("shared");
+
+    const created = createEntityCalls(createEntity);
+    expect(created[0]?.entity.id).toBe("research-shared");
+    expect(created[0]?.entity.visibility).toBe("shared");
   });
 
   it("deletes stale skills sequentially on replace-all", async () => {

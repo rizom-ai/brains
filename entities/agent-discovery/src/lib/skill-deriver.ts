@@ -1,5 +1,7 @@
 import {
   reconcileDerivedEntities,
+  scopedDerivedId,
+  type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -67,7 +69,7 @@ Return 4-8 skills. Each skill needs:
 export async function deriveSkills(
   context: EntityPluginContext,
   logger: Logger,
-  options?: { replaceAll?: boolean },
+  options?: { replaceAll?: boolean; targetVisibility?: ContentVisibility },
 ): Promise<{
   created: number;
   updated: number;
@@ -75,9 +77,12 @@ export async function deriveSkills(
   skipped: number;
 }> {
   const adapter = new SkillAdapter();
+  const targetVisibility: ContentVisibility =
+    options?.targetVisibility ?? "public";
 
   const topics = await context.entityService.listEntities({
     entityType: "topic",
+    options: { filter: { visibilityScope: targetVisibility } },
   });
   const topicTitles = topics
     .map((t) => {
@@ -100,7 +105,9 @@ export async function deriveSkills(
   const prompt = buildSkillPrompt({
     topicTitles,
     toolDescriptions: [],
-    tagVocabulary: await collectTagVocabulary(context),
+    tagVocabulary: await collectTagVocabulary(context, {
+      visibilityScope: targetVisibility,
+    }),
   });
 
   let skills: SkillFrontmatter[];
@@ -125,8 +132,11 @@ export async function deriveSkills(
     return { created: 0, updated: 0, deleted: 0, skipped: 0 };
   }
 
+  const skillId = (skill: SkillFrontmatter): string =>
+    scopedDerivedId(generateIdFromText(skill.name), targetVisibility);
+
   const desired = new Map(
-    skills.map((skill) => [generateIdFromText(skill.name), skill] as const),
+    skills.map((skill) => [skillId(skill), skill] as const),
   );
   if (desired.size !== skills.length) {
     logger.warn("Dropped skills with duplicate slug ids", {
@@ -141,7 +151,7 @@ export async function deriveSkills(
     context,
     targetType: SKILL_ENTITY_TYPE,
     desired: desired.values(),
-    getId: (skill) => generateIdFromText(skill.name),
+    getId: skillId,
     toEntityInput: (skill, id) => ({
       id,
       entityType: SKILL_ENTITY_TYPE,
@@ -153,6 +163,7 @@ export async function deriveSkills(
       existing.content === adapter.createSkillContent(skill),
     deleteStale: options?.replaceAll ?? false,
     concurrency: 1,
+    outputVisibility: targetVisibility,
     logger,
   });
 
