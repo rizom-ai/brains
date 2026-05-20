@@ -4,6 +4,7 @@ import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils";
 import type { DiscordChatAdapterConfig } from "../src/config";
+import type { ChatAdapterMap, DiscordChatAdapter } from "../src/types";
 import type { Mock } from "bun:test";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
@@ -26,7 +27,7 @@ interface MockAgentService extends HarnessAgentService {
   invalidateAgent: () => void;
 }
 
-interface MockDiscordAdapter {
+interface MockDiscordAdapter extends DiscordChatAdapter {
   name: "discord";
   startGatewayListener: Mock<() => Promise<Response>>;
   handleWebhook: Mock<() => Promise<Response>>;
@@ -51,7 +52,7 @@ const createMemoryStateMock = mock(() => ({
 }));
 
 interface MockChatSdkConfig {
-  adapters: Record<string, unknown>;
+  adapters: ChatAdapterMap;
   userName?: string;
 }
 
@@ -78,19 +79,22 @@ class MockChatSdk {
     messagePatterns: [],
     subscribedMessages: [],
   };
-  readonly webhooks = {
-    discord: mock(() => Promise.resolve(new Response("webhook ok"))),
+  readonly webhooks: {
+    discord?: Mock<(request: Request) => Promise<Response>>;
   };
   initialize = mock(() => Promise.resolve());
   shutdown = mock(() => Promise.resolve());
 
   constructor(config: MockChatSdkConfig) {
     this.config = config;
+    this.webhooks = config.adapters.discord
+      ? {
+          discord: mock((_request: Request) =>
+            Promise.resolve(new Response("webhook ok")),
+          ),
+        }
+      : {};
     MockChatSdk.instances.push(this);
-  }
-
-  getAdapter(name: string): unknown {
-    return this.config.adapters[name];
   }
 
   onDirectMessage(
@@ -135,17 +139,18 @@ const { ChatInterface } = await import("../src/chat-interface");
 
 type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
 
+interface MockSentMessage {
+  id: string;
+  edit: Mock<(newContent: string) => Promise<MockSentMessage>>;
+}
+
 interface MockThread {
   id: string;
   channelId: string;
   isDM: boolean;
   adapter: { name: string };
   subscribe: Mock<() => Promise<void>>;
-  post: Mock<
-    (
-      message: string,
-    ) => Promise<{ id: string; edit: Mock<() => Promise<void>> }>
-  >;
+  post: Mock<(message: string) => Promise<MockSentMessage>>;
   startTyping: Mock<() => Promise<void>>;
 }
 
@@ -190,6 +195,14 @@ function createAgentService(): MockAgentService {
   };
 }
 
+function createSentMessage(id = "sent-123"): MockSentMessage {
+  const sentMessage: MockSentMessage = {
+    id,
+    edit: mock((_newContent: string) => Promise.resolve(sentMessage)),
+  };
+  return sentMessage;
+}
+
 function createThread(overrides: Partial<MockThread> = {}): MockThread {
   return {
     id: "discord:guild-123:channel-123:thread-456",
@@ -197,9 +210,7 @@ function createThread(overrides: Partial<MockThread> = {}): MockThread {
     isDM: false,
     adapter: { name: "discord" },
     subscribe: mock(() => Promise.resolve()),
-    post: mock((_message: string) =>
-      Promise.resolve({ id: "sent-123", edit: mock(() => Promise.resolve()) }),
-    ),
+    post: mock((_message: string) => Promise.resolve(createSentMessage())),
     startTyping: mock(() => Promise.resolve()),
     ...overrides,
   };
@@ -404,6 +415,54 @@ describe("ChatInterface", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
+  it("routes unmentioned channel messages when Discord mention gating is disabled", async () => {
+    const plugin = createPlugin({ requireMention: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const message = createMessage({
+      text: "No mention needed",
+      isMention: false,
+    });
+
+    const catchAllHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(message.text),
+    );
+    await catchAllHandler?.handler(thread, message);
+
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "No mention needed",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("routes unmentioned URLs as chat when Discord mention gating is disabled", async () => {
+    const plugin = createPlugin({ requireMention: false, captureUrls: true });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const message = createMessage({
+      text: "Discuss https://example.com/a",
+      isMention: false,
+    });
+
+    for (const entry of chat?.handlers.messagePatterns ?? []) {
+      if (entry.pattern.test(message.text)) {
+        await entry.handler(thread, message);
+      }
+    }
+
+    expect(agentService.chat).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Discuss https://example.com/a",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
   it("does not capture blocked URL domains", async () => {
     const plugin = createPlugin({ blockedUrlDomains: ["example.com"] });
     await harness.installPlugin(plugin);
@@ -596,6 +655,71 @@ describe("ChatInterface", () => {
       true,
     );
     expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
+  });
+
+  it("edits tracked Discord agent responses when async jobs complete", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-123" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: string) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await harness.sendMessage("job-progress", {
+      id: "job-123",
+      type: "job",
+      status: "completed",
+      message: "Done",
+      metadata: {
+        rootJobId: "job-123",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledWith(
+      "✅ **content operations: Site** completed\nDone",
+    );
+  });
+
+  it("delegates Discord webhook routes to Chat SDK", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find((candidate) => candidate.path === "/api/webhooks/chat/discord");
+
+    const response = await route?.handler(
+      new Request("https://brain.test/hook"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.text()).toBe("webhook ok");
+    expect(MockChatSdk.instances[0]?.webhooks.discord).toHaveBeenCalled();
+  });
+
+  it("returns 404 from Discord webhook route when no Discord adapter is configured", async () => {
+    const plugin = new ChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find((candidate) => candidate.path === "/api/webhooks/chat/discord");
+
+    const response = await route?.handler(
+      new Request("https://brain.test/hook"),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Discord chat webhook not configured");
   });
 
   it("registers an abortable Discord gateway daemon", async () => {

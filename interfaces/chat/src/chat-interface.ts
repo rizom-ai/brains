@@ -4,7 +4,13 @@ import {
   type InterfacePluginContext,
   type PermissionLookupContext,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth, WebRouteDefinition } from "@brains/plugins";
+import type {
+  Daemon,
+  DaemonHealth,
+  JobContext,
+  JobProgressEvent,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { Chat, type Message, type SentMessage, type Thread } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
@@ -15,28 +21,25 @@ import {
   type DiscordChatAdapterConfig,
 } from "./config";
 import { ThreadRegistry } from "./thread-registry";
+import { CHAT_PLATFORMS } from "./types";
+import type {
+  ChatAdapterMap,
+  ChatPlatform,
+  ChatWebhookMap,
+  DiscordChatAdapter,
+} from "./types";
 import packageJson from "../package.json";
 
 const URL_PATTERN = /https?:\/\/\S+/i;
-const PLATFORM_MESSAGE_LIMITS: Partial<Record<string, number>> = {
+const ANY_MESSAGE_PATTERN = /[\s\S]+/;
+const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
-
-interface GatewayDiscordAdapter {
-  startGatewayListener(
-    options: { waitUntil: (task: Promise<unknown>) => void },
-    durationMs?: number,
-    abortSignal?: AbortSignal,
-    webhookUrl?: string,
-  ): Promise<Response>;
-}
 
 interface ChatSdkApp {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
-  webhooks?: {
-    discord?: (request: Request) => Promise<Response>;
-  };
+  webhooks?: ChatWebhookMap;
   onDirectMessage(
     handler: (thread: Thread, message: Message) => Promise<void>,
   ): void;
@@ -58,7 +61,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private app: ChatSdkApp | undefined;
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingConfirmations = new Map<string, boolean>();
-  private discordGatewayAdapter: GatewayDiscordAdapter | undefined;
+  private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private gatewayAbortController: AbortController | undefined;
   private gatewayLoopPromise: Promise<void> | undefined;
 
@@ -122,14 +125,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const thread = this.threadRegistry.get(channelId);
     if (!thread) return;
     for (const chunk of this.chunkForChannel(channelId, message)) {
-      thread
-        .post(chunk)
-        .catch((error: unknown) =>
-          this.logger.error("Failed to send chat message", {
-            error,
-            channelId,
-          }),
-        );
+      thread.post(chunk).catch((error: unknown) =>
+        this.logger.error("Failed to send chat message", {
+          error,
+          channelId,
+        }),
+      );
     }
   }
 
@@ -174,10 +175,42 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return true;
   }
 
+  protected override async handleProgressEvent(
+    event: JobProgressEvent,
+    context: JobContext,
+  ): Promise<void> {
+    const interfaceType = event.metadata.interfaceType;
+    if (interfaceType && interfaceType !== this.id) {
+      if (!this.isEnabledPlatform(interfaceType)) return;
+      const routedEvent: JobProgressEvent = {
+        ...event,
+        metadata: {
+          ...event.metadata,
+          interfaceType: this.id,
+        },
+      };
+      await super.handleProgressEvent(routedEvent, routedEvent.metadata);
+      return;
+    }
+
+    await super.handleProgressEvent(event, context);
+  }
+
+  private isEnabledPlatform(interfaceType: string): boolean {
+    return interfaceType === "discord" && Boolean(this.config.adapters.discord);
+  }
+
   private chunkForChannel(channelId: string | null, message: string): string[] {
-    const platform = channelId?.split(":")[0];
+    const platform = this.parseChatPlatform(channelId);
     const limit = platform ? PLATFORM_MESSAGE_LIMITS[platform] : undefined;
     return limit ? chunkMessage(message, limit) : [message];
+  }
+
+  private parseChatPlatform(
+    channelId: string | null,
+  ): ChatPlatform | undefined {
+    const platform = channelId?.split(":")[0];
+    return CHAT_PLATFORMS.find((candidate) => candidate === platform);
   }
 
   private createChatApp(): ChatSdkApp {
@@ -200,7 +233,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     return new Chat({
       userName: this.config.userName,
-      adapters: { discord: discordAdapter },
+      adapters: { discord: discordAdapter } satisfies ChatAdapterMap,
       state: createMemoryState(),
     });
   }
@@ -220,6 +253,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     app.onSubscribedMessage(async (thread, message) => {
       await this.handleRoutedMessage(thread, message);
     });
+
+    if (
+      this.config.adapters.discord &&
+      !this.config.adapters.discord.requireMention
+    ) {
+      app.onNewMessage(ANY_MESSAGE_PATTERN, async (thread, message) => {
+        await this.handleRoutedMessage(thread, message);
+      });
+    }
 
     app.onNewMessage(URL_PATTERN, async (thread, message) => {
       await this.handlePassiveUrlCapture(thread, message);
@@ -361,6 +403,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (platform !== "discord") return;
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig?.captureUrls) return;
+    if (!platformConfig.requireMention) return;
     if (!this.isAllowedChannel(thread, platformConfig)) return;
     if (message.isMention) return;
 
