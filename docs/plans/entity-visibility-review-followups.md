@@ -57,21 +57,6 @@ Plan:
 - Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
 - Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
 
-### 6. Directory sync silently public-only
-
-Problem: `sync/export/cleanup` listing paths don't pass `visibilityScope`, so they default to public. With non-public entities present, sync misses them entirely.
-
-Relevant files:
-
-- `plugins/directory-sync/src/lib/import-persistence.ts`
-- `plugins/directory-sync/src/lib/export-pipeline.ts`
-- `plugins/directory-sync/src/lib/cleanup-pipeline.ts`
-
-Plan:
-
-- Opt up via `internalFullScope("...")` at each pipeline's entity-listing callsite — sync is system-internal indexing, no user surface.
-- Add tests proving non-public entities reach the sync pipeline.
-
 ### 7. System mutation/extract tools still need caller scope
 
 Problem: `entity-cover-tool.ts` and `entity-extract-tool.ts` resolve entities without passing the caller's permission level. Trusted/anchor callers can't operate on non-public entities through these tools.

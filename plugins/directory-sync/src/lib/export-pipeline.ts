@@ -1,5 +1,6 @@
 import { getErrorMessage } from "@brains/utils";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ExportResult } from "../types";
 import type { FileOperations } from "./file-operations";
@@ -36,6 +37,11 @@ export async function exportEntities(
       entityType: entityType,
       options: {
         limit: 1000,
+        filter: {
+          visibilityScope: internalFullScope(
+            "directory sync exports entities across all visibility tiers",
+          ),
+        },
       },
     });
 

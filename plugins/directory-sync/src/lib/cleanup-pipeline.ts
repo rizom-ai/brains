@@ -1,4 +1,5 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, ContentVisibility } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import type { CleanupResult } from "../types";
 import {
   createCleanupResult,
@@ -14,7 +15,10 @@ export interface CleanupPipelineDeps {
     getEntityTypes(): string[];
     listEntities(request: {
       entityType: string;
-      options?: { limit?: number };
+      options?: {
+        limit?: number;
+        filter?: { visibilityScope?: ContentVisibility };
+      };
     }): Promise<BaseEntity[]>;
     deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
   };
@@ -53,6 +57,11 @@ export async function removeOrphanedEntities(
       entityType,
       options: {
         limit: 1000,
+        filter: {
+          visibilityScope: internalFullScope(
+            "directory sync cleanup spans all visibility tiers",
+          ),
+        },
       },
     });
 

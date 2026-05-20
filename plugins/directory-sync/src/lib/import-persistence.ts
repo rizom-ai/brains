@@ -1,4 +1,5 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -27,6 +28,9 @@ export async function persistImportEntity(
     const existing = await deps.entityService.getEntity({
       entityType: rawEntity.entityType,
       id: rawEntity.id,
+      visibilityScope: internalFullScope(
+        "directory sync indexes entities across all visibility tiers",
+      ),
     });
 
     if (

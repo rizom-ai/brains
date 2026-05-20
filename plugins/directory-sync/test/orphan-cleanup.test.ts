@@ -121,6 +121,27 @@ describe("removeOrphanedEntities", () => {
     expect(result.errors[0]?.error).toContain("DB connection lost");
   });
 
+  it("should list entities across all visibility tiers (sync is system-internal)", async () => {
+    const orphan = createTestEntity("social-post", { id: "deleted-post" });
+    const deps = createMockDeps({
+      entities: { "social-post": [orphan] },
+      existingFiles: new Set(),
+    });
+
+    await removeOrphanedEntities(deps);
+
+    expect(deps.entityService.listEntities).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "social-post",
+        options: expect.objectContaining({
+          filter: expect.objectContaining({
+            visibilityScope: "restricted",
+          }),
+        }),
+      }),
+    );
+  });
+
   it("should use configured entityTypes when provided", async () => {
     const post = createTestEntity("social-post", { id: "post-1" });
     const blog = createTestEntity("blog-post", { id: "blog-1" });
