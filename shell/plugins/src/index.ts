@@ -134,8 +134,10 @@ export {
   BaseEntityAdapter,
   baseEntitySchema,
   contentVisibilitySchema,
+  internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,
+  scopedDerivedId,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";

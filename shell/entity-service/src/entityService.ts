@@ -269,14 +269,22 @@ export class EntityService implements IEntityService {
   public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
   ): Promise<T | null> {
-    const { entityType, id } = request;
-    const entity = await this.getEntityRaw<T>({ entityType, id });
+    const { entityType, id, visibilityScope } = request;
+    const entity = await this.getEntityRaw<T>({
+      entityType,
+      id,
+      ...(visibilityScope !== undefined && { visibilityScope }),
+    });
     if (!entity) {
       return null;
     }
 
     if (shouldResolveContent(entityType) && entity.content) {
-      const result = await this.contentResolver.resolve(entity.content, this);
+      const result = await this.contentResolver.resolve(
+        entity.content,
+        this,
+        visibilityScope,
+      );
       if (result.resolvedCount > 0) {
         return { ...entity, content: result.content };
       }
@@ -288,8 +296,12 @@ export class EntityService implements IEntityService {
   public async getEntityRaw<T extends BaseEntity>(
     request: GetEntityRawRequest,
   ): Promise<T | null> {
-    const { entityType, id } = request;
-    const entityData = await this.entityQueries.getEntityData(entityType, id);
+    const { entityType, id, visibilityScope } = request;
+    const entityData = await this.entityQueries.getEntityData(
+      entityType,
+      id,
+      visibilityScope,
+    );
     if (!entityData) {
       return null;
     }

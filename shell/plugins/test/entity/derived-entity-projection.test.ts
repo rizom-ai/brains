@@ -1,115 +1,119 @@
 import { describe, expect, it, mock } from "bun:test";
+import { isVisibleWithinScope } from "../../src";
 import type { BaseEntity, EntityPluginContext } from "../../src";
 import {
   hasPersistedTargets,
   reconcileDerivedEntities,
   registerDerivedEntityProjection,
 } from "../../src/entity/derived-entity-projection";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createEntityPluginContext } from "../../src/entity/context";
 
-type Handler = (message: { payload: unknown }) => Promise<{ success: boolean }>;
+interface CapturedListRequest {
+  entityType: string;
+  options?: {
+    limit?: number;
+    filter?: {
+      visibilityScope?: BaseEntity["visibility"];
+    };
+  };
+}
+
+interface CapturedDeleteRequest {
+  entityType: string;
+  id: string;
+}
+
+interface CapturedMutationEntity {
+  id: string | undefined;
+  visibility: BaseEntity["visibility"] | "private" | undefined;
+}
+
+interface ProjectionContext extends EntityPluginContext {
+  captured: {
+    listEntities: CapturedListRequest[];
+    createdEntities: CapturedMutationEntity[];
+    updatedEntities: CapturedMutationEntity[];
+    deletedEntities: CapturedDeleteRequest[];
+  };
+}
 
 function createProjectionContext(options?: {
   listEntities?: Record<string, BaseEntity[]>;
-}): EntityPluginContext & { handlers: Map<string, Handler[]> } {
-  const handlers = new Map<string, Handler[]>();
+}): ProjectionContext {
+  const logger = createSilentLogger("projection-test");
+  const shell = createMockShell({ logger });
+  const baseContext = createEntityPluginContext(shell, "projection-test");
   const listEntities = options?.listEntities ?? {};
+  shell.addEntities(Object.values(listEntities).flat());
+  const captured: ProjectionContext["captured"] = {
+    listEntities: [],
+    createdEntities: [],
+    updatedEntities: [],
+    deletedEntities: [],
+  };
+
+  const listEntitiesForContext: EntityPluginContext["entityService"]["listEntities"] =
+    async <T extends BaseEntity>(request: CapturedListRequest) => {
+      captured.listEntities.push(request);
+      const results = await baseContext.entityService.listEntities<T>(request);
+      const visibilityScope = request.options?.filter?.visibilityScope;
+      if (!visibilityScope) return results;
+      return results.filter((entity) =>
+        isVisibleWithinScope(entity.visibility, visibilityScope),
+      );
+    };
+
+  const createEntityForContext: EntityPluginContext["entityService"]["createEntity"] =
+    async (request) => {
+      captured.createdEntities.push({
+        id: request.entity.id,
+        visibility: request.entity.visibility,
+      });
+      return baseContext.entityService.createEntity(request);
+    };
+
+  const updateEntityForContext: EntityPluginContext["entityService"]["updateEntity"] =
+    async (request) => {
+      captured.updatedEntities.push({
+        id: request.entity.id,
+        visibility: request.entity.visibility,
+      });
+      return baseContext.entityService.updateEntity(request);
+    };
+
+  const deleteEntityForContext: EntityPluginContext["entityService"]["deleteEntity"] =
+    async (request) => {
+      captured.deletedEntities.push(request);
+      return baseContext.entityService.deleteEntity(request);
+    };
 
   return {
-    pluginId: "projection-test",
-    logger: createSilentLogger("projection-test"),
-    dataDir: "/tmp/projection-test",
-    domain: undefined,
-    siteUrl: undefined,
-    localSiteUrl: undefined,
-    previewUrl: undefined,
-    preferLocalUrls: false,
-    entityDisplay: undefined,
-    appInfo: mock(() =>
-      Promise.resolve({
-        version: "0.0.0",
-        model: "test-model",
-        uptime: 0,
-        entities: 0,
-        embeddings: 0,
-        ai: {
-          model: "test-model",
-          embeddingModel: "test-embedding-model",
-        },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
-      }),
-    ),
+    ...baseContext,
     entityService: {
-      listEntities: mock((request: { entityType: string }) =>
-        Promise.resolve(listEntities[request.entityType] ?? []),
-      ),
-      createEntity: mock(() => Promise.resolve({ entityId: "created" })),
-      updateEntity: mock(() => Promise.resolve({ entityId: "updated" })),
-      deleteEntity: mock(() => Promise.resolve(true)),
+      ...baseContext.entityService,
+      listEntities: listEntitiesForContext,
+      createEntity: createEntityForContext,
+      updateEntity: updateEntityForContext,
+      deleteEntity: deleteEntityForContext,
       getEntityTypes: mock(() => Object.keys(listEntities)),
     },
-    entities: {
-      register: mock(() => {}),
-      getAdapter: mock(() => undefined),
-      extendFrontmatterSchema: mock(() => {}),
-      getEffectiveFrontmatterSchema: mock(() => undefined),
-      update: mock(() => Promise.resolve({ entityId: "id", jobId: "job" })),
-      registerDataSource: mock(() => {}),
-      registerCreateInterceptor: mock(() => {}),
-    },
-    ai: {
-      query: mock(() => Promise.resolve({ message: "" })),
-      generate: mock(() => Promise.resolve({})),
-      generateObject: mock(() => Promise.resolve({ object: {} })),
-      generateImage: mock(() =>
-        Promise.resolve({ base64: "", dataUrl: "data:image/png;base64," }),
-      ),
-      canGenerateImages: mock(() => false),
-    },
-    prompts: {
-      resolve: mock((_target: string, fallback: string) =>
-        Promise.resolve(fallback),
-      ),
-    },
-    identity: {
-      get: mock(() => ({ name: "Test", values: [] })),
-      getProfile: mock(() => ({ name: "Test", role: "", purpose: "" })),
-      getAppInfo: mock(() =>
-        Promise.resolve({ version: "0.0.0", plugins: [] }),
-      ),
-    },
-    messaging: {
-      send: mock(() => Promise.resolve(undefined)),
-      subscribe: mock((channel: string, handler: Handler) => {
-        const existing = handlers.get(channel) ?? [];
-        existing.push(handler);
-        handlers.set(channel, existing);
-        return () => {};
-      }),
-    },
     jobs: {
+      ...baseContext.jobs,
       enqueue: mock(() => Promise.resolve("job-id")),
       enqueueBatch: mock(() => Promise.resolve("batch-id")),
       registerHandler: mock(() => {}),
-      getStatus: mock(() => Promise.resolve(null)),
-      getActiveJobs: mock(() => Promise.resolve([])),
-      getActiveBatches: mock(() => Promise.resolve([])),
-      getBatchStatus: mock(() => Promise.resolve(null)),
     },
-    conversations: {
-      get: mock(() => Promise.resolve(null)),
-      search: mock(() => Promise.resolve([])),
-      list: mock(() => Promise.resolve([])),
-      getMessages: mock(() => Promise.resolve([])),
-      countMessages: mock(() => Promise.resolve(0)),
-    },
-    eval: { registerHandler: mock(() => {}) },
-    insights: { register: mock(() => {}) },
-    endpoints: { register: mock(() => {}) },
-    handlers,
-  } as unknown as EntityPluginContext & { handlers: Map<string, Handler[]> };
+    captured,
+  };
+}
+
+async function sendMessage(
+  context: EntityPluginContext,
+  type: string,
+  payload: unknown,
+): Promise<void> {
+  await context.messaging.send({ type, payload });
 }
 
 function entity(
@@ -128,6 +132,25 @@ function entity(
   };
 }
 
+function parseReasonData(data: unknown): { reason: string } | null {
+  if (typeof data !== "object" || data === null) return null;
+  if (!("reason" in data) || typeof data.reason !== "string") return null;
+  return { reason: data.reason };
+}
+
+function getConversationId(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  if (!("conversationId" in payload)) return undefined;
+  return typeof payload.conversationId === "string"
+    ? payload.conversationId
+    : undefined;
+}
+
+function getMetadataName(entity: BaseEntity): string | undefined {
+  const name = entity.metadata["name"];
+  return typeof name === "string" ? name : undefined;
+}
+
 describe("derived entity projections", () => {
   it("registers a job handler and queues initial sync once instead of running inline", async () => {
     const context = createProjectionContext();
@@ -143,7 +166,7 @@ describe("derived entity projections", () => {
           type: "derive",
           handler: {
             process,
-            validateAndParse: (data) => data as { reason: string },
+            validateAndParse: parseReasonData,
           },
         },
         initialSync: {
@@ -165,11 +188,8 @@ describe("derived entity projections", () => {
       expect.any(Object),
     );
 
-    const handler = context.handlers.get("sync:initial:completed")?.[0];
-    expect(handler).toBeDefined();
-
-    await handler?.({ payload: {} });
-    await handler?.({ payload: {} });
+    await sendMessage(context, "sync:initial:completed", {});
+    await sendMessage(context, "sync:initial:completed", {});
 
     expect(controller.hasObservedInitialSync()).toBe(true);
     expect(controller.hasQueuedInitialSync()).toBe(true);
@@ -213,12 +233,11 @@ describe("derived entity projections", () => {
       },
     );
 
-    const handler = context.handlers.get("sync:initial:completed")?.[0];
-    await handler?.({ payload: {} });
+    await sendMessage(context, "sync:initial:completed", {});
 
-    expect(context.entityService.listEntities).toHaveBeenCalledWith({
+    expect(context.captured.listEntities).toContainEqual({
       entityType: "derived",
-      options: { limit: 1 },
+      options: { limit: 1, filter: { visibilityScope: "public" } },
     });
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
@@ -260,17 +279,22 @@ describe("derived entity projections", () => {
       },
     );
 
-    const changeHandler = context.handlers.get("entity:updated")?.[0];
-    expect(changeHandler).toBeDefined();
-
-    await changeHandler?.({ payload: { entityType: "source", entityId: "a" } });
+    await sendMessage(context, "entity:updated", {
+      entityType: "source",
+      entityId: "a",
+    });
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
 
-    const initialHandler = context.handlers.get("sync:initial:completed")?.[0];
-    await initialHandler?.({ payload: {} });
+    await sendMessage(context, "sync:initial:completed", {});
 
-    await changeHandler?.({ payload: { entityType: "other", entityId: "x" } });
-    await changeHandler?.({ payload: { entityType: "source", entityId: "a" } });
+    await sendMessage(context, "entity:updated", {
+      entityType: "other",
+      entityId: "x",
+    });
+    await sendMessage(context, "entity:updated", {
+      entityType: "source",
+      entityId: "a",
+    });
 
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
     expect(context.jobs.enqueue).toHaveBeenCalledWith({
@@ -307,17 +331,15 @@ describe("derived entity projections", () => {
           events: ["conversation:messageAdded"],
           jobData: (payload) => ({
             reason: "message-added",
-            conversationId: (payload as { conversationId?: string })
-              .conversationId,
+            conversationId: getConversationId(payload),
           }),
         },
       },
     );
 
-    const handler = context.handlers.get("conversation:messageAdded")?.[0];
-    expect(handler).toBeDefined();
-
-    await handler?.({ payload: { conversationId: "conv-1" } });
+    await sendMessage(context, "conversation:messageAdded", {
+      conversationId: "conv-1",
+    });
 
     expect(context.jobs.enqueue).toHaveBeenCalledWith({
       type: "summary:project",
@@ -353,7 +375,7 @@ describe("derived entity projections", () => {
       }),
       equals: (existing, desired) =>
         existing.content === `content:${desired.id}` &&
-        (existing.metadata as { name?: string }).name === desired.name,
+        getMetadataName(existing) === desired.name,
       deleteStale: true,
       concurrency: 1,
     });
@@ -364,11 +386,162 @@ describe("derived entity projections", () => {
       deleted: 1,
       skipped: 1,
     });
-    expect(context.entityService.deleteEntity).toHaveBeenCalledWith({
+    expect(context.captured.deletedEntities).toContainEqual({
       entityType: "derived",
       id: "stale",
     });
-    expect(context.entityService.updateEntity).toHaveBeenCalledTimes(1);
-    expect(context.entityService.createEntity).toHaveBeenCalledTimes(1);
+    expect(context.captured.updatedEntities).toHaveLength(1);
+    expect(context.captured.createdEntities).toHaveLength(1);
+  });
+
+  it("looks up existing targets at the declared outputVisibility scope", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [{ ...entity("shared-target"), visibility: "shared" }],
+      },
+    });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "shared-target", name: "still-here" }],
+      getId: (item) => item.id,
+      toEntityInput: (item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: { name: item.name },
+      }),
+      equals: () => false,
+      deleteStale: true,
+      outputVisibility: "shared",
+      concurrency: 1,
+    });
+
+    expect(context.captured.listEntities).toContainEqual({
+      entityType: "derived",
+      options: { filter: { visibilityScope: "shared" } },
+    });
+  });
+
+  it("defaults to public scope when no outputVisibility is declared", async () => {
+    const context = createProjectionContext({
+      listEntities: { derived: [] },
+    });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [],
+      getId: (item: { id: string }) => item.id,
+      toEntityInput: (_item, id) => ({
+        id,
+        entityType: "derived",
+        content: "",
+        metadata: {},
+      }),
+      concurrency: 1,
+    });
+
+    expect(context.captured.listEntities).toContainEqual({
+      entityType: "derived",
+      options: { filter: { visibilityScope: "public" } },
+    });
+  });
+
+  it("stamps outputVisibility on every created entity", async () => {
+    const context = createProjectionContext({ listEntities: { derived: [] } });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "new-target", name: "fresh" }],
+      getId: (item) => item.id,
+      toEntityInput: (item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: { name: item.name },
+      }),
+      outputVisibility: "shared",
+      concurrency: 1,
+    });
+
+    expect(context.captured.createdEntities).toContainEqual({
+      id: "new-target",
+      visibility: "shared",
+    });
+  });
+
+  it("stamps outputVisibility on every updated entity", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [{ ...entity("existing"), visibility: "shared" }],
+      },
+    });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "existing", name: "updated" }],
+      getId: (item) => item.id,
+      toEntityInput: (item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: { name: item.name },
+      }),
+      equals: () => false,
+      outputVisibility: "shared",
+      concurrency: 1,
+    });
+
+    expect(context.captured.updatedEntities).toContainEqual({
+      id: "existing",
+      visibility: "shared",
+    });
+  });
+
+  it("overrides any visibility that toEntityInput tried to set", async () => {
+    const context = createProjectionContext({ listEntities: { derived: [] } });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "tries-to-be-public" }],
+      getId: (item) => item.id,
+      toEntityInput: (_item, id) => ({
+        id,
+        entityType: "derived",
+        content: "",
+        metadata: {},
+        visibility: "public",
+      }),
+      outputVisibility: "restricted",
+      concurrency: 1,
+    });
+
+    expect(context.captured.createdEntities).toContainEqual({
+      id: "tries-to-be-public",
+      visibility: "restricted",
+    });
+  });
+
+  it("hasPersistedTargets uses the declared outputVisibility scope", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [{ ...entity("restricted-target"), visibility: "restricted" }],
+      },
+    });
+
+    const result = await hasPersistedTargets(context, "derived", {
+      outputVisibility: "restricted",
+    });
+
+    expect(result).toBe(true);
+    expect(context.captured.listEntities).toContainEqual({
+      entityType: "derived",
+      options: { limit: 1, filter: { visibilityScope: "restricted" } },
+    });
   });
 });

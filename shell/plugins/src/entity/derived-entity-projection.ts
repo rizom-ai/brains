@@ -167,13 +167,20 @@ function getProjectionSourceType(
 export async function hasPersistedTargets(
   context: EntityPluginContext,
   targetType: string,
-  options?: { visibility?: ContentVisibility },
+  options?: {
+    visibility?: ContentVisibility;
+    outputVisibility?: ContentVisibility;
+  },
 ): Promise<boolean> {
+  // Default fails closed to "public" — projections that own non-public
+  // targets must declare outputVisibility at the callsite.
+  const outputVisibility: ContentVisibility =
+    options?.outputVisibility ?? "public";
   const existing = await context.entityService.listEntities({
     entityType: targetType,
     options:
       options?.visibility === undefined
-        ? { limit: 1 }
+        ? { limit: 1, filter: { visibilityScope: outputVisibility } }
         : { filter: { visibilityScope: options.visibility } },
   });
   return options?.visibility === undefined
@@ -192,6 +199,13 @@ export interface ReconcileDerivedEntitiesOptions<
   toEntityInput: (desired: TDesired, id: string) => EntityInput<TEntity>;
   equals?: (existing: TEntity, desired: TDesired) => boolean;
   deleteStale?: boolean;
+  /**
+   * Visibility this projection writes its outputs at. The reconciler reads
+   * existing targets at this scope and stamps `visibility = outputVisibility`
+   * on every entity it creates or updates — `toEntityInput` should not set
+   * visibility itself; if it does, the runner overrides. Defaults to "public".
+   */
+  outputVisibility?: ContentVisibility;
   /** Bounded concurrency for create/update/delete. Default 1 — derivation usually fans out DB mutations and message-bus side effects. */
   concurrency?: number;
   /** @deprecated Use concurrency. */
@@ -217,6 +231,7 @@ export async function reconcileDerivedEntities<
   toEntityInput,
   equals,
   deleteStale = false,
+  outputVisibility = "public",
   concurrency,
   deleteConcurrency,
   logger,
@@ -231,6 +246,7 @@ export async function reconcileDerivedEntities<
 
   const existing = await context.entityService.listEntities<TEntity>({
     entityType: targetType,
+    options: { filter: { visibilityScope: outputVisibility } },
   });
   const existingById = new Map(existing.map((entity) => [entity.id, entity]));
 
@@ -257,7 +273,7 @@ export async function reconcileDerivedEntities<
 
   for (const [id, item] of desiredById) {
     const existingEntity = existingById.get(id);
-    const input = toEntityInput(item, id);
+    const input = { ...toEntityInput(item, id), visibility: outputVisibility };
 
     try {
       if (!existingEntity) {
@@ -276,6 +292,7 @@ export async function reconcileDerivedEntities<
         ...input,
         id,
         entityType: targetType,
+        visibility: outputVisibility,
       };
       await context.entityService.updateEntity({ entity: updatedEntity });
       updated++;

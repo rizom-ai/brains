@@ -1,6 +1,7 @@
 import {
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
+  permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
@@ -66,12 +67,17 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     "update",
     "Update an entity's fields or content. Requires confirmation.",
     updateInputSchema,
-    async (input) => {
+    async (input, context) => {
+      const visibilityScope = permissionToVisibilityScope(
+        context.userPermissionLevel,
+      );
       const resolved = await resolveEntityOrError(
         entityService,
         input.entityType,
         input.id,
         logger,
+        undefined,
+        visibilityScope,
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;

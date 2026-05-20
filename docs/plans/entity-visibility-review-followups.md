@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft follow-up plan from review of `feat/entity-visibility-derived-scope` against `docs/plans/entity-visibility-and-derived-scope.md`.
+Open follow-ups for `feat/entity-visibility-derived-scope` against `docs/plans/entity-visibility-and-derived-scope.md`. Completed items have been pruned.
 
 ## Goal
 
@@ -10,76 +10,7 @@ Close the remaining gaps before merging canonical entity visibility, especially 
 
 ## Must fix before merge
 
-### 1. Make hydrated `BaseEntity.visibility` required ✅
-
-Problem: runtime code normalizes visibility, but the TypeScript interface still marks `BaseEntity.visibility` optional. The intended contract is: raw create/import/markdown inputs may omit visibility, while hydrated runtime/DB entities always carry normalized canonical visibility.
-
-Relevant files:
-
-- `shell/entity-service/src/types.ts`
-- `shell/entity-service/src/entity-data.ts`
-- entity/test fixtures that construct full `BaseEntity` values directly
-
-Plan:
-
-- Change `BaseEntity.visibility` to required.
-- Change `EntityData.visibility` to required.
-- Keep `EntityInput.visibility` optional and typed as `RawContentVisibility`.
-- Keep adapter `fromMarkdown()`/deserialize flows partial so raw markdown can omit visibility.
-- Ensure all hydrate/reconstruct paths normalize missing/legacy visibility to `"public"`.
-- Preserve public base note round-trip: required runtime `visibility: "public"` must still serialize with no `visibility:` frontmatter.
-- Update fixtures/tests to include `visibility: "public"` or use helpers that default it.
-
-### 2. Keep topic merging within the target visibility boundary ✅
-
-Problem: topic extraction uses `extractionVisibility` as a read threshold, but topic writes must stay partitioned by target visibility. A restricted extraction may read public + shared + restricted sources, but it must not merge restricted-derived evidence into a public/shared topic and preserve that topic's broader visibility.
-
-Relevant files:
-
-- `entities/topics/src/lib/topic-batch-extractor.ts`
-- `entities/topics/src/lib/topic-service.ts`
-
-Plan:
-
-- Treat `extractionVisibility` as both the maximum source visibility to read and the target topic visibility to write.
-- Add same-visibility candidate filtering for topic merge candidates.
-- Ensure `applySynthesizedMerge()`/`updateTopic()` cannot broaden restricted/shared-derived content into public topics.
-- Allow same-name public/shared/restricted topic partitions to coexist when needed.
-- Add tests for public, shared, and restricted extraction when matching topics already exist at other visibilities.
-
-### 3. Prevent existing topic titles from leaking across visibility boundaries ✅
-
-Problem: `listExistingTopicTitles()` lists existing topic titles without visibility filtering and injects them into extraction prompts.
-
-Relevant files:
-
-- `entities/topics/src/lib/extraction-prompt.ts`
-- `entities/topics/src/lib/topic-batch-extractor.ts`
-
-Plan:
-
-- Pass target visibility into the existing-title lookup.
-- Prefer same-visibility existing topics for canonicalization guidance.
-- Add tests proving public extraction does not see shared/restricted topic titles.
-
-### 4. Scope topic rebuild and initial sync by visibility ✅
-
-Problem: `replaceAllTopics()` deletes all topics, and initial sync skips if any topic exists, regardless of configured extraction visibility.
-
-Relevant files:
-
-- `entities/topics/src/lib/topic-projection.ts`
-- `entities/topics/src/index.ts`
-- `shell/plugins/src/entity/derived-entity-projection.ts`
-
-Plan:
-
-- Rebuild only topics at the configured target visibility.
-- Initial sync should check for persisted targets at the configured target visibility.
-- Public rebuilds must not delete shared/restricted topics; restricted rebuilds must not rewrite public topics unless explicitly running a public rebuild.
-- Add tests for public rebuild preserving shared/restricted topics.
-
-### 5. Filter public site generation by visibility
+### 1. Filter public site generation by visibility
 
 Problem: production site generation applies lifecycle filtering (`publishedOnly`) but not `visibilityScope: "public"`.
 
@@ -96,9 +27,9 @@ Plan:
 - Ensure datasource/detail lookups cannot fetch shared/restricted entities for public builds.
 - Add tests for production site route generation and datasource filtering.
 
-### 6. Prevent MCP entity resource visibility bypasses
+### 2. Prevent MCP entity resource visibility bypasses
 
-Problem: `entity://{type}` and `entity://{type}/{id}` resources list/read raw entities without the visibility checks used by `system_get/list/search`.
+Problem: `entity://{type}` and `entity://{type}/{id}` resources list/read raw entities. The default-public chokepoint fix in entity-service prevents content leak, but resource listing/completion may still leak existence of non-public entities.
 
 Relevant files:
 
@@ -112,36 +43,92 @@ Plan:
 - Avoid leaking entity existence through resource listing/completion.
 - Add tests for public/trusted/anchor MCP resource access.
 
+### 3. `outputVisibility` is a scope, not an exact partition
+
+Problem: `reconcileDerivedEntities` reads existing targets with `visibilityScope: outputVisibility`, which returns entities at-or-below that level. A `shared` projection sees public + shared targets and can treat public entries as its own — claiming them as "existing", deleting them as stale, or rewriting their visibility on update.
+
+Relevant files:
+
+- `shell/plugins/src/entity/derived-entity-projection.ts`
+
+Plan:
+
+- After listing at scope, filter to entities whose `visibility === outputVisibility` so each projection operates only on its own partition.
+- Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
+- Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
+
+### 4. Non-public topic merge/update paths still default to public
+
+Problem: `getTopic()` has no visibility parameter and defaults to public scope. This affects `createTopic`, `createTopicOptimistic` conflict recovery, `applySynthesizedMerge`, `updateTopic`, and `mergeTopics`. Non-public extraction fails to find/update the very topics it just matched.
+
+Relevant files:
+
+- `entities/topics/src/lib/topic-service.ts`
+- `entities/topics/src/lib/topic-merge.ts`
+
+Plan:
+
+- Thread visibility through `getTopic`, the merge paths, and the conflict-recovery branch.
+- Add tests for shared/restricted topic lookup, merge candidacy, and synthesized merge update.
+
+### 5. Conversation memory non-public mode is incomplete
+
+Problem: `summary-projector.ts` existing-summary lookup and decision/action-item cleanup don't pass `memoryVisibility`. With `memoryVisibility: "shared"` or `"restricted"`, existing summaries become invisible, causing repeated regeneration and stale child memory persisting.
+
+Relevant files:
+
+- `entities/conversation-memory/src/lib/summary-projector.ts`
+
+Plan:
+
+- Pass `memoryVisibility` to all summary lookups and to child-memory listing/cleanup.
+- Add tests for shared/restricted memory mode persistence and cleanup.
+
+### 6. Directory sync silently public-only
+
+Problem: `sync/export/cleanup` listing paths don't pass `visibilityScope`, so they default to public. With non-public entities present, sync misses them entirely.
+
+Relevant files:
+
+- `plugins/directory-sync/src/lib/import-persistence.ts`
+- `plugins/directory-sync/src/lib/export-pipeline.ts`
+- `plugins/directory-sync/src/lib/cleanup-pipeline.ts`
+
+Plan:
+
+- Opt up via `internalFullScope("...")` at each pipeline's entity-listing callsite — sync is system-internal indexing, no user surface.
+- Add tests proving non-public entities reach the sync pipeline.
+
+### 7. System mutation/extract tools still need caller scope
+
+Problem: `entity-cover-tool.ts` and `entity-extract-tool.ts` resolve entities without passing the caller's permission level. Trusted/anchor callers can't operate on non-public entities through these tools.
+
+Relevant files:
+
+- `shell/core/src/system/entity-cover-tool.ts`
+- `shell/core/src/system/entity-extract-tool.ts`
+
+Plan:
+
+- Apply the same `permissionToVisibilityScope(context.userPermissionLevel)` pattern used by system_get/update/delete.
+
+### 8. `getEntityCounts` leaks aggregate non-public counts
+
+Problem: `getEntityCounts()` and `system_insights` aggregate over all entities regardless of caller scope. Public callers can read counts of restricted entities.
+
+Relevant files:
+
+- `shell/entity-service/src/entity-queries.ts` (`getEntityCounts`)
+- `shell/core/src/system/insights.ts`
+- `shell/core/src/system/insight-tools.ts`
+
+Plan:
+
+- Add `visibilityScope` to `getEntityCounts()`; default closed to public.
+- Thread caller permission level through `system_insights`.
+- Add tests proving public `system_insights` does not include restricted entity counts.
+
 ## Should fix before merge if scope allows
-
-### 7. Clarify/default direct entity search visibility
-
-Problem: direct `entityService.search()` with no `visibilityScope` returns all entities. System tools pass scope, but internal call sites such as AI content generation may not.
-
-Relevant files:
-
-- `shell/entity-service/src/entity-search.ts`
-- `shell/core/src/datasources/ai-content-datasource.ts`
-
-Plan:
-
-- Audit direct `entityService.search()` callers.
-- Pass explicit scopes for public/shared contexts.
-- Decide whether service-level omission means anchor/internal-only or should default closed to public.
-
-### 8. Guard public publishing against non-public entities ✅
-
-Problem: direct publishing can publish shared/restricted entities without checking visibility.
-
-Relevant files:
-
-- `plugins/content-pipeline/src/tools/publish.ts`
-- `plugins/content-pipeline/src/tools/publish-content.ts`
-
-Plan:
-
-- Reject non-public entities for public publishing providers, or require providers to declare supported visibility boundaries.
-- Add tests for shared/restricted publish rejection.
 
 ### 9. Make skill derivation visibility explicit
 

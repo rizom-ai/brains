@@ -1,7 +1,6 @@
 import type { Tool } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
 import {
-  isVisibleWithinScope,
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
@@ -58,25 +57,19 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
           };
         }
+        const visibilityScope = permissionToVisibilityScope(
+          context.userPermissionLevel,
+        );
         const result = await resolveEntityOrError(
           entityService,
           input.entityType,
           input.id,
           logger,
+          undefined,
+          visibilityScope,
         );
         if (!result.ok) {
           return { success: false, error: result.error };
-        }
-        const visibilityScope = permissionToVisibilityScope(
-          context.userPermissionLevel,
-        );
-        if (!isVisibleWithinScope(result.entity.visibility, visibilityScope)) {
-          // Don't leak existence of out-of-scope entities — return the same
-          // shape resolveEntityOrError uses for genuine misses.
-          return {
-            success: false,
-            error: `Entity not found: ${input.entityType}/${input.id}`,
-          };
         }
         return {
           success: true,

@@ -1,4 +1,4 @@
-import type { EntityService, BaseEntity } from "./types";
+import type { ContentVisibility, EntityService, BaseEntity } from "./types";
 import type { Logger } from "@brains/utils";
 
 /**
@@ -19,17 +19,27 @@ export abstract class SingletonEntityService<TBody> {
   private entityService: EntityService;
   private entityType: string;
   private defaultBody: TBody;
+  private readScope: ContentVisibility;
 
+  /**
+   * @param readScope Visibility scope used to load the singleton. Singletons
+   *   live at the system layer (identity, profile, app-info loaded during
+   *   bootstrap before any user is in scope), so subclasses typically pass
+   *   `internalFullScope("...")` here. Defaults to "public" so callers must
+   *   opt up deliberately.
+   */
   constructor(
     entityService: EntityService,
     logger: Logger,
     entityType: string,
     defaultBody: TBody,
+    readScope: ContentVisibility = "public",
   ) {
     this.entityService = entityService;
     this.logger = logger.child(this.constructor.name);
     this.entityType = entityType;
     this.defaultBody = defaultBody;
+    this.readScope = readScope;
   }
 
   /**
@@ -128,6 +138,7 @@ export abstract class SingletonEntityService<TBody> {
       const entity = await this.entityService.getEntity<BaseEntity>({
         entityType: this.entityType,
         id: this.entityType,
+        visibilityScope: this.readScope,
       });
 
       this.cache = entity;

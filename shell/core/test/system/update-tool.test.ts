@@ -79,6 +79,7 @@ describe("system_update tool", () => {
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
+      userPermissionLevel: "anchor",
     });
   }
 
@@ -88,6 +89,7 @@ describe("system_update tool", () => {
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
+      userPermissionLevel: "anchor",
     });
   }
 

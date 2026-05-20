@@ -208,6 +208,7 @@ describe("SingletonEntityService", () => {
       expect(getEntitySpy).toHaveBeenCalledWith({
         entityType,
         id: entityType,
+        visibilityScope: "public",
       });
       expect(service.get()).toEqual({
         title: "Refreshed Title",

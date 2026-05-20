@@ -8,6 +8,7 @@ import {
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   type BaseEntity,
+  type ContentVisibility,
 } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { FallbackEntityAdapter } from "../src/adapters/fallback-entity-adapter";
@@ -157,6 +158,7 @@ describe("entity visibility", () => {
     const stored = await ctx.entityService.getEntity<VisibilityNote>({
       entityType: "visibility-note",
       id: "restricted-note",
+      visibilityScope: "restricted",
     });
 
     expect(stored?.visibility).toBe("restricted");
@@ -297,6 +299,171 @@ describe("entity visibility", () => {
     ]);
   });
 
+  test("listEntities defaults to public-only when no visibility scope is provided", async () => {
+    const seeds: Array<{ id: string; visibility: ContentVisibility }> = [
+      { id: "default-public", visibility: "public" },
+      { id: "default-shared", visibility: "shared" },
+      { id: "default-restricted", visibility: "restricted" },
+    ];
+    for (const seed of seeds) {
+      await ctx.entityService.createEntity({
+        entity: createTestEntity<VisibilityNote>("visibility-note", {
+          id: seed.id,
+          content: `Body ${seed.id}`,
+          visibility: seed.visibility,
+          metadata: { title: seed.id },
+        }),
+      });
+    }
+
+    const unscoped = await ctx.entityService.listEntities<VisibilityNote>({
+      entityType: "visibility-note",
+    });
+
+    expect(unscoped.map((entity) => entity.id)).toEqual(["default-public"]);
+  });
+
+  test("search defaults to public-only when no visibility scope is provided", async () => {
+    const seeds: Array<{ id: string; visibility: ContentVisibility }> = [
+      { id: "default-search-public", visibility: "public" },
+      { id: "default-search-shared", visibility: "shared" },
+      { id: "default-search-restricted", visibility: "restricted" },
+    ];
+    for (const seed of seeds) {
+      const entity = createTestEntity<VisibilityNote>("visibility-note", {
+        id: seed.id,
+        content: "Default scope keyword",
+        visibility: seed.visibility,
+        metadata: { title: seed.id },
+      });
+      await ctx.entityService.createEntity({ entity });
+      await ctx.entityService.storeEmbedding({
+        entityId: entity.id,
+        entityType: entity.entityType,
+        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+        contentHash: entity.contentHash,
+      });
+    }
+
+    const unscoped = await ctx.entityService.search<VisibilityNote>({
+      query: "Default scope keyword",
+      options: { types: ["visibility-note"] },
+    });
+
+    expect(unscoped.map((result) => result.entity.id)).toEqual([
+      "default-search-public",
+    ]);
+  });
+
+  test("getEntity defaults to public when no visibility scope is provided", async () => {
+    const seeds: Array<{ id: string; visibility: ContentVisibility }> = [
+      { id: "get-default-public", visibility: "public" },
+      { id: "get-default-shared", visibility: "shared" },
+      { id: "get-default-restricted", visibility: "restricted" },
+    ];
+    for (const seed of seeds) {
+      await ctx.entityService.createEntity({
+        entity: createTestEntity<VisibilityNote>("visibility-note", {
+          id: seed.id,
+          content: `Body ${seed.id}`,
+          visibility: seed.visibility,
+          metadata: { title: seed.id },
+        }),
+      });
+    }
+
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-default-public",
+      }),
+    ).not.toBeNull();
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-default-shared",
+      }),
+    ).toBeNull();
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-default-restricted",
+      }),
+    ).toBeNull();
+  });
+
+  test("getEntity with shared scope reads public and shared but not restricted", async () => {
+    const seeds: Array<{ id: string; visibility: ContentVisibility }> = [
+      { id: "get-shared-public", visibility: "public" },
+      { id: "get-shared-shared", visibility: "shared" },
+      { id: "get-shared-restricted", visibility: "restricted" },
+    ];
+    for (const seed of seeds) {
+      await ctx.entityService.createEntity({
+        entity: createTestEntity<VisibilityNote>("visibility-note", {
+          id: seed.id,
+          content: `Body ${seed.id}`,
+          visibility: seed.visibility,
+          metadata: { title: seed.id },
+        }),
+      });
+    }
+
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-shared-public",
+        visibilityScope: "shared",
+      }),
+    ).not.toBeNull();
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-shared-shared",
+        visibilityScope: "shared",
+      }),
+    ).not.toBeNull();
+    expect(
+      await ctx.entityService.getEntity<VisibilityNote>({
+        entityType: "visibility-note",
+        id: "get-shared-restricted",
+        visibilityScope: "shared",
+      }),
+    ).toBeNull();
+  });
+
+  test("getEntity with restricted scope reads every visibility level", async () => {
+    const seeds: Array<{ id: string; visibility: ContentVisibility }> = [
+      { id: "get-restricted-public", visibility: "public" },
+      { id: "get-restricted-shared", visibility: "shared" },
+      { id: "get-restricted-restricted", visibility: "restricted" },
+    ];
+    for (const seed of seeds) {
+      await ctx.entityService.createEntity({
+        entity: createTestEntity<VisibilityNote>("visibility-note", {
+          id: seed.id,
+          content: `Body ${seed.id}`,
+          visibility: seed.visibility,
+          metadata: { title: seed.id },
+        }),
+      });
+    }
+
+    for (const id of [
+      "get-restricted-public",
+      "get-restricted-shared",
+      "get-restricted-restricted",
+    ]) {
+      expect(
+        await ctx.entityService.getEntity<VisibilityNote>({
+          entityType: "visibility-note",
+          id,
+          visibilityScope: "restricted",
+        }),
+      ).not.toBeNull();
+    }
+  });
+
   test("deserializeEntity reads visibility and normalizes private synonym", () => {
     const parsed = ctx.entityService.deserializeEntity(
       "---\ntitle: Imported\nvisibility: private\n---\n\nImported body",
@@ -361,6 +528,7 @@ describe("base note visibility serialization", () => {
     const stored = await ctx.entityService.getEntity<BaseEntity>({
       entityType: "base",
       id: "restricted-plain-note",
+      visibilityScope: "restricted",
     });
 
     const serialized = stored ? ctx.entityService.serializeEntity(stored) : "";
@@ -404,21 +572,25 @@ describe("entity visibility database mapping", () => {
   });
 
   test("rejects invalid visibility values at the database layer", async () => {
-    const { db, client } = createEntityDatabase(ctx.dbConfig);
+    const { client } = createEntityDatabase(ctx.dbConfig);
     let caught: unknown;
     try {
-      // SQLite's typed driver still emits the value; the CHECK constraint
-      // is what rejects values outside the canonical enum.
-      await db.insert(entities).values({
-        id: "bad-visibility",
-        entityType: "note",
-        content: "body",
-        contentHash: "hash",
-        visibility: "secret" as unknown as "public",
-        metadata: {},
-        created: Date.now(),
-        updated: Date.now(),
-      });
+      // Use raw SQL so the DB CHECK constraint validates an invalid value
+      // without weakening the TypeScript visibility type in the test.
+      await client.execute(
+        `INSERT INTO entities (id, entityType, content, contentHash, visibility, metadata, created, updated)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          "bad-visibility",
+          "note",
+          "body",
+          "hash",
+          "secret",
+          "{}",
+          Date.now(),
+          Date.now(),
+        ],
+      );
     } catch (error) {
       caught = error;
     } finally {

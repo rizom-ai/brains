@@ -379,6 +379,11 @@ export interface EntityTypeConfig {
 export interface GetEntityRequest {
   entityType: string;
   id: string;
+  /**
+   * Optional visibility scope. Undefined fails closed to "public" — callers
+   * with elevated access must opt up explicitly.
+   */
+  visibilityScope?: ContentVisibility;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;

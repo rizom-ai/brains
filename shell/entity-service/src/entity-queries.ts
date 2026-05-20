@@ -75,19 +75,31 @@ export class EntityQueries {
   }
 
   /**
-   * Get an entity by ID from database
+   * Get an entity by ID from database.
+   * Fail closed: undefined visibilityScope filters to public-only.
    */
   public async getEntityData(
     entityType: string,
     id: string,
+    visibilityScope?: ContentVisibility,
   ): Promise<EntityData | null> {
     this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
-    // Query database
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    const conditions: SQL[] = [
+      eq(entities.id, id),
+      eq(entities.entityType, entityType),
+    ];
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
     const result = await this.db
       .select()
       .from(entities)
-      .where(and(eq(entities.id, id), eq(entities.entityType, entityType)))
+      .where(and(...conditions))
       .limit(1);
 
     if (result.length === 0) {
@@ -166,12 +178,11 @@ export class EntityQueries {
       );
     }
 
-    if (visibilityScope !== undefined && visibilityScope !== "restricted") {
+    // Fail closed: undefined scope filters to public-only.
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    if (scope !== "restricted") {
       conditions.push(
-        inArray(
-          entities.visibility,
-          getVisibleContentVisibilities(visibilityScope),
-        ),
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
       );
     }
 

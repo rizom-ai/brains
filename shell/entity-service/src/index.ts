@@ -70,6 +70,9 @@ export {
   permissionToVisibilityScope,
 } from "./types";
 
+export { internalFullScope } from "./internal-scope";
+export { scopedDerivedId } from "./scoped-derived-id";
+
 export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

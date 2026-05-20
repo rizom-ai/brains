@@ -48,6 +48,7 @@ const exampleEntitySchema: z.ZodSchema<ExampleEntity> = z.object({
   content: z.string(),
   created: z.string(),
   updated: z.string(),
+  visibility: z.enum(["public", "shared", "restricted"]),
   metadata: z.object({ title: z.string() }),
   contentHash: z.string(),
 });

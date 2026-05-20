@@ -129,16 +129,12 @@ export class EntitySearch {
   private buildVisibilityConditions(
     visibilityScope?: ContentVisibility,
   ): SQL[] {
-    if (visibilityScope === undefined || visibilityScope === "restricted") {
+    // Fail closed: undefined scope filters to public-only.
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    if (scope === "restricted") {
       return [];
     }
-
-    return [
-      inArray(
-        entities.visibility,
-        getVisibleContentVisibilities(visibilityScope),
-      ),
-    ];
+    return [inArray(entities.visibility, getVisibleContentVisibilities(scope))];
   }
 
   /**

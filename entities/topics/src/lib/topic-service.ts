@@ -3,6 +3,7 @@ import type {
   IEntityService,
   SearchResult,
 } from "@brains/plugins";
+import { scopedDerivedId } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { ExtractedTopicData } from "../schemas/extraction";
@@ -90,8 +91,7 @@ export class TopicService {
     title: string,
     visibility: ContentVisibility = "public",
   ): string {
-    const slug = generateIdFromText(title);
-    return visibility === "public" ? slug : `${slug}-${visibility}`;
+    return scopedDerivedId(generateIdFromText(title), visibility);
   }
 
   private async insertTopic(

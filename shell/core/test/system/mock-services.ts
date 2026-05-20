@@ -167,9 +167,16 @@ export function createMockSystemServices(
         })
         .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
     },
-    getEntity: async (request: { entityType: string; id: string }) => {
+    getEntity: async (request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: BaseEntity["visibility"];
+    }) => {
       const entity = entities.get(request.id);
-      return entity?.entityType === request.entityType ? entity : null;
+      if (!entity || entity.entityType !== request.entityType) return null;
+      const scope = request.visibilityScope ?? "public";
+      const allowed = new Set(getVisibleContentVisibilities(scope));
+      return allowed.has(entity.visibility) ? entity : null;
     },
     listEntities: async (request: ListEntitiesRequest) => {
       const scope = request.options?.filter?.visibilityScope;
@@ -191,7 +198,11 @@ export function createMockSystemServices(
     createEntity: async (request: { entity: BaseEntity }) => {
       const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
-      entities.set(id, { ...entity, id });
+      entities.set(id, {
+        ...entity,
+        id,
+        visibility: entity.visibility ?? "public",
+      });
       entityTypes.add(entity.entityType);
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
