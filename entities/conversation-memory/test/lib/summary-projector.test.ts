@@ -9,6 +9,10 @@ import { SummaryAdapter } from "../../src/adapters/summary-adapter";
 import { summaryConfigSchema } from "../../src/schemas/summary";
 import type { SummaryEntry } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
+import {
+  createMockActionItemEntity,
+  createMockDecisionEntity,
+} from "../fixtures/conversation-memory-entities";
 
 const conversation: Conversation = {
   id: "conv-1",
@@ -750,6 +754,45 @@ describe("SummaryProjector", () => {
     });
   });
 
+  it("ignores lower-visibility summaries returned within the configured read scope", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+    const source = await projector["sourceReader"].readConversation("conv-1");
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createMockSummaryEntity({
+        content: "# Conversation Summary\n",
+        visibility: "public",
+        metadata: {
+          conversationId: "conv-1",
+          channelId: "cli-terminal",
+          channelName: "CLI Terminal",
+          interfaceType: "cli",
+          messageCount: 2,
+          entryCount: 1,
+          sourceHash: source.sourceHash,
+          projectionVersion: 1,
+        },
+      }),
+    );
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    mockDecisionAndExtraction(context, "update");
+
+    const result = await projector.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(result.created).toBe(true);
+    expect(upsertSpy).toHaveBeenCalled();
+  });
+
   it("cleans up shared decisions and action items when replacing memory", async () => {
     const context = createMockEntityPluginContext({
       spaces: ["cli:cli-terminal"],
@@ -773,10 +816,25 @@ describe("SummaryProjector", () => {
       }),
     );
     spyOn(context.entityService, "upsertEntity");
-    const listEntitiesSpy = spyOn(
-      context.entityService,
-      "listEntities",
-    ).mockResolvedValue([]);
+    const publicDecision = createMockDecisionEntity(
+      "public-decision",
+      "public",
+    );
+    const sharedDecision = createMockDecisionEntity(
+      "shared-decision",
+      "shared",
+    );
+    const publicActionItem = createMockActionItemEntity(
+      "public-action",
+      "public",
+    );
+    const sharedActionItem = createMockActionItemEntity(
+      "shared-action",
+      "shared",
+    );
+    const listEntitiesSpy = spyOn(context.entityService, "listEntities")
+      .mockResolvedValueOnce([publicDecision, sharedDecision])
+      .mockResolvedValueOnce([publicActionItem, sharedActionItem]);
     const deleteEntitySpy = spyOn(context.entityService, "deleteEntity");
     mockDecisionAndExtraction(context, "update");
 
@@ -801,7 +859,23 @@ describe("SummaryProjector", () => {
         expect(call[0].options?.filter?.visibilityScope).toBe("shared");
       }
     }
-    expect(deleteEntitySpy).not.toHaveBeenCalled();
+    expect(deleteEntitySpy).toHaveBeenCalledTimes(2);
+    expect(deleteEntitySpy).toHaveBeenCalledWith({
+      entityType: "decision",
+      id: "shared-decision",
+    });
+    expect(deleteEntitySpy).toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: "shared-action",
+    });
+    expect(deleteEntitySpy).not.toHaveBeenCalledWith({
+      entityType: "decision",
+      id: "public-decision",
+    });
+    expect(deleteEntitySpy).not.toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: "public-action",
+    });
   });
 
   it("skips projection when source hash is unchanged", async () => {

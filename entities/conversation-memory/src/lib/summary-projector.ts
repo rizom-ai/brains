@@ -106,11 +106,16 @@ export class SummaryProjector {
       };
     }
 
-    const existing = await this.context.entityService.getEntity<SummaryEntity>({
-      entityType: SUMMARY_ENTITY_TYPE,
-      id: conversationId,
-      visibilityScope: this.config.memoryVisibility,
-    });
+    const existingCandidate =
+      await this.context.entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: conversationId,
+        visibilityScope: this.config.memoryVisibility,
+      });
+    const existing =
+      existingCandidate?.visibility === this.config.memoryVisibility
+        ? existingCandidate
+        : null;
 
     if (existing?.metadata.sourceHash === source.sourceHash) {
       return {
@@ -324,18 +329,22 @@ export class SummaryProjector {
     ]);
 
     await Promise.all([
-      ...decisions.map((entity) =>
-        this.context.entityService.deleteEntity({
-          entityType: DECISION_ENTITY_TYPE,
-          id: entity.id,
-        }),
-      ),
-      ...actionItems.map((entity) =>
-        this.context.entityService.deleteEntity({
-          entityType: ACTION_ITEM_ENTITY_TYPE,
-          id: entity.id,
-        }),
-      ),
+      ...decisions
+        .filter((entity) => entity.visibility === visibilityScope)
+        .map((entity) =>
+          this.context.entityService.deleteEntity({
+            entityType: DECISION_ENTITY_TYPE,
+            id: entity.id,
+          }),
+        ),
+      ...actionItems
+        .filter((entity) => entity.visibility === visibilityScope)
+        .map((entity) =>
+          this.context.entityService.deleteEntity({
+            entityType: ACTION_ITEM_ENTITY_TYPE,
+            id: entity.id,
+          }),
+        ),
     ]);
   }
 
