@@ -269,6 +269,42 @@ describe("TopicService", () => {
       });
     });
 
+    it("getTopic rejects lower-visibility entities returned within the read scope", async () => {
+      const logger = createSilentLogger();
+      const publicTopic = makeTopic(
+        "same-id",
+        "Same ID",
+        "Public content.",
+        "public",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: publicTopic },
+      });
+      const service = new TopicService(entityService, logger);
+
+      const result = await service.getTopic("same-id", "shared");
+
+      expect(result).toBeNull();
+    });
+
+    it("getTopic returns an entity from the requested visibility partition", async () => {
+      const logger = createSilentLogger();
+      const sharedTopic = makeTopic(
+        "same-id-shared",
+        "Same ID",
+        "Shared content.",
+        "shared",
+      );
+      const entityService = createMockEntityService({
+        returns: { getEntity: sharedTopic },
+      });
+      const service = new TopicService(entityService, logger);
+
+      const result = await service.getTopic("same-id-shared", "shared");
+
+      expect(result?.id).toBe("same-id-shared");
+    });
+
     it("createTopic checks existence within the requested visibility partition", async () => {
       const logger = createSilentLogger();
       const entityService = createMockEntityService();

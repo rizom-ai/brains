@@ -190,11 +190,12 @@ export class TopicService {
     id: string,
     visibility: ContentVisibility = "public",
   ): Promise<TopicEntity | null> {
-    return this.entityService.getEntity<TopicEntity>({
+    const topic = await this.entityService.getEntity<TopicEntity>({
       entityType: TOPIC_ENTITY_TYPE,
       id,
       visibilityScope: visibility,
     });
+    return topic?.visibility === visibility ? topic : null;
   }
 
   public async listTopics(params?: {
