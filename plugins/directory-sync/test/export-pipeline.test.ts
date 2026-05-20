@@ -4,7 +4,7 @@ import {
   type ExportPipelineDeps,
 } from "../src/lib/export-pipeline";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 
 function createMockDeps(
   overrides: Partial<{
@@ -12,27 +12,30 @@ function createMockDeps(
   }> = {},
 ): ExportPipelineDeps {
   const entities = overrides.entities ?? {};
-  const listEntities = mock(async (request: { entityType: string }) => {
-    return entities[request.entityType] ?? [];
-  });
-  const entityService = {
-    listEntities,
-    deleteEntity: mock(async () => true),
-    getEntityTypes: () => Object.keys(entities),
-  } as unknown as IEntityService;
-
-  return {
-    entityService,
+  const listEntities = mock(
+    async (
+      request: Parameters<
+        ExportPipelineDeps["entityService"]["listEntities"]
+      >[0],
+    ) => entities[request.entityType] ?? [],
+  );
+  const deps: ExportPipelineDeps = {
+    entityService: {
+      listEntities,
+      deleteEntity: mock(async () => true),
+      getEntityTypes: () => Object.keys(entities),
+    },
     logger: createSilentLogger(),
     fileOperations: {
       getEntityFilePath: (entity: BaseEntity) =>
         `/data/${entity.entityType}/${entity.id}.md`,
       fileExists: () => Promise.resolve(true),
       writeEntity: mock(async () => {}),
-    } as unknown as ExportPipelineDeps["fileOperations"],
+    },
     deleteOnFileRemoval: false,
     entityTypes: Object.keys(entities),
   };
+  return deps;
 }
 
 describe("exportEntities visibility", () => {

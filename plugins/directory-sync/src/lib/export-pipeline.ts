@@ -1,9 +1,9 @@
 import { getErrorMessage } from "@brains/utils";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
+import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ExportResult } from "../types";
-import type { FileOperations } from "./file-operations";
+
 import {
   createExportResult,
   logExportSummary,
@@ -12,9 +12,23 @@ import {
 } from "./export-result";
 
 export interface ExportPipelineDeps {
-  entityService: IEntityService;
+  entityService: {
+    getEntityTypes(): string[];
+    listEntities(request: {
+      entityType: string;
+      options?: {
+        limit?: number;
+        filter?: { visibilityScope?: ContentVisibility };
+      };
+    }): Promise<BaseEntity[]>;
+    deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
+  };
   logger: Logger;
-  fileOperations: FileOperations;
+  fileOperations: {
+    getEntityFilePath(entity: BaseEntity): string;
+    fileExists(filePath: string): Promise<boolean>;
+    writeEntity(entity: BaseEntity): Promise<void>;
+  };
   deleteOnFileRemoval: boolean;
   entityTypes?: string[] | undefined;
 }

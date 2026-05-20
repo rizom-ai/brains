@@ -4,6 +4,7 @@ import {
   type ImportPersistenceDeps,
 } from "../src/lib/import-persistence";
 import { createSilentLogger } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/plugins";
 import type { ImportResult, RawEntity } from "../src/types";
 
 function makeRawEntity(): RawEntity {
@@ -17,32 +18,30 @@ function makeRawEntity(): RawEntity {
 }
 
 function createMockDeps(): ImportPersistenceDeps {
-  const getEntity = mock(async () => null);
-  const upsertEntity = mock(async () => ({
-    entityId: "note-1",
+  const getEntity = mock(
+    (): Promise<BaseEntity | null> => Promise.resolve(null),
+  );
+  const upsertEntity = mock(async (_request: { entity: BaseEntity }) => ({
     jobId: "j1",
-    skipped: false,
   }));
-  const entityService = {
-    getEntity,
-    upsertEntity,
-    serializeEntity: () => "serialized",
-  } as unknown as ImportPersistenceDeps["entityService"];
-
   return {
-    entityService,
+    entityService: {
+      getEntity,
+      upsertEntity,
+      serializeEntity: () => "serialized",
+    },
     logger: createSilentLogger(),
     fileOperations: {
       shouldUpdateEntity: () => true,
-    } as unknown as ImportPersistenceDeps["fileOperations"],
+    },
     quarantine: {
       isValidationError: () => false,
       quarantineInvalidFile: mock(async () => {}),
       markAsRecoveredIfNeeded: mock(async () => {}),
-    } as unknown as ImportPersistenceDeps["quarantine"],
+    },
     imageJobQueue: {
       syncPath: "/tmp/sync",
-    } as ImportPersistenceDeps["imageJobQueue"],
+    },
   };
 }
 

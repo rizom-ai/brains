@@ -1,20 +1,37 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { ImportResult, RawEntity } from "../types";
-import type { FileOperations } from "./file-operations";
-import type { ImageJobQueueDeps } from "./image-job-queue";
+
 import { resolveInSyncPath } from "./path-utils";
-import type { Quarantine } from "./quarantine";
 
 export interface ImportPersistenceDeps {
-  entityService: IEntityService;
+  entityService: {
+    getEntity(request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility;
+    }): Promise<BaseEntity | null>;
+    serializeEntity(entity: BaseEntity): string;
+    upsertEntity(request: { entity: BaseEntity }): Promise<{ jobId: string }>;
+  };
   logger: Logger;
-  fileOperations: FileOperations;
-  quarantine: Quarantine;
-  imageJobQueue: ImageJobQueueDeps;
+  fileOperations: {
+    shouldUpdateEntity(existing: BaseEntity, rawEntity: RawEntity): boolean;
+  };
+  quarantine: {
+    isValidationError(error: unknown): boolean;
+    quarantineInvalidFile(
+      filePath: string,
+      error: unknown,
+      result: ImportResult,
+      resolveFilePath: (filePath: string) => string,
+    ): Promise<void>;
+    markAsRecoveredIfNeeded(filePath: string): Promise<void>;
+  };
+  imageJobQueue: { syncPath: string };
 }
 
 export async function persistImportEntity(
