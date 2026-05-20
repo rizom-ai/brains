@@ -57,19 +57,6 @@ Plan:
 - Same fix applies to `hasPersistedTargets` when `options.outputVisibility` is set.
 - Add tests for `outputVisibility: "shared"` reconciler ignoring public targets at the same ID.
 
-### 5. Conversation memory non-public mode is incomplete
-
-Problem: `summary-projector.ts` existing-summary lookup and decision/action-item cleanup don't pass `memoryVisibility`. With `memoryVisibility: "shared"` or `"restricted"`, existing summaries become invisible, causing repeated regeneration and stale child memory persisting.
-
-Relevant files:
-
-- `entities/conversation-memory/src/lib/summary-projector.ts`
-
-Plan:
-
-- Pass `memoryVisibility` to all summary lookups and to child-memory listing/cleanup.
-- Add tests for shared/restricted memory mode persistence and cleanup.
-
 ### 6. Directory sync silently public-only
 
 Problem: `sync/export/cleanup` listing paths don't pass `visibilityScope`, so they default to public. With non-public entities present, sync misses them entirely.

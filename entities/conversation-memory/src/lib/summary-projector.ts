@@ -109,6 +109,7 @@ export class SummaryProjector {
     const existing = await this.context.entityService.getEntity<SummaryEntity>({
       entityType: SUMMARY_ENTITY_TYPE,
       id: conversationId,
+      visibilityScope: this.config.memoryVisibility,
     });
 
     if (existing?.metadata.sourceHash === source.sourceHash) {
@@ -304,14 +305,21 @@ export class SummaryProjector {
     conversationId: string,
   ): Promise<void> {
     const limit = this.config.maxEntries * 4;
+    const visibilityScope = this.config.memoryVisibility;
     const [decisions, actionItems] = await Promise.all([
       this.context.entityService.listEntities<DecisionEntity>({
         entityType: DECISION_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } }, limit },
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit,
+        },
       }),
       this.context.entityService.listEntities<ActionItemEntity>({
         entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } }, limit },
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit,
+        },
       }),
     ]);
 
