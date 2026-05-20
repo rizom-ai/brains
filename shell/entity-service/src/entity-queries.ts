@@ -275,20 +275,32 @@ export class EntityQueries {
   }
 
   /**
-   * Get entity counts grouped by type
+   * Get entity counts grouped by type.
+   * Fail closed: undefined visibilityScope filters to public-only.
    */
-  public async getEntityCounts(): Promise<
-    Array<{ entityType: string; count: number }>
-  > {
+  public async getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>> {
     this.logger.debug("Getting entity counts by type");
 
-    const result = await this.db
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    const conditions: SQL[] = [];
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
+    const baseQuery = this.db
       .select({
         entityType: entities.entityType,
         count: sql<number>`COUNT(*)`.as("count"),
       })
-      .from(entities)
-      .groupBy(entities.entityType);
+      .from(entities);
+
+    const result = await (conditions.length > 0
+      ? baseQuery.where(and(...conditions)).groupBy(entities.entityType)
+      : baseQuery.groupBy(entities.entityType));
 
     this.logger.debug(`Found ${result.length} entity types`);
 

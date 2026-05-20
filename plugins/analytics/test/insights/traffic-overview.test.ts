@@ -29,7 +29,7 @@ describe("traffic-overview insight", () => {
   it("should return pageviews, visitors, and top pages", async () => {
     const client = createMockClient();
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService);
+    const result = await handler(mockEntityService, "public");
 
     expect(result["pageviews"]).toBe(1200);
     expect(result["visitors"]).toBe(450);
@@ -48,7 +48,7 @@ describe("traffic-overview insight", () => {
   it("should include date range in result", async () => {
     const client = createMockClient();
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService);
+    const result = await handler(mockEntityService, "public");
 
     expect(result["days"]).toBe(7);
   });
@@ -61,7 +61,7 @@ describe("traffic-overview insight", () => {
     });
 
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService);
+    const result = await handler(mockEntityService, "public");
 
     expect(result["error"]).toBe("API rate limited");
     expect(result["pageviews"]).toBeUndefined();
@@ -69,7 +69,7 @@ describe("traffic-overview insight", () => {
 
   it("should return unavailable when no client provided", async () => {
     const handler = createTrafficOverviewInsight(undefined);
-    const result = await handler(mockEntityService);
+    const result = await handler(mockEntityService, "public");
 
     expect(result["unavailable"]).toBe(true);
   });

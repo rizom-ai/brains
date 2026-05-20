@@ -19,6 +19,7 @@ import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type {
+  ContentVisibility,
   IEntityService,
   IEntityRegistry,
   ICoreEntityService,
@@ -191,10 +192,13 @@ export interface QueryContext {
  */
 /**
  * Handler for a registered insight type.
- * Receives the entity service for data queries, returns structured data.
+ * Receives the entity service for data queries plus the caller's visibility
+ * scope so aggregate insights can be filtered to what the caller is allowed
+ * to see. Returns structured data.
  */
 export type InsightHandler = (
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ) => Promise<Record<string, unknown>>;
 
 /**
@@ -207,6 +211,7 @@ export interface IInsightsRegistry {
   get(
     type: string,
     entityService: ICoreEntityService,
+    visibilityScope: ContentVisibility,
   ): Promise<Record<string, unknown>>;
 }
 

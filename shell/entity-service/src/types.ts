@@ -458,7 +458,14 @@ export interface ICoreEntityService {
 
   // Entity counts
   countEntities(request: CountEntitiesRequest): Promise<number>;
-  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
+  /**
+   * Group counts by entity type. Fails closed: undefined visibilityScope
+   * filters to public-only counts so aggregate insights cannot reveal
+   * non-public entity existence.
+   */
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
 
   /** Get configuration for a specific entity type */
   getEntityTypeConfig(type: string): EntityTypeConfig;

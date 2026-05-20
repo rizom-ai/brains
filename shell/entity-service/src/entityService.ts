@@ -17,6 +17,7 @@ import {
 import type {
   EntityDbConfig,
   BaseEntity,
+  ContentVisibility,
   SearchResult,
   SearchOptions,
   EntityMutationResult,
@@ -321,10 +322,10 @@ export class EntityService implements IEntityService {
     return this.entityQueries.countEntities(entityType, options);
   }
 
-  public async getEntityCounts(): Promise<
-    Array<{ entityType: string; count: number }>
-  > {
-    return this.entityQueries.getEntityCounts();
+  public async getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>> {
+    return this.entityQueries.getEntityCounts(visibilityScope);
   }
 
   // ── Search ────────────────────────────────────────────────────────

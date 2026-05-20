@@ -35,6 +35,7 @@ describe("insights registration via plugin context", () => {
     const result = await registry.get(
       "custom-insight",
       shell.getEntityService(),
+      "public",
     );
     expect(result["customValue"]).toBe(42);
   });

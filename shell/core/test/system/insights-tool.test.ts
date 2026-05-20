@@ -250,6 +250,65 @@ describe("system_insights tool", () => {
     });
   });
 
+  describe("visibility scope", () => {
+    beforeEach(() => {
+      services.addEntities([
+        makeEntity("post-shared", "post", {
+          visibility: "shared",
+          metadata: { title: "Shared Post", status: "published" },
+        }),
+        makeEntity("post-restricted", "post", {
+          visibility: "restricted",
+          metadata: { title: "Restricted Post", status: "published" },
+        }),
+      ]);
+    });
+
+    it("hides non-public counts from a public caller", async () => {
+      const result = parseResult(
+        await tool.handler(
+          { type: "overview" },
+          { ...toolContext, userPermissionLevel: "public" },
+        ),
+      );
+
+      expect(result.success).toBe(true);
+      const counts = result.data?.["entityCounts"] as Record<string, number>;
+      // Only the 3 public posts; shared + restricted are invisible.
+      expect(counts["post"]).toBe(3);
+      expect(result.data?.["totalEntities"]).toBe(6);
+    });
+
+    it("includes shared but not restricted counts for a trusted caller", async () => {
+      const result = parseResult(
+        await tool.handler(
+          { type: "overview" },
+          { ...toolContext, userPermissionLevel: "trusted" },
+        ),
+      );
+
+      expect(result.success).toBe(true);
+      const counts = result.data?.["entityCounts"] as Record<string, number>;
+      // 3 public + 1 shared = 4 posts; restricted hidden.
+      expect(counts["post"]).toBe(4);
+      expect(result.data?.["totalEntities"]).toBe(7);
+    });
+
+    it("shows every visibility tier for an anchor caller", async () => {
+      const result = parseResult(
+        await tool.handler(
+          { type: "overview" },
+          { ...toolContext, userPermissionLevel: "anchor" },
+        ),
+      );
+
+      expect(result.success).toBe(true);
+      const counts = result.data?.["entityCounts"] as Record<string, number>;
+      expect(counts["post"]).toBe(5);
+      expect(result.data?.["totalEntities"]).toBe(8);
+    });
+  });
+
   describe("tool metadata", () => {
     it("should have correct name", () => {
       expect(tool.name).toBe("system_insights");

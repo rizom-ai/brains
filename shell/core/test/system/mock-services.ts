@@ -233,9 +233,12 @@ export function createMockSystemServices(
       entities.delete(request.id);
       return true;
     },
-    getEntityCounts: async () => {
+    getEntityCounts: async (visibilityScope?: BaseEntity["visibility"]) => {
+      const scope = visibilityScope ?? "public";
+      const allowed = new Set(getVisibleContentVisibilities(scope));
       const countMap = new Map<string, number>();
       for (const e of entities.values()) {
+        if (!allowed.has(e.visibility)) continue;
         countMap.set(e.entityType, (countMap.get(e.entityType) ?? 0) + 1);
       }
       return Array.from(countMap.entries()).map(([entityType, count]) => ({

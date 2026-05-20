@@ -112,22 +112,6 @@ Plan:
 
 - Apply the same `permissionToVisibilityScope(context.userPermissionLevel)` pattern used by system_get/update/delete.
 
-### 8. `getEntityCounts` leaks aggregate non-public counts
-
-Problem: `getEntityCounts()` and `system_insights` aggregate over all entities regardless of caller scope. Public callers can read counts of restricted entities.
-
-Relevant files:
-
-- `shell/entity-service/src/entity-queries.ts` (`getEntityCounts`)
-- `shell/core/src/system/insights.ts`
-- `shell/core/src/system/insight-tools.ts`
-
-Plan:
-
-- Add `visibilityScope` to `getEntityCounts()`; default closed to public.
-- Thread caller permission level through `system_insights`.
-- Add tests proving public `system_insights` does not include restricted entity counts.
-
 ## Should fix before merge if scope allows
 
 ### 9. Make skill derivation visibility explicit

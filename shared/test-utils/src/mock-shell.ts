@@ -401,13 +401,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       insightHandlers.set(type, handler);
     },
     getTypes: () => Array.from(insightHandlers.keys()),
-    get: async (type: string, es) => {
+    get: async (type: string, es, visibilityScope) => {
       const handler = insightHandlers.get(type);
       if (!handler)
         throw new Error(
           `Unknown insight type: ${type}. Available: ${Array.from(insightHandlers.keys()).join(", ")}`,
         );
-      return handler(es);
+      return handler(es, visibilityScope);
     },
   };
 
