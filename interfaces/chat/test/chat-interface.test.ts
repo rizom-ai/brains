@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
+import type { DiscordChatAdapterConfig } from "../src/config";
 import type { Mock } from "bun:test";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
@@ -225,22 +226,29 @@ function createMessage(overrides: Partial<MockMessage> = {}): MockMessage {
   };
 }
 
-function createPlugin(): ChatInterfaceInstance {
+const baseDiscordConfig: DiscordChatAdapterConfig = {
+  botToken: "discord-token",
+  publicKey: "a".repeat(64),
+  applicationId: "bot-user-123",
+  mentionRoleIds: [],
+  allowedChannels: [],
+  blockedUrlDomains: [],
+  requireMention: true,
+  allowDMs: true,
+  showTypingIndicator: true,
+  useThreads: true,
+  captureUrls: true,
+  captureUrlEmoji: "🔖",
+};
+
+function createPlugin(
+  discordConfig: Partial<DiscordChatAdapterConfig> = {},
+): ChatInterfaceInstance {
   return new ChatInterface({
     adapters: {
       discord: {
-        botToken: "discord-token",
-        publicKey: "a".repeat(64),
-        applicationId: "bot-user-123",
-        mentionRoleIds: [],
-        allowedChannels: [],
-        blockedUrlDomains: [],
-        requireMention: true,
-        allowDMs: true,
-        showTypingIndicator: true,
-        useThreads: true,
-        captureUrls: true,
-        captureUrlEmoji: "🔖",
+        ...baseDiscordConfig,
+        ...discordConfig,
       },
     },
     gatewayRunMs: 50,
@@ -352,6 +360,108 @@ describe("ChatInterface", () => {
       }),
     );
     expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("gates Discord chat and URL capture by allowed channels", async () => {
+    const plugin = createPlugin({ allowedChannels: ["other-channel"] });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    const urlMessage = createMessage({
+      text: "worth saving https://example.com/a",
+      isMention: false,
+    });
+    const urlHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(urlMessage.text),
+    );
+    await urlHandler?.handler(thread, urlMessage);
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("ignores bot messages unless the bot is explicitly mentioned", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        isMention: false,
+        author: {
+          userId: "bot-456",
+          userName: "helper-bot",
+          fullName: "Helper Bot",
+          isBot: true,
+          isMe: false,
+        },
+      }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("includes trusted text file uploads in the agent message", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const fetchData = mock(() => Promise.resolve(Buffer.from("file body")));
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({
+        text: "Read this",
+        attachments: [
+          {
+            name: "notes.txt",
+            mimeType: "text/plain",
+            size: 9,
+            fetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    expect(agentService.chat.mock.calls[0]?.[0]).toContain(
+      'User uploaded a file "notes.txt":\n\nfile body',
+    );
+  });
+
+  it("does not download text uploads for public users", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const fetchData = mock(() => Promise.resolve(Buffer.from("file body")));
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({
+        text: "Read this",
+        attachments: [
+          {
+            name: "notes.txt",
+            mimeType: "text/plain",
+            size: 9,
+            fetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(fetchData).not.toHaveBeenCalled();
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read this");
   });
 
   it("continues pending confirmations in the same conversation", async () => {
