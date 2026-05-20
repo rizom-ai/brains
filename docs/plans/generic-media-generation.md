@@ -16,7 +16,7 @@ The same path should support:
 - generating prompt-derived images such as cover images
 - previewing the generated artifact locally
 - saving the generated artifact as a durable entity when explicitly requested
-- attaching the saved artifact to a target entity such as a `social-post`
+- attaching saved or existing media to target entities through a generic media attachment surface
 - publishing the exact approved artifact without regenerating it
 
 ## Non-goals
@@ -32,12 +32,12 @@ Keep the existing `plugins/media-tools` service plugin and expand it from previe
 
 Ownership boundaries:
 
-- `media-tools` owns tools/CLI orchestration: generate, preview-to-file, save, attach.
+- `media-tools` owns tools/CLI orchestration: generate, preview-to-file, save, attach, detach.
 - `image` entity plugin owns image schema, adapter, storage, and compatibility job handling.
 - `document` entity plugin owns PDF/document schema, adapter, and storage.
 - source entity plugins, such as `deck`, own their source-derived providers.
 
-Move operator-facing image generation into `media-tools` over time, but keep existing `image:image-generate` jobs and `system_create(... coverImage ...)` behavior as compatibility shims until callers migrate.
+Move operator-facing image generation and media assignment into `media-tools`. The old `system_set-cover` tool should be removed rather than kept as a parallel operator surface; update system prompts, tool descriptions, and evals to use `media_attach` / `media_detach` instead. Keep existing `image:image-generate` jobs and `system_create(... coverImage ...)` behavior only where they are internal creation flows, not as the preferred operator-facing media API.
 
 ## Proposed operator surface
 
@@ -46,8 +46,10 @@ Replace or deprecate `preview-attachment` with media generation commands/tools:
 ```bash
 brain media generate attachment deck distributed-systems-primer carousel --outputDir .tmp/media
 brain media generate attachment deck distributed-systems-primer carousel --save
-brain media generate attachment deck distributed-systems-primer carousel --save --attach social-post my-post
-brain media generate image --prompt "Editorial cover image for ..." --target post my-post --as cover
+brain media generate attachment deck distributed-systems-primer carousel --save --attach social-post my-post --as document
+brain media generate image --prompt "Editorial cover image for ..." --attach post my-post --as cover
+brain media attach image my-image post my-post --as cover
+brain media detach post my-post --as cover
 ```
 
 Equivalent MCP/tool shapes:
@@ -73,6 +75,21 @@ media_generate({
   targetEntityId?: "my-post",
   attachAs?: "cover" | "og",
 });
+
+media_attach({
+  mediaEntityType: "image" | "document",
+  mediaEntityId: "my-image",
+  targetEntityType: "post",
+  targetEntityId: "my-post",
+  as: "cover" | "og" | "document",
+});
+
+media_detach({
+  targetEntityType: "post",
+  targetEntityId: "my-post",
+  as: "cover" | "og" | "document",
+  mediaEntityId?: "my-image",
+});
 ```
 
 ## Behavior
@@ -82,8 +99,10 @@ media_generate({
 3. Always return artifact metadata: filename, MIME type, byte size, page count if known, and source reference where applicable.
 4. If `outputDir` is provided, write the artifact to disk for inspection.
 5. If `save` is true, store the artifact as a durable `document` or `image` entity.
-6. If `attach` is provided, imply `save: true` and update the target entity to reference the saved artifact.
-7. Publishing prefers explicit saved artifacts first, then falls back to source-derived generation.
+6. If `attach` is provided, imply `save: true` and call the same generic attach logic exposed by `media_attach`.
+7. `media_attach` updates target fields by semantic role: `coverImageId` for `as: "cover"`, `ogImageId` for `as: "og"`, and `documents[]` for `as: "document"`.
+8. `media_detach` removes those semantic references.
+9. Publishing prefers explicit saved artifacts first, then falls back to source-derived generation.
 
 ## Save semantics
 
@@ -92,6 +111,7 @@ Saving is an explicit approval/pinning action, not a cache.
 - Default generation is disposable: write to `outputDir` if requested, return metadata, and create no entity.
 - `--save` persists the exact generated artifact as a durable entity.
 - `--attach ...` implies `--save` because target entities should reference durable artifacts, not temporary files.
+- `media attach` can also attach an already-existing `image` or `document` entity without generating anything.
 - The implementation/docs may describe saved artifacts as "frozen" internally, but the operator-facing flag should be `--save`.
 
 ## Dedup key
@@ -112,20 +132,27 @@ If a saved artifact with the same `dedupKey` already exists, reuse it and return
 2. Add CLI support as `brain media generate ...`.
 3. Move `preview-attachment` onto the `mode: "attachment"` implementation, then mark it deprecated.
 4. Implement save-to-entity for document artifacts first; carousel PDFs use this path.
-5. Add optional attach-to-target support for `social-post.documents[]`.
-6. Move operator-facing prompt image generation into `media-tools`, reusing the current image generation logic.
-7. Keep `image:image-generate` and cover-image creation as compatibility shims.
-8. Add dedup lookup/reuse for saved artifacts.
-9. Add tests that publishing with explicit `documents[]` does not regenerate the carousel.
-10. Update docs to recommend `brain media generate` over `preview-attachment`.
+5. Add `media_attach` / `media_detach` tools in `plugins/media-tools`.
+6. Implement semantic attach roles: `cover`, `og`, and `document`.
+7. Replace `system_set-cover` with `media_attach` / `media_detach` and remove the old tool from the registered system tool surface.
+8. Update system prompts, tool instructions, and eval expectations that currently mention `system_set-cover`.
+9. Add optional attach-to-target support for `social-post.documents[]`.
+10. Move operator-facing prompt image generation into `media-tools`, reusing the current image generation logic.
+11. Keep `image:image-generate` and cover-image creation as internal compatibility shims where needed.
+12. Add dedup lookup/reuse for saved artifacts.
+13. Add tests that publishing with explicit `documents[]` does not regenerate the carousel.
+14. Update docs to recommend `brain media generate` / `brain media attach` over `preview-attachment` and `system_set-cover`.
 
 ## Validation
 
 - Attachment generate-only writes a valid local PDF and creates no entity.
 - Attachment generate with `--save` creates a durable `document` entity.
 - Image generate creates a durable `image` entity and can attach it as cover/OG image.
+- `media_attach image ... --as cover` replaces an entity's cover image.
+- `media_detach ... --as cover` removes an entity's cover image.
 - Re-running `--save` with unchanged input reuses the existing document by `dedupKey`.
 - `--force` creates or refreshes the saved artifact intentionally.
-- `--attach social-post ...` updates the social post with the saved document ID.
+- `--attach social-post ... --as document` updates the social post with the saved document ID.
 - Publishing an attached saved document does not invoke the source-derived carousel renderer.
 - Publishing without an attached document still falls back to source-derived generation.
+- System prompts and evals no longer reference `system_set-cover`.
