@@ -32,12 +32,12 @@ Keep the existing `plugins/media-tools` service plugin and expand it from previe
 
 Ownership boundaries:
 
-- `media-tools` owns tools/CLI orchestration: generate, preview-to-file, save, attach, detach.
+- `media-tools` owns tools/CLI orchestration: generate, preview-to-file, save, attach.
 - `image` entity plugin owns image schema, adapter, storage, and compatibility job handling.
 - `document` entity plugin owns PDF/document schema, adapter, and storage.
 - source entity plugins, such as `deck`, own their source-derived providers.
 
-Move operator-facing image generation and media assignment into `media-tools`. The old `system_set-cover` tool should be removed rather than kept as a parallel operator surface; update system prompts, tool descriptions, and evals to use `media_attach` / `media_detach` instead. Keep existing `image:image-generate` jobs and `system_create(... coverImage ...)` behavior only where they are internal creation flows, not as the preferred operator-facing media API.
+Move operator-facing image generation and media assignment into `media-tools`. The old `system_set-cover` tool should be removed rather than kept as a parallel operator surface; update system prompts, tool descriptions, and evals to use `media_attach` for assignment and `system_update` for removal. Keep existing `image:image-generate` jobs and `system_create(... coverImage ...)` behavior only where they are internal creation flows, not as the preferred operator-facing media API.
 
 ## Proposed operator surface
 
@@ -49,7 +49,7 @@ brain media generate attachment deck distributed-systems-primer carousel --save
 brain media generate attachment deck distributed-systems-primer carousel --save --attach social-post my-post --as document
 brain media generate image --prompt "Editorial cover image for ..." --attach post my-post --as cover
 brain media attach image my-image post my-post --as cover
-brain media detach post my-post --as cover
+brain system update post my-post --fields '{"coverImageId": null}'
 ```
 
 Equivalent MCP/tool shapes:
@@ -83,13 +83,6 @@ media_attach({
   targetEntityId: "my-post",
   as: "cover" | "og" | "document",
 });
-
-media_detach({
-  targetEntityType: "post",
-  targetEntityId: "my-post",
-  as: "cover" | "og" | "document",
-  mediaEntityId?: "my-image",
-});
 ```
 
 ## Behavior
@@ -101,7 +94,7 @@ media_detach({
 5. If `save` is true, store the artifact as a durable `document` or `image` entity.
 6. If `attach` is provided, imply `save: true` and call the same generic attach logic exposed by `media_attach`.
 7. `media_attach` updates target fields by semantic role: `coverImageId` for `as: "cover"`, `ogImageId` for `as: "og"`, and `documents[]` for `as: "document"`.
-8. `media_detach` removes those semantic references.
+8. Removing media references remains a normal entity mutation via `system_update`, e.g. clearing `coverImageId`, `ogImageId`, or removing an ID from `documents[]`.
 9. Publishing prefers explicit saved artifacts first, then falls back to source-derived generation.
 
 ## Save semantics
@@ -132,10 +125,10 @@ If a saved artifact with the same `dedupKey` already exists, reuse it and return
 2. Add CLI support as `brain media generate ...`.
 3. Move `preview-attachment` onto the `mode: "attachment"` implementation, then mark it deprecated.
 4. Implement save-to-entity for document artifacts first; carousel PDFs use this path.
-5. Add `media_attach` / `media_detach` tools in `plugins/media-tools`.
+5. Add a `media_attach` tool in `plugins/media-tools`.
 6. Implement semantic attach roles: `cover`, `og`, and `document`.
-7. Replace `system_set-cover` with `media_attach` / `media_detach` and remove the old tool from the registered system tool surface.
-8. Update system prompts, tool instructions, and eval expectations that currently mention `system_set-cover`.
+7. Replace `system_set-cover` with `media_attach` and remove the old tool from the registered system tool surface.
+8. Update system prompts, tool instructions, and eval expectations that currently mention `system_set-cover`; removal cases should use `system_update`.
 9. Add optional attach-to-target support for `social-post.documents[]`.
 10. Move operator-facing prompt image generation into `media-tools`, reusing the current image generation logic.
 11. Keep `image:image-generate` and cover-image creation as internal compatibility shims where needed.
@@ -149,7 +142,7 @@ If a saved artifact with the same `dedupKey` already exists, reuse it and return
 - Attachment generate with `--save` creates a durable `document` entity.
 - Image generate creates a durable `image` entity and can attach it as cover/OG image.
 - `media_attach image ... --as cover` replaces an entity's cover image.
-- `media_detach ... --as cover` removes an entity's cover image.
+- `system_update fields: { coverImageId: null }` removes an entity's cover image.
 - Re-running `--save` with unchanged input reuses the existing document by `dedupKey`.
 - `--force` creates or refreshes the saved artifact intentionally.
 - `--attach social-post ... --as document` updates the social post with the saved document ID.
