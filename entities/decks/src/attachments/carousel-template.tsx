@@ -70,11 +70,19 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               break-after: page;
               display: grid;
               grid-template-rows: 1fr auto;
+              align-items: center;
               padding: 104px 108px 88px;
               background:
                 radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--carousel-accent) 20%, transparent), transparent 30%),
                 linear-gradient(180deg, var(--carousel-surface-strong) 0%, var(--carousel-surface) 100%);
               overflow: hidden;
+            }
+
+            .deck-carousel-slide.is-cover {
+              background:
+                radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--carousel-accent) 28%, transparent), transparent 38%),
+                radial-gradient(circle at 92% 88%, color-mix(in srgb, var(--carousel-accent) 14%, transparent), transparent 36%),
+                linear-gradient(160deg, var(--carousel-surface-strong) 0%, var(--carousel-surface) 100%);
             }
 
             .deck-carousel-slide::before {
@@ -96,11 +104,9 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             }
 
             .deck-carousel-frame {
-              align-self: center;
               position: relative;
               z-index: 1;
               max-width: 864px;
-              transform: translateY(-3%);
             }
 
             .deck-carousel-accent {
@@ -110,6 +116,12 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               border-radius: 999px;
               background: var(--carousel-accent);
               box-shadow: 0 0 42px color-mix(in srgb, var(--carousel-accent) 45%, transparent);
+            }
+
+            .deck-carousel-slide.is-cover .deck-carousel-accent {
+              width: 168px;
+              height: 12px;
+              margin-bottom: 60px;
             }
 
             .deck-carousel-content {
@@ -153,12 +165,46 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
 
             .deck-carousel-content ul,
             .deck-carousel-content ol {
+              list-style: none;
               margin: 30px 0 0;
-              padding-left: 44px;
+              padding: 0;
             }
 
             .deck-carousel-content li {
-              margin: 0 0 10px;
+              position: relative;
+              margin: 0 0 18px;
+              padding-left: 46px;
+            }
+
+            .deck-carousel-content ul > li::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0.42em;
+              width: 16px;
+              height: 16px;
+              border-radius: 4px;
+              background: var(--carousel-accent);
+              box-shadow: 0 0 18px color-mix(in srgb, var(--carousel-accent) 50%, transparent);
+            }
+
+            .deck-carousel-content ol {
+              counter-reset: deck-carousel-ol;
+            }
+
+            .deck-carousel-content ol > li {
+              counter-increment: deck-carousel-ol;
+            }
+
+            .deck-carousel-content ol > li::before {
+              content: counter(deck-carousel-ol);
+              position: absolute;
+              left: 0;
+              top: 0.05em;
+              color: var(--carousel-accent);
+              font-weight: 700;
+              font-size: 30px;
+              line-height: 1;
             }
 
             .deck-carousel-content strong {
@@ -170,6 +216,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               position: relative;
               z-index: 1;
               display: flex;
+              align-items: center;
               justify-content: space-between;
               gap: 48px;
               padding-top: 28px;
@@ -178,11 +225,33 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               font-size: 23px;
               line-height: 1.3;
             }
+
+            .deck-carousel-progress {
+              display: inline-flex;
+              gap: 10px;
+              align-items: center;
+            }
+
+            .deck-carousel-dot {
+              display: inline-block;
+              width: 10px;
+              height: 10px;
+              border-radius: 999px;
+              background: color-mix(in srgb, var(--carousel-ink) 22%, transparent);
+            }
+
+            .deck-carousel-dot.is-active {
+              background: var(--carousel-accent);
+              box-shadow: 0 0 14px color-mix(in srgb, var(--carousel-accent) 55%, transparent);
+            }
           `,
         }}
       />
       {slides.map((slide, index) => (
-        <section className="deck-carousel-slide" key={index}>
+        <section
+          className={`deck-carousel-slide${index === 0 ? " is-cover" : ""}`}
+          key={index}
+        >
           <div className="deck-carousel-frame">
             <div className="deck-carousel-accent" />
             <div
@@ -192,8 +261,16 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
           </div>
           <footer className="deck-carousel-footer">
             <span>{title}</span>
-            <span>
-              {index + 1} / {slides.length}
+            <span
+              className="deck-carousel-progress"
+              aria-label={`Slide ${index + 1} of ${slides.length}`}
+            >
+              {slides.map((_, dotIndex) => (
+                <span
+                  key={dotIndex}
+                  className={`deck-carousel-dot${dotIndex === index ? " is-active" : ""}`}
+                />
+              ))}
             </span>
           </footer>
         </section>

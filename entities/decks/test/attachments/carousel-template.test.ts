@@ -15,11 +15,45 @@ describe("deck carousel template", () => {
     });
 
     expect(html).toContain("Hello Carousel");
-    expect(html).toContain("1 / 1");
     expect(html).toContain("deck-carousel-slide");
     expect(html).toContain("deck-carousel-frame");
     expect(html).toContain("deck-carousel-accent");
     expect(html).toContain("--carousel-surface");
     expect(html).toContain("--color-accent");
+  });
+
+  it("renders one progress dot per slide and marks the current slide active", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Multi",
+        slides: [{ markdown: "# A" }, { markdown: "# B" }, { markdown: "# C" }],
+      },
+      siteConfig: { title: "Multi", themeMode: "dark" },
+    });
+
+    // Three slides → three dots per slide × three slides = nine dot spans.
+    const dots = html.match(/class="deck-carousel-dot/g) ?? [];
+    expect(dots.length).toBe(9);
+    // Each slide marks exactly one dot active.
+    const active = html.match(/class="deck-carousel-dot is-active"/g) ?? [];
+    expect(active.length).toBe(3);
+    // Plain "1 / N" text is gone in favor of dots.
+    expect(html).not.toContain(" / 3");
+  });
+
+  it("flags the first slide as the cover so it can receive distinct styling", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Cover Test",
+        slides: [{ markdown: "# Cover" }, { markdown: "# Body" }],
+      },
+      siteConfig: { title: "Cover Test", themeMode: "dark" },
+    });
+
+    expect(html).toContain("deck-carousel-slide is-cover");
   });
 });
