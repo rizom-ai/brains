@@ -119,6 +119,51 @@ The gateway uses that metadata to select the target rover, preserve `interfaceTy
 
 Progress/job updates need an explicit return path. If a forwarded rover request queues async jobs, the gateway must be able to correlate job/progress/completion events back to the Discord channel/message it owns. Conversation IDs, job routing metadata, or gateway tracking keys must include the target brain/rover id to avoid collisions across hosted users.
 
+## Future app-platform capabilities
+
+`DISCORD_PUBLIC_KEY` and `DISCORD_APPLICATION_ID` do not change the first Discord parity goal. They are Discord-specific examples of a broader app-platform pattern: moving Rover from plain bot-token chat clients toward verified, installable, interactive app surfaces.
+
+The product opportunities are platform-general, even though each platform uses different credentials and APIs:
+
+1. **Verified webhook/interactions entrypoint**
+   - Discord: verify signed requests with `publicKey`.
+   - Slack: verify requests with the Slack signing secret.
+   - WhatsApp/Meta: verify webhook subscription and requests with Meta app/webhook credentials.
+   - Enables a hosted gateway to accept platform events over HTTP without trusting unsigned traffic.
+
+2. **Installable Rover app UX**
+   - Discord: `applicationId` identifies the installable Discord app/bot.
+   - Slack: Slack app installation identifies workspaces and grants scoped bot/user tokens.
+   - WhatsApp: Meta app + phone-number IDs identify the business messaging endpoint.
+   - Future hosted users can install or connect one shared Rover app, then DM it or use it in approved spaces.
+
+3. **Command-based onboarding and diagnostics**
+   - Discord/Slack: `/rover connect`, `/rover help`, `/rover status`, `/rover capture`.
+   - WhatsApp: command-like text flows and template-driven setup messages where allowed.
+   - Use structured commands for predictable setup and diagnostics instead of relying only on free-form mention text.
+
+4. **Buttons, cards, and interactive actions**
+   - Discord/Slack: native buttons, cards/blocks, modals, and shortcuts.
+   - WhatsApp: interactive messages, buttons, lists, and templates with stricter policy limits.
+   - Use platform-native components for confirmations, approvals, publishing actions, queue operations, and passkey/setup links.
+   - Reduce fragile yes/no text parsing for high-risk actions.
+
+5. **Central hosted-rover gateway**
+   - Ranger or a dedicated gateway owns the shared platform app and routes signed interactions to the right Rover.
+   - Individual hosted rovers do not need their own Discord bot token, Slack app install, WhatsApp phone number, or public socket.
+
+6. **Operationally safer chat integrations**
+   - Webhook verification gives a clear security boundary.
+   - App identity, installation IDs, workspace/server/channel IDs, phone-number IDs, and interaction IDs improve auditability, retry handling, and progress/edit correlation.
+
+Suggested product sequencing:
+
+- **Phase A — Parity only:** keep Discord behavior equivalent to `@brains/discord`; require app identifiers only for the opt-in SDK path.
+- **Phase B — Diagnostics:** add `/rover status` and `/rover help` on platforms that support commands; fall back to text commands elsewhere.
+- **Phase C — Safer actions:** replace confirmation text for dangerous actions with buttons/cards where available.
+- **Phase D — Hosted onboarding:** support one shared installable Rover app routed through the central gateway, starting with Discord and later Slack/WhatsApp if product demand warrants it.
+- **Phase E — Rich workflows:** use app components for publishing queues, review/approval flows, and content capture shortcuts.
+
 ## Package: `interfaces/chat/`
 
 ```text

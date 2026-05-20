@@ -178,6 +178,27 @@ remove:
   - discord
 ```
 
+### Experimental Chat SDK Discord trial
+
+Rover still uses `@brains/discord` by default. To trial the new unified Chat SDK interface locally, explicitly add `chat` and remove `discord` in your instance config:
+
+```yaml
+preset: default
+add:
+  - chat
+remove:
+  - discord
+plugins:
+  chat:
+    adapters:
+      discord:
+        botToken: ${DISCORD_BOT_TOKEN}
+        publicKey: ${DISCORD_PUBLIC_KEY}
+        applicationId: ${DISCORD_APPLICATION_ID}
+```
+
+This keeps production defaults unchanged while allowing local Discord parity testing. Eval mode disables both `discord` and `chat`.
+
 ## Get Your Own Rover
 
 Want to set up your own brain with Rover? The whole thing is open source.
