@@ -176,15 +176,18 @@ export async function hasPersistedTargets(
   // targets must declare outputVisibility at the callsite.
   const outputVisibility: ContentVisibility =
     options?.outputVisibility ?? "public";
+  // When only outputVisibility is given, filter the scope-bounded list to the
+  // exact partition. When the legacy `visibility` option is explicit, defer to
+  // its own per-row check.
   const existing = await context.entityService.listEntities({
     entityType: targetType,
     options:
       options?.visibility === undefined
-        ? { limit: 1, filter: { visibilityScope: outputVisibility } }
+        ? { filter: { visibilityScope: outputVisibility } }
         : { filter: { visibilityScope: options.visibility } },
   });
   return options?.visibility === undefined
-    ? existing.length > 0
+    ? existing.some((entity) => entity.visibility === outputVisibility)
     : existing.some((entity) => entity.visibility === options.visibility);
 }
 
@@ -244,10 +247,15 @@ export async function reconcileDerivedEntities<
     desiredById.set(getId(item), item);
   }
 
-  const existing = await context.entityService.listEntities<TEntity>({
-    entityType: targetType,
-    options: { filter: { visibilityScope: outputVisibility } },
-  });
+  // Listing at scope returns entities at-or-below the level; filter to the
+  // exact partition so a `shared` projection cannot claim, update, or delete
+  // public targets that belong to another projection.
+  const existing = (
+    await context.entityService.listEntities<TEntity>({
+      entityType: targetType,
+      options: { filter: { visibilityScope: outputVisibility } },
+    })
+  ).filter((entity) => entity.visibility === outputVisibility);
   const existingById = new Map(existing.map((entity) => [entity.id, entity]));
 
   let created = 0;

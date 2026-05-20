@@ -237,7 +237,7 @@ describe("derived entity projections", () => {
 
     expect(context.captured.listEntities).toContainEqual({
       entityType: "derived",
-      options: { limit: 1, filter: { visibilityScope: "public" } },
+      options: { filter: { visibilityScope: "public" } },
     });
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
@@ -527,6 +527,82 @@ describe("derived entity projections", () => {
     });
   });
 
+  it("does not claim or delete public targets when outputVisibility is shared", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [
+          { ...entity("public-target"), visibility: "public" },
+          { ...entity("shared-target"), visibility: "shared" },
+        ],
+      },
+    });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "shared-target", name: "still-here" }],
+      getId: (item) => item.id,
+      toEntityInput: (item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: { name: item.name },
+      }),
+      equals: () => false,
+      deleteStale: true,
+      outputVisibility: "shared",
+      concurrency: 1,
+    });
+
+    expect(context.captured.deletedEntities).toEqual([]);
+  });
+
+  it("treats a public target at the same id as a different partition", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [{ ...entity("collide"), visibility: "public" }],
+      },
+    });
+
+    await reconcileDerivedEntities({
+      context,
+      targetType: "derived",
+      desired: [{ id: "collide", name: "shared-version" }],
+      getId: (item) => item.id,
+      toEntityInput: (item, id) => ({
+        id,
+        entityType: "derived",
+        content: `content:${id}`,
+        metadata: { name: item.name },
+      }),
+      equals: () => false,
+      deleteStale: true,
+      outputVisibility: "shared",
+      concurrency: 1,
+    });
+
+    expect(context.captured.updatedEntities).toEqual([]);
+    expect(context.captured.deletedEntities).toEqual([]);
+    expect(context.captured.createdEntities).toContainEqual({
+      id: "collide",
+      visibility: "shared",
+    });
+  });
+
+  it("hasPersistedTargets at outputVisibility=shared ignores public-only targets", async () => {
+    const context = createProjectionContext({
+      listEntities: {
+        derived: [{ ...entity("public-only"), visibility: "public" }],
+      },
+    });
+
+    const result = await hasPersistedTargets(context, "derived", {
+      outputVisibility: "shared",
+    });
+
+    expect(result).toBe(false);
+  });
+
   it("hasPersistedTargets uses the declared outputVisibility scope", async () => {
     const context = createProjectionContext({
       listEntities: {
@@ -541,7 +617,7 @@ describe("derived entity projections", () => {
     expect(result).toBe(true);
     expect(context.captured.listEntities).toContainEqual({
       entityType: "derived",
-      options: { limit: 1, filter: { visibilityScope: "restricted" } },
+      options: { filter: { visibilityScope: "restricted" } },
     });
   });
 });
