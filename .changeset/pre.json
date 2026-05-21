@@ -161,6 +161,7 @@
     "ops-verify-user-followups",
     "ops-workflow-race-reconcile",
     "passkey-setup-url-tool",
+    "pdf-carousel-media-rendering",
     "personal-layout-mobile-correctness",
     "personal-template-editorial-theme",
     "pilot-deploy-reconcile-chain",
