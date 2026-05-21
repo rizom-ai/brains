@@ -39,7 +39,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   constructor(
     private readonly context: Pick<
       EntityPluginContext,
-      "entityService" | "themeCSS" | "identity"
+      "entityService" | "themeCSS" | "identity" | "domain"
     >,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
@@ -110,6 +110,11 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   }
 
   private resolveBrandLabel(): string | undefined {
+    const domain = this.context.domain?.trim();
+    if (domain && domain.length > 0) {
+      return domain;
+    }
+
     const name = this.context.identity.getProfile().name;
     return name.length > 0 ? name : undefined;
   }

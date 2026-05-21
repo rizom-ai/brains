@@ -89,6 +89,7 @@ describe("Deck carousel attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: ":root { --carousel-test-token: #123456; }",
         identity: harness.getEntityContext("test").identity,
+        domain: undefined,
       },
       {
         renderPdf: async (url: string): Promise<Buffer> => {
@@ -115,7 +116,7 @@ describe("Deck carousel attachment provider", () => {
     });
   });
 
-  it("uses the brain identity name as the carousel brand wordmark", async () => {
+  it("uses the brain domain as the carousel brand wordmark", async () => {
     const harness = createPluginHarness<DecksPlugin>();
     await harness.installPlugin(new DecksPlugin());
     await harness.getEntityService().createEntity({ entity: sampleDeck });
@@ -126,6 +127,7 @@ describe("Deck carousel attachment provider", () => {
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        domain: "yeehaa.io",
       },
       {
         renderPdf: async (url: string): Promise<Buffer> => {
@@ -141,11 +143,10 @@ describe("Deck carousel attachment provider", () => {
       attachmentType: "carousel",
     });
 
-    // Harness mock returns name: "Test Owner" — split into "test" + "owner"
-    // by the template's masthead formatter, with the full name on aria-label.
-    expect(renderedHtml).toContain('aria-label="Test Owner"');
-    expect(renderedHtml).toContain('<span class="wm-primary">test</span>');
-    expect(renderedHtml).toContain('<span class="wm-secondary">owner</span>');
+    // Domain labels are split into `primary.secondary` by the masthead formatter.
+    expect(renderedHtml).toContain('aria-label="yeehaa.io"');
+    expect(renderedHtml).toContain('<span class="wm-primary">yeehaa</span>');
+    expect(renderedHtml).toContain('<span class="wm-secondary">io</span>');
   });
 
   it("reads themeMode from the site-info entity by default", async () => {
@@ -197,6 +198,7 @@ themeMode: light
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        domain: undefined,
       },
       {
         renderPdf: async (url: string): Promise<Buffer> => {
@@ -227,6 +229,7 @@ themeMode: light
         entityService: harness.getEntityService(),
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
+        domain: undefined,
       },
       {
         renderPdf: async (url: string): Promise<Buffer> => {
