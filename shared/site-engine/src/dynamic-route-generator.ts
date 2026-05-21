@@ -5,6 +5,7 @@ import type {
 } from "@brains/site-composition";
 import type {
   BaseEntity,
+  ContentVisibility,
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
@@ -26,6 +27,16 @@ export interface DynamicRouteGeneratorServices {
   listViewTemplateNames: () => string[];
 }
 
+export interface DynamicRouteGeneratorOptions {
+  /**
+   * Visibility scope applied to entity listings used for route generation.
+   * Production site builds pass "public" so detail routes are never created
+   * for non-public entities. Undefined leaves filtering to the entity service
+   * default (fail-closed to "public" at the chokepoint).
+   */
+  visibilityScope?: ContentVisibility;
+}
+
 export type DynamicRouteEntityDisplayMap = Record<string, EntityDisplayEntry>;
 
 /**
@@ -36,7 +47,22 @@ export class DynamicRouteGenerator {
     private readonly services: DynamicRouteGeneratorServices,
     private readonly routeRegistry: RouteRegistry,
     private readonly entityDisplay?: DynamicRouteEntityDisplayMap,
+    private readonly options: DynamicRouteGeneratorOptions = {},
   ) {}
+
+  private listOptions(
+    extra: Omit<NonNullable<ListEntitiesRequest["options"]>, "filter"> &
+      Partial<Pick<NonNullable<ListEntitiesRequest["options"]>, "filter">> = {},
+  ): NonNullable<ListEntitiesRequest["options"]> {
+    const scope = this.options.visibilityScope;
+    const filter = extra.filter;
+    return {
+      ...extra,
+      ...(scope && {
+        filter: { ...filter, visibilityScope: scope },
+      }),
+    };
+  }
 
   /**
    * Generate routes for all entity types that have matching list/detail templates
@@ -166,7 +192,7 @@ export class DynamicRouteGenerator {
       try {
         const entities = await this.services.entityService.listEntities({
           entityType,
-          options: { limit: 1000 },
+          options: this.listOptions({ limit: 1000 }),
         }); // Get all entities for static generation
 
         logger.debug(
@@ -242,7 +268,7 @@ export class DynamicRouteGenerator {
     // Get total entity count
     const entities = await this.services.entityService.listEntities({
       entityType,
-      options: { limit: 1000 },
+      options: this.listOptions({ limit: 1000 }),
     });
     const totalItems = entities.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));

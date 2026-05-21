@@ -8,6 +8,11 @@ export interface GenerateSiteRoutesOptions {
 /**
  * Generate dynamic site routes by adapting site-builder services to the
  * renderer-agnostic site-engine route generator contract.
+ *
+ * Detail routes are emitted as static HTML files, so they must only be
+ * generated for entities that are publicly viewable. Pass visibilityScope:
+ * "public" so listEntities at the entity-service chokepoint filters out
+ * shared/restricted entities before any route is created.
  */
 export async function generateSiteRoutes(
   options: GenerateSiteRoutesOptions,
@@ -21,6 +26,7 @@ export async function generateSiteRoutes(
     },
     options.pipelineContext.routeRegistry,
     options.pipelineContext.entityDisplay,
+    { visibilityScope: "public" },
   );
 
   await dynamicRouteGenerator.generateEntityRoutes();

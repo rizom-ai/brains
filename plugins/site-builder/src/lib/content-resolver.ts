@@ -1,6 +1,7 @@
 import type { SectionDefinition } from "@brains/site-composition";
 import type { SiteImageLookup } from "@brains/site-engine";
 import { EntityUrlGenerator } from "@brains/site-composition";
+import type { ContentVisibility } from "@brains/plugins";
 import { enrichWithUrls } from "./content-enrichment";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { BuildPipelineContext } from "./build-pipeline-context";
@@ -14,6 +15,7 @@ export async function resolveSiteSectionContent(
   section: SectionDefinition,
   route: { id: string },
   publishedOnly: boolean,
+  visibilityScope: ContentVisibility,
   options: SiteContentResolverOptions,
 ): Promise<unknown> {
   if (!section.template) {
@@ -26,6 +28,7 @@ export async function resolveSiteSectionContent(
         dataParams: section.dataQuery,
         fallback: section.content,
         publishedOnly,
+        visibilityScope,
       }
     : {
         savedContent: {
@@ -33,6 +36,7 @@ export async function resolveSiteSectionContent(
           entityId: `${route.id}:${section.id}`,
         },
         fallback: section.content,
+        visibilityScope,
       };
 
   const content = await options.pipelineContext.services.resolveTemplateContent(

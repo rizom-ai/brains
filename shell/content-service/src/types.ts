@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
 import type { ContentFormatter } from "@brains/content-formatters";
+import type { ContentVisibility } from "@brains/entity-service";
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
@@ -62,6 +63,12 @@ export interface ResolutionOptions {
    * Set by site-builder: true for production, false for preview
    */
   publishedOnly?: boolean;
+  /**
+   * Visibility scope to enforce on entity lookups within this resolution.
+   * Set by site-builder: "public" for production, anchor scope for preview.
+   * Undefined fails closed at the entity-service chokepoint to "public".
+   */
+  visibilityScope?: ContentVisibility;
 }
 
 /**

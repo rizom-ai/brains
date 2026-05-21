@@ -10,24 +10,7 @@ Close the remaining gaps before merging canonical entity visibility, especially 
 
 ## Must fix before merge
 
-### 1. Filter public site generation by visibility
-
-Problem: production site generation applies lifecycle filtering (`publishedOnly`) but not `visibilityScope: "public"`.
-
-Relevant files:
-
-- `shell/content-service/src/content-service.ts`
-- `shared/site-engine/src/dynamic-route-generator.ts`
-- `plugins/site-builder/src/lib/create-build-context.ts`
-
-Plan:
-
-- In production/public site contexts, apply both `publishedOnly: true` and `visibilityScope: "public"`.
-- Ensure dynamic detail routes are generated only for public entities.
-- Ensure datasource/detail lookups cannot fetch shared/restricted entities for public builds.
-- Add tests for production site route generation and datasource filtering.
-
-### 2. Prevent MCP entity resource visibility bypasses
+### 1. Prevent MCP entity resource visibility bypasses
 
 Problem: `entity://{type}` and `entity://{type}/{id}` resources list/read raw entities. The default-public chokepoint fix in entity-service prevents content leak, but resource listing/completion may still leak existence of non-public entities.
 
@@ -53,6 +36,9 @@ After fixes, run:
 bun test shell/entity-service/test/entity-visibility.test.ts \
   shell/core/test/system/read-tools-visibility.test.ts \
   shell/core/test/system/register.test.ts \
+  shell/content-service/test/resolve-content.test.ts \
+  shared/site-engine/test/dynamic-route-generator.test.ts \
+  plugins/site-builder/test/unit/site-builder-data-query.test.ts \
   entities/topics/test/lib/topic-projection.test.ts \
   entities/topics/test/lib/topic-batch-extractor.test.ts \
   entities/topics/test/lib/topic-service.test.ts \

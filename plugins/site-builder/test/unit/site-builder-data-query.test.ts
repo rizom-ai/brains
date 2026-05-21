@@ -313,6 +313,102 @@ describe("SiteBuilder dataQuery handling", () => {
       );
     });
 
+    it("should set visibilityScope=public for sections in production", async () => {
+      const route: RouteDefinitionInput = {
+        id: "topics",
+        path: "/topics",
+        title: "Topics",
+        description: "All topics",
+        layout: "default",
+        sections: [
+          {
+            id: "list",
+            template: "topics:topic-list",
+            dataQuery: {
+              entityType: "topic",
+              query: { limit: 100 },
+            },
+          },
+        ],
+      };
+
+      mockRouteRegistry.list = mock().mockReturnValue([route]);
+      mockContext.templates.resolve = mock().mockResolvedValue({
+        topics: [],
+        totalCount: 0,
+      });
+
+      await siteBuilder.build({
+        outputDir: "/tmp/test-build",
+        environment: "production",
+        enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
+        cleanBeforeBuild: false,
+        siteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        layouts: { default: TestLayout },
+      });
+
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
+        "topics:topic-list",
+        expect.objectContaining({
+          visibilityScope: "public",
+        }),
+      );
+    });
+
+    it("should set visibilityScope=public for sections in preview too", async () => {
+      // Preview still emits static HTML that may be served beyond the
+      // authoring user; visibility scope stays "public". Preview differs from
+      // production only by showing unpublished drafts (publishedOnly=false).
+      const route: RouteDefinitionInput = {
+        id: "topics",
+        path: "/topics",
+        title: "Topics",
+        description: "All topics",
+        layout: "default",
+        sections: [
+          {
+            id: "list",
+            template: "topics:topic-list",
+            dataQuery: {
+              entityType: "topic",
+              query: { limit: 100 },
+            },
+          },
+        ],
+      };
+
+      mockRouteRegistry.list = mock().mockReturnValue([route]);
+      mockContext.templates.resolve = mock().mockResolvedValue({
+        topics: [],
+        totalCount: 0,
+      });
+
+      await siteBuilder.build({
+        outputDir: "/tmp/test-build",
+        environment: "preview",
+        enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
+        cleanBeforeBuild: false,
+        siteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        layouts: { default: TestLayout },
+      });
+
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
+        "topics:topic-list",
+        expect.objectContaining({
+          visibilityScope: "public",
+          publishedOnly: false,
+        }),
+      );
+    });
+
     it("should set publishedOnly=true for list sections in production", async () => {
       const route: RouteDefinitionInput = {
         id: "topics",

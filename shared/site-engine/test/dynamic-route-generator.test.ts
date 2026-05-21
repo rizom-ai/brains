@@ -4,7 +4,7 @@ import {
   type DynamicRouteGeneratorServices,
 } from "../src/dynamic-route-generator";
 import { RouteRegistry } from "../src/route-registry";
-import type { BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, ListEntitiesRequest } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -246,6 +246,148 @@ describe("DynamicRouteGenerator", () => {
       expect(routeRegistry.get("/blogs")).toBeDefined();
       expect(routeRegistry.get("/blogs/post-1")).toBeUndefined(); // Deleted
       expect(routeRegistry.get("/blogs/post-2")).toBeDefined(); // Still exists
+    });
+  });
+
+  describe("visibilityScope", () => {
+    test("passes configured visibilityScope to listEntities for detail routes", async () => {
+      entityTypes.push("post");
+      entities.set("post", [createMockEntity("p1", "post", "p1")]);
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      const seenRequests: ListEntitiesRequest[] = [];
+      const scopedServices: DynamicRouteGeneratorServices = {
+        logger: createSilentLogger("vis-detail"),
+        entityService: {
+          getEntityTypes: (): string[] => entityTypes,
+          listEntities: async (
+            req: ListEntitiesRequest,
+          ): Promise<BaseEntity[]> => {
+            seenRequests.push(req);
+            return entities.get(req.entityType) ?? [];
+          },
+        },
+        listViewTemplateNames: (): string[] =>
+          templates.map((template) => template.name),
+      };
+
+      const scopedGenerator = new DynamicRouteGenerator(
+        scopedServices,
+        routeRegistry,
+        undefined,
+        { visibilityScope: "public" },
+      );
+
+      await scopedGenerator.generateEntityRoutes();
+
+      expect(seenRequests.length).toBeGreaterThan(0);
+      for (const req of seenRequests) {
+        expect(req.options?.filter?.visibilityScope).toBe("public");
+      }
+    });
+
+    test("passes configured visibilityScope to listEntities for paginated routes", async () => {
+      entityTypes.push("post");
+      const manyPosts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`p${i + 1}`, "post", `p${i + 1}`),
+      );
+      entities.set("post", manyPosts);
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      const seenRequests: ListEntitiesRequest[] = [];
+      const scopedServices: DynamicRouteGeneratorServices = {
+        logger: createSilentLogger("vis-paginated"),
+        entityService: {
+          getEntityTypes: (): string[] => entityTypes,
+          listEntities: async (
+            req: ListEntitiesRequest,
+          ): Promise<BaseEntity[]> => {
+            seenRequests.push(req);
+            return entities.get(req.entityType) ?? [];
+          },
+        },
+        listViewTemplateNames: (): string[] =>
+          templates.map((template) => template.name),
+      };
+
+      const scopedGenerator = new DynamicRouteGenerator(
+        scopedServices,
+        routeRegistry,
+        undefined,
+        { visibilityScope: "public" },
+      );
+
+      await scopedGenerator.generateEntityRoutes();
+
+      expect(seenRequests.length).toBeGreaterThan(0);
+      for (const req of seenRequests) {
+        expect(req.options?.filter?.visibilityScope).toBe("public");
+      }
+    });
+
+    test("does not add visibilityScope when none configured", async () => {
+      entityTypes.push("post");
+      entities.set("post", [createMockEntity("p1", "post", "p1")]);
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      const seenRequests: ListEntitiesRequest[] = [];
+      const unscopedServices: DynamicRouteGeneratorServices = {
+        logger: createSilentLogger("vis-unscoped"),
+        entityService: {
+          getEntityTypes: (): string[] => entityTypes,
+          listEntities: async (
+            req: ListEntitiesRequest,
+          ): Promise<BaseEntity[]> => {
+            seenRequests.push(req);
+            return entities.get(req.entityType) ?? [];
+          },
+        },
+        listViewTemplateNames: (): string[] =>
+          templates.map((template) => template.name),
+      };
+
+      const unscopedGenerator = new DynamicRouteGenerator(
+        unscopedServices,
+        routeRegistry,
+      );
+
+      await unscopedGenerator.generateEntityRoutes();
+
+      expect(seenRequests.length).toBeGreaterThan(0);
+      for (const req of seenRequests) {
+        expect(req.options?.filter?.visibilityScope).toBeUndefined();
+      }
     });
   });
 
