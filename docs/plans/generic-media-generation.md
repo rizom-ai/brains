@@ -4,19 +4,19 @@
 
 Proposed follow-up to the PDF carousel MVP.
 
-The current preview tool proves that source-derived attachments can render correctly, but previews are disposable. The next step is to replace preview-only behavior with a generic generation flow that can optionally save the exact rendered artifact for later publishing.
+The current `preview-attachment` tool proves that source-derived attachments can render correctly, but previews are disposable. The next step is to support saving the exact rendered artifact for later publishing, without introducing a new operator tool surface — `system_create` already handles image generation and entity creation; extending it to attachment-derived saves keeps the surface uniform.
 
 ## Goal
 
-Provide one generic operator/tooling path for generated media artifacts under the existing media tooling plugin.
+Provide one operator path for generated media artifacts, reusing the existing `system_*` tool surface.
 
 The same path should support:
 
 - generating source-derived attachments such as `deck` → `carousel` PDFs
-- generating prompt-derived images such as cover images
-- previewing the generated artifact locally
+- generating prompt-derived images such as cover images (already works today)
+- previewing a generated artifact locally without persisting it
 - saving the generated artifact as a durable entity when explicitly requested
-- attaching saved or existing media to target entities through a generic media attachment surface
+- attaching saved or existing media to target entities
 - publishing the exact approved artifact without regenerating it
 
 ## Non-goals
@@ -25,127 +25,163 @@ The same path should support:
 - Do not make previews durable unless explicitly requested.
 - Do not remove source-derived publishing fallback; publishing should still regenerate when no saved artifact is attached.
 - Do not introduce a new entity type for every artifact kind.
+- Do not introduce parallel `media_*` operator tools when `system_*` already covers the case.
+
+## What already works
+
+Three existing facilities cover most of the surface:
+
+- **Image generation + attach (existing entity):** `system_create({ entityType: "image", prompt, targetEntityType, targetEntityId })` generates the image and sets the target's `coverImageId` via the image-generation job handler.
+- **Image generation + attach (generated target):** `system_create({ entityType: <target>, prompt, coverImage: { generate: true } })` — the orchestration sugar in `entity-create-tool.ts` enqueues the image job after the target is created. Stays as-is.
+- **Reference assignment:** `system_set-cover` is reference-only (no generation). It exists purely to add a `supportsCoverImage` adapter guard on top of `system_update`.
+
+The only missing piece is **attachment-derived saves** (e.g. `deck` → `carousel` → durable `document` entity).
 
 ## Plugin ownership
 
-Keep the existing `plugins/media-tools` service plugin and expand it from preview-only tooling into the operator-facing media generation plugin.
+- `media-tools` owns the disposable preview tool only.
+- `entities/document` owns the document schema, adapter, storage, and a new `from:` interceptor for attachment-derived creates.
+- `entities/image` is unchanged.
+- Source entity plugins (e.g. `decks`) own their attachment providers.
 
-Ownership boundaries:
+## Proposed surface
 
-- `media-tools` owns tools/CLI orchestration: generate, preview-to-file, save, attach.
-- `image` entity plugin owns image schema, adapter, storage, and compatibility job handling.
-- `document` entity plugin owns PDF/document schema, adapter, and storage.
-- source entity plugins, such as `deck`, own their source-derived providers.
-
-Move operator-facing image generation and media assignment into `media-tools`. The old `system_set-cover` tool should be removed rather than kept as a parallel operator surface; update system prompts, tool descriptions, and evals to use `media_attach` for assignment and `system_update` for removal. Keep existing `image:image-generate` jobs and `system_create(... coverImage ...)` behavior only where they are internal creation flows, not as the preferred operator-facing media API.
-
-## Proposed operator surface
-
-Replace or deprecate `preview-attachment` with media generation commands/tools:
-
-```bash
-brain media generate attachment deck distributed-systems-primer carousel --outputDir .tmp/media
-brain media generate attachment deck distributed-systems-primer carousel --save
-brain media generate attachment deck distributed-systems-primer carousel --save --attach social-post my-post --as document
-brain media generate image --prompt "Editorial cover image for ..." --attach post my-post --as cover
-brain media attach image my-image post my-post --as cover
-brain system update post my-post --fields '{"coverImageId": null}'
-```
-
-Equivalent MCP/tool shapes:
+### Extended `system_create` — attachment-derived saves
 
 ```ts
-media_generate({
-  mode: "attachment",
-  sourceEntityType: "deck",
-  sourceEntityId: "distributed-systems-primer",
-  attachmentType: "carousel",
-  outputDir?: string,
-  save?: boolean,
+system_create({
+  entityType: "document",
+  from: {
+    sourceEntityType: "deck",
+    sourceEntityId: "distributed-systems-primer",
+    attachmentType: "carousel",
+  },
+  // optional: attach the saved document to a target
   targetEntityType?: "social-post",
-  targetEntityId?: string,
-});
-
-media_generate({
-  mode: "image",
-  prompt: "Editorial cover image for ...",
-  title?: "...",
-  aspectRatio?: "16:9",
-  targetEntityType?: "post",
   targetEntityId?: "my-post",
-  attachAs?: "cover" | "og",
-});
-
-media_attach({
-  mediaEntityType: "image" | "document",
-  mediaEntityId: "my-image",
-  targetEntityType: "post",
-  targetEntityId: "my-post",
-  as: "cover" | "og" | "document",
 });
 ```
 
-## Behavior
+Behavior:
 
-1. For `mode: "attachment"`, resolve the artifact through the existing attachment registry.
-2. For `mode: "image"`, generate an image through the configured AI image provider.
-3. Always return artifact metadata: filename, MIME type, byte size, page count if known, and source reference where applicable.
-4. If `outputDir` is provided, write the artifact to disk for inspection.
-5. If `save` is true, store the artifact as a durable `document` or `image` entity.
-6. If `attach` is provided, imply `save: true` and call the same generic attach logic exposed by `media_attach`.
-7. `media_attach` updates target fields by semantic role: `coverImageId` for `as: "cover"`, `ogImageId` for `as: "og"`, and `documents[]` for `as: "document"`.
-8. Removing media references remains a normal entity mutation via `system_update`, e.g. clearing `coverImageId`, `ogImageId`, or removing an ID from `documents[]`.
-9. Publishing prefers explicit saved artifacts first, then falls back to source-derived generation.
+- The document plugin's `interceptCreate` resolves the attachment via the registry, computes a dedup key, and either reuses an existing document entity or enqueues a render job.
+- When `targetEntityType`/`targetEntityId` are provided, the saved document ID is attached to the target (`documents[]` for social posts; semantically equivalent to the image-mode target params).
+- Returns either a job ID (on render) or the existing entity ID (on dedup hit).
 
-## Save semantics
+### Extended `system_update` — adapter-aware guards
 
-Saving is an explicit approval/pinning action, not a cache.
+```ts
+system_update({
+  entityType: "post",
+  entityId: "my-post",
+  fields: { coverImageId: "img-1" }, // or null to clear
+});
+```
 
-- Default generation is disposable: write to `outputDir` if requested, return metadata, and create no entity.
-- `--save` persists the exact generated artifact as a durable entity.
-- `--attach ...` implies `--save` because target entities should reference durable artifacts, not temporary files.
-- `media attach` can also attach an already-existing `image` or `document` entity without generating anything.
-- The implementation/docs may describe saved artifacts as "frozen" internally, but the operator-facing flag should be `--save`.
+- Add a guard: when `fields` includes `coverImageId`/`ogImageId`, verify the adapter's `supportsCoverImage`/`supportsOgImage`.
+- Once this guard exists, `system_set-cover` is fully redundant and gets deleted.
 
-## Dedup key
+### `media_preview` — disposable case
 
-Saved artifacts should use a deterministic `dedupKey` based on:
+Rename `preview-attachment` → `media_preview`. Resolves a provider, writes to disk, creates no entity. Stays in `plugins/media-tools`.
 
-- source entity type and ID
-- source entity content hash
+### `--replace` flag
+
+`system_create({ ..., from: ..., replace: true })` bypasses dedup and forces a fresh render. Default is reuse.
+
+## Dedup
+
+Applies only to attachment-derived saves (deterministic renders). Does **not** apply to prompt-generated images (non-deterministic — same prompt produces different outputs).
+
+Dedup key for attachment-derived documents:
+
+- source entity type + ID + content hash
 - attachment type
-- renderer/provider version
-- relevant theme/site styling version, where available
+- renderer/provider version (template `version` field — to be added)
+- theme/site styling version, where available
 
-If a saved artifact with the same `dedupKey` already exists, reuse it and return the existing entity ID unless `--force` is provided.
+If a saved document with the same dedup key exists, reuse it. `replace: true` forces a new render.
+
+## Behavior on attach
+
+- Image attached as cover/OG: writes `coverImageId`/`ogImageId` on the target via `system_update`.
+- Document attached to a target: appends to `documents[]` (or equivalent field) on the target.
+- Removing a reference remains a normal `system_update` with the field cleared or array element removed.
+
+## Publishing precedence
+
+Publishing prefers explicit saved artifacts first, then falls back to source-derived generation. Unchanged from current carousel behavior — saved `documents[]` short-circuits the re-render.
+
+## Eval baseline (do this first)
+
+Before touching any production code, audit the existing rover evals so they would catch regressions in the paths this plan touches. The migration deletes `system_set-cover` and extends `system_create`/`system_update`; without a green baseline we won't know if a step broke prior behavior.
+
+Existing evals in scope:
+
+- `system-set-cover.yaml` — set existing image as cover
+- `system-set-cover-generate.yaml` — generate cover via `system_create({ entityType: "image", target* })`
+- `system-set-cover-generate-by-title.yaml`, `-by-reference.yaml` — variants
+- `set-cover-uses-target-params.yaml` — variant
+- `generate-post-with-image.yaml` — `coverImage:` sugar (must continue to work unchanged)
+- `system-update.yaml` — generic update behavior
+
+Baseline tasks:
+
+1. Run the full rover eval suite on `main` and record pass/fail per case.
+2. For each `set-cover*` case, verify the expected tool and args match current production behavior. Fix any drift before starting implementation.
+3. Confirm `generate-post-with-image.yaml` exercises the `coverImage:` sugar path end-to-end (job enqueued, image entity created, target entity updated). If it only asserts the tool call shape, add an assertion that the cover image is actually attached.
+4. Add a regression eval for "remove cover image": current expectation is `system_set-cover` with `imageId: null`. This case will migrate to `system_update({ fields: { coverImageId: null } })` — capture the _current_ expectation now so we can flip it in step 6 below and detect any drift.
+
+Only proceed to implementation once the baseline is green and the regression coverage above exists.
 
 ## Implementation steps
 
-1. Add a generic `media_generate` service tool in `plugins/media-tools` with discriminated modes.
-2. Add CLI support as `brain media generate ...`.
-3. Move `preview-attachment` onto the `mode: "attachment"` implementation, then mark it deprecated.
-4. Implement save-to-entity for document artifacts first; carousel PDFs use this path.
-5. Add a `media_attach` tool in `plugins/media-tools`.
-6. Implement semantic attach roles: `cover`, `og`, and `document`.
-7. Replace `system_set-cover` with `media_attach` and remove the old tool from the registered system tool surface.
-8. Update system prompts, tool instructions, and eval expectations that currently mention `system_set-cover`; removal cases should use `system_update`.
-9. Add optional attach-to-target support for `social-post.documents[]`.
-10. Move operator-facing prompt image generation into `media-tools`, reusing the current image generation logic.
-11. Keep `image:image-generate` and cover-image creation as internal compatibility shims where needed.
-12. Add dedup lookup/reuse for saved artifacts.
-13. Add tests that publishing with explicit `documents[]` does not regenerate the carousel.
-14. Update docs to recommend `brain media generate` / `brain media attach` over `preview-attachment` and `system_set-cover`.
+1. Add `version` field to `MediaPageTemplate` and `AttachmentProvider`. Stamp the carousel template+provider.
+2. Add `from:` to the document plugin's `interceptCreate`: resolve attachment, compute dedup key, reuse or enqueue render job.
+3. Extend `system_create` input schema with `from:` and `replace:` fields; route to the interceptor.
+4. Add `supportsCoverImage`/`supportsOgImage` adapter guards to `system_update` for the relevant field names.
+5. Rename `preview-attachment` → `media_preview`.
+6. Update agent prompts and rover eval cases (`system-set-cover*.yaml`) to use `system_update` for reference assignment and `system_create({ entityType: "image", ... })` for generation.
+7. Delete `system_set-cover` tool and `createEntityCoverTool` registration.
+8. Add publishing integration test: a social post with a saved `documents[]` entry does not invoke the carousel renderer at publish time.
+9. Document the `from:` pattern in `system_create` for operators/agents.
+
+## New evals (add at the end)
+
+Once the migration is complete, add rover evals covering the new surface so future drift is caught:
+
+1. **Attachment-derived save** — "Save the carousel for deck X as a document"
+   - Expect `system_create({ entityType: "document", from: { sourceEntityType: "deck", sourceEntityId: "X", attachmentType: "carousel" } })`.
+
+2. **Save + attach to target** — "Save the carousel for deck X and attach it to social post Y"
+   - Expect a single `system_create` call with `from:` and `targetEntityType: "social-post"`, `targetEntityId: "Y"`.
+
+3. **Dedup reuse** — agent re-runs the save; expect the returned entity ID matches the existing one, and no new render job is enqueued. (Integration test, not a tool-invocation eval, since the assertion is on side-effects.)
+
+4. **Force replace** — "Regenerate the carousel document for deck X" → expect `system_create({ ..., from: ..., replace: true })`.
+
+5. **Reference assignment via system_update** — "Set image 'hero-banner' as the cover for post Y" → expect `system_update({ entityType: "post", entityId: "Y", fields: { coverImageId: "hero-banner" } })`. Replaces `system-set-cover.yaml`.
+
+6. **Reference removal via system_update** — "Remove the cover image from post Y" → expect `system_update({ entityType: "post", entityId: "Y", fields: { coverImageId: null } })`.
+
+7. **Adapter guard rejection** — `system_update` on an entity type without `supportsCoverImage` returns a clear error. (Unit test on the tool, not an agent eval.)
+
+8. **media_preview disposable** — "Preview the carousel for deck X" → expect `media_preview` with no entity created. (Integration test.)
+
+9. **Publishing precedence** — social post with `documents[]` populated publishes without invoking the deck carousel renderer. (Integration test from step 8 of implementation.)
+
+10. **Eval cleanup verification** — grep across rover test cases and agent prompts confirms no references to `system_set-cover`.
 
 ## Validation
 
-- Attachment generate-only writes a valid local PDF and creates no entity.
-- Attachment generate with `--save` creates a durable `document` entity.
-- Image generate creates a durable `image` entity and can attach it as cover/OG image.
-- `media_attach image ... --as cover` replaces an entity's cover image.
-- `system_update fields: { coverImageId: null }` removes an entity's cover image.
-- Re-running `--save` with unchanged input reuses the existing document by `dedupKey`.
-- `--force` creates or refreshes the saved artifact intentionally.
-- `--attach social-post ... --as document` updates the social post with the saved document ID.
-- Publishing an attached saved document does not invoke the source-derived carousel renderer.
-- Publishing without an attached document still falls back to source-derived generation.
-- System prompts and evals no longer reference `system_set-cover`.
+- `system_create({ entityType: "document", from: { ..., attachmentType: "carousel" } })` creates a durable document entity.
+- Re-running the same call returns the existing entity ID without re-rendering.
+- `replace: true` forces a new render and replaces the existing entity.
+- `system_create({ entityType: "document", from: ..., targetEntityType: "social-post", targetEntityId })` saves the document and attaches it to the target.
+- `media_preview` writes the rendered artifact to disk and creates no entity.
+- `system_update({ fields: { coverImageId: "img-1" } })` rejects on entity types without `supportsCoverImage`.
+- `system_update({ fields: { coverImageId: null } })` clears the reference.
+- Publishing a social post with `documents[]` populated does not invoke the deck carousel renderer.
+- Publishing without `documents[]` still falls back to source-derived generation.
+- Existing image generation paths (`system_create({ entityType: "image", prompt, ... })` and `coverImage:` sugar) continue to work unchanged.
+- Rover evals no longer reference `system_set-cover`.
