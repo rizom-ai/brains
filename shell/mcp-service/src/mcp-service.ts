@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   canExposeResource,
+  canExposeResourceTemplate,
   canExposeTool,
   createMcpServerInstance,
   filterToolsForPermission,
@@ -153,15 +154,23 @@ export class MCPService implements IMCPService {
   }
 
   /**
-   * Register a resource template with parameterized URI
+   * Register a resource template with parameterized URI.
+   *
+   * Always stores in the internal registry so that per-session servers
+   * (createMcpServer(anchor)) can re-expose the template even when the
+   * default service permission is lower. The protocol server only sees the
+   * template if the current permission allows it, matching plain resources.
    */
   public registerResourceTemplate<K extends string = string>(
     pluginId: string,
     template: ResourceTemplate<K>,
   ): void {
-    registerResourceTemplateOnServer(this.mcpServer, template);
-
     this.registeredTemplates.push({ pluginId, template });
+
+    if (canExposeResourceTemplate(this.permissionLevel)) {
+      registerResourceTemplateOnServer(this.mcpServer, template);
+    }
+
     this.logger.debug(
       `Registered resource template ${template.uriTemplate} from ${pluginId}`,
     );
@@ -225,12 +234,16 @@ export class MCPService implements IMCPService {
       }
     }
 
-    for (const { resource } of this.registeredResources.values()) {
-      registerResourceOnServer(server, resource);
+    if (canExposeResource(permissionLevel)) {
+      for (const { resource } of this.registeredResources.values()) {
+        registerResourceOnServer(server, resource);
+      }
     }
 
-    for (const { template } of this.registeredTemplates) {
-      registerResourceTemplateOnServer(server, template);
+    if (canExposeResourceTemplate(permissionLevel)) {
+      for (const { template } of this.registeredTemplates) {
+        registerResourceTemplateOnServer(server, template);
+      }
     }
 
     for (const { prompt } of this.registeredPrompts) {

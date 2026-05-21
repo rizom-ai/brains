@@ -55,6 +55,17 @@ export function canExposeResource(
   return PermissionService.hasPermission(permissionLevel, RESOURCE_VISIBILITY);
 }
 
+/**
+ * Resource templates expose entity listing/completion that can leak entity
+ * existence even when handler output is filtered by visibility. Pin them to
+ * the same anchor-only policy as plain resources.
+ */
+export function canExposeResourceTemplate(
+  permissionLevel: UserPermissionLevel,
+): boolean {
+  return PermissionService.hasPermission(permissionLevel, RESOURCE_VISIBILITY);
+}
+
 export function filterToolsForPermission(
   tools: RegisteredTool[],
   userLevel: UserPermissionLevel,
