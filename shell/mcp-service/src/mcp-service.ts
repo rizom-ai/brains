@@ -34,7 +34,7 @@ export class MCPService implements IMCPService {
 
   private readonly logger: Logger;
   private readonly messageBus: IMessageBus;
-  private readonly mcpServer: McpServer;
+  private mcpServer: McpServer;
 
   // Track registered tools and resources
   private readonly registeredTools = new Map<string, RegisteredTool>();
@@ -112,6 +112,8 @@ export class MCPService implements IMCPService {
    */
   public setPermissionLevel(level: UserPermissionLevel): void {
     this.permissionLevel = level;
+    this.mcpServer = createMcpServerInstance();
+    this.registerEntriesOnServer(this.mcpServer, this.permissionLevel);
     this.logger.debug(`Permission level set to ${level}`);
   }
 

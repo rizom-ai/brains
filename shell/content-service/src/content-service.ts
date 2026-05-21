@@ -248,6 +248,13 @@ export class ContentService implements IContentService {
       return { ...filter, visibilityScope };
     };
 
+    const isPublishedEntity = (metadata: Record<string, unknown>): boolean => {
+      const status = metadata["status"];
+      return (
+        status === undefined || status === "published" || status === "active"
+      );
+    };
+
     return new Proxy(baseService, {
       get(target, prop, receiver): unknown {
         if (prop === "listEntities") {
@@ -282,9 +289,19 @@ export class ContentService implements IContentService {
             });
           };
         }
-        if (prop === "getEntity" && visibilityScope) {
-          return (request: Parameters<IEntityService["getEntity"]>[0]) =>
-            target.getEntity({ ...request, visibilityScope });
+        if (prop === "getEntity" && (visibilityScope || publishedOnly)) {
+          return async (
+            request: Parameters<IEntityService["getEntity"]>[0],
+          ) => {
+            const entity = await target.getEntity({
+              ...request,
+              ...(visibilityScope !== undefined && { visibilityScope }),
+            });
+            if (!publishedOnly || !entity) {
+              return entity;
+            }
+            return isPublishedEntity(entity.metadata) ? entity : null;
+          };
         }
         if (prop === "search" && visibilityScope) {
           return (request: Parameters<IEntityService["search"]>[0]) =>

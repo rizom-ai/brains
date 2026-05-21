@@ -790,6 +790,23 @@ describe("MCPService", () => {
       ).toContain("entity-list");
     });
 
+    it("removes resource templates from the default server when permission is lowered", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-list"),
+      );
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).toContain("entity-list");
+
+      mcpService.setPermissionLevel("public");
+
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).not.toContain("entity-list");
+    });
+
     it("still stores templates in the internal registry regardless of permission", () => {
       mcpService.setPermissionLevel("public");
       const template = makeTemplate("entity-list");
@@ -830,6 +847,30 @@ describe("MCPService", () => {
       expect(
         listProtocolResourceUris(mcpService.createMcpServer("anchor")),
       ).toContain("entity://types");
+    });
+
+    it("removes resources from the default server when permission is lowered", () => {
+      const resource: Resource = {
+        name: "entity://types",
+        uri: "entity://types",
+        description: "Entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [{ text: "post", uri: "entity://types" }],
+        }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResource("system", resource);
+      expect(listProtocolResourceUris(mcpService.getMcpServer())).toContain(
+        "entity://types",
+      );
+
+      mcpService.setPermissionLevel("public");
+
+      expect(listProtocolResourceUris(mcpService.getMcpServer())).not.toContain(
+        "entity://types",
+      );
     });
   });
 

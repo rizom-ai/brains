@@ -3,7 +3,7 @@ import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { DataSource } from "@brains/entity-service";
+import type { BaseEntity, DataSource } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -731,6 +731,52 @@ describe("ContentService.resolveContent", () => {
         entityType: "post",
         id: "test-id",
       });
+    });
+
+    it("should hide draft getEntity results when publishedOnly is set", async () => {
+      const mockTemplate: Template = {
+        name: "get-entity-published-only-test",
+        description: "Get entity publishedOnly test",
+        dataSourceId: "shell:get-entity-published-only-source",
+        schema: z.object({ found: z.boolean() }),
+        requiredPermission: "public",
+      };
+
+      const draftEntity: BaseEntity = {
+        id: "draft-post",
+        entityType: "post",
+        content: "draft",
+        created: "2024-01-01T00:00:00.000Z",
+        updated: "2024-01-01T00:00:00.000Z",
+        visibility: "public",
+        metadata: { status: "draft" },
+        contentHash: "draft-hash",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:get-entity-published-only-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const entity = await context.entityService.getEntity({
+            entityType: "post",
+            id: "draft-post",
+          });
+          return { found: entity !== null };
+        }),
+      };
+
+      templateRegistry.register("get-entity-published-only-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue(draftEntity);
+
+      const result = await contentService.resolveContent(
+        "get-entity-published-only-test",
+        {
+          dataParams: {},
+          publishedOnly: true,
+        },
+      );
+
+      expect(result).toEqual({ found: false });
     });
 
     it("should forward search calls through scoped entityService", async () => {
