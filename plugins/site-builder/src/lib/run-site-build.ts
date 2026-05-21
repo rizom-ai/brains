@@ -48,6 +48,7 @@ export async function runSiteBuild(
 
     await generateSiteRoutes({
       pipelineContext: options.pipelineContext,
+      publishedOnly: parsedOptions.environment === "production",
     });
 
     const staticSiteBuilder = await createStaticSiteBuilder({

@@ -3,6 +3,7 @@ import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface GenerateSiteRoutesOptions {
   pipelineContext: BuildPipelineContext;
+  publishedOnly?: boolean;
 }
 
 /**
@@ -26,7 +27,12 @@ export async function generateSiteRoutes(
     },
     options.pipelineContext.routeRegistry,
     options.pipelineContext.entityDisplay,
-    { visibilityScope: "public" },
+    {
+      visibilityScope: "public",
+      ...(options.publishedOnly !== undefined && {
+        publishedOnly: options.publishedOnly,
+      }),
+    },
   );
 
   await dynamicRouteGenerator.generateEntityRoutes();

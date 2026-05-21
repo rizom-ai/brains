@@ -35,6 +35,11 @@ export interface DynamicRouteGeneratorOptions {
    * default (fail-closed to "public" at the chokepoint).
    */
   visibilityScope?: ContentVisibility;
+  /**
+   * Filter route source entities to lifecycle-eligible published content.
+   * Production site builds pass true so public drafts do not get static routes.
+   */
+  publishedOnly?: boolean;
 }
 
 export type DynamicRouteEntityDisplayMap = Record<string, EntityDisplayEntry>;
@@ -58,6 +63,7 @@ export class DynamicRouteGenerator {
     const filter = extra.filter;
     return {
       ...extra,
+      ...(this.options.publishedOnly && { publishedOnly: true }),
       ...(scope && {
         filter: { ...filter, visibilityScope: scope },
       }),

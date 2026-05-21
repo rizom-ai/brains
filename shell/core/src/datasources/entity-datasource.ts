@@ -31,7 +31,8 @@ export class EntityDataSource implements DataSource {
     }
     const params = parseResult.data;
 
-    const entity = await this.entityService.getEntity({
+    const entityService = _context?.entityService ?? this.entityService;
+    const entity = await entityService.getEntity({
       entityType: params.entityType,
       id: params.query.id,
     });

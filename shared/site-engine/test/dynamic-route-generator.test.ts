@@ -343,6 +343,56 @@ describe("DynamicRouteGenerator", () => {
       }
     });
 
+    test("passes publishedOnly with visibilityScope when configured", async () => {
+      entityTypes.push("post");
+      entities.set("post", [createMockEntity("p1", "post", "p1")]);
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      const seenRequests: ListEntitiesRequest[] = [];
+      const scopedServices: DynamicRouteGeneratorServices = {
+        logger: createSilentLogger("vis-published"),
+        entityService: {
+          getEntityTypes: (): string[] => entityTypes,
+          listEntities: async (
+            req: ListEntitiesRequest,
+          ): Promise<BaseEntity[]> => {
+            seenRequests.push(req);
+            return entities.get(req.entityType) ?? [];
+          },
+        },
+        listViewTemplateNames: (): string[] =>
+          templates.map((template) => template.name),
+      };
+
+      const scopedGenerator = new DynamicRouteGenerator(
+        scopedServices,
+        routeRegistry,
+        undefined,
+        { visibilityScope: "public", publishedOnly: true },
+      );
+
+      await scopedGenerator.generateEntityRoutes();
+
+      expect(seenRequests.length).toBeGreaterThan(0);
+      for (const req of seenRequests) {
+        expect(req.options?.filter?.visibilityScope).toBe("public");
+        expect(req.options?.publishedOnly).toBe(true);
+      }
+    });
+
     test("does not add visibilityScope when none configured", async () => {
       entityTypes.push("post");
       entities.set("post", [createMockEntity("p1", "post", "p1")]);
