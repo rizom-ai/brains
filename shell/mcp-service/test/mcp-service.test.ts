@@ -39,6 +39,7 @@ interface InspectableMcpServer {
     string,
     InspectableRegisteredResourceTemplate
   >;
+  _registeredPrompts: Record<string, unknown>;
 }
 
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
@@ -55,6 +56,10 @@ function listProtocolResourceUris(server: McpServer): string[] {
 
 function listProtocolResourceTemplateNames(server: McpServer): string[] {
   return Object.keys(inspectMcpServer(server)._registeredResourceTemplates);
+}
+
+function listProtocolPromptNames(server: McpServer): string[] {
+  return Object.keys(inspectMcpServer(server)._registeredPrompts);
 }
 
 async function callProtocolTool(
@@ -920,6 +925,104 @@ describe("MCPService", () => {
       };
 
       expect(() => mcpService.registerPrompt("system", prompt)).not.toThrow();
+    });
+  });
+
+  describe("prompt visibility gating", () => {
+    const makePrompt = (
+      name: string,
+      visibility?: Prompt["visibility"],
+    ): Prompt => ({
+      name,
+      description: `prompt ${name}`,
+      ...(visibility !== undefined && { visibility }),
+      args: {
+        topic: { description: "Topic", required: true },
+      },
+      handler: async ({ topic }) => ({
+        messages: [
+          {
+            role: "user" as const,
+            content: { type: "text" as const, text: `Discuss: ${topic}` },
+          },
+        ],
+      }),
+    });
+
+    it("does not expose prompts on the default server when service permission is public", () => {
+      mcpService.setPermissionLevel("public");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("does not expose anchor-default prompts on the default server when service permission is trusted", () => {
+      mcpService.setPermissionLevel("trusted");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("exposes prompts on the default server when service permission is anchor", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("exposes explicitly public prompts to public sessions", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("public-prompt", "public"),
+      );
+
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("public")),
+      ).toContain("public-prompt");
+    });
+
+    it("filters prompts per-session in createMcpServer based on requested permission", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("public-prompt", "public"),
+      );
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("trusted-prompt", "trusted"),
+      );
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("public")),
+      ).toEqual(["public-prompt"]);
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("trusted")),
+      ).toEqual(["public-prompt", "trusted-prompt"]);
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("anchor")),
+      ).toEqual(["public-prompt", "trusted-prompt", "anchor-prompt"]);
+    });
+
+    it("removes anchor prompts from the default server when permission is lowered", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
+        "anchor-prompt",
+      );
+
+      mcpService.setPermissionLevel("public");
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
     });
   });
 

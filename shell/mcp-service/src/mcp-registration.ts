@@ -14,6 +14,7 @@ const MCP_SERVER_INFO = {
 
 const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "anchor";
 const RESOURCE_VISIBILITY: UserPermissionLevel = "anchor";
+const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "anchor";
 
 export interface RegisteredTool {
   pluginId: string;
@@ -64,6 +65,21 @@ export function canExposeResourceTemplate(
   permissionLevel: UserPermissionLevel,
 ): boolean {
   return PermissionService.hasPermission(permissionLevel, RESOURCE_VISIBILITY);
+}
+
+/**
+ * Prompts ship as anchor-only by default because their bodies can reference
+ * restricted workflows, entity names, or operator instructions. Plugins can
+ * opt a prompt down to "trusted" / "public" if its template is safe to share.
+ */
+export function canExposePrompt(
+  permissionLevel: UserPermissionLevel,
+  prompt: Prompt,
+): boolean {
+  return PermissionService.hasPermission(
+    permissionLevel,
+    prompt.visibility ?? DEFAULT_PROMPT_VISIBILITY,
+  );
 }
 
 export function filterToolsForPermission(

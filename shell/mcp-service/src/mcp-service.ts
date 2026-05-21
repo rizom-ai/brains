@@ -3,6 +3,7 @@ import { type UserPermissionLevel } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  canExposePrompt,
   canExposeResource,
   canExposeResourceTemplate,
   canExposeTool,
@@ -179,11 +180,20 @@ export class MCPService implements IMCPService {
   }
 
   /**
-   * Register an MCP prompt
+   * Register an MCP prompt.
+   *
+   * Mirrors registerTool: always store in the internal registry so per-session
+   * servers (createMcpServer(anchor)) can re-expose the prompt even when the
+   * default service permission is lower. The protocol server only sees the
+   * prompt if the current permission allows it.
    */
   public registerPrompt(pluginId: string, prompt: Prompt): void {
-    registerPromptOnServer(this.mcpServer, prompt);
     this.registeredPrompts.push({ pluginId, prompt });
+
+    if (canExposePrompt(this.permissionLevel, prompt)) {
+      registerPromptOnServer(this.mcpServer, prompt);
+    }
+
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
 
@@ -249,7 +259,9 @@ export class MCPService implements IMCPService {
     }
 
     for (const { prompt } of this.registeredPrompts) {
-      registerPromptOnServer(server, prompt);
+      if (canExposePrompt(permissionLevel, prompt)) {
+        registerPromptOnServer(server, prompt);
+      }
     }
   }
 

@@ -166,6 +166,9 @@ export interface Prompt {
       content: { type: "text"; text: string };
     }>;
   }>;
+  /** Default: "anchor" — prompt bodies can reference restricted workflows,
+   *  so they ship as anchor-only unless explicitly marked. */
+  visibility?: ToolVisibility;
 }
 
 /**
