@@ -1,4 +1,5 @@
 import {
+  canWriteVisibility,
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
   permissionToVisibilityScope,
@@ -162,6 +163,17 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
                 ),
               }
             : applyFieldUpdates(entity, normalizedInput.fields ?? {});
+
+        if (
+          updated.visibility !== entity.visibility &&
+          !canWriteVisibility(context.userPermissionLevel, updated.visibility)
+        ) {
+          return {
+            success: false,
+            error: `Cannot set entity visibility to "${updated.visibility}" — caller permission "${context.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
+          };
+        }
+
         try {
           await entityService.updateEntity({ entity: updated });
         } catch (error) {

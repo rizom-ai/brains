@@ -96,6 +96,23 @@ export function permissionToVisibilityScope(
 }
 
 /**
+ * Whether a caller at `level` is allowed to author or update an entity at
+ * `visibility`. A user may only write content at a visibility they themselves
+ * can read — otherwise they could ghost-write content into a higher trust
+ * level than their permission, which is a write-side escalation vector.
+ *
+ *  public  → may write "public"
+ *  trusted → may write "public" | "shared"
+ *  anchor  → may write "public" | "shared" | "restricted"
+ */
+export function canWriteVisibility(
+  level: "anchor" | "trusted" | "public" | undefined,
+  visibility: ContentVisibility,
+): boolean {
+  return isVisibleWithinScope(visibility, permissionToVisibilityScope(level));
+}
+
+/**
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
 export interface CreateEntityOptions extends EntityJobOptions {

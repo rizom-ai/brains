@@ -63,6 +63,7 @@ export type {
 export {
   baseEntitySchema,
   BASE_ENTITY_TYPE,
+  canWriteVisibility,
   contentVisibilitySchema,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
