@@ -122,6 +122,15 @@ export class ContentService implements IContentService {
       return null;
     }
 
+    // Single scoped entityService for the whole resolution. Every read path —
+    // datasource fetch context AND savedContent fallback — goes through this
+    // proxy, so the configured scope is enforced uniformly and cannot be
+    // sidestepped by a future caller passing a wider scope.
+    const scopedEntityService = this.createScopedEntityService(
+      options?.publishedOnly,
+      options?.visibilityScope,
+    );
+
     // 1. Priority: DataSource fetch (real-time data like dashboard stats)
     if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
       const dataSource = this.dependencies.dataSourceRegistry.get(
@@ -136,12 +145,7 @@ export class ContentService implements IContentService {
               ...(options?.publishedOnly !== undefined && {
                 publishedOnly: options.publishedOnly,
               }),
-              // Provide scoped entityService that auto-applies
-              // publishedOnly + visibilityScope
-              entityService: this.createScopedEntityService(
-                options?.publishedOnly,
-                options?.visibilityScope,
-              ),
+              entityService: scopedEntityService,
             };
 
             const data = await dataSource.fetch(
@@ -175,12 +179,9 @@ export class ContentService implements IContentService {
         );
       } else {
         try {
-          const entity = await this.dependencies.entityService.getEntity({
+          const entity = await scopedEntityService.getEntity({
             entityType: options.savedContent.entityType,
             id: options.savedContent.entityId,
-            ...(options.visibilityScope && {
-              visibilityScope: options.visibilityScope,
-            }),
           });
           if (entity?.content) {
             this.dependencies.logger.debug(
@@ -289,7 +290,13 @@ export class ContentService implements IContentService {
             });
           };
         }
-        if (prop === "getEntity" && (visibilityScope || publishedOnly)) {
+        // Proxy is only constructed when at least one of {publishedOnly,
+        // visibilityScope} is set (see early return above). getEntity is
+        // hooked unconditionally because the proxy must always enforce the
+        // configured scope — the spread order below makes the configured
+        // scope win over any caller-supplied scope, so datasources cannot
+        // widen.
+        if (prop === "getEntity") {
           return async (
             request: Parameters<IEntityService["getEntity"]>[0],
           ) => {
@@ -303,6 +310,9 @@ export class ContentService implements IContentService {
             return isPublishedEntity(entity.metadata) ? entity : null;
           };
         }
+        // search has no publishedOnly dimension; only hook it when a
+        // visibilityScope is configured. Otherwise fall through and let the
+        // caller pass through raw (no empty options object spread).
         if (prop === "search" && visibilityScope) {
           return (request: Parameters<IEntityService["search"]>[0]) =>
             target.search({

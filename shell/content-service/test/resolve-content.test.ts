@@ -1190,6 +1190,125 @@ describe("ContentService.resolveContent", () => {
         visibilityScope: "public",
       });
     });
+
+    it("overrides datasource-supplied visibilityScope on getEntity (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-get-override",
+        description: "vis get override",
+        dataSourceId: "shell:vis-get-override-source",
+        schema: z.object({ entity: z.unknown().nullable() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-get-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Datasource attempts to opt up to "restricted"; build is pinned to public.
+          const entity = await svc.getEntity({
+            entityType: "post",
+            id: "x",
+            visibilityScope: "restricted",
+          });
+          return { entity };
+        }),
+      };
+
+      templateRegistry.register("vis-get-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const getSpy = spyOn(
+        mockDependencies.entityService,
+        "getEntity",
+      ).mockResolvedValue(null);
+
+      await contentService.resolveContent("vis-get-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = getSpy.mock.calls[0]?.[0];
+      expect(call?.visibilityScope).toBe("public");
+    });
+
+    it("overrides datasource-supplied visibilityScope on search (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-search-override",
+        description: "vis search override",
+        dataSourceId: "shell:vis-search-override-source",
+        schema: z.object({ results: z.array(z.unknown()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-search-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          const results = await svc.search({
+            query: "x",
+            options: { visibilityScope: "restricted" },
+          });
+          return { results };
+        }),
+      };
+
+      templateRegistry.register("vis-search-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const searchSpy = spyOn(
+        mockDependencies.entityService,
+        "search",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-search-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = searchSpy.mock.calls[0]?.[0];
+      expect(call?.options?.visibilityScope).toBe("public");
+    });
+
+    it("overrides datasource-supplied visibilityScope on countEntities (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-count-override",
+        description: "vis count override",
+        dataSourceId: "shell:vis-count-override-source",
+        schema: z.object({ count: z.number() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-count-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.countEntities({
+            entityType: "post",
+            options: { filter: { visibilityScope: "restricted" } },
+          });
+          return { count: 0 };
+        }),
+      };
+
+      templateRegistry.register("vis-count-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const countSpy = spyOn(
+        mockDependencies.entityService,
+        "countEntities",
+      ).mockResolvedValue(0);
+
+      await contentService.resolveContent("vis-count-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = countSpy.mock.calls[0]?.[0];
+      expect(call?.options?.filter?.visibilityScope).toBe("public");
+    });
   });
 
   describe("Plugin scoping", () => {
