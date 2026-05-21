@@ -25,7 +25,8 @@ The same path should support:
 - Do not make previews durable unless explicitly requested.
 - Do not remove source-derived publishing fallback; publishing should still regenerate when no saved artifact is attached.
 - Do not introduce a new entity type for every artifact kind.
-- Do not introduce parallel `media_*` operator tools when `system_*` already covers the case.
+- Do not introduce parallel durable `media_generate`/`media_attach` tools when `system_create`/`system_update` already cover the case.
+- Keep one media-specific preview tool for disposable render-to-file workflows; preview is not entity lifecycle.
 
 ## What already works
 
@@ -40,9 +41,11 @@ The only missing piece is **attachment-derived saves** (e.g. `deck` → `carouse
 ## Plugin ownership
 
 - `media-tools` owns the disposable preview tool only.
-- `entities/document` owns the document schema, adapter, storage, and a new `from:` interceptor for attachment-derived creates.
+- `entities/document` owns the document schema, adapter, storage, and attachment-derived create behavior.
 - `entities/image` is unchanged.
 - Source entity plugins (e.g. `decks`) own their attachment providers.
+
+Current implementation note: the document plugin is a `ServicePlugin` that manually registers the `document` entity, not an `EntityPlugin`. Implement attachment-derived create behavior either by registering a create interceptor with `context.entities.registerCreateInterceptor("document", ...)`, or by first refactoring the document plugin to an `EntityPlugin`. Do not assume an `interceptCreate` override exists today.
 
 ## Proposed surface
 
@@ -64,7 +67,8 @@ system_create({
 
 Behavior:
 
-- The document plugin's `interceptCreate` resolves the attachment via the registry, computes a dedup key, and either reuses an existing document entity or enqueues a render job.
+- The document create interceptor resolves the attachment via the registry, computes a dedup key, and either reuses an existing document entity or enqueues a render job.
+- `from` becomes a fourth valid `system_create` source alongside `content`, `prompt`, and `url`; update `CreateInput`, `createInputSchema`, validation, and tool instructions accordingly.
 - When `targetEntityType`/`targetEntityId` are provided, the saved document ID is attached to the target (`documents[]` for social posts; semantically equivalent to the image-mode target params).
 - Returns either a job ID (on render) or the existing entity ID (on dedup hit).
 
@@ -73,21 +77,26 @@ Behavior:
 ```ts
 system_update({
   entityType: "post",
-  entityId: "my-post",
+  id: "my-post",
   fields: { coverImageId: "img-1" }, // or null to clear
 });
 ```
 
-- Add a guard: when `fields` includes `coverImageId`/`ogImageId`, verify the adapter's `supportsCoverImage`/`supportsOgImage`.
-- Once this guard exists, `system_set-cover` is fully redundant and gets deleted.
+- Add a guard: when `fields` includes `coverImageId`, verify the adapter's existing `supportsCoverImage` flag.
+- `supportsOgImage` does not exist today. Add it to the adapter contract only when OG-image assignment lands; until then, do not mention or validate `ogImageId` through a non-existent adapter capability.
+- Once the `coverImageId` guard exists, `system_set-cover` is fully redundant and gets deleted.
 
 ### `media_preview` — disposable case
 
-Rename `preview-attachment` → `media_preview`. Resolves a provider, writes to disk, creates no entity. Stays in `plugins/media-tools`.
+Rename `preview-attachment` → `preview`, exposed by `plugins/media-tools` as MCP tool `media-tools_preview` and CLI alias `media-preview` unless/until plugin naming changes. It resolves a provider, writes to disk, and creates no entity.
+
+Do not model preview as `system_create({ dryRun: true })`: preview renders real bytes to an operator file path but intentionally does not create an entity. Keeping it in `media-tools` preserves `system_create` as durable create/enqueue semantics.
 
 ### `--replace` flag
 
 `system_create({ ..., from: ..., replace: true })` bypasses dedup and forces a fresh render. Default is reuse.
+
+`replace: true` should create a new saved artifact ID by default and, when a target is provided, update/append the target reference to the new document without duplicating stale references for the same source/attachment pair. It should not silently mutate an already-published document entity in place.
 
 ## Dedup
 
@@ -104,7 +113,8 @@ If a saved document with the same dedup key exists, reuse it. `replace: true` fo
 
 ## Behavior on attach
 
-- Image attached as cover/OG: writes `coverImageId`/`ogImageId` on the target via `system_update`.
+- Image attached as cover: writes `coverImageId` on the target via `system_update`.
+- OG image assignment can use `ogImageId` later, after `supportsOgImage` and selected-entity frontmatter support exist.
 - Document attached to a target: appends to `documents[]` (or equivalent field) on the target.
 - Removing a reference remains a normal `system_update` with the field cleared or array element removed.
 
@@ -137,14 +147,16 @@ Only proceed to implementation once the baseline is green and the regression cov
 ## Implementation steps
 
 1. Add `version` field to `MediaPageTemplate` and `AttachmentProvider`. Stamp the carousel template+provider.
-2. Add `from:` to the document plugin's `interceptCreate`: resolve attachment, compute dedup key, reuse or enqueue render job.
-3. Extend `system_create` input schema with `from:` and `replace:` fields; route to the interceptor.
-4. Add `supportsCoverImage`/`supportsOgImage` adapter guards to `system_update` for the relevant field names.
-5. Rename `preview-attachment` → `media_preview`.
-6. Update agent prompts and rover eval cases (`system-set-cover*.yaml`) to use `system_update` for reference assignment and `system_create({ entityType: "image", ... })` for generation.
-7. Delete `system_set-cover` tool and `createEntityCoverTool` registration.
-8. Add publishing integration test: a social post with a saved `documents[]` entry does not invoke the carousel renderer at publish time.
-9. Document the `from:` pattern in `system_create` for operators/agents.
+2. Add attachment-derived create behavior for `document`: resolve `from`, compute dedup key, reuse or enqueue render job. Use `context.entities.registerCreateInterceptor("document", ...)` unless the document plugin is first refactored to `EntityPlugin`.
+3. Extend `system_create` / `CreateInput` schemas with `from:` and `replace:` fields; accept `from` as a valid create source.
+4. Define `replace: true` behavior precisely in tests: new artifact ID, no in-place mutation of previously saved documents, and target `documents[]` deduped/repointed for the same source/attachment pair.
+5. Add `supportsCoverImage` guard to `system_update` for `coverImageId` updates. Leave `ogImageId` guards for the OG-image phase when `supportsOgImage` exists.
+6. Rename `preview-attachment` → `preview` in `plugins/media-tools` (`media-tools_preview` MCP name; CLI alias `media-preview`).
+7. Remove or deprecate the existing `document_generate` tool once `system_create({ entityType: "document", from: ... })` is available; do not keep two durable document-generation surfaces.
+8. Update agent prompts and rover eval cases (`system-set-cover*.yaml`) to use `system_update` for reference assignment and `system_create({ entityType: "image", ... })` for generation.
+9. Delete `system_set-cover` tool and `createEntityCoverTool` registration.
+10. Add publishing integration test: a social post with a saved `documents[]` entry does not invoke the carousel renderer at publish time.
+11. Document the `from:` pattern in `system_create` for operators/agents.
 
 ## New evals (add at the end)
 
@@ -160,13 +172,13 @@ Once the migration is complete, add rover evals covering the new surface so futu
 
 4. **Force replace** — "Regenerate the carousel document for deck X" → expect `system_create({ ..., from: ..., replace: true })`.
 
-5. **Reference assignment via system_update** — "Set image 'hero-banner' as the cover for post Y" → expect `system_update({ entityType: "post", entityId: "Y", fields: { coverImageId: "hero-banner" } })`. Replaces `system-set-cover.yaml`.
+5. **Reference assignment via system_update** — "Set image 'hero-banner' as the cover for post Y" → expect `system_update({ entityType: "post", id: "Y", fields: { coverImageId: "hero-banner" } })`. Replaces `system-set-cover.yaml`.
 
-6. **Reference removal via system_update** — "Remove the cover image from post Y" → expect `system_update({ entityType: "post", entityId: "Y", fields: { coverImageId: null } })`.
+6. **Reference removal via system_update** — "Remove the cover image from post Y" → expect `system_update({ entityType: "post", id: "Y", fields: { coverImageId: null } })`.
 
 7. **Adapter guard rejection** — `system_update` on an entity type without `supportsCoverImage` returns a clear error. (Unit test on the tool, not an agent eval.)
 
-8. **media_preview disposable** — "Preview the carousel for deck X" → expect `media_preview` with no entity created. (Integration test.)
+8. **media preview disposable** — "Preview the carousel for deck X" → expect `media-tools_preview` / CLI `media-preview` with no entity created. (Integration test.)
 
 9. **Publishing precedence** — social post with `documents[]` populated publishes without invoking the deck carousel renderer. (Integration test from step 8 of implementation.)
 
@@ -176,9 +188,9 @@ Once the migration is complete, add rover evals covering the new surface so futu
 
 - `system_create({ entityType: "document", from: { ..., attachmentType: "carousel" } })` creates a durable document entity.
 - Re-running the same call returns the existing entity ID without re-rendering.
-- `replace: true` forces a new render and replaces the existing entity.
+- `replace: true` forces a new render, creates a new saved artifact, and repoints/dedupes target references when a target is provided.
 - `system_create({ entityType: "document", from: ..., targetEntityType: "social-post", targetEntityId })` saves the document and attaches it to the target.
-- `media_preview` writes the rendered artifact to disk and creates no entity.
+- `media-tools_preview` writes the rendered artifact to disk and creates no entity.
 - `system_update({ fields: { coverImageId: "img-1" } })` rejects on entity types without `supportsCoverImage`.
 - `system_update({ fields: { coverImageId: null } })` clears the reference.
 - Publishing a social post with `documents[]` populated does not invoke the deck carousel renderer.
