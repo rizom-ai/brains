@@ -29,6 +29,10 @@ export type {
   ViewTemplate,
   ViewTemplateRegistry,
   WebRenderer,
+  ImageRenderer,
+  PdfRenderer,
+  MediaRenderer,
+  Renderer,
   OutputFormat,
   SiteBuilder,
   SiteBuilderOptions,
@@ -37,6 +41,7 @@ export type {
 } from "./render-types";
 export {
   ViewTemplateSchema,
+  OutputFormatSchema,
   SiteBuilderOptionsSchema,
   BuildResultSchema,
   SiteContentEntityTypeSchema,

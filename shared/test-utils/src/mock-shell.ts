@@ -1,3 +1,7 @@
+import {
+  AttachmentRegistry,
+  createAttachmentsNamespace,
+} from "@brains/plugins";
 import type {
   IShell,
   Plugin,
@@ -81,6 +85,8 @@ export interface MockShellOptions {
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
+  /** Active resolved theme CSS */
+  themeCSS?: string;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -106,6 +112,10 @@ function createDefaultMockAgentService(): IAgentService {
  */
 export function createMockShell(options: MockShellOptions = {}): MockShell {
   const logger = options.logger ?? createSilentLogger("MockShell");
+
+  // Fresh attachment registry per mock shell — keeps tests isolated from each
+  // other and from the process-wide singleton.
+  const attachmentRegistry = AttachmentRegistry.createFresh();
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -522,6 +532,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         hasRenderer: () => false,
         listFormats: () => [],
       }) as unknown as RenderService,
+    getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
     getConversationService: () =>
       ({
         startConversation: async () => `conv-${Date.now()}`,
@@ -563,6 +574,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,
+    getThemeCSS: (): string => options.themeCSS ?? "",
     getSpaces: (): string[] => options.spaces ?? [],
 
     // Data directory

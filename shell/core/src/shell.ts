@@ -19,7 +19,11 @@ import type {
 } from "@brains/plugins";
 
 // Plugin manager
-import type { PluginManager } from "@brains/plugins";
+import {
+  createAttachmentsNamespace,
+  type IAttachmentsNamespace,
+  type PluginManager,
+} from "@brains/plugins";
 
 // Entity service types
 import type {
@@ -307,6 +311,10 @@ export class Shell implements IShell {
     return this.services.renderService;
   }
 
+  public getAttachmentRegistry(): IAttachmentsNamespace {
+    return createAttachmentsNamespace(this.services.attachmentRegistry);
+  }
+
   public getMessageBus(): IMessageBus {
     return this.services.messageBus;
   }
@@ -483,6 +491,10 @@ export class Shell implements IShell {
 
   public shouldPreferLocalUrls(): boolean {
     return this.config.preferLocalUrls;
+  }
+
+  public getThemeCSS(): string {
+    return this.config.themeCSS;
   }
 
   public getSpaces(): string[] {

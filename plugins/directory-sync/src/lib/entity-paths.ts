@@ -1,6 +1,7 @@
 import type { BaseEntity } from "@brains/plugins";
 import { extname, join } from "path";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
+import { DOCUMENT_EXTENSIONS } from "./document-file-utils";
 import { toSyncRelativePath } from "./path-utils";
 
 export function parseEntityPath(
@@ -73,6 +74,10 @@ export function buildEntityFilePath(
 }
 
 export function getEntityFileExtension(entity: BaseEntity): string {
+  if (entity.entityType === "document") {
+    return ".pdf";
+  }
+
   if (entity.entityType !== "image") {
     return ".md";
   }
@@ -88,7 +93,9 @@ export function getEntityFileExtension(entity: BaseEntity): string {
 
 function stripEntityExtension(filename: string): string {
   const ext = extname(filename).toLowerCase();
-  return ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
+  return ext === ".md" ||
+    IMAGE_EXTENSIONS.includes(ext) ||
+    DOCUMENT_EXTENSIONS.includes(ext)
     ? filename.slice(0, -ext.length)
     : filename;
 }

@@ -13,6 +13,12 @@ export const SiteContentEntityTypeSchema = z.enum([
 export type SiteContentEntityType = z.infer<typeof SiteContentEntityTypeSchema>;
 
 /**
+ * Renderer output formats supported by view templates.
+ */
+export const OutputFormatSchema = z.enum(["web", "image", "pdf"]);
+export type OutputFormat = z.infer<typeof OutputFormatSchema>;
+
+/**
  * View template schema
  */
 export const ViewTemplateSchema = z.object({
@@ -22,7 +28,8 @@ export const ViewTemplateSchema = z.object({
   pluginId: z.string(),
   renderers: z.object({
     web: z.union([z.function(), z.string()]).optional(),
-    // Future formats can be added here
+    image: z.union([z.function(), z.string()]).optional(),
+    pdf: z.union([z.function(), z.string()]).optional(),
   }),
 });
 
@@ -30,13 +37,10 @@ export const ViewTemplateSchema = z.object({
  * Renderer types for different output formats
  */
 export type WebRenderer<T = unknown> = ComponentType<T> | string;
-// Future: export type PDFRenderer<T = unknown> = ...
-// Future: export type EmailRenderer<T = unknown> = ...
-
-/**
- * Output format types
- */
-export type OutputFormat = "web"; // | 'pdf' | 'email' in future
+export type ImageRenderer<T = unknown> = ComponentType<T> | string;
+export type PdfRenderer<T = unknown> = ComponentType<T> | string;
+export type MediaRenderer<T = unknown> = ImageRenderer<T> | PdfRenderer<T>;
+export type Renderer<T = unknown> = WebRenderer<T> | MediaRenderer<T>;
 
 /**
  * View template with support for multiple output formats
@@ -50,9 +54,8 @@ export interface ViewTemplate<T = unknown> {
   // Format-specific renderers
   renderers: {
     web?: WebRenderer<T>;
-    // Future formats can be added here
-    // pdf?: PDFRenderer<T>;
-    // email?: EmailRenderer<T>;
+    image?: ImageRenderer<T>;
+    pdf?: PdfRenderer<T>;
   };
 
   // When true, render without any page layout shell (no header/footer)

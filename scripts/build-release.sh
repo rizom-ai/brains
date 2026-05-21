@@ -34,14 +34,12 @@ Arguments:
               Supported: linux-x64, linux-arm64, darwin-x64, darwin-arm64
 
 Options:
-  --docker    Use Docker build environment (recommended for cross-platform)
   --debug     Enable debug output
   --help      Show this help message
 
 Examples:
   $0 rizom-ai                    # Build for current platform
   $0 rizom-ai linux-x64          # Build for Linux x64
-  $0 rizom-ai linux-x64 --docker # Build using Docker
 
 EOF
     exit 1
@@ -69,16 +67,9 @@ if [ $# -gt 0 ] && [[ "$1" != --* ]]; then
     shift
 fi
 
-# Default options
-USE_DOCKER=false
-
 # Parse options
 while [ $# -gt 0 ]; do
     case "$1" in
-        --docker)
-            USE_DOCKER=true
-            shift
-            ;;
         --debug)
             export DEBUG=1
             shift
@@ -104,25 +95,6 @@ if ! is_platform_supported "$PLATFORM"; then
     log_error "Unsupported platform: $PLATFORM"
     log_info "Supported platforms: linux-x64, linux-arm64, darwin-x64, darwin-arm64"
     exit 1
-fi
-
-# Build with Docker if requested
-if [ "$USE_DOCKER" = true ] && [ ! -f /.dockerenv ]; then
-    log_info "Using Docker build environment..."
-    
-    # Build Docker builder image if needed
-    if ! docker images | grep -q "personal-brain-builder"; then
-        docker build -f "deploy/docker/build/Dockerfile.build" -t personal-brain-builder:latest .
-    fi
-    
-    # Run build in Docker
-    docker run --rm \
-        -v "$(pwd):/app" \
-        -w "/app" \
-        personal-brain-builder:latest \
-        "./scripts/build-release.sh" "$APP_NAME" "$PLATFORM"
-    
-    exit $?
 fi
 
 # Run pre-build tasks

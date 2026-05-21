@@ -31,6 +31,21 @@ export const TINY_PNG_BYTES = Buffer.from(TINY_PNG_BASE64, "base64");
 export const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BASE64}`;
 
 // ---------------------------------------------------------------------------
+// PDF test data
+// ---------------------------------------------------------------------------
+
+/** Minimal PDF-like bytes for directory sync roundtrip tests. */
+export const TINY_PDF_BASE64 = Buffer.from(
+  "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n",
+).toString("base64");
+
+/** Minimal PDF-like content as raw bytes. */
+export const TINY_PDF_BYTES = Buffer.from(TINY_PDF_BASE64, "base64");
+
+/** Minimal PDF-like content as a data URL (used by document entity content). */
+export const TINY_PDF_DATA_URL = `data:application/pdf;base64,${TINY_PDF_BASE64}`;
+
+// ---------------------------------------------------------------------------
 // Empty result factories
 // ---------------------------------------------------------------------------
 

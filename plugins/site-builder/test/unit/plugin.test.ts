@@ -90,6 +90,35 @@ describe("SiteBuilderPlugin", () => {
     expect(templates.has("site-builder:test-template")).toBe(true);
   });
 
+  it("should not register the legacy carousel generation job handler", async () => {
+    const registeredJobTypes: string[] = [];
+    const shell = harness.getMockShell();
+    const originalJobQueue = shell.getJobQueueService();
+    shell.getJobQueueService = (): typeof originalJobQueue => ({
+      ...originalJobQueue,
+      registerHandler(type: string): void {
+        registeredJobTypes.push(type);
+      },
+      getRegisteredTypes(): string[] {
+        return registeredJobTypes;
+      },
+    });
+
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        previewOutputDir: "/tmp/test-output",
+        productionOutputDir: "/tmp/test-output-production",
+      }),
+    );
+
+    await harness.installPlugin(plugin);
+
+    expect(registeredJobTypes).toContain("site-builder:site-build");
+    expect(registeredJobTypes).not.toContain(
+      "site-builder:media-carousel-generate",
+    );
+  });
+
   it("should provide site builder tools", async () => {
     plugin = new SiteBuilderPlugin(
       createTestConfig({

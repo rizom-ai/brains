@@ -29,6 +29,18 @@ export const sourceEntityTypeSchema = z.enum(["post", "deck"]);
 export type SourceEntityType = z.infer<typeof sourceEntityTypeSchema>;
 
 /**
+ * Publishable document attachments for social posts.
+ * coverImageId remains the image/visual-preview field; documents[] is for
+ * generated PDF carousel/document attachments.
+ */
+export const socialPostDocumentAttachmentSchema = z.object({
+  id: z.string().min(1).describe("Document entity ID"),
+});
+export type SocialPostDocumentAttachment = z.infer<
+  typeof socialPostDocumentAttachmentSchema
+>;
+
+/**
  * Social post frontmatter schema (stored in content as YAML frontmatter)
  * Post text goes in markdown body, metadata in frontmatter
  */
@@ -42,6 +54,10 @@ export const socialPostFrontmatterSchema = z.object({
     .string()
     .optional()
     .describe("Image entity ID for post image"),
+  documents: z
+    .array(socialPostDocumentAttachmentSchema)
+    .optional()
+    .describe("Document attachments for publishing"),
   publishedAt: z.string().datetime().optional(),
   platformPostId: z
     .string()
