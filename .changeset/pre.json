@@ -99,7 +99,12 @@
     "@brains/deploy-support": "0.2.0-alpha.65",
     "@brains/email-resend": "0.2.0-alpha.68",
     "@brains/notifications": "0.2.0-alpha.68",
-    "@brains/email-contracts": "0.2.0-alpha.68"
+    "@brains/email-contracts": "0.2.0-alpha.68",
+    "@brains/document-plugin": "0.2.0-alpha.68",
+    "@brains/media-tools": "0.2.0-alpha.78",
+    "@brains/document": "0.2.0-alpha.68",
+    "@brains/media-page-composer": "0.2.0-alpha.68",
+    "@brains/media-renderer": "0.2.0-alpha.68"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
