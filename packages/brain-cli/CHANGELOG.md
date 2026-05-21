@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- [`89d4c32`](https://github.com/rizom-ai/brains/commit/89d4c32fbd13cddebe9ff9d5559919e604270c10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the configured brain domain as the PDF carousel wordmark, falling back to the anchor profile name when no domain is configured.
+
 ## 0.2.0-alpha.79
 
 ### Patch Changes
