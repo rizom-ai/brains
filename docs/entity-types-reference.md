@@ -39,6 +39,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `skill`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Derived advertised skills for agent cards.                                       |
 | `swot`              | `@brains/assessment`          | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                             |
 | `image`             | `@brains/image-plugin`        | default, full | default     | —           | Uploaded or generated image assets.                                              |
+| `document`          | `@brains/document`            | full          | —           | default     | Generated PDF documents, including saved deck carousel artifacts.                |
 | `site-info`         | `@brains/site-info`           | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
 | `site-content`      | `@brains/site-content`        | —             | default     | default     | Route/section content blocks for configurable sites.                             |
 | `doc`               | `@brains/doc`                 | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
@@ -305,6 +306,23 @@ Key metadata:
 
 Images are non-embeddable and are commonly referenced by `coverImageId` fields on posts, decks, projects, and social posts.
 
+### `document`
+
+Document entities store generated PDF assets as data URLs in the database and, when synced, as document files under `brain-data/document/`.
+
+Key metadata:
+
+- `title`
+- `mimeType`: currently `application/pdf`
+- `filename`
+- `pageCount`
+- `sourceEntityType`
+- `sourceEntityId`
+- `attachmentType`, such as `carousel`
+- `dedupKey`
+
+Documents are non-embeddable publishable artifacts. A common flow is rendering a deck carousel into a durable PDF document, attaching it to `social-post.documents[]`, and publishing it as a native LinkedIn document/carousel post.
+
 ## Content and marketing entities
 
 ### `post`
@@ -382,10 +400,13 @@ Key frontmatter:
 - `platform`: currently `linkedin`
 - `status`: `draft`, `queued`, `published`, or `failed`
 - `coverImageId`
+- `documents`: array of `{ id }` references to `document` entities for native document/PDF posts
 - `publishedAt`
 - `platformPostId`
 - `sourceEntityId`
 - `sourceEntityType`: `post` or `deck`
+
+For LinkedIn, social posts support text-only posts, image posts via `coverImageId`, and native PDF/document posts via `documents[]`.
 
 ### `newsletter`
 

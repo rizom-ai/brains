@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-08
+Last updated: 2026-05-22
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -48,100 +48,142 @@ These areas are effectively landed:
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
 - **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
-- **External plugin API** — `@rizom/brain` exposes curated `/plugins`, `/entities`, `/services`, `/interfaces`, and `/templates` authoring subpaths; `brain.yaml` loads installed plugin packages via keyed `plugins.<id>.package` entries with env-var interpolation; alpha compatibility is governed by `peerDependencies`; separate-repo reference plugins `rizom-ai/brain-plugin-hello` (service/lifecycle) and `rizom-ai/brain-plugin-recipes` (durable entity) prove the path end-to-end; public entity-service types now use the canonical runtime contracts for `IEntityService`, `IEntitiesNamespace`, `ListOptions`, `SearchOptions`, and `SearchResult`
+- **External plugin API** — `@rizom/brain` exposes curated `/plugins`, `/entities`, `/services`, `/interfaces`, and `/templates` authoring subpaths; `brain.yaml` loads installed plugin packages via keyed `plugins.<id>.package` entries with env-var interpolation; alpha compatibility is governed by `peerDependencies`; separate-repo reference plugins `rizom-ai/brain-plugin-hello` (service/lifecycle) and `rizom-ai/brain-plugin-recipes` (durable entity) prove the path end-to-end; public entity-service types now use the canonical runtime contracts for `IEntityService`, `IEntitiesNamespace`, `ListOptions`, `SearchOptions`, and `SearchResult`; declaration bundling now has an explicit documented inline allowlist, clearer internal-import diagnostics, and focused tests
 - **Rizom ecosystem section** — entity-backed `entities/rizom-ecosystem` package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared `@rizom/ui` wordmark/header alignment
 - **Professional-site Rizom alignment** — editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a `Wordmark` slot generalized in `@rizom/ui`
 - **Relay POC scaffolding** — `brains/relay` preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split
 - **Newsletter composite plugin** — `plugins/newsletter` bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry
 - **Bitwarden-backed secrets** — `brain secrets:push` pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites `.env.schema` with pinned Varlock references; generated deploy workflows run the current Varlock CLI with only `BWS_ACCESS_TOKEN` in GitHub Actions secrets
 - **External plugin smoke testing** — `brain start --startup-check` loads configured plugins, runs `onRegister` and `onReady`, then exits without starting daemons or job workers and without requiring a real AI API key
+- **Entity visibility foundation** — entities now carry normalized `public` / `shared` / `restricted` visibility, persisted as top-level runtime state and enforced across read/search/list/update surfaces so public/trusted/anchor contexts fail closed by default
+- **Shared-space trust first slice** — configured `spaces` can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and anchor non-escalation covered by tests
+- **Local auth issuer defaults** — local development auth now prefers the running localhost origin while preserving explicit and production issuer behavior
+- **Dashboard entry point** — the dashboard now uses permission-aware widgets/endpoints/interactions, renders first-class “ways to connect,” and has mobile ordering that leads with identity and interaction affordances before corpus metrics
+- **Preview-domain alignment** — standalone deploy scaffolding and shared preview-domain derivation now use `preview.<brain-domain>` consistently for apex and nested brain domains
+- **PDF carousel and LinkedIn document publishing** — deck-owned carousel rendering now produces Playwright-backed PDF attachments with opaque LinkedIn-safe backgrounds; operators can preview generated attachments, save durable PDF `document` entities, attach them to `social-post.documents[]`, and publish native LinkedIn document/carousel posts through the current `/rest/documents` + `/rest/posts` flow
 
-## Near-term priorities
+## Strategic roadmap
 
-### 1. Relay POC delivery
+The central product bet is now explicit:
 
-The active product track. `brains/relay` is mid-POC: preset split, brain prompts, eval scaffold, and SWOT eval coverage have landed; the remaining scope is shipping a credible team-brain demo on `rizom.foundation` with `preset: core` (private team brain) and validating the capture → synthesize → share → coordinate loop end-to-end before any preset-tier expansion.
+> **Rover remains a standalone personal/professional brain. Relay proves the team/collective brain: one shared Relay per team or collective, not one bot per person.**
+
+The roadmap is organized around that story rather than generic short/medium/long buckets. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what story the work supports.
+
+### 1. Keep Rover solid and independent
+
+Rover is the public reference brain and should continue to work without Relay. It proves the personal/professional path: durable markdown knowledge, publishing, site generation, content workflows, and agent interoperability for one owner.
+
+Current state:
+
+- Rover is usable today as a standalone personal/professional brain.
+- Publishing/site/content workflows remain valuable in their own right.
+- Media publishing work, including PDF carousels and LinkedIn document posts, supports credibility and distribution rather than becoming the main product bet.
+
+Supporting plans:
+
+- [generic-media-generation.md](./plans/generic-media-generation.md) — make generated media artifacts use a cleaner lifecycle surface.
+- [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
+
+### 2. Prove shared Relay as team knowledge infrastructure
+
+This is the active product story. Relay should behave like one shared team/collective brain in the places where collaboration already happens, starting with Discord/shared spaces.
+
+The proof is not “many personal bots in one room.” The proof is one Relay that can:
+
+- listen in configured shared spaces;
+- preserve who said what without collapsing everyone into one anonymous source;
+- turn conversation into summaries, decisions, and action items;
+- retrieve team memory in context;
+- help a collective become more legible to itself.
+
+Current state:
+
+- Relay POC scaffolding exists: presets, prompts, eval scaffold, and assessment coverage.
+- Conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval.
+- Shared-space trust first slice is implemented: configured spaces can grant collaborator/trusted access, with Discord channel context and bot/guest exclusions.
+- Speaker attribution first pass is implemented; deeper identity-link management remains deferred.
 
 Plans:
 
-- [relay-presets.md](./plans/relay-presets.md) — preset philosophy, POC readiness, and what's deferred past the POC
+- [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
+- [summary-conversation-memory.md](./plans/summary-conversation-memory.md) — conversation memory policy and remaining eval/policy tightening.
+- [shared-space-trust.md](./plans/shared-space-trust.md) — implemented first trust slice; entity action policy remains a follow-up.
+- [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
-### 2. Public-surface tightening
+### 3. Make shared Relay trustworthy enough to matter
 
-The external plugin API is alpha-ready and usable today, but not frozen. These are small, focused follow-ups to the now-landed plugin authoring surface — meant to land before more external authors adopt it and lock the alpha contract harder.
+If Relay is a shared team brain, trust and identity cannot stay hand-wavy. The system needs enough identity, permissions, and provenance to support real collaboration without prematurely becoming a full SaaS account system.
 
-Plans:
+This includes:
 
-- [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow what an official publishable plugin/entity may depend on, distinct from the external-author surface
-
-## Long-term
-
-These areas are intentionally post-`v0.2.0`. They are tracked but not gating launch.
-
-### Programmatic brain composition
-
-`brain.ts` custom definitions are a long-term escape hatch for instances that need composition beyond what `brain.yaml` supports — preset spread, inline plugins, custom plugin logic, and conditional capabilities. `brain.yaml` remains the primary path; this should wait until there is a concrete need and the public model/plugin API is stable enough to support it cleanly.
-
-Plan:
-
-- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — `brain.ts` escape hatch built on the public `@rizom/brain` surface
-
-### Framework consolidation
-
-Independent internal cleanup items — each removes a fragile coupling held together by discipline rather than by the type system or package boundaries. These do not gate the plugin surface: env declarations external plugins make live in their own packages, and deploy scaffolding is unrelated. Pick those up between feature cycles in any order.
+- collaborator trust from configured shared spaces;
+- speaker attribution and eventually identity linking;
+- runtime users and roles when the shared model needs them;
+- auth/runtime storage that is not git-synced content;
+- trusted inter-brain/agent collaboration through signed A2A.
 
 Plans:
 
-- [env-schema-canonical.md](./plans/env-schema-canonical.md) — co-locate env declarations next to the consuming service; aggregate via `shellEnvVars()` in `shell/core`; have `brain-cli` consume that single source instead of `bundled-model-env-schemas.ts`.
-- [core-env-config.md](./plans/core-env-config.md) — move env defaults from core to the app/instance layer.
-- [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse the two parallel build pipelines.
-- [brain-cli-declaration-bundler-cleanup.md](./plans/brain-cli-declaration-bundler-cleanup.md) — replace the manual allowlist now that the declaration bundler is established.
-- [memory-reduction.md](./plans/memory-reduction.md) — registry/lazy-loading optimization phased after profiling.
-- [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — subprocess-based multi-model eval parallelization.
+- [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
+- [auth-runtime-db.md](./plans/auth-runtime-db.md) — auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.
+- [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
+- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-rover A2A.
 
-### Live-deploy follow-ups
+### 4. Make shared Relay operable
 
-Maintenance scope around what's already running in production today.
+A shared team brain has to be installable, maintainable, and recoverable by operators. This is not just “hosting later”; it is the operational layer that makes the Relay story viable if the POC works.
+
+This includes:
+
+- passkey/operator onboarding;
+- safe offboarding and destructive cleanup for pilot fleets;
+- hosted/fleet deploy shape;
+- Discord UX for shared team contexts;
+- dashboard/CMS/admin flows for non-developer operation.
 
 Plans:
 
-- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit offboarding workflow for `rover-pilot` fleets.
-- [generic-cover-image-orchestration.md](./plans/generic-cover-image-orchestration.md) — `coverImage` API for `system_create` so per-entity cover sourcing stops being one-off.
+- [passkey-operator-onboarding.md](./plans/passkey-operator-onboarding.md) — first-passkey setup exists; notification bridge and Discord delivery remain.
+- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
+- [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
+- [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
+- [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — hosted Discord UX direction.
+- [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — tactical CMS OAuth proxy.
+- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — longer-term brain-hosted CMS git gateway.
 
-### Further long-horizon
+### 5. Make the ecosystem credible
 
-Tracked but not sequenced yet. Grouped by theme.
+The team-brain story needs a credible public ecosystem: docs, plugin surfaces, distribution, and artifacts that make the work legible outside the repo.
 
-**Hosted product**
+This includes:
 
-- [hosted-rovers.md](./plans/hosted-rovers.md) — Kubernetes platform for hosted rovers
-- [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — DM-only + A2A mesh for hosted rovers
-- [multi-user.md](./plans/multi-user.md) — user entities + cross-interface identity
+- public package boundaries for official plugins/entities;
+- stable-enough authoring surfaces;
+- docs that match the current runtime;
+- publishing/media outputs that demonstrate the system publicly;
+- future distribution/discovery layers where they support the story.
 
-**New surfaces**
+Plans:
 
-- [desktop-app.md](./plans/desktop-app.md) — Electrobun desktop wrapper
-- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — Vercel Chat SDK adapter consolidation
-- [atproto-integration.md](./plans/atproto-integration.md) — AT Protocol distribution layer
+- [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies.
+- [utils-package-boundaries.md](./plans/utils-package-boundaries.md) — continue reducing private grab-bag coupling.
+- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
+- [atproto-integration.md](./plans/atproto-integration.md) — parked distribution/discovery layer.
 
-**Auth / federation**
+### 6. Keep the framework sustainable
 
-- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-rover A2A
+These are real, but they should not masquerade as product bets. They reduce drag so product work stays possible.
 
-**CMS evolution**
+Plans:
 
-- [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — small interim proxy for Sveltia's existing GitHub backend
-- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — backend-heavier CMS using the existing auth-service foundation
-
-**Renderer**
-
-- [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contract extraction, including the Astro renderer spike
-
-**Local AI**
-
-- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar (embeddings + generation)
-
-See `docs/plans/` for individual plan status.
+- [env-schema-canonical.md](./plans/env-schema-canonical.md) — canonical env declarations.
+- [core-env-config.md](./plans/core-env-config.md) — move env-derived core defaults to the app layer.
+- [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
+- [memory-reduction.md](./plans/memory-reduction.md) — profile first, then optimize registry/template/lazy-loading pressure.
+- [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
+- [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contracts and Astro spike.
+- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 
 ## Product direction
 

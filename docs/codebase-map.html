@@ -56,7 +56,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <body>
 <div id="app">
 <div id="sidebar">
-  <h1>Brains <span>Codebase Map · updated 2026-05-08</span></h1>
+  <h1>Brains <span>Codebase Map · updated 2026-05-22</span></h1>
 
   <div class="section">
     <div class="section-title">View</div>
@@ -125,7 +125,7 @@ const nodes = [
   { id:'note',         label:'Note',         sub:'entities/note',         desc:'Knowledge capture. EntityPlugin.',                           x:324, y:110, w:W, h:H, layer:'entities' },
   { id:'link',         label:'Link',         sub:'entities/link',         desc:'Curated bookmarks. EntityPlugin with capture handler.',       x:468, y:110, w:W, h:H, layer:'entities' },
   { id:'portfolio',    label:'Portfolio',     sub:'entities/portfolio',    desc:'Case studies. EntityPlugin.',                                x:612, y:110, w:W, h:H, layer:'entities' },
-  { id:'social-media', label:'Social Media', sub:'entities/social-media', desc:'LinkedIn posts. EntityPlugin with generation jobs.',                x:756, y:110, w:W, h:H, layer:'entities' },
+  { id:'social-media', label:'Social Media', sub:'entities/social-media', desc:'LinkedIn text/image/document posts. EntityPlugin with generation jobs and native PDF carousel publishing.',                x:756, y:110, w:W, h:H, layer:'entities' },
   { id:'newsletter',   label:'Newsletter',   sub:'entities/newsletter',   desc:'Email newsletters. EntityPlugin + publish pipeline.',         x:36,  y:166, w:W, h:H, layer:'entities' },
   { id:'wishlist',     label:'Wishlist',     sub:'entities/wishlist',     desc:'Unfulfilled requests. EntityPlugin.',                        x:180, y:166, w:W, h:H, layer:'entities' },
   { id:'products',     label:'Products',     sub:'entities/products',     desc:'Product listings. EntityPlugin.',                            x:324, y:166, w:W, h:H, layer:'entities' },
@@ -136,6 +136,7 @@ const nodes = [
   { id:'prompt',       label:'Prompt',       sub:'entities/prompt',       desc:'AI prompts as editable markdown entities. EntityPlugin.',    x:900, y:110, w:W, h:H, layer:'entities' },
   { id:'site-info',    label:'Site Info',    sub:'entities/site-info',    desc:'Site metadata (title, description). EntityPlugin.',           x:1044,y:110, w:W, h:H, layer:'entities' },
   { id:'doc',          label:'Doc',          sub:'entities/doc',          desc:'Generic docs entity. EntityPlugin with schema/adapter/datasource and componentized list/detail templates rendering /docs and /docs/:slug.', x:1188,y:110, w:W, h:H, layer:'entities' },
+  { id:'document-entity', label:'Document',  sub:'entities/document',     desc:'Generated PDF document entities and durable attachment generation. Saves deck carousel PDFs and attaches them to social-post.documents[].', x:1332,y:110, w:W, h:H, layer:'entities' },
   { id:'agent-disc',   label:'Agent Discovery', sub:'entities/agent-discovery', desc:'Agent contacts, remote agent-card ingestion, approval state, and skill evidence.',  x:1044,y:166, w:W, h:H, layer:'entities' },
   { id:'assessment',   label:'Assessment', sub:'entities/assessment', desc:'Interpretation outputs such as SWOT. Consumes identity/profile, local skills, and saved agent evidence through in-memory capability profiles.', x:1188,y:166, w:W, h:H, layer:'entities' },
   { id:'rizom-eco',    label:'Rizom Ecosystem', sub:'entities/rizom-ecosystem', desc:'Entity-backed Rizom ecosystem section. Schema, adapter, datasource, and template power the shared ecosystem section across Rizom site variants and the rover/professional/default sites.', x:1332,y:166, w:W, h:H, layer:'entities' },
@@ -155,14 +156,18 @@ const nodes = [
   { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
   { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Composite plugin bundling the newsletter entity with the buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
   { id:'examples',    label:'Examples',    sub:'plugins/examples',         desc:'Reference plugin patterns published as @brains/plugin-examples for documentation and authoring guides.', x:324, y:304, w:W, h:H, layer:'plugins' },
+  { id:'media-tools', label:'Media Tools', sub:'plugins/media-tools',       desc:'Disposable operator media previews for source-derived attachments, including inline remote preview payloads.', x:1044, y:248, w:W, h:H, layer:'plugins' },
+  { id:'notifications', label:'Notifications', sub:'plugins/notifications', desc:'Notification plugin surface for operator/runtime delivery flows.', x:1044, y:304, w:W, h:H, layer:'plugins' },
+  { id:'email-resend', label:'Email Resend', sub:'plugins/email-resend',     desc:'Resend-backed email delivery service plugin, used by hosted onboarding/setup-email flows.', x:1188, y:304, w:W, h:H, layer:'plugins' },
 
   // Shell services (rows 5-6)
   { id:'core',         label:'Core',         sub:'shell/core',               desc:'Shell init, plugin lifecycle, entity bootstrap.',   x:36,  y:386, w:W, h:H, layer:'shell' },
   { id:'app',          label:'App',          sub:'shell/app',                desc:'Brain resolver, CLI, brain.yaml parsing.',          x:180, y:386, w:W, h:H, layer:'shell' },
   { id:'plugin-fw',    label:'Plugins',      sub:'shell/plugins',            desc:'BasePlugin, EntityPlugin, ServicePlugin, contexts.',x:324, y:386, w:W, h:H, layer:'shell' },
-  { id:'entity-svc',   label:'Entity Svc',   sub:'shell/entity-service',     desc:'CRUD + search + embeddings + adapters.',            x:468, y:386, w:W, h:H, layer:'shell' },
+  { id:'entity-svc',   label:'Entity Svc',   sub:'shell/entity-service',     desc:'CRUD + search + embeddings + adapters. Owns normalized public/shared/restricted entity visibility.',            x:468, y:386, w:W, h:H, layer:'shell' },
   { id:'ai-svc',       label:'AI Service',   sub:'shell/ai-service',         desc:'Agent state machine, Vercel AI SDK.',               x:612, y:386, w:W, h:H, layer:'shell' },
-  { id:'mcp-svc',      label:'MCP Svc',      sub:'shell/mcp-service',        desc:'Tool + resource + prompt + template registry.',     x:756, y:386, w:W, h:H, layer:'shell' },
+  { id:'mcp-svc',      label:'MCP Svc',      sub:'shell/mcp-service',        desc:'Tool + resource + prompt + template registry with permission-aware visibility filtering.',     x:756, y:386, w:W, h:H, layer:'shell' },
+  { id:'auth-svc',     label:'Auth Svc',     sub:'shell/auth-service',       desc:'OAuth/passkey auth, setup URLs, issuer handling, token verification, and JWKS foundation.', x:900, y:386, w:W, h:H, layer:'shell' },
   { id:'job-queue',    label:'Job Queue',    sub:'shell/job-queue',           desc:'Background jobs, batch ops, progress.',             x:36,  y:442, w:W, h:H, layer:'shell' },
   { id:'messaging',    label:'Messaging',    sub:'shell/messaging-service',   desc:'Pub/sub event bus.',                                x:180, y:442, w:W, h:H, layer:'shell' },
   { id:'conversation', label:'Conversations',sub:'shell/conversation-service',desc:'Chat history + digest.',                            x:324, y:442, w:W, h:H, layer:'shell' },
@@ -178,7 +183,7 @@ const nodes = [
   { id:'site-rizom',        label:'Rizom Core',    sub:'sites/rizom',         desc:'Shared Rizom site core composed by the app-local rizom.ai, rizom.foundation, and rizom.work site files.', x:556, y:524, w:160, h:H, layer:'sites' },
 
   // Shared (row 8)
-  { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, YAML, IDs, progress, logger. Overloaded grab-bag — splitting tracked separately.', x:36,  y:596, w:100, h:H, layer:'shared' },
+  { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod re-export plus low-level primitives: strings, markdown/YAML, IDs, progress, logger, generic helpers. Domain-specific helpers are moving to owning packages.', x:36,  y:596, w:100, h:H, layer:'shared' },
   { id:'ui-lib',       label:'UI Library',  sub:'shared/ui-library',      desc:'Header, Footer, ThemeToggle, Card.', x:146, y:596, w:100, h:H, layer:'shared' },
   { id:'rizom-ui',     label:'Rizom UI',    sub:'shared/rizom-ui',         desc:'@rizom/ui — Rizom-brand UI primitives (Wordmark slot, header pieces) shared across app-owned Rizom variants.', x:256, y:596, w:100, h:H, layer:'shared' },
   { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:366, y:596, w:100, h:H, layer:'shared' },
@@ -196,6 +201,12 @@ const nodes = [
   { id:'deploy-tpl',   label:'Deploy Support', sub:'shared/deploy-support', desc:'Canonical deploy templates, script helpers, env parsing, and cert support consumed by brain-cli + brains-ops.',     x:266, y:652, w:120, h:H, layer:'shared' },
   { id:'eslint-cfg',   label:'ESLint Config', sub:'shared/eslint-config',     desc:'Shared ESLint preset.',                       x:396, y:652, w:100, h:H, layer:'shared' },
   { id:'ts-cfg',       label:'TS Config',    sub:'shared/typescript-config',  desc:'Shared TS configs (root, library, instance).', x:506, y:652, w:100, h:H, layer:'shared' },
+  { id:'contracts',    label:'Contracts',    sub:'shared/contracts',          desc:'Shared result, publish, job, database, and response contracts split out of utils.', x:616, y:652, w:100, h:H, layer:'shared' },
+  { id:'content-fmt',  label:'Content Fmt',  sub:'shared/content-formatters', desc:'Content/schema/tool response formatters split out of utils.', x:726, y:652, w:110, h:H, layer:'shared' },
+  { id:'document-lib', label:'Document Lib', sub:'shared/document',           desc:'Document schema, adapter, and PDF data-url helpers used by the document entity plugin.', x:846, y:652, w:110, h:H, layer:'shared' },
+  { id:'media-renderer', label:'Media Renderer', sub:'shared/media-renderer', desc:'Playwright/Chromium media rendering utilities for PDF/image artifacts.', x:966, y:652, w:120, h:H, layer:'shared' },
+  { id:'media-composer', label:'Media Pages', sub:'shared/media-page-composer', desc:'Internal media page composition for source-derived attachment renders.', x:1096, y:652, w:120, h:H, layer:'shared' },
+  { id:'email-contracts', label:'Email Contracts', sub:'shared/email-contracts', desc:'Shared email delivery contracts for notification/setup-email plugins.', x:1226, y:652, w:120, h:H, layer:'shared' },
 
   // Published packages (row 9)
   { id:'brain-cli',   label:'@rizom/brain',sub:'packages/brain-cli',    desc:'CLI + runtime bundle. The published npm package: brain init/start/chat/eval/diagnostics/pin/secrets/cert.',   x:36,  y:724, w:160, h:H, layer:'shared' },
@@ -213,6 +224,10 @@ const connections = [
   { from:'series', to:'plugin-fw', type:'dep' },
   { from:'topics', to:'plugin-fw', type:'dep' },
   { from:'social-media', to:'plugin-fw', type:'dep' },
+  { from:'document-entity', to:'plugin-fw', type:'dep' },
+  { from:'document-entity', to:'document-lib', type:'dep' },
+  { from:'document-entity', to:'media-renderer', type:'dep' },
+  { from:'document-entity', to:'media-composer', type:'dep' },
 
   // Plugins → plugin framework (never directly to shell packages)
   { from:'dir-sync', to:'plugin-fw', type:'dep' },
@@ -222,6 +237,12 @@ const connections = [
   { from:'newsletter-p', to:'plugin-fw', type:'dep' },
   { from:'examples', to:'plugin-fw', type:'dep' },
   { from:'rizom-eco', to:'plugin-fw', type:'dep' },
+  { from:'media-tools', to:'plugin-fw', type:'dep' },
+  { from:'media-tools', to:'media-renderer', type:'dep' },
+  { from:'media-tools', to:'media-composer', type:'dep' },
+  { from:'notifications', to:'plugin-fw', type:'dep' },
+  { from:'email-resend', to:'plugin-fw', type:'dep' },
+  { from:'email-resend', to:'email-contracts', type:'dep' },
 
   // Composite + config wiring
   { from:'cms', to:'cms-config', type:'dep' },
@@ -229,6 +250,7 @@ const connections = [
   { from:'newsletter-p', to:'buttondown', type:'dep' },
   { from:'site-builder', to:'site-engine', type:'dep' },
   { from:'site-builder', to:'site-comp', type:'dep' },
+  { from:'site-builder', to:'media-renderer', type:'dep' },
 
   // Interfaces → plugin framework
   { from:'mcp-if', to:'plugin-fw', type:'dep' },
@@ -247,6 +269,9 @@ const connections = [
   { from:'series', to:'blog', type:'event', label:'derive' },
   { from:'topics', to:'blog', type:'event', label:'derive' },
   { from:'social-media', to:'blog', type:'event', label:'derive' },
+  { from:'document-entity', to:'decks', type:'event', label:'carousel pdf' },
+  { from:'social-media', to:'document-entity', type:'event', label:'publish doc' },
+  { from:'media-tools', to:'decks', type:'event', label:'preview' },
   { from:'assessment', to:'agent-disc', type:'event', label:'evidence' },
   { from:'assessment', to:'plugin-fw', type:'dep' },
 

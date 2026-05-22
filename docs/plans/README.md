@@ -16,53 +16,50 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Relay and product validation
 
-- [Relay presets](./relay-presets.md)
-- [Shared space trust](./shared-space-trust.md)
-- [Conversation memory](./summary-conversation-memory.md)
+- [Relay presets](./relay-presets.md) — active reference plan
+- [Shared space trust](./shared-space-trust.md) — first slice implemented; entity action policy follow-up remains
+- [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
+- [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
 
-- [Public entity types reconciliation](./public-entity-types-reconciliation.md)
-- [NPM package boundaries](./npm-package-boundaries.md)
-- [Utils package boundaries](./utils-package-boundaries.md)
-- [Custom brain definitions](./custom-brain-definitions.md)
-- [Canonical env schema](./env-schema-canonical.md)
-- [Move env-derived core defaults to app layer](./core-env-config.md)
-- [Unify build pipeline](./unify-build-pipeline.md)
-- [Brain CLI declaration bundler cleanup](./brain-cli-declaration-bundler-cleanup.md)
-- [Memory reduction](./memory-reduction.md)
-- [Parallel multi-model eval](./parallel-eval-workers.md)
+- [NPM package boundaries](./npm-package-boundaries.md) — accepted near-term direction
+- [Utils package boundaries](./utils-package-boundaries.md) — in progress
+- [Custom brain definitions](./custom-brain-definitions.md) — parked
+- [Canonical env schema](./env-schema-canonical.md) — proposed
+- [Move env-derived core defaults to app layer](./core-env-config.md) — proposed
+- [Unify build pipeline](./unify-build-pipeline.md) — proposed
+- [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
+- [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 
 ### Content, sync, and generation
 
-- [Entity visibility and derived scope](./entity-visibility-and-derived-scope.md)
-- [Directory-sync new-repo bootstrap recovery](./directory-sync-new-repo-bootstrap.md)
-- [Generic cover image orchestration](./generic-cover-image-orchestration.md)
+- [Entity visibility and derived scope](./entity-visibility-and-derived-scope.md) — implemented first pass; retained as policy/design record
+- [Directory-sync new-repo bootstrap recovery](./directory-sync-new-repo-bootstrap.md) — proposed
+- [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
+- [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
 
 ### Auth, users, CMS, and HTTP
 
-- [A2A request signing](./a2a-request-signing.md)
-- [Local OAuth issuer defaults](./local-oauth-issuer-defaults.md)
-- [Multi-user and permissions](./multi-user.md)
-- [Auth runtime database](./auth-runtime-db.md)
-- [Shared space trust](./shared-space-trust.md)
-- [Passkey operator onboarding](./passkey-operator-onboarding.md)
-- [Operator runtime database](./operator-runtime-db.md)
-- [CMS GitHub OAuth proxy](./cms-github-oauth-proxy.md) — small interim proxy for Sveltia's existing GitHub backend
-- [CMS heavy backend](./cms-heavy-backend.md) — long-term brain-hosted git gateway for CMS writes
+- [A2A request signing](./a2a-request-signing.md) — proposed auth hardening
+- [Multi-user and permissions](./multi-user.md) — proposed runtime-user layer
+- [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
+- [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
+- [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
+- [CMS GitHub OAuth proxy](./cms-github-oauth-proxy.md) — proposed small interim proxy for Sveltia's existing GitHub backend
+- [CMS heavy backend](./cms-heavy-backend.md) — proposed long-term brain-hosted git gateway for CMS writes
 
 ### Hosted, deployed, and monetized product
 
-- [Preview domain and origin cert alignment](./preview-domain-cert-alignment.md)
-- [Rover default batch onboarding](./rover-default-batch-onboarding.md)
-- [Hosted rovers on Kubernetes](./hosted-rovers.md)
-- [Hosted Rover Discord UX](./hosted-rover-discord.md)
-- [User offboarding workflow](./user-offboarding-plan.md)
+- [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
+- [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
+- [Hosted Rover Discord UX](./hosted-rover-discord.md) — proposed hosted-product UX
+- [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
 ### New interfaces, renderers, and runtimes
 
-- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md)
-- [Desktop app](./desktop-app.md)
-- [AT Protocol integration](./atproto-integration.md)
-- [Template renderer contracts](./template-renderer-contracts.md) — includes the Astro renderer spike
-- [Local AI runtime](./embedding-service.md)
+- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md) — proposed; first package slice only
+- [Desktop app](./desktop-app.md) — parked
+- [AT Protocol integration](./atproto-integration.md) — parked
+- [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
+- [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

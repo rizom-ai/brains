@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed follow-up to the PDF carousel MVP.
+Partially implemented follow-up to the PDF carousel MVP.
 
-The current `preview-attachment` tool proves that source-derived attachments can render correctly, but previews are disposable. The next step is to support saving the exact rendered artifact for later publishing, without introducing a new operator tool surface — `system_create` already handles image generation and entity creation; extending it to attachment-derived saves keeps the surface uniform.
+The current `preview-attachment` tool proves that source-derived attachments can render correctly, and `document_generate` now supports saving a source-derived PDF as a durable `document` entity and optionally attaching it to `social-post.documents[]`. The remaining design question is whether to keep that explicit document tool or fold durable attachment-derived saves into `system_create`, so generated media uses one normal entity lifecycle surface.
 
 ## Goal
 
@@ -30,22 +30,25 @@ The same path should support:
 
 ## What already works
 
-Three existing facilities cover most of the surface:
+Existing facilities cover most of the surface:
 
+- **Disposable attachment preview:** `media-tools_preview-attachment` resolves a source attachment such as `deck` → `carousel`, renders it to an operator-visible file/inline response, and creates no entity.
+- **Durable document generation:** `document_generate` renders a PDF from a source attachment or render URL, stores it as a `document` entity, supports dedup keys, and can attach the result to a target `social-post.documents[]` field.
+- **Publishing precedence:** social-post publishing prefers explicit `documents[]` artifacts before falling back to source-derived carousel rendering.
 - **Image generation + attach (existing entity):** `system_create({ entityType: "image", prompt, targetEntityType, targetEntityId })` generates the image and sets the target's `coverImageId` via the image-generation job handler.
 - **Image generation + attach (generated target):** `system_create({ entityType: <target>, prompt, coverImage: { generate: true } })` — the orchestration sugar in `entity-create-tool.ts` enqueues the image job after the target is created. Stays as-is.
 - **Reference assignment:** `system_set-cover` is reference-only (no generation). It exists purely to add a `supportsCoverImage` adapter guard on top of `system_update`.
 
-The only missing piece is **attachment-derived saves** (e.g. `deck` → `carousel` → durable `document` entity).
+The remaining missing piece is **surface unification**: attachment-derived document saves work, but through a dedicated `document_generate` tool instead of the desired `system_create({ entityType: "document", from: ... })` shape.
 
 ## Plugin ownership
 
 - `media-tools` owns the disposable preview tool only.
-- `entities/document` owns the document schema, adapter, storage, and attachment-derived create behavior.
+- `entities/document` owns the document schema, adapter, storage, `document_generate` tool, and attachment-derived generation handler.
 - `entities/image` is unchanged.
 - Source entity plugins (e.g. `decks`) own their attachment providers.
 
-Current implementation note: the document plugin is a `ServicePlugin` that manually registers the `document` entity, not an `EntityPlugin`. Implement attachment-derived create behavior either by registering a create interceptor with `context.entities.registerCreateInterceptor("document", ...)`, or by first refactoring the document plugin to an `EntityPlugin`. Do not assume an `interceptCreate` override exists today.
+Current implementation note: the document plugin is a `ServicePlugin` that manually registers the `document` entity and exposes `document_generate`. If this plan proceeds with `system_create({ entityType: "document", from: ... })`, implement attachment-derived create behavior either by registering a create interceptor with `context.entities.registerCreateInterceptor("document", ...)`, or by first refactoring the document plugin to an `EntityPlugin`. Do not assume an `interceptCreate` override exists today.
 
 ## Proposed surface
 
@@ -147,7 +150,7 @@ Only proceed to implementation once the baseline is green and the regression cov
 ## Implementation steps
 
 1. Add `version` field to `MediaPageTemplate` and `AttachmentProvider`. Stamp the carousel template+provider.
-2. Add attachment-derived create behavior for `document`: resolve `from`, compute dedup key, reuse or enqueue render job. Use `context.entities.registerCreateInterceptor("document", ...)` unless the document plugin is first refactored to `EntityPlugin`.
+2. Reuse or adapt the existing `document_generate` handler for attachment-derived `system_create` behavior: resolve `from`, compute/reuse dedup keys, and enqueue the existing render job. Use `context.entities.registerCreateInterceptor("document", ...)` unless the document plugin is first refactored to `EntityPlugin`.
 3. Extend `system_create` / `CreateInput` schemas with `from:` and `replace:` fields; accept `from` as a valid create source.
 4. Define `replace: true` behavior precisely in tests: new artifact ID, no in-place mutation of previously saved documents, and target `documents[]` deduped/repointed for the same source/attachment pair.
 5. Add `supportsCoverImage` guard to `system_update` for `coverImageId` updates. Leave `ogImageId` guards for the OG-image phase when `supportsOgImage` exists.

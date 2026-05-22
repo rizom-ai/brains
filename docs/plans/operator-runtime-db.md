@@ -1,5 +1,9 @@
 # Operator runtime database
 
+## Status
+
+Proposed foundation. Auth-specific schema and migration details are tracked in [Auth runtime database](./auth-runtime-db.md); this plan remains the broader runtime-state ownership and persistence boundary.
+
 ## Goal
 
 Introduce a dedicated operator runtime database for private, non-content state that currently lives in small plugin-local files. This should make hosted Rover operations safer and easier to evolve without mixing operator/security state into entity content. Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md).

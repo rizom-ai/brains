@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed. This is a smaller, earlier permission improvement than full runtime multi-user. It is especially important for Relay, where the product assumption is often: people invited into the same team space should be treated as collaborators.
+Implemented for the first shared-space trust slice. `spaces` are part of shell/app config, `PermissionService` receives configured spaces, exact/wildcard selectors are matched centrally, Discord passes channel context into permission resolution, bots/guests are excluded, and focused tests cover exact matches, wildcard matches, explicit anchor precedence, and non-escalation to anchor.
 
-This plan can land before `multi-user.md` because it does not require auth-user records, passkey/session migration, user-management UX, or replacing `single-operator`.
+Still deferred: broader Slack/Teams/shared-web integrations and the entity action policy override layer described below. This remains the design record for those follow-ups.
 
 ## Goal
 
@@ -176,7 +176,7 @@ This is intentionally later than basic shared-space trust, but should happen bef
 
 ## Phased implementation
 
-### Phase 1 — Core resolver using existing spaces
+### Phase 1 — Core resolver using existing spaces — done
 
 Primary packages:
 
@@ -199,7 +199,7 @@ Validation:
 - explicit anchor/trusted rules and elevated pattern rules still win
 - configured spaces cannot grant `anchor`
 
-### Phase 2 — Discord/Relay integration
+### Phase 2 — Discord/Relay integration — done
 
 Primary package:
 

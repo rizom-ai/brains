@@ -374,8 +374,8 @@
   </head>
   <body>
     <div class="header">
-      <h1>Brains Project Roadmap</h1>
-      <p>Last updated: 2026-05-08 — Click any item for details</p>
+      <h1>Brains Strategic Roadmap</h1>
+      <p>Last updated: 2026-05-22 — story arc: Rover stays standalone; Relay proves the shared team brain</p>
     </div>
 
     <div class="legend">
@@ -385,19 +385,19 @@
       </div>
       <div class="legend-item">
         <div class="legend-dot dot-in-progress"></div>
-        In Progress
+        Active Bet
       </div>
       <div class="legend-item">
         <div class="legend-dot dot-short-term"></div>
-        Short-term
+        Now / Next
       </div>
       <div class="legend-item">
         <div class="legend-dot dot-medium-term"></div>
-        Medium-term
+        Dependent Foundation
       </div>
       <div class="legend-item">
         <div class="legend-dot dot-long-term"></div>
-        Long-term
+        Parked / Later
       </div>
     </div>
 
@@ -411,619 +411,256 @@
 
     <script>
       const items = [
-        // Completed
         {
-          id: "v1",
-          name: "Rover v0.1 — yeehaa.io",
+          id: "shared_relay_bet",
+          name: "One shared Relay per team",
+          status: "in-progress",
+          desc: "Central product bet: Relay should prove the team/collective brain — one shared agent in a configured team space, not one personal bot per person. Rover remains independent.",
+          blocks: ["shared_relay_deployment", "team_memory_loop", "trust_identity", "operability"],
+        },
+        {
+          id: "rover_standalone",
+          name: "Rover remains standalone",
           status: "completed",
-          desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.",
-          date: "2026-01",
+          desc: "Rover continues as the public personal/professional brain: durable markdown knowledge, site publishing, content workflows, and agent interoperability for one owner. Relay is not required for Rover.",
+          date: "2026-05",
         },
         {
-          id: "refactor",
-          name: "Codebase Refactor",
-          status: "completed",
-          desc: "Brain model/instance split, layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, barrel export cleanup. ~2,860 lines eliminated.",
-          date: "2026-02/03",
-        },
-        {
-          id: "sites",
-          name: "Site Packages",
-          status: "completed",
-          desc: "Theme + layout + routes into reusable packages. Brain models reference a default site; instances override via brain.yaml.",
-          date: "2026-03",
-        },
-        {
-          id: "presets",
-          name: "Enable-Based Presets",
-          status: "completed",
-          desc: "preset: core | default | full with add/remove. Curated plugin subsets for rover, ranger, relay.",
-          date: "2026-03",
-        },
-        {
-          id: "gitsync",
-          name: "Git-Sync Merge",
-          status: "completed",
-          desc: "Merged into directory-sync. Single plugin: file sync + git ops. withLock(), LeadingTrailingDebounce.",
-          date: "2026-03",
-        },
-        {
-          id: "entitytools",
-          name: "Unified Entity Tools",
-          status: "completed",
-          desc: "system_create/update/delete with prompt-driven routing. Removed ~8 plugin-specific tools.",
-          date: "2026-03",
-        },
-        {
-          id: "imgperf",
-          name: "Image Performance",
-          status: "completed",
-          desc: "Lazy loading, WebP via Sharp, responsive variants, shared images directory, filesystem cache.",
-          date: "2026-03",
-        },
-        {
-          id: "domain",
-          name: "Unified Domain Config",
-          status: "completed",
-          desc: "Single domain in brain.yaml. Identity service derives all URLs.",
-          date: "2026-03",
-        },
-        {
-          id: "entityplugin",
-          name: "EntityPlugin + Consolidation",
-          status: "completed",
-          desc: "New base class. Migrated all content plugins. projection jobs + system_extract. Series extracted from blog. entities/ workspace.",
-          date: "2026-03",
-        },
-        {
-          id: "mcpbridge",
-          name: "MCP Bridge",
-          status: "completed",
-          desc: "MCPBridgePlugin base class. Spawns upstream MCP servers, discovers tools, prefixes + error isolation. Notion + HackMD.",
-          date: "2026-03",
-        },
-        {
-          id: "a2aasync",
-          name: "A2A Non-Blocking",
-          status: "completed",
-          desc: "Async task flow — return 'working' immediately, caller polls. Stale task protection.",
-          date: "2026-03",
-        },
-        {
-          id: "other",
-          name: "Other (2026-03)",
-          status: "completed",
-          desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, mlp deploy, MockShell migration, MCP resources + prompts.",
-          date: "2026-03",
-        },
-        {
-          id: "sysframework",
-          name: "System Tools as Framework",
-          status: "completed",
-          desc: "Moved system plugin into shell-level registration. Tools, resources, prompts, instructions register directly on shell services. Removed AI from base context.",
-          date: "2026-03",
-        },
-        {
-          id: "prompts",
-          name: "Prompts as Entities",
-          status: "completed",
-          desc: "Prompt entity type with auto-materialization. Defaults emerge from code on first startup, become editable. AI generation resolves prompt entities automatically.",
-          date: "2026-03",
-        },
-        {
-          id: "hierarchy",
-          name: "Plugin Hierarchy Simplification",
-          status: "completed",
-          desc: "Three sibling contexts (BasePluginContext → Entity, Service, Interface). CorePlugin deleted. AI only on EntityPluginContext, templates only on ServicePluginContext. Types renamed.",
-          date: "2026-03",
-        },
-        {
-          id: "blockio",
-          name: "Blocking I/O — Phases 1-2",
-          status: "completed",
-          desc: "Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread evaluated and parked.",
-          date: "2026-03",
-        },
-        {
-          id: "eval",
-          name: "Eval Overhaul",
-          status: "completed",
-          desc: "mode: eval replaces preset: eval. eval.yaml for plugin evals. Three-tier test case loading. Markdown + comparison reporters. Result store with history rollups.",
-          date: "2026-03",
-        },
-        {
-          id: "syncsimplify",
-          name: "Sync Tools Simplification",
-          status: "completed",
-          desc: "Unified sync + status tools. Non-blocking via job queue. Auto-export always on. Orphan cleanup on initial sync. Sync mutex. IGitSync + IDirectorySync interfaces.",
-          date: "2026-03",
-        },
-
-        {
-          id: "toolresource",
-          name: "Tool-to-Resource Migration",
-          status: "completed",
-          desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.",
-          date: "2026-03",
-        },
-
-        {
-          id: "targetentity",
-          name: "Target Entity Pattern",
-          status: "completed",
-          desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.",
-          date: "2026-03",
-        },
-
-        // Rover 0.1 remaining blockers (in progress)
-        {
-          id: "deploymentpath",
-          name: "Deployment Path",
-          status: "short-term",
-          desc: "Ongoing track for maturing the published @rizom/brain package from alpha to stable v0.2.0. Deploy validation, Rizom site follow-through, and docs-site ownership are complete; remaining release work is keeping the published scaffold contract aligned and holding the clean-machine install path as a release gate.",
-          blocks: [],
-        },
-        {
-          id: "rizomsites",
-          name: "Rizom Site Follow-through",
-          status: "completed",
-          desc: "The shared Rizom site cleanup is complete: `sites/rizom` owns the shared core, each extracted Rizom app repo owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is in place, with app-local overrides only where needed (`rizom.foundation`, `rizom.work`) and no forced `rizom.ai` theme fork. Remaining product polish belongs to the extracted app/content repos, not this monorepo roadmap.",
-          deps: ["deploymentpath"],
-          date: "2026-04",
-        },
-        {
-          id: "monitoring3",
-          name: "Monitoring — Phase 3",
-          status: "completed",
-          desc: "Usage tracking via structured logs. IEmbeddingService.generateEmbedding() returns {embedding, usage}. AIService and EmbeddingJobHandler log ai:usage events. brain diagnostics usage parses log file, aggregates by provider/model.",
-          date: "2026-04",
-        },
-        // Rover 0.1 blockers now complete
-        {
-          id: "searchembeddings",
-          name: "Search & Embeddings",
-          status: "completed",
-          desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.",
-          date: "2026-04",
-        },
-        {
-          id: "monitoring12",
-          name: "Monitoring — Phases 1-2",
-          status: "completed",
-          desc: "Structured logging (JSON mode + log file, always JSON, stderr by default, noise dropped to debug). Enriched /health with version, uptime, DB status, sync status, AI provider/model/key validity. Configurable via logging: block in brain.yaml.",
-          date: "2026-04",
-        },
-        // Short-term (completed)
-        {
-          id: "stockphoto",
-          name: "Stock Photo Plugin",
-          status: "completed",
-          desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.",
-          date: "2026-03",
-        },
-        {
-          id: "deprecatematrix",
-          name: "Deprecate Matrix",
-          status: "completed",
-          desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.",
-          date: "2026-03",
-        },
-        {
-          id: "agentdir1",
-          name: "Agent Discovery",
-          status: "completed",
-          desc: "Agent contacts + skill entities in entities/agent-discovery/. Agent Card extension. Auto-create on A2A call. Skills derived from topics, served in Agent Card.",
-          date: "2026-04",
-        },
-        {
-          id: "evalcoverage",
-          name: "Eval Coverage",
-          status: "completed",
-          desc: "Full Rover suite now covers 86 cases across shell quality, tool invocation, multi-turn agent flows, plugins, finalized-content direct create, and app summary accuracy. The previous search-argument and ambiguous-agent failures are fixed; residual full-suite variance is tracked in per-run results. Multi-model reporting remains available through per-provider keys.",
-          date: "2026-04",
-        },
-        {
-          id: "finalizedcontent",
-          name: "Finalized Content Preservation",
-          status: "completed",
-          desc: "Exact/finalized/approved content now persists directly through system_create with content, backed by entity-service markdown creation and Rover evals for decks, posts, newsletters, notes, and social posts.",
-          date: "2026-04",
-        },
-        {
-          id: "assessmentpkg",
-          name: "Assessment Package Split",
-          status: "completed",
-          desc: "SWOT moved out of agent-discovery into entities/assessment. Agent discovery remains the evidence source; assessment owns interpretation outputs over in-memory capability profiles.",
-          date: "2026-04",
-        },
-        {
-          id: "topicssimplify",
-          name: "Topics Simplification",
-          status: "completed",
-          desc: "Removed source tracking, added batched topic projection, then followed up with stronger canonicalization, heuristic + synthesized auto-merge, bounded metadata-only aliases, and confirmed replace-all topic rebuilds via system_extract.",
-          date: "2026-04",
-        },
-        {
-          id: "unifiedai",
-          name: "Unified AI Config",
-          status: "completed",
-          desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.",
-          date: "2026-04",
-        },
-        {
-          id: "mcpfix",
-          name: "MCP Tool Registry Fix",
-          status: "completed",
-          desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.",
-          date: "2026-04",
-        },
-        {
-          id: "pluginapi",
-          name: "External Plugin API",
-          status: "completed",
-          desc: "@rizom/brain exposes curated /plugins, /entities, /services, /interfaces, and /templates authoring subpaths. brain.yaml loads installed plugin packages via keyed plugins.<id>.package entries with env-var interpolation. Alpha compatibility governed by peerDependencies. Reference plugins rizom-ai/brain-plugin-hello (service/lifecycle) and rizom-ai/brain-plugin-recipes (durable entity) prove the path end-to-end.",
-          deps: ["shellinitcoord"],
-          date: "2026-04",
-        },
-        {
-          id: "relaypocdelivery",
-          name: "Relay POC Delivery",
+          id: "shared_relay_deployment",
+          name: "Shared Relay deployment model",
           status: "short-term",
           step: 1,
-          desc: "Active product track. brains/relay is mid-POC: preset split, brain prompts, eval scaffold, and SWOT eval coverage have landed; remaining scope is shipping a credible team-brain demo on rizom.foundation with preset: core (private team brain) and validating the capture → synthesize → share → coordinate loop end-to-end before any preset-tier expansion.",
-          deps: ["relaypoc"],
-          blocks: [],
+          desc: "Make the product shape explicit: one Relay belongs to a team/collective and operates in shared spaces. This reframes Discord UX, presets, onboarding, permissions, and memory around a team-owned brain.",
+          deps: ["shared_relay_bet", "relay_scaffold"],
         },
         {
-          id: "custombrain",
-          name: "Custom Brain Definitions (brain.ts)",
-          status: "long-term",
-          desc: "Long-term escape hatch for instances that need composition beyond what brain.yaml supports — preset spread, inline plugins, custom plugin logic, and conditional capabilities. The underlying defineBrain() model API exists, but instance-local brain: ./brain.ts boot is not wired; defer until there is a concrete need and the public model/plugin API is stable enough.",
-          deps: ["pluginapi"],
-          blocks: [],
-        },
-        {
-          id: "publicsurfaceunify",
-          name: "Public-surface Tightening",
+          id: "team_memory_loop",
+          name: "Team memory loop",
           status: "short-term",
           step: 2,
-          desc: "The external plugin API is alpha-ready and usable today, but not frozen. Near-term follow-ups: fix IEntityService generic shape and search return type on @rizom/brain/entities, narrow what an official publishable plugin/entity may depend on, and ship the varlock/Bitwarden upstream follow-ups so the now-shipping Bitwarden flow stays clean. Land before more external authors lock the alpha contract harder.",
-          deps: ["pluginapi"],
-          blocks: [],
+          desc: "Validate capture → synthesize → share → coordinate: Relay listens in configured spaces, creates summaries/decisions/actions, retrieves memory in context, and helps the team become legible to itself.",
+          deps: ["shared_relay_bet", "conversation_memory"],
         },
         {
-          id: "shellinitcoord",
-          name: "Shell Init Coordination",
-          status: "completed",
-          desc: "Lifecycle foundation for the public plugin surface is complete. ShellBootloader owns the phased init sequence, plugin onReady is backed by real boot ordering, identity/profile initialize before ready hooks, daemons/job processing start afterward, and site presentation metadata no longer lives on the shell facade.",
-          blocks: ["pluginapi"],
-        },
-        {
-          id: "envschemacanonical",
-          name: "Canonical Env Schema",
-          status: "long-term",
-          desc: "Co-locate env-var declarations next to the consuming shell service, aggregate via shellEnvVars() in shell/core, and have brain-cli's env-schema.ts consume that single source instead of the bundled-model-env-schemas.ts snapshot. Removes silent CLI/shell drift when adding new env vars.",
-          blocks: [],
-        },
-        {
-          id: "deploytemplates",
-          name: "Deploy Scaffolding Consolidation",
-          status: "long-term",
-          desc: "Extract @brains/deploy-support as the canonical home for Caddyfile/Dockerfile/.kamal/GitHub-workflow/deploy-script content. Cut brain-cli/src/commands/init.ts from 1400+ lines by replacing inlined string-literal templates with typed render*() calls. Keep @rizom/ops focused on fleet-only concerns; delete the old deploy-template copies.",
-          blocks: [],
-        },
-        {
-          id: "compositeplugins",
-          name: "Composite Plugins",
-          status: "completed",
-          desc: "CapabilityEntry accepts factories returning Plugin | Plugin[]. brain-resolver flattens arrays. Reference composite @brains/newsletter bundles newsletter-entity + buttondown behind one capability id. Rover migrated. Sub-plugins gated by composite id.",
-          date: "2026-04",
-        },
-        {
-          id: "appsconfigonly",
-          name: "Apps as Lightweight Instance Packages",
-          status: "completed",
-          desc: "apps/* removed from workspace globs. Each apps/<name>/ is now a lightweight instance package centered on brain.yaml, with conventional support files like .env, .env.example, .gitignore, tsconfig.json, package.json, and optional deploy artifacts, consumed by the brain CLI at runtime against the brain model package it references.",
-          date: "2026-04",
-        },
-        {
-          id: "braininit",
-          name: "Brain Init Scaffold",
-          status: "completed",
-          desc: "brain init becomes a real on-ramp: interactive prompts via @clack/prompts, generated brain.yaml defaults to preset: core (minimal viable brain), commented-out directory-sync block users can enable in two lines.",
-          date: "2026-04",
-        },
-        {
-          id: "atproto12",
-          name: "AT Protocol Phases 1-2",
-          status: "long-term",
-          desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.",
-          blocks: ["atproto36"],
-        },
-        {
-          id: "sitebuilder1",
-          name: "Site Builder Phase 1",
-          status: "completed",
-          desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.",
-          date: "2026-03",
-        },
-        {
-          id: "documentation",
-          name: "Documentation Phase 1",
-          status: "completed",
-          desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.",
-          date: "2026-03",
-        },
-        {
-          id: "documentation2",
-          name: "Documentation Phase 2",
-          status: "completed",
-          desc: "User-facing docs landed: entity type reference, content-management guidance, interface setup guide, and customization guide for themes, layouts, and plugins. Architecture-level plugin docs stay thin and point implementation detail to the relevant AGENTS.md files and plugins/examples/.",
-          date: "2026-04",
-        },
-        {
-          id: "documentation3",
-          name: "Documentation Phase 3 — Docs Site",
-          status: "completed",
-          desc: "Docs site path is complete for the current target: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), scripts/sync-docs-content.ts, release-driven sync into rizom-ai/doc-brain-content, Relay docs fixtures, and standalone rizom-ai/doc-brain deploy/rebuild for docs.rizom.ai. CLI and brain.yaml references exist; schema/code generation is maintenance backlog.",
-          date: "2026-04",
+          id: "public_surface",
+          name: "Public/plugin surface credibility",
+          status: "short-term",
+          step: 3,
+          desc: "Keep the public @rizom/brain authoring surface coherent enough for external plugin/entity authors while the product story sharpens.",
+          deps: ["plugin_api", "public_contracts"],
         },
 
+        // Completed foundations
         {
-          id: "publicrelease",
-          name: "Public Repo Cleanup",
-          status: "long-term",
-          desc: "A separate project from version stability. Archive-and-rename the private repo to rizom-ai/brains with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the external plugin API story is settled.",
-          blocks: [],
-        },
-
-        {
-          id: "createinterceptors",
-          name: "Plugin Create Interceptors",
+          id: "runtime_baseline",
+          name: "Runtime baseline",
           status: "completed",
-          desc: "Plugins can override system_create per entity type via EntityPlugin.interceptCreate. Link capture + image cover-target resolution moved out of core into their respective plugins. CreateInterceptor type + registry in @brains/entity-service.",
-          date: "2026-04",
-        },
-        {
-          id: "kbcontextoptin",
-          name: "Knowledge-Context Opt-In",
-          status: "completed",
-          desc: "AI templates explicitly opt in to knowledge-base context via useKnowledgeContext: true, replacing an implicit default that embedded full fetched content as search queries and caused 8192-token OpenAI overflows on long extractive prompts (link:extraction with Wikipedia).",
-          date: "2026-04",
-        },
-        {
-          id: "fleetops",
-          name: "Multi-User Fleet Ops (@rizom/ops)",
-          status: "completed",
-          desc: "Operator-managed rover fleets: shared wildcard TLS with <handle>-preview.<zone> preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths.",
-          date: "2026-04",
-        },
-        {
-          id: "rizomvariantsplit",
-          name: "Rizom Site Variant Split",
-          status: "completed",
-          desc: "rizom.ai, rizom.foundation, and rizom.work each own their final route composition and section templates from app-local `src/site.ts`. Shared Rizom UI, runtime, and ecosystem code now live in `sites/rizom`, while `shared/theme-rizom` stays separate with additive app-local theme overrides where needed.",
-          date: "2026-04",
-        },
-        {
-          id: "rizomecosystem",
-          name: "Rizom Ecosystem Section",
-          status: "completed",
-          desc: "Entity-backed entities/rizom-ecosystem package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared @rizom/ui wordmark/header alignment.",
+          desc: "Alpha-published Bun CLI/runtime, markdown-backed typed entities, MCP-native tools/resources, webserver/A2A/Discord/chat REPL interfaces, static-site generation, and Rover as reference model.",
           date: "2026-05",
         },
         {
-          id: "professionalsite",
-          name: "Professional-site Rizom Alignment",
+          id: "architecture",
+          name: "Plugin + entity architecture",
           status: "completed",
-          desc: "Editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a Wordmark slot generalized in @rizom/ui.",
+          desc: "Unified EntityPlugin / ServicePlugin / InterfacePlugin split, framework-level system tools, create interceptors, prompt entities, source-derived projection, and schema-backed markdown entities.",
           date: "2026-04",
         },
         {
-          id: "relaypoc",
-          name: "Relay POC Scaffolding",
+          id: "search_eval",
+          name: "Search, embeddings + evals",
           status: "completed",
-          desc: "brains/relay preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split.",
+          desc: "SQLite FTS plus online embeddings and diagnostics; app/model/shell eval layering; comparison reporting; Rover suite stabilized across shell quality, tools, multi-turn flows, and plugins.",
+          date: "2026-04",
+        },
+        {
+          id: "site_theme",
+          name: "Site/theme decoupling",
+          status: "completed",
+          desc: "Reusable structural site packages, independently resolved themes, local src/site.ts and src/theme.css authoring, and published site/theme exports.",
+          date: "2026-04",
+        },
+        {
+          id: "deploy_foundation",
+          name: "Deploy + fleet foundation",
+          status: "completed",
+          desc: "Kamal deploy scaffolding, env-schema generation, Cloudflare Origin CA bootstrap, @rizom/ops fleet support, wildcard TLS, preview routing, encrypted per-user secrets, and content repo bootstrapping.",
+          date: "2026-04",
+        },
+        {
+          id: "production_validation",
+          name: "Production validation",
+          status: "completed",
+          desc: "rizom.ai, mylittlephoney.com, yeehaa.io, and docs.rizom.ai are live on intended production paths; extracted deployments match the shared scaffold shape.",
+          date: "2026-04",
+        },
+        {
+          id: "plugin_api",
+          name: "External plugin API",
+          status: "completed",
+          desc: "@rizom/brain exposes curated authoring subpaths; external package loading works through brain.yaml; reference plugins prove the path.",
+          date: "2026-04",
+        },
+        {
+          id: "public_contracts",
+          name: "Public contract tightening landed",
+          status: "completed",
+          desc: "Public entity-service contracts align with runtime contracts; declaration bundling has explicit allowlist, diagnostics, and tests.",
+          deps: ["plugin_api"],
           date: "2026-05",
         },
         {
-          id: "newslettercomposite",
-          name: "Newsletter Composite Plugin",
+          id: "relay_scaffold",
+          name: "Relay POC scaffolding",
           status: "completed",
-          desc: "plugins/newsletter bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry.",
-          date: "2026-04",
+          desc: "Relay preset split, prompts, eval scaffold, conversation-memory baseline, and SWOT eval coverage are in place.",
+          date: "2026-05",
         },
         {
-          id: "bitwardensecrets",
-          name: "Bitwarden-backed Secrets",
+          id: "conversation_memory",
+          name: "Conversation memory foundation",
           status: "completed",
-          desc: "brain secrets:push pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites .env.schema with pinned Varlock references. Generated deploy workflows run the current Varlock CLI with only BWS_ACCESS_TOKEN in GitHub Actions secrets.",
-          date: "2026-04",
+          desc: "Scoped projection from stored conversations, summaries, decisions, action items, dashboard widgets, and ConversationMemoryRetriever exist; policy/eval tightening remains.",
+          date: "2026-05",
         },
         {
-          id: "startupcheck",
-          name: "External Plugin Smoke Testing",
+          id: "shared_space",
+          name: "Shared-space trust first slice",
           status: "completed",
-          desc: "brain start --startup-check loads configured plugins, runs onRegister and onReady, then exits without starting daemons or job workers and without requiring a real AI API key. Intended for external plugin CI smoke tests.",
-          date: "2026-04",
+          desc: "Configured spaces can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and no anchor escalation.",
+          date: "2026-05",
         },
         {
-          id: "productionvalidation",
-          name: "Production Deploy Validation",
+          id: "speaker_attribution",
+          name: "Speaker attribution first pass",
           status: "completed",
-          desc: "rizom.ai, mylittlephoney.com, and yeehaa.io are live on their intended production paths. The extracted deployments use the shared HTTP-host shape (app_port: 8080, no in-container Caddyfile, direct brain start boot).",
-          date: "2026-04",
+          desc: "Conversation messages preserve actor/source metadata; summaries are speaker-aware; decisions/actions store attribution when recoverable. Identity-link management remains deferred.",
+          date: "2026-05",
         },
         {
-          id: "monorepocleanup",
-          name: "Monorepo Cleanup",
+          id: "visibility_dashboard_auth",
+          name: "Visibility, dashboard + local auth",
           status: "completed",
-          desc: "Transitional apps/packages removed; rizom.ai, rizom.foundation, rizom.work, mylittlephoney, and yeehaa.io extracted to standalone repos. Shared site/theme/model packages stay here and are consumed via published runtime packages.",
-          date: "2026-04",
+          desc: "Entity visibility foundation, permission-aware dashboard entry point, and local auth issuer defaults align public/trusted/anchor behavior across runtime and UI surfaces.",
+          date: "2026-05",
         },
         {
-          id: "agentdirtighten",
-          name: "Agent Directory Tightening",
+          id: "pdf_carousel",
+          name: "PDF carousel + LinkedIn documents",
           status: "completed",
-          desc: "Outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain discovered, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced.",
-          date: "2026-04",
-        },
-        {
-          id: "namingcleanup",
-          name: "Naming Cleanup",
-          status: "completed",
-          desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.",
-          date: "2026-03",
-        },
-        {
-          id: "changesets",
-          name: "Changesets + Versioning",
-          status: "completed",
-          desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.",
-          date: "2026-04",
-        },
-        {
-          id: "contentinsights",
-          name: "Content Insights",
-          status: "completed",
-          desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().",
-          date: "2026-03",
-        },
-        {
-          id: "entityhistory",
-          name: "Entity History",
-          status: "completed",
-          desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.",
-          date: "2026-03",
+          desc: "Deck carousel rendering produces LinkedIn-safe PDFs; durable document entities attach to social-post.documents[] and publish through LinkedIn document APIs.",
+          date: "2026-05",
         },
 
-        // Medium-term
+        // Part of Relay/team story
         {
-          id: "chatsdk",
-          name: "Chat SDK Migration",
+          id: "trust_identity",
+          name: "Trust and identity depth",
           status: "medium-term",
-          desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.",
-          blocks: ["hostedrovers", "desktopapp"],
+          desc: "If shared Relay works, deepen from shared-space trust and speaker attribution into identity linking, runtime users, roles, auth runtime DB, and permission management.",
+          deps: ["shared_space", "speaker_attribution", "team_memory_loop"],
+          blocks: ["multi_user", "auth_runtime", "a2a_signing"],
         },
         {
-          id: "atproto36",
-          name: "AT Protocol Phases 3-6",
+          id: "auth_runtime",
+          name: "Auth/runtime DB",
           status: "medium-term",
-          desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.",
-          deps: ["atproto12"],
-          blocks: ["hostedrovers"],
+          desc: "Move users, identity bindings, passkeys, OAuth/session stores, runtime auth state, and audit into a private schema-versioned runtime DB.",
         },
         {
-          id: "agentdir2",
-          name: "Agent Directory Phase 2",
+          id: "multi_user",
+          name: "Multi-user permissions",
           status: "medium-term",
-          desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.",
-          deps: ["atproto36", "agentdir1"],
+          desc: "Replace single-operator runtime subject with real users, roles, per-session permissions, attribution, and management tooling when the team-brain model needs it.",
+          deps: ["trust_identity", "auth_runtime"],
         },
         {
-          id: "a2aauth",
-          name: "A2A Auth Phase 2+",
+          id: "a2a_signing",
+          name: "A2A request signing",
           status: "medium-term",
-          desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS.",
-        },
-        {
-          id: "monitoring",
-          name: "Monitoring — Post-Release",
-          status: "medium-term",
-          desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.",
-          deps: ["deploymentpath", "monitoring3"],
-        },
-        {
-          id: "compiledbinaries",
-          name: "Compiled Binaries",
-          status: "medium-term",
-          desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.",
-          deps: ["deploymentpath"],
-        },
-        {
-          id: "hostedrovers",
-          name: "Hosted Rovers",
-          status: "medium-term",
-          desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.",
-          deps: ["atproto36", "chatsdk", "mediasidecar"],
-        },
-        {
-          id: "mediasidecar",
-          name: "Local AI Runtime",
-          status: "medium-term",
-          desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.",
-          blocks: ["hostedrovers", "desktopapp"],
-        },
-        {
-          id: "searchrerank",
-          name: "Search Reranking",
-          status: "medium-term",
-          desc: "Cross-encoder re-scoring of top-N results. Depends on local AI runtime.",
-          deps: ["mediasidecar"],
-        },
-        {
-          id: "monetization",
-          name: "Monetization",
-          status: "medium-term",
-          desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.",
-          deps: ["deploymentpath"],
-        },
-        {
-          id: "multiuser",
-          name: "Multi-User & Permissions",
-          status: "medium-term",
-          desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.",
-          blocks: [],
-        },
-        {
-          id: "sitebuilder24",
-          name: "Site Builder Phases 2-4",
-          status: "medium-term",
-          desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.",
-          blocks: ["astro"],
+          desc: "Signed inter-brain A2A requests using RFC 9421/Ed25519 and agent-directory trust, needed for trusted collaboration between shared and personal brains.",
+          deps: ["trust_identity"],
         },
 
-        // Long-term
+        // Operability
         {
-          id: "astro",
-          name: "Astro Migration",
-          status: "long-term",
-          desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Depends on site-builder phases 2-4.",
-          deps: ["sitebuilder24"],
+          id: "operability",
+          name: "Shared Relay operability",
+          status: "medium-term",
+          desc: "Make shared/team brains installable, maintainable, and recoverable: onboarding, offboarding, fleet deploy shape, dashboard/CMS/admin flows, and hosted Discord UX.",
+          deps: ["shared_relay_bet", "deploy_foundation"],
         },
         {
-          id: "desktopapp",
-          name: "Desktop App (Electrobun)",
-          status: "long-term",
-          desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat.",
-          deps: ["chatsdk", "mediasidecar"],
+          id: "passkey_onboarding",
+          name: "Passkey/operator onboarding",
+          status: "medium-term",
+          desc: "First-passkey setup URL exists; remaining work is generic operator notification bridge and Discord delivery to configured anchors.",
+          deps: ["operability"],
         },
         {
-          id: "agentregistry",
-          name: "Ranger as Agent Registry",
-          status: "long-term",
-          desc: "Central discovery: brains search ranger for agents by capability. Builds on AT Protocol discovery + hosted rovers.",
+          id: "offboarding",
+          name: "Pilot offboarding",
+          status: "medium-term",
+          desc: "Explicit offboarding workflow for rover-pilot fleets: safe server/DNS cleanup, desired-state guards, and operator-confirmed destructive actions.",
+          deps: ["operability"],
         },
         {
-          id: "webui",
-          name: "Web UI",
+          id: "hosted_rovers",
+          name: "Hosted control plane",
           status: "long-term",
-          desc: "Browser interface beyond static site.",
+          desc: "Hosted rovers/relays become relevant if the shared Relay model works: provisioning, routing, wake/sleep, operational viability, and hosted Discord UX.",
+          deps: ["operability", "multi_user"],
         },
         {
-          id: "obsidian",
-          name: "Obsidian Community Plugin",
+          id: "cms_admin",
+          name: "CMS/admin evolution",
           status: "long-term",
-          desc: "Chat, publish, generate from inside Obsidian via MCP HTTP.",
+          desc: "Move from tactical CMS OAuth proxy toward a brain-hosted git gateway with schema validation, permissions, attribution, and non-developer team authoring.",
+          deps: ["operability", "multi_user"],
+        },
+
+        // Credibility/distribution
+        {
+          id: "media_surface",
+          name: "Media generation surface",
+          status: "medium-term",
+          desc: "Publishing/media work supports credibility and distribution: consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images.",
+          deps: ["pdf_carousel", "rover_standalone"],
+        },
+        {
+          id: "package_boundaries",
+          name: "Package boundaries",
+          status: "medium-term",
+          desc: "Narrow official plugin/entity dependencies and continue moving domain helpers out of private grab-bag packages toward clearer homes and public surfaces where needed.",
+          deps: ["public_surface"],
+        },
+        {
+          id: "distribution_layers",
+          name: "Distribution/discovery layers",
+          status: "long-term",
+          desc: "AT Protocol and similar distribution/discovery layers are parked until they clearly support the shared Relay/Rover ecosystem story.",
+        },
+
+        // Framework sustainability
+        {
+          id: "framework_drag",
+          name: "Framework drag reduction",
+          status: "medium-term",
+          desc: "Engineering cleanup should support product momentum: canonical env schema, core env cleanup, build pipeline unification, memory profiling, and parallel eval workers.",
+        },
+        {
+          id: "renderer_local_ai",
+          name: "Renderer/local AI futures",
+          status: "long-term",
+          desc: "Renderer-neutral contracts/Astro and local AI sidecar are real directions, but parked until product pressure makes them worth foregrounding.",
         },
       ];
 
       const statusLabels = {
         completed: "Completed",
         "in-progress": "In Progress",
-        "short-term": "Short-term",
-        "medium-term": "Medium-term",
-        "long-term": "Long-term",
+        "short-term": "Now / Next",
+        "medium-term": "Dependent Foundation",
+        "long-term": "Parked / Later",
       };
 
       const badgeClass = {
@@ -1067,7 +704,7 @@
         // In Progress
         if (inProgress.length) {
           html += `<div class="section">
-      <div class="section-title">In Progress</div>
+      <div class="section-title">Active product bet</div>
       <div class="card-row">${inProgress.map(renderCard).join("")}</div>
     </div>`;
         }
@@ -1078,7 +715,7 @@
         // each item's deps[] and are rendered in the dep graph below.
         if (prioritized.length) {
           html += `<div class="section">
-      <div class="section-title">Near-term priorities</div>
+      <div class="section-title">Now / next proof points</div>
       <div class="card-row">${prioritized.map(renderCard).join("")}</div>
     </div>`;
         }
@@ -1086,123 +723,87 @@
         // Other short-term work without an assigned priority slot
         if (otherShortTerm.length) {
           html += `<div class="section">
-      <div class="section-title">Other short-term</div>
+      <div class="section-title">Supporting now / next</div>
       <div class="card-row">${otherShortTerm.map(renderCard).join("")}</div>
     </div>`;
         }
 
         // Dependency Graph
         html += `<div class="dep-graph">
-    <h3>Dependency Graph</h3>
+    <h3>Story Arc</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Near-term priorities</div>
+      <div class="dep-group-title">Product thesis</div>
       <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('relaypoc')">relay scaffolding ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('relaypocdelivery')">relay POC delivery</span>
-        <span class="dep-label">priority 1 — ship a credible team-brain demo on rizom.foundation before tier expansion</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('pluginapi')">external plugin api ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('publicsurfaceunify')">public-surface tightening</span>
-        <span class="dep-label">priority 2 — alpha-contract follow-ups before more external authors adopt</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('pluginapi')">external plugin api ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-far" onclick="selectItem('custombrain')">custom brain definitions</span>
-        <span class="dep-label">long-term — brain.ts mode deferred until there is concrete demand</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>
-        <span class="dep-label">post-v0.2.0; only meaningful after external plugin API is settled</span>
+        <span class="dep-node s-done" onclick="selectItem('rover_standalone')">Rover standalone ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-next" onclick="selectItem('shared_relay_bet')">one shared Relay per team</span>
+        <span class="dep-label">Rover remains personal/professional; Relay proves shared team infrastructure</span>
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Post-Publish Chain</div>
+      <div class="dep-group-title">Prove shared Relay</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
+        <span class="dep-node s-done" onclick="selectItem('relay_scaffold')">Relay scaffold ✓</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('compiledbinaries')">compiled binaries</span>
+        <span class="dep-node s-next" onclick="selectItem('shared_relay_deployment')">shared deployment model</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-next" onclick="selectItem('team_memory_loop')">team memory loop</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-done" onclick="selectItem('conversation_memory')">conversation memory ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('shared_space')">shared-space trust ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('speaker_attribution')">speaker attribution ✓</span>
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">AT Protocol + Discovery</div>
+      <div class="dep-group-title">If Relay works, deepen trust and operability</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('atproto12')">atproto 1-2</span>
+        <span class="dep-node s-next" onclick="selectItem('team_memory_loop')">team memory proof</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('atproto36')">atproto 3-6</span>
+        <span class="dep-node s-mid" onclick="selectItem('trust_identity')">trust + identity depth</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('agentdir2')">agent-dir phase 2</span>
+        <span class="dep-node s-mid" onclick="selectItem('multi_user')">multi-user permissions</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-done" onclick="selectItem('deploy_foundation')">deploy/fleet foundation ✓</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('operability')">shared Relay operability</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-far" onclick="selectItem('hosted_rovers')">hosted control plane</span>
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Site Builder</div>
+      <div class="dep-group-title">Credibility and sustainability</div>
       <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('sitebuilder1')">phase 1 (parallel) ✓</span>
-        <span class="dep-label">completed</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-mid" onclick="selectItem('sitebuilder24')">phases 2-4</span>
+        <span class="dep-node s-done" onclick="selectItem('plugin_api')">plugin API ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('public_contracts')">public contracts ✓</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-far" onclick="selectItem('astro')">astro</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Hosted Rovers</div>
-      <div class="dep-row">
-        <span class="dep-node s-mid" onclick="selectItem('atproto36')">atproto 3-6</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
+        <span class="dep-node s-next" onclick="selectItem('public_surface')">public surface</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('hostedrovers')">hosted-rovers</span>
+        <span class="dep-node s-mid" onclick="selectItem('package_boundaries')">package boundaries</span>
       </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Desktop App</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
+        <span class="dep-node s-done" onclick="selectItem('pdf_carousel')">PDF carousel ✓</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-far" onclick="selectItem('desktopapp')">desktop-app</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Rover 0.1 — Completed Blockers</div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('searchembeddings')">search & embeddings ✓</span>
+        <span class="dep-node s-mid" onclick="selectItem('media_surface')">media/OG surface</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('monitoring12')">monitoring 1-2 ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval suite stabilized</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('documentation')">docs ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('namingcleanup')">naming ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('changesets')">changesets ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('unifiedai')">unified AI ✓</span>
+        <span class="dep-node s-mid" onclick="selectItem('framework_drag')">framework drag reduction</span>
       </div>
     </div>
   </div>`;
 
         // Medium-term
         html += `<div class="section" style="margin-top:24px">
-    <div class="section-title">Medium-term</div>
+    <div class="section-title">Dependent foundation</div>
     <div class="card-row">${medium.map(renderCard).join("")}</div>
   </div>`;
 
         // Long-term
         html += `<div class="section">
-    <div class="section-title">Long-term</div>
+    <div class="section-title">Parked / later</div>
     <div class="card-row">${long.map(renderCard).join("")}</div>
   </div>`;
 

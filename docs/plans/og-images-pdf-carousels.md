@@ -11,9 +11,11 @@ The reusable substrate exists:
 - `image`/`pdf` view-template renderer slots
 - source-derived attachment registry
 - deck-owned PDF carousel provider
-- explicit/frozen `document` entity path
-- LinkedIn PDF document publishing
-- local/operator media preview tool
+- opaque carousel backgrounds that avoid LinkedIn PDF rasterization artifacts
+- explicit/frozen `document` entity path, including durable PDF generation from source attachments
+- `social-post.documents[]` references for attaching approved PDF artifacts
+- LinkedIn native PDF document publishing through the current `/rest/documents` and `/rest/posts` APIs
+- local/operator media preview tool with inline preview support for remotely generated artifacts
 - Docker image support for Chromium media rendering
 
 ## Goal

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned.
+Implemented first pass. The core visibility model is in runtime entities and entity storage; `public` / `shared` / `restricted` visibility is normalized, queryable, and enforced across permission-scoped read/search/list/update paths. This plan remains as the policy/design record and for future derivation-policy refinement.
 
 ## Problem
 

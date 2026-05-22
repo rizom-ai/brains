@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Implementation branch/worktree: `refactor/utils-package-boundaries` at `/home/yeehaa/Documents/brains-utils-package-boundaries`.
+Partial. The first-slice moves listed below have landed; remaining work is repo-wide import cleanup/typecheck validation and deciding which schema/helpers belong on curated `@rizom/brain/*` public surfaces.
 
 ## Goal
 
