@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-info",
   "private": true,
-  "version": "0.2.0-alpha.81",
+  "version": "0.2.0-alpha.82",
   "description": "Site info entity — site metadata, title, description, CTA",
   "type": "module",
   "exports": {

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.82
+
+### Patch Changes
+
+- [`c498c4d`](https://github.com/rizom-ai/brains/commit/c498c4dd294d10c87ce594dbb1f52c66b6ea1665) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix LinkedIn PDF carousel publishing to use LinkedIn's native Documents API and versioned Posts API instead of the obsolete digital media document upload path.
+
 ## 0.2.0-alpha.81
 
 ### Patch Changes

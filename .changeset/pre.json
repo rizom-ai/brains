@@ -148,6 +148,7 @@
     "generic-notifications-routing",
     "hide-operator-routes-from-nav",
     "link-capture-alias-fix",
+    "linkedin-native-documents",
     "local-auth-issuer-defaults",
     "mcp-auth-token-local-override",
     "mcp-forwarded-resource-metadata",
