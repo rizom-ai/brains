@@ -29,6 +29,23 @@ describe("parseArgs remote flags", () => {
     expect(result.flags.token).toBeUndefined();
   });
 
+  it("should parse --outputDir flag for local remote-preview saves", () => {
+    const result = parseArgs([
+      "preview-attachment",
+      "deck",
+      "deck-1",
+      "carousel",
+      "--remote",
+      "rover.rizom.ai",
+      "--outputDir",
+      ".tmp/previews",
+    ]);
+    expect(result.command).toBe("preview-attachment");
+    expect(result.args).toEqual(["deck", "deck-1", "carousel"]);
+    expect(result.flags.remote).toBe("rover.rizom.ai");
+    expect(result.flags.outputDir).toBe(".tmp/previews");
+  });
+
   it("should keep positional args separate from remote flag", () => {
     const result = parseArgs([
       "get",
