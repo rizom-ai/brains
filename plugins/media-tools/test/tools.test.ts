@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm } from "fs/promises";
+import { readFile, rm } from "fs/promises";
 import { tmpdir } from "os";
-import { join } from "path";
+import { dirname } from "path";
 import { AttachmentRegistry } from "@brains/plugins";
 import {
   createPluginHarness,
@@ -9,23 +9,28 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import { MediaToolsPlugin } from "../src/plugin";
+import { MAX_INLINE_PREVIEW_BYTES } from "../src/tools";
 
 describe("media-tools preview-attachment tool", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let outputDir: string;
+  let writtenPaths: string[];
 
-  beforeEach(async () => {
+  beforeEach(() => {
     AttachmentRegistry.resetInstance();
     harness = createPluginHarness();
-    outputDir = await mkdtemp(join(tmpdir(), "media-tools-test-"));
+    writtenPaths = [];
   });
 
   afterEach(async () => {
     harness.reset();
-    await rm(outputDir, { recursive: true, force: true });
+    await Promise.all(
+      writtenPaths.map((path) =>
+        rm(dirname(path), { recursive: true, force: true }),
+      ),
+    );
   });
 
-  it("resolves a registered provider and writes the data to disk", async () => {
+  it("resolves a registered provider and writes the data to a temp file", async () => {
     await harness.installPlugin(new MediaToolsPlugin());
 
     const ctx = harness.getEntityContext("test");
@@ -42,21 +47,70 @@ describe("media-tools preview-attachment tool", () => {
       entityType: "deck",
       entityId: "deck-1",
       attachmentType: "carousel",
-      outputDir,
     });
 
     expectSuccess(result);
     const data = result.data as {
       path: string;
+      filename: string;
       mimeType: string;
       bytes: number;
+      inline: boolean;
+      maxInlineBytes: number;
+      contentBase64: string;
     };
-    expect(data.path).toBe(join(outputDir, "stub.pdf"));
+    writtenPaths.push(data.path);
+    expect(data.path.endsWith("/stub.pdf")).toBe(true);
+    expect(
+      dirname(data.path).startsWith(`${tmpdir()}/brain-media-preview-`),
+    ).toBe(true);
+    expect(data.filename).toBe("stub.pdf");
     expect(data.mimeType).toBe("application/pdf");
     expect(data.bytes).toBe(9);
+    expect(data.inline).toBe(true);
+    expect(data.maxInlineBytes).toBe(MAX_INLINE_PREVIEW_BYTES);
+    expect(Buffer.from(data.contentBase64, "base64").toString()).toBe(
+      "%PDF-stub",
+    );
 
     const written = await readFile(data.path);
     expect(written.toString()).toBe("%PDF-stub");
+  });
+
+  it("omits inline content when the artifact exceeds the inline size limit", async () => {
+    await harness.installPlugin(new MediaToolsPlugin());
+
+    const ctx = harness.getEntityContext("test");
+    ctx.attachments.register("deck", "carousel", {
+      resolve: async () => ({
+        type: "document",
+        data: Buffer.alloc(MAX_INLINE_PREVIEW_BYTES + 1, "x"),
+        mimeType: "application/pdf",
+        filename: "large.pdf",
+      }),
+    });
+
+    const result = await harness.executeTool("media-tools_preview-attachment", {
+      entityType: "deck",
+      entityId: "deck-1",
+      attachmentType: "carousel",
+    });
+
+    expectSuccess(result);
+    const data = result.data as {
+      path: string;
+      bytes: number;
+      inline: boolean;
+      contentBase64?: string;
+    };
+    writtenPaths.push(data.path);
+    expect(data.path.endsWith("/large.pdf")).toBe(true);
+    expect(
+      dirname(data.path).startsWith(`${tmpdir()}/brain-media-preview-`),
+    ).toBe(true);
+    expect(data.bytes).toBe(MAX_INLINE_PREVIEW_BYTES + 1);
+    expect(data.inline).toBe(false);
+    expect(data.contentBase64).toBeUndefined();
   });
 
   it("reports an error when no provider is registered for the pair", async () => {
@@ -66,7 +120,6 @@ describe("media-tools preview-attachment tool", () => {
       entityType: "deck",
       entityId: "deck-1",
       attachmentType: "carousel",
-      outputDir,
     });
 
     expectError(result);
@@ -85,7 +138,6 @@ describe("media-tools preview-attachment tool", () => {
       entityType: "deck",
       entityId: "missing",
       attachmentType: "carousel",
-      outputDir,
     });
 
     expectError(result);
