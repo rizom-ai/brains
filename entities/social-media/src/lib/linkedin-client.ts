@@ -40,6 +40,11 @@ interface LinkedInUploadInfo {
   assetUrn: string;
 }
 
+interface LinkedInDocumentUploadInfo {
+  uploadUrl: string;
+  documentUrn: string;
+}
+
 interface LinkedInShareMediaAsset {
   category: "DOCUMENT" | "IMAGE";
   urn: string;
@@ -86,6 +91,24 @@ function parseUploadInfo(value: unknown): LinkedInUploadInfo | null {
   return { uploadUrl, assetUrn };
 }
 
+function parseDocumentUploadInfo(
+  value: unknown,
+): LinkedInDocumentUploadInfo | null {
+  if (!isRecord(value)) return null;
+
+  const responseValue = getRecordProperty(value, "value");
+  if (!responseValue) return null;
+
+  const uploadUrl = responseValue["uploadUrl"];
+  const documentUrn = responseValue["document"];
+
+  if (typeof uploadUrl !== "string" || typeof documentUrn !== "string") {
+    return null;
+  }
+
+  return { uploadUrl, documentUrn };
+}
+
 function getRecordProperty(
   value: Record<string, unknown>,
   key: string,
@@ -107,9 +130,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  *
  * @see https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
  */
+const DEFAULT_LINKEDIN_REST_API_VERSION = "202604";
+
 export class LinkedInClient implements PublishProvider {
   public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
+  private readonly restApiBaseUrl = "https://api.linkedin.com/rest";
   private readonly fetch: FetchLike;
   private cachedUserId: string | null = null;
 
@@ -150,14 +176,15 @@ export class LinkedInClient implements PublishProvider {
     if (documentAttachment) {
       // Document uploads must succeed: the document IS the post (PDF carousel),
       // so a silent text-only fallback would publish something the caller never
-      // asked for. uploadImage stays best-effort because cover images are
-      // decoration for an otherwise-meaningful text post.
-      const assetUrn = await this.uploadDocument(author, documentAttachment);
-      mediaAsset = {
-        category: "DOCUMENT",
-        urn: assetUrn,
-        title: documentAttachment.filename,
-      };
+      // asked for. Native document posts use LinkedIn's versioned /rest APIs;
+      // keep UGC Posts below for text/image publishing.
+      const documentUrn = await this.uploadDocument(author, documentAttachment);
+      return this.publishDocumentPost(
+        author,
+        content,
+        documentUrn,
+        documentAttachment.filename,
+      );
     } else if (imageData) {
       const assetUrn = await this.uploadImage(author, imageData);
       if (assetUrn) {
@@ -217,6 +244,19 @@ export class LinkedInClient implements PublishProvider {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
     return result;
+  }
+
+  /**
+   * Headers required by LinkedIn's versioned /rest APIs.
+   */
+  private getRestHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.config.accessToken}`,
+      "Content-Type": "application/json",
+      "Linkedin-Version":
+        this.config.apiVersion ?? DEFAULT_LINKEDIN_REST_API_VERSION,
+      "X-Restli-Protocol-Version": "2.0.0",
+    };
   }
 
   /**
@@ -297,7 +337,7 @@ export class LinkedInClient implements PublishProvider {
   }
 
   /**
-   * Upload a PDF document to LinkedIn and return the asset URN.
+   * Upload a PDF document to LinkedIn and return the native document URN.
    * Throws on any failure — the document is the post, so silent fallback
    * would mislead the caller about what was published.
    */
@@ -306,24 +346,13 @@ export class LinkedInClient implements PublishProvider {
     documentData: PublishMediaData,
   ): Promise<string> {
     const registerResponse = await this.fetch(
-      `${this.apiBaseUrl}/assets?action=registerUpload`,
+      `${this.restApiBaseUrl}/documents?action=initializeUpload`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.config.accessToken}`,
-          "Content-Type": "application/json",
-          "X-Restli-Protocol-Version": "2.0.0",
-        },
+        headers: this.getRestHeaders(),
         body: JSON.stringify({
-          registerUploadRequest: {
-            recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+          initializeUploadRequest: {
             owner: author,
-            serviceRelationships: [
-              {
-                relationshipType: "OWNER",
-                identifier: "urn:li:userGeneratedContent",
-              },
-            ],
           },
         }),
       },
@@ -332,13 +361,13 @@ export class LinkedInClient implements PublishProvider {
     if (!registerResponse.ok) {
       const errorText = summarizeApiError(await registerResponse.text());
       throw new Error(
-        `LinkedIn document upload registration failed: ${registerResponse.status} - ${errorText}`,
+        `LinkedIn document upload initialization failed: ${registerResponse.status} - ${errorText}`,
       );
     }
 
-    const uploadInfo = parseUploadInfo(await registerResponse.json());
+    const uploadInfo = parseDocumentUploadInfo(await registerResponse.json());
     if (!uploadInfo) {
-      throw new Error("LinkedIn document upload registration was malformed");
+      throw new Error("LinkedIn document upload initialization was malformed");
     }
 
     const uploadResponse = await this.fetch(uploadInfo.uploadUrl, {
@@ -357,10 +386,66 @@ export class LinkedInClient implements PublishProvider {
     }
 
     this.logger.info("LinkedIn document uploaded", {
-      assetUrn: uploadInfo.assetUrn,
+      documentUrn: uploadInfo.documentUrn,
       filename: documentData.filename,
     });
-    return uploadInfo.assetUrn;
+    return uploadInfo.documentUrn;
+  }
+
+  /**
+   * Publish a native LinkedIn document post via the versioned /rest Posts API.
+   */
+  private async publishDocumentPost(
+    author: string,
+    content: string,
+    documentUrn: string,
+    title: string,
+  ): Promise<PublishResult> {
+    const response = await this.fetch(`${this.restApiBaseUrl}/posts`, {
+      method: "POST",
+      headers: this.getRestHeaders(),
+      body: JSON.stringify({
+        author,
+        commentary: content,
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
+        content: {
+          media: {
+            id: documentUrn,
+            title,
+          },
+        },
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = summarizeApiError(await response.text());
+      this.logger.error("LinkedIn document post API error", {
+        status: response.status,
+        error: errorText,
+      });
+      throw new Error(
+        `LinkedIn document post API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    const postId = response.headers.get("X-RestLi-Id") ?? "";
+    this.logger.info("LinkedIn document post created", {
+      postId,
+      documentUrn,
+    });
+
+    const result: PublishResult = { id: postId };
+    if (postId) {
+      result.url = `https://www.linkedin.com/feed/update/${postId}`;
+    }
+    return result;
   }
 
   /**
