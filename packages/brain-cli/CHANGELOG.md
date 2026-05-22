@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.81
+
+### Patch Changes
+
+- [`72643ca`](https://github.com/rizom-ai/brains/commit/72643ca93f112be2534e9aa8583b6e904f13600f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix Rover standalone scaffolding for first-passkey setup email delivery.
+
+  `brain init` now wires Rover's `auth-service.setupEmail` and `email-resend` config to `SETUP_EMAIL_TO`, `SETUP_EMAIL_API_KEY`, and `SETUP_EMAIL_FROM`, includes those variables in generated env examples and env schemas, and passes all three through the shared Kamal deploy template. Varlock validation now fails before deploy when setup email delivery is configured but the required Resend/setup email variables are missing.
+
 ## 0.2.0-alpha.80
 
 ### Patch Changes
