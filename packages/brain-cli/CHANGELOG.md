@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.83
+
+### Patch Changes
+
+- [`fe66c5b`](https://github.com/rizom-ai/brains/commit/fe66c5b16442b3467d829b7e4d92bc595344bec8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Return small media preview artifacts inline as base64 so remote MCP callers can inspect generated previews without server filesystem access.
+
 ## 0.2.0-alpha.82
 
 ### Patch Changes
