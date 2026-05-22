@@ -190,6 +190,7 @@
     "rizom-ui-package",
     "rizom-unified-type-and-ecosystem",
     "rover-agent-directory-approval",
+    "rover-setup-email-scaffold",
     "runtime-node-env-production",
     "setup-email-onboarding-copy",
     "setup-email-ready-lifecycle",
