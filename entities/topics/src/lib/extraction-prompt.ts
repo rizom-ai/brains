@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { ContentVisibility, IEntityService } from "@brains/plugins";
 import { TOPIC_ENTITY_TYPE } from "./constants";
 import { getTopicTitle } from "./topic-presenter";
 
@@ -11,15 +11,24 @@ const MAX_EXISTING_TOPIC_TITLES = 40;
 export async function listExistingTopicTitles(
   entityService: IEntityService,
   limit = MAX_EXISTING_TOPIC_TITLES,
+  targetVisibility?: ContentVisibility,
 ): Promise<string[]> {
   const topics = await entityService.listEntities({
     entityType: TOPIC_ENTITY_TYPE,
-    options: { limit },
+    options:
+      targetVisibility === undefined
+        ? { limit }
+        : { filter: { visibilityScope: targetVisibility } },
   });
 
   return topics
+    .filter(
+      (topic) =>
+        targetVisibility === undefined || topic.visibility === targetVisibility,
+    )
     .map(getTopicTitle)
-    .filter((title): title is string => title.trim().length > 0);
+    .filter((title): title is string => title.trim().length > 0)
+    .slice(0, limit);
 }
 
 /**

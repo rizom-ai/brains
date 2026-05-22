@@ -51,6 +51,8 @@ export type {
   EntityTypeConfig,
   EntityJobOptions,
   EntityEventBus,
+  ContentVisibility,
+  RawContentVisibility,
   CreateEntityOptions,
   CreateEntityFromMarkdownInput,
   EntityMutationResult,
@@ -58,12 +60,27 @@ export type {
   SortField,
 } from "./types";
 
-export { baseEntitySchema, BASE_ENTITY_TYPE } from "./types";
+export {
+  baseEntitySchema,
+  BASE_ENTITY_TYPE,
+  canWriteVisibility,
+  contentVisibilitySchema,
+  getVisibleContentVisibilities,
+  isVisibleWithinScope,
+  normalizeContentVisibility,
+  permissionToVisibilityScope,
+} from "./types";
+
+export { internalFullScope } from "./internal-scope";
+export { scopedDerivedId } from "./scoped-derived-id";
 
 export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
+  extractVisibilityFromMarkdown,
+  applyVisibilityToMarkdown,
+  hasVisibilityFrontmatter,
   type FrontmatterConfig,
 } from "./frontmatter";
 

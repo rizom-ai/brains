@@ -1,4 +1,5 @@
 import type {
+  ContentVisibility,
   CountEntitiesRequest,
   EntitySearchRequest,
   GetEntityRequest,
@@ -278,6 +279,7 @@ export type EvalHandler<TInput = unknown, TOutput = unknown> = (
 
 export type InsightHandler = (
   entityService: IEntityService,
+  visibilityScope: ContentVisibility,
 ) => Promise<Record<string, unknown>>;
 
 export interface IEvalNamespace {

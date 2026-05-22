@@ -105,8 +105,11 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     let skills: SkillData[] | undefined;
     if (context.entityService.hasEntityType("skill")) {
       try {
+        // Agent Card is publicly served — list only public skills so
+        // non-public skill metadata cannot leak through the discovery surface.
         const entities = await context.entityService.listEntities({
           entityType: "skill",
+          options: { filter: { visibilityScope: "public" } },
         });
         if (entities.length > 0) {
           skills = entities

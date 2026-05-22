@@ -1,4 +1,8 @@
-import type { BaseEntity, EntityInput } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityInput,
+} from "@brains/entity-service";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { getErrorMessage, type Logger } from "@brains/utils";
 import type { EntityPluginContext } from "./context";
@@ -163,14 +167,28 @@ function getProjectionSourceType(
 export async function hasPersistedTargets(
   context: EntityPluginContext,
   targetType: string,
+  options?: {
+    visibility?: ContentVisibility;
+    outputVisibility?: ContentVisibility;
+  },
 ): Promise<boolean> {
+  // Default fails closed to "public" — projections that own non-public
+  // targets must declare outputVisibility at the callsite.
+  const outputVisibility: ContentVisibility =
+    options?.outputVisibility ?? "public";
+  // When only outputVisibility is given, filter the scope-bounded list to the
+  // exact partition. When the legacy `visibility` option is explicit, defer to
+  // its own per-row check.
   const existing = await context.entityService.listEntities({
     entityType: targetType,
-    options: {
-      limit: 1,
-    },
+    options:
+      options?.visibility === undefined
+        ? { filter: { visibilityScope: outputVisibility } }
+        : { filter: { visibilityScope: options.visibility } },
   });
-  return existing.length > 0;
+  return options?.visibility === undefined
+    ? existing.some((entity) => entity.visibility === outputVisibility)
+    : existing.some((entity) => entity.visibility === options.visibility);
 }
 
 export interface ReconcileDerivedEntitiesOptions<
@@ -184,6 +202,13 @@ export interface ReconcileDerivedEntitiesOptions<
   toEntityInput: (desired: TDesired, id: string) => EntityInput<TEntity>;
   equals?: (existing: TEntity, desired: TDesired) => boolean;
   deleteStale?: boolean;
+  /**
+   * Visibility this projection writes its outputs at. The reconciler reads
+   * existing targets at this scope and stamps `visibility = outputVisibility`
+   * on every entity it creates or updates — `toEntityInput` should not set
+   * visibility itself; if it does, the runner overrides. Defaults to "public".
+   */
+  outputVisibility?: ContentVisibility;
   /** Bounded concurrency for create/update/delete. Default 1 — derivation usually fans out DB mutations and message-bus side effects. */
   concurrency?: number;
   /** @deprecated Use concurrency. */
@@ -209,6 +234,7 @@ export async function reconcileDerivedEntities<
   toEntityInput,
   equals,
   deleteStale = false,
+  outputVisibility = "public",
   concurrency,
   deleteConcurrency,
   logger,
@@ -221,9 +247,15 @@ export async function reconcileDerivedEntities<
     desiredById.set(getId(item), item);
   }
 
-  const existing = await context.entityService.listEntities<TEntity>({
-    entityType: targetType,
-  });
+  // Listing at scope returns entities at-or-below the level; filter to the
+  // exact partition so a `shared` projection cannot claim, update, or delete
+  // public targets that belong to another projection.
+  const existing = (
+    await context.entityService.listEntities<TEntity>({
+      entityType: targetType,
+      options: { filter: { visibilityScope: outputVisibility } },
+    })
+  ).filter((entity) => entity.visibility === outputVisibility);
   const existingById = new Map(existing.map((entity) => [entity.id, entity]));
 
   let created = 0;
@@ -249,7 +281,7 @@ export async function reconcileDerivedEntities<
 
   for (const [id, item] of desiredById) {
     const existingEntity = existingById.get(id);
-    const input = toEntityInput(item, id);
+    const input = { ...toEntityInput(item, id), visibility: outputVisibility };
 
     try {
       if (!existingEntity) {
@@ -268,6 +300,7 @@ export async function reconcileDerivedEntities<
         ...input,
         id,
         entityType: targetType,
+        visibility: outputVisibility,
       };
       await context.entityService.updateEntity({ entity: updatedEntity });
       updated++;

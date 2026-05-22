@@ -34,6 +34,7 @@ function makeSkill(input: {
       examples: input.examples ?? ["Example"],
     },
     contentHash: `hash-${input.id}`,
+    visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
   };
@@ -67,6 +68,7 @@ function makeAgent(input: {
       slug: input.id,
     },
     contentHash: `hash-${input.id}`,
+    visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
   };

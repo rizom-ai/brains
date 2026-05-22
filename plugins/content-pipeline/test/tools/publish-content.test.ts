@@ -39,6 +39,7 @@ function createPublishableEntity(
     entityType: "social-post",
     content,
     contentHash: "test",
+    visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
     metadata: { status: "draft" },

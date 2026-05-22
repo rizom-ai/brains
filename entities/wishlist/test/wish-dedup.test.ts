@@ -10,6 +10,7 @@ function createMockWish(overrides: Partial<WishEntity> = {}): WishEntity {
     contentHash: "",
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:00Z",
+    visibility: "public",
     metadata: {
       title: "Calendar integration",
       status: "new",

@@ -37,13 +37,14 @@ import type {
 import type { ContentService } from "@brains/content-service";
 import type { Logger } from "@brains/utils";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import type {
-  IEntityService,
-  IEntityRegistry,
-  BaseEntity,
-  DataSourceRegistry,
-  DataSource,
-  EntityAdapter,
+import {
+  getVisibleContentVisibilities,
+  type IEntityService,
+  type IEntityRegistry,
+  type BaseEntity,
+  type DataSourceRegistry,
+  type DataSource,
+  type EntityAdapter,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -229,19 +230,38 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entities.delete(request.id);
       return true;
     },
-    getEntity: async (request: { entityType: string; id: string }) => {
+    getEntity: async (request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: BaseEntity["visibility"];
+    }) => {
       const entity = entities.get(request.id);
-      return entity?.entityType === request.entityType ? entity : null;
+      if (entity?.entityType !== request.entityType) return null;
+      if (request.visibilityScope === undefined) return entity;
+      return getVisibleContentVisibilities(request.visibilityScope).includes(
+        entity.visibility,
+      )
+        ? entity
+        : null;
     },
     listEntities: async (request: {
       entityType: string;
       options?: {
-        filter?: { metadata?: Record<string, unknown> };
+        filter?: {
+          metadata?: Record<string, unknown>;
+          visibilityScope?: BaseEntity["visibility"];
+        };
         publishedOnly?: boolean;
       };
     }) => {
+      const scope = request.options?.filter?.visibilityScope;
+      const visible = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
       let results = Array.from(entities.values()).filter(
-        (e) => e.entityType === request.entityType,
+        (e) =>
+          e.entityType === request.entityType &&
+          (visible === null || visible.has(e.visibility)),
       );
       if (request.options?.publishedOnly) {
         results = results.filter((e) => e.metadata["status"] === "published");
@@ -284,7 +304,20 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypeConfig,
     getWeightMap: () => ({}),
     countEntities: async () => 0,
-    getEntityCounts: async () => [],
+    getEntityCounts: async (visibilityScope?: BaseEntity["visibility"]) => {
+      const visible = visibilityScope
+        ? new Set(getVisibleContentVisibilities(visibilityScope))
+        : null;
+      const counts = new Map<string, number>();
+      for (const entity of entities.values()) {
+        if (visible !== null && !visible.has(entity.visibility)) continue;
+        counts.set(entity.entityType, (counts.get(entity.entityType) ?? 0) + 1);
+      }
+      return Array.from(counts.entries()).map(([entityType, count]) => ({
+        entityType,
+        count,
+      }));
+    },
   } as unknown as IEntityService;
 
   // --- Entity Registry ---
@@ -315,7 +348,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return adapter as unknown as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
-    validateEntity: <TData>(_type: string, entity: unknown) => entity as TData,
+    validateEntity: (type: string, entity: unknown): BaseEntity => {
+      const adapter = entityAdapters.get(type);
+      if (adapter) return adapter.schema.parse(entity);
+      throw new Error(`No schema registered for entity type: ${type}`);
+    },
     getAllEntityTypes: () => Array.from(entityTypes),
     getEntityTypeConfig,
     getWeightMap: () => ({}),
@@ -407,13 +444,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       insightHandlers.set(type, handler);
     },
     getTypes: () => Array.from(insightHandlers.keys()),
-    get: async (type: string, es) => {
+    get: async (type: string, es, visibilityScope) => {
       const handler = insightHandlers.get(type);
       if (!handler)
         throw new Error(
           `Unknown insight type: ${type}. Available: ${Array.from(insightHandlers.keys()).join(", ")}`,
         );
-      return handler(es);
+      return handler(es, visibilityScope);
     },
   };
 

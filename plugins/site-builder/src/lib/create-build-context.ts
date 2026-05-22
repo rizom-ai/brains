@@ -57,10 +57,20 @@ export function createBuildContext(
       // In production, filter to only published content.
       // In preview (or unspecified), show all content including drafts.
       const publishedOnly = options.parsedOptions.environment === "production";
-      return resolveSiteSectionContent(section, route, publishedOnly, {
-        pipelineContext: options.pipelineContext,
-        imageBuildService: options.imageBuildService,
-      });
+      // Visibility scope is "public" for both production and preview: a
+      // preview build still emits static HTML that may be served beyond the
+      // authoring user, so shared/restricted entities must never leak. Preview
+      // differs from production only in showing unpublished drafts.
+      return resolveSiteSectionContent(
+        section,
+        route,
+        publishedOnly,
+        "public",
+        {
+          pipelineContext: options.pipelineContext,
+          imageBuildService: options.imageBuildService,
+        },
+      );
     },
     getViewTemplate: (name: string): SiteViewTemplate | undefined => {
       return options.pipelineContext.services.getViewTemplate(name);

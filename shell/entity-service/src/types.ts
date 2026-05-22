@@ -30,6 +30,88 @@ export interface EntityJobOptions {
   maxRetries?: number;
 }
 
+const canonicalContentVisibilitySchema = z.enum([
+  "public",
+  "shared",
+  "restricted",
+]);
+
+export type ContentVisibility = z.infer<
+  typeof canonicalContentVisibilitySchema
+>;
+export type RawContentVisibility = ContentVisibility | "private";
+
+export const contentVisibilitySchema = z
+  .union([canonicalContentVisibilitySchema, z.literal("private")])
+  .optional()
+  .transform((value): ContentVisibility => {
+    if (value === undefined) return "public";
+    if (value === "private") return "restricted";
+    return value;
+  });
+
+export function normalizeContentVisibility(
+  visibility: RawContentVisibility | undefined,
+): ContentVisibility {
+  return contentVisibilitySchema.parse(visibility);
+}
+
+const visibleContentVisibilitiesByScope: Record<
+  ContentVisibility,
+  ContentVisibility[]
+> = {
+  public: ["public"],
+  shared: ["public", "shared"],
+  restricted: ["public", "shared", "restricted"],
+};
+
+export function getVisibleContentVisibilities(
+  scope: ContentVisibility,
+): ContentVisibility[] {
+  return visibleContentVisibilitiesByScope[scope];
+}
+
+export function isVisibleWithinScope(
+  visibility: ContentVisibility | undefined,
+  scope: ContentVisibility,
+): boolean {
+  return getVisibleContentVisibilities(scope).includes(visibility ?? "public");
+}
+
+/**
+ * Map a caller's permission level to the content-visibility scope they may see.
+ * public  → public         (only public content)
+ * trusted → shared         (public + shared)
+ * anchor  → restricted     (public + shared + restricted)
+ *
+ * Defaults to "public" when no permission level is provided, so missing
+ * context fails closed.
+ */
+export function permissionToVisibilityScope(
+  level: "anchor" | "trusted" | "public" | undefined,
+): ContentVisibility {
+  if (level === "anchor") return "restricted";
+  if (level === "trusted") return "shared";
+  return "public";
+}
+
+/**
+ * Whether a caller at `level` is allowed to author or update an entity at
+ * `visibility`. A user may only write content at a visibility they themselves
+ * can read — otherwise they could ghost-write content into a higher trust
+ * level than their permission, which is a write-side escalation vector.
+ *
+ *  public  → may write "public"
+ *  trusted → may write "public" | "shared"
+ *  anchor  → may write "public" | "shared" | "restricted"
+ */
+export function canWriteVisibility(
+  level: "anchor" | "trusted" | "public" | undefined,
+  visibility: ContentVisibility,
+): boolean {
+  return isVisibleWithinScope(visibility, permissionToVisibilityScope(level));
+}
+
 /**
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
@@ -75,6 +157,7 @@ export const baseEntitySchema = z.object({
   content: z.string(),
   created: z.string().datetime(),
   updated: z.string().datetime(),
+  visibility: contentVisibilitySchema,
   metadata: z.record(z.string(), z.unknown()),
   contentHash: z.string(),
 });
@@ -89,6 +172,7 @@ export interface BaseEntity<TMetadata = Record<string, unknown>> {
   content: string;
   created: string;
   updated: string;
+  visibility: ContentVisibility;
   metadata: TMetadata;
   /** SHA256 hash of content for change detection */
   contentHash: string;
@@ -100,11 +184,12 @@ export interface BaseEntity<TMetadata = Record<string, unknown>> {
  */
 export type EntityInput<T extends BaseEntity> = Omit<
   T,
-  "id" | "created" | "updated" | "contentHash"
+  "id" | "created" | "updated" | "contentHash" | "visibility"
 > & {
   id?: string;
   created?: string;
   updated?: string;
+  visibility?: RawContentVisibility;
 };
 
 /**
@@ -205,7 +290,7 @@ export interface EntityAdapter<
   TMetadata = Record<string, unknown>,
 > {
   entityType: string;
-  schema: z.ZodSchema<TEntity>;
+  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   toMarkdown(entity: TEntity): string;
@@ -269,6 +354,7 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    visibilityScope?: ContentVisibility;
   };
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly?: boolean;
@@ -286,6 +372,7 @@ export interface SearchOptions {
   sortDirection?: "asc" | "desc";
   /** Score multipliers per entity type - applied after initial search */
   weight?: Record<string, number>;
+  visibilityScope?: ContentVisibility;
 }
 
 /**
@@ -309,6 +396,11 @@ export interface EntityTypeConfig {
 export interface GetEntityRequest {
   entityType: string;
   id: string;
+  /**
+   * Optional visibility scope. Undefined fails closed to "public" — callers
+   * with elevated access must opt up explicitly.
+   */
+  visibilityScope?: ContentVisibility;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -383,7 +475,14 @@ export interface ICoreEntityService {
 
   // Entity counts
   countEntities(request: CountEntitiesRequest): Promise<number>;
-  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
+  /**
+   * Group counts by entity type. Fails closed: undefined visibilityScope
+   * filters to public-only counts so aggregate insights cannot reveal
+   * non-public entity existence.
+   */
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
 
   /** Get configuration for a specific entity type */
   getEntityTypeConfig(type: string): EntityTypeConfig;
@@ -399,7 +498,7 @@ export interface IEntitiesNamespace {
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
-    schema: z.ZodSchema<TEntity>,
+    schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>,
     adapter: EntityAdapter<TEntity>,
     config?: EntityTypeConfig,
   ): void;
@@ -499,7 +598,7 @@ export interface EntityRegistry {
 
   hasEntityType(type: string): boolean;
 
-  validateEntity<TData = unknown>(type: string, entity: unknown): TData;
+  validateEntity(type: string, entity: unknown): BaseEntity;
 
   getAllEntityTypes(): string[];
 

@@ -1,9 +1,22 @@
 import type { EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
-import type { BaseEntity } from "./types";
+import {
+  getVisibleContentVisibilities,
+  type BaseEntity,
+  type ContentVisibility,
+} from "./types";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
-import { eq, and, desc, asc, sql, isNotNull, type SQL } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  sql,
+  isNotNull,
+  inArray,
+  type SQL,
+} from "drizzle-orm";
 import { z, type Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
 import { normalizeEntityRow, type EntityData } from "./entity-data";
@@ -27,6 +40,7 @@ const listOptionsSchema = z.object({
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
     })
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
@@ -61,19 +75,31 @@ export class EntityQueries {
   }
 
   /**
-   * Get an entity by ID from database
+   * Get an entity by ID from database.
+   * Fail closed: undefined visibilityScope filters to public-only.
    */
   public async getEntityData(
     entityType: string,
     id: string,
+    visibilityScope?: ContentVisibility,
   ): Promise<EntityData | null> {
     this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
-    // Query database
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    const conditions: SQL[] = [
+      eq(entities.id, id),
+      eq(entities.entityType, entityType),
+    ];
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
     const result = await this.db
       .select()
       .from(entities)
-      .where(and(eq(entities.id, id), eq(entities.entityType, entityType)))
+      .where(and(...conditions))
       .limit(1);
 
     if (result.length === 0) {
@@ -108,6 +134,7 @@ export class EntityQueries {
       entityType,
       publishedOnly,
       filter?.metadata,
+      filter?.visibilityScope,
     );
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
@@ -141,12 +168,21 @@ export class EntityQueries {
     entityType: string,
     publishedOnly?: boolean,
     metadataFilter?: Record<string, unknown>,
+    visibilityScope?: ContentVisibility,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
       conditions.push(
         sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') = 'active' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
+      );
+    }
+
+    // Fail closed: undefined scope filters to public-only.
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
       );
     }
 
@@ -217,13 +253,17 @@ export class EntityQueries {
     entityType: string,
     options: {
       publishedOnly?: boolean;
-      filter?: { metadata?: Record<string, unknown> };
+      filter?: {
+        metadata?: Record<string, unknown>;
+        visibilityScope?: ContentVisibility;
+      };
     } = {},
   ): Promise<number> {
     const whereConditions = this.buildWhereConditions(
       entityType,
       options.publishedOnly,
       options.filter?.metadata,
+      options.filter?.visibilityScope,
     );
 
     const result = await this.db
@@ -235,20 +275,32 @@ export class EntityQueries {
   }
 
   /**
-   * Get entity counts grouped by type
+   * Get entity counts grouped by type.
+   * Fail closed: undefined visibilityScope filters to public-only.
    */
-  public async getEntityCounts(): Promise<
-    Array<{ entityType: string; count: number }>
-  > {
+  public async getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>> {
     this.logger.debug("Getting entity counts by type");
 
-    const result = await this.db
+    const scope: ContentVisibility = visibilityScope ?? "public";
+    const conditions: SQL[] = [];
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
+    const baseQuery = this.db
       .select({
         entityType: entities.entityType,
         count: sql<number>`COUNT(*)`.as("count"),
       })
-      .from(entities)
-      .groupBy(entities.entityType);
+      .from(entities);
+
+    const result = await (conditions.length > 0
+      ? baseQuery.where(and(...conditions)).groupBy(entities.entityType)
+      : baseQuery.groupBy(entities.entityType));
 
     this.logger.debug(`Found ${result.length} entity types`);
 

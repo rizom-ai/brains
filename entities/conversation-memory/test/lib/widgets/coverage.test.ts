@@ -11,6 +11,8 @@ import {
 import { summaryConfigSchema } from "../../../src/schemas/summary";
 import type { SummaryEntity } from "../../../src/schemas/summary";
 
+const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
+
 function createSummary(overrides: Partial<SummaryEntity> = {}): SummaryEntity {
   const now = new Date(Date.UTC(2026, 0, 1)).toISOString();
   return {
@@ -18,6 +20,7 @@ function createSummary(overrides: Partial<SummaryEntity> = {}): SummaryEntity {
     entityType: "summary",
     content: "# Conversation Summary\n",
     contentHash: "hash",
+    visibility: defaultMemoryVisibility,
     created: now,
     updated: now,
     metadata: {

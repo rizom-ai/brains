@@ -34,7 +34,7 @@ export interface RuntimeScript {
  * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
  */
 export function createTypedComponent<TSchema, TComponent = TSchema>(
-  schema: z.ZodType<TSchema>,
+  schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>,
   component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
@@ -52,7 +52,7 @@ export interface Template extends Omit<
   z.infer<typeof TemplateSchema>,
   "schema" | "layout" | "formatter"
 > {
-  schema: z.ZodSchema;
+  schema: z.ZodType<unknown, z.ZodTypeDef, unknown>;
 
   // View rendering capability (optional)
   layout?: {
@@ -87,7 +87,7 @@ export interface Template extends Omit<
  */
 export function createTemplate<TSchema = unknown, TComponent = TSchema>(
   template: Omit<Template, "layout" | "schema"> & {
-    schema: z.ZodType<TSchema>;
+    schema: z.ZodType<TSchema, z.ZodTypeDef, unknown>;
     layout?: {
       component?: ComponentType<TComponent>;
       fullscreen?: boolean;

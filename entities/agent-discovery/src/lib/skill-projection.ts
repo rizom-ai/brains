@@ -4,7 +4,7 @@ import type {
   JobHandler,
   JobOptions,
 } from "@brains/plugins";
-import { hasPersistedTargets } from "@brains/plugins";
+import { contentVisibilitySchema, hasPersistedTargets } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import {
@@ -18,6 +18,7 @@ const skillDerivationJobDataSchema = z.object({
   mode: z.literal("derive"),
   replaceAll: z.boolean().default(false),
   reason: z.string().optional(),
+  targetVisibility: contentVisibilitySchema.default("public"),
 });
 
 type SkillDerivationJobData = z.infer<typeof skillDerivationJobDataSchema>;
@@ -32,9 +33,11 @@ function createSkillDerivationHandler(
       logger.info("Deriving skills from topics", {
         replaceAll: parsed.replaceAll,
         reason: parsed.reason,
+        targetVisibility: parsed.targetVisibility,
       });
       return deriveSkills(context, logger, {
         replaceAll: parsed.replaceAll,
+        targetVisibility: parsed.targetVisibility,
       });
     },
     validateAndParse: (data: unknown): SkillDerivationJobData | null => {
@@ -75,7 +78,12 @@ export function getSkillDerivedEntityProjections(
       initialSync: {
         shouldEnqueue: async () =>
           !(await hasPersistedTargets(context, SKILL_ENTITY_TYPE)),
-        jobData: { mode: "derive", replaceAll: true, reason: "initial-sync" },
+        jobData: {
+          mode: "derive",
+          replaceAll: true,
+          reason: "initial-sync",
+          targetVisibility: "public",
+        },
         jobOptions: getSkillDerivationJobOptions(pluginId, "initial-sync"),
       },
       sourceChange: {
@@ -87,6 +95,7 @@ export function getSkillDerivedEntityProjections(
           mode: "derive",
           replaceAll: true,
           reason: "topic-change",
+          targetVisibility: "public",
         }),
         jobOptions: () =>
           getSkillDerivationJobOptions(pluginId, "topic-change"),

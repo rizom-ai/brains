@@ -17,6 +17,7 @@ function createTopic(content: string, metadata = {}): BaseEntity {
     entityType: "topic",
     content,
     contentHash: "hash",
+    visibility: "public",
     metadata,
     created: "2026-01-01T00:00:00.000Z",
     updated: "2026-01-02T00:00:00.000Z",

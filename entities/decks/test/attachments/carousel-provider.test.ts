@@ -8,6 +8,7 @@ import type { DeckEntity } from "../../src/schemas/deck";
 const sampleDeck: DeckEntity = {
   id: "deck-1",
   entityType: "deck",
+  visibility: "public",
   content: `---
 title: Test Deck
 status: draft

@@ -3,6 +3,7 @@ import type {
   EndpointInfo,
   InteractionInfo,
 } from "@brains/plugins";
+import { internalFullScope } from "@brains/entity-service";
 import type { ShellConfig } from "./config";
 import type { ShellServices } from "./initialization/shellInitializer";
 
@@ -14,7 +15,11 @@ export async function getRuntimeAppInfo(options: {
   interactions: () => InteractionInfo[];
 }): Promise<RuntimeAppInfo> {
   const { config, services, bootTime, endpoints, interactions } = options;
-  const entityCounts = await services.entityService.getEntityCounts();
+  const entityCounts = await services.entityService.getEntityCounts(
+    internalFullScope(
+      "runtime app info reports operator-facing aggregate status",
+    ),
+  );
   const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
   const embeddingCount = await services.entityService.countEmbeddings();
   const daemons = await services.daemonRegistry.getStatuses();

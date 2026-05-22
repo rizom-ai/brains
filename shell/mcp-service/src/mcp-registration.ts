@@ -14,6 +14,7 @@ const MCP_SERVER_INFO = {
 
 const DEFAULT_TOOL_VISIBILITY: UserPermissionLevel = "anchor";
 const RESOURCE_VISIBILITY: UserPermissionLevel = "anchor";
+const DEFAULT_PROMPT_VISIBILITY: UserPermissionLevel = "anchor";
 
 export interface RegisteredTool {
   pluginId: string;
@@ -55,6 +56,32 @@ export function canExposeResource(
   return PermissionService.hasPermission(permissionLevel, RESOURCE_VISIBILITY);
 }
 
+/**
+ * Resource templates expose entity listing/completion that can leak entity
+ * existence even when handler output is filtered by visibility. Pin them to
+ * the same anchor-only policy as plain resources.
+ */
+export function canExposeResourceTemplate(
+  permissionLevel: UserPermissionLevel,
+): boolean {
+  return PermissionService.hasPermission(permissionLevel, RESOURCE_VISIBILITY);
+}
+
+/**
+ * Prompts ship as anchor-only by default because their bodies can reference
+ * restricted workflows, entity names, or operator instructions. Plugins can
+ * opt a prompt down to "trusted" / "public" if its template is safe to share.
+ */
+export function canExposePrompt(
+  permissionLevel: UserPermissionLevel,
+  prompt: Prompt,
+): boolean {
+  return PermissionService.hasPermission(
+    permissionLevel,
+    prompt.visibility ?? DEFAULT_PROMPT_VISIBILITY,
+  );
+}
+
 export function filterToolsForPermission(
   tools: RegisteredTool[],
   userLevel: UserPermissionLevel,
@@ -75,6 +102,7 @@ export function registerToolOnServer(
   tool: Tool,
   messageBus: IMessageBus,
   logger: Logger,
+  permissionLevel: UserPermissionLevel,
 ): void {
   server.tool(
     tool.name,
@@ -95,6 +123,7 @@ export function registerToolOnServer(
         channelId,
         channelName,
         progressToken,
+        userPermissionLevel: permissionLevel,
       });
 
       try {
@@ -109,6 +138,7 @@ export function registerToolOnServer(
             userId,
             channelId,
             channelName,
+            userPermissionLevel: permissionLevel,
           },
           sender: "MCPService",
         });

@@ -1,6 +1,10 @@
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityPluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { generateIdFromText, getErrorMessage } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";
@@ -37,6 +41,7 @@ export interface ExtractTopicsBatchedOptions {
   minRelevanceScore?: number;
   autoMerge?: boolean;
   mergeSimilarityThreshold?: number;
+  targetVisibility?: ContentVisibility;
   /** Injected for tests. Constructed from context when omitted. */
   topicMergeSynthesizer?: ITopicMergeSynthesizer;
 }
@@ -80,6 +85,7 @@ export async function extractTopicsBatched(
   const minRelevanceScore = options.minRelevanceScore ?? 0;
   const autoMerge = options.autoMerge ?? false;
   const threshold = options.mergeSimilarityThreshold ?? 0.85;
+  const targetVisibility = options.targetVisibility ?? "public";
 
   const batches = batchEntities(entities);
   const topicService = new TopicService(context.entityService, logger);
@@ -88,6 +94,8 @@ export async function extractTopicsBatched(
 
   const existingTopicTitles = await listExistingTopicTitles(
     context.entityService,
+    undefined,
+    targetVisibility,
   );
   const inBatch = new Map<string, TopicEntity>();
 
@@ -125,6 +133,7 @@ export async function extractTopicsBatched(
               incoming: topic,
               threshold,
               additionalCandidates: Array.from(inBatch.values()),
+              targetVisibility,
             });
 
             if (candidate) {
@@ -136,6 +145,7 @@ export async function extractTopicsBatched(
               const mergedTopic = await topicService.applySynthesizedMerge({
                 existingId: candidate.topic.id,
                 synthesized: { ...synthesized, title: candidate.title },
+                visibility: targetVisibility,
               });
 
               if (!mergedTopic) {
@@ -148,7 +158,10 @@ export async function extractTopicsBatched(
             }
           }
 
-          const slug = generateIdFromText(topic.title);
+          const slug = topicService.getTopicIdForTitle(
+            topic.title,
+            targetVisibility,
+          );
           if (inBatch.has(slug)) {
             skipped++;
             continue;
@@ -157,6 +170,7 @@ export async function extractTopicsBatched(
           const createResult = await topicService.createTopicOptimistic({
             title: topic.title,
             content: topic.content,
+            visibility: targetVisibility,
           });
           if (createResult.topic) {
             inBatch.set(createResult.topic.id, createResult.topic);

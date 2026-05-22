@@ -51,7 +51,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private processor = remark();
 
   constructor(
-    private schema: z.ZodType<T>,
+    private schema: z.ZodType<T, z.ZodTypeDef, unknown>,
     private config: FormatterConfig,
   ) {}
 

@@ -98,6 +98,7 @@ async function operateBuiltin(
     const result = await match.tool.handler(toolInput, {
       interfaceType: "cli",
       userId: "cli-anchor",
+      userPermissionLevel: "anchor",
     });
 
     if ("needsConfirmation" in result) {

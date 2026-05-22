@@ -1,3 +1,4 @@
+import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { extractInputSchema } from "./schemas";
 import type { SystemServices } from "./types";
@@ -45,10 +46,14 @@ export function createEntityExtractTool(services: SystemServices): Tool {
           entityType?: string;
         } = { mode: appliedMode };
         if (source) {
+          const visibilityScope = permissionToVisibilityScope(
+            toolContext.userPermissionLevel,
+          );
           for (const type of entityService.getEntityTypes()) {
             const found = await entityService.getEntity({
               entityType: type,
               id: source,
+              visibilityScope,
             });
             if (found) {
               data.mode = "source";

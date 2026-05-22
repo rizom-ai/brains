@@ -1,13 +1,14 @@
-import type {
-  IMCPService,
-  Prompt,
-  Resource,
-  ResourceTemplate,
-  Tool,
-  ToolContext,
+import {
+  ToolContextRoutingSchema,
+  type IMCPService,
+  type Prompt,
+  type Resource,
+  type ResourceTemplate,
+  type Tool,
+  type ToolContext,
 } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { Logger } from "@brains/utils";
+import { z, type Logger } from "@brains/utils";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";
 import { createSystemResources } from "./resources";
@@ -16,6 +17,10 @@ import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
 
 const SYSTEM_ID = "system";
+
+const systemToolExecuteSchema = z
+  .object({ toolName: z.string(), args: z.unknown() })
+  .extend(ToolContextRoutingSchema.partial().shape);
 
 function registerSkippingDuplicates<T>(
   items: T[],
@@ -59,14 +64,18 @@ export function registerSystemCapabilities(
   const unsubscribeToolExecution = messageBus.subscribe(
     `plugin:${SYSTEM_ID}:tool:execute`,
     async (message) => {
-      const { toolName, args, interfaceType, userId, channelId } =
-        message.payload as {
-          toolName: string;
-          args: unknown;
-          interfaceType?: string;
-          userId?: string;
-          channelId?: string;
-        };
+      const parsed = systemToolExecuteSchema.safeParse(message.payload);
+      if (!parsed.success) {
+        return { success: false, error: "Invalid system tool execute payload" };
+      }
+      const {
+        toolName,
+        args,
+        interfaceType,
+        userId,
+        channelId,
+        userPermissionLevel,
+      } = parsed.data;
 
       const tool = tools.find((t) => t.name === toolName);
       if (!tool) {
@@ -81,6 +90,8 @@ export function registerSystemCapabilities(
         userId: userId ?? "system",
       };
       if (channelId) toolContext.channelId = channelId;
+      if (userPermissionLevel)
+        toolContext.userPermissionLevel = userPermissionLevel;
       const result = await tool.handler(args, toolContext);
       return { success: true, data: result };
     },

@@ -277,6 +277,7 @@ coverImageId: project-cover-image
         entityType: "image",
         content: "data:image/png;base64,abc123",
         contentHash: "hash",
+        visibility: "public",
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
         metadata: {

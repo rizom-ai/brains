@@ -16,6 +16,7 @@ describe("system_update tool", () => {
         content:
           "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-1",
+        visibility: "public",
         metadata: {
           name: "Old Agent",
           url: "https://old-agent.io/a2a",
@@ -30,6 +31,7 @@ describe("system_update tool", () => {
         content:
           "---\nname: Approved Agent\nkind: professional\nurl: https://approved-agent.io/a2a\nstatus: approved\ndiscoveredAt: 2026-03-11T09:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-approved",
+        visibility: "public",
         metadata: {
           name: "Approved Agent",
           url: "https://approved-agent.io/a2a",
@@ -44,6 +46,7 @@ describe("system_update tool", () => {
         content:
           "---\nname: Pending Agent\nkind: professional\nurl: https://pending-agent.io/a2a\nstatus: discovered\ndiscoveredAt: 2026-03-11T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
         contentHash: "hash-2",
+        visibility: "public",
         metadata: {
           name: "Pending Agent",
           url: "https://pending-agent.io/a2a",
@@ -58,6 +61,7 @@ describe("system_update tool", () => {
         content:
           "---\nsubject: Notes on Living Systems\nstatus: draft\n---\n\nNewsletter body.",
         contentHash: "hash-4",
+        visibility: "public",
         metadata: {
           subject: "Notes on Living Systems",
           status: "draft",
@@ -75,6 +79,7 @@ describe("system_update tool", () => {
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
+      userPermissionLevel: "anchor",
     });
   }
 
@@ -84,6 +89,7 @@ describe("system_update tool", () => {
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
+      userPermissionLevel: "anchor",
     });
   }
 
@@ -137,6 +143,73 @@ describe("system_update tool", () => {
     expect(updated?.content).not.toBe(
       JSON.stringify({ fields: { status: "archived" } }),
     );
+  });
+
+  it("updates visibility as a top-level field and normalizes private", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { visibility: "private" },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "old-agent.io" },
+    });
+
+    const updated = services.getEntities().get("old-agent.io");
+    expect(updated?.visibility).toBe("restricted");
+    expect(updated?.metadata).not.toHaveProperty("visibility");
+  });
+
+  it("re-parses visibility from frontmatter on full content replacement", async () => {
+    const newMarkdown =
+      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";
+
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      content: newMarkdown,
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "old-agent.io" },
+    });
+
+    const updated = services.getEntities().get("old-agent.io");
+    expect(updated?.visibility).toBe("restricted");
+  });
+
+  it("clears non-default visibility when replacement markdown omits the field", async () => {
+    // Seed agent as restricted, then replace with markdown that has no visibility key.
+    const restricted = services.getEntities().get("old-agent.io");
+    if (restricted) {
+      services.getEntities().set("old-agent.io", {
+        ...restricted,
+        visibility: "restricted",
+      });
+    }
+
+    const newMarkdown =
+      "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\n---\n";
+
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      content: newMarkdown,
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "old-agent.io" },
+    });
+
+    const updated = services.getEntities().get("old-agent.io");
+    expect(updated?.visibility).toBe("public");
   });
 
   it("normalizes plain JSON objects passed via content into field updates", async () => {

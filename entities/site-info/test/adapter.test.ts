@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { SiteInfoAdapter } from "../src/adapters/site-info-adapter";
+import type { SiteInfoEntity } from "../src/schemas/site-info-schema";
 
 describe("SiteInfoAdapter", () => {
   const adapter = new SiteInfoAdapter();
@@ -56,11 +57,12 @@ describe("SiteInfoAdapter", () => {
 
   describe("toMarkdown", () => {
     it("preserves frontmatter fields present on disk when metadata is empty", () => {
-      const entity = {
-        id: "site-info" as const,
-        entityType: "site-info" as const,
+      const entity: SiteInfoEntity = {
+        id: "site-info",
+        entityType: "site-info",
         content: "---\ntitle: Test\ndescription: Desc\n---\n",
         contentHash: "abc",
+        visibility: "public",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

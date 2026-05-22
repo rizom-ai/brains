@@ -18,6 +18,7 @@ describe("SocialPostAdapter - Metadata/Frontmatter Sync", () => {
   ): SocialPost => ({
     id: "test-post-123",
     entityType: "social-post",
+    visibility: "public",
     content: `---
 title: Test Post
 platform: linkedin
@@ -77,6 +78,7 @@ This is the post content.`,
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: Test Post
 platform: linkedin
@@ -122,6 +124,7 @@ This is the post content.`,
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: Test Post
 platform: linkedin
@@ -152,6 +155,7 @@ This is the post content.`,
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: Test Post
 platform: linkedin
@@ -197,6 +201,7 @@ This is the post content.`,
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
+        visibility: "public",
         content: `---
 title: Test Post
 platform: linkedin
@@ -243,6 +248,7 @@ Post body here.`;
       const entity: SocialPost = {
         id: "test-123",
         entityType: "social-post",
+        visibility: "public",
         content: originalMarkdown,
         contentHash: "hash",
         created: "2024-01-01T00:00:00Z",

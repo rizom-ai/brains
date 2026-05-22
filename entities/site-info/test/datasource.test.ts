@@ -34,6 +34,7 @@ describe("SiteInfoDataSource", () => {
         content:
           "---\ntitle: My Brain\ndescription: My knowledge base\ncopyright: © Me\n---\n",
         contentHash: "abc",
+        visibility: "public",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -57,6 +58,7 @@ describe("SiteInfoDataSource", () => {
         entityType: "site-info",
         content: "---\ntitle: Test\ndescription: Desc\n---\n",
         contentHash: "abc",
+        visibility: "public",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -66,6 +68,7 @@ describe("SiteInfoDataSource", () => {
         entityType: "anchor-profile",
         content: "",
         contentHash: "def",
+        visibility: "public",
         metadata: {
           socialLinks: [{ platform: "github", url: "https://github.com/test" }],
         },

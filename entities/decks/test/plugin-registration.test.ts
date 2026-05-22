@@ -20,6 +20,7 @@ slug: test-deck
 
 # Slide 2`,
   contentHash: "abc123",
+  visibility: "public",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
   metadata: {

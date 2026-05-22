@@ -220,6 +220,7 @@ values:
       expect(mockEntityService.getEntity).toHaveBeenCalledWith({
         entityType: "brain-character",
         id: "brain-character",
+        visibilityScope: "restricted",
       });
     });
   });

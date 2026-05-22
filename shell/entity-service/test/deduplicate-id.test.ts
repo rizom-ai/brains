@@ -167,6 +167,7 @@ describe("deduplicateId option", () => {
       entityType: "article" as const,
       title: "Article",
       content: "Article content",
+      visibility: "public",
       metadata: {},
     };
 

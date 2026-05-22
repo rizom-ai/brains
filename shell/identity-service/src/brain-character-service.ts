@@ -1,5 +1,8 @@
 import type { IEntityService } from "@brains/entity-service";
-import { SingletonEntityService } from "@brains/entity-service";
+import {
+  internalFullScope,
+  SingletonEntityService,
+} from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
 import type { BrainCharacter } from "./brain-character-schema";
 import { BrainCharacterAdapter } from "./brain-character-adapter";
@@ -83,6 +86,9 @@ export class BrainCharacterService
       logger,
       "brain-character",
       defaultCharacter ?? BrainCharacterService.getDefaultCharacter(),
+      internalFullScope(
+        "brain character is loaded at bootstrap before any user is in scope",
+      ),
     );
   }
 

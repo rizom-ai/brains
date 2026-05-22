@@ -3,7 +3,7 @@ import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { DataSource } from "@brains/entity-service";
+import type { BaseEntity, DataSource } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -714,6 +714,7 @@ describe("ContentService.resolveContent", () => {
         id: "test-id",
         entityType: "post",
         content: "test",
+        visibility: "public",
         created: "2025-01-01",
         updated: "2025-01-01",
         metadata: {},
@@ -730,6 +731,52 @@ describe("ContentService.resolveContent", () => {
         entityType: "post",
         id: "test-id",
       });
+    });
+
+    it("should hide draft getEntity results when publishedOnly is set", async () => {
+      const mockTemplate: Template = {
+        name: "get-entity-published-only-test",
+        description: "Get entity publishedOnly test",
+        dataSourceId: "shell:get-entity-published-only-source",
+        schema: z.object({ found: z.boolean() }),
+        requiredPermission: "public",
+      };
+
+      const draftEntity: BaseEntity = {
+        id: "draft-post",
+        entityType: "post",
+        content: "draft",
+        created: "2024-01-01T00:00:00.000Z",
+        updated: "2024-01-01T00:00:00.000Z",
+        visibility: "public",
+        metadata: { status: "draft" },
+        contentHash: "draft-hash",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:get-entity-published-only-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const entity = await context.entityService.getEntity({
+            entityType: "post",
+            id: "draft-post",
+          });
+          return { found: entity !== null };
+        }),
+      };
+
+      templateRegistry.register("get-entity-published-only-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue(draftEntity);
+
+      const result = await contentService.resolveContent(
+        "get-entity-published-only-test",
+        {
+          dataParams: {},
+          publishedOnly: true,
+        },
+      );
+
+      expect(result).toEqual({ found: false });
     });
 
     it("should forward search calls through scoped entityService", async () => {
@@ -851,6 +898,416 @@ describe("ContentService.resolveContent", () => {
           publishedOnly: true,
         },
       });
+    });
+  });
+
+  describe("visibilityScope context with scoped entityService", () => {
+    it("applies visibilityScope to listEntities filter when set", async () => {
+      const mockTemplate: Template = {
+        name: "vis-list",
+        description: "vis list",
+        dataSourceId: "shell:vis-source",
+        schema: z.object({ items: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.listEntities({
+            entityType: "post",
+            options: { limit: 10 },
+          });
+          return { items: [] };
+        }),
+      };
+
+      templateRegistry.register("vis-list", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-list", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      expect(listSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: expect.objectContaining({
+          filter: { visibilityScope: "public" },
+        }),
+      });
+    });
+
+    it("preserves existing metadata filter while adding visibilityScope", async () => {
+      const mockTemplate: Template = {
+        name: "vis-meta",
+        description: "vis with metadata filter",
+        dataSourceId: "shell:vis-meta-source",
+        schema: z.object({ items: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-meta-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.listEntities({
+            entityType: "post",
+            options: {
+              filter: { metadata: { seriesName: "S1" } },
+              limit: 5,
+            },
+          });
+          return { items: [] };
+        }),
+      };
+
+      templateRegistry.register("vis-meta", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-meta", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      expect(listSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: expect.objectContaining({
+          filter: {
+            metadata: { seriesName: "S1" },
+            visibilityScope: "public",
+          },
+        }),
+      });
+    });
+
+    it("overrides datasource-supplied visibilityScope (chokepoint cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-override",
+        description: "vis override",
+        dataSourceId: "shell:vis-override-source",
+        schema: z.object({ items: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Datasource tries to opt up to restricted; build context is public
+          await svc.listEntities({
+            entityType: "post",
+            options: {
+              filter: { visibilityScope: "restricted" },
+              limit: 10,
+            },
+          });
+          return { items: [] };
+        }),
+      };
+
+      templateRegistry.register("vis-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = listSpy.mock.calls[0]?.[0];
+      expect(call?.options?.filter?.visibilityScope).toBe("public");
+    });
+
+    it("applies visibilityScope to getEntity calls", async () => {
+      const mockTemplate: Template = {
+        name: "vis-get",
+        description: "vis get",
+        dataSourceId: "shell:vis-get-source",
+        schema: z.object({ entity: z.unknown().nullable() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-get-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          const entity = await svc.getEntity({
+            entityType: "post",
+            id: "test-id",
+          });
+          return { entity };
+        }),
+      };
+
+      templateRegistry.register("vis-get", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const getSpy = spyOn(
+        mockDependencies.entityService,
+        "getEntity",
+      ).mockResolvedValue(null);
+
+      await contentService.resolveContent("vis-get", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      expect(getSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        id: "test-id",
+        visibilityScope: "public",
+      });
+    });
+
+    it("applies visibilityScope to search calls", async () => {
+      const mockTemplate: Template = {
+        name: "vis-search",
+        description: "vis search",
+        dataSourceId: "shell:vis-search-source",
+        schema: z.object({ results: z.array(z.unknown()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-search-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          const results = await svc.search({ query: "x" });
+          return { results };
+        }),
+      };
+
+      templateRegistry.register("vis-search", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const searchSpy = spyOn(
+        mockDependencies.entityService,
+        "search",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-search", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      expect(searchSpy).toHaveBeenCalledWith({
+        query: "x",
+        options: { visibilityScope: "public" },
+      });
+    });
+
+    it("applies visibilityScope to countEntities", async () => {
+      const mockTemplate: Template = {
+        name: "vis-count",
+        description: "vis count",
+        dataSourceId: "shell:vis-count-source",
+        schema: z.object({ count: z.number() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-count-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.countEntities({ entityType: "post" });
+          return { count: 0 };
+        }),
+      };
+
+      templateRegistry.register("vis-count", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const countSpy = spyOn(
+        mockDependencies.entityService,
+        "countEntities",
+      ).mockResolvedValue(0);
+
+      await contentService.resolveContent("vis-count", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      expect(countSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: expect.objectContaining({
+          filter: { visibilityScope: "public" },
+        }),
+      });
+    });
+
+    it("threads visibilityScope through savedContent getEntity lookup", async () => {
+      const mockTemplate: Template = {
+        name: "vis-saved",
+        description: "vis saved",
+        schema: z.object({ title: z.string() }),
+        formatter: {
+          format: (data) => JSON.stringify(data),
+          parse: (content) => JSON.parse(content),
+        },
+        requiredPermission: "public",
+      };
+
+      templateRegistry.register("vis-saved", mockTemplate);
+      getEntitySpy.mockResolvedValue({
+        id: "section-id",
+        type: "site-content",
+        content: JSON.stringify({ title: "saved" }),
+      });
+
+      await contentService.resolveContent("vis-saved", {
+        savedContent: {
+          entityType: "site-content",
+          entityId: "section-id",
+        },
+        visibilityScope: "public",
+      });
+
+      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "site-content",
+        id: "section-id",
+        visibilityScope: "public",
+      });
+    });
+
+    it("overrides datasource-supplied visibilityScope on getEntity (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-get-override",
+        description: "vis get override",
+        dataSourceId: "shell:vis-get-override-source",
+        schema: z.object({ entity: z.unknown().nullable() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-get-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Datasource attempts to opt up to "restricted"; build is pinned to public.
+          const entity = await svc.getEntity({
+            entityType: "post",
+            id: "x",
+            visibilityScope: "restricted",
+          });
+          return { entity };
+        }),
+      };
+
+      templateRegistry.register("vis-get-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const getSpy = spyOn(
+        mockDependencies.entityService,
+        "getEntity",
+      ).mockResolvedValue(null);
+
+      await contentService.resolveContent("vis-get-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = getSpy.mock.calls[0]?.[0];
+      expect(call?.visibilityScope).toBe("public");
+    });
+
+    it("overrides datasource-supplied visibilityScope on search (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-search-override",
+        description: "vis search override",
+        dataSourceId: "shell:vis-search-override-source",
+        schema: z.object({ results: z.array(z.unknown()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-search-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          const results = await svc.search({
+            query: "x",
+            options: { visibilityScope: "restricted" },
+          });
+          return { results };
+        }),
+      };
+
+      templateRegistry.register("vis-search-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const searchSpy = spyOn(
+        mockDependencies.entityService,
+        "search",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("vis-search-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = searchSpy.mock.calls[0]?.[0];
+      expect(call?.options?.visibilityScope).toBe("public");
+    });
+
+    it("overrides datasource-supplied visibilityScope on countEntities (cannot widen)", async () => {
+      const mockTemplate: Template = {
+        name: "vis-count-override",
+        description: "vis count override",
+        dataSourceId: "shell:vis-count-override-source",
+        schema: z.object({ count: z.number() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:vis-count-override-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.countEntities({
+            entityType: "post",
+            options: { filter: { visibilityScope: "restricted" } },
+          });
+          return { count: 0 };
+        }),
+      };
+
+      templateRegistry.register("vis-count-override", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const countSpy = spyOn(
+        mockDependencies.entityService,
+        "countEntities",
+      ).mockResolvedValue(0);
+
+      await contentService.resolveContent("vis-count-override", {
+        dataParams: {},
+        visibilityScope: "public",
+      });
+
+      const call = countSpy.mock.calls[0]?.[0];
+      expect(call?.options?.filter?.visibilityScope).toBe("public");
     });
   });
 

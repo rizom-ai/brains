@@ -11,6 +11,7 @@ const mockImageEntity: Image = {
   id: "img-123",
   entityType: "image",
   content: TINY_PNG_DATA_URL,
+  visibility: "public",
   metadata: {
     title: "Test Image",
     alt: "A test image",

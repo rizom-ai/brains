@@ -6,6 +6,7 @@ import type {
 } from "../types";
 import type { IEmbeddingService } from "../embedding-types";
 import type { JobHandler } from "@brains/job-queue";
+import { internalFullScope } from "../internal-scope";
 /**
  * Zod schema for embedding job data validation
  * Content is NOT in job data - fetched fresh from entity when processing
@@ -105,10 +106,13 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       });
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
-      // large base64 data bloating job queue and dashboard hydration props
+      // large base64 data bloating job queue and dashboard hydration props.
       const currentEntity = await this.entityService.getEntity({
         entityType: data.entityType,
         id: data.id,
+        visibilityScope: internalFullScope(
+          "embedding regeneration must index every entity, no user surface",
+        ),
       });
 
       if (!currentEntity) {

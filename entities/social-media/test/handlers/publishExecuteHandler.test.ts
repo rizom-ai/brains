@@ -24,6 +24,7 @@ const TINY_PDF_BASE64 = Buffer.from("%PDF-1.4\n%%EOF\n").toString("base64");
 const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Test LinkedIn Post
 platform: linkedin
@@ -44,6 +45,7 @@ This is a test post for LinkedIn.`,
 const samplePostWithImage: SocialPost = {
   id: "post-2",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Visual LinkedIn Post
 platform: linkedin
@@ -65,6 +67,7 @@ This is a post with an image.`,
 const samplePostWithDocument: SocialPost = {
   id: "post-3",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Carousel LinkedIn Post
 platform: linkedin
@@ -103,6 +106,7 @@ const sampleImage = {
 const samplePostWithSource: SocialPost = {
   id: "post-4",
   entityType: "social-post",
+  visibility: "public",
   content: `---
 title: Source-Derived LinkedIn Post
 platform: linkedin

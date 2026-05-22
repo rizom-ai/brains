@@ -2,7 +2,9 @@ import { describe, it, expect, mock } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
 
-function installWithJobQueue(): {
+function installWithJobQueue(
+  config: ConstructorParameters<typeof TopicsPlugin>[0] = {},
+): {
   harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>;
   plugin: TopicsPlugin;
   enqueue: ReturnType<typeof mock>;
@@ -25,6 +27,7 @@ function installWithJobQueue(): {
   const plugin = new TopicsPlugin({
     enableAutoExtraction: true,
     includeEntityTypes: ["post"],
+    ...config,
   });
   return { harness, plugin, enqueue, registerHandler };
 }
@@ -155,6 +158,7 @@ describe("Initial sync triggers batch projection", () => {
         id: "existing-topic",
         entityType: "topic",
         content: "---\ntitle: Existing Topic\n---\nExisting topic",
+        visibility: "public",
         metadata: { title: "Existing Topic" },
       },
     ]);
@@ -170,6 +174,34 @@ describe("Initial sync triggers batch projection", () => {
     // after the initial sync event has been observed.
     expect(plugin.hasRunInitialDerivation()).toBe(false);
     expect(enqueue).not.toHaveBeenCalled();
+
+    harness.reset();
+  });
+
+  it("should queue initial extraction when only other visibility topics exist", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue({
+      extractionVisibility: "shared",
+    });
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-public-topic",
+        entityType: "topic",
+        content: "---\ntitle: Existing Public Topic\n---\nExisting topic",
+        visibility: "public",
+        metadata: { title: "Existing Public Topic" },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+
+    expect(plugin.hasRunInitialDerivation()).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
 
     harness.reset();
   });

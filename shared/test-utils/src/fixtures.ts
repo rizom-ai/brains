@@ -1,5 +1,12 @@
 import { computeContentHash } from "@brains/utils/hash";
-import type { BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, RawContentVisibility } from "@brains/entity-service";
+
+type TestEntityOverrides<T extends BaseEntity> = Partial<
+  Omit<T, "entityType" | "visibility">
+> & {
+  contentHash?: string;
+  visibility?: RawContentVisibility;
+};
 
 /**
  * Create a test entity with sensible defaults.
@@ -32,7 +39,7 @@ import type { BaseEntity } from "@brains/entity-service";
  */
 export function createTestEntity<T extends BaseEntity = BaseEntity>(
   entityType: string,
-  overrides: Partial<Omit<T, "entityType">> & { contentHash?: string } = {},
+  overrides: TestEntityOverrides<T> = {},
 ): T {
   const content =
     (overrides as { content?: string }).content ?? `Test ${entityType} content`;
@@ -46,6 +53,7 @@ export function createTestEntity<T extends BaseEntity = BaseEntity>(
     contentHash: overrides.contentHash ?? computeContentHash(content),
     created: overrides.created ?? now,
     updated: overrides.updated ?? now,
+    visibility: overrides.visibility ?? "public",
     metadata: overrides.metadata ?? {},
     ...overrides,
   } as T;
@@ -64,9 +72,7 @@ export function createTestEntity<T extends BaseEntity = BaseEntity>(
  */
 export function createTestEntities<T extends BaseEntity = BaseEntity>(
   entityType: string,
-  overridesArray: Array<
-    Partial<Omit<T, "entityType">> & { contentHash?: string }
-  >,
+  overridesArray: Array<TestEntityOverrides<T>>,
 ): T[] {
   return overridesArray.map((overrides, index) =>
     createTestEntity<T>(entityType, {

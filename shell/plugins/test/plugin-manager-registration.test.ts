@@ -3,9 +3,8 @@ import { PluginManager } from "../src/manager/pluginManager";
 import { ServicePlugin } from "../src/service/service-plugin";
 import type { Tool, Resource } from "../src/interfaces";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@brains/utils";
 
 // Mock plugin for testing
@@ -70,23 +69,17 @@ describe("PluginManager - Direct Registration", () => {
     registeredTools = [];
     registeredResources = [];
 
-    // Create mock MCP service
-    const registerToolMock = mock((pluginId, tool) => {
+    // Create mock MCP service — override the registry methods so we
+    // can observe what gets registered, leave the rest as default mocks.
+    mockMCPService = createMockMCPService();
+    mockMCPService.registerTool = mock((pluginId, tool) => {
       registeredTools.push({ pluginId, tool });
     });
-
-    const registerResourceMock = mock((pluginId, resource) => {
+    mockMCPService.registerResource = mock((pluginId, resource) => {
       registeredResources.push({ pluginId, resource });
     });
-
-    mockMCPService = {
-      registerTool: registerToolMock,
-      registerResource: registerResourceMock,
-      listTools: mock(() => registeredTools),
-      listResources: mock(() => registeredResources),
-      getMcpServer: mock(() => ({}) as unknown as McpServer),
-      setPermissionLevel: mock(() => {}),
-    } as unknown as IMCPService;
+    mockMCPService.listTools = mock(() => registeredTools);
+    mockMCPService.listResources = mock(() => registeredResources);
 
     mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
 

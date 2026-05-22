@@ -128,6 +128,7 @@ export type {
   CreateResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  ContentVisibility,
   EntityAdapter,
   EntityInput,
   EntityMutationResult,
@@ -139,6 +140,11 @@ export type {
 export {
   BaseEntityAdapter,
   baseEntitySchema,
+  contentVisibilitySchema,
+  internalFullScope,
+  isVisibleWithinScope,
+  permissionToVisibilityScope,
+  scopedDerivedId,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";

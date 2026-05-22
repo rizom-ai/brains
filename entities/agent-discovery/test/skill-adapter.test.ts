@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { SkillAdapter } from "../src/adapters/skill-adapter";
+import type { SkillEntity } from "../src/schemas/skill";
 
 const adapter = new SkillAdapter();
 
@@ -31,12 +32,13 @@ examples:
       // Stale frontmatter (only `name`) plus canonical metadata — the
       // output should reflect the metadata, not the stale disk content.
       const staleContent = "---\nname: Stale\n---\n";
-      const entity = {
+      const entity: SkillEntity = {
         id: "skill-test",
-        entityType: "skill" as const,
+        entityType: "skill",
         content: staleContent,
         created: "2026-04-02T00:00:00.000Z",
         updated: "2026-04-02T00:00:00.000Z",
+        visibility: "public",
         metadata: {
           name: "Test",
           description: "Test skill",

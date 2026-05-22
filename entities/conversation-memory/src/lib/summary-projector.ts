@@ -106,10 +106,16 @@ export class SummaryProjector {
       };
     }
 
-    const existing = await this.context.entityService.getEntity<SummaryEntity>({
-      entityType: SUMMARY_ENTITY_TYPE,
-      id: conversationId,
-    });
+    const existingCandidate =
+      await this.context.entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: conversationId,
+        visibilityScope: this.config.memoryVisibility,
+      });
+    const existing =
+      existingCandidate?.visibility === this.config.memoryVisibility
+        ? existingCandidate
+        : null;
 
     if (existing?.metadata.sourceHash === source.sourceHash) {
       return {
@@ -188,6 +194,7 @@ export class SummaryProjector {
       entityType: SUMMARY_ENTITY_TYPE,
       content,
       contentHash: computeContentHash(content),
+      visibility: this.config.memoryVisibility,
       created: existing?.created ?? now,
       updated: now,
       metadata,
@@ -303,30 +310,41 @@ export class SummaryProjector {
     conversationId: string,
   ): Promise<void> {
     const limit = this.config.maxEntries * 4;
+    const visibilityScope = this.config.memoryVisibility;
     const [decisions, actionItems] = await Promise.all([
       this.context.entityService.listEntities<DecisionEntity>({
         entityType: DECISION_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } }, limit },
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit,
+        },
       }),
       this.context.entityService.listEntities<ActionItemEntity>({
         entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: { filter: { metadata: { conversationId } }, limit },
+        options: {
+          filter: { metadata: { conversationId }, visibilityScope },
+          limit,
+        },
       }),
     ]);
 
     await Promise.all([
-      ...decisions.map((entity) =>
-        this.context.entityService.deleteEntity({
-          entityType: DECISION_ENTITY_TYPE,
-          id: entity.id,
-        }),
-      ),
-      ...actionItems.map((entity) =>
-        this.context.entityService.deleteEntity({
-          entityType: ACTION_ITEM_ENTITY_TYPE,
-          id: entity.id,
-        }),
-      ),
+      ...decisions
+        .filter((entity) => entity.visibility === visibilityScope)
+        .map((entity) =>
+          this.context.entityService.deleteEntity({
+            entityType: DECISION_ENTITY_TYPE,
+            id: entity.id,
+          }),
+        ),
+      ...actionItems
+        .filter((entity) => entity.visibility === visibilityScope)
+        .map((entity) =>
+          this.context.entityService.deleteEntity({
+            entityType: ACTION_ITEM_ENTITY_TYPE,
+            id: entity.id,
+          }),
+        ),
     ]);
   }
 
@@ -396,6 +414,7 @@ export class SummaryProjector {
       entityType: DECISION_ENTITY_TYPE,
       content,
       contentHash: computeContentHash(content),
+      visibility: this.config.memoryVisibility,
       created: now,
       updated: now,
       metadata,
@@ -458,6 +477,7 @@ export class SummaryProjector {
       entityType: ACTION_ITEM_ENTITY_TYPE,
       content,
       contentHash: computeContentHash(content),
+      visibility: this.config.memoryVisibility,
       created: now,
       updated: now,
       metadata,

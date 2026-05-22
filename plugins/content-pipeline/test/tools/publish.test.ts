@@ -142,6 +142,7 @@ describe("Publish Pipeline - Publish Tool", () => {
           id: "draft-post",
           entityType: "social-post",
           content: "Test content to publish",
+          visibility: "public",
           metadata: {
             slug: "draft-post",
             platform: "linkedin",
@@ -156,10 +157,39 @@ describe("Publish Pipeline - Publish Tool", () => {
           id: "published-post",
           entityType: "social-post",
           content: "Already published content",
+          visibility: "public",
           metadata: {
             slug: "published-post",
             platform: "linkedin",
             status: "published",
+          },
+        },
+      });
+
+      await context.entityService.createEntity({
+        entity: {
+          id: "shared-post",
+          entityType: "social-post",
+          content: "Shared content must not publish publicly",
+          visibility: "shared",
+          metadata: {
+            slug: "shared-post",
+            platform: "linkedin",
+            status: "draft",
+          },
+        },
+      });
+
+      await context.entityService.createEntity({
+        entity: {
+          id: "restricted-post",
+          entityType: "social-post",
+          content: "Restricted content must not publish publicly",
+          visibility: "restricted",
+          metadata: {
+            slug: "restricted-post",
+            platform: "linkedin",
+            status: "draft",
           },
         },
       });
@@ -209,6 +239,40 @@ describe("Publish Pipeline - Publish Tool", () => {
       }
     });
 
+    it("should reject shared entities before publishing publicly", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const result = await tool.handler(
+        { entityType: "social-post", id: "shared-post" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("visibility is shared");
+      }
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+    });
+
+    it("should reject restricted entities found by slug before publishing publicly", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const result = await tool.handler(
+        { entityType: "social-post", slug: "restricted-post" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("visibility is restricted");
+      }
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+    });
+
     it("should find entity by slug", async () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
@@ -252,6 +316,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         entity: {
           id: "frontmatter-post",
           entityType: "social-post",
+          visibility: "public",
           content: `---
 title: Test Post
 platform: linkedin
@@ -290,6 +355,7 @@ This is the actual post content.`,
         entity: {
           id: "test-cover-image",
           entityType: "image",
+          visibility: "public",
           content:
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
           metadata: { slug: "test-cover-image" },
@@ -301,6 +367,7 @@ This is the actual post content.`,
         entity: {
           id: "post-with-image",
           entityType: "social-post",
+          visibility: "public",
           content: `---
 title: Post With Image
 platform: linkedin
@@ -342,6 +409,7 @@ Post content with an image.`,
         entity: {
           id: "post-missing-image",
           entityType: "social-post",
+          visibility: "public",
           content: `---
 title: Post Missing Image
 platform: linkedin
@@ -389,6 +457,7 @@ Post content without image.`,
           id: "test-post",
           entityType: "social-post",
           content: "Test content",
+          visibility: "public",
           metadata: { slug: "test", status: "draft" },
         },
       });
