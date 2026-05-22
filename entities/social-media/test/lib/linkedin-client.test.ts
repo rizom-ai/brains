@@ -45,6 +45,21 @@ function parseRequestJson(options: RequestInit): unknown {
   return JSON.parse(options.body);
 }
 
+async function expectRejectsWith(
+  promise: Promise<unknown>,
+  pattern: RegExp,
+): Promise<void> {
+  let error: unknown;
+  try {
+    await promise;
+  } catch (err) {
+    error = err;
+  }
+
+  expect(error).toBeInstanceOf(Error);
+  expect((error as Error).message).toMatch(pattern);
+}
+
 describe("LinkedInClient", () => {
   let config: LinkedinConfig;
   let logger: ReturnType<typeof createMockLogger>;
@@ -192,7 +207,7 @@ describe("LinkedInClient", () => {
   });
 
   describe("publish with document", () => {
-    it("should register upload, upload PDF, then publish with DOCUMENT category", async () => {
+    it("should initialize document upload, upload PDF, then publish a native document post", async () => {
       let callCount = 0;
       const fetchStub = createFetchStub(() => {
         callCount++;
@@ -207,13 +222,8 @@ describe("LinkedInClient", () => {
             json: () =>
               Promise.resolve({
                 value: {
-                  uploadMechanism: {
-                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
-                      {
-                        uploadUrl: "https://api.linkedin.com/upload/doc123",
-                      },
-                  },
-                  asset: "urn:li:digitalmediaAsset:doc123",
+                  uploadUrl: "https://api.linkedin.com/upload/doc123",
+                  document: "urn:li:document:doc123",
                 },
               }),
           });
@@ -249,11 +259,24 @@ describe("LinkedInClient", () => {
       expect(fetchStub).toHaveBeenCalledTimes(4);
       expect(result.id).toBe("urn:li:share:doc456");
 
+      const [initializeUrl] = getMockCall(fetchStub, 1) as [
+        string,
+        RequestInit,
+      ];
+      expect(initializeUrl).toBe(
+        "https://api.linkedin.com/rest/documents?action=initializeUpload",
+      );
       const registerOptions = getRequestOptions(getMockCall(fetchStub, 1));
+      expect(registerOptions.headers).toMatchObject({
+        Authorization: "Bearer test-token",
+        "Content-Type": "application/json",
+        "Linkedin-Version": "202604",
+        "X-Restli-Protocol-Version": "2.0.0",
+      });
       const registerBody = parseRequestJson(registerOptions);
-      expect(registerBody).toMatchObject({
-        registerUploadRequest: {
-          recipes: ["urn:li:digitalmediaRecipe:feedshare-document"],
+      expect(registerBody).toEqual({
+        initializeUploadRequest: {
+          owner: "urn:li:person:user123",
         },
       });
 
@@ -263,21 +286,33 @@ describe("LinkedInClient", () => {
         "Content-Type": "application/pdf",
       });
 
+      const [publishUrl] = getMockCall(fetchStub, 3) as [string, RequestInit];
+      expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
       const publishOptions = getRequestOptions(getMockCall(fetchStub, 3));
+      expect(publishOptions.headers).toMatchObject({
+        Authorization: "Bearer test-token",
+        "Content-Type": "application/json",
+        "Linkedin-Version": "202604",
+        "X-Restli-Protocol-Version": "2.0.0",
+      });
       const publishBody = parseRequestJson(publishOptions);
-      expect(publishBody).toMatchObject({
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareMediaCategory: "DOCUMENT",
-            media: [
-              {
-                status: "READY",
-                media: "urn:li:digitalmediaAsset:doc123",
-                title: { text: "carousel.pdf" },
-              },
-            ],
+      expect(publishBody).toEqual({
+        author: "urn:li:person:user123",
+        commentary: "Post with PDF carousel!",
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
+        content: {
+          media: {
+            id: "urn:li:document:doc123",
+            title: "carousel.pdf",
           },
         },
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false,
       });
     });
 
@@ -310,16 +345,17 @@ describe("LinkedInClient", () => {
         },
       ];
 
-      expect(
+      await expectRejectsWith(
         client.publish(
           "Post with failed document",
           {},
           undefined,
           documentData,
         ),
-      ).rejects.toThrow(/document upload registration failed: 500/);
+        /document upload initialization failed: 500/,
+      );
 
-      // userinfo + register upload only; no publish call attempted.
+      // userinfo + initialize upload only; no publish call attempted.
       expect(fetchStub).toHaveBeenCalledTimes(2);
     });
 
@@ -338,13 +374,8 @@ describe("LinkedInClient", () => {
             json: () =>
               Promise.resolve({
                 value: {
-                  uploadMechanism: {
-                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
-                      {
-                        uploadUrl: "https://api.linkedin.com/upload/doc-err",
-                      },
-                  },
-                  asset: "urn:li:digitalmediaAsset:doc-err",
+                  uploadUrl: "https://api.linkedin.com/upload/doc-err",
+                  document: "urn:li:document:doc-err",
                 },
               }),
           });
@@ -364,17 +395,75 @@ describe("LinkedInClient", () => {
         },
       ];
 
-      expect(
+      await expectRejectsWith(
         client.publish(
           "Post with failed binary upload",
           {},
           undefined,
           documentData,
         ),
-      ).rejects.toThrow(/document binary upload failed: 502/);
+        /document binary upload failed: 502/,
+      );
 
-      // userinfo + register + binary PUT; no publish call attempted.
+      // userinfo + initialize + binary PUT; no publish call attempted.
       expect(fetchStub).toHaveBeenCalledTimes(3);
+    });
+
+    it("should throw if native document post creation fails", async () => {
+      let callCount = 0;
+      const fetchStub = createFetchStub(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ sub: "user123" }),
+          });
+        } else if (callCount === 2) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                value: {
+                  uploadUrl: "https://api.linkedin.com/upload/doc-post-err",
+                  document: "urn:li:document:doc-post-err",
+                },
+              }),
+          });
+        } else if (callCount === 3) {
+          return Promise.resolve({ ok: true });
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 422,
+          text: () => Promise.resolve("Invalid document post"),
+        });
+      });
+      const client = new LinkedInClient(config, logger, {
+        fetch: fetchStub,
+      });
+
+      const documentData: PublishMediaData[] = [
+        {
+          type: "document",
+          data: TINY_PDF_BYTES,
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+        },
+      ];
+
+      await expectRejectsWith(
+        client.publish(
+          "Post with failed native document post",
+          {},
+          undefined,
+          documentData,
+        ),
+        /document post API error: 422/,
+      );
+
+      expect(fetchStub).toHaveBeenCalledTimes(4);
+      const [publishUrl] = getMockCall(fetchStub, 3) as [string, RequestInit];
+      expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
     });
   });
 
