@@ -160,6 +160,23 @@ describe("deck carousel template", () => {
     expect(html).toContain('[data-theme="light"] .deck-carousel-pdf');
   });
 
+  it("uses opaque slide backgrounds for LinkedIn PDF compatibility", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Opaque",
+        slides: [{ markdown: "# Hi" }],
+      },
+      siteConfig: { title: "Opaque", themeMode: "dark" },
+    });
+
+    expect(html).toContain("background-color: var(--carousel-surface);");
+    expect(html).toContain("background-image: linear-gradient(");
+    expect(html).not.toContain("radial-gradient(");
+    expect(html).not.toContain(", transparent");
+  });
+
   it('emits data-theme="light" on <html> when siteConfig.themeMode is light', () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,

@@ -99,10 +99,11 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               --carousel-surface-glow: #1a1530;
               --carousel-ink: var(--color-text, #f0ede5);
               --carousel-heading: var(--color-heading, #f7f3e6);
-              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 50%, transparent);
-              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 12%, transparent);
+              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 50%, var(--carousel-surface));
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 12%, var(--carousel-surface));
               --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
-              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 22%, transparent);
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 22%, var(--carousel-surface));
+              --carousel-glow-soft: color-mix(in srgb, var(--carousel-surface-glow) 55%, var(--carousel-surface));
               --carousel-body-line-height: 1.3;
             }
 
@@ -112,10 +113,11 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               --carousel-surface-glow: #fbf6ea;
               --carousel-ink: var(--color-text, #15171a);
               --carousel-heading: var(--color-heading, #0a0c10);
-              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 55%, transparent);
-              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 18%, transparent);
+              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 55%, var(--carousel-surface));
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 18%, var(--carousel-surface));
               --carousel-accent: var(--color-accent, var(--color-brand, #c5500e));
-              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 14%, transparent);
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 14%, var(--carousel-surface));
+              --carousel-glow-soft: color-mix(in srgb, var(--carousel-surface-glow) 70%, var(--carousel-surface));
               --carousel-body-line-height: 1.26;
             }
 
@@ -129,17 +131,28 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
               display: grid;
               grid-template-rows: auto 1fr auto;
               padding: 88px 108px;
-              background:
-                radial-gradient(circle at 100% 0%, var(--carousel-accent-soft), transparent 42%),
-                radial-gradient(circle at 0% 100%, var(--carousel-surface-glow), transparent 55%),
-                linear-gradient(165deg, var(--carousel-surface) 0%, var(--carousel-surface-deep) 100%);
+              /* Keep the PDF background fully opaque. LinkedIn re-rasterizes
+                 uploaded documents and can flatten transparent gradients
+                 differently than local PDF viewers. */
+              background-color: var(--carousel-surface);
+              background-image: linear-gradient(
+                165deg,
+                var(--carousel-surface) 0%,
+                var(--carousel-accent-soft) 26%,
+                var(--carousel-glow-soft) 62%,
+                var(--carousel-surface-deep) 100%
+              );
             }
 
             .deck-carousel-slide.is-cover {
-              background:
-                radial-gradient(circle at 12% 14%, var(--carousel-accent-soft), transparent 48%),
-                radial-gradient(circle at 92% 92%, var(--carousel-surface-glow), transparent 60%),
-                linear-gradient(155deg, var(--carousel-surface-deep) 0%, var(--carousel-surface) 60%, var(--carousel-surface-deep) 100%);
+              background-color: var(--carousel-surface-deep);
+              background-image: linear-gradient(
+                155deg,
+                var(--carousel-accent-soft) 0%,
+                var(--carousel-surface-deep) 34%,
+                var(--carousel-surface) 68%,
+                var(--carousel-glow-soft) 100%
+              );
             }
 
             .deck-carousel-slide:last-child {
