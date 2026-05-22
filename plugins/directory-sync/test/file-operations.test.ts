@@ -13,7 +13,12 @@ import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
 import { createTestEntity } from "@brains/test-utils";
-import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
+import {
+  TINY_PDF_BYTES,
+  TINY_PDF_DATA_URL,
+  TINY_PNG_BYTES,
+  TINY_PNG_DATA_URL,
+} from "./fixtures";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
@@ -424,6 +429,175 @@ describe("FileOperations", () => {
       expect(readEntity.id).toBe("roundtrip-test");
       expect(readEntity.entityType).toBe("image");
       expect(readEntity.content).toBe(TINY_PNG_DATA_URL);
+    });
+  });
+
+  describe("Document File Support", () => {
+    it("should read PDF files from document/ directory as base64 data URLs", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      const documentPath = join(testDir, "document", "carousel.pdf");
+      writeFileSync(documentPath, TINY_PDF_BYTES);
+
+      const entity = await fileOps.readEntity("document/carousel.pdf");
+
+      expect(entity.entityType).toBe("document");
+      expect(entity.id).toBe("carousel");
+      expect(entity.content).toBe(TINY_PDF_DATA_URL);
+    });
+
+    it("should write document entities as binary PDF files in document/ directory", async () => {
+      const entity = createTestEntity("document", {
+        id: "carousel",
+        content: TINY_PDF_DATA_URL,
+        metadata: { mimeType: "application/pdf", filename: "carousel.pdf" },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      const expectedPath = join(testDir, "document", "carousel.pdf");
+      expect(existsSync(expectedPath)).toBe(true);
+      expect(existsSync(join(testDir, "document", "carousel.md"))).toBe(false);
+
+      const writtenBytes = readFileSync(expectedPath);
+      expect(writtenBytes.equals(TINY_PDF_BYTES)).toBe(true);
+    });
+
+    it("should include PDF files from document/ directory in getAllSyncFiles", async () => {
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      mkdirSync(join(testDir, "document"), { recursive: true });
+
+      writeFileSync(join(testDir, "topic", "test.md"), "# Topic");
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+
+      const files = await fileOps.getAllSyncFiles();
+
+      expect(files).toContain("topic/test.md");
+      expect(files).toContain("document/carousel.pdf");
+    });
+
+    it("should roundtrip document entities correctly", async () => {
+      const entity = createTestEntity("document", {
+        id: "roundtrip-carousel",
+        content: TINY_PDF_DATA_URL,
+        metadata: { mimeType: "application/pdf", filename: "carousel.pdf" },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      const readEntity = await fileOps.readEntity(
+        "document/roundtrip-carousel.pdf",
+      );
+
+      expect(readEntity.id).toBe("roundtrip-carousel");
+      expect(readEntity.entityType).toBe("document");
+      expect(readEntity.content).toBe(TINY_PDF_DATA_URL);
+    });
+
+    it("should persist document metadata in a sidecar JSON file", async () => {
+      const entity = createTestEntity("document", {
+        id: "carousel-with-metadata",
+        content: TINY_PDF_DATA_URL,
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+          pageCount: 3,
+          dedupKey: "carousel:post-1",
+        },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      const sidecarPath = join(
+        testDir,
+        "document",
+        "carousel-with-metadata.pdf.meta.json",
+      );
+      expect(existsSync(sidecarPath)).toBe(true);
+
+      const sidecar = JSON.parse(readFileSync(sidecarPath, "utf-8"));
+      expect(sidecar).toEqual({
+        filename: "carousel.pdf",
+        pageCount: 3,
+        dedupKey: "carousel:post-1",
+      });
+    });
+
+    it("should read document sidecar metadata with a path-derived filename fallback", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+      writeFileSync(
+        join(testDir, "document", "carousel.pdf.meta.json"),
+        JSON.stringify({ pageCount: 3, dedupKey: "carousel:post-1" }),
+      );
+
+      const entity = await fileOps.readEntity("document/carousel.pdf");
+
+      expect(entity.metadata).toEqual({
+        mimeType: "application/pdf",
+        filename: "carousel.pdf",
+        pageCount: 3,
+        dedupKey: "carousel:post-1",
+      });
+    });
+
+    it("should round-trip the full document metadata via write+read", async () => {
+      const entity = createTestEntity("document", {
+        id: "full-roundtrip",
+        content: TINY_PDF_DATA_URL,
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "original-name.pdf",
+          pageCount: 7,
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          attachmentType: "carousel",
+          dedupKey: "carousel-template:social-post:post-1:abc",
+        },
+      });
+
+      await fileOps.writeEntity(entity);
+      const readEntity = await fileOps.readEntity(
+        "document/full-roundtrip.pdf",
+      );
+
+      expect(readEntity.metadata).toEqual({
+        mimeType: "application/pdf",
+        filename: "original-name.pdf",
+        pageCount: 7,
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        dedupKey: "carousel-template:social-post:post-1:abc",
+      });
+    });
+
+    it("should default mimeType and filename when no sidecar exists", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(
+        join(testDir, "document", "hand-placed.pdf"),
+        TINY_PDF_BYTES,
+      );
+
+      const entity = await fileOps.readEntity("document/hand-placed.pdf");
+
+      expect(entity.metadata).toEqual({
+        mimeType: "application/pdf",
+        filename: "hand-placed.pdf",
+      });
+    });
+
+    it("should exclude sidecar JSON files from sync file discovery", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
+      writeFileSync(
+        join(testDir, "document", "carousel.pdf.meta.json"),
+        JSON.stringify({ filename: "carousel.pdf" }),
+      );
+
+      const files = await fileOps.getAllSyncFiles();
+
+      expect(files).toContain("document/carousel.pdf");
+      expect(files).not.toContain("document/carousel.pdf.meta.json");
     });
   });
 

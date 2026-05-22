@@ -2,7 +2,7 @@ import type {
   ViewTemplate,
   ViewTemplateRegistry as IViewTemplateRegistry,
   OutputFormat,
-  WebRenderer,
+  Renderer,
 } from "./render-types";
 import type { TemplateRegistry } from "./registry";
 
@@ -104,7 +104,7 @@ export class RenderService implements IViewTemplateRegistry {
   getRenderer(
     templateName: string,
     format: OutputFormat,
-  ): WebRenderer | undefined {
+  ): Renderer | undefined {
     const template = this.get(templateName);
     if (!template) {
       return undefined;
@@ -125,6 +125,8 @@ export class RenderService implements IViewTemplateRegistry {
 
     const formats: OutputFormat[] = [];
     if (template.renderers.web) formats.push("web");
+    if (template.renderers.image) formats.push("image");
+    if (template.renderers.pdf) formats.push("pdf");
 
     return formats;
   }

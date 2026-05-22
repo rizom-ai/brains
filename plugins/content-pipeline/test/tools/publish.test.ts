@@ -342,6 +342,7 @@ This is the actual post content.`,
         "This is the actual post content.",
         expect.anything(),
         undefined,
+        undefined,
       );
     });
 
@@ -395,6 +396,7 @@ Post content with an image.`,
         expect.objectContaining({
           mimeType: "image/png",
         }),
+        undefined,
       );
     });
 
@@ -434,6 +436,7 @@ Post content without image.`,
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "Post content without image.",
         expect.anything(),
+        undefined,
         undefined,
       );
     });

@@ -1,5 +1,25 @@
 # @brains/product-site-content
 
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.80
+  - @brains/site-composition@0.2.0-alpha.80
+  - @brains/utils@0.2.0-alpha.80
+  - @brains/templates@0.2.0-alpha.80
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.79
+  - @brains/site-composition@0.2.0-alpha.79
+  - @brains/utils@0.2.0-alpha.79
+  - @brains/templates@0.2.0-alpha.79
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

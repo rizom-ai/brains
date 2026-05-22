@@ -6,7 +6,7 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { JobQueueService } from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
-import { PluginManager } from "@brains/plugins";
+import { AttachmentRegistry, PluginManager } from "@brains/plugins";
 import {
   PermissionService,
   RenderService,
@@ -61,6 +61,8 @@ export function createShellServices(options: {
   const permissionService =
     dependencies?.permissionService ??
     new PermissionService(config.permissions, { spaces: config.spaces });
+  const attachmentRegistry =
+    dependencies?.attachmentRegistry ?? AttachmentRegistry.getInstance();
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
@@ -149,5 +151,6 @@ export function createShellServices(options: {
     profileService,
     canonicalIdentityService,
     agentService,
+    attachmentRegistry,
   };
 }

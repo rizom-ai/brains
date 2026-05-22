@@ -13,6 +13,13 @@ function readPackageFile(relativePath: string): string {
 }
 
 describe("@rizom/brain package metadata", () => {
+  it("declares media renderer runtime dependencies", () => {
+    expect(packageJson.optionalDependencies).toMatchObject({
+      "playwright-core": expect.any(String),
+      sharp: expect.any(String),
+    });
+  });
+
   it("publishes package-owned deploy scripts with expected runtime hooks", () => {
     const provisionServer = readPackageFile(
       "templates/deploy/scripts/provision-server.ts",

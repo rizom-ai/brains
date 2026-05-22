@@ -19,6 +19,7 @@ function createMockEntityService(): {
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const TINY_PDF_BASE64 = Buffer.from("%PDF-1.4\n%%EOF\n").toString("base64");
 
 const samplePost: SocialPost = {
   id: "post-1",
@@ -63,6 +64,29 @@ This is a post with an image.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
+const samplePostWithDocument: SocialPost = {
+  id: "post-3",
+  entityType: "social-post",
+  visibility: "public",
+  content: `---
+title: Carousel LinkedIn Post
+platform: linkedin
+status: queued
+documents:
+  - id: carousel-pdf
+---
+This is a post with a PDF carousel.`,
+  metadata: {
+    title: "Carousel LinkedIn Post",
+    platform: "linkedin",
+    status: "queued",
+    slug: "linkedin-carousel-linkedin-post-20260114",
+  },
+  contentHash: "ghi789",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
 const sampleImage = {
   id: "image-123",
   entityType: "image",
@@ -75,6 +99,42 @@ const sampleImage = {
     height: 1,
   },
   contentHash: "img123",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
+const samplePostWithSource: SocialPost = {
+  id: "post-4",
+  entityType: "social-post",
+  visibility: "public",
+  content: `---
+title: Source-Derived LinkedIn Post
+platform: linkedin
+status: queued
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Carousel from source deck.`,
+  metadata: {
+    title: "Source-Derived LinkedIn Post",
+    platform: "linkedin",
+    status: "queued",
+    slug: "linkedin-source-derived-linkedin-post-20260114",
+  },
+  contentHash: "src001",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
+const sampleDocument = {
+  id: "carousel-pdf",
+  entityType: "document",
+  content: `data:application/pdf;base64,${TINY_PDF_BASE64}`,
+  metadata: {
+    mimeType: "application/pdf",
+    filename: "carousel.pdf",
+  },
+  contentHash: "doc123",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
 };
@@ -289,6 +349,42 @@ describe("PublishExecuteHandler", () => {
       );
     });
 
+    it("should fetch and pass document data when documents are present", async () => {
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithDocument);
+          }
+          if (
+            request.entityType === "document" &&
+            request.id === "carousel-pdf"
+          ) {
+            return Promise.resolve(sampleDocument);
+          }
+          return Promise.resolve(null);
+        },
+      );
+
+      await handler.handle({
+        entityType: "social-post",
+        entityId: "post-3",
+      });
+
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a post with a PDF carousel.",
+        expect.any(Object),
+        undefined,
+        [
+          expect.objectContaining({
+            type: "document",
+            data: expect.any(Buffer),
+            mimeType: "application/pdf",
+            filename: "carousel.pdf",
+          }),
+        ],
+      );
+    });
+
     it("should publish without image if image entity not found", async () => {
       entityService.getEntity = mock(
         (request: { entityType: string; id: string }) => {
@@ -310,6 +406,129 @@ describe("PublishExecuteHandler", () => {
         undefined,
       );
       expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it("should resolve source-derived carousel attachment when no documents are set", async () => {
+      entityService.getEntity = mock(() =>
+        Promise.resolve(samplePostWithSource),
+      );
+      const carouselPdf = {
+        type: "document" as const,
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf" as const,
+        filename: "deck-carousel.pdf",
+      };
+      const resolveAttachment = mock(() => Promise.resolve(carouselPdf));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-4",
+      });
+
+      expect(resolveAttachment).toHaveBeenCalledWith({
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+      });
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Carousel from source deck.",
+        expect.any(Object),
+        undefined,
+        [carouselPdf],
+      );
+    });
+
+    it("should publish text-only when source fields are set but no provider resolves an attachment", async () => {
+      entityService.getEntity = mock(() =>
+        Promise.resolve(samplePostWithSource),
+      );
+      const resolveAttachment = mock(() => Promise.resolve(undefined));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-4",
+      });
+
+      expect(resolveAttachment).toHaveBeenCalled();
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Carousel from source deck.",
+        expect.any(Object),
+        undefined,
+      );
+    });
+
+    it("should prefer explicit documents over source-derived attachment", async () => {
+      const postWithBoth: SocialPost = {
+        ...samplePostWithDocument,
+        id: "post-5",
+        content: `---
+title: Mixed LinkedIn Post
+platform: linkedin
+status: queued
+sourceEntityType: deck
+sourceEntityId: deck-1
+documents:
+  - id: carousel-pdf
+---
+Post with both explicit doc and source.`,
+      };
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(postWithBoth);
+          }
+          if (
+            request.entityType === "document" &&
+            request.id === "carousel-pdf"
+          ) {
+            return Promise.resolve(sampleDocument);
+          }
+          return Promise.resolve(null);
+        },
+      );
+      const resolveAttachment = mock(() => Promise.resolve(undefined));
+
+      const handlerWithAttachments = new PublishExecuteHandler({
+        sendMessage: messageSender.sendMessage as never,
+        logger,
+        entityService: entityService as never,
+        providers,
+        resolveAttachment,
+      });
+
+      await handlerWithAttachments.handle({
+        entityType: "social-post",
+        entityId: "post-5",
+      });
+
+      expect(resolveAttachment).not.toHaveBeenCalled();
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        undefined,
+        [
+          expect.objectContaining({
+            type: "document",
+            filename: "carousel.pdf",
+          }),
+        ],
+      );
     });
 
     it("should publish without image if coverImageId not present", async () => {

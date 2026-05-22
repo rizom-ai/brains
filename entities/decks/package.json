@@ -1,7 +1,7 @@
 {
   "name": "@brains/decks",
   "private": true,
-  "version": "0.2.0-alpha.78",
+  "version": "0.2.0-alpha.80",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "type": "module",
   "exports": {
@@ -18,7 +18,11 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-info": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

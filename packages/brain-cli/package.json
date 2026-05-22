@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.78",
+  "version": "0.2.0-alpha.80",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
@@ -75,6 +75,7 @@
     "@tailwindcss/oxide": "^4.1.4",
     "better-sqlite3": "^11.8.1",
     "lightningcss": "^1.29.2",
+    "playwright-core": "^1.56.0",
     "react-devtools-core": "^6.1.1",
     "sharp": "^0.34.5"
   },

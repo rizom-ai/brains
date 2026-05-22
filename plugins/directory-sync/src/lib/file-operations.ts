@@ -1,7 +1,12 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
-import { dirname, extname } from "path";
+import { basename, dirname, extname } from "path";
 import { resolveInSyncPath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
+import {
+  getDocumentMimeTypeForExtension,
+  getDocumentSidecarPath,
+  isDocumentFile,
+} from "./document-file-utils";
 import {
   buildEntityFilePath,
   getEntityFileExtension,
@@ -19,11 +24,16 @@ import {
 import { pathExists } from "./fs-utils";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
+export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   IEntityService,
   "serializeEntity" | "hasEntityType"
 >;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 /**
  * Handles file I/O operations for directory sync
@@ -54,23 +64,65 @@ export class FileOperations {
     const updated = stats.mtime;
 
     let content: string;
-    if (isImageFile(filePath)) {
+    let metadata: Record<string, unknown> | undefined;
+    if (isImageFile(filePath) || isDocumentFile(filePath)) {
       const buffer = await readFile(fullPath);
       const base64 = buffer.toString("base64");
       const ext = extname(filePath);
-      const mimeType = getMimeTypeForExtension(ext);
+      const mimeType = isDocumentFile(filePath)
+        ? getDocumentMimeTypeForExtension(ext)
+        : getMimeTypeForExtension(ext);
       content = `data:${mimeType};base64,${base64}`;
+      if (isDocumentFile(filePath)) {
+        metadata = await this.readDocumentSidecar(fullPath, filePath);
+      }
     } else {
       content = await readFile(fullPath, "utf-8");
     }
 
-    return {
+    const result: RawEntity = {
       entityType,
       id,
       content,
       created,
       updated,
     };
+    if (metadata) {
+      result.metadata = metadata;
+    }
+    return result;
+  }
+
+  /**
+   * Read the sidecar JSON for a document file. Returns metadata enriched with
+   * a `filename` derived from the file path (acts as a default for documents
+   * dropped in by hand without a sidecar) so the document schema's required
+   * filename always has a value.
+   */
+  private async readDocumentSidecar(
+    fullPdfPath: string,
+    relativePath: string,
+  ): Promise<Record<string, unknown>> {
+    const defaults: Record<string, unknown> = {
+      mimeType: "application/pdf",
+      filename: basename(relativePath),
+    };
+    const sidecarPath = getDocumentSidecarPath(fullPdfPath);
+
+    if (!(await pathExists(sidecarPath))) {
+      return defaults;
+    }
+
+    try {
+      const raw = await readFile(sidecarPath, "utf-8");
+      const parsed: unknown = JSON.parse(raw);
+      const fromSidecar = isRecord(parsed) ? parsed : {};
+      return { ...defaults, ...fromSidecar };
+    } catch {
+      // Corrupt sidecar shouldn't block import; the schema will still pass
+      // because filename + mimeType come from defaults.
+      return defaults;
+    }
   }
 
   /**
@@ -80,51 +132,103 @@ export class FileOperations {
   async writeEntity(entity: BaseEntity): Promise<void> {
     const filePath = this.getEntityFilePath(entity);
     const isImage = entity.entityType === "image";
+    const isDocument = entity.entityType === "document";
 
-    let contentToWrite: Buffer | string;
-    if (isImage) {
-      const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
-      contentToWrite = match?.[1]
+    if (isImage || isDocument) {
+      const dataUrlPattern = isImage
+        ? /^data:image\/[a-z+]+;base64,(.+)$/i
+        : /^data:application\/pdf;base64,(.+)$/i;
+      const match = entity.content.match(dataUrlPattern);
+      const contentToWrite = match?.[1]
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");
-    } else {
-      contentToWrite = this.entityService.serializeEntity(entity);
-    }
 
-    if (await pathExists(filePath)) {
-      const currentContent = isImage
-        ? await readFile(filePath)
-        : await readFile(filePath, "utf-8");
+      let binaryUnchanged = false;
+      if (await pathExists(filePath)) {
+        const currentContent = await readFile(filePath);
+        const currentHash = computeContentHash(
+          currentContent.toString("base64"),
+        );
+        const newHash = computeContentHash(contentToWrite.toString("base64"));
 
-      const currentHash = computeContentHash(
-        isImage
-          ? (currentContent as Buffer).toString("base64")
-          : (currentContent as string),
-      );
-      const newHash = computeContentHash(
-        isImage
-          ? (contentToWrite as Buffer).toString("base64")
-          : (contentToWrite as string),
-      );
+        if (currentHash === newHash) {
+          binaryUnchanged = true;
+        }
+      }
 
-      if (currentHash === newHash) {
+      if (!binaryUnchanged) {
+        await this.ensureEntityDirectory(entity, filePath);
+        await writeFile(filePath, contentToWrite);
+      }
+
+      if (isDocument) {
+        await this.writeDocumentSidecar(entity, filePath);
+      }
+
+      if (binaryUnchanged) {
         return;
       }
-    }
-
-    if (entity.entityType !== "base") {
-      await mkdir(dirname(filePath), { recursive: true });
-    }
-
-    if (isImage) {
-      await writeFile(filePath, contentToWrite as Buffer);
     } else {
-      await writeFile(filePath, contentToWrite as string, "utf-8");
+      const contentToWrite = this.entityService.serializeEntity(entity);
+
+      if (await pathExists(filePath)) {
+        const currentContent = await readFile(filePath, "utf-8");
+        const currentHash = computeContentHash(currentContent);
+        const newHash = computeContentHash(contentToWrite);
+
+        if (currentHash === newHash) {
+          return;
+        }
+      }
+
+      await this.ensureEntityDirectory(entity, filePath);
+      await writeFile(filePath, contentToWrite, "utf-8");
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
+  }
+
+  private async ensureEntityDirectory(
+    entity: BaseEntity,
+    filePath: string,
+  ): Promise<void> {
+    if (entity.entityType !== "base") {
+      await mkdir(dirname(filePath), { recursive: true });
+    }
+  }
+
+  /**
+   * Persist document metadata that does not survive in the PDF bytes
+   * (filename, page count, dedup key, source provenance) in a sidecar JSON
+   * file. `mimeType` is omitted because it is implicit in the .pdf extension
+   * and would be regenerated from the data URL on read.
+   */
+  private async writeDocumentSidecar(
+    entity: BaseEntity,
+    pdfPath: string,
+  ): Promise<void> {
+    const metadata = entity.metadata;
+    const persistable: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(metadata)) {
+      if (key === "mimeType") continue;
+      if (value === undefined) continue;
+      persistable[key] = value;
+    }
+
+    const sidecarPath = getDocumentSidecarPath(pdfPath);
+    const serialized = `${JSON.stringify(persistable, null, 2)}\n`;
+
+    if (await pathExists(sidecarPath)) {
+      const existing = await readFile(sidecarPath, "utf-8");
+      if (existing === serialized) {
+        return;
+      }
+    }
+
+    await this.ensureEntityDirectory(entity, sidecarPath);
+    await writeFile(sidecarPath, serialized, "utf-8");
   }
 
   getFilePath(
@@ -148,7 +252,7 @@ export class FileOperations {
   }
 
   /**
-   * Get all syncable files in sync directory (markdown + images in image/ dir)
+   * Get all syncable files in sync directory (markdown + binary media files)
    */
   async getAllSyncFiles(): Promise<string[]> {
     return findSyncFiles(this.syncPath, this.entityService);

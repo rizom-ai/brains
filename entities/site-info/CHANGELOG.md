@@ -1,5 +1,25 @@
 # @brains/site-info
 
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.80
+  - @brains/utils@0.2.0-alpha.80
+  - @brains/entity-service@0.2.0-alpha.80
+  - @brains/plugins@0.2.0-alpha.80
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.79
+  - @brains/utils@0.2.0-alpha.79
+  - @brains/entity-service@0.2.0-alpha.79
+  - @brains/plugins@0.2.0-alpha.79
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

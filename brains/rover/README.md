@@ -160,13 +160,14 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `site-builder`         |        | x         | x      |
 | `portfolio`            |        |           | x      |
 | `content-pipeline`     |        |           | x      |
+| `document`             |        |           | x      |
 | `social-media`         |        |           | x      |
 | `newsletter`           |        |           | x      |
 | `stock-photo`          |        |           | x      |
 
 - **`core`** — minimal on-ramp: capture, sync, dashboard + CMS, MCP/web/Discord/A2A, but no site-builder
 - **`default`** — adds the website and publishing surface
-- **`full`** — adds portfolio, automation, newsletter, and stock-photo workflows
+- **`full`** — adds portfolio, automation, document/PDF, newsletter, and stock-photo workflows
 
 Fine-tune with `add` and `remove`:
 

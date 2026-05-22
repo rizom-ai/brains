@@ -38,6 +38,13 @@ export type {
   IServiceTemplatesNamespace,
   IViewsNamespace,
 } from "./service/context";
+export {
+  AttachmentRegistry,
+  createAttachmentsNamespace,
+  type AttachmentProvider,
+  type AttachmentResolveRequest,
+  type IAttachmentsNamespace,
+} from "./service/attachment-registry";
 export type {
   BasePluginContext,
   IMessagingNamespace,
@@ -196,6 +203,7 @@ export type {
 } from "@brains/templates";
 export {
   createTemplate,
+  OutputFormatSchema,
   PermissionService,
   UserPermissionLevelSchema,
   matchSpaceSelector,

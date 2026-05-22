@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- [`89d4c32`](https://github.com/rizom-ai/brains/commit/89d4c32fbd13cddebe9ff9d5559919e604270c10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the configured brain domain as the PDF carousel wordmark, falling back to the anchor profile name when no domain is configured.
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- [`99b0c8c`](https://github.com/rizom-ai/brains/commit/99b0c8cee556c4975637c6e0d75ef1eef911f503) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ship PDF carousel media rendering in the published brain runtime: deck-owned carousel PDF attachments, Playwright/Chromium media capture, durable document support, LinkedIn document publishing, media preview tooling, and Docker/runtime bundling fixes for Playwright.
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

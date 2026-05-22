@@ -6,7 +6,7 @@ Implemented for the first attribution pass. Conversation messages now preserve a
 
 Partially implemented beyond the original first pass: canonical identity plumbing now exists (`canonicalId`, `CanonicalIdentityService`, agent enrichment, and memory retrieval by canonical id). The git-backed `canonical-identity-link` entity path was removed before adoption because raw actor-to-person links should not be treated as ordinary git-synced content.
 
-Still deferred: a runtime/private canonical identity store, management UX/tooling for identity links, and a formal brain-instance assistant actor id.
+Still deferred: auth-runtime-DB-backed canonical identity lookup, management UX/tooling for identity links, and a formal brain-instance assistant actor id.
 
 ## Problem
 
@@ -92,9 +92,8 @@ Decision:
 
 1. **Runtime/private identity links are authoritative.**
    - Actor-to-person mappings such as `discord:<snowflake> -> person:daniel`, email addresses, OAuth subjects, passkey subjects, and other account identifiers belong in runtime storage, not git-synced `brain-data`.
-   - Use a private JSON store first, for example `./data/identity/canonical-identities.json`, with restrictive file permissions. This keeps the first migration small and avoids prematurely coupling canonical identity to the auth DB work.
-   - Treat that JSON store as a bridge: the longer-term target should be a DB-backed runtime identity table, likely adjacent to the auth-user/identity schema once that exists.
-   - This runtime store is the source used by `CanonicalIdentityService` for actor enrichment and memory retrieval.
+   - Use the auth runtime database identity tables described in [Auth runtime database](./auth-runtime-db.md) as the source for actor enrichment and memory retrieval.
+   - Do not add a separate JSON identity-link bridge unless the auth DB work is explicitly postponed again.
 2. **Git-backed canonical identity entities are optional curated knowledge only.**
    - A content entity may describe a public or team-known person label such as `person:daniel`, preferred display name, or biography when the operator explicitly wants that in the brain's content corpus.
    - It must not contain raw platform ids, email addresses, OAuth subjects, passkey credential ids, or private account-link metadata.
@@ -282,7 +281,7 @@ Expected behavior:
 
 ## Current remaining work
 
-- Add a standalone private JSON store under runtime data; postpone DB-backed storage until the auth-user DB/schema work is ready.
+- Wire canonical identity lookup to the auth runtime database once user/identity tables exist.
 - Keep git-backed person/canonical identity out of scope unless it is redesigned later as curated non-sensitive profile/alias content only.
 - Add management tooling for canonical identity links that makes the storage boundary explicit.
 - Replace the assistant fallback actor id with a formal brain-instance id when that service boundary exposes one.

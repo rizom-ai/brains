@@ -4,6 +4,16 @@
 
 Proposed. Not release-gating. The production Discord interface still uses `MessageInterfacePlugin` directly; this remains the consolidation path for future multi-platform chat adapters when another chat surface is prioritized.
 
+## Confirmed implementation decisions
+
+Confirmed on 2026-05-19 for the first implementation slice:
+
+- Build only the new `interfaces/chat/` package first, with Discord parity tests. Do not migrate Rover, Ranger, or Relay in this slice.
+- The Discord adapter config must provide the credentials required by Chat SDK: `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID`. These identify and authenticate an existing Discord application; the SDK does not create Discord bots/apps.
+- Use Chat SDK's in-memory state adapter for the first local/parity implementation. Durable state is deferred and must be revisited before replacing `@brains/discord` in production.
+- For direct/self-hosted Discord mode, implement a daemon loop around Chat SDK's bounded `startGatewayListener(...)` API rather than only mounting webhook routes first.
+- Close Discord parity with documented gaps is acceptable for the first package landing; exact parity remains required before switching production brains off `@brains/discord`.
+
 ## Context
 
 The brain currently has a production Discord interface (`@brains/discord`) implemented directly on top of `MessageInterfacePlugin`. Matrix has already been removed from the active interface packages, and should return through the Chat SDK adapter path rather than by resurrecting the old Matrix implementation.
@@ -137,9 +147,16 @@ Secrets come from the brain model env mapper. Non-secret adapter behavior lives 
   ChatInterface,
   (env) => ({
     adapters: {
-      discord: env["DISCORD_BOT_TOKEN"]
-        ? { botToken: env["DISCORD_BOT_TOKEN"] }
-        : undefined,
+      discord:
+        env["DISCORD_BOT_TOKEN"] &&
+        env["DISCORD_PUBLIC_KEY"] &&
+        env["DISCORD_APPLICATION_ID"]
+          ? {
+              botToken: env["DISCORD_BOT_TOKEN"],
+              publicKey: env["DISCORD_PUBLIC_KEY"],
+              applicationId: env["DISCORD_APPLICATION_ID"],
+            }
+          : undefined,
       matrix: env["MATRIX_ACCESS_TOKEN"]
         ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
         : undefined,
@@ -247,22 +264,26 @@ Everything else — progress tracking, input buffering, confirmation flow, URL c
 
 ## Daemon
 
+Chat SDK does not expose a generic long-running `app.start()`/`app.stop()` lifecycle for Discord. The first direct/self-hosted Discord implementation should initialize the Chat SDK app and run a small daemon loop around the Discord adapter's bounded `startGatewayListener(...)` API. The loop must be abortable on daemon stop.
+
 ```typescript
 createDaemon() → {
-  start: () => app.start(),       // Chat SDK starts enabled adapters
-  stop: () => app.stop(),         // Graceful disconnect
+  start: () => runDiscordGatewayLoop(),
+  stop: () => abortGatewayLoopAndShutdownChat(),
   healthCheck: () => ({ status, adapterCount })
 }
 ```
 
-Webhook adapters such as Slack/Teams should use socket mode where available. If an adapter requires inbound HTTP, mount the Chat SDK handler through the interface/plugin API route mechanism before enabling that adapter in production.
+Webhook routes should still be mounted for Discord interactions where configured, and for future webhook-based adapters. Webhook adapters such as Slack/Teams should use socket mode where available. If an adapter requires inbound HTTP, mount the Chat SDK handler through the interface/plugin web route mechanism before enabling that adapter in production.
 
 ## Migration path
 
 1. **Build `@brains/chat` with Discord adapter first**
    - Add the new workspace package alongside existing `@brains/discord`.
    - Implement SDK-backed Discord using the parity spec above.
+   - Use Chat SDK memory state for the first implementation; document restart-related owned-thread/subscription gaps.
    - Keep current `@brains/discord` untouched during comparison.
+   - Do not migrate Rover, Ranger, or Relay in this first slice.
 
 2. **Rover opt-in trial**
    - Switch Rover test/local config to `chat.adapters.discord`.

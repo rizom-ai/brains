@@ -9,7 +9,12 @@ import {
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
-import type { Template, ViewTemplate, WebRenderer } from "@brains/templates";
+import type {
+  OutputFormat,
+  Renderer,
+  Template,
+  ViewTemplate,
+} from "@brains/templates";
 
 /**
  * Template operations namespace for ServicePluginContext
@@ -50,11 +55,14 @@ export interface IViewsNamespace {
   /** List all registered view templates */
   list: () => ViewTemplate<unknown>[];
 
-  /** Check if a template has a web renderer */
-  hasRenderer: (templateName: string) => boolean;
+  /** Check if a template has a renderer for the requested format (defaults to web). */
+  hasRenderer: (templateName: string, format?: OutputFormat) => boolean;
 
-  /** Get the web renderer for a template */
-  getRenderer: (templateName: string) => WebRenderer | undefined;
+  /** Get the renderer for a template and format (defaults to web). */
+  getRenderer: (
+    templateName: string,
+    format?: OutputFormat,
+  ) => Renderer | undefined;
 
   /** Validate content against a template's schema */
   validate: (templateName: string, content: unknown) => boolean;
@@ -164,11 +172,17 @@ export function createServicePluginContext(
       list: (): ViewTemplate<unknown>[] => {
         return renderService.list();
       },
-      hasRenderer: (templateName: string): boolean => {
-        return renderService.hasRenderer(templateName, "web");
+      hasRenderer: (
+        templateName: string,
+        format: OutputFormat = "web",
+      ): boolean => {
+        return renderService.hasRenderer(templateName, format);
       },
-      getRenderer: (templateName: string): WebRenderer | undefined => {
-        return renderService.getRenderer(templateName, "web");
+      getRenderer: (
+        templateName: string,
+        format: OutputFormat = "web",
+      ): Renderer | undefined => {
+        return renderService.getRenderer(templateName, format);
       },
       validate: (templateName: string, content: unknown): boolean => {
         return renderService.validate(templateName, content);
