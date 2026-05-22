@@ -1,0 +1,36 @@
+id: relay-tool-create-image
+name: Relay image upload via system_create
+description: >-
+  Verifies that Relay can save a small image entity for the public-site/image
+  preset path without falling back to unsupported publishing or attachment tools.
+type: tool_invocation
+tags:
+  - relay
+  - image
+  - default
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: >-
+      Save this tiny Relay diagram placeholder image for later homepage proof:
+      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "image"
+  responseNotContains:
+    - "blog"
+    - "newsletter"
+    - "attachment_upload"
+    - "I cannot"
+    - "I don't have access"
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

@@ -1,0 +1,37 @@
+id: relay-tool-site-builder-preview-build
+name: Relay preview site build
+description: >-
+  Verifies that Relay rebuild requests use the site-builder tool in the default
+  and full presets, while keeping the response framed as Relay's minimal public
+  knowledge surface rather than a Rover publishing workflow.
+type: tool_invocation
+tags:
+  - relay
+  - site-builder
+  - default
+  - public-site
+  - operator
+
+turns:
+  - userMessage: >-
+      Build the Relay preview site from the registered routes so I can inspect
+      the current homepage before the demo. Keep the response short and don't
+      describe this as a blog/newsletter publishing pipeline.
+
+successCriteria:
+  expectedTools:
+    - toolName: site-builder_build-site
+      shouldBeCalled: true
+  responseContains:
+    - "preview"
+  responseNotContains:
+    - "blog"
+    - "newsletter"
+    - "publishing pipeline"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

@@ -10,7 +10,7 @@ timeRange:
 sourceSummaryId: relay-poc-sync
 sourceMessageCount: 6
 projectionVersion: 1
-status: open
+status: done
 ---
 
 # Add eval coverage for existing Relay plugins

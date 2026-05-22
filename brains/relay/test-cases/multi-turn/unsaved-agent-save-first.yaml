@@ -43,7 +43,8 @@ turns:
         - toolName: a2a_call
           shouldBeCalled: false
       responseContains:
-        - "queued"
+        - "save"
+        - "agent"
       responseNotContains:
         - "wish"
         - "I contacted"

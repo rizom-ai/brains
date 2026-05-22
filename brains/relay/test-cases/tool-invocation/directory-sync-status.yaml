@@ -1,0 +1,36 @@
+id: relay-tool-directory-sync-status
+name: Relay directory sync and git status
+description: >-
+  Verifies that Relay answers operator sync-status questions through the
+  directory-sync status tool instead of performing a sync or inventing git state.
+type: tool_invocation
+tags:
+  - relay
+  - directory-sync
+  - git
+  - core
+  - operator
+
+turns:
+  - userMessage: >-
+      Check Relay's content filesystem sync and git status. Do not start a sync
+      or backup; just report the current status and any pending changes.
+
+successCriteria:
+  expectedTools:
+    - toolName: directory-sync_status
+      shouldBeCalled: true
+    - toolName: directory-sync_sync
+      shouldBeCalled: false
+  responseContains:
+    - "sync"
+  responseNotContains:
+    - "started a sync"
+    - "backup complete"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000
