@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Not release-gating. The production Discord interface still uses `MessageInterfacePlugin` directly; this remains the consolidation path for future multi-platform chat adapters when another chat surface is prioritized.
+Proposed. Not release-gating. The production self-hosted Discord interface still uses `@brains/discord` directly. `@brains/chat` is the strategic convergence path, but sequencing is hosted/shared gateway first and self-hosted migration later, after the gateway path proves stable and a low-friction migration exists.
 
 ## Confirmed implementation decisions
 
@@ -10,9 +10,9 @@ Confirmed on 2026-05-19 for the first implementation slice:
 
 - Build only the new `interfaces/chat/` package first, with Discord parity tests. Do not migrate Rover, Ranger, or Relay in this slice.
 - The Discord adapter config must provide the credentials required by Chat SDK: `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID`. These identify and authenticate an existing Discord application; the SDK does not create Discord bots/apps.
-- Use Chat SDK's in-memory state adapter for the first local/parity implementation. Durable state is deferred and must be revisited before replacing `@brains/discord` in production.
-- For direct/self-hosted Discord mode, implement a daemon loop around Chat SDK's bounded `startGatewayListener(...)` API rather than only mounting webhook routes first.
-- Close Discord parity with documented gaps is acceptable for the first package landing; exact parity remains required before switching production brains off `@brains/discord`.
+- Use Chat SDK's in-memory state adapter for the first local/parity implementation. Durable state is deferred and must be revisited before hosted/shared gateway production use or any later self-hosted migration.
+- For direct opt-in and gateway-owned Discord mode, implement a daemon loop around Chat SDK's bounded `startGatewayListener(...)` API rather than only mounting webhook routes first.
+- Close Discord parity with documented gaps is acceptable for the first package landing. Exact parity remains required before hosted gateway rollout, and self-hosted migration comes only after that path is stable.
 
 ## Context
 
@@ -27,7 +27,7 @@ This is an interface consolidation project, not a release-blocking prerequisite 
 ```text
 ChatInterface extends MessageInterfacePlugin<ChatConfig>
   └─ Chat SDK App
-       ├─ Discord adapter            ← first parity target; replaces @brains/discord
+       ├─ Discord adapter            ← first SDK target; hosted gateway first, self-hosted later
        ├─ Matrix adapter (Beeper)    ← Matrix return path
        ├─ Slack adapter              ← next likely platform
        ├─ Teams adapter
@@ -80,7 +80,7 @@ rover instance
     → Discord adapter using DISCORD_BOT_TOKEN
 ```
 
-This is the self-hosted/default mental model. It preserves the current `@brains/discord` shape, just through the Chat SDK adapter layer.
+This is the long-term self-hosted consolidation shape, but it is not the next production migration target. Existing self-hosted Rover users stay on `@brains/discord` until hosted gateway behavior is proven and a low-friction migration path exists.
 
 ### Shared gateway mode
 
@@ -234,7 +234,7 @@ plugins:
 
 Adapters with `undefined` config are skipped. `disable: [chat]` disables all chat adapters.
 
-Existing Discord config migrates from:
+A future self-hosted migration would move existing Discord config from:
 
 ```yaml
 plugins:
@@ -252,7 +252,7 @@ plugins:
         requireMention: true
 ```
 
-Permission rules stay unchanged (`discord:*`, `matrix:*`, etc.).
+Permission rules stay unchanged (`discord:*`, `matrix:*`, etc.). This migration is intentionally later than the hosted/shared gateway work.
 
 ## Event flow
 
@@ -296,7 +296,7 @@ Discord response policy must preserve:
 - **File uploads**: trusted/anchor users can upload supported text files; unsupported/oversized files are ignored.
 - **Confirmations**: yes/no confirmation replies continue pending agent actions in the same conversation.
 
-This parity list is the acceptance contract before switching Rover off `@brains/discord`.
+This parity list is the acceptance contract before hosted gateway rollout and any later self-hosted Rover migration off `@brains/discord`.
 
 ## Abstract method implementations
 
@@ -309,7 +309,7 @@ Everything else — progress tracking, input buffering, confirmation flow, URL c
 
 ## Daemon
 
-Chat SDK does not expose a generic long-running `app.start()`/`app.stop()` lifecycle for Discord. The first direct/self-hosted Discord implementation should initialize the Chat SDK app and run a small daemon loop around the Discord adapter's bounded `startGatewayListener(...)` API. The loop must be abortable on daemon stop.
+Chat SDK does not expose a generic long-running `app.start()`/`app.stop()` lifecycle for Discord. The first Discord implementation should initialize the Chat SDK app and run a small daemon loop around the Discord adapter's bounded `startGatewayListener(...)` API. The loop must be abortable on daemon stop. This supports both local opt-in trials and the future gateway-owned shared bot process.
 
 ```typescript
 createDaemon() → {
@@ -330,45 +330,52 @@ Webhook routes should still be mounted for Discord interactions where configured
    - Keep current `@brains/discord` untouched during comparison.
    - Do not migrate Rover, Ranger, or Relay in this first slice.
 
-2. **Rover opt-in trial**
-   - Switch Rover test/local config to `chat.adapters.discord`.
+2. **Rover opt-in trial only**
+   - Allow Rover test/local config to opt into `chat.adapters.discord`.
+   - Keep `@brains/discord` as the default self-hosted/direct Rover interface.
    - Verify live Discord behavior: mention gating, DMs, threads, URL capture, uploads, confirmations, progress edits.
    - Ensure `evalDisable` includes `"chat"`.
 
-3. **Migrate Rover**
-   - Replace Rover's `@brains/discord` import with `@brains/chat`.
-   - Keep permission strings and env vars stable.
-
-4. **Design/confirm central gateway server**
+3. **Hosted/shared gateway first**
    - Decide whether Ranger remains the central Discord gateway or whether a dedicated hosted-chat gateway app owns the shared bot.
-   - Define target-rover lookup, forwarding auth, and response/progress routing.
+   - Add the `ChatInterface` router callback needed by gateway mode.
+   - Add the rover-side `ForwardedChatInterface` for internal gateway → rover delivery.
+   - Add the Ranger `rover-gateway` plugin for `discord_user_id → rover endpoint` lookup, forwarding auth, and response/progress routing.
    - This is required before hosted rovers can drop per-user Discord bot tokens.
 
-5. **Migrate Ranger and Relay**
-   - Preserve the hosted rover/shared Discord gateway topology. Do not require each hosted rover to run its own Discord adapter or own Discord bot token.
+4. **Migrate hosted Rover Discord to one shared app**
+   - Hosted rovers must not register their own Discord adapter or own Discord bot token.
+   - Ranger/gateway owns the shared Discord app credentials, including `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID`.
    - Verify gateway-mode progress routing: async job status from a target rover must still edit/send messages through the gateway-owned Discord adapter.
 
-6. **Remove old `@brains/discord`**
-   - Only after no brain model imports it and docs/config examples point to `chat.adapters.discord`.
+5. **Add richer hosted app interactions**
+   - Add command diagnostics such as `/rover status` and `/rover help` where supported.
+   - Render confirmations and approvals with buttons/cards where available, with text fallback.
+   - Keep this at the gateway/app layer so it benefits hosted users and future Slack/WhatsApp paths.
 
-7. **Enable Matrix via Chat SDK**
-   - Matrix returns through the Chat SDK adapter path.
-   - Do not reintroduce the old native Matrix interface or `matrix-sdk-crypto-nodejs` path.
+6. **Migrate self-hosted Rover later**
+   - Only after hosted gateway mode is stable and the SDK path has proven live Discord behavior.
+   - Preserve current self-hosted behavior and avoid forcing extra Discord app identifiers until the migration has clear product value.
+   - Keep permission strings stable (`discord:*`). Env/config compatibility may require an adapter wrapper or migration helper.
 
-8. **Add Slack/Teams/Telegram adapters as needed**
-   - Prefer socket-mode setups first.
-   - Add API route mounting only for adapters that need inbound webhooks.
+7. **Remove old `@brains/discord`**
+   - Only after hosted and self-hosted brain models no longer import it and docs/config examples point to `chat.adapters.discord`.
+
+8. **Enable other Chat SDK platforms as product demand warrants**
+   - WhatsApp is a strong candidate for hosted Rover reach, but requires product-policy work around identity, opt-in, templates, and proactive messaging.
+   - Slack is a stronger fit for Relay/team spaces.
+   - Matrix returns through the Chat SDK adapter path; do not reintroduce the old native Matrix interface or `matrix-sdk-crypto-nodejs` path.
 
 ## Key files
 
-| File                                                              | Role                                                   |
-| ----------------------------------------------------------------- | ------------------------------------------------------ |
-| `shell/plugins/src/message-interface/message-interface-plugin.ts` | Base class to extend                                   |
-| `interfaces/discord/src/discord-interface.ts`                     | Current Discord behavior spec and parity reference     |
-| `shell/app/src/brain-resolver.ts`                                 | Config merge behavior for adapter sub-objects          |
-| `brains/rover/src/index.ts`                                       | First brain to adopt ChatInterface                     |
-| `brains/ranger/src/index.ts`                                      | Shared Discord gateway topology must remain compatible |
-| `brains/relay/src/index.ts`                                       | Later migration target                                 |
+| File                                                              | Role                                                        |
+| ----------------------------------------------------------------- | ----------------------------------------------------------- |
+| `shell/plugins/src/message-interface/message-interface-plugin.ts` | Base class to extend                                        |
+| `interfaces/discord/src/discord-interface.ts`                     | Current Discord behavior spec and parity reference          |
+| `shell/app/src/brain-resolver.ts`                                 | Config merge behavior for adapter sub-objects               |
+| `brains/rover/src/index.ts`                                       | Opt-in direct trial now; hosted/self-hosted migration later |
+| `brains/ranger/src/index.ts`                                      | Likely owner of the shared hosted Discord gateway           |
+| `brains/relay/src/index.ts`                                       | Later team/chat platform target                             |
 
 ## Dependencies & compatibility
 
@@ -384,8 +391,9 @@ Webhook routes should still be mounted for Discord interactions where configured
 1. `bun install` picks up new `@brains/chat` workspace package.
 2. `bun run typecheck`, relevant tests, and lint pass.
 3. Discord parity tests cover the acceptance contract above.
-4. Live Rover Discord test verifies mention gating, DMs, threads, URL capture, uploads, confirmations, typing, progress edits, and job completion edits.
+4. Rover can opt into SDK-backed Discord locally without changing default self-hosted behavior.
 5. Eval mode does not start ChatInterface.
-6. Rover can run on SDK-backed Discord without user-visible regression.
-7. Ranger/Relay migrate without breaking shared gateway behavior.
-8. Matrix adapter can be enabled through Chat SDK without reintroducing the old native Matrix dependency path.
+6. Hosted Rover can run through one shared gateway-owned Discord app with no per-user bot tokens.
+7. Gateway-mode progress, edits, confirmations, and attachments route back through the gateway-owned adapter.
+8. Self-hosted Rover migration is deferred until hosted gateway mode is stable and migration friction is acceptable.
+9. Other adapters can be enabled through Chat SDK without reintroducing legacy platform-specific interface paths.
