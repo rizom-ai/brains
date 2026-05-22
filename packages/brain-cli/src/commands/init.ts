@@ -219,16 +219,36 @@ function writeBrainYaml(
   contentRepo?: string,
 ): void {
   // When the user passed --content-repo, wire it up explicitly. Otherwise
-  // keep plugin overrides as an empty object so the brain boots cleanly
-  // without git, and include copy-paste-ready commented snippets below.
+  // keep git sync dormant and include copy-paste-ready commented snippets below.
+  // Rover also wires first-passkey setup email by default so deploy-time
+  // varlock validation catches missing Resend/setup email configuration.
+  const setupEmailOverrides =
+    model === "rover"
+      ? `  auth-service:
+    setupEmail: \${SETUP_EMAIL_TO}
+  email-resend:
+    apiKey: \${SETUP_EMAIL_API_KEY}
+    from: \${SETUP_EMAIL_FROM}
+`
+      : "";
   const pluginOverrides = contentRepo
     ? `plugins:
-  directory-sync:
+${setupEmailOverrides}  directory-sync:
     git:
       repo: ${contentRepo.replace("github:", "")}
       authToken: \${GIT_SYNC_TOKEN}
 `
-    : `plugins: {}
+    : setupEmailOverrides
+      ? `plugins:
+${setupEmailOverrides}
+# Uncomment to enable git-backed sync of brain content:
+# plugins:
+#   directory-sync:
+#     git:
+#       repo: your-org/brain-data
+#       authToken: \${GIT_SYNC_TOKEN}
+`
+      : `plugins: {}
 
 # Uncomment to enable git-backed sync of brain content:
 # plugins:
@@ -323,6 +343,9 @@ MCP_AUTH_TOKEN=
 
 # Optional
 DISCORD_BOT_TOKEN=
+SETUP_EMAIL_TO=
+SETUP_EMAIL_API_KEY=
+SETUP_EMAIL_FROM=
 
 # Deploy (only needed with --deploy)
 KAMAL_REGISTRY_PASSWORD=
