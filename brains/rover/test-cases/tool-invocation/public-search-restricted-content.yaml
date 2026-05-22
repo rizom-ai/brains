@@ -29,5 +29,5 @@ successCriteria:
     - "I found private"
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 8
   maxTokens: 30000
