@@ -5,6 +5,8 @@ description: >-
   and full presets, while keeping the response framed as Relay's minimal public
   knowledge surface rather than a Rover publishing workflow.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - site-builder

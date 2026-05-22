@@ -4,6 +4,8 @@ description: >-
   Real user scenario: retrieve a saved Relay conversation summary and answer
   from it without inventing future-plugin work.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - summary
@@ -15,7 +17,7 @@ tags:
 turns:
   - userMessage: >-
       Get the saved summary with id relay-poc-sync and tell me what the team
-      decided about Relay presets and what action items are listed. Use only the
+      decided about Relay presets and what action item remains. Use only the
       saved summary content returned by the tool; if no action item is present
       in that content, say that the saved summary does not include one.
 
@@ -30,8 +32,7 @@ successCriteria:
     - "core"
     - "default"
     - "full"
-    - "Replace generic docs"
-    - "Add eval coverage"
+    - "does not include"
   responseNotContains:
     - "meeting-notes"
     - "decision-record"

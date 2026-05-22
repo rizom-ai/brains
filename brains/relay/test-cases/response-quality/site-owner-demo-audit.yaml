@@ -4,6 +4,8 @@ description: >-
   Real user scenario: a site owner checks the public Relay story before a demo
   and expects grounded claims, not generic product marketing.
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario

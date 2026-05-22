@@ -4,6 +4,8 @@ description: >-
   Real user workflow: a team lead captures rough meeting notes, then asks Relay
   to retrieve the saved context and turn it into an actionable follow-up plan.
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario

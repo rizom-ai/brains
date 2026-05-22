@@ -26,7 +26,7 @@ describe("Relay eval cases", () => {
       files.map((file) => loader.loadTestCase(file)),
     );
 
-    expect(cases.length).toBeGreaterThanOrEqual(30);
+    expect(cases.length).toBeGreaterThanOrEqual(33);
     expect(cases.map((testCase) => testCase.id)).toContain(
       "relay-scenario-team-meeting-to-memory-loop",
     );
@@ -50,6 +50,15 @@ describe("Relay eval cases", () => {
     );
     expect(cases.map((testCase) => testCase.id)).toContain(
       "relay-tool-prompt-topic-guidance-get",
+    );
+    expect(cases.map((testCase) => testCase.id)).toContain(
+      "relay-permission-public-save-note-denied",
+    );
+    expect(cases.map((testCase) => testCase.id)).toContain(
+      "relay-permission-public-peer-call-denied",
+    );
+    expect(cases.map((testCase) => testCase.id)).toContain(
+      "relay-permission-shared-team-memory-search",
     );
   });
 });

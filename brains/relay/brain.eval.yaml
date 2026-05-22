@@ -12,6 +12,7 @@ judge: gpt-5.4-mini
 # mode: eval disables interfaces and side-effect plugins defined by the brain model.
 plugins:
   directory-sync:
+    seedContentPath: ./eval-content
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"
   a2a:

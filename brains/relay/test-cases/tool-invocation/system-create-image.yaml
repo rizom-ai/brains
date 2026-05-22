@@ -4,6 +4,8 @@ description: >-
   Verifies that Relay can save a small image entity for the public-site/image
   preset path without falling back to unsupported publishing or attachment tools.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - image

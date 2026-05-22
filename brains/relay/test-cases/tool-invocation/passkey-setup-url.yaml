@@ -4,6 +4,8 @@ description: >-
   Verifies that an anchor can retrieve the generated first-passkey setup URL
   through the auth-service tool instead of relying on logs or static env tokens.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - auth-service

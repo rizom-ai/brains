@@ -4,6 +4,8 @@ description: >-
   Verifies that Relay answers operator sync-status questions through the
   directory-sync status tool instead of performing a sync or inventing git state.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - directory-sync

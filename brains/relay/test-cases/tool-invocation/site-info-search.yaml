@@ -2,6 +2,8 @@ id: relay-tool-site-info-search
 name: Search Relay site info and site content
 description: Tests that the agent can answer questions about the existing minimal Relay public site content.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - site-content

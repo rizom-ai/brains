@@ -4,6 +4,8 @@ description: >-
   Verifies that Relay can retrieve editable prompt entities for operator review
   before changing topic-extraction behavior.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - prompt
