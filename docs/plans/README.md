@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Shared space trust](./shared-space-trust.md) — first slice implemented; entity action policy follow-up remains
+- [Entity action policy](./entity-action-policy.md) — proposed next Relay trust hardening slice after the implemented shared-space trust resolver
 - [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 

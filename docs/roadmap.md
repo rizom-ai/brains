@@ -138,7 +138,7 @@ Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
 - [summary-conversation-memory.md](./plans/summary-conversation-memory.md) — conversation memory policy and remaining eval/policy tightening.
-- [shared-space-trust.md](./plans/shared-space-trust.md) — implemented first trust slice; entity action policy remains a follow-up.
+- [entity-action-policy.md](./plans/entity-action-policy.md) — next trust-hardening slice after the implemented shared-space trust resolver.
 - [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
 ### 3. Make shared Relay trustworthy enough to matter
