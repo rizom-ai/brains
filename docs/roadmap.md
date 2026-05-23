@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-23
+Last updated: 2026-05-24
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -85,7 +85,9 @@ The roadmap is organized around that story rather than generic short/medium/long
 
 Rover is the public reference brain and should keep working without Relay. The posture has shifted from "maintain Rover" to "actively harden Rover alongside the Relay POC" — both produce signal worth acting on, and both feed the same weekly review cadence.
 
-Two parallel sub-tracks:
+Three parallel sub-tracks:
+
+**Primary: bundled web chat UI.** Rover (and every brain) currently has no in-browser way to actually chat with the brain — the options are CLI, Discord setup, or MCP through a desktop assistant. None of these is a credible "try it" path for new users. A bundled web chat surface closes that gap and is the most leveraged Rover hardening investment. See [brain-web-ui.md](./plans/brain-web-ui.md).
 
 **Planned: media/OG follow-through.** PDF carousels, LinkedIn document publishing, and durable media artifacts landed in this cycle. Remaining work is the OG image substrate and a unified media generation lifecycle. Cap this at a defined slice — media work has its own gravity and will pull attention from friction work if unchecked.
 
@@ -101,6 +103,7 @@ Both tracks share the same weekly review with Relay POC observations: what hit u
 
 Supporting plans:
 
+- [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
 - [generic-media-generation.md](./plans/generic-media-generation.md) — clean lifecycle surface for generated media artifacts.
 - [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
@@ -177,10 +180,9 @@ Plans:
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
-- [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — hosted Discord UX direction.
 - [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — tactical CMS OAuth proxy.
 - [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — longer-term brain-hosted CMS git gateway.
-- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — deferred multi-platform chat consolidation via Vercel Chat SDK; not v0.2.0-gating.
+- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — parked; revisits multi-platform chat adapter consolidation only when a new platform is prioritized.
 
 ### 5. Make the ecosystem credible
 

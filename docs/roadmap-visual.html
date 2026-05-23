@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>Last updated: 2026-05-23 — story arc: Rover stays standalone; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
+      <p>Last updated: 2026-05-24 — story arc: Rover stays standalone with a bundled web chat UI; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
     </div>
 
     <div class="legend">
@@ -623,8 +623,15 @@
           id: "rover_hardening",
           name: "Rover hardening (parallel track)",
           status: "short-term",
-          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Two sub-tracks: (1) planned media/OG follow-through — consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images; (2) reactive user-testing friction — single capture channel, prioritize by frequency × severity, bias toward small ships, weight setup/first-run friction heavily.",
+          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Three sub-tracks: (1) primary — bundled web chat UI so a new user can actually try Rover in a browser without CLI/Discord/MCP setup; (2) planned media/OG follow-through — durable attachment generation, OG image substrate; (3) reactive user-testing friction — single capture channel, frequency × severity, small ships, setup/first-run weighted.",
           deps: ["pdf_carousel", "rover_standalone"],
+        },
+        {
+          id: "brain_web_ui",
+          name: "Brain web UI (bundled chat surface)",
+          status: "short-term",
+          desc: "Bundled with @rizom/brain so every brain ships with a working in-browser chat surface. Streaming progress from day one, coexists with the existing dashboard, reuses passkey auth. Closes the 'try Rover' gap and makes Discord optional rather than mandatory. Supersedes the previously planned shared-bot Discord gateway model.",
+          deps: ["rover_hardening"],
         },
         {
           id: "package_boundaries",
@@ -658,7 +665,7 @@
           id: "chat_interface_sdk",
           name: "Multi-platform chat consolidation",
           status: "long-term",
-          desc: "Deferred unification of Discord/Matrix/Slack/Teams/etc. through a single ChatInterface backed by Vercel Chat SDK. Not v0.2.0-gating; revisited when another chat surface is prioritized.",
+          desc: "Parked. The previous shared-bot Discord gateway model was dropped after walking through the UX (accidental complexity, multi-target ambiguity). Web chat surface now lives in brain_web_ui. Revisit only when a new platform (Slack/Teams/Matrix return) is actually prioritized.",
         },
       ];
 

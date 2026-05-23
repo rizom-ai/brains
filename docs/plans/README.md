@@ -50,12 +50,12 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
-- [Hosted Rover Discord UX](./hosted-rover-discord.md) — proposed hosted-product UX
 - [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
 ### New interfaces, renderers, and runtimes
 
-- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md) — proposed; first package slice only
+- [Brain web UI](./brain-web-ui.md) — active near-term investment; bundled in-browser chat surface for every brain
+- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — parked
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike

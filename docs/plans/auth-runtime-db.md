@@ -296,7 +296,7 @@ Validation: linked Discord user maps to a brain user; CMS commits show editor at
 
 - [Multi-user and permissions](./multi-user.md)
 - [Conversation speaker attribution](./conversation-speaker-attribution.md)
-- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md)
-- [Hosted Rover Discord UX](./hosted-rover-discord.md)
+- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md)
+- [Brain web UI](./brain-web-ui.md)
 - [CMS heavy backend](./cms-heavy-backend.md)
 - [Operator runtime database](./operator-runtime-db.md)
