@@ -57,7 +57,7 @@ browser (chat UI)
 Concrete components:
 
 - **`interfaces/web-chat/`** — new package, extends `MessageInterfacePlugin`. Owns HTTP routes, SSE streaming, request authentication (via existing `@brains/auth-service` passkey flow), and the browser UI assets.
-- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol, and optionally AI Elements) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing.
+- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing. AI Elements is React/shadcn-based, so treat it as UX/component inspiration rather than a default v1 dependency unless we explicitly choose to ship React in the bundled UI.
 - **Brain ↔ AI SDK adapter** — add a thin adapter that translates brain-native chat events (`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI-compatible stream parts. Do not model the brain as a raw AI SDK model provider in v1; the brain runtime remains the orchestration layer.
 - **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, e.g. `/api/chat` or `/chat/api/message`.
 - **Conversation persistence** — reuse the existing conversation service. Each browser session maps to a `conversationId` like `web-${userId}-${sessionId}`.
@@ -90,15 +90,43 @@ Implementation notes:
 
 - Prefer a custom transport if the default `useChat` request/response shape does not match the brain's auth/session/conversation requirements.
 - Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
-- Use AI SDK UI/AI Elements for rendering only where they fit the existing frontend stack. If React is too heavy for the bundled runtime, a small Preact client can consume the same stream protocol directly.
+- Bias toward a Preact-native chat UI for v1, because the existing site/template stack is Preact-oriented and the bundled runtime should stay lightweight.
+- Treat AI Elements as reference material for patterns — conversations, messages, reasoning blocks, tool-call displays, markdown/code rendering, attachments — not as a dependency unless we explicitly accept React + shadcn in the runtime.
 - Treat the Vercel `chat` package / platform adapters as separate future work covered by `chat-interface-sdk.md`.
+
+## v0 spike: Preact-native chat surface
+
+Before committing to v1, run a timeboxed (~3–5 day) spike to verify the Preact-native direction is viable. The spike's job is to produce a real go/no-go signal, not a "looks fine" vibe.
+
+### Pre-spike check
+
+Quick maturity check on `shadcn-preact` (active maintenance, recent commits, open-issue trajectory). If the foundation is stale, the spike's premise is already weak — fall back to per-route React without spending the time.
+
+### Spike scope
+
+Build a working `/chat` route in Preact connected to a brain's `AgentService.chat()` via SSE. Must render all four:
+
+1. **Streaming text messages** — chunk-by-chunk updates, partial-markdown handled gracefully (rendering incomplete markdown without flicker is the real test).
+2. **Markdown rendering** with code blocks and syntax highlighting.
+3. **Tool-call display** — collapsed/expanded tool invocations with parameters, results, status. The AI-specific pattern where `ai-elements` does real work; the hardest one to replicate.
+4. **One confirmation prompt** — `pendingConfirmation` from `AgentResponse` rendered as something interactive.
+
+Out of scope for the spike: attachments, conversation history sidebar, voice, theming, polished styling.
+
+### Exit criteria
+
+- ✅ **Pass:** All four work, code is maintainable, no Radix-style portal/focus issues from `shadcn-preact`, extrapolated v1 component cost looks like ≤2 weeks of pure UI work. Proceed Preact-native.
+- ❌ **Fail:** `shadcn-preact` shows visible component bugs, tool-call rendering balloons into a from-scratch project, or extrapolated v1 cost reaches 3+ weeks of UI work. Fall back to **per-route React** with `ai-elements` (or `assistant-ui`) — `/chat` ships its own React bundle, other routes stay Preact, monorepo accepts the React version-sync overhead.
+
+### Why this is the right next step
+
+The Preact-native direction has lower long-term cost (single runtime, no two-stacks cognitive load) but higher upfront component-build cost. Per-route React is the inverse. The spike resolves the uncertainty about `shadcn-preact`'s maturity and AI-pattern coverage cheaply, before sinking weeks into either path.
 
 ## Open decisions
 
-1. **React `useChat` vs. Preact stream client.** AI SDK UI is the preferred protocol/contract, but we still need to choose whether to ship the React hook/components directly or consume the stream protocol from a lighter Preact UI.
-2. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
-3. **Conversation history in v1.** Single active conversation, or sidebar with prior conversations? MVP can be single-conversation; history is a small follow-up.
-4. **Attachments in v1.** File uploads through the chat UI are useful but not strictly required for a first ship. Defer if they add meaningful complexity.
+1. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
+2. **Conversation history in v1.** Single active conversation, or sidebar with prior conversations? MVP can be single-conversation; history is a small follow-up.
+3. **Attachments in v1.** File uploads through the chat UI are useful but not strictly required for a first ship. Defer if they add meaningful complexity.
 
 ## Validation
 
