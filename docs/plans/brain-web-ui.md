@@ -57,7 +57,7 @@ browser (chat UI)
 Concrete components:
 
 - **`interfaces/web-chat/`** — new package, extends `MessageInterfacePlugin`. Owns HTTP routes, SSE streaming, request authentication (via existing `@brains/auth-service` passkey flow), and the browser UI assets.
-- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing. AI Elements is React/shadcn-based, so treat it as UX/component inspiration rather than a default v1 dependency unless we explicitly choose to ship React in the bundled UI.
+- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing. Because AI Elements and assistant-ui are React-first, v0 should test a quarantined React route rather than forcing the chat UI through Preact.
 - **Brain ↔ AI SDK adapter** — add a thin adapter that translates brain-native chat events (`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI-compatible stream parts. Do not model the brain as a raw AI SDK model provider in v1; the brain runtime remains the orchestration layer.
 - **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, e.g. `/api/chat` or `/chat/api/message`.
 - **Conversation persistence** — reuse the existing conversation service. Each browser session maps to a `conversationId` like `web-${userId}-${sessionId}`.
@@ -90,21 +90,39 @@ Implementation notes:
 
 - Prefer a custom transport if the default `useChat` request/response shape does not match the brain's auth/session/conversation requirements.
 - Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
-- Bias toward a Preact-native chat UI for v1, because the existing site/template stack is Preact-oriented and the bundled runtime should stay lightweight.
-- Treat AI Elements as reference material for patterns — conversations, messages, reasoning blocks, tool-call displays, markdown/code rendering, attachments — not as a dependency unless we explicitly accept React + shadcn in the runtime.
+- Bias toward a quarantined React route for v0/v1 if it can be cleanly isolated from the existing Preact site/dashboard stack. This mirrors the existing Ink/CLI solution: real React where the React ecosystem is required, behind a hard package/runtime boundary.
+- Treat AI Elements and assistant-ui as viable dependencies inside that isolated route only. They must not pull React imports/types into shared/server packages or the Preact dashboard/site runtime.
 - Treat the Vercel `chat` package / platform adapters as separate future work covered by `chat-interface-sdk.md`.
 
-## v0 spike: Preact-native chat surface
+## v0 spike: quarantined React chat route
 
-Before committing to v1, run a timeboxed (~3–5 day) spike to verify the Preact-native direction is viable. The spike's job is to produce a real go/no-go signal, not a "looks fine" vibe.
+Before committing to v1, run a timeboxed (~3–5 day) spike to verify that a React chat surface can be cleanly isolated from the existing Preact runtime. The spike's job is to produce a real go/no-go signal, not a "looks fine" vibe.
 
-### Pre-spike check
+This follows the precedent from `interfaces/chat-repl`: Ink needs real React, so `@brains/chat-repl` owns its React deps, has its own `jsxImportSource: "react"`, dynamically imports Ink/React at runtime, and keeps React out of shared/server code. `/chat` should use the same containment principle.
 
-Quick maturity check on `shadcn-preact` (active maintenance, recent commits, open-issue trajectory). If the foundation is stale, the spike's premise is already weak — fall back to per-route React without spending the time.
+### Isolation shape
+
+Single workspace package with internal subdirectories, matching the existing `interfaces/chat-repl` shape for consistency:
+
+```text
+interfaces/web-chat/
+  src/              # WebChatInterface server/plugin code; no React imports
+  ui-react/         # isolated React route app; owns React deps + tsconfig
+```
+
+Splitting into two workspaces (`interfaces/web-chat` + `interfaces/web-chat-react-ui`) is a fallback only if the spike surfaces concrete dependency or build-isolation problems that the single-package shape cannot solve.
+
+Containment rules:
+
+- React imports are allowed only inside the route UI boundary.
+- The server/plugin side communicates with the UI only through HTTP/SSE contracts, not shared React state/components.
+- Do not use `preact/compat` as the first approach for AI Elements/assistant-ui.
+- Existing dashboard/site routes remain Preact.
+- Add a guard/test that fails if `react` imports appear outside the approved route UI boundary.
 
 ### Spike scope
 
-Build a working `/chat` route in Preact connected to a brain's `AgentService.chat()` via SSE. Must render all four:
+Build a working `/chat` route in React connected to a brain's `AgentService.chat()` via SSE. Must render all four:
 
 1. **Streaming text messages** — chunk-by-chunk updates, partial-markdown handled gracefully (rendering incomplete markdown without flicker is the real test).
 2. **Markdown rendering** with code blocks and syntax highlighting.
@@ -115,18 +133,22 @@ Out of scope for the spike: attachments, conversation history sidebar, voice, th
 
 ### Exit criteria
 
-- ✅ **Pass:** All four work, code is maintainable, no Radix-style portal/focus issues from `shadcn-preact`, extrapolated v1 component cost looks like ≤2 weeks of pure UI work. Proceed Preact-native.
-- ❌ **Fail:** `shadcn-preact` shows visible component bugs, tool-call rendering balloons into a from-scratch project, or extrapolated v1 cost reaches 3+ weeks of UI work. Fall back to **per-route React** with `ai-elements` (or `assistant-ui`) — `/chat` ships its own React bundle, other routes stay Preact, monorepo accepts the React version-sync overhead.
+- ✅ **Pass:** React route bundles only for `/chat`; React imports/types stay inside the approved UI boundary; AI Elements/assistant-ui can render streaming messages, markdown/code, tool-call panels, and confirmations quickly; dependency/version management remains sane. Proceed with the quarantined React route.
+- ❌ **Fail:** React or shadcn/Radix types leak into shared/server/Preact packages, route bundling requires invasive app-wide build changes, or dependency/version management repeats the earlier monorepo pain. Fall back to a Preact-native stream client and use AI Elements only as reference material.
 
 ### Why this is the right next step
 
-The Preact-native direction has lower long-term cost (single runtime, no two-stacks cognitive load) but higher upfront component-build cost. Per-route React is the inverse. The spike resolves the uncertainty about `shadcn-preact`'s maturity and AI-pattern coverage cheaply, before sinking weeks into either path.
+The Preact-native direction has lower long-term runtime surface, but likely turns AI-specific UI into a custom component-library project. A quarantined React route is more pragmatic if the isolation holds: `/chat` gets the mature AI UI ecosystem while the rest of the brain stays Preact. The spike resolves the real uncertainty — React containment — before sinking weeks into either path.
 
 ## Open decisions
 
 1. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
 2. **Conversation history in v1.** Single active conversation, or sidebar with prior conversations? MVP can be single-conversation; history is a small follow-up.
 3. **Attachments in v1.** File uploads through the chat UI are useful but not strictly required for a first ship. Defer if they add meaningful complexity.
+
+### Spike target for the React UI dependency
+
+Test **AI Elements** first as the React UI inside the quarantined route. It's first-party Vercel, tightest with AI SDK UI, and has the most coverage for AI-specific patterns (streaming, tool calls, reasoning, attachments). Use `assistant-ui` or a small custom React UI on top of AI SDK UI as fallbacks only if AI Elements hits dealbreaker issues during the spike. Comparing all three within the 3–5 day timebox dilutes the containment signal that's the real point.
 
 ## Validation
 
