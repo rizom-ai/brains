@@ -4,6 +4,7 @@ import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
+import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
@@ -118,6 +119,7 @@ export default defineBrain({
   evalDisable: [
     "discord",
     "webserver",
+    "web-chat",
     "mcp",
     "analytics",
     "dashboard",
@@ -216,6 +218,7 @@ export default defineBrain({
     ["mcp", MCPInterface, (): PluginConfig => ({})],
     ["discord", DiscordInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
 
@@ -225,6 +228,7 @@ export default defineBrain({
       { pattern: "mcp:stdio", level: "anchor" },
       { pattern: "mcp:http", level: "public" },
       { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "anchor" },
     ],
   },
 

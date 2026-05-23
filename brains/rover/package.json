@@ -53,6 +53,7 @@
     "@brains/stock-photo": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "@brains/topics": "workspace:*",
+    "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*"
   },
