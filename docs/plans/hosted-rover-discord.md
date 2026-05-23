@@ -96,29 +96,45 @@ A2A is **not** the gateway↔rover transport. A2A is shaped for peer-agent calls
 | User record + Discord identity link             | per `multi-user.md` §1, §5                                 | planned                                       |
 | Onboarding flow for unknown Discord user        | `rover-gateway` + provisioner                              | **new**                                       |
 
-## Router-callback shape
+## Gateway dispatch contract
 
-Vercel Chat SDK is purely event-driven: handlers receive `thread` + `message` and are free to do any async work before calling `thread.post(reply)`. The gateway integrates as an async router callback awaited inside the handler:
+Vercel Chat SDK is event-driven: handlers receive `thread` + `message` and can do async work before posting a reply. In hosted mode, `ChatInterface` should not call its local `AgentService`. It should normalize the platform event and ask a gateway router to handle it.
+
+For the first implementation, use the existing shell messaging bus instead of adding a new plugin context namespace. This keeps plugin instances decoupled and makes lifecycle/order easy to test.
 
 ```typescript
 // interfaces/chat/src/chat-interface.ts (sketch)
-bot.onSubscribedMessage(async (thread, message) => {
-  if (router) {
-    await router.forward({
-      senderId: message.senderId,
-      threadId: thread.id,
-      messageId: message.id,
-      content: message.content,
-      platform: thread.platform,
-    }, thread); // router streams events back; uses thread.post / SentMessage.edit
-  } else {
-    const reply = await agentService.chat(message.content, conversationId, { ... });
-    await thread.post(reply.text);
+bot.onDirectMessage(async (thread, message) => {
+  if (config.gateway?.enabled) {
+    const result = await context.messaging.send({
+      type: "request",
+      channel: "chat:gateway:message",
+      payload: {
+        platform: "discord",
+        userId: `discord:${message.author.userId}`,
+        threadId: thread.id,
+        channelId: thread.channelId,
+        messageId: message.id,
+        content: message.text,
+        permissionLevel,
+        actor,
+        source,
+        trackingKey,
+      },
+    });
+
+    await thread.post(result.response.text);
+    return;
   }
+
+  const reply = await agentService.chat(message.text, conversationId, { ... });
+  await thread.post(reply.text);
 });
 ```
 
-The router is just an async function. The `rover-gateway` plugin registers it via plugin context (matches existing capability-registration patterns). When no router is registered, `ChatInterface` falls back to direct mode — what self-hosted standalone brains use.
+`rover-gateway` subscribes to `chat:gateway:message`, forwards the normalized event to the target rover, and returns the final response. When gateway mode is disabled or no gateway handler exists, `ChatInterface` falls back to direct mode — what self-hosted standalone brains use.
+
+A later version can replace the messaging-channel implementation with a dedicated `chatRouters.register(...)` namespace if multiple gateway/router providers need to coexist. Do not add that shell API in v0.
 
 ## Response rendering split
 
@@ -199,6 +215,111 @@ In hosted mode, per-user rovers do not register their own Discord interface. The
 
 `ForwardedChatInterface` extends `MessageInterfacePlugin` — same conversation IDs, agent service routing, confirmation flow, progress tracking, file upload validation. Only the transport differs: instead of Discord gateway socket, it listens on an internal HTTP+SSE endpoint mounted on the rover's existing webserver.
 
+## User-facing routing model
+
+The shared Discord app is a **client shell**, not a single brain. The UI must make the active target legible.
+
+### Default DM behavior
+
+For hosted users, a DM to `@Rover` defaults to the user's own Rover once linked:
+
+```text
+user → DM @Rover → gateway → user's Rover
+```
+
+The first successful routed response should make the target clear, for example:
+
+```text
+Connected to Daniel's Rover. What do you want to work on?
+```
+
+Unknown users should get onboarding, not a generic Ranger answer:
+
+```text
+I don't know which Rover is yours yet. Connect an existing Rover or create one.
+```
+
+### Talking to Ranger and Relay
+
+Ranger and Relay should not be invisible fallbacks in the same DM. There are three possible routes:
+
+1. **Broker through the current Rover (v0/default)**
+   - User asks their Rover: "Ask Ranger if my hosted instance is healthy" or "Ask Relay what the team decided yesterday."
+   - Rover uses A2A/tooling to contact Ranger or Relay.
+   - The user remains in the personal Rover conversation.
+   - This keeps the v0 DM model simple: one default target, cross-brain communication happens through the agent layer.
+
+2. **Explicit command routing (later)**
+   - Add commands such as `/ranger status`, `/relay ask ...`, or `/brain ask ranger ...`.
+   - Useful for operator diagnostics and predictable product flows.
+   - Commands should be implemented at the gateway/app layer, not inside each user Rover.
+
+3. **Target switcher (later)**
+   - Add a Discord select/button flow for users who have access to multiple brains:
+     - Personal Rover
+     - Team Relay
+     - Ranger support/admin
+   - The UI must show the current active target to avoid hidden-state confusion.
+
+### Server/channel behavior
+
+For v0, avoid ambiguous shared-channel routing. Hosted Rover should be DM-first:
+
+- DMs route to the linked personal Rover.
+- Public/server channels are ignored, or respond with a short instruction to DM the bot.
+- Admin/status commands can be enabled later in explicit operator spaces.
+
+### UI principle
+
+The shared app should answer: "Which brain am I talking to?" before it tries to be clever.
+
+- Default target: user's Rover
+- Cross-brain questions: broker through Rover in v0
+- Explicit Ranger/Relay commands: later
+- Multi-brain target switcher: later
+
+## v0 static gateway slice
+
+Before provisioning, multi-user identity linking, and dynamic rover lookup exist, prove the gateway path with a static route map:
+
+```yaml
+plugins:
+  chat:
+    gateway:
+      enabled: true
+    adapters:
+      discord:
+        botToken: ${DISCORD_BOT_TOKEN}
+        publicKey: ${DISCORD_PUBLIC_KEY}
+        applicationId: ${DISCORD_APPLICATION_ID}
+
+  rover-gateway:
+    routes:
+      discord:user-123:
+        endpoint: http://localhost:4101/forwarded-chat/message
+        token: ${ALICE_ROVER_FORWARDING_TOKEN}
+```
+
+v0 behavior:
+
+- Discord DM from `discord:user-123` enters gateway-owned `ChatInterface`.
+- `ChatInterface` sends normalized payload on `chat:gateway:message`.
+- `rover-gateway` resolves the static route and POSTs to the target rover.
+- Target rover's `ForwardedChatInterface` calls local `AgentService.chat()`.
+- Gateway posts the returned final text back into the Discord DM.
+
+v0 non-goals:
+
+- no provisioner lookup
+- no account signup/onboarding
+- no SSE streaming
+- no progress edits
+- no button confirmations
+- no file uploads
+- no unknown-user self-service flow
+
+This gives us a real Discord, one-shared-token, end-to-end smoke test without blocking on the hosted-rovers control plane.
+
 ## v1 simplification
 
 Ship without streaming first to prove routing end-to-end:
@@ -238,16 +359,16 @@ The simplification is "the SSE channel emits only `final` events"; the rover-sid
 ### 2. Build `interfaces/chat/` (per `chat-interface-sdk.md`)
 
 - Vercel Chat SDK Discord adapter wrapped as `MessageInterfacePlugin`
-- accept optional router callback via plugin context
+- accept gateway mode via shell messaging (`chat:gateway:message`) for v0
 - preserve direct-mode behavior for non-hosted brains (fallback to local `AgentService.chat()`)
 - gateway-side rendering: Discord chunking, mdast translation, button rendering for confirmations, `SentMessage.edit()` on tracking-key match
 
 ### 3. New `rover-gateway` plugin in Ranger
 
-- registers router callback with `ChatInterface` via plugin context
-- maintains `discord_user_id → rover endpoint` lookup (queries the rover provisioner)
+- subscribes to `chat:gateway:message` from `ChatInterface`
+- maintains `discord_user_id → rover endpoint` lookup (static route map in v0; provisioner-backed later)
 - forwards normalized messages via HTTP POST to the target rover's `ForwardedChatInterface`
-- consumes SSE response stream and translates events into Chat SDK operations
+- returns the final response to `ChatInterface` in v0; consumes SSE response stream in v1.1
 - correlates async progress events back to the originating Discord `SentMessage` via tracking key
 - gates unknown users into the onboarding handoff
 
