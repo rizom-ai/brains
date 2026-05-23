@@ -174,49 +174,9 @@ Recommended Relay direction:
 
 This is intentionally later than basic shared-space trust, but should happen before treating large shared spaces as trusted by default.
 
-## Phased implementation
+## Remaining phased implementation
 
-### Phase 1 — Core resolver using existing spaces — done
-
-Primary packages:
-
-- `shell/templates` — teach `PermissionService` to evaluate configured space selectors
-- `shell/core` — pass `ShellConfig.spaces` into `PermissionService` construction if needed
-- `shell/plugins` — expose an additive context-aware permission lookup to interfaces
-
-Implementation:
-
-- Reuse existing `spaces: string[]`; do not add `permissions.sharedSpaces`.
-- Keep `PermissionService` as the single place that evaluates explicit users, configured-space matches, and pattern rules.
-- Add a context-aware resolver path while keeping the current `(interfaceType, userId)` API working.
-- Add focused tests for exact and wildcard space selector matches.
-
-Validation:
-
-- matching configured space grants `trusted`
-- non-matching space remains `public`
-- wildcard space selector grants `trusted` only for matching spaces
-- explicit anchor/trusted rules and elevated pattern rules still win
-- configured spaces cannot grant `anchor`
-
-### Phase 2 — Discord/Relay integration — done
-
-Primary package:
-
-- `interfaces/discord`
-
-Implementation:
-
-- Pass Discord guild/channel/user/bot context into the centralized permission resolver.
-- Enable Relay docs/config examples for trusted Discord spaces.
-- Ensure bots are excluded unless explicitly allowed.
-
-Validation:
-
-- member in configured Relay Discord space receives trusted tools
-- same user outside configured space falls back to existing rules/public
-- bot user does not receive trusted by default
-- explicit anchor user remains anchor
+Phases 1 (core resolver using existing `spaces`) and 2 (Discord/Relay integration) have shipped. Remaining phases:
 
 ### Phase 3 — Other chat interfaces
 

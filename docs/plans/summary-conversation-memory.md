@@ -267,34 +267,9 @@ Current evals test summary generation. Add memory-behavior evals:
    - stale summaries are detected
    - skipped conversations are explainable
 
-## Implementation plan
+## Remaining implementation
 
-### Phase 1 — policy and observability
-
-- Add top-level `spaces` instance config support.
-- Add a Relay-oriented eligibility helper with unit tests.
-- Replace message-count projection triggering with a 90-second delayed coalesced projection per conversation.
-- Add AI projection decision: `skip` / `update` / `append`, using stored messages plus existing summary.
-- Apply space eligibility to delayed projection and rebuild-all.
-- Add metadata/logging for skipped conversations.
-- Add eval/test cases for space eligibility and AI skip/update/append decisions.
-
-### Phase 2 — dashboard
-
-- Replace placeholder `Summaries` list with a purpose-built `Conversation Memory` widget.
-- Use summary metadata and eligibility state rather than parsing display markdown.
-
-### Phase 3 — decision/action entities
-
-- Add separate derived entity types only when needed: `decision` and `action-item`.
-- Give them their own schema, provenance, lifecycle, and evals.
-- Do not embed this lifecycle inside `summary`.
-
-### Phase 4 — context retrieval
-
-- Add explicit memory retrieval contract. ✅ `ConversationMemoryRetriever`
-- Rank by space, recency, and relevance. ✅ same-space first, search score, then updated time
-- Add future-use evals before enabling automatic behavior broadly. In progress: unit/eval-handler coverage exists; broader behavior evals still needed before prompt injection.
+Phases 1–3 (policy/observability, dashboard widget, decision/action entities) have shipped. Phase 4 retrieval contract and ranking landed; broader future-use evals are still needed before enabling automatic prompt injection.
 
 ## Open questions
 

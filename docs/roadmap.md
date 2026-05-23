@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -20,6 +20,17 @@ What already exists today:
 - rover as the public reference brain model
 - Kamal-based self-hosted deploy scaffolding, including app-local deploy artifacts, env-schema generation, and Cloudflare Origin CA bootstrap support
 - published-path support for standalone brain authoring
+
+### What stable `v0.2.0` means
+
+`v0.2.0` is a packaging and stability milestone, not a feature gate against Relay validation. It ships when:
+
+- the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` are treated as the supported authoring surface;
+- the `public` / `shared` / `restricted` visibility model is considered the baseline contract;
+- Rover eval coverage stays green across alpha releases;
+- documented deploy and init flows continue to reconcile against the extracted production paths.
+
+Relay POC validation (§2) and shared-Relay trust hardening (§3) proceed in parallel and do **not** gate `v0.2.0`.
 
 ## Recently completed
 
@@ -78,7 +89,7 @@ Current state:
 
 - Rover is usable today as a standalone personal/professional brain.
 - Publishing/site/content workflows remain valuable in their own right.
-- Media publishing work, including PDF carousels and LinkedIn document posts, supports credibility and distribution rather than becoming the main product bet.
+- Media publishing landed substantially in this cycle — PDF carousels, LinkedIn document publishing, durable media artifacts. This is real Rover product work and shares attention with §2 rather than running underneath it; remaining OG image and unified generation work is tracked below.
 
 Supporting plans:
 
@@ -103,6 +114,14 @@ Current state:
 - Conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval.
 - Shared-space trust first slice is implemented: configured spaces can grant collaborator/trusted access, with Discord channel context and bot/guest exclusions.
 - Speaker attribution first pass is implemented; deeper identity-link management remains deferred.
+
+The POC validates when:
+
+- at least one team or collective runs Relay against a real shared space for a sustained cycle (weeks, not days);
+- conversation summaries, decisions, and action items are referenced back by participants as the canonical record;
+- the rough edges in trust and identity are visible enough to drive §3 prioritization rather than blocking adoption.
+
+Until then, Relay remains an internal experiment owned by `rizom-foundation`.
 
 Plans:
 
@@ -134,6 +153,8 @@ Plans:
 
 A shared team brain has to be installable, maintainable, and recoverable by operators. This is not just “hosting later”; it is the operational layer that makes the Relay story viable if the POC works.
 
+Parts of §4 (passkey onboarding, hosted Rover control, CMS auth) depend on the runtime user model from §3 and cannot land before it. Discord UX and dashboard polish can proceed independently.
+
 This includes:
 
 - passkey/operator onboarding;
@@ -151,6 +172,7 @@ Plans:
 - [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — hosted Discord UX direction.
 - [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — tactical CMS OAuth proxy.
 - [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — longer-term brain-hosted CMS git gateway.
+- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — deferred multi-platform chat consolidation via Vercel Chat SDK; not v0.2.0-gating.
 
 ### 5. Make the ecosystem credible
 
@@ -166,22 +188,25 @@ This includes:
 
 Plans:
 
-- [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies.
-- [utils-package-boundaries.md](./plans/utils-package-boundaries.md) — continue reducing private grab-bag coupling.
+- [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
 - [atproto-integration.md](./plans/atproto-integration.md) — parked distribution/discovery layer.
+- [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
 
 ### 6. Keep the framework sustainable
 
-These are real, but they should not masquerade as product bets. They reduce drag so product work stays possible.
+These are real, but they should not masquerade as product bets. They reduce drag so product work stays possible. Split here between cleanup that is scheduled when it reduces real drag, and research probes kept as parked thinking until something forces them up the queue.
 
-Plans:
+Cleanup:
 
 - [env-schema-canonical.md](./plans/env-schema-canonical.md) — canonical env declarations.
 - [core-env-config.md](./plans/core-env-config.md) — move env-derived core defaults to the app layer.
 - [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
-- [memory-reduction.md](./plans/memory-reduction.md) — profile first, then optimize registry/template/lazy-loading pressure.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
+
+Research probes (parked):
+
+- [memory-reduction.md](./plans/memory-reduction.md) — profile first, then optimize registry/template/lazy-loading pressure.
 - [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contracts and Astro spike.
 - [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 

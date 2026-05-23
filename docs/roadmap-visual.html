@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>Last updated: 2026-05-22 — story arc: Rover stays standalone; Relay proves the shared team brain</p>
+      <p>Last updated: 2026-05-23 — story arc: Rover stays standalone; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
     </div>
 
     <div class="legend">
@@ -438,7 +438,7 @@
           name: "Team memory loop",
           status: "short-term",
           step: 2,
-          desc: "Validate capture → synthesize → share → coordinate: Relay listens in configured spaces, creates summaries/decisions/actions, retrieves memory in context, and helps the team become legible to itself.",
+          desc: "Validate capture → synthesize → share → coordinate: Relay listens in configured spaces, creates summaries/decisions/actions, retrieves memory in context, and helps the team become legible to itself. POC validates when at least one team runs Relay against a real shared space for weeks and references its summaries/decisions back as the canonical record.",
           deps: ["shared_relay_bet", "conversation_memory"],
         },
         {
@@ -593,8 +593,8 @@
           id: "passkey_onboarding",
           name: "Passkey/operator onboarding",
           status: "medium-term",
-          desc: "First-passkey setup URL exists; remaining work is generic operator notification bridge and Discord delivery to configured anchors.",
-          deps: ["operability"],
+          desc: "First-passkey setup URL exists; remaining work is generic operator notification bridge and Discord delivery to configured anchors. Production-grade onboarding ultimately depends on the auth/runtime DB for durable credential storage.",
+          deps: ["operability", "auth_runtime"],
         },
         {
           id: "offboarding",
@@ -623,14 +623,14 @@
           id: "media_surface",
           name: "Media generation surface",
           status: "medium-term",
-          desc: "Publishing/media work supports credibility and distribution: consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images.",
+          desc: "Media publishing landed substantially this cycle (PDF carousels, LinkedIn document publishing, durable artifacts) — real Rover product work, not supporting infrastructure. Remaining: consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images.",
           deps: ["pdf_carousel", "rover_standalone"],
         },
         {
           id: "package_boundaries",
           name: "Package boundaries",
           status: "medium-term",
-          desc: "Narrow official plugin/entity dependencies and continue moving domain helpers out of private grab-bag packages toward clearer homes and public surfaces where needed.",
+          desc: "Narrow official plugin/entity dependencies. The internal grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition); remaining work is curating which schema/helper surface goes public via @rizom/brain and proving one official plugin builds against public-only imports.",
           deps: ["public_surface"],
         },
         {
@@ -640,18 +640,25 @@
           desc: "AT Protocol and similar distribution/discovery layers are parked until they clearly support the shared Relay/Rover ecosystem story.",
         },
 
-        // Framework sustainability
+        // Framework sustainability — split between concrete cleanup (scheduled
+        // when it reduces real drag) and parked research probes.
         {
           id: "framework_drag",
-          name: "Framework drag reduction",
+          name: "Framework cleanup",
           status: "medium-term",
-          desc: "Engineering cleanup should support product momentum: canonical env schema, core env cleanup, build pipeline unification, memory profiling, and parallel eval workers.",
+          desc: "Engineering cleanup scheduled when it reduces real drag: canonical env schema, core env cleanup, build pipeline unification, and parallel eval workers.",
         },
         {
           id: "renderer_local_ai",
-          name: "Renderer/local AI futures",
+          name: "Framework research probes",
           status: "long-term",
-          desc: "Renderer-neutral contracts/Astro and local AI sidecar are real directions, but parked until product pressure makes them worth foregrounding.",
+          desc: "Parked research probes kept as thinking, not scheduled work: renderer-neutral contracts/Astro spike, local AI sidecar runtime, and memory-reduction profiling — wait for product pressure to force them up the queue.",
+        },
+        {
+          id: "chat_interface_sdk",
+          name: "Multi-platform chat consolidation",
+          status: "long-term",
+          desc: "Deferred unification of Discord/Matrix/Slack/Teams/etc. through a single ChatInterface backed by Vercel Chat SDK. Not v0.2.0-gating; revisited when another chat surface is prioritized.",
         },
       ];
 

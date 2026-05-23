@@ -23,8 +23,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Public surface and framework cleanup
 
-- [NPM package boundaries](./npm-package-boundaries.md) — accepted near-term direction
-- [Utils package boundaries](./utils-package-boundaries.md) — in progress
+- [NPM package boundaries](./npm-package-boundaries.md) — accepted near-term direction; pending curation of which schema helpers go public via `@rizom/brain`
 - [Custom brain definitions](./custom-brain-definitions.md) — parked
 - [Canonical env schema](./env-schema-canonical.md) — proposed
 - [Move env-derived core defaults to app layer](./core-env-config.md) — proposed
@@ -34,8 +33,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Content, sync, and generation
 
-- [Entity visibility and derived scope](./entity-visibility-and-derived-scope.md) — implemented first pass; retained as policy/design record
-- [Directory-sync new-repo bootstrap recovery](./directory-sync-new-repo-bootstrap.md) — proposed
 - [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
 - [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
 
