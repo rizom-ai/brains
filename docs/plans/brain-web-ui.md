@@ -59,7 +59,7 @@ Concrete components:
 - **`interfaces/web-chat/`** — new package, extends `MessageInterfacePlugin`. Owns HTTP routes, SSE streaming, request authentication (via existing `@brains/auth-service` passkey flow), and the browser UI assets.
 - **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing. Because AI Elements and assistant-ui are React-first, v0 should test a quarantined React route rather than forcing the chat UI through Preact.
 - **Brain ↔ AI SDK adapter** — add a thin adapter that translates brain-native chat events (`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI-compatible stream parts. Do not model the brain as a raw AI SDK model provider in v1; the brain runtime remains the orchestration layer.
-- **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, e.g. `/api/chat` or `/chat/api/message`.
+- **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, e.g. `/api/chat` or `/chat/api/message`, and must be registered/owned by `WebChatInterface` rather than bypassing the brain interface layer.
 - **Conversation persistence** — reuse the existing conversation service. Each browser session maps to a `conversationId` like `web-${userId}-${sessionId}`.
 - **Auth** — already wired. Passkey via auth-service grants anchor; trusted/public callers see the same permission tiers they get elsewhere.
 
@@ -73,14 +73,19 @@ Concrete components:
 Use the Vercel **AI SDK UI** stream/transport contract as the preferred browser-chat integration point:
 
 ```text
-AI SDK UI useChat/custom transport
+AI Elements or custom React components
+  → @ai-sdk/react useChat
+  → DefaultChatTransport/custom ChatTransport
   → authenticated POST /api/chat
-  → WebChatInterface
+  → WebChatInterface route handler
+  → MessageInterfacePlugin flow
   → AgentService.chat()
-  → AI SDK UI-compatible SSE stream
+  → AI SDK UI-compatible stream
 ```
 
-This keeps the web UI aligned with a mature chat frontend contract while avoiding the complexity of the platform Chat SDK adapter model. The adapter boundary is:
+This keeps the web UI aligned with a mature chat frontend contract while avoiding the complexity of the platform Chat SDK adapter model. AI Elements is only a React component layer; it is not the transport. `DefaultChatTransport` (or a custom `ChatTransport` if needed) is the browser protocol layer, and `WebChatInterface` remains the backend interface implementation.
+
+The adapter boundary is:
 
 ```text
 Brain AgentResponse/progress events ↔ AI SDK UI stream parts
@@ -88,11 +93,56 @@ Brain AgentResponse/progress events ↔ AI SDK UI stream parts
 
 Implementation notes:
 
-- Prefer a custom transport if the default `useChat` request/response shape does not match the brain's auth/session/conversation requirements.
+- Start with `DefaultChatTransport({ api: "/api/chat", credentials: "include" })`; use request preparation hooks for session/conversation metadata where possible.
+- Prefer a custom transport only if the default `useChat` request/response shape cannot support the brain's auth/session/conversation/reconnect requirements.
+- Do not use `DirectChatTransport` for the browser route; it would couple UI directly to an AI SDK agent shape and bypass the brain runtime abstractions.
 - Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
 - Bias toward a quarantined React route for v0/v1 if it can be cleanly isolated from the existing Preact site/dashboard stack. This mirrors the existing Ink/CLI solution: real React where the React ecosystem is required, behind a hard package/runtime boundary.
 - Treat AI Elements and assistant-ui as viable dependencies inside that isolated route only. They must not pull React imports/types into shared/server packages or the Preact dashboard/site runtime.
 - Treat the Vercel `chat` package / platform adapters as separate future work covered by `chat-interface-sdk.md`.
+
+## Interface-plugin boundary
+
+`WebChatInterface` must extend `MessageInterfacePlugin<WebChatConfig>`. The AI SDK transport replaces hand-written frontend fetch logic; it does **not** replace the brain interface plugin.
+
+Backend shape:
+
+```typescript
+export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
+  protected override async onRegister(context: InterfacePluginContext) {
+    await super.onRegister(context);
+
+    // register /chat page/assets
+    // register /api/chat endpoint
+  }
+
+  // send/edit methods write to the active web stream/session
+}
+```
+
+Runtime flow:
+
+```text
+/api/chat route
+  → WebChatInterface.handleChatRequest()
+    → authenticate request / resolve session
+    → derive permission + conversation context
+    → startProcessingInput()
+    → check pending confirmation
+    → context.agent.chat(...)
+    → translate AgentResponse/progress to AI SDK UI stream parts
+    → endProcessingInput()
+```
+
+`MessageInterfacePlugin` remains the source of shared message-interface behavior: processing state, buffered completion/progress handling, confirmation flow, progress/job subscriptions, and consistent `AgentService` use.
+
+Because web chat replies over a per-request stream rather than a persistent Discord/terminal channel, `WebChatInterface` may need a small active-session registry:
+
+```text
+conversationId/channelId → active UI stream writer
+```
+
+The baseclass `sendMessageToChannel`, `sendMessageWithId`, and `editMessage` implementations can then write/update the active stream when present. If no stream is active, progress/completion events can be ignored, buffered, or persisted later depending on v1 scope.
 
 ## v0 spike: quarantined React chat route
 
