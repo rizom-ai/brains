@@ -73,7 +73,7 @@ Concrete components:
 Use the Vercel **AI SDK UI** stream/transport contract as the preferred browser-chat integration point:
 
 ```text
-AI Elements or custom React components
+AI Elements (spike target; fallback to assistant-ui or custom React UI)
   → @ai-sdk/react useChat
   → DefaultChatTransport/custom ChatTransport
   → authenticated POST /api/chat
@@ -93,7 +93,7 @@ Brain AgentResponse/progress events ↔ AI SDK UI stream parts
 
 Implementation notes:
 
-- Start with `DefaultChatTransport({ api: "/api/chat", credentials: "include" })`; use request preparation hooks for session/conversation metadata where possible.
+- Start with `DefaultChatTransport({ api: "/api/chat", credentials: "include" })`; use request preparation hooks for session/conversation metadata where possible. **Pre-spike check:** confirm `auth-service` issues cookie-based sessions; if it uses bearer tokens, swap `credentials: "include"` for a custom transport that adds the auth header.
 - Prefer a custom transport only if the default `useChat` request/response shape cannot support the brain's auth/session/conversation/reconnect requirements.
 - Do not use `DirectChatTransport` for the browser route; it would couple UI directly to an AI SDK agent shape and bypass the brain runtime abstractions.
 - Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
@@ -142,7 +142,9 @@ Because web chat replies over a per-request stream rather than a persistent Disc
 conversationId/channelId → active UI stream writer
 ```
 
-The baseclass `sendMessageToChannel`, `sendMessageWithId`, and `editMessage` implementations can then write/update the active stream when present. If no stream is active, progress/completion events can be ignored, buffered, or persisted later depending on v1 scope.
+The baseclass `sendMessageToChannel`, `sendMessageWithId`, and `editMessage` implementations can then write/update the active stream when present.
+
+**No-active-stream policy for v1:** persist progress/completion to the conversation message record (so a reconnecting user sees what happened), and drop in-flight UI stream events (so disconnected sessions don't leak memory holding stream writers). Buffering for later replay is out of scope for v1.
 
 ## v0 spike: quarantined React chat route
 
