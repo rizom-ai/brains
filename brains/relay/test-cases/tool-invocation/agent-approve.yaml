@@ -2,6 +2,8 @@ id: relay-tool-agent-approve
 name: Approve discovered Relay peer brain
 description: Tests that a discovered peer brain is approved through system_update.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - agent-discovery

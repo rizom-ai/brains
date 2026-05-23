@@ -38,6 +38,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         id: "post-1",
         entityType: "post",
         content: "# My Blog Post\n\nThis is the content.",
+        visibility: "public",
         metadata: {
           title: "My Blog Post",
           slug: "my-blog-post",
@@ -137,6 +138,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         id: "post-1",
         entityType: "post",
         content: "# Test\n\nContent",
+        visibility: "public",
         metadata: { title: "Test", slug: "test", status: "published" },
         contentHash: "",
         created: "",

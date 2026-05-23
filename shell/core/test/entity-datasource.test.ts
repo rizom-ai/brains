@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { EntityDataSource } from "../src/datasources/entity-datasource";
 import { createMockEntityService } from "@brains/test-utils";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  IEntityService,
+  BaseEntity,
+} from "@brains/plugins";
 import { z } from "@brains/utils";
 
 const markdownSchema = z.object({ markdown: z.string() });
@@ -16,6 +20,7 @@ function createMockEntity(overrides: {
     entityType: overrides.entityType,
     content: overrides.content,
     metadata: {},
+    visibility: "public",
     contentHash: "abc123",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
@@ -174,6 +179,35 @@ describe("EntityDataSource", () => {
       );
 
       expect(result).toEqual({ markdown: "" });
+    });
+
+    it("should use the scoped context entity service when provided", async () => {
+      const constructorService = createMockEntityService({
+        returns: { getEntity: null },
+      });
+      const scopedEntity = createMockEntity({
+        id: "shared-note",
+        entityType: "base",
+        content: "Scoped content",
+      });
+      const scopedService = createMockEntityService({
+        returns: { getEntity: scopedEntity },
+      });
+      const ds = new EntityDataSource(constructorService);
+      const context: BaseDataSourceContext = { entityService: scopedService };
+
+      const result = await ds.fetch(
+        { entityType: "base", query: { id: "shared-note" } },
+        markdownSchema,
+        context,
+      );
+
+      expect(result).toEqual({ markdown: "Scoped content" });
+      expect(scopedService.getEntity).toHaveBeenCalledWith({
+        entityType: "base",
+        id: "shared-note",
+      });
+      expect(constructorService.getEntity).not.toHaveBeenCalled();
     });
   });
 });

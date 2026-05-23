@@ -16,6 +16,7 @@ describe("Social Media Config", () => {
         linkedin: {
           accessToken: "token123",
           refreshToken: "refresh456",
+          apiVersion: "202604",
         },
         publishInterval: 1800000,
         enabled: false,
@@ -24,6 +25,7 @@ describe("Social Media Config", () => {
       };
       const result = socialMediaConfigSchema.parse(config);
       expect(result.linkedin?.accessToken).toBe("token123");
+      expect(result.linkedin?.apiVersion).toBe("202604");
       expect(result.publishInterval).toBe(1800000);
       expect(result.enabled).toBe(false);
       expect(result.maxRetries).toBe(5);
@@ -51,6 +53,15 @@ describe("Social Media Config", () => {
       });
       expect(result.accessToken).toBe("token123");
       expect(result.refreshToken).toBeUndefined();
+    });
+
+    it("should require LinkedIn API versions in YYYYMM format", () => {
+      expect(
+        linkedinConfigSchema.parse({ apiVersion: "202604" }).apiVersion,
+      ).toBe("202604");
+      expect(() =>
+        linkedinConfigSchema.parse({ apiVersion: "2026-04" }),
+      ).toThrow();
     });
   });
 });

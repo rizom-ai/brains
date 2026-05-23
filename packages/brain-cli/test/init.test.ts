@@ -155,6 +155,17 @@ describe("brain init", () => {
       expect(yaml).toContain("preset: core");
     });
 
+    it("should wire Rover first-passkey setup email", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain("auth-service:");
+      expect(yaml).toContain("setupEmail: ${SETUP_EMAIL_TO}");
+      expect(yaml).toContain("email-resend:");
+      expect(yaml).toContain("apiKey: ${SETUP_EMAIL_API_KEY}");
+      expect(yaml).toContain("from: ${SETUP_EMAIL_FROM}");
+    });
+
     it("should comment out git block when no contentRepo is provided", () => {
       scaffold(testDir, { model: "rover" });
 
@@ -257,6 +268,9 @@ describe("brain init", () => {
       expect(envSchema).not.toContain("OP_TOKEN=");
       expect(envSchema).not.toContain("secret backend bootstrap");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
+      expect(envSchema).toContain("SETUP_EMAIL_TO=");
+      expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
+      expect(envSchema).toContain("SETUP_EMAIL_FROM=");
       expect(envSchema).toContain("HCLOUD_SERVER_TYPE=");
       expect(envSchema).toContain("HCLOUD_LOCATION=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
@@ -269,6 +283,7 @@ describe("brain init", () => {
 
       expect(envSchema).toContain("AI_API_KEY=");
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
+      expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
     });
 
@@ -751,6 +766,9 @@ describe("brain init", () => {
       expect(deploy).not.toMatch(/^healthcheck:/m);
       expect(deploy).toContain("builder:");
       expect(deploy).toContain("arch: amd64");
+      expect(deploy).toContain("- SETUP_EMAIL_TO");
+      expect(deploy).toContain("- SETUP_EMAIL_API_KEY");
+      expect(deploy).toContain("- SETUP_EMAIL_FROM");
     });
 
     it("should create pre-deploy hook when deploy is true", () => {

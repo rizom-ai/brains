@@ -3,6 +3,8 @@ import { z } from "@brains/utils";
 /**
  * Configuration schema for the Topics plugin
  */
+const extractionVisibilitySchema = z.enum(["public", "shared", "restricted"]);
+
 export const topicsPluginConfigSchema = z.object({
   /**
    * Whitelist of entity types to extract topics from.
@@ -35,6 +37,11 @@ export const topicsPluginConfigSchema = z.object({
    * Enable automatic topic extraction from entity events
    */
   enableAutoExtraction: z.boolean().default(true),
+
+  /**
+   * Visibility boundary for topic extraction sources and derived topics.
+   */
+  extractionVisibility: extractionVisibilitySchema.default("public"),
 
   /**
    * Delay before processing source-change batches, allowing bursts to coalesce.

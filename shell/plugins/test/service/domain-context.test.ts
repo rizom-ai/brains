@@ -113,6 +113,25 @@ describe("Top-level context properties", () => {
     });
   });
 
+  describe("context.themeCSS", () => {
+    it("should expose active theme CSS", () => {
+      const shell = createMockShell({
+        logger,
+        themeCSS: ":root { --color-brand: #123456; }",
+      });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.themeCSS).toBe(":root { --color-brand: #123456; }");
+    });
+
+    it("should default to an empty string", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.themeCSS).toBe("");
+    });
+  });
+
   describe("context.spaces", () => {
     it("should expose configured shared conversation spaces", () => {
       const shell = createMockShell({

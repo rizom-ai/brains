@@ -34,10 +34,12 @@ interface InspectableRegisteredResourceTemplate {
 
 interface InspectableMcpServer {
   _registeredTools: Record<string, InspectableRegisteredTool>;
+  _registeredResources: Record<string, unknown>;
   _registeredResourceTemplates: Record<
     string,
     InspectableRegisteredResourceTemplate
   >;
+  _registeredPrompts: Record<string, unknown>;
 }
 
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
@@ -46,6 +48,18 @@ function inspectMcpServer(server: McpServer): InspectableMcpServer {
 
 function listProtocolToolNames(server: McpServer): string[] {
   return Object.keys(inspectMcpServer(server)._registeredTools);
+}
+
+function listProtocolResourceUris(server: McpServer): string[] {
+  return Object.keys(inspectMcpServer(server)._registeredResources);
+}
+
+function listProtocolResourceTemplateNames(server: McpServer): string[] {
+  return Object.keys(inspectMcpServer(server)._registeredResourceTemplates);
+}
+
+function listProtocolPromptNames(server: McpServer): string[] {
+  return Object.keys(inspectMcpServer(server)._registeredPrompts);
 }
 
 async function callProtocolTool(
@@ -195,6 +209,7 @@ describe("MCPService", () => {
           userId: "user-1",
           channelId: "room-1",
           channelName: "Room One",
+          userPermissionLevel: "anchor",
         },
         sender: "MCPService",
       });
@@ -705,6 +720,165 @@ describe("MCPService", () => {
     });
   });
 
+  describe("resource template visibility gating", () => {
+    const makeTemplate = (name: string): ResourceTemplate => ({
+      name,
+      uriTemplate: `entity://{type}`,
+      description: "entity template",
+      mimeType: "application/json",
+      handler: async ({ type }) => ({
+        contents: [
+          {
+            uri: `entity://${type}`,
+            mimeType: "application/json",
+            text: "[]",
+          },
+        ],
+      }),
+    });
+
+    it("does not expose templates on the default server when service permission is public", () => {
+      mcpService.setPermissionLevel("public");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-list"),
+      );
+
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).not.toContain("entity-list");
+    });
+
+    it("does not expose templates on the default server when service permission is trusted", () => {
+      mcpService.setPermissionLevel("trusted");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-detail"),
+      );
+
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).not.toContain("entity-detail");
+    });
+
+    it("exposes templates on the default server when service permission is anchor", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-list"),
+      );
+
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).toContain("entity-list");
+    });
+
+    it("filters templates per-session in createMcpServer based on requested permission", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-list"),
+      );
+
+      // Per-session servers must filter templates by the session permission,
+      // not just by the default service permission.
+      expect(
+        listProtocolResourceTemplateNames(mcpService.createMcpServer("public")),
+      ).not.toContain("entity-list");
+      expect(
+        listProtocolResourceTemplateNames(
+          mcpService.createMcpServer("trusted"),
+        ),
+      ).not.toContain("entity-list");
+      expect(
+        listProtocolResourceTemplateNames(mcpService.createMcpServer("anchor")),
+      ).toContain("entity-list");
+    });
+
+    it("removes resource templates from the default server when permission is lowered", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResourceTemplate(
+        "system",
+        makeTemplate("entity-list"),
+      );
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).toContain("entity-list");
+
+      mcpService.setPermissionLevel("public");
+
+      expect(
+        listProtocolResourceTemplateNames(mcpService.getMcpServer()),
+      ).not.toContain("entity-list");
+    });
+
+    it("still stores templates in the internal registry regardless of permission", () => {
+      mcpService.setPermissionLevel("public");
+      const template = makeTemplate("entity-list");
+      mcpService.registerResourceTemplate("system", template);
+
+      // Internal listResources doesn't return templates today, but the lower-
+      // permission session must not expose them. If we later add a list API
+      // for templates, it should still surface them so anchor sessions can
+      // re-expose them via createMcpServer("anchor").
+      const anchorServer = mcpService.createMcpServer("anchor");
+      expect(listProtocolResourceTemplateNames(anchorServer)).toContain(
+        "entity-list",
+      );
+    });
+  });
+
+  describe("plain resource per-session visibility gating", () => {
+    it("filters resources per-session in createMcpServer based on requested permission", () => {
+      const resource: Resource = {
+        name: "entity://types",
+        uri: "entity://types",
+        description: "Entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [{ text: "post", uri: "entity://types" }],
+        }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResource("system", resource);
+
+      expect(
+        listProtocolResourceUris(mcpService.createMcpServer("public")),
+      ).not.toContain("entity://types");
+      expect(
+        listProtocolResourceUris(mcpService.createMcpServer("trusted")),
+      ).not.toContain("entity://types");
+      expect(
+        listProtocolResourceUris(mcpService.createMcpServer("anchor")),
+      ).toContain("entity://types");
+    });
+
+    it("removes resources from the default server when permission is lowered", () => {
+      const resource: Resource = {
+        name: "entity://types",
+        uri: "entity://types",
+        description: "Entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [{ text: "post", uri: "entity://types" }],
+        }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResource("system", resource);
+      expect(listProtocolResourceUris(mcpService.getMcpServer())).toContain(
+        "entity://types",
+      );
+
+      mcpService.setPermissionLevel("public");
+
+      expect(listProtocolResourceUris(mcpService.getMcpServer())).not.toContain(
+        "entity://types",
+      );
+    });
+  });
+
   describe("prompt registration", () => {
     it("should register a prompt without throwing", () => {
       const prompt: Prompt = {
@@ -751,6 +925,104 @@ describe("MCPService", () => {
       };
 
       expect(() => mcpService.registerPrompt("system", prompt)).not.toThrow();
+    });
+  });
+
+  describe("prompt visibility gating", () => {
+    const makePrompt = (
+      name: string,
+      visibility?: Prompt["visibility"],
+    ): Prompt => ({
+      name,
+      description: `prompt ${name}`,
+      ...(visibility !== undefined && { visibility }),
+      args: {
+        topic: { description: "Topic", required: true },
+      },
+      handler: async ({ topic }) => ({
+        messages: [
+          {
+            role: "user" as const,
+            content: { type: "text" as const, text: `Discuss: ${topic}` },
+          },
+        ],
+      }),
+    });
+
+    it("does not expose prompts on the default server when service permission is public", () => {
+      mcpService.setPermissionLevel("public");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("does not expose anchor-default prompts on the default server when service permission is trusted", () => {
+      mcpService.setPermissionLevel("trusted");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("exposes prompts on the default server when service permission is anchor", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
+        "anchor-prompt",
+      );
+    });
+
+    it("exposes explicitly public prompts to public sessions", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("public-prompt", "public"),
+      );
+
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("public")),
+      ).toContain("public-prompt");
+    });
+
+    it("filters prompts per-session in createMcpServer based on requested permission", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("public-prompt", "public"),
+      );
+      mcpService.registerPrompt(
+        "system",
+        makePrompt("trusted-prompt", "trusted"),
+      );
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("public")),
+      ).toEqual(["public-prompt"]);
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("trusted")),
+      ).toEqual(["public-prompt", "trusted-prompt"]);
+      expect(
+        listProtocolPromptNames(mcpService.createMcpServer("anchor")),
+      ).toEqual(["public-prompt", "trusted-prompt", "anchor-prompt"]);
+    });
+
+    it("removes anchor prompts from the default server when permission is lowered", () => {
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerPrompt("system", makePrompt("anchor-prompt"));
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).toContain(
+        "anchor-prompt",
+      );
+
+      mcpService.setPermissionLevel("public");
+
+      expect(listProtocolPromptNames(mcpService.getMcpServer())).not.toContain(
+        "anchor-prompt",
+      );
     });
   });
 

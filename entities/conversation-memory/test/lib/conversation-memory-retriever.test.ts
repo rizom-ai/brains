@@ -6,7 +6,12 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../../src/schemas/conversation-memory";
-import type { SummaryEntity } from "../../src/schemas/summary";
+import {
+  summaryConfigSchema,
+  type SummaryEntity,
+} from "../../src/schemas/summary";
+
+const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 
 function createSummary(params: {
   id: string;
@@ -24,6 +29,7 @@ function createSummary(params: {
       params.content ??
       "---\nconversationId: test\n---\n# Conversation Summary\n\nDurable team memory.",
     contentHash: `hash-${params.id}`,
+    visibility: defaultMemoryVisibility,
     created: updated,
     updated,
     metadata: {
@@ -53,6 +59,7 @@ function createDecision(params: {
     entityType: "decision",
     content: params.content ?? "# Decision\n\nUse separate decision entities.",
     contentHash: `hash-${params.id}`,
+    visibility: defaultMemoryVisibility,
     created: updated,
     updated,
     metadata: {
@@ -88,6 +95,7 @@ function createActionItem(params: {
     entityType: "action-item",
     content: params.content ?? "# Action item\n\nCreate action-item entities.",
     contentHash: `hash-${params.id}`,
+    visibility: defaultMemoryVisibility,
     created: updated,
     updated,
     metadata: {

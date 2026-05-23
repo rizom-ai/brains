@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { promptAdapter } from "../src/adapters/prompt-adapter";
+import type { Prompt } from "../src/schemas/prompt";
 
 describe("PromptAdapter", () => {
   it("should have correct entity type", () => {
@@ -43,10 +44,11 @@ target: blog:generation
 ---
 You are writing blog posts.`;
 
-      const entity = {
+      const entity: Prompt = {
         id: "blog-generation",
-        entityType: "prompt" as const,
+        entityType: "prompt",
         content,
+        visibility: "public",
         metadata: {
           title: "Blog Generation",
           target: "blog:generation",
@@ -66,11 +68,12 @@ You are writing blog posts.`;
 
   describe("extractMetadata", () => {
     it("should extract title and target from entity", () => {
-      const entity = {
+      const entity: Prompt = {
         id: "blog-generation",
-        entityType: "prompt" as const,
+        entityType: "prompt",
         content:
           "---\ntitle: Blog Generation\ntarget: blog:generation\n---\nPrompt text.",
+        visibility: "public",
         metadata: {
           title: "Blog Generation",
           target: "blog:generation",

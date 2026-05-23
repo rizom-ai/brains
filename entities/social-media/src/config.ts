@@ -8,6 +8,11 @@ export const linkedinConfigSchema = z.object({
   refreshToken: z.string().optional(),
   /** LinkedIn organization ID for posting as an organization (requires w_organization_social scope) */
   organizationId: z.string().optional(),
+  /** LinkedIn REST API marketing version (YYYYMM) for versioned /rest endpoints */
+  apiVersion: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
 });
 
 /**

@@ -10,6 +10,8 @@ import {
   type SummaryEntity,
 } from "../../src/schemas/summary";
 
+const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
+
 function registerHandlers(): {
   context: ReturnType<typeof createMockEntityPluginContext>;
   handlers: Map<string, EvalHandler>;
@@ -48,6 +50,7 @@ describe("registerSummaryEvalHandlers", () => {
       entityType: "summary",
       content: "# Conversation Summary\n\nTeam chose same-space retrieval.",
       contentHash: "hash",
+      visibility: defaultMemoryVisibility,
       created: "2026-01-01T00:00:00.000Z",
       updated: "2026-01-01T00:00:00.000Z",
       metadata: {

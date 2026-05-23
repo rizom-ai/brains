@@ -1,4 +1,10 @@
-import { resolveEntityOrError } from "@brains/entity-service";
+import {
+  canWriteVisibility,
+  contentVisibilitySchema,
+  extractVisibilityFromMarkdown,
+  permissionToVisibilityScope,
+  resolveEntityOrError,
+} from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { updateInputSchema } from "./schemas";
@@ -9,6 +15,27 @@ import {
   normalizeUpdateInput,
 } from "./tool-helpers";
 
+function currentFieldValue(entity: BaseEntity, key: string): unknown {
+  return key === "visibility" ? entity.visibility : entity.metadata[key];
+}
+
+function applyFieldUpdates(
+  entity: BaseEntity,
+  fields: Record<string, unknown>,
+): BaseEntity {
+  const { visibility, ...metadataFields } = fields;
+  const nextVisibility =
+    visibility === undefined
+      ? entity.visibility
+      : contentVisibilitySchema.parse(visibility);
+
+  return {
+    ...entity,
+    visibility: nextVisibility,
+    metadata: { ...entity.metadata, ...metadataFields },
+  };
+}
+
 function buildUpdateDiff(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
@@ -17,7 +44,7 @@ function buildUpdateDiff(
     return Object.entries(normalizedInput.fields)
       .map(
         ([key, val]) =>
-          `${key}: ${String(entity.metadata[key] ?? "(empty)")} → ${String(val)}`,
+          `${key}: ${String(currentFieldValue(entity, key) ?? "(empty)")} → ${String(val)}`,
       )
       .join("\n");
   }
@@ -41,12 +68,17 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     "update",
     "Update an entity's fields or content. Requires confirmation.",
     updateInputSchema,
-    async (input) => {
+    async (input, context) => {
+      const visibilityScope = permissionToVisibilityScope(
+        context.userPermissionLevel,
+      );
       const resolved = await resolveEntityOrError(
         entityService,
         input.entityType,
         input.id,
         logger,
+        undefined,
+        visibilityScope,
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
@@ -123,11 +155,25 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
         const updated =
           normalizedInput.content !== undefined
-            ? { ...entity, content: normalizedInput.content }
-            : {
+            ? {
                 ...entity,
-                metadata: { ...entity.metadata, ...normalizedInput.fields },
-              };
+                content: normalizedInput.content,
+                visibility: extractVisibilityFromMarkdown(
+                  normalizedInput.content,
+                ),
+              }
+            : applyFieldUpdates(entity, normalizedInput.fields ?? {});
+
+        if (
+          updated.visibility !== entity.visibility &&
+          !canWriteVisibility(context.userPermissionLevel, updated.visibility)
+        ) {
+          return {
+            success: false,
+            error: `Cannot set entity visibility to "${updated.visibility}" — caller permission "${context.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
+          };
+        }
+
         try {
           await entityService.updateEntity({ entity: updated });
         } catch (error) {

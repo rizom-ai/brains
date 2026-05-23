@@ -1,4 +1,5 @@
 import type { Entity } from "./schema/entities";
+import { normalizeContentVisibility, type ContentVisibility } from "./types";
 
 /**
  * Normalized entity row shape used by query and serialization layers.
@@ -9,6 +10,7 @@ export interface EntityData {
   entityType: string;
   content: string;
   contentHash: string;
+  visibility: ContentVisibility;
   created: number;
   updated: number;
   metadata: Record<string, unknown>;
@@ -23,6 +25,7 @@ export function normalizeEntityRow(row: Entity): EntityData {
     entityType: row.entityType,
     content: row.content,
     contentHash: row.contentHash,
+    visibility: normalizeContentVisibility(row.visibility),
     created: row.created,
     updated: row.updated,
     metadata: (row.metadata as Record<string, unknown> | null) ?? {},

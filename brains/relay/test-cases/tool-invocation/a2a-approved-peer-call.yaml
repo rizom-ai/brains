@@ -7,6 +7,8 @@ description: >-
   case is about the agent choosing the correct approved-peer A2A tool path and
   reporting the tool result honestly.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - agent-discovery

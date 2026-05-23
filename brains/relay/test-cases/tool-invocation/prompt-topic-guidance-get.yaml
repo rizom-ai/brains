@@ -1,0 +1,44 @@
+id: relay-tool-prompt-topic-guidance-get
+name: Retrieve Relay topic extraction prompt
+description: >-
+  Verifies that Relay can retrieve editable prompt entities for operator review
+  before changing topic-extraction behavior.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - relay
+  - prompt
+  - topics
+  - core
+  - operator
+
+turns:
+  - userMessage: >-
+      Before we change topic extraction, get the saved prompt entity
+      topic-extraction-relay and summarize what guidance it gives. Do not update
+      it.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: "prompt"
+        id: "topic-extraction-relay"
+    - toolName: system_update
+      shouldBeCalled: false
+  responseContains:
+    - "topics"
+    - "future plugin"
+  responseNotContains:
+    - "updated"
+    - "blog"
+    - "newsletter"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

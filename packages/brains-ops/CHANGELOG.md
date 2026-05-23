@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.83
+
+## 0.2.0-alpha.82
+
+## 0.2.0-alpha.81
+
+## 0.2.0-alpha.80
+
+## 0.2.0-alpha.79
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

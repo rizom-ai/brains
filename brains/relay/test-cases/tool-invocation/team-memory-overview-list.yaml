@@ -6,6 +6,8 @@ description: >-
   overview, so list metadata/excerpts are sufficient; do not fetch every item in
   full just to build the browse response.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario

@@ -6,6 +6,8 @@ description: >-
   required. This covers the POC acceptance item that operators can inspect the
   dashboard/CMS on the shared webserver surface while keeping Relay core private.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - dashboard

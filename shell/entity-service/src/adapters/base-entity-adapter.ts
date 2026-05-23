@@ -20,7 +20,7 @@ export interface BaseEntityAdapterConfig<
   TMetadata extends object,
 > {
   entityType: string;
-  schema: z.ZodSchema<TEntity>;
+  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
   frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
   hasBody?: boolean;
@@ -43,7 +43,7 @@ export abstract class BaseEntityAdapter<
   TFrontmatter = TMetadata,
 > implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
-  public readonly schema: z.ZodSchema<TEntity>;
+  public readonly schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;

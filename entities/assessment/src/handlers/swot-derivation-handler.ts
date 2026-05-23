@@ -6,6 +6,7 @@ import {
   swotDraftGenerationSchema,
   swotGenerationSchema,
   type SwotDerivationJobData,
+  type SwotEntity,
   type SwotDraftGeneration,
   type SwotGeneration,
   type SwotItem,
@@ -400,15 +401,10 @@ export class SwotDerivationHandler implements JobHandler<
       message: "Saving SWOT entity",
     });
 
-    const existing = await this.context.entityService.getEntity<{
-      id: string;
-      entityType: "swot";
-      content: string;
-      metadata: { derivedAt: string };
-      contentHash: string;
-      created: string;
-      updated: string;
-    }>({ entityType: "swot", id: "swot" });
+    const existing = await this.context.entityService.getEntity<SwotEntity>({
+      entityType: "swot",
+      id: "swot",
+    });
 
     if (existing) {
       await this.context.entityService.updateEntity({

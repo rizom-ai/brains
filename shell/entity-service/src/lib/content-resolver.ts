@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import type { ICoreEntityService } from "../types";
+import type { ContentVisibility, ICoreEntityService } from "../types";
 
 /**
  * Detected entity:// image reference in markdown
@@ -96,13 +96,16 @@ export class ContentResolver {
    *
    * @param content The markdown content to process
    * @param entityService The entity service to fetch images from
+   * @param visibilityScope The scope the outer caller was reading at. Image
+   *   references inherit it so a public reader cannot see restricted images
+   *   embedded in an entity they were allowed to read.
    * @returns Result with updated content and counts
    */
   async resolve(
     content: string,
     entityService: ICoreEntityService,
+    visibilityScope?: ContentVisibility,
   ): Promise<ResolveResult> {
-    // Quick check to avoid unnecessary work
     if (!hasImageReferences(content)) {
       return { content, resolvedCount: 0, failedCount: 0 };
     }
@@ -113,17 +116,15 @@ export class ContentResolver {
       return { content, resolvedCount: 0, failedCount: 0 };
     }
 
-    // Collect unique image IDs for batch fetching
     const uniqueIds = [...new Set(references.map((ref) => ref.imageId))];
 
-    // Fetch all images (batch)
     const imageMap = new Map<string, string>();
     for (const imageId of uniqueIds) {
       try {
-        // Use getEntityRaw to avoid recursion (doesn't resolve content)
         const image = await entityService.getEntityRaw({
           entityType: "image",
           id: imageId,
+          ...(visibilityScope !== undefined && { visibilityScope }),
         });
         if (image?.content) {
           imageMap.set(imageId, image.content);

@@ -92,3 +92,6 @@ export {
 
 // AppInfo fixture
 export { createMockAppInfo } from "./mock-app-info";
+
+// MCP service mock
+export { createMockMCPService } from "./mock-mcp-service";

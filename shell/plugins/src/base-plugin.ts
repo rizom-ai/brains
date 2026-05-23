@@ -106,6 +106,7 @@ export abstract class BasePlugin<
             interfaceType,
             userId,
             channelId,
+            userPermissionLevel,
           } = toolExecuteRequestSchema.parse(message.payload);
 
           const tools = await this.getTools();
@@ -123,6 +124,7 @@ export abstract class BasePlugin<
             interfaceType,
             userId,
             ...(channelId && { channelId }),
+            ...(userPermissionLevel && { userPermissionLevel }),
             ...(hasProgress &&
               progressToken !== undefined && {
                 progressToken,

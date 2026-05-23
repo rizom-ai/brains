@@ -3,7 +3,11 @@ import type {
   ContentTemplate,
   ResolutionOptions,
 } from "./types";
-import type { IEntityService } from "@brains/entity-service";
+import type {
+  ContentVisibility,
+  IEntityService,
+  ListOptions,
+} from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { ContentService as IContentService } from "./types";
@@ -118,6 +122,15 @@ export class ContentService implements IContentService {
       return null;
     }
 
+    // Single scoped entityService for the whole resolution. Every read path —
+    // datasource fetch context AND savedContent fallback — goes through this
+    // proxy, so the configured scope is enforced uniformly and cannot be
+    // sidestepped by a future caller passing a wider scope.
+    const scopedEntityService = this.createScopedEntityService(
+      options?.publishedOnly,
+      options?.visibilityScope,
+    );
+
     // 1. Priority: DataSource fetch (real-time data like dashboard stats)
     if (template.dataSourceId && TemplateCapabilities.canFetch(template)) {
       const dataSource = this.dependencies.dataSourceRegistry.get(
@@ -132,10 +145,7 @@ export class ContentService implements IContentService {
               ...(options?.publishedOnly !== undefined && {
                 publishedOnly: options.publishedOnly,
               }),
-              // Provide scoped entityService that auto-applies publishedOnly
-              entityService: this.createScopedEntityService(
-                options?.publishedOnly,
-              ),
+              entityService: scopedEntityService,
             };
 
             const data = await dataSource.fetch(
@@ -169,7 +179,7 @@ export class ContentService implements IContentService {
         );
       } else {
         try {
-          const entity = await this.dependencies.entityService.getEntity({
+          const entity = await scopedEntityService.getEntity({
             entityType: options.savedContent.entityType,
             id: options.savedContent.entityId,
           });
@@ -213,36 +223,53 @@ export class ContentService implements IContentService {
   }
 
   /**
-   * Create a scoped entityService that auto-applies publishedOnly filter
-   * In production (publishedOnly=true), all listEntities calls get publishedOnly: true
-   * In preview (publishedOnly=false/undefined), no filter is added
+   * Create a scoped entityService that auto-applies publishedOnly and
+   * visibilityScope filters to entity lookups.
    *
-   * IMPORTANT: If the caller already provides a status filter, we skip adding
-   * publishedOnly to avoid conflicting WHERE clauses (e.g., status='published' AND status='queued')
+   * - publishedOnly is added to listEntities/countEntities unless the caller
+   *   already filters on status (would conflict otherwise).
+   * - visibilityScope is added to listEntities/countEntities filter,
+   *   getEntity, and search. Always overrides any inner scope so that the
+   *   site-build chokepoint cannot be widened by a datasource.
    */
   private createScopedEntityService(
     publishedOnly: boolean | undefined,
+    visibilityScope: ContentVisibility | undefined,
   ): IEntityService {
     const baseService = this.dependencies.entityService;
 
-    // If not in production mode, return the base service unchanged
-    if (!publishedOnly) {
+    if (!publishedOnly && !visibilityScope) {
       return baseService;
     }
 
-    // Use Proxy to intercept listEntities/countEntities while properly forwarding
-    // all other methods (including prototype methods on class instances)
+    const withScopedFilter = (
+      filter: ListOptions["filter"] | undefined,
+    ): ListOptions["filter"] | undefined => {
+      if (!visibilityScope) return filter;
+      return { ...filter, visibilityScope };
+    };
+
+    const isPublishedEntity = (metadata: Record<string, unknown>): boolean => {
+      const status = metadata["status"];
+      return (
+        status === undefined || status === "published" || status === "active"
+      );
+    };
+
     return new Proxy(baseService, {
       get(target, prop, receiver): unknown {
         if (prop === "listEntities") {
           return (request: Parameters<IEntityService["listEntities"]>[0]) => {
             const hasStatusFilter =
               request.options?.filter?.metadata?.["status"] !== undefined;
+            const scopedFilter = withScopedFilter(request.options?.filter);
             return target.listEntities({
               entityType: request.entityType,
               options: {
                 ...request.options,
-                ...(!hasStatusFilter && { publishedOnly: true }),
+                ...(publishedOnly &&
+                  !hasStatusFilter && { publishedOnly: true }),
+                ...(scopedFilter && { filter: scopedFilter }),
               },
             });
           };
@@ -251,14 +278,47 @@ export class ContentService implements IContentService {
           return (request: Parameters<IEntityService["countEntities"]>[0]) => {
             const hasStatusFilter =
               request.options?.filter?.metadata?.["status"] !== undefined;
+            const scopedFilter = withScopedFilter(request.options?.filter);
             return target.countEntities({
               entityType: request.entityType,
               options: {
                 ...request.options,
-                ...(!hasStatusFilter && { publishedOnly: true }),
+                ...(publishedOnly &&
+                  !hasStatusFilter && { publishedOnly: true }),
+                ...(scopedFilter && { filter: scopedFilter }),
               },
             });
           };
+        }
+        // Proxy is only constructed when at least one of {publishedOnly,
+        // visibilityScope} is set (see early return above). getEntity is
+        // hooked unconditionally because the proxy must always enforce the
+        // configured scope — the spread order below makes the configured
+        // scope win over any caller-supplied scope, so datasources cannot
+        // widen.
+        if (prop === "getEntity") {
+          return async (
+            request: Parameters<IEntityService["getEntity"]>[0],
+          ) => {
+            const entity = await target.getEntity({
+              ...request,
+              ...(visibilityScope !== undefined && { visibilityScope }),
+            });
+            if (!publishedOnly || !entity) {
+              return entity;
+            }
+            return isPublishedEntity(entity.metadata) ? entity : null;
+          };
+        }
+        // search has no publishedOnly dimension; only hook it when a
+        // visibilityScope is configured. Otherwise fall through and let the
+        // caller pass through raw (no empty options object spread).
+        if (prop === "search" && visibilityScope) {
+          return (request: Parameters<IEntityService["search"]>[0]) =>
+            target.search({
+              ...request,
+              options: { ...request.options, visibilityScope },
+            });
         }
         // Forward all other property access, binding methods to preserve 'this'
         const value = Reflect.get(target, prop, receiver);

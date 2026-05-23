@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import { createMockEntityService } from "@brains/test-utils";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
 import {
@@ -20,7 +20,7 @@ describe("tag vocabulary", () => {
   });
 
   it("should collect tag counts across skill and agent entities", async () => {
-    const agentEntities = [
+    const agentEntities: BaseEntity[] = [
       {
         id: "kai.brain",
         entityType: "agent" as const,
@@ -42,6 +42,7 @@ describe("tag vocabulary", () => {
           notes: "",
         }),
         contentHash: "agent-1",
+        visibility: "public",
         created: "2026-04-20T00:00:00.000Z",
         updated: "2026-04-20T00:00:00.000Z",
         metadata: {
@@ -73,6 +74,7 @@ describe("tag vocabulary", () => {
           notes: "",
         }),
         contentHash: "agent-2",
+        visibility: "public",
         created: "2026-04-21T00:00:00.000Z",
         updated: "2026-04-21T00:00:00.000Z",
         metadata: {
@@ -85,12 +87,13 @@ describe("tag vocabulary", () => {
       },
     ];
 
-    const skillEntities = [
+    const skillEntities: BaseEntity[] = [
       {
         id: "research-writing",
         entityType: "skill" as const,
         content: "",
         contentHash: "skill-1",
+        visibility: "public",
         created: "2026-04-20T00:00:00.000Z",
         updated: "2026-04-20T00:00:00.000Z",
         metadata: {
@@ -105,6 +108,7 @@ describe("tag vocabulary", () => {
         entityType: "skill" as const,
         content: "",
         contentHash: "skill-2",
+        visibility: "public",
         created: "2026-04-20T00:00:00.000Z",
         updated: "2026-04-20T00:00:00.000Z",
         metadata: {

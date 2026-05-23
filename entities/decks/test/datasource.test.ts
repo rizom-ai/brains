@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  IEntityService,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
@@ -187,10 +191,11 @@ coverImageId: cover-img-1
         },
       });
 
-      const coverImageEntity = {
+      const coverImageEntity: BaseEntity = {
         id: "cover-img-1",
         entityType: "image",
         content: "data:image/png;base64,AAAA",
+        visibility: "public",
         metadata: {
           title: "Cover",
           alt: "Cover image",

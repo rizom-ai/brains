@@ -4,6 +4,8 @@ description: >-
   Real user scenario: a founder needs a grounded demo talk track for a skeptical
   technical buyer, including current capabilities and remaining proof.
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario

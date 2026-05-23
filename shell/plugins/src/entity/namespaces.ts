@@ -23,7 +23,7 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   return {
     register: <T extends BaseEntity>(
       entityType: string,
-      schema: z.ZodSchema<T>,
+      schema: z.ZodType<T, z.ZodTypeDef, unknown>,
       adapter: EntityAdapter<T>,
       config?: EntityTypeConfig,
     ): void => {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
+import type { AgentEntity } from "../src/schemas/agent";
 
 const adapter = new AgentAdapter();
 
@@ -179,9 +180,9 @@ Test agent.
 
   describe("extractMetadata", () => {
     it("should return name and status", () => {
-      const entity = {
+      const entity: AgentEntity = {
         id: "yeehaa.io",
-        entityType: "agent" as const,
+        entityType: "agent",
         content: adapter.createAgentContent({
           name: "Yeehaa",
           kind: "professional",
@@ -196,6 +197,7 @@ Test agent.
         contentHash: "abc",
         created: "2026-03-31T00:00:00.000Z",
         updated: "2026-03-31T00:00:00.000Z",
+        visibility: "public",
         metadata: {
           name: "Yeehaa",
           url: "https://yeehaa.io",
@@ -280,13 +282,14 @@ Test agent.
         notes: "",
       });
 
-      const entity = {
+      const entity: AgentEntity = {
         id: "mylittlephoney.com",
-        entityType: "agent" as const,
+        entityType: "agent",
         content: staleContent,
         contentHash: "hash",
         created: "2026-04-20T00:00:00.000Z",
         updated: "2026-04-22T00:00:00.000Z",
+        visibility: "public",
         metadata: {
           name: "Phoney",
           url: "https://mylittlephoney.com/a2a",
@@ -323,13 +326,14 @@ Test agent.
         notes: "Some note.",
       });
 
-      const entity = {
+      const entity: AgentEntity = {
         id: "yeehaa-io",
-        entityType: "agent" as const,
+        entityType: "agent",
         content: staleContent,
         contentHash: "hash",
         created: "2026-04-20T00:00:00.000Z",
         updated: "2026-04-22T00:00:00.000Z",
+        visibility: "public",
         metadata: {
           name: "Yeehaa",
           url: "https://yeehaa.io",

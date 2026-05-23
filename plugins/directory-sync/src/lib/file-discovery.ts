@@ -2,6 +2,7 @@ import { join } from "path";
 import { mkdir, readdir, stat } from "fs/promises";
 import type { DirectorySyncStatus } from "../types";
 import { isImageFile } from "./image-file-utils";
+import { isDocumentFile, isDocumentSidecarFile } from "./document-file-utils";
 import { parseEntityPath } from "./entity-paths";
 import { pathExists } from "./fs-utils";
 
@@ -13,14 +14,20 @@ export async function getAllMarkdownFiles(
   syncPath: string,
   entityRegistry: EntityTypeRegistry,
 ): Promise<string[]> {
-  return findFiles(syncPath, entityRegistry, { includeImages: false });
+  return findFiles(syncPath, entityRegistry, {
+    includeDocuments: false,
+    includeImages: false,
+  });
 }
 
 export async function getAllSyncFiles(
   syncPath: string,
   entityRegistry: EntityTypeRegistry,
 ): Promise<string[]> {
-  return findFiles(syncPath, entityRegistry, { includeImages: true });
+  return findFiles(syncPath, entityRegistry, {
+    includeDocuments: true,
+    includeImages: true,
+  });
 }
 
 export async function ensureDirectoryStructure(
@@ -84,7 +91,7 @@ export async function gatherFileStatus(
 async function findFiles(
   syncPath: string,
   entityRegistry: EntityTypeRegistry,
-  opts: { includeImages: boolean },
+  opts: { includeDocuments: boolean; includeImages: boolean },
 ): Promise<string[]> {
   const files: string[] = [];
   if (!(await pathExists(syncPath))) return files;
@@ -93,18 +100,29 @@ async function findFiles(
     currentPath: string,
     relativePath: string = "",
     inImageDir: boolean = false,
+    inDocumentDir: boolean = false,
   ): Promise<void> => {
     const entries = await readdir(currentPath, { withFileTypes: true });
     for (const entry of entries) {
       const rel = relativePath ? join(relativePath, entry.name) : entry.name;
 
-      if (entry.isFile() && !entry.name.endsWith(".invalid")) {
+      if (
+        entry.isFile() &&
+        !entry.name.endsWith(".invalid") &&
+        !isDocumentSidecarFile(entry.name)
+      ) {
         if (entry.name.endsWith(".md")) {
           files.push(rel);
         } else if (
           opts.includeImages &&
           inImageDir &&
           isImageFile(entry.name)
+        ) {
+          files.push(rel);
+        } else if (
+          opts.includeDocuments &&
+          inDocumentDir &&
+          isDocumentFile(entry.name)
         ) {
           files.push(rel);
         }
@@ -115,7 +133,13 @@ async function findFiles(
         }
         const entryPath = join(currentPath, entry.name);
         const isImgDir = entry.name === "image" && relativePath === "";
-        await walk(entryPath, rel, inImageDir || isImgDir);
+        const isDocDir = entry.name === "document" && relativePath === "";
+        await walk(
+          entryPath,
+          rel,
+          inImageDir || isImgDir,
+          inDocumentDir || isDocDir,
+        );
       }
     }
   };

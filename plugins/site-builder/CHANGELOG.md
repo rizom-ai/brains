@@ -1,5 +1,65 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.83
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.83
+  - @brains/site-composition@0.2.0-alpha.83
+  - @brains/site-engine@0.2.0-alpha.83
+  - @brains/ui-library@0.2.0-alpha.83
+  - @brains/utils@0.2.0-alpha.83
+  - @brains/plugins@0.2.0-alpha.83
+
+## 0.2.0-alpha.82
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.82
+  - @brains/site-composition@0.2.0-alpha.82
+  - @brains/site-engine@0.2.0-alpha.82
+  - @brains/ui-library@0.2.0-alpha.82
+  - @brains/utils@0.2.0-alpha.82
+  - @brains/plugins@0.2.0-alpha.82
+
+## 0.2.0-alpha.81
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.81
+  - @brains/site-composition@0.2.0-alpha.81
+  - @brains/site-engine@0.2.0-alpha.81
+  - @brains/ui-library@0.2.0-alpha.81
+  - @brains/utils@0.2.0-alpha.81
+  - @brains/plugins@0.2.0-alpha.81
+
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.80
+  - @brains/site-composition@0.2.0-alpha.80
+  - @brains/site-engine@0.2.0-alpha.80
+  - @brains/ui-library@0.2.0-alpha.80
+  - @brains/utils@0.2.0-alpha.80
+  - @brains/plugins@0.2.0-alpha.80
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.79
+  - @brains/site-composition@0.2.0-alpha.79
+  - @brains/site-engine@0.2.0-alpha.79
+  - @brains/ui-library@0.2.0-alpha.79
+  - @brains/utils@0.2.0-alpha.79
+  - @brains/plugins@0.2.0-alpha.79
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

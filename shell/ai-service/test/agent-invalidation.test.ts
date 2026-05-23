@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { AgentService } from "../src/agent-service";
-import { createSilentLogger } from "@brains/test-utils";
-import type { IMCPService } from "@brains/mcp-service";
+import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -9,24 +8,6 @@ import type {
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgentConfig } from "../src/brain-agent";
 import type { BrainAgent } from "../src/agent-types";
-
-function createMockMCPService(): IMCPService {
-  return {
-    registerTool: mock(() => {}),
-    registerResource: mock(() => {}),
-    registerResourceTemplate: mock(() => {}),
-    registerPrompt: mock(() => {}),
-    registerInstructions: mock(() => {}),
-    getInstructions: mock(() => []),
-    listTools: mock(() => []),
-    getCliTools: mock(() => []),
-    listToolsForPermissionLevel: mock(() => []),
-    listResources: mock(() => []),
-    getMcpServer: mock(() => ({})),
-    createMcpServer: mock(() => ({})),
-    setPermissionLevel: mock(() => {}),
-  } as unknown as IMCPService;
-}
 
 describe("AgentService invalidation", () => {
   let agentFactoryCalls: number;

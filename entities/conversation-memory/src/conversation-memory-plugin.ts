@@ -106,7 +106,9 @@ export class ConversationMemoryPlugin extends EntityPlugin<
         initialSync: {
           shouldEnqueue: async () =>
             context.spaces.length > 0 &&
-            !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE)),
+            !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE, {
+              outputVisibility: this.config.memoryVisibility,
+            })),
           jobData: { mode: "rebuild-all", reason: "initial-sync" },
           jobOptions: {
             source: SUMMARY_JOB_SOURCE,

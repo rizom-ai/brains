@@ -1,5 +1,9 @@
 # Rover default batch onboarding
 
+## Status
+
+Proposed hosted-pilot follow-up. Current `@rizom/ops` supports the core fleet shape, per-user generated config, age-encrypted per-user secrets, content repo bootstrapping, Discord anchors, and preview-domain routing. The remaining scope here is the next batch's user-level customization and preflight workflow.
+
 ## Goal
 
 Prepare the hosted Rover pilot flow for a second batch of users running `rover:default`, with safe per-user customization, predictable builds, and clear operator rollback.

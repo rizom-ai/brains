@@ -32,8 +32,10 @@ type CreateNoteInput = Omit<
 };
 
 function createNote(input: CreateNoteInput): Note {
+  const { visibility, ...rest } = input;
   return createTestEntity<Note>("note", {
-    ...input,
+    ...rest,
+    ...(visibility !== undefined ? { visibility } : {}),
     metadata: input.metadata ?? {},
   });
 }
@@ -180,11 +182,13 @@ describe("EntityRegistry", (): void => {
       category: "testing",
     });
 
-    const validatedEntity = registry.validateEntity<Note>("note", entityData);
-    expect(validatedEntity.id).toBe(entityData.id);
-    expect(validatedEntity.title).toBe("Test Note");
-    expect(validatedEntity.entityType).toBe("note");
-    expect(validatedEntity.category).toBe("testing");
+    const validatedEntity = registry.validateEntity("note", entityData);
+    expect(validatedEntity).toMatchObject({
+      id: entityData.id,
+      title: "Test Note",
+      entityType: "note",
+      category: "testing",
+    });
 
     const completeNote = createNote({
       id: entityData.id,
@@ -213,7 +217,7 @@ describe("EntityRegistry", (): void => {
     };
 
     expect(() => {
-      registry.validateEntity<Note>("note", invalidEntity);
+      registry.validateEntity("note", invalidEntity);
     }).toThrow();
   });
 

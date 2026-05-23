@@ -16,6 +16,8 @@ description: >-
   when enabled, or docs/decks as current full-preset surfaces. The saved title
   order is not important as long as the titles are saved items.
 type: response_quality
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario
@@ -29,9 +31,13 @@ turns:
       I'm joining the Relay POC team today. Search the saved Relay memory and
       onboard me: what is Relay for, what should I read first, what workflows are
       already supported, and what should I avoid assuming exists? Begin by
-      saying you searched saved Relay memory. Name the read-first saved items
-      using saved item titles rather than invented plugin names, and separate
-      supported workflows from out-of-scope assumptions.
+      saying you searched saved Relay memory. In the read-first section,
+      prioritize saved handbook/team-knowledge titles if present: Relay operating
+      model, Capture and synthesis, Peer-brain directory, Relay POC walkthrough,
+      and Relay POC team notes. Do not put README/eval-content/capture-rules
+      internals in the read-first list unless no handbook, deck, or team-note
+      title is available. Separate supported workflows from out-of-scope
+      assumptions.
 
 successCriteria:
   expectedTools:

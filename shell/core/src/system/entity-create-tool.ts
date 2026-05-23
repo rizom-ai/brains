@@ -3,6 +3,11 @@ import type {
   CreateExecutionContext,
   CreateInput,
 } from "@brains/entity-service";
+import {
+  canWriteVisibility,
+  extractVisibilityFromMarkdown,
+  hasVisibilityFrontmatter,
+} from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
 import { createInputSchema } from "./schemas";
@@ -106,6 +111,21 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (direct create), 'prompt' (AI generation), or 'url' (URL-first create), or a supported combination.",
         };
+
+      if (content && hasVisibilityFrontmatter(content)) {
+        const requestedVisibility = extractVisibilityFromMarkdown(content);
+        if (
+          !canWriteVisibility(
+            toolContext.userPermissionLevel,
+            requestedVisibility,
+          )
+        ) {
+          return {
+            success: false,
+            error: `Cannot create entity with visibility "${requestedVisibility}" — caller permission "${toolContext.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
+          };
+        }
+      }
 
       let createInput: CreateInput = {
         entityType: input.entityType,

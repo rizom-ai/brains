@@ -2,6 +2,8 @@ id: relay-tool-create-note
 name: Relay note capture via system_create
 description: Verifies that Relay captures team notes through the shared system_create surface.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - core

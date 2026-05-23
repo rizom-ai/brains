@@ -72,6 +72,7 @@ function createEntityFromInput(input: EntityInput, idSuffix = ""): BaseEntity {
     entityType: input.entityType,
     content: input.content,
     contentHash: computeContentHash(input.content),
+    visibility: "public",
     metadata: input.metadata ?? {},
     created: new Date().toISOString(),
     updated: new Date().toISOString(),

@@ -41,6 +41,7 @@ describe("ContentScheduler", () => {
           id: "mock-id",
           entityType: "mock-type",
           content: "Mock content",
+          visibility: "public",
           metadata: { title: "Mock entity" },
           created: new Date().toISOString(),
           updated: new Date().toISOString(),

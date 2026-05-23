@@ -19,6 +19,7 @@ import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type {
+  ContentVisibility,
   IEntityService,
   IEntityRegistry,
   ICoreEntityService,
@@ -54,6 +55,7 @@ import type { DataSourceRegistry } from "@brains/entity-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
+import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -191,10 +193,13 @@ export interface QueryContext {
  */
 /**
  * Handler for a registered insight type.
- * Receives the entity service for data queries, returns structured data.
+ * Receives the entity service for data queries plus the caller's visibility
+ * scope so aggregate insights can be filtered to what the caller is allowed
+ * to see. Returns structured data.
  */
 export type InsightHandler = (
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ) => Promise<Record<string, unknown>>;
 
 /**
@@ -207,6 +212,7 @@ export interface IInsightsRegistry {
   get(
     type: string,
     entityService: ICoreEntityService,
+    visibilityScope: ContentVisibility,
   ): Promise<Record<string, unknown>>;
 }
 
@@ -230,6 +236,7 @@ export interface IShell {
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
+  getAttachmentRegistry(): IAttachmentsNamespace;
 
   // Identity and Profile
   getIdentity(): BrainCharacter;
@@ -239,6 +246,7 @@ export interface IShell {
   getDomain(): string | undefined;
   getLocalSiteUrl(): string | undefined;
   shouldPreferLocalUrls(): boolean;
+  getThemeCSS(): string;
 
   // Shared conversation spaces for this brain/team
   getSpaces(): string[];

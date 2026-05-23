@@ -44,7 +44,7 @@ System tools such as create, update, search, extract, and status are framework-l
 
 ## Eval coverage
 
-Relay evals live in `test-cases/` and use the Relay-specific corpus in `eval-content/`. They cover plugin handlers, system-tool routing, and real user scenarios such as onboarding, demo prep, support triage, team-meeting capture, protocol research synthesis, browsing team memory, and save-first peer-brain contact flows.
+Relay evals live in `test-cases/` and use the Relay-specific corpus in `eval-content/`. They cover plugin handlers, system-tool routing, public/shared/operator permission flows, and real user scenarios such as onboarding, demo prep, support triage, team-meeting capture, protocol research synthesis, browsing team memory, prompt review, image capture, preview site builds, sync-status checks, and save-first peer-brain contact flows.
 
 Run local validation with:
 

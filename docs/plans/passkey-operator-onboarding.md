@@ -27,53 +27,7 @@ Operator-facing interfaces share the Brain tool surface, but hosted onboarding a
 
 ## What ships today
 
-### Auth-service: setup token + setup endpoint
-
-`shell/auth-service` owns the bootstrap ceremony in `auth-service.ts`:
-
-- Generates a setup token internally when no passkey exists.
-- Serves `/setup?token=...` only for the valid generated token.
-- Requires the valid generated token on passkey registration endpoints.
-- Clears/closes setup after successful passkey registration.
-- Refuses setup once any passkey exists.
-- Exposes setup state via `AuthService#getSetupUrl()` and `getOperatorSetupRequired()`.
-
-The internal type is exported from `@brains/auth-service`:
-
-```ts
-export interface OperatorSetupRequired {
-  setupUrl: string;
-  expiresAt: number;
-}
-```
-
-### Anchor-visible setup retrieval tool
-
-`auth-service-plugin.ts` registers an anchor-visible tool named `get_passkey_setup_url` (which surfaces under the plugin's namespace). Result shape:
-
-```ts
-type PasskeySetupToolData =
-  | { status: "setup_required"; setupUrl: string; expiresAt: number }
-  | { status: "complete" }
-  | { status: "unavailable"; reason: string };
-```
-
-Rules:
-
-- If a passkey already exists, returns `status: "complete"`.
-- If setup is required and a valid setup URL exists, returns `status: "setup_required"` with the URL and expiry.
-- If setup is required but no valid setup URL is available, returns `status: "unavailable"` with a non-sensitive reason.
-- The setup URL remains the same active one-shot URL; per-interface or per-user tokens are not used.
-- First successful passkey registration wins and closes setup for everyone else.
-
-### Shipped tests (auth-service)
-
-- setup URL generated when no passkey exists
-- setup retrieval tool returns `setup_required` with URL and expiry when no passkey exists
-- setup retrieval tool returns `complete` when a passkey already exists
-- `/setup` requires the valid generated token
-- registration endpoints require the valid generated token
-- setup closes after successful passkey registration
+`shell/auth-service` owns the bootstrap ceremony: generates a single-use setup token when no passkey exists, serves `/setup?token=...` and the registration endpoints against that token, clears the token after first successful passkey registration, and refuses further setup once any passkey is registered. `AuthService#getSetupUrl()` / `getOperatorSetupRequired()` expose state, and `auth-service-plugin` registers an anchor-visible `get_passkey_setup_url` tool returning `setup_required` / `complete` / `unavailable`. Setup-URL generation, registration token enforcement, retrieval tool results, and setup-closes-after-registration are all covered by tests.
 
 ## Remaining work
 

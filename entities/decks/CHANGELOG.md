@@ -1,5 +1,82 @@
 # @brains/decks
 
+## 0.2.0-alpha.83
+
+### Patch Changes
+
+- [`4934296`](https://github.com/rizom-ai/brains/commit/49342960e0cfcb430f0a1d93699532022b3debea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use fully opaque deck carousel PDF backgrounds so LinkedIn document rasterization preserves the intended colors.
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.83
+  - @brains/content-formatters@0.2.0-alpha.83
+  - @brains/contracts@0.2.0-alpha.83
+  - @brains/image@0.2.0-alpha.83
+  - @brains/media-page-composer@0.2.0-alpha.83
+  - @brains/media-renderer@0.2.0-alpha.83
+  - @brains/ui-library@0.2.0-alpha.83
+  - @brains/utils@0.2.0-alpha.83
+  - @brains/plugins@0.2.0-alpha.83
+
+## 0.2.0-alpha.82
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.82
+  - @brains/content-formatters@0.2.0-alpha.82
+  - @brains/contracts@0.2.0-alpha.82
+  - @brains/image@0.2.0-alpha.82
+  - @brains/media-page-composer@0.2.0-alpha.82
+  - @brains/media-renderer@0.2.0-alpha.82
+  - @brains/ui-library@0.2.0-alpha.82
+  - @brains/utils@0.2.0-alpha.82
+  - @brains/plugins@0.2.0-alpha.82
+
+## 0.2.0-alpha.81
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.81
+  - @brains/content-formatters@0.2.0-alpha.81
+  - @brains/contracts@0.2.0-alpha.81
+  - @brains/image@0.2.0-alpha.81
+  - @brains/media-page-composer@0.2.0-alpha.81
+  - @brains/media-renderer@0.2.0-alpha.81
+  - @brains/ui-library@0.2.0-alpha.81
+  - @brains/utils@0.2.0-alpha.81
+  - @brains/plugins@0.2.0-alpha.81
+
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.80
+  - @brains/content-formatters@0.2.0-alpha.80
+  - @brains/contracts@0.2.0-alpha.80
+  - @brains/image@0.2.0-alpha.80
+  - @brains/media-page-composer@0.2.0-alpha.80
+  - @brains/media-renderer@0.2.0-alpha.80
+  - @brains/ui-library@0.2.0-alpha.80
+  - @brains/utils@0.2.0-alpha.80
+  - @brains/plugins@0.2.0-alpha.80
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.79
+  - @brains/content-formatters@0.2.0-alpha.79
+  - @brains/contracts@0.2.0-alpha.79
+  - @brains/image@0.2.0-alpha.79
+  - @brains/media-page-composer@0.2.0-alpha.79
+  - @brains/media-renderer@0.2.0-alpha.79
+  - @brains/ui-library@0.2.0-alpha.79
+  - @brains/utils@0.2.0-alpha.79
+  - @brains/plugins@0.2.0-alpha.79
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

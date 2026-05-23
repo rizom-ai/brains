@@ -4,6 +4,8 @@ description: >-
   Real user workflow: a user tries to contact an unsaved peer brain; Relay must
   not call it or create a fallback wish, then must save it after explicit consent.
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario
@@ -43,7 +45,8 @@ turns:
         - toolName: a2a_call
           shouldBeCalled: false
       responseContains:
-        - "queued"
+        - "save"
+        - "agent"
       responseNotContains:
         - "wish"
         - "I contacted"

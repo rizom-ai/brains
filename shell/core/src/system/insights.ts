@@ -1,4 +1,8 @@
-import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  ICoreEntityService,
+} from "@brains/entity-service";
 import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
 
 interface CadenceEntry {
@@ -40,6 +44,7 @@ export class InsightsRegistry implements IInsightsRegistry {
   async get(
     type: string,
     entityService: ICoreEntityService,
+    visibilityScope: ContentVisibility,
   ): Promise<Record<string, unknown>> {
     const handler = this.handlers.get(type);
     if (!handler) {
@@ -47,7 +52,7 @@ export class InsightsRegistry implements IInsightsRegistry {
         `Unknown insight type: ${type}. Available: ${this.getTypes().join(", ")}`,
       );
     }
-    return handler(entityService);
+    return handler(entityService, visibilityScope);
   }
 }
 
@@ -68,8 +73,9 @@ export function createInsightsRegistry(): InsightsRegistry {
 
 async function getOverview(
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
-  const counts = await entityService.getEntityCounts();
+  const counts = await entityService.getEntityCounts(visibilityScope);
   const entityCounts: Record<string, number> = {};
   let totalEntities = 0;
   for (const { entityType, count } of counts) {
@@ -77,7 +83,7 @@ async function getOverview(
     totalEntities += count;
   }
 
-  const allEntities = await getAllEntities(entityService);
+  const allEntities = await getAllEntities(entityService, visibilityScope);
   const now = Date.now();
   const day7 = now - 7 * 24 * 60 * 60 * 1000;
   const day30 = now - 30 * 24 * 60 * 60 * 1000;
@@ -108,8 +114,9 @@ async function getOverview(
 
 async function getPublishingCadence(
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
-  const allEntities = await getAllEntities(entityService);
+  const allEntities = await getAllEntities(entityService, visibilityScope);
   const monthMap = new Map<string, Record<string, number>>();
 
   for (const entity of allEntities) {
@@ -138,8 +145,9 @@ async function getPublishingCadence(
 
 async function getContentHealth(
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
-  const allEntities = await getAllEntities(entityService);
+  const allEntities = await getAllEntities(entityService, visibilityScope);
 
   const drafts: DraftEntry[] = getDrafts(allEntities).map((e) => ({
     id: e.id,
@@ -178,13 +186,14 @@ function getDrafts(entities: BaseEntity[]): BaseEntity[] {
 
 async function getAllEntities(
   entityService: ICoreEntityService,
+  visibilityScope: ContentVisibility,
 ): Promise<BaseEntity[]> {
   const types = entityService.getEntityTypes();
   const all: BaseEntity[] = [];
   for (const type of types) {
     const entities = await entityService.listEntities({
       entityType: type,
-      options: { limit: 1000 },
+      options: { limit: 1000, filter: { visibilityScope } },
     });
     all.push(...entities);
   }

@@ -3,7 +3,9 @@ import { type UserPermissionLevel } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  canExposePrompt,
   canExposeResource,
+  canExposeResourceTemplate,
   canExposeTool,
   createMcpServerInstance,
   filterToolsForPermission,
@@ -33,7 +35,7 @@ export class MCPService implements IMCPService {
 
   private readonly logger: Logger;
   private readonly messageBus: IMessageBus;
-  private readonly mcpServer: McpServer;
+  private mcpServer: McpServer;
 
   // Track registered tools and resources
   private readonly registeredTools = new Map<string, RegisteredTool>();
@@ -111,6 +113,8 @@ export class MCPService implements IMCPService {
    */
   public setPermissionLevel(level: UserPermissionLevel): void {
     this.permissionLevel = level;
+    this.mcpServer = createMcpServerInstance();
+    this.registerEntriesOnServer(this.mcpServer, this.permissionLevel);
     this.logger.debug(`Permission level set to ${level}`);
   }
 
@@ -126,7 +130,12 @@ export class MCPService implements IMCPService {
 
     // Only expose on the MCP protocol server if transport permission allows.
     if (canExposeTool(this.permissionLevel, tool)) {
-      this.registerToolOnServer(this.mcpServer, pluginId, tool);
+      this.registerToolOnServer(
+        this.mcpServer,
+        pluginId,
+        tool,
+        this.permissionLevel,
+      );
     }
 
     this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
@@ -148,26 +157,43 @@ export class MCPService implements IMCPService {
   }
 
   /**
-   * Register a resource template with parameterized URI
+   * Register a resource template with parameterized URI.
+   *
+   * Always stores in the internal registry so that per-session servers
+   * (createMcpServer(anchor)) can re-expose the template even when the
+   * default service permission is lower. The protocol server only sees the
+   * template if the current permission allows it, matching plain resources.
    */
   public registerResourceTemplate<K extends string = string>(
     pluginId: string,
     template: ResourceTemplate<K>,
   ): void {
-    registerResourceTemplateOnServer(this.mcpServer, template);
-
     this.registeredTemplates.push({ pluginId, template });
+
+    if (canExposeResourceTemplate(this.permissionLevel)) {
+      registerResourceTemplateOnServer(this.mcpServer, template);
+    }
+
     this.logger.debug(
       `Registered resource template ${template.uriTemplate} from ${pluginId}`,
     );
   }
 
   /**
-   * Register an MCP prompt
+   * Register an MCP prompt.
+   *
+   * Mirrors registerTool: always store in the internal registry so per-session
+   * servers (createMcpServer(anchor)) can re-expose the prompt even when the
+   * default service permission is lower. The protocol server only sees the
+   * prompt if the current permission allows it.
    */
   public registerPrompt(pluginId: string, prompt: Prompt): void {
-    registerPromptOnServer(this.mcpServer, prompt);
     this.registeredPrompts.push({ pluginId, prompt });
+
+    if (canExposePrompt(this.permissionLevel, prompt)) {
+      registerPromptOnServer(this.mcpServer, prompt);
+    }
+
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
 
@@ -216,20 +242,26 @@ export class MCPService implements IMCPService {
   ): void {
     for (const { pluginId, tool } of this.registeredTools.values()) {
       if (canExposeTool(permissionLevel, tool)) {
-        this.registerToolOnServer(server, pluginId, tool);
+        this.registerToolOnServer(server, pluginId, tool, permissionLevel);
       }
     }
 
-    for (const { resource } of this.registeredResources.values()) {
-      registerResourceOnServer(server, resource);
+    if (canExposeResource(permissionLevel)) {
+      for (const { resource } of this.registeredResources.values()) {
+        registerResourceOnServer(server, resource);
+      }
     }
 
-    for (const { template } of this.registeredTemplates) {
-      registerResourceTemplateOnServer(server, template);
+    if (canExposeResourceTemplate(permissionLevel)) {
+      for (const { template } of this.registeredTemplates) {
+        registerResourceTemplateOnServer(server, template);
+      }
     }
 
     for (const { prompt } of this.registeredPrompts) {
-      registerPromptOnServer(server, prompt);
+      if (canExposePrompt(permissionLevel, prompt)) {
+        registerPromptOnServer(server, prompt);
+      }
     }
   }
 
@@ -237,7 +269,15 @@ export class MCPService implements IMCPService {
     server: McpServer,
     pluginId: string,
     tool: Tool,
+    permissionLevel: UserPermissionLevel,
   ): void {
-    registerToolOnServer(server, pluginId, tool, this.messageBus, this.logger);
+    registerToolOnServer(
+      server,
+      pluginId,
+      tool,
+      this.messageBus,
+      this.logger,
+      permissionLevel,
+    );
   }
 }

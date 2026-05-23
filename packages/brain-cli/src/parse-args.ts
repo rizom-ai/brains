@@ -22,6 +22,7 @@ export interface ParsedArgs {
     yes?: boolean | undefined;
     remote?: string | undefined;
     token?: string | undefined;
+    outputDir?: string | undefined;
     help?: boolean | undefined;
     version?: boolean | undefined;
   };
@@ -46,6 +47,7 @@ const options = {
   yes: { type: "boolean" as const },
   remote: { type: "string" as const },
   token: { type: "string" as const },
+  outputDir: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
   version: { type: "boolean" as const, short: "v" },
 };
@@ -111,6 +113,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       yes: getBoolean(values, "yes"),
       remote: getString(values, "remote"),
       token: getString(values, "token"),
+      outputDir: getString(values, "outputDir"),
     },
   };
 }

@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { z } from "@brains/utils";
 import {
+  baseEntitySchema,
   createMockShell,
   createServicePluginContext,
+  type EntityAdapter,
   type MockShell,
   type ServicePluginContext,
 } from "@brains/plugins/test";
@@ -10,6 +11,25 @@ import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
+
+/**
+ * Minimal entity adapter for test-only entity types where the registry only
+ * needs to know the type exists so `getEntity` / `createEntity` work.
+ * Implements EntityAdapter directly because BaseEntityAdapter requires a
+ * literal entityType discriminant which doesn't fit a generic helper.
+ */
+function createStubAdapter(entityType: string): EntityAdapter<BaseEntity> {
+  return {
+    entityType,
+    schema: baseEntitySchema,
+    toMarkdown: (entity) => entity.content,
+    fromMarkdown: (content) => ({ content }),
+    extractMetadata: (entity) => entity.metadata,
+    parseFrontMatter: (_markdown, schema) => schema.parse({}),
+    generateFrontMatter: () => "",
+    getBodyTemplate: () => "",
+  };
+}
 
 function createPublishableEntity(
   content: string,
@@ -19,6 +39,7 @@ function createPublishableEntity(
     entityType: "social-post",
     content,
     contentHash: "test",
+    visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
     metadata: { status: "draft" },
@@ -34,7 +55,18 @@ describe("preparePublishContent", () => {
     context = createServicePluginContext(mockShell, "content-pipeline");
     mockShell
       .getEntityRegistry()
-      .registerEntityType("image", z.any(), {} as never);
+      .registerEntityType(
+        "image",
+        baseEntitySchema,
+        createStubAdapter("image"),
+      );
+    mockShell
+      .getEntityRegistry()
+      .registerEntityType(
+        "document",
+        baseEntitySchema,
+        createStubAdapter("document"),
+      );
   });
 
   it("should strip markdown frontmatter", async () => {
@@ -76,6 +108,180 @@ Post with image.`;
     expect(result.bodyContent).toBe("Post with image.");
     expect(result.imageData?.mimeType).toBe("image/png");
     expect(result.imageData?.data.toString("utf8")).toBe("hello");
+  });
+
+  it("should fetch structured document attachment data", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "carousel-pdf",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        metadata: { filename: "carousel.pdf" },
+      },
+    });
+
+    const content = `---
+documents:
+  - id: carousel-pdf
+---
+Post with PDF carousel.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe("Post with PDF carousel.");
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]).toMatchObject({
+      type: "document",
+      mimeType: "application/pdf",
+      filename: "carousel.pdf",
+    });
+    expect(result.documentData?.[0]?.data.toString("utf8")).toBe("%PDF-1.7");
+  });
+
+  it("should resolve source-derived carousel attachments when no explicit documents are set", async () => {
+    context.attachments.register("deck", "carousel", {
+      resolve: (request) => {
+        expect(request.sourceEntityId).toBe("deck-1");
+        return {
+          type: "document",
+          data: Buffer.from("%PDF-carousel"),
+          mimeType: "application/pdf",
+          filename: "deck-carousel.pdf",
+        };
+      },
+    });
+
+    const content = `---
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Post with generated carousel.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe("Post with generated carousel.");
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("deck-carousel.pdf");
+    expect(result.documentData?.[0]?.data.toString("utf8")).toBe(
+      "%PDF-carousel",
+    );
+  });
+
+  it("should prefer explicit document attachments over source-derived attachments", async () => {
+    let sourceAttachmentResolved = false;
+    context.attachments.register("deck", "carousel", {
+      resolve: () => {
+        sourceAttachmentResolved = true;
+        return {
+          type: "document",
+          data: Buffer.from("source"),
+          mimeType: "application/pdf",
+          filename: "source.pdf",
+        };
+      },
+    });
+    await context.entityService.createEntity({
+      entity: {
+        id: "frozen-pdf",
+        entityType: "document",
+        content: "data:application/pdf;base64,ZXhwbGljaXQ=",
+        metadata: { filename: "frozen.pdf" },
+      },
+    });
+
+    const content = `---
+sourceEntityType: deck
+sourceEntityId: deck-1
+documents:
+  - id: frozen-pdf
+---
+Post with explicit PDF carousel.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(sourceAttachmentResolved).toBe(false);
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("frozen.pdf");
+    expect(result.documentData?.[0]?.data.toString("utf8")).toBe("explicit");
+  });
+
+  it("should ignore invalid document references", async () => {
+    const content = `---
+documents:
+  - id: ""
+  - id: missing-doc
+---
+Post without usable documents.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe("Post without usable documents.");
+    expect(result.documentData).toBeUndefined();
+  });
+
+  it("should fall through to source-derived attachment when documents is an empty array", async () => {
+    context.attachments.register("deck", "carousel", {
+      resolve: () => ({
+        type: "document",
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf",
+        filename: "deck-carousel.pdf",
+      }),
+    });
+
+    const content = `---
+documents: []
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Post with empty documents array.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("deck-carousel.pdf");
+  });
+
+  it("should fall through to source-derived attachment when all explicit document refs fail to fetch", async () => {
+    context.attachments.register("deck", "carousel", {
+      resolve: () => ({
+        type: "document",
+        data: Buffer.from("%PDF-carousel"),
+        mimeType: "application/pdf",
+        filename: "deck-carousel.pdf",
+      }),
+    });
+
+    const content = `---
+documents:
+  - id: missing-doc
+sourceEntityType: deck
+sourceEntityId: deck-1
+---
+Post with unresolvable document refs.`;
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.documentData).toHaveLength(1);
+    expect(result.documentData?.[0]?.filename).toBe("deck-carousel.pdf");
   });
 
   it("should ignore missing or invalid image data", async () => {

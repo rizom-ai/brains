@@ -1,4 +1,5 @@
 import type {
+  ContentVisibility,
   CountEntitiesRequest,
   EntitySearchRequest,
   GetEntityRequest,
@@ -9,7 +10,7 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
-import type { UserPermissionLevel } from "@brains/templates";
+import type { OutputFormat, UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
@@ -278,6 +279,7 @@ export type EvalHandler<TInput = unknown, TOutput = unknown> = (
 
 export type InsightHandler = (
   entityService: IEntityService,
+  visibilityScope: ContentVisibility,
 ) => Promise<Record<string, unknown>>;
 
 export interface IEvalNamespace {
@@ -317,8 +319,8 @@ export interface IServiceTemplatesNamespace {
 export interface IViewsNamespace {
   get(name: string): unknown | undefined;
   list(): unknown[];
-  hasRenderer(templateName: string): boolean;
-  getRenderer(templateName: string): unknown | undefined;
+  hasRenderer(templateName: string, format?: OutputFormat): boolean;
+  getRenderer(templateName: string, format?: OutputFormat): unknown | undefined;
   validate(templateName: string, content: unknown): boolean;
 }
 

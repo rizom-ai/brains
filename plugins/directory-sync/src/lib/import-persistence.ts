@@ -1,19 +1,37 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { BaseEntity, ContentVisibility } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { ImportResult, RawEntity } from "../types";
-import type { FileOperations } from "./file-operations";
-import type { ImageJobQueueDeps } from "./image-job-queue";
+
 import { resolveInSyncPath } from "./path-utils";
-import type { Quarantine } from "./quarantine";
 
 export interface ImportPersistenceDeps {
-  entityService: IEntityService;
+  entityService: {
+    getEntity(request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility;
+    }): Promise<BaseEntity | null>;
+    serializeEntity(entity: BaseEntity): string;
+    upsertEntity(request: { entity: BaseEntity }): Promise<{ jobId: string }>;
+  };
   logger: Logger;
-  fileOperations: FileOperations;
-  quarantine: Quarantine;
-  imageJobQueue: ImageJobQueueDeps;
+  fileOperations: {
+    shouldUpdateEntity(existing: BaseEntity, rawEntity: RawEntity): boolean;
+  };
+  quarantine: {
+    isValidationError(error: unknown): boolean;
+    quarantineInvalidFile(
+      filePath: string,
+      error: unknown,
+      result: ImportResult,
+      resolveFilePath: (filePath: string) => string,
+    ): Promise<void>;
+    markAsRecoveredIfNeeded(filePath: string): Promise<void>;
+  };
+  imageJobQueue: { syncPath: string };
 }
 
 export async function persistImportEntity(
@@ -27,6 +45,9 @@ export async function persistImportEntity(
     const existing = await deps.entityService.getEntity({
       entityType: rawEntity.entityType,
       id: rawEntity.id,
+      visibilityScope: internalFullScope(
+        "directory sync indexes entities across all visibility tiers",
+      ),
     });
 
     if (
@@ -39,12 +60,17 @@ export async function persistImportEntity(
 
     // Spread parsedEntity first so type-specific fields (e.g., title, status
     // for decks) are preserved, then override with canonical BaseEntity fields.
+    // rawEntity.metadata wins last because it carries fields the adapter
+    // cannot recover from content alone (e.g., document sidecar metadata).
+    const sidecarMetadata = rawEntity.metadata ?? {};
+    const adapterMetadata = parsedEntity.metadata ?? {};
     const entity: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
       content: parsedEntity.content ?? rawEntity.content,
-      metadata: parsedEntity.metadata ?? {},
+      visibility: parsedEntity.visibility ?? "public",
+      metadata: { ...adapterMetadata, ...sidecarMetadata },
       created: existing?.created ?? rawEntity.created.toISOString(),
       updated: rawEntity.updated.toISOString(),
       contentHash: "",

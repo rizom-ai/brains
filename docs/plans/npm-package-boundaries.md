@@ -101,6 +101,8 @@ These may remain workspace-internal implementation details. They can be used by 
 - promote only proven stable utilities into curated `@rizom/brain/*` subpaths
 - expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities
 
+The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
+
 Candidate utilities to promote deliberately:
 
 - public schema helpers that are part of entity/plugin contracts

@@ -1,4 +1,8 @@
-import type { BaseEntity, ICoreEntityService } from "./types";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  ICoreEntityService,
+} from "./types";
 import type { Logger } from "@brains/utils";
 
 export type ResolvedEntity =
@@ -8,39 +12,39 @@ export type ResolvedEntity =
 /**
  * Find an entity by trying ID, slug, then title lookups.
  *
- * Shared utility used by SystemPlugin and ImagePlugin to resolve
- * an entity from an ambiguous identifier string.
+ * Propagates the visibility scope to every lookup path so the slug/title
+ * fallbacks cannot leak entities the caller is not allowed to see.
+ * Defaults to "public" when no scope is provided.
  */
 export async function findEntityByIdentifier(
   entityService: ICoreEntityService,
   entityType: string,
   identifier: string,
   logger?: Logger,
+  visibilityScope: ContentVisibility = "public",
 ): Promise<BaseEntity | null> {
   try {
-    // Try direct ID lookup first
     const byId = await entityService.getEntity({
       entityType,
       id: identifier,
+      visibilityScope,
     });
     if (byId) return byId;
 
-    // Try by slug
     const bySlug = await entityService.listEntities({
       entityType,
       options: {
         limit: 1,
-        filter: { metadata: { slug: identifier } },
+        filter: { metadata: { slug: identifier }, visibilityScope },
       },
     });
     if (bySlug[0]) return bySlug[0];
 
-    // Try by title
     const byTitle = await entityService.listEntities({
       entityType,
       options: {
         limit: 1,
-        filter: { metadata: { title: identifier } },
+        filter: { metadata: { title: identifier }, visibilityScope },
       },
     });
     if (byTitle[0]) return byTitle[0];
@@ -68,12 +72,14 @@ export async function resolveEntityOrError(
   identifier: string,
   logger?: Logger,
   label = "Entity",
+  visibilityScope: ContentVisibility = "public",
 ): Promise<ResolvedEntity> {
   const entity = await findEntityByIdentifier(
     entityService,
     entityType,
     identifier,
     logger,
+    visibilityScope,
   );
   if (!entity) {
     return {

@@ -4,6 +4,7 @@ import {
   text,
   integer,
   primaryKey,
+  check,
 } from "drizzle-orm/sqlite-core";
 
 /**
@@ -24,6 +25,13 @@ export const entities = sqliteTable(
     // Content hash for change detection (SHA256 hex)
     // Used by plugins to detect if content has changed without comparing full text
     contentHash: text("contentHash").notNull(),
+
+    // Visibility boundary for read/search/derivation policies
+    visibility: text("visibility", {
+      enum: ["public", "shared", "restricted"],
+    })
+      .notNull()
+      .default("public"),
 
     // Metadata from frontmatter (includes title, tags, and entity-specific fields)
     metadata: text("metadata", { mode: "json" })
@@ -47,6 +55,10 @@ export const entities = sqliteTable(
     return {
       // Composite primary key on id + entityType
       pk: primaryKey({ columns: [table.id, table.entityType] }),
+      visibilityCheck: check(
+        "entities_visibility_check",
+        sql`${table.visibility} IN ('public', 'shared', 'restricted')`,
+      ),
     };
   },
 );

@@ -1,4 +1,7 @@
-import { resolveEntityOrError } from "@brains/entity-service";
+import {
+  permissionToVisibilityScope,
+  resolveEntityOrError,
+} from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
 import type { SystemServices } from "./types";
@@ -11,12 +14,17 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
     "delete",
     "Delete an entity. Requires confirmation.",
     deleteInputSchema,
-    async (input) => {
+    async (input, context) => {
+      const visibilityScope = permissionToVisibilityScope(
+        context.userPermissionLevel,
+      );
       const resolved = await resolveEntityOrError(
         entityService,
         input.entityType,
         input.id,
         logger,
+        undefined,
+        visibilityScope,
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;

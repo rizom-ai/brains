@@ -20,6 +20,7 @@ export {
   platformSchema,
   socialPostStatusSchema,
   sourceEntityTypeSchema,
+  socialPostDocumentAttachmentSchema,
   type SocialPost,
   type SocialPostFrontmatter,
   type SocialPostMetadata,
@@ -28,6 +29,7 @@ export {
   type Platform,
   type SocialPostStatus,
   type SourceEntityType,
+  type SocialPostDocumentAttachment,
 } from "./schemas/social-post";
 
 // Adapter exports
@@ -50,7 +52,11 @@ export {
 } from "./handlers";
 
 // Provider exports (uses PublishProvider from @brains/contracts)
-export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
+export {
+  LinkedInClient,
+  createLinkedInProvider,
+  type LinkedInClientDeps,
+} from "./lib/linkedin-client";
 
 // Template exports
 export {

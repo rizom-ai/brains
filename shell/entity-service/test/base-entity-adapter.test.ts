@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
-import type { BaseEntity } from "../src/types";
+import { baseEntitySchema, type BaseEntity } from "../src/types";
 
 // ── Test schema setup ──
 
@@ -20,15 +20,10 @@ interface TestEntity extends BaseEntity<TestMetadata> {
   metadata: TestMetadata;
 }
 
-const testEntitySchema = z.object({
-  id: z.string(),
+const testEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("test"),
-  content: z.string(),
-  contentHash: z.string(),
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
   metadata: testMetadataSchema,
-}) as z.ZodSchema<TestEntity>;
+});
 
 // ── Concrete subclass that exposes protected helpers for testing ──
 

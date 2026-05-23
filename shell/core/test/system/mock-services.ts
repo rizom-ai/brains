@@ -1,7 +1,17 @@
 import type { SystemServices } from "../../src/system/types";
 import { createSilentLogger } from "@brains/test-utils";
-import type { BaseEntity } from "@brains/entity-service";
+import {
+  getVisibleContentVisibilities,
+  parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type EntitySearchRequest,
+  type ListEntitiesRequest,
+} from "@brains/entity-service";
 import { z } from "@brains/utils";
+
+type SeedEntity = Omit<BaseEntity, "visibility"> & {
+  visibility?: BaseEntity["visibility"];
+};
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -14,7 +24,7 @@ export function createMockSystemServices(
   /** Access the in-memory entity store */
   getEntities: () => Map<string, BaseEntity>;
   /** Seed entities for testing */
-  addEntities: (entities: BaseEntity[]) => void;
+  addEntities: (entities: SeedEntity[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** Get the last direct markdown create call */
@@ -25,10 +35,11 @@ export function createMockSystemServices(
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
 
-  const addEntities = (ents: BaseEntity[]): void => {
+  const addEntities = (ents: SeedEntity[]): void => {
     for (const e of ents) {
-      entities.set(e.id, e);
-      entityTypes.add(e.entityType);
+      const entity: BaseEntity = { ...e, visibility: e.visibility ?? "public" };
+      entities.set(entity.id, entity);
+      entityTypes.add(entity.entityType);
     }
   };
 
@@ -41,6 +52,9 @@ export function createMockSystemServices(
     title: z.string().optional(),
   });
 
+  const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
+    parseMarkdownWithFrontmatter(markdown, schema).metadata;
+
   const entityRegistry = {
     getAdapter: (
       type: string,
@@ -49,6 +63,7 @@ export function createMockSystemServices(
       hasBody: boolean;
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
+      parseFrontMatter: <T>(markdown: string, schema: z.ZodSchema<T>) => T;
     } => {
       const coverImageEntityTypes = new Set([
         "deck",
@@ -63,6 +78,7 @@ export function createMockSystemServices(
           supportsCoverImage: false,
           hasBody: true,
           isSingleton: false,
+          parseFrontMatter,
           fromMarkdown: (markdown: string): unknown => {
             const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
             if (!match) {
@@ -112,6 +128,7 @@ export function createMockSystemServices(
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
         isSingleton: false,
+        parseFrontMatter,
         fromMarkdown: (): unknown => ({}),
       };
     },
@@ -135,29 +152,57 @@ export function createMockSystemServices(
   }> = [];
 
   const entityService = {
-    search: async () => [],
-    getEntity: async (request: { entityType: string; id: string }) => {
-      const entity = entities.get(request.id);
-      return entity?.entityType === request.entityType ? entity : null;
+    search: async (request: EntitySearchRequest) => {
+      const scope = request.options?.visibilityScope;
+      const allowed = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
+      const typeFilter = request.options?.types;
+      return Array.from(entities.values())
+        .filter((e) => {
+          if (typeFilter?.length && !typeFilter.includes(e.entityType))
+            return false;
+          if (allowed && !allowed.has(e.visibility)) return false;
+          return true;
+        })
+        .map((entity) => ({ entity, score: 1, excerpt: entity.content }));
     },
-    listEntities: async (request: {
+    getEntity: async (request: {
       entityType: string;
-      options?: { filter?: { metadata?: Record<string, unknown> } };
-    }) =>
-      Array.from(entities.values()).filter((e) => {
+      id: string;
+      visibilityScope?: BaseEntity["visibility"];
+    }) => {
+      const entity = entities.get(request.id);
+      if (entity?.entityType !== request.entityType) return null;
+      const scope = request.visibilityScope ?? "public";
+      const allowed = new Set(getVisibleContentVisibilities(scope));
+      return allowed.has(entity.visibility) ? entity : null;
+    },
+    listEntities: async (request: ListEntitiesRequest) => {
+      const scope = request.options?.filter?.visibilityScope;
+      const allowed = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
+      const metadataFilter = request.options?.filter?.metadata;
+      return Array.from(entities.values()).filter((e) => {
         if (e.entityType !== request.entityType) return false;
-        const metadataFilter = request.options?.filter?.metadata;
+        if (allowed && !allowed.has(e.visibility)) return false;
         if (!metadataFilter) return true;
         return Object.entries(metadataFilter).every(
           ([key, value]) => e.metadata[key] === value,
         );
-      }),
+      });
+    },
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
-    createEntity: async (request: { entity: BaseEntity }) => {
+    createEntity: async (request: { entity: SeedEntity }) => {
       const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
-      entities.set(id, { ...entity, id });
+      entities.set(id, {
+        ...entity,
+        id,
+        visibility: entity.visibility ?? "public",
+      });
       entityTypes.add(entity.entityType);
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
@@ -171,6 +216,7 @@ export function createMockSystemServices(
         entityType: input.entityType,
         content: input.markdown,
         contentHash: "",
+        visibility: "public",
         metadata: { title: input.id },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -187,9 +233,12 @@ export function createMockSystemServices(
       entities.delete(request.id);
       return true;
     },
-    getEntityCounts: async () => {
+    getEntityCounts: async (visibilityScope?: BaseEntity["visibility"]) => {
+      const scope = visibilityScope ?? "public";
+      const allowed = new Set(getVisibleContentVisibilities(scope));
       const countMap = new Map<string, number>();
       for (const e of entities.values()) {
+        if (!allowed.has(e.visibility)) continue;
         countMap.set(e.entityType, (countMap.get(e.entityType) ?? 0) + 1);
       }
       return Array.from(countMap.entries()).map(([entityType, count]) => ({

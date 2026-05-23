@@ -15,11 +15,12 @@ export type Note = z.infer<typeof noteSchema>;
 
 export type NoteInput = Omit<
   Note,
-  "id" | "created" | "updated" | "contentHash"
+  "id" | "created" | "updated" | "contentHash" | "visibility"
 > & {
   id?: string;
   created?: string;
   updated?: string;
+  visibility?: "public" | "shared" | "restricted" | "private";
 };
 
 export function createNoteInput(

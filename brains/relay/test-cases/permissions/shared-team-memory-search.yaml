@@ -1,0 +1,42 @@
+id: relay-permission-shared-team-memory-search
+name: Shared teammate can search Relay team memory
+description: >-
+  Verifies that a shared/trusted Relay teammate can use saved team memory for
+  read-oriented collaboration without requiring operator-only actions.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - relay
+  - permissions
+  - shared
+  - trusted
+  - search
+
+turns:
+  - userMessage: >-
+      As a shared Relay teammate, search saved team memory and remind me what
+      the POC says about capture, summaries, and peer-brain coordination. Do not
+      create or update anything.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+  responseContains:
+    - "Relay"
+  responseNotContains:
+    - "created"
+    - "updated"
+    - "blog"
+    - "newsletter"
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

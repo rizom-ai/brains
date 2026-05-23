@@ -2,6 +2,8 @@ id: relay-tool-extract-topics
 name: Extract Relay topics
 description: Tests that the agent uses system_extract when asked to synthesize Relay topics from current content.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - core

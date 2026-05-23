@@ -1,0 +1,214 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
+import { h, type JSX } from "preact";
+import { z } from "@brains/utils";
+import {
+  startStaticRenderServer,
+  writeMediaRenderPage,
+  type MediaPageTemplate,
+} from "../src";
+import { containsTraversal } from "../src/media-render-page";
+
+const tempDirs: string[] = [];
+
+function PdfComponent(props: Record<string, unknown>): JSX.Element {
+  return h("article", { className: "carousel-slide" }, String(props["title"]));
+}
+
+function createTemplate(): MediaPageTemplate {
+  return {
+    name: "carousel-template",
+    pluginId: "test",
+    schema: z.object({ title: z.string() }),
+    renderers: {
+      pdf: PdfComponent,
+    },
+  };
+}
+
+async function createTempDir(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "media-render-page-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+function expectErrorMessage(error: unknown, message: string): void {
+  if (!(error instanceof Error)) {
+    throw new Error("Expected an Error to be thrown");
+  }
+  expect(error.message).toContain(message);
+}
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
+});
+
+describe("writeMediaRenderPage", () => {
+  it("writes a rendered media template under _media and returns its URL path", async () => {
+    const outputDir = await createTempDir();
+
+    const result = await writeMediaRenderPage({
+      outputDir,
+      mediaPath: "/_media/carousel/template/post-1",
+      template: createTemplate(),
+      format: "pdf",
+      content: { title: "Carousel" },
+      siteConfig: { title: "Test Site", themeMode: "dark" },
+      themeCSS: "",
+    });
+
+    expect(result.urlPath).toBe("/_media/carousel/template/post-1/");
+    expect(result.filePath).toBe(
+      join(outputDir, "_media", "carousel", "template", "post-1", "index.html"),
+    );
+
+    const html = await readFile(result.filePath, "utf-8");
+    expect(html).toContain("Carousel");
+    expect(html).toContain('class="carousel-slide"');
+    expect(html).toContain('<meta name="robots" content="noindex,nofollow">');
+    expect(html).toContain('<link rel="stylesheet" href="/styles/main.css">');
+  });
+
+  it("always writes theme token CSS for media render pages", async () => {
+    const outputDir = await createTempDir();
+
+    await writeMediaRenderPage({
+      outputDir,
+      mediaPath: "/_media/carousel/template/post-1",
+      template: createTemplate(),
+      format: "pdf",
+      content: { title: "Carousel" },
+      siteConfig: { title: "Test Site" },
+      themeCSS: ":root { --carousel-test-token: #abcdef; }",
+    });
+
+    const css = await readFile(join(outputDir, "styles", "main.css"), "utf-8");
+    expect(css).toBe(":root { --carousel-test-token: #abcdef; }");
+  });
+
+  it("rejects paths outside the internal media namespace", async () => {
+    const outputDir = await createTempDir();
+
+    let error: unknown;
+    try {
+      await writeMediaRenderPage({
+        outputDir,
+        mediaPath: "/posts/not-media",
+        template: createTemplate(),
+        format: "pdf",
+        content: { title: "Carousel" },
+        siteConfig: { title: "Test Site" },
+        themeCSS: "",
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expectErrorMessage(error, "Media render paths must start with /_media/");
+  });
+
+  it("rejects traversal attempts", async () => {
+    const outputDir = await createTempDir();
+
+    let error: unknown;
+    try {
+      await writeMediaRenderPage({
+        outputDir,
+        mediaPath: "/_media/../outside",
+        template: createTemplate(),
+        format: "pdf",
+        content: { title: "Carousel" },
+        siteConfig: { title: "Test Site" },
+        themeCSS: "",
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expectErrorMessage(error, "Media render path cannot contain traversal");
+  });
+});
+
+describe("containsTraversal", () => {
+  it("detects literal '..' segments", () => {
+    expect(containsTraversal("/_media/../etc/passwd")).toBe(true);
+    expect(containsTraversal("..")).toBe(true);
+    expect(containsTraversal("/a/../b")).toBe(true);
+  });
+
+  it("allows paths without '..' segments", () => {
+    expect(containsTraversal("/_media/carousel/index.html")).toBe(false);
+    expect(containsTraversal("/")).toBe(false);
+    expect(containsTraversal("")).toBe(false);
+  });
+
+  it("does not catch percent-encoded traversal without prior decoding", () => {
+    // The static server is expected to decodeURIComponent BEFORE calling
+    // containsTraversal — this test pins that contract so any refactor that
+    // moves containsTraversal earlier in the pipeline reveals the assumption.
+    expect(containsTraversal("/_media/%2e%2e/etc")).toBe(false);
+    expect(containsTraversal(decodeURIComponent("/_media/%2e%2e/etc"))).toBe(
+      true,
+    );
+  });
+
+  it("treats partial '..' lookalikes as safe", () => {
+    expect(containsTraversal("/a/..b/c")).toBe(false);
+    expect(containsTraversal("/a/.../c")).toBe(false);
+    expect(containsTraversal("/a/.b/c")).toBe(false);
+  });
+});
+
+describe("startStaticRenderServer", () => {
+  it("serves generated media pages and shared CSS from the build output", async () => {
+    const outputDir = await createTempDir();
+    await mkdir(join(outputDir, "styles"), { recursive: true });
+    await writeFile(
+      join(outputDir, "styles", "main.css"),
+      ".carousel-slide { color: red; }",
+      "utf-8",
+    );
+
+    const page = await writeMediaRenderPage({
+      outputDir,
+      mediaPath: "/_media/carousel/template/post-1",
+      template: createTemplate(),
+      format: "pdf",
+      content: { title: "Carousel" },
+      siteConfig: { title: "Test Site" },
+      themeCSS: ".carousel-slide { color: red; }",
+    });
+
+    const server = await startStaticRenderServer({ rootDir: outputDir });
+    try {
+      const pageResponse = await fetch(server.urlFor(page.urlPath));
+      const cssResponse = await fetch(server.urlFor("/styles/main.css"));
+
+      expect(pageResponse.status).toBe(200);
+      expect(await pageResponse.text()).toContain("Carousel");
+      expect(cssResponse.status).toBe(200);
+      expect(await cssResponse.text()).toBe(".carousel-slide { color: red; }");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("does not serve files outside the configured root", async () => {
+    const outputDir = await createTempDir();
+    const server = await startStaticRenderServer({ rootDir: outputDir });
+
+    try {
+      const response = await fetch(
+        server.urlFor("/_media/%2e%2e/%2e%2e/etc/passwd"),
+      );
+
+      expect(response.status).not.toBe(200);
+    } finally {
+      await server.close();
+    }
+  });
+});

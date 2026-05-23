@@ -4,6 +4,8 @@ description: >-
   Real user scenario: retrieve a saved Relay conversation summary and answer
   from it without inventing future-plugin work.
 type: tool_invocation
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - summary

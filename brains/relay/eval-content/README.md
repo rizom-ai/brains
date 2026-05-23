@@ -6,7 +6,7 @@ It intentionally contains content for **existing Relay plugins only**. Do not ad
 
 ## Current fixture coverage
 
-The fixture corpus supports real Relay eval scenarios in `../test-cases/`, including new-teammate onboarding, founder demo prep, site-owner demo audit, support intake triage, meeting capture follow-up, protocol-link synthesis, team-memory browsing, and save-first peer-brain contact flows.
+The fixture corpus supports real Relay eval scenarios in `../test-cases/`, including new-teammate onboarding, founder demo prep, site-owner demo audit, support intake triage, meeting capture follow-up, protocol-link synthesis, team-memory browsing, public/shared/operator permission checks, operator sync/build checks, prompt review, image capture, and save-first peer-brain contact flows.
 
 - `brain-character/` — Relay identity and operating voice
 - `anchor-profile/` — team/organization profile
@@ -14,8 +14,10 @@ The fixture corpus supports real Relay eval scenarios in `../test-cases/`, inclu
 - root `.md` files — general team notes (`base` entities)
 - `prompt/` — editable prompt entities
 - `link/` — captured team reference links
+- `image/` — tiny placeholder image data for the default public-site/image path
 - `summary/` — durable conversation summary examples
 - `agent/` and `skill/` — peer-brain directory and advertised skills
+- `decision/` and `action-item/` — summary-projected durable signals used as Relay POC fixtures
 - `swot/` — assessment output fixture
 - `site-content/` — route/section copy for the minimal site stack
 - `doc/` and `deck/` — full-preset team knowledge surfaces

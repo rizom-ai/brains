@@ -95,6 +95,13 @@ export function createPublishTool(
         };
       }
 
+      if (entity.visibility !== "public") {
+        return {
+          success: false,
+          error: `Cannot publish ${entityType}:${entity.id} to a public provider because visibility is ${entity.visibility}`,
+        };
+      }
+
       // Check if already published
       if (entity.metadata.status === "published") {
         return {
@@ -112,16 +119,15 @@ export function createPublishTool(
       }
       const provider = providerRegistry.get(entityType);
 
-      const { bodyContent, imageData } = await preparePublishContent(
-        context,
-        entity,
-      );
+      const { bodyContent, imageData, documentData } =
+        await preparePublishContent(context, entity);
 
       // Publish using the provider
       const result = await provider.publish(
         bodyContent,
         entity.metadata,
         imageData,
+        documentData,
       );
 
       // Update entity status

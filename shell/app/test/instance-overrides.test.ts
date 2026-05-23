@@ -1237,6 +1237,7 @@ describe("resolve with site package", () => {
     const expectedThemeCSS = composeTheme("body { color: pink; }");
 
     expect(pluginIds).toContain("personal-site");
+    expect(config.shellConfig?.themeCSS).toBe(expectedThemeCSS);
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(expectedThemeCSS);
     const dashboard = config.plugins?.find((p) => p.id === "dashboard");

@@ -1,4 +1,7 @@
-import { resolveEntityOrError } from "@brains/entity-service";
+import {
+  permissionToVisibilityScope,
+  resolveEntityOrError,
+} from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
 import { setCoverImageId } from "@brains/image";
@@ -13,13 +16,18 @@ export function createEntityCoverTool(services: SystemServices): Tool {
     "set-cover",
     "Set or remove cover image on an entity.",
     setCoverInputSchema,
-    async (input) => {
+    async (input, context) => {
       try {
+        const visibilityScope = permissionToVisibilityScope(
+          context.userPermissionLevel,
+        );
         const resolved = await resolveEntityOrError(
           entityService,
           input.entityType,
           input.entityId,
           logger,
+          undefined,
+          visibilityScope,
         );
         if (!resolved.ok) return { success: false, error: resolved.error };
         const { entity } = resolved;
@@ -36,6 +44,7 @@ export function createEntityCoverTool(services: SystemServices): Tool {
             input.imageId,
             logger,
             "Image",
+            visibilityScope,
           );
           if (!image.ok) return { success: false, error: image.error };
         }

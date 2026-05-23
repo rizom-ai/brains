@@ -223,55 +223,6 @@ requestedBy?: Array<{ actorId: string; displayName?: string }>;
 
 Only populate `assignedTo` when explicit. Do not convert every first-person statement into an owner unless it is clearly an action commitment.
 
-## Implementation slices
-
-### Slice 1: Contracts and persistence
-
-- Add actor/source types and Zod schemas in the conversation-service or a shared plugin contract.
-- Extend `ChatContext` with optional actor/source fields.
-- Save user message metadata in `AgentService.processMessage()`.
-- Save assistant message metadata.
-- Add unit tests for metadata persistence.
-
-### Slice 2: Discord attribution
-
-- Build actor/source metadata in `DiscordInterface.routeToAgent()`.
-- Pass Discord author id, display label, message id, channel/thread/guild ids.
-- Add tests for Discord context construction if the existing Discord test harness supports it; otherwise extract a small pure helper and test that.
-
-### Slice 3: Summary prompt attribution
-
-- Add a metadata parser/formatter for conversation messages.
-- Update `entities/conversation-memory/src/lib/summary-prompt.ts` to use speaker labels.
-- Test:
-  - named Discord users appear in prompt labels
-  - duplicate/unknown users fall back safely
-  - old metadata-less messages still format as `user` / `assistant`
-
-### Slice 4: Derived memory attribution
-
-Implemented:
-
-- Added participant metadata to summaries.
-- Added optional `decidedBy` / `mentionedBy` metadata to decisions.
-- Added optional `assignedTo` / `requestedBy` metadata to action items.
-- Added tests that explicit speaker-owned decisions/actions survive projection.
-
-### Slice 5: Evals
-
-Add or update conversation-memory evals with a Discord-like multi-speaker transcript:
-
-- Mira makes a decision.
-- Daniel accepts an action item.
-- Assistant suggests something that is not accepted.
-
-Expected behavior:
-
-- summary mentions Mira/Daniel correctly
-- decision is attributed to Mira only when explicit
-- action item owner is Daniel only when explicit
-- assistant recommendation is not recorded as a decision
-
 ## Open questions
 
 - Where should the actor/source schemas live: `shell/conversation-service`, `shell/plugins` contracts, or a shared package?

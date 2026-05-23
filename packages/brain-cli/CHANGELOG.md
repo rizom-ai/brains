@@ -1,5 +1,37 @@
 # @rizom/brain
 
+## 0.2.0-alpha.83
+
+### Patch Changes
+
+- [`fe66c5b`](https://github.com/rizom-ai/brains/commit/fe66c5b16442b3467d829b7e4d92bc595344bec8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Return small media preview artifacts inline as base64 so remote MCP callers can inspect generated previews without server filesystem access.
+
+## 0.2.0-alpha.82
+
+### Patch Changes
+
+- [`c498c4d`](https://github.com/rizom-ai/brains/commit/c498c4dd294d10c87ce594dbb1f52c66b6ea1665) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix LinkedIn PDF carousel publishing to use LinkedIn's native Documents API and versioned Posts API instead of the obsolete digital media document upload path.
+
+## 0.2.0-alpha.81
+
+### Patch Changes
+
+- [`72643ca`](https://github.com/rizom-ai/brains/commit/72643ca93f112be2534e9aa8583b6e904f13600f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix Rover standalone scaffolding for first-passkey setup email delivery.
+
+  `brain init` now wires Rover's `auth-service.setupEmail` and `email-resend` config to `SETUP_EMAIL_TO`, `SETUP_EMAIL_API_KEY`, and `SETUP_EMAIL_FROM`, includes those variables in generated env examples and env schemas, and passes all three through the shared Kamal deploy template. Varlock validation now fails before deploy when setup email delivery is configured but the required Resend/setup email variables are missing.
+
+## 0.2.0-alpha.80
+
+### Patch Changes
+
+- [`89d4c32`](https://github.com/rizom-ai/brains/commit/89d4c32fbd13cddebe9ff9d5559919e604270c10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the configured brain domain as the PDF carousel wordmark, falling back to the anchor profile name when no domain is configured.
+
+## 0.2.0-alpha.79
+
+### Patch Changes
+
+- [`99b0c8c`](https://github.com/rizom-ai/brains/commit/99b0c8cee556c4975637c6e0d75ef1eef911f503) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ship PDF carousel media rendering in the published brain runtime: deck-owned carousel PDF attachments, Playwright/Chromium media capture, durable document support, LinkedIn document publishing, media preview tooling, and Docker/runtime bundling fixes for Playwright.
+
 ## 0.2.0-alpha.78
 
 ### Patch Changes

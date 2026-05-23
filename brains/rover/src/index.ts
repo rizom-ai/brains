@@ -14,6 +14,8 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
+import { documentPlugin } from "@brains/document-plugin";
+import { mediaToolsPlugin } from "@brains/media-tools";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
@@ -89,9 +91,11 @@ const full = [
   "portfolio",
   "topics",
   "content-pipeline",
+  "document",
   "social-media",
   "newsletter",
   "stock-photo",
+  "media-tools",
 ];
 
 const agentInstructions = [
@@ -137,6 +141,8 @@ export default defineBrain({
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
+    ["document", documentPlugin, undefined],
+    ["media-tools", mediaToolsPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["portfolio", portfolioPlugin, {}],

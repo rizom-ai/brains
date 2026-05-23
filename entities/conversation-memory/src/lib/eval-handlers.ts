@@ -1,9 +1,11 @@
-import type {
-  BaseEntity,
-  Conversation,
-  EntityPluginContext,
-  Message,
-  SearchResult,
+import {
+  contentVisibilitySchema,
+  type BaseEntity,
+  type ContentVisibility,
+  type Conversation,
+  type EntityPluginContext,
+  type Message,
+  type SearchResult,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
@@ -79,6 +81,7 @@ const seededMemorySchema = z.object({
   channelId: z.string(),
   channelName: z.string().optional(),
   updated: z.string().datetime().optional(),
+  visibility: contentVisibilitySchema,
   status: z.string().optional(),
   participants: z.array(seededParticipantSchema).optional(),
   decidedBy: z.array(seededActorReferenceSchema).optional(),
@@ -149,6 +152,7 @@ export function registerSummaryEvalHandlers(params: {
           content: parsed.existingSummary,
           messageCount: parsed.existingMessageCount,
           projectionVersion: config.projectionVersion,
+          visibility: config.memoryVisibility,
         })
       : null;
 
@@ -181,6 +185,7 @@ export function registerSummaryEvalHandlers(params: {
           content: parsed.existingSummary,
           messageCount: parsed.existingMessageCount,
           projectionVersion: config.projectionVersion,
+          visibility: config.memoryVisibility,
         })
       : null;
     const upserted: BaseEntity[] = [];
@@ -223,6 +228,7 @@ function createEvalSummaryEntity(params: {
   content: string;
   messageCount: number;
   projectionVersion: number;
+  visibility: ContentVisibility;
 }): SummaryEntity {
   const now = "2026-01-01T00:00:00.000Z";
   return {
@@ -230,6 +236,7 @@ function createEvalSummaryEntity(params: {
     entityType: "summary",
     content: params.content,
     contentHash: "eval-existing-summary",
+    visibility: params.visibility,
     created: now,
     updated: now,
     metadata: {
@@ -376,12 +383,16 @@ function toMemoryEntity(memory: SeededMemory): EvalMemoryEntity {
 
 function baseMemoryFields(
   memory: SeededMemory,
-): Pick<BaseEntity, "id" | "content" | "contentHash" | "created" | "updated"> {
+): Pick<
+  BaseEntity,
+  "id" | "content" | "contentHash" | "created" | "updated"
+> & { visibility: ContentVisibility } {
   const updated = memory.updated ?? "2026-01-01T00:00:00.000Z";
   return {
     id: memory.id,
     content: memory.content,
     contentHash: computeContentHash(memory.content),
+    visibility: memory.visibility,
     created: updated,
     updated,
   };

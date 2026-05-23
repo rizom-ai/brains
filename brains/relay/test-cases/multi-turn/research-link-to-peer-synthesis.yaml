@@ -4,6 +4,8 @@ description: >-
   Real user workflow: save a research link, then ask Relay to connect it to the
   team's peer-brain/A2A direction using saved memory.
 type: multi_turn
+setup:
+  permissionLevel: anchor
 tags:
   - relay
   - scenario

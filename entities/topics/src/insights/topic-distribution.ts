@@ -13,13 +13,14 @@ export interface TopicDistributionEntry {
  * Returns topics with their titles.
  */
 export function createTopicDistributionInsight(): InsightHandler {
-  return async (entityService) => {
+  return async (entityService, visibilityScope) => {
     if (!entityService.hasEntityType(TOPIC_ENTITY_TYPE)) {
       return { topics: [] };
     }
 
     const topics = await entityService.listEntities<TopicEntity>({
       entityType: TOPIC_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
     });
 
     const distribution: TopicDistributionEntry[] = topics.map((topic) => ({

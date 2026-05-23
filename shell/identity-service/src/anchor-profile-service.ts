@@ -1,5 +1,8 @@
 import type { IEntityService } from "@brains/entity-service";
-import { SingletonEntityService } from "@brains/entity-service";
+import {
+  internalFullScope,
+  SingletonEntityService,
+} from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
 import type { AnchorProfile } from "./anchor-profile-schema";
 import { AnchorProfileAdapter } from "./anchor-profile-adapter";
@@ -80,6 +83,9 @@ export class AnchorProfileService
       logger,
       "anchor-profile",
       defaultProfile ?? AnchorProfileService.getDefaultProfile(),
+      internalFullScope(
+        "anchor profile is loaded at bootstrap before any user is in scope",
+      ),
     );
   }
 
