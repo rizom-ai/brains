@@ -57,8 +57,9 @@ browser (chat UI)
 Concrete components:
 
 - **`interfaces/web-chat/`** — new package, extends `MessageInterfacePlugin`. Owns HTTP routes, SSE streaming, request authentication (via existing `@brains/auth-service` passkey flow), and the browser UI assets.
-- **Frontend** — Vercel Chat SDK is a strong candidate: it solves mdast rendering, message threading, streaming UI, attachments. Evaluate alternatives (custom Preact, AI Elements directly) before committing.
-- **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell.
+- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol, and optionally AI Elements) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing.
+- **Brain ↔ AI SDK adapter** — add a thin adapter that translates brain-native chat events (`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI-compatible stream parts. Do not model the brain as a raw AI SDK model provider in v1; the brain runtime remains the orchestration layer.
+- **Routes** — `/chat` for the chat surface; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, e.g. `/api/chat` or `/chat/api/message`.
 - **Conversation persistence** — reuse the existing conversation service. Each browser session maps to a `conversationId` like `web-${userId}-${sessionId}`.
 - **Auth** — already wired. Passkey via auth-service grants anchor; trusted/public callers see the same permission tiers they get elsewhere.
 
@@ -67,9 +68,34 @@ Concrete components:
 - **Hosted Rover Discord gateway direction** — the previous plan's gateway + forwarded-chat + per-user routing model is no longer the direction. That plan has been deleted.
 - **`chat-interface-sdk.md`** — parked. Multi-platform chat consolidation revisited only if a new platform (Slack/Teams/Matrix return) is actually prioritized.
 
+## UI SDK direction
+
+Use the Vercel **AI SDK UI** stream/transport contract as the preferred browser-chat integration point:
+
+```text
+AI SDK UI useChat/custom transport
+  → authenticated POST /api/chat
+  → WebChatInterface
+  → AgentService.chat()
+  → AI SDK UI-compatible SSE stream
+```
+
+This keeps the web UI aligned with a mature chat frontend contract while avoiding the complexity of the platform Chat SDK adapter model. The adapter boundary is:
+
+```text
+Brain AgentResponse/progress events ↔ AI SDK UI stream parts
+```
+
+Implementation notes:
+
+- Prefer a custom transport if the default `useChat` request/response shape does not match the brain's auth/session/conversation requirements.
+- Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
+- Use AI SDK UI/AI Elements for rendering only where they fit the existing frontend stack. If React is too heavy for the bundled runtime, a small Preact client can consume the same stream protocol directly.
+- Treat the Vercel `chat` package / platform adapters as separate future work covered by `chat-interface-sdk.md`.
+
 ## Open decisions
 
-1. **Vercel Chat SDK vs. alternatives.** Chat SDK is the obvious candidate but couples to a specific frontend stack; lighter-weight alternatives (custom Preact + the AI SDK streaming primitives, or AI Elements) may fit better given the brain already ships Preact for site templates.
+1. **React `useChat` vs. Preact stream client.** AI SDK UI is the preferred protocol/contract, but we still need to choose whether to ship the React hook/components directly or consume the stream protocol from a lighter Preact UI.
 2. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
 3. **Conversation history in v1.** Single active conversation, or sidebar with prior conversations? MVP can be single-conversation; history is a small follow-up.
 4. **Attachments in v1.** File uploads through the chat UI are useful but not strictly required for a first ship. Defer if they add meaningful complexity.

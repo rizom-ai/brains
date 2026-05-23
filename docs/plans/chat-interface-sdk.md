@@ -36,7 +36,7 @@ Until one of those triggers fires, this plan stays parked.
 
 ## Relationship to other plans
 
-- [brain-web-ui.md](./brain-web-ui.md) — active. Web chat surface bundled with `@rizom/brain`; uses Vercel Chat SDK (or similar) for the browser UI without committing to multi-platform consolidation.
+- [brain-web-ui.md](./brain-web-ui.md) — active. Web chat surface bundled with `@rizom/brain`; prefers Vercel **AI SDK UI** / stream protocol for browser chat. That is distinct from this plan's Vercel **Chat SDK** platform-adapter consolidation.
 - [shared-space-trust.md](./shared-space-trust.md) — Relay's per-team Discord install model is independent of this plan.
 
 ## Decisions made before parking
