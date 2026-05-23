@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- [`0421fcf`](https://github.com/rizom-ai/brains/commit/0421fcfce5bc85335022ecadd0d8b7682533f92c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Have Relay report its package version from package.json, matching Rover, so model status tracks the released runtime bundle instead of a stale hardcoded version.
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes

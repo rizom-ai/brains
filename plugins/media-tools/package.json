@@ -1,7 +1,7 @@
 {
   "name": "@brains/media-tools",
   "private": true,
-  "version": "0.2.0-alpha.83",
+  "version": "0.2.0-alpha.84",
   "description": "Dev tools around the attachment registry — preview, inspect, regenerate media",
   "type": "module",
   "exports": {

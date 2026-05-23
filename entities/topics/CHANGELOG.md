@@ -1,5 +1,15 @@
 # @brains/topics
 
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.84
+  - @brains/ui-library@0.2.0-alpha.84
+  - @brains/utils@0.2.0-alpha.84
+  - @brains/plugins@0.2.0-alpha.84
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes

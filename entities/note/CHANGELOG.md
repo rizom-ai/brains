@@ -1,5 +1,14 @@
 # @brains/note
 
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.84
+  - @brains/utils@0.2.0-alpha.84
+  - @brains/plugins@0.2.0-alpha.84
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes
