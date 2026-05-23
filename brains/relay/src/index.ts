@@ -26,6 +26,7 @@ import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import rizomTheme from "@brains/theme-rizom";
 import { relaySite, relaySiteContentDefinition } from "./site";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
  * Relay Brain Model
@@ -100,7 +101,7 @@ const agentInstructions = [
 
 export default defineBrain({
   name: "relay",
-  version: "0.1.0",
+  version: packageJson.version,
   model: "gpt-5.4-mini",
   site: relaySite,
   theme: rizomTheme,
