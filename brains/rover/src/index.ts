@@ -69,6 +69,7 @@ const core = [
   "dashboard-root",
   "mcp",
   "webserver",
+  "web-chat",
   "discord",
   "a2a",
 ];

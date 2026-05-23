@@ -1,6 +1,9 @@
 brain: rover
 preset: default
 
+add:
+  - web-chat
+
 site:
   package: "@brains/site-personal"
 
