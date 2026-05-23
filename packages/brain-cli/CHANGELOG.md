@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- [`0dab8eb`](https://github.com/rizom-ai/brains/commit/0dab8ebca6c0dd9cf8cd3d23e77071060bff369c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include notifications and Resend email delivery in Relay presets so configured first-passkey setup emails are actually delivered.
+
 ## 0.2.0-alpha.84
 
 ### Patch Changes

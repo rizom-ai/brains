@@ -1,5 +1,17 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.85
+  - @brains/contracts@0.2.0-alpha.85
+  - @brains/ui-library@0.2.0-alpha.85
+  - @brains/utils@0.2.0-alpha.85
+  - @brains/plugins@0.2.0-alpha.85
+  - @brains/templates@0.2.0-alpha.85
+
 ## 0.2.0-alpha.84
 
 ### Patch Changes

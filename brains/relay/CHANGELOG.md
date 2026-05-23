@@ -1,5 +1,42 @@
 # @brains/relay
 
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- [`0dab8eb`](https://github.com/rizom-ai/brains/commit/0dab8ebca6c0dd9cf8cd3d23e77071060bff369c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include notifications and Resend email delivery in Relay presets so configured first-passkey setup emails are actually delivered.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.85
+  - @brains/assessment@0.2.0-alpha.85
+  - @brains/conversation-memory@0.2.0-alpha.85
+  - @brains/decks@0.2.0-alpha.85
+  - @brains/doc@0.2.0-alpha.85
+  - @brains/image-plugin@0.2.0-alpha.85
+  - @brains/link@0.2.0-alpha.85
+  - @brains/note@0.2.0-alpha.85
+  - @brains/prompt@0.2.0-alpha.85
+  - @brains/rizom-ecosystem@0.2.0-alpha.85
+  - @brains/site-info@0.2.0-alpha.85
+  - @brains/topics@0.2.0-alpha.85
+  - @brains/a2a@0.2.0-alpha.85
+  - @brains/discord@0.2.0-alpha.85
+  - @brains/mcp@0.2.0-alpha.85
+  - @brains/webserver@0.2.0-alpha.85
+  - @brains/cms@0.2.0-alpha.85
+  - @brains/dashboard@0.2.0-alpha.85
+  - @brains/directory-sync@0.2.0-alpha.85
+  - @brains/site-builder-plugin@0.2.0-alpha.85
+  - @brains/site-content@0.2.0-alpha.85
+  - @brains/content-formatters@0.2.0-alpha.85
+  - @brains/site-composition@0.2.0-alpha.85
+  - @brains/theme-rizom@0.2.0-alpha.85
+  - @brains/utils@0.2.0-alpha.85
+  - @brains/app@0.2.0-alpha.85
+  - @brains/auth-service@0.2.0-alpha.85
+  - @brains/plugins@0.2.0-alpha.85
+  - @brains/site-rizom@0.2.0-alpha.85
+
 ## 0.2.0-alpha.84
 
 ### Patch Changes

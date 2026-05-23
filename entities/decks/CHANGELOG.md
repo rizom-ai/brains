@@ -1,5 +1,20 @@
 # @brains/decks
 
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.85
+  - @brains/content-formatters@0.2.0-alpha.85
+  - @brains/contracts@0.2.0-alpha.85
+  - @brains/image@0.2.0-alpha.85
+  - @brains/media-page-composer@0.2.0-alpha.85
+  - @brains/media-renderer@0.2.0-alpha.85
+  - @brains/ui-library@0.2.0-alpha.85
+  - @brains/utils@0.2.0-alpha.85
+  - @brains/plugins@0.2.0-alpha.85
+
 ## 0.2.0-alpha.84
 
 ### Patch Changes
