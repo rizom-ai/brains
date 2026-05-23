@@ -20,7 +20,7 @@ A bundled web chat UI changes the framing:
 
 - Every `@rizom/brain` install has a working web chat surface out of the box.
 - A new user can `brain init`, `brain start`, open the brain's URL, and chat with their brain — no Discord, no MCP, no CLI prerequisites.
-- Long AI responses give visible "thinking…" / streaming feedback from day one.
+- Long AI responses give visible "thinking…" / progress feedback from day one; true token-by-token model streaming is not required for v0.
 - The web UI complements the existing dashboard; it does not replace it.
 - The Discord interface (`@brains/discord`) keeps working exactly as today for users who want it.
 
@@ -39,7 +39,7 @@ A bundled web chat UI changes the framing:
 3. **Web-first, Discord optional.** Discord stays as one possible additional interface, not the primary one. The previous "hosted Rover Discord gateway" direction is dropped.
 4. **Bring-your-own Discord app.** Users who want Discord create their own app and paste the token in. No shared `@Rover` bot, no per-user routing.
 5. **Per-team Discord apps for Relay.** A team admin installs the team's own Discord app once when setting up Relay; Relay lives in the team's existing server channels.
-6. **Streaming/progress feedback from v1.** No "v1 ships without progress indicators." Silent 10–30 second waits are not acceptable UX.
+6. **Progress feedback from v1.** No "v1 ships without progress indicators." Silent 10–30 second waits are not acceptable UX. Token-by-token model streaming can come later behind a deeper `AgentService` streaming API.
 
 ## Architecture sketch
 
@@ -144,7 +144,7 @@ conversationId/channelId → active UI stream writer
 
 The baseclass `sendMessageToChannel`, `sendMessageWithId`, and `editMessage` implementations can then write/update the active stream when present.
 
-**No-active-stream policy for v1:** persist progress/completion to the conversation message record (so a reconnecting user sees what happened), and drop in-flight UI stream events (so disconnected sessions don't leak memory holding stream writers). Buffering for later replay is out of scope for v1.
+**No-active-stream policy for v1:** do not persist transient progress/completion UI events as conversation messages. If an active stream exists, send progress/completion to that stream. If no active stream exists, drop the in-flight UI event so disconnected sessions do not leak memory holding stream writers. Durable job status remains in the job queue. Revisit conversation-visible progress later once the conversation model supports non-model UI events, for example `metadata.kind: "ui-event"` excluded from model context or a separate conversation-events table.
 
 ## v0 spike: quarantined React chat route
 
@@ -176,7 +176,7 @@ Containment rules:
 
 Build a working `/chat` route in React connected to a brain's `AgentService.chat()` via SSE. Must render all four:
 
-1. **Streaming text messages** — chunk-by-chunk updates, partial-markdown handled gracefully (rendering incomplete markdown without flicker is the real test).
+1. **Progress/status feedback** — request accepted, "thinking…" state, tool/job progress where available, and final answer delivery over the AI SDK UI stream. True token deltas are optional in the spike and may be simulated only to test UI behavior.
 2. **Markdown rendering** with code blocks and syntax highlighting.
 3. **Tool-call display** — collapsed/expanded tool invocations with parameters, results, status. The AI-specific pattern where `ai-elements` does real work; the hardest one to replicate.
 4. **One confirmation prompt** — `pendingConfirmation` from `AgentResponse` rendered as something interactive.
@@ -185,7 +185,7 @@ Out of scope for the spike: attachments, conversation history sidebar, voice, th
 
 ### Exit criteria
 
-- ✅ **Pass:** React route bundles only for `/chat`; React imports/types stay inside the approved UI boundary; AI Elements/assistant-ui can render streaming messages, markdown/code, tool-call panels, and confirmations quickly; dependency/version management remains sane. Proceed with the quarantined React route.
+- ✅ **Pass:** React route bundles only for `/chat`; React imports/types stay inside the approved UI boundary; AI Elements/assistant-ui can render progress/status feedback, markdown/code, tool-call panels, and confirmations quickly; dependency/version management remains sane. Proceed with the quarantined React route.
 - ❌ **Fail:** React or shadcn/Radix types leak into shared/server/Preact packages, route bundling requires invasive app-wide build changes, or dependency/version management repeats the earlier monorepo pain. Fall back to a Preact-native stream client and use AI Elements only as reference material.
 
 ### Why this is the right next step
@@ -205,7 +205,7 @@ Test **AI Elements** first as the React UI inside the quarantined route. It's fi
 ## Validation
 
 - A fresh `brain init` + `brain start` exposes a working chat UI at the brain's URL with no extra setup.
-- Streaming progress is visible during multi-second AI responses.
+- Progress/status feedback is visible during multi-second AI responses; token-by-token model streaming is not required for v0.
 - Auth gates the chat surface to the right permission tier.
 - Existing Discord, MCP, and CLI interfaces continue to work unchanged.
 - Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues for Relay (header indicating team context) are added once Relay-specific work lands.
@@ -214,6 +214,6 @@ Test **AI Elements** first as the React UI inside the quarantined route. It's fi
 
 1. `@rizom/brain` ships a bundled web chat UI mounted at the brain's URL.
 2. New users can chat with their brain in a browser with no Discord, MCP, or CLI prerequisite.
-3. Streaming/progress feedback works for long responses.
+3. Progress/status feedback works for long responses; true token streaming remains a later `AgentService` enhancement.
 4. The dashboard continues to work alongside chat.
 5. `chat-interface-sdk.md` stays parked; multi-platform adapter consolidation only revives when a new platform is actually prioritized.
