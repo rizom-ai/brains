@@ -81,19 +81,27 @@ The central product bet is now explicit:
 
 The roadmap is organized around that story rather than generic short/medium/long buckets. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what story the work supports.
 
-### 1. Keep Rover solid and independent
+### 1. Keep Rover sharp as the public reference
 
-Rover is the public reference brain and should continue to work without Relay. It proves the personal/professional path: durable markdown knowledge, publishing, site generation, content workflows, and agent interoperability for one owner.
+Rover is the public reference brain and should keep working without Relay. The posture has shifted from "maintain Rover" to "actively harden Rover alongside the Relay POC" — both produce signal worth acting on, and both feed the same weekly review cadence.
 
-Current state:
+Two parallel sub-tracks:
 
-- Rover is usable today as a standalone personal/professional brain.
-- Publishing/site/content workflows remain valuable in their own right.
-- Media publishing landed substantially in this cycle — PDF carousels, LinkedIn document publishing, durable media artifacts. This is real Rover product work and shares attention with §2 rather than running underneath it; remaining OG image and unified generation work is tracked below.
+**Planned: media/OG follow-through.** PDF carousels, LinkedIn document publishing, and durable media artifacts landed in this cycle. Remaining work is the OG image substrate and a unified media generation lifecycle. Cap this at a defined slice — media work has its own gravity and will pull attention from friction work if unchecked.
+
+**Reactive: user-testing friction.** Real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction the Relay POC won't. Operating model:
+
+- one capture channel (Discord, issues, wherever) so reported friction does not get lost in scattered conversations;
+- prioritize by frequency × severity, not by what looks interesting to fix;
+- bias toward small ships that propagate via the next deploy rather than coordinated rollouts;
+- give setup/first-run friction disproportionate weight — current users are past the onboarding wall, so it is invisible from inside the project but lethal for anyone new;
+- keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
+
+Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
 
 Supporting plans:
 
-- [generic-media-generation.md](./plans/generic-media-generation.md) — make generated media artifacts use a cleaner lifecycle surface.
+- [generic-media-generation.md](./plans/generic-media-generation.md) — clean lifecycle surface for generated media artifacts.
 - [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
 ### 2. Prove shared Relay as team knowledge infrastructure

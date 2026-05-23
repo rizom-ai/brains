@@ -620,10 +620,10 @@
 
         // Credibility/distribution
         {
-          id: "media_surface",
-          name: "Media generation surface",
-          status: "medium-term",
-          desc: "Media publishing landed substantially this cycle (PDF carousels, LinkedIn document publishing, durable artifacts) — real Rover product work, not supporting infrastructure. Remaining: consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images.",
+          id: "rover_hardening",
+          name: "Rover hardening (parallel track)",
+          status: "short-term",
+          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Two sub-tracks: (1) planned media/OG follow-through — consolidate durable attachment generation, keep previews disposable, and extend the render substrate to OG images; (2) reactive user-testing friction — single capture channel, prioritize by frequency × severity, bias toward small ships, weight setup/first-run friction heavily.",
           deps: ["pdf_carousel", "rover_standalone"],
         },
         {
@@ -795,9 +795,9 @@
       <div class="dep-row">
         <span class="dep-node s-done" onclick="selectItem('pdf_carousel')">PDF carousel ✓</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('media_surface')">media/OG surface</span>
+        <span class="dep-node s-next" onclick="selectItem('rover_hardening')">Rover hardening (parallel)</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('framework_drag')">framework drag reduction</span>
+        <span class="dep-node s-mid" onclick="selectItem('framework_drag')">framework cleanup</span>
       </div>
     </div>
   </div>`;
