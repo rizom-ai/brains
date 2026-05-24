@@ -77,6 +77,8 @@ describe("React containment", () => {
     expect(appSource).toContain("id: conversationId");
     expect(appSource).toContain("New conversation");
     expect(appSource).toContain("setMessages([])");
+    expect(appSource).toContain("isPlainEnter");
+    expect(appSource).toContain("onKeyDown");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {

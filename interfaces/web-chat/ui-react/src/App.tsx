@@ -45,6 +45,18 @@ function getPartData(part: unknown): unknown {
   return part.data;
 }
 
+function isPlainEnter(
+  event: React.KeyboardEvent<HTMLTextAreaElement>,
+): boolean {
+  return (
+    event.key === "Enter" &&
+    !event.shiftKey &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey
+  );
+}
+
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
@@ -62,6 +74,13 @@ export function App(): React.ReactElement {
     id: conversationId,
     transport,
   });
+
+  function submitMessage(): void {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    void sendMessage({ text });
+  }
 
   function startNewConversation(): void {
     const next = createConversationId();
@@ -158,19 +177,17 @@ export function App(): React.ReactElement {
           {error.message}
         </p>
       ) : null}
-      <PromptInput
-        onSubmit={() => {
-          const text = input.trim();
-          if (!text) return;
-          setInput("");
-          void sendMessage({ text });
-        }}
-      >
+      <PromptInput onSubmit={submitMessage}>
         <label htmlFor="web-chat-input">Message</label>
         <PromptInputTextarea
           id="web-chat-input"
           value={input}
           onInput={(event) => setInput(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (!isPlainEnter(event)) return;
+            event.preventDefault();
+            submitMessage();
+          }}
         />
         <PromptInputSubmit status={status} />
       </PromptInput>
