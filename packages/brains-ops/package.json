@@ -4,7 +4,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.2.0-alpha.85",
+  "version": "0.2.0-alpha.86",
   "type": "module",
   "exports": {
     ".": {

@@ -1,5 +1,48 @@
 # @brains/rover
 
+## 0.2.0-alpha.86
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.86
+  - @brains/assessment@0.2.0-alpha.86
+  - @brains/blog@0.2.0-alpha.86
+  - @brains/decks@0.2.0-alpha.86
+  - @brains/document-plugin@0.2.0-alpha.86
+  - @brains/image-plugin@0.2.0-alpha.86
+  - @brains/link@0.2.0-alpha.86
+  - @brains/note@0.2.0-alpha.86
+  - @brains/portfolio@0.2.0-alpha.86
+  - @brains/prompt@0.2.0-alpha.86
+  - @brains/rizom-ecosystem@0.2.0-alpha.86
+  - @brains/series@0.2.0-alpha.86
+  - @brains/site-info@0.2.0-alpha.86
+  - @brains/social-media@0.2.0-alpha.86
+  - @brains/topics@0.2.0-alpha.86
+  - @brains/wishlist@0.2.0-alpha.86
+  - @brains/a2a@0.2.0-alpha.86
+  - @brains/discord@0.2.0-alpha.86
+  - @brains/mcp@0.2.0-alpha.86
+  - @brains/web-chat@0.2.0-alpha.86
+  - @brains/webserver@0.2.0-alpha.86
+  - @brains/analytics@0.2.0-alpha.86
+  - @brains/cms@0.2.0-alpha.86
+  - @brains/content-pipeline@0.2.0-alpha.86
+  - @brains/dashboard@0.2.0-alpha.86
+  - @brains/directory-sync@0.2.0-alpha.86
+  - @brains/email-resend@0.2.0-alpha.86
+  - @brains/media-tools@0.2.0-alpha.86
+  - @brains/newsletter@0.2.0-alpha.86
+  - @brains/notifications@0.2.0-alpha.86
+  - @brains/obsidian-vault@0.2.0-alpha.86
+  - @brains/site-builder-plugin@0.2.0-alpha.86
+  - @brains/stock-photo@0.2.0-alpha.86
+  - @brains/theme-default@0.2.0-alpha.86
+  - @brains/app@0.2.0-alpha.86
+  - @brains/auth-service@0.2.0-alpha.86
+  - @brains/site-default@0.2.0-alpha.86
+
 ## 0.2.0-alpha.85
 
 ### Patch Changes
