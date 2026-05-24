@@ -409,6 +409,57 @@ describe("PermissionService", () => {
         }
       });
     });
+
+    describe("entity action policy", () => {
+      it("should resolve exact entity action policy before wildcard defaults", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": { create: "trusted", update: "trusted", delete: "anchor" },
+            summary: { create: "anchor", update: "anchor" },
+          },
+        });
+
+        expect(
+          permissionService.getRequiredEntityActionLevel("base", "create"),
+        ).toBe("trusted");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "create"),
+        ).toBe("anchor");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "delete"),
+        ).toBe("anchor");
+      });
+
+      it("should allow entity actions only when the caller meets the required level", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": { create: "trusted", delete: "anchor" },
+            summary: { update: "anchor" },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction("trusted", "base", "create"),
+        ).toBe(true);
+        expect(
+          permissionService.canPerformEntityAction("trusted", "base", "delete"),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "summary",
+            "update",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "summary",
+            "update",
+          ),
+        ).toBe(true);
+      });
+    });
   });
 
   describe("Filtering", () => {

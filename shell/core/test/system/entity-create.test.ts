@@ -8,7 +8,8 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/entity-service";
-import type { Tool } from "@brains/mcp-service";
+import type { Tool, ToolResponse } from "@brains/mcp-service";
+import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
 const enqueuedCreateJobSchema = z.object({
@@ -245,8 +246,9 @@ describe("system_create tool", () => {
       userId?: string;
       channelId?: string;
       channelName?: string;
+      userPermissionLevel?: UserPermissionLevel;
     },
-  ): Promise<unknown> {
+  ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
     return tool.handler(input, {
@@ -254,6 +256,9 @@ describe("system_create tool", () => {
       userId: context?.userId ?? "test",
       ...(context?.channelId ? { channelId: context.channelId } : {}),
       ...(context?.channelName ? { channelName: context.channelName } : {}),
+      ...(context?.userPermissionLevel
+        ? { userPermissionLevel: context.userPermissionLevel }
+        : {}),
     });
   }
 
@@ -814,6 +819,61 @@ A saved research link.`;
     );
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("should enforce entity action policy before generic direct create", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "*": { create: "trusted" },
+        summary: { create: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "summary",
+        content: "Protected summary",
+      },
+      { userPermissionLevel: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error:
+        "Create summary requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+    expect(services.getEntities().size).toBe(0);
+  });
+
+  it("should enforce entity action policy after create interceptors rewrite entity type", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "*": { create: "trusted" },
+        summary: { create: "anchor" },
+      },
+    });
+    services.entityRegistry.registerCreateInterceptor(
+      "base",
+      async (input) => ({
+        kind: "continue",
+        input: { ...input, entityType: "summary" },
+      }),
+    );
+
+    const result = await exec(
+      {
+        entityType: "base",
+        content: "Rewritten summary",
+      },
+      { userPermissionLevel: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error:
+        "Create summary requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+    expect(services.getEntities().size).toBe(0);
   });
 
   it("should pass target fields as top-level (not nested in options)", async () => {

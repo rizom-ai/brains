@@ -12,6 +12,23 @@ export const UserPermissionLevelSchema = z.enum([
 
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
+export const EntityActionSchema = z.enum(["create", "update", "delete"]);
+export type EntityAction = z.infer<typeof EntityActionSchema>;
+
+export const EntityActionPolicyEntrySchema = z
+  .object({
+    create: UserPermissionLevelSchema.optional(),
+    update: UserPermissionLevelSchema.optional(),
+    delete: UserPermissionLevelSchema.optional(),
+  })
+  .strict();
+export type EntityActionPolicyEntry = z.infer<
+  typeof EntityActionPolicyEntrySchema
+>;
+
+export const EntityActionPolicySchema = z.record(EntityActionPolicyEntrySchema);
+export type EntityActionPolicy = z.infer<typeof EntityActionPolicySchema>;
+
 /**
  * Generic interface for items with visibility
  */
@@ -34,6 +51,7 @@ export interface PermissionConfig {
   anchors?: string[];
   trusted?: string[];
   rules?: PermissionRule[];
+  entityActions?: EntityActionPolicy;
 }
 
 /**
@@ -68,6 +86,7 @@ export class PermissionService {
   private trusted: Set<string>;
   private rules: PermissionRule[];
   private spaces: string[];
+  private entityActions: EntityActionPolicy;
 
   constructor(
     config: PermissionConfig,
@@ -77,6 +96,7 @@ export class PermissionService {
     this.trusted = new Set(config.trusted ?? []);
     this.rules = config.rules ?? [];
     this.spaces = options.spaces ?? [];
+    this.entityActions = config.entityActions ?? {};
   }
 
   /**
@@ -126,6 +146,26 @@ export class PermissionService {
     requiredLevel: UserPermissionLevel,
   ): boolean {
     return PermissionService.hasPermission(userLevel, requiredLevel);
+  }
+
+  getRequiredEntityActionLevel(
+    entityType: string,
+    action: EntityAction,
+  ): UserPermissionLevel | undefined {
+    return (
+      this.entityActions[entityType]?.[action] ??
+      this.entityActions["*"]?.[action]
+    );
+  }
+
+  canPerformEntityAction(
+    userLevel: UserPermissionLevel | undefined,
+    entityType: string,
+    action: EntityAction,
+  ): boolean {
+    const requiredLevel = this.getRequiredEntityActionLevel(entityType, action);
+    if (!requiredLevel) return true;
+    return this.hasPermission(userLevel ?? "public", requiredLevel);
   }
 
   /**

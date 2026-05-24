@@ -10,6 +10,7 @@ import type { Tool } from "@brains/mcp-service";
 import { updateInputSchema } from "./schemas";
 import type { SystemServices } from "./types";
 import {
+  checkEntityActionPermission,
   createSystemTool,
   getEntityDisplayLabel,
   normalizeUpdateInput,
@@ -82,6 +83,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
+      const policyError = checkEntityActionPermission(
+        services.permissionService,
+        context,
+        entity.entityType,
+        "update",
+      );
+      if (policyError) return policyError;
+
       let normalizedInput = normalizeUpdateInput({
         ...(input.fields !== undefined ? { fields: input.fields } : {}),
         ...(input.content !== undefined ? { content: input.content } : {}),

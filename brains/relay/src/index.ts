@@ -191,6 +191,31 @@ export default defineBrain({
       { pattern: "discord:*", level: "public" },
       { pattern: "web-chat:*", level: "anchor" },
     ],
+    entityActions: {
+      "*": { create: "trusted", update: "trusted", delete: "anchor" },
+      prompt: { create: "anchor", update: "anchor", delete: "anchor" },
+      "site-info": { create: "anchor", update: "anchor", delete: "anchor" },
+      "site-content": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+      },
+      "anchor-profile": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+      },
+      "brain-character": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+      },
+      topic: { create: "anchor", update: "anchor", delete: "anchor" },
+      summary: { create: "anchor", update: "anchor", delete: "anchor" },
+      agent: { create: "anchor", update: "anchor", delete: "anchor" },
+      skill: { create: "anchor", update: "anchor", delete: "anchor" },
+      swot: { create: "anchor", update: "anchor", delete: "anchor" },
+    },
   },
 
   deployment: {

@@ -13,6 +13,7 @@ import { slugify } from "@brains/utils";
 import { createInputSchema } from "./schemas";
 import type { SystemServices } from "./types";
 import {
+  checkEntityActionPermission,
   createSystemTool,
   hasStructuredFrontmatter,
   normalizeOptionalString,
@@ -138,6 +139,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(coverImage && { coverImage }),
       };
 
+      const initialPolicyError = checkEntityActionPermission(
+        services.permissionService,
+        toolContext,
+        createInput.entityType,
+        "create",
+      );
+      if (initialPolicyError) return initialPolicyError;
+
       if (coverImage) {
         const validationError = validateCoverImageSupport(
           services,
@@ -181,6 +190,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           return interception.result;
         }
         createInput = interception.input;
+        const policyError = checkEntityActionPermission(
+          services.permissionService,
+          toolContext,
+          createInput.entityType,
+          "create",
+        );
+        if (policyError) return policyError;
+
         coverImage = normalizeCoverImageInput(createInput.coverImage);
         if (coverImage) {
           const validationError = validateCoverImageSupport(

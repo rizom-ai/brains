@@ -8,6 +8,7 @@ import {
   type ListEntitiesRequest,
 } from "@brains/entity-service";
 import { z } from "@brains/utils";
+import { PermissionService } from "@brains/templates";
 
 type SeedEntity = Omit<BaseEntity, "visibility"> & {
   visibility?: BaseEntity["visibility"];
@@ -319,6 +320,7 @@ export function createMockSystemServices(
     }),
     searchLimit: 10,
     insights: createInsightsRegistry(),
+    permissionService: new PermissionService({}),
     ...overrides,
     // Test helpers
     getEntities: () => entities,

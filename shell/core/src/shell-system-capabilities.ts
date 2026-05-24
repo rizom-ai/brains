@@ -49,6 +49,7 @@ export function registerShellSystemCapabilities(
       getAppInfo,
       searchLimit: 10,
       insights,
+      permissionService: services.permissionService,
     },
     services.mcpService,
     services.messageBus,

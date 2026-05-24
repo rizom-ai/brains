@@ -508,7 +508,10 @@ function buildPermissions(
 ): { permissions: Record<string, unknown> } | Record<string, never> {
   const yamlPerms = overrides?.permissions;
   const hasYamlPerms =
-    yamlPerms?.anchors ?? yamlPerms?.trusted ?? yamlPerms?.rules;
+    yamlPerms?.anchors ??
+    yamlPerms?.trusted ??
+    yamlPerms?.rules ??
+    yamlPerms?.entityActions;
   const hasTopLevel = overrides?.anchors ?? overrides?.trusted;
   const hasDefPerms = !!definitionPerms;
 
@@ -524,6 +527,14 @@ function buildPermissions(
       ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
       ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
+      ...(definitionPerms?.entityActions || yamlPerms?.entityActions
+        ? {
+            entityActions: {
+              ...(definitionPerms?.entityActions ?? {}),
+              ...(yamlPerms?.entityActions ?? {}),
+            },
+          }
+        : {}),
     },
   };
 }

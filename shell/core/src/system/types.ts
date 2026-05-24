@@ -6,6 +6,7 @@ import type { DefaultQueryResponse } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
 import type { RuntimeAppInfo } from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
+import type { PermissionService } from "@brains/templates";
 
 /**
  * Services required by system tools.
@@ -34,4 +35,7 @@ export interface SystemServices {
 
   /** Extensible insights registry */
   insights: IInsightsRegistry;
+
+  /** Permission checks for entity mutations */
+  permissionService: PermissionService;
 }

@@ -129,6 +129,17 @@ const instanceOverridesSchema = z.object({
           }),
         )
         .optional(),
+      entityActions: z
+        .record(
+          z
+            .object({
+              create: z.enum(["anchor", "trusted", "public"]).optional(),
+              update: z.enum(["anchor", "trusted", "public"]).optional(),
+              delete: z.enum(["anchor", "trusted", "public"]).optional(),
+            })
+            .strict(),
+        )
+        .optional(),
     })
     .optional(),
 });
