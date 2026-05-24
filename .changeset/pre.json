@@ -218,6 +218,7 @@
     "tailwind-runtime-deps",
     "themes-export",
     "web-chat-bundled-ui",
+    "web-chat-light-mode-and-mobile",
     "web-chat-spine-and-tool-collapse",
     "wordmark-slot-and-generic-suffix"
   ]
