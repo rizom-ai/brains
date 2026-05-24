@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-content",
   "private": true,
-  "version": "0.2.0-alpha.86",
+  "version": "0.2.0-alpha.87",
   "description": "Site content entity and generation orchestration",
   "type": "module",
   "exports": {

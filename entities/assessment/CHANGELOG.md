@@ -1,5 +1,15 @@
 # @brains/assessment
 
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.87
+  - @brains/content-formatters@0.2.0-alpha.87
+  - @brains/utils@0.2.0-alpha.87
+  - @brains/plugins@0.2.0-alpha.87
+
 ## 0.2.0-alpha.86
 
 ### Patch Changes

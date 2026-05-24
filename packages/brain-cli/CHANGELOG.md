@@ -1,5 +1,7 @@
 # @rizom/brain
 
+## 0.2.0-alpha.87
+
 ## 0.2.0-alpha.86
 
 ### Minor Changes

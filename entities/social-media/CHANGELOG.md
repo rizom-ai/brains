@@ -1,5 +1,14 @@
 # @brains/social-media
 
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.87
+  - @brains/utils@0.2.0-alpha.87
+  - @brains/plugins@0.2.0-alpha.87
+
 ## 0.2.0-alpha.86
 
 ### Patch Changes
