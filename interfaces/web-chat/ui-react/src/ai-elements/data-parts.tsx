@@ -15,6 +15,26 @@ function getStringValue(data: unknown, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+export function ToolCallsGroup({
+  tools,
+}: {
+  tools: unknown[];
+}): React.ReactElement {
+  return (
+    <details className="web-chat-tool-group">
+      <summary className="web-chat-tool-group-header">
+        {tools.length} tool calls
+        <span className="web-chat-data-part-chevron" aria-hidden="true" />
+      </summary>
+      <div className="web-chat-tool-group-body">
+        {tools.map((data, index) => (
+          <ToolResultPart key={index} data={data} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export function ToolResultPart({
   data,
 }: {
@@ -27,12 +47,15 @@ export function ToolResultPart({
   const label = toolName ? `tool · ${toolName}` : "tool result";
 
   return (
-    <section className="web-chat-data-part" data-kind="tool-result">
-      <header className="web-chat-data-part-header">{label}</header>
+    <details className="web-chat-data-part" data-kind="tool-result">
+      <summary className="web-chat-data-part-header">
+        {label}
+        <span className="web-chat-data-part-chevron" aria-hidden="true" />
+      </summary>
       <div className="web-chat-data-part-body">
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -94,7 +117,7 @@ export function ConfirmationPart({
         {resolved ? (
           <span className="web-chat-confirmation-result">
             {decision === "declined" ? "Declined" : "Approved"}
-            {result?.text ? ` · ${result.text}` : ""}
+            {result.text ? ` · ${result.text}` : ""}
           </span>
         ) : (
           <div className="web-chat-confirmation-actions">
@@ -130,7 +153,10 @@ export function GenericDataPart({
 }): React.ReactElement {
   return (
     <details className="web-chat-data-part">
-      <summary>{type}</summary>
+      <summary className="web-chat-data-part-header">
+        {type}
+        <span className="web-chat-data-part-chevron" aria-hidden="true" />
+      </summary>
       <div className="web-chat-data-part-body">
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>

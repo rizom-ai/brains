@@ -119,10 +119,10 @@ button, textarea, input { font: inherit; color: inherit; }
   min-height: 100vh;
 }
 /* ─── Chat surface — flush with the sessions rail on the left, capped
-   on the right at a page-width max so the spine inside the centered
-   reading column doesn't drift far from the rail on ultra-wide
-   displays. ─── */
+   on the right. The mycelial spine runs the full height at the chat
+   pane's left edge; the reading column inside it can center freely. ─── */
 .web-chat-app {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: 1.25rem;
@@ -131,7 +131,38 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 100%;
   max-width: 96rem;
   justify-self: start;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem 5rem;
+}
+/* The spine — a glowing vertical hypha that anchors the chat pane.
+   Sits roughly midway in the left gutter, with breathing room on
+   both sides. Fades at the ends so it reads as rooted, not boxed. */
+.web-chat-app::before {
+  content: "";
+  position: absolute;
+  left: 2.5rem;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgb(from var(--color-secondary) r g b / 0.25) 6%,
+    rgb(from var(--color-secondary) r g b / 0.35) 50%,
+    rgb(from var(--color-accent) r g b / 0.25) 94%,
+    transparent 100%);
+  pointer-events: none;
+}
+/* Terminus seed — a small pulsing dot at the foot of the spine. */
+.web-chat-app::after {
+  content: "";
+  position: absolute;
+  left: calc(2.5rem - 2px);
+  bottom: 1.25rem;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 12px rgb(from var(--color-accent) r g b / 0.7);
+  opacity: 0.85;
+  pointer-events: none;
 }
 /* Header is full-width page chrome — title left, "New" button right.
    The reading column (conversation + status + error + prompt) caps at
@@ -145,11 +176,6 @@ button, textarea, input { font: inherit; color: inherit; }
   max-width: 72rem;
   margin-left: auto;
   margin-right: auto;
-}
-.web-chat-app > .web-chat-status,
-.web-chat-app > .web-chat-error,
-.web-chat-app > .web-chat-prompt-input {
-  padding-left: 2.75rem;
 }
 
 /* ── Header ── */
@@ -435,37 +461,12 @@ button, textarea, input { font: inherit; color: inherit; }
   border-radius: 999px;
 }
 .web-chat-conversation-content {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2rem;
   min-width: 0;
   min-height: 100%;
-  padding: 1.25rem 0.5rem 0.5rem 2.75rem;
-}
-.web-chat-conversation-content::before {
-  content: "";
-  position: absolute;
-  left: 1.25rem; top: 0; bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgb(from var(--color-secondary) r g b / 0.25) 6%,
-    rgb(from var(--color-secondary) r g b / 0.35) 50%,
-    rgb(from var(--color-accent) r g b / 0.25) 94%,
-    transparent 100%);
-  pointer-events: none;
-}
-.web-chat-conversation-content::after {
-  content: "";
-  position: absolute;
-  left: calc(1.25rem - 2px);
-  bottom: -1px;
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 12px rgb(from var(--color-accent) r g b / 0.7);
-  opacity: 0.85;
+  padding: 1.25rem 0.5rem 0.5rem;
 }
 
 /* ─── Empty state — centered placeholder shown before the first
@@ -535,32 +536,10 @@ button, textarea, input { font: inherit; color: inherit; }
 
 /* ─── Messages ─── */
 .web-chat-message {
-  position: relative;
   max-width: min(48rem, 100%);
   min-width: 0;
   display: grid;
   gap: 0.5rem;
-}
-.web-chat-message::before {
-  content: "";
-  position: absolute;
-  left: calc(-1.5rem - 5px);
-  top: 0.55rem;
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: var(--color-bg);
-  box-shadow:
-    inset 0 0 0 2px var(--color-secondary),
-    0 0 0 4px var(--color-bg);
-}
-.web-chat-message::after {
-  content: "";
-  position: absolute;
-  left: calc(-1.5rem + 6px);
-  top: 0.95rem;
-  width: calc(1.5rem - 6px);
-  height: 1px;
-  background: linear-gradient(90deg, rgb(from var(--color-secondary) r g b / 0.5), transparent);
 }
 .web-chat-message-header {
   display: inline-flex;
@@ -602,15 +581,6 @@ button, textarea, input { font: inherit; color: inherit; }
 
 /* user — amber notched panel */
 .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--color-accent); }
-.web-chat-message[data-role="user"]::before {
-  box-shadow:
-    inset 0 0 0 2px var(--color-accent),
-    0 0 0 4px var(--color-bg),
-    0 0 14px rgb(from var(--color-accent) r g b / 0.5);
-}
-.web-chat-message[data-role="user"]::after {
-  background: linear-gradient(90deg, rgb(from var(--color-accent) r g b / 0.55), transparent);
-}
 .web-chat-message[data-role="user"] .web-chat-message-bubble {
   padding: 0.9rem 1.1rem;
   background: linear-gradient(135deg,
@@ -623,12 +593,6 @@ button, textarea, input { font: inherit; color: inherit; }
 
 /* assistant — editorial body, Fraunces drop-cap on first paragraph */
 .web-chat-message[data-role="assistant"] .web-chat-message-header { color: var(--color-secondary); }
-.web-chat-message[data-role="assistant"]::before {
-  box-shadow:
-    inset 0 0 0 2px var(--color-secondary),
-    0 0 0 4px var(--color-bg),
-    0 0 14px rgb(from var(--color-secondary) r g b / 0.55);
-}
 .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
   padding: 0.1rem 0 0;
   color: var(--color-text);
@@ -675,8 +639,103 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--color-text);
 }
 
-/* ─── Data parts (instrument cards) ─── */
-.web-chat-data-part,
+/* ─── Tool calls group — wraps multiple consecutive tool results
+   under a single collapsible header so a message with many tool
+   calls reads as one line, not N. ─── */
+.web-chat-tool-group {
+  margin: 0.6rem 0 0;
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header:hover {
+  color: var(--color-text-muted);
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header::-webkit-details-marker {
+  display: none;
+}
+details.web-chat-tool-group[open] > summary > .web-chat-data-part-chevron {
+  transform: rotate(45deg);
+}
+.web-chat-tool-group-body {
+  margin-top: 0.4rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--color-border);
+  display: grid;
+  gap: 0.2rem;
+}
+.web-chat-tool-group-body .web-chat-data-part { margin: 0; }
+
+/* ─── Data parts — debugging affordance. Just a tiny muted bracket
+   header you can ignore or click to inspect; no card chrome, no
+   colored accent rails. ─── */
+.web-chat-data-part {
+  margin: 0.6rem 0 0;
+  background: transparent;
+  border: 0;
+}
+details.web-chat-data-part > summary.web-chat-data-part-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+details.web-chat-data-part > summary.web-chat-data-part-header:hover {
+  color: var(--color-text-muted);
+}
+details.web-chat-data-part > summary.web-chat-data-part-header::-webkit-details-marker {
+  display: none;
+}
+.web-chat-data-part-chevron {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+  transform-origin: 60% 60%;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
+  transform: rotate(45deg);
+}
+.web-chat-data-part-body {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 1px solid var(--color-border);
+  background: rgb(0 0 0 / 0.2);
+}
+.web-chat-data-part-body pre {
+  margin: 0;
+  font-family: var(--font-label);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  overflow: auto;
+}
+
+/* ─── Confirmations — instrument card. This is an action affordance,
+   not a debug toggle, so it keeps the card chrome to grab attention. ─── */
 .web-chat-confirmation {
   position: relative;
   margin: 1rem 0 0;
@@ -687,7 +746,6 @@ button, textarea, input { font: inherit; color: inherit; }
   overflow: hidden;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
-.web-chat-data-part::before,
 .web-chat-confirmation::before {
   content: "";
   position: absolute;
@@ -697,28 +755,25 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--color-secondary) r g b / 0.9),
     rgb(from var(--color-secondary) r g b / 0.2));
 }
-.web-chat-data-part-header,
 .web-chat-confirmation-header {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.95rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
   border-bottom: 1px solid var(--color-border);
   font-family: var(--font-label);
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-secondary);
 }
-.web-chat-data-part-header::before,
 .web-chat-confirmation-header::before {
   content: "[";
   color: var(--color-text-light);
   font-weight: 400;
   letter-spacing: 0;
 }
-.web-chat-data-part-header::after,
 .web-chat-confirmation-header::after {
   content: "]";
   color: var(--color-text-light);
@@ -726,22 +781,6 @@ button, textarea, input { font: inherit; color: inherit; }
   letter-spacing: 0;
   margin-left: auto;
 }
-.web-chat-data-part-body { padding: 0.85rem 1rem; }
-.web-chat-data-part-body pre {
-  margin: 0;
-  font-family: var(--font-label);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--color-text);
-  overflow: auto;
-}
-.web-chat-data-part summary {
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
 .web-chat-confirmation[data-state="resolved"] {
   background: linear-gradient(135deg,
     rgb(from var(--color-success) r g b / 0.07) 0%,
@@ -753,18 +792,6 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--color-success) r g b / 0.2));
 }
 .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header { color: var(--color-success); }
-
-.web-chat-data-part[data-kind="tool-result"] {
-  background: linear-gradient(135deg,
-    rgb(from var(--color-accent) r g b / 0.07) 0%,
-    rgb(from var(--color-accent) r g b / 0.01) 100%);
-}
-.web-chat-data-part[data-kind="tool-result"]::before {
-  background: linear-gradient(180deg,
-    rgb(from var(--color-accent) r g b / 0.9),
-    rgb(from var(--color-accent) r g b / 0.2));
-}
-.web-chat-data-part[data-kind="tool-result"] .web-chat-data-part-header { color: var(--color-accent); }
 
 .web-chat-confirmation-body { padding: 0.85rem; display: grid; gap: 0.85rem; }
 .web-chat-confirmation-summary { margin: 0; color: var(--color-text); line-height: 1.6; }
