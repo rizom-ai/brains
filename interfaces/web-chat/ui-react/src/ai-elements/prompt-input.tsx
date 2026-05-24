@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { forwardRef, type FormEvent, type PropsWithChildren } from "react";
+import { forwardRef, type PropsWithChildren } from "react";
 import type { TextareaHTMLAttributes } from "react";
 
 type PromptInputStatus = "submitted" | "streaming" | "ready" | "error";
@@ -11,7 +11,7 @@ export function PromptInput({
   return (
     <form
       className="web-chat-prompt-input"
-      onSubmit={(event: FormEvent<HTMLFormElement>) => {
+      onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
       }}
@@ -27,6 +27,39 @@ export const PromptInputTextarea = forwardRef<
 >(function PromptInputTextarea(props, ref): React.ReactElement {
   return <textarea ref={ref} className="web-chat-prompt-textarea" {...props} />;
 });
+
+export function PromptInputFooter({
+  children,
+}: PropsWithChildren): React.ReactElement {
+  return <div className="web-chat-prompt-footer">{children}</div>;
+}
+
+export function PromptInputHint(): React.ReactElement {
+  return (
+    <span className="web-chat-prompt-hint">
+      <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline
+    </span>
+  );
+}
+
+function SendIcon(): React.ReactElement {
+  return (
+    <svg
+      viewBox="0 0 18 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path
+        d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 export function PromptInputSubmit({
   disabled = false,
@@ -59,6 +92,7 @@ export function PromptInputSubmit({
       disabled={disabled}
     >
       Send
+      <SendIcon />
     </button>
   );
 }

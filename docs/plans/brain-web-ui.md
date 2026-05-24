@@ -230,7 +230,7 @@ Test **AI Elements** first as the React UI inside the quarantined route. It's fi
 
 ## Follow-up sequence
 
-1. **Conversation sessions.** Add authenticated web-chat routes for listing recent conversations, switching the active conversation, and creating a new session. Keep storage in the existing conversation service. The React island should render a compact session switcher/sidebar, with `localStorage` only remembering the last selected session id.
+1. **Conversation sessions.** Add authenticated web-chat routes for listing recent conversations, switching the active conversation, and creating a new session. Keep storage in the existing conversation service. The public conversation namespace should support future-proof list filters (`interfaceType`, `sessionId`, `channelId`, plus time/limit options) so interfaces can query their own sessions without importing conversation-service internals or filtering after a lossy limit. The React island should render a compact session switcher/sidebar, with `localStorage` only remembering the last selected session id.
 2. **Outbound attachments/artifacts.** Extend `WebChatInterface` stream adaptation so attachment-bearing interface events become AI SDK UI data parts. Add UI renderers for image previews, downloadable artifacts, and generic file cards. Prefer existing attachment/media provider contracts for blob resolution and download routes.
 3. **Inbound uploads.** Add user file selection/dropzone, multipart upload routes, auth/size/type checks, and attachment refs in `/api/chat` requests only after outbound artifact rendering is stable.
 4. **Deeper streaming.** Token-by-token model streaming remains a later `AgentService` capability; current progress/status/final-response streaming is enough for the MVP.

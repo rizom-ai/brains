@@ -5,21 +5,6 @@ interface ConfirmationResult {
   text: string;
 }
 
-function JsonDetails({
-  data,
-  title,
-}: {
-  data: unknown;
-  title: string;
-}): React.ReactElement {
-  return (
-    <details className="web-chat-data-part">
-      <summary>{title}</summary>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </details>
-  );
-}
-
 function getRecordValue(data: unknown, key: string): unknown {
   if (typeof data !== "object" || data === null) return undefined;
   return (data as Record<string, unknown>)[key];
@@ -39,12 +24,15 @@ export function ToolResultPart({
     getStringValue(data, "toolName") ??
     getStringValue(data, "name") ??
     getStringValue(data, "tool");
+  const label = toolName ? `tool · ${toolName}` : "tool result";
 
   return (
-    <JsonDetails
-      title={toolName ? `Tool result: ${toolName}` : "Tool result"}
-      data={data}
-    />
+    <section className="web-chat-data-part" data-kind="tool-result">
+      <header className="web-chat-data-part-header">{label}</header>
+      <div className="web-chat-data-part-body">
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      </div>
+    </section>
   );
 }
 
@@ -59,6 +47,9 @@ export function ConfirmationPart({
   const description = getStringValue(data, "description");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ConfirmationResult | null>(null);
+  const [decision, setDecision] = useState<"approved" | "declined" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function submitConfirmation(confirmed: boolean): Promise<void> {
@@ -75,6 +66,7 @@ export function ConfirmationPart({
         throw new Error(await response.text());
       }
       setResult((await response.json()) as ConfirmationResult);
+      setDecision(confirmed ? "approved" : "declined");
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Confirmation failed",
@@ -84,31 +76,47 @@ export function ConfirmationPart({
     }
   }
 
+  const resolved = result !== null;
+  const headerLabel = resolved
+    ? "confirmation resolved"
+    : "confirmation pending";
+
   return (
-    <section className="web-chat-confirmation" role="group" aria-label={title}>
-      <h2>{title}</h2>
-      {description ? <p>{description}</p> : null}
-      <JsonDetails title="Confirmation details" data={data} />
-      <div className="web-chat-confirmation-actions">
-        <button
-          type="button"
-          disabled={isSubmitting || result !== null}
-          onClick={() => void submitConfirmation(true)}
-        >
-          Confirm
-        </button>
-        <button
-          type="button"
-          disabled={isSubmitting || result !== null}
-          onClick={() => void submitConfirmation(false)}
-        >
-          Cancel
-        </button>
+    <section
+      className="web-chat-confirmation"
+      data-state={resolved ? "resolved" : "pending"}
+      role="group"
+      aria-label={title}
+    >
+      <header className="web-chat-confirmation-header">{headerLabel}</header>
+      <div className="web-chat-confirmation-body">
+        <p className="web-chat-confirmation-summary">{description ?? title}</p>
+        {resolved ? (
+          <span className="web-chat-confirmation-result">
+            {decision === "declined" ? "Declined" : "Approved"}
+            {result?.text ? ` · ${result.text}` : ""}
+          </span>
+        ) : (
+          <div className="web-chat-confirmation-actions">
+            <button
+              type="button"
+              data-variant="primary"
+              disabled={isSubmitting}
+              onClick={() => void submitConfirmation(true)}
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => void submitConfirmation(false)}
+            >
+              Decline
+            </button>
+          </div>
+        )}
+        {error ? <p className="web-chat-error">{error}</p> : null}
       </div>
-      {result ? (
-        <p className="web-chat-confirmation-result">{result.text}</p>
-      ) : null}
-      {error ? <p className="web-chat-error">{error}</p> : null}
     </section>
   );
 }
@@ -120,5 +128,12 @@ export function GenericDataPart({
   data: unknown;
   type: string;
 }): React.ReactElement {
-  return <JsonDetails title={type} data={data} />;
+  return (
+    <details className="web-chat-data-part">
+      <summary>{type}</summary>
+      <div className="web-chat-data-part-body">
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      </div>
+    </details>
+  );
 }

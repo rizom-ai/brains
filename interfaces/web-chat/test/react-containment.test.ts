@@ -87,6 +87,10 @@ describe("React containment", () => {
     expect(appSource).toContain("resizePromptTextarea");
     expect(appSource).toContain("promptInputRef");
     expect(appSource).toContain("focusPromptTextarea");
+    expect(appSource).toContain("loadSessions");
+    expect(appSource).toContain("switchConversation");
+    expect(appSource).toContain("/api/chat/sessions");
+    expect(appSource).toContain("/api/chat/messages");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {

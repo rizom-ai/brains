@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   Conversation,
   ConversationContent,
@@ -13,14 +13,37 @@ import {
   ToolResultPart,
 } from "./ai-elements/data-parts";
 import { MarkdownResponse } from "./ai-elements/markdown-response";
-import { Message, MessageContent } from "./ai-elements/message";
+import { Message, MessageBubble, MessageHeader } from "./ai-elements/message";
 import {
   PromptInput,
+  PromptInputFooter,
+  PromptInputHint,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "./ai-elements/prompt-input";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
+const dayMs = 24 * 60 * 60 * 1000;
+
+interface WebChatSession {
+  id: string;
+  title: string;
+  lastActiveAt: string;
+}
+
+interface WebChatHistoryMessage {
+  id: string;
+  role: UIMessage["role"];
+  content: string;
+}
+
+interface WebChatSessionsResponse {
+  sessions: WebChatSession[];
+}
+
+interface WebChatMessagesResponse {
+  messages: WebChatHistoryMessage[];
+}
 
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
@@ -36,6 +59,14 @@ function getBrowserConversationId(): string {
   } catch {
     return createConversationId();
   }
+}
+
+function toUiMessage(message: WebChatHistoryMessage): UIMessage {
+  return {
+    id: message.id,
+    role: message.role,
+    parts: [{ type: "text", text: message.content }],
+  };
 }
 
 function getPartData(part: unknown): unknown {
@@ -70,11 +101,37 @@ function isPlainEnter(
   );
 }
 
+function formatSessionTime(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return "—";
+  const diff = now.getTime() - then.getTime();
+  if (diff < dayMs && then.getDate() === now.getDate()) {
+    return then.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  const yesterday = new Date(now.getTime() - dayMs);
+  if (then.getDate() === yesterday.getDate()) return "Yest";
+  if (diff < 7 * dayMs) {
+    return then.toLocaleDateString(undefined, { weekday: "short" });
+  }
+  return then.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function statusPhrase(status: string): string {
+  if (status === "submitted") return "the rhizome is listening";
+  if (status === "streaming") return "the rhizome is listening";
+  if (status === "error") return "a thread broke mid-growth";
+  return "";
+}
+
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );
+  const [sessions, setSessions] = useState<WebChatSession[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
@@ -113,13 +170,37 @@ export function App(): React.ReactElement {
 
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
+    void loadSessions();
   }, []);
+
+  async function loadSessions(): Promise<void> {
+    const response = await fetch("/api/chat/sessions", {
+      credentials: "include",
+    });
+    if (!response.ok) return;
+    const body = (await response.json()) as WebChatSessionsResponse;
+    setSessions(body.sessions);
+  }
+
+  async function switchConversation(nextConversationId: string): Promise<void> {
+    const response = await fetch(
+      `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
+      { credentials: "include" },
+    );
+    if (!response.ok) return;
+    const body = (await response.json()) as WebChatMessagesResponse;
+    localStorage.setItem(conversationStorageKey, nextConversationId);
+    setConversationId(nextConversationId);
+    setMessages(body.messages.map(toUiMessage));
+    setInput("");
+    focusPromptTextarea(promptInputRef.current);
+  }
 
   function submitMessage(): void {
     const text = input.trim();
     if (!text || isBusyStatus(status)) return;
     setInput("");
-    void sendMessage({ text });
+    void sendMessage({ text }).then(() => loadSessions());
     focusPromptTextarea(promptInputRef.current);
   }
 
@@ -133,115 +214,204 @@ export function App(): React.ReactElement {
   }
 
   return (
-    <main
-      className="web-chat-app"
+    <div
+      className="web-chat-shell"
       data-web-chat-app="true"
       data-web-chat-ui="ai-elements-v0"
       data-conversation-id={conversationId}
-      aria-label="Brain chat"
     >
-      <header className="web-chat-header">
-        <div>
-          <h1>Brain Chat</h1>
-          <p
-            className="web-chat-version"
-            data-web-chat-version="ai-elements-v0"
+      <aside className="web-chat-sessions" aria-label="Sessions">
+        <header className="web-chat-sessions-header">
+          <h2>
+            Sessions <em>·</em>
+          </h2>
+          <button
+            className="web-chat-sessions-new"
+            type="button"
+            aria-label="New conversation"
+            onClick={startNewConversation}
           >
-            AI Elements UI
-          </p>
-        </div>
-        <button
-          className="web-chat-secondary-action"
-          type="button"
-          onClick={startNewConversation}
-        >
-          New conversation
-        </button>
-      </header>
-      <Conversation>
-        <ConversationContent>
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              title="Start a conversation"
-              description="Ask this brain for help."
-            />
-          ) : (
-            messages.map((message) => (
-              <Message key={message.id} from={message.role}>
-                <MessageContent>
-                  <strong>{message.role}</strong>
-                  {message.parts.map((part, index) => {
-                    if (part.type === "text") {
-                      return (
-                        <MarkdownResponse key={index}>
-                          {part.text}
-                        </MarkdownResponse>
-                      );
-                    }
-                    if (part.type === "data-tool-result") {
-                      return (
-                        <ToolResultPart key={index} data={getPartData(part)} />
-                      );
-                    }
-                    if (part.type === "data-confirmation") {
-                      return (
-                        <ConfirmationPart
-                          key={index}
-                          conversationId={conversationId}
-                          data={getPartData(part)}
-                        />
-                      );
-                    }
-                    if (part.type.startsWith("data-")) {
-                      return (
-                        <GenericDataPart
-                          key={index}
-                          type={part.type}
-                          data={getPartData(part)}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-                </MessageContent>
-              </Message>
-            ))
-          )}
-          <div ref={messagesEndRef} aria-hidden="true" />
-        </ConversationContent>
-      </Conversation>
-      {status !== "ready" ? (
-        <p className="web-chat-status" data-status={status}>
-          {status}
-        </p>
-      ) : null}
-      {error ? (
-        <div className="web-chat-error" role="alert">
-          <p>{error.message}</p>
-          <button type="button" onClick={clearError}>
-            Dismiss
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              aria-hidden="true"
+            >
+              <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+            </svg>
           </button>
-        </div>
-      ) : null}
-      <PromptInput onSubmit={submitMessage}>
-        <label htmlFor="web-chat-input">Message</label>
-        <PromptInputTextarea
-          id="web-chat-input"
-          ref={promptInputRef}
-          value={input}
-          onInput={(event) => setInput(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (!isPlainEnter(event)) return;
-            event.preventDefault();
-            submitMessage();
-          }}
-        />
-        <PromptInputSubmit
-          status={status}
-          onStop={stop}
-          disabled={!input.trim()}
-        />
-      </PromptInput>
-    </main>
+        </header>
+
+        {sessions.length === 0 ? (
+          <p className="web-chat-sessions-list-empty">No traces yet.</p>
+        ) : (
+          <ul className="web-chat-sessions-list" role="listbox">
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <button
+                  className="web-chat-session"
+                  type="button"
+                  role="option"
+                  aria-selected={session.id === conversationId}
+                  data-active={session.id === conversationId ? "true" : "false"}
+                  onClick={() => void switchConversation(session.id)}
+                >
+                  <span className="web-chat-session-time">
+                    {formatSessionTime(session.lastActiveAt)}
+                  </span>
+                  <div className="web-chat-session-body">
+                    <h3 className="web-chat-session-title">{session.title}</h3>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <footer className="web-chat-sessions-footer">
+          <span className="web-chat-sessions-footer-id">brain · anchor</span>
+        </footer>
+      </aside>
+
+      <main className="web-chat-app" aria-label="Brain chat">
+        <header className="web-chat-header">
+          <div>
+            <span className="web-chat-header-eyebrow">
+              Anchor
+              {messages.length > 0 ? (
+                <>
+                  {" · "}
+                  <strong>
+                    {messages.length} message{messages.length === 1 ? "" : "s"}
+                  </strong>
+                </>
+              ) : null}
+            </span>
+            <h1>
+              Brain <em>Chat</em>
+            </h1>
+            <p>A field log for talking with the rhizome.</p>
+          </div>
+          <button
+            className="web-chat-secondary-action"
+            type="button"
+            onClick={startNewConversation}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+            </svg>
+            New conversation
+          </button>
+        </header>
+
+        <Conversation>
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <ConversationEmptyState
+                eyebrow="No traces yet"
+                title="Begin a field note."
+                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+              />
+            ) : (
+              messages.map((message) => (
+                <Message key={message.id} from={message.role}>
+                  <MessageHeader role={message.role} />
+                  <MessageBubble>
+                    {message.parts.map((part, index) => {
+                      if (part.type === "text") {
+                        return (
+                          <MarkdownResponse key={index}>
+                            {part.text}
+                          </MarkdownResponse>
+                        );
+                      }
+                      if (part.type === "data-tool-result") {
+                        return (
+                          <ToolResultPart
+                            key={index}
+                            data={getPartData(part)}
+                          />
+                        );
+                      }
+                      if (part.type === "data-confirmation") {
+                        return (
+                          <ConfirmationPart
+                            key={index}
+                            conversationId={conversationId}
+                            data={getPartData(part)}
+                          />
+                        );
+                      }
+                      if (part.type.startsWith("data-")) {
+                        return (
+                          <GenericDataPart
+                            key={index}
+                            type={part.type}
+                            data={getPartData(part)}
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </MessageBubble>
+                </Message>
+              ))
+            )}
+            <div ref={messagesEndRef} aria-hidden="true" />
+          </ConversationContent>
+        </Conversation>
+
+        {status !== "ready" ? (
+          <p className="web-chat-status" data-status={status}>
+            <span className="web-chat-status-rail" aria-hidden="true" />
+            <span className="web-chat-status-phrase">
+              {statusPhrase(status)}
+            </span>
+            <span className="web-chat-status-meta">{status}</span>
+          </p>
+        ) : null}
+
+        {error ? (
+          <div className="web-chat-error" role="alert">
+            <span className="web-chat-error-tag">[ signal lost ]</span>
+            <p>{error.message}</p>
+            <button type="button" onClick={clearError}>
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
+        <PromptInput onSubmit={submitMessage}>
+          <label htmlFor="web-chat-input">Message</label>
+          <PromptInputTextarea
+            id="web-chat-input"
+            ref={promptInputRef}
+            value={input}
+            placeholder="Plant a question…"
+            onInput={(event) => setInput(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (!isPlainEnter(event)) return;
+              event.preventDefault();
+              submitMessage();
+            }}
+          />
+          <PromptInputFooter>
+            <PromptInputHint />
+            <PromptInputSubmit
+              status={status}
+              onStop={stop}
+              disabled={!input.trim()}
+            />
+          </PromptInputFooter>
+        </PromptInput>
+      </main>
+    </div>
   );
 }

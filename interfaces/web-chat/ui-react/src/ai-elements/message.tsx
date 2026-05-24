@@ -3,6 +3,13 @@ import type { PropsWithChildren } from "react";
 
 type MessageRole = "system" | "user" | "assistant" | "data";
 
+const roleLabel: Record<MessageRole, string> = {
+  user: "You",
+  assistant: "Brain",
+  system: "System",
+  data: "Data",
+};
+
 export function Message({
   children,
   from,
@@ -14,14 +21,23 @@ export function Message({
   );
 }
 
-export function MessageContent({
-  children,
-}: PropsWithChildren): React.ReactElement {
-  return <div className="web-chat-message-content">{children}</div>;
+export function MessageHeader({
+  role,
+  time,
+}: {
+  role: MessageRole;
+  time?: string;
+}): React.ReactElement {
+  return (
+    <span className="web-chat-message-header">
+      {roleLabel[role]}
+      {time ? <time>{time}</time> : null}
+    </span>
+  );
 }
 
-export function MessageResponse({
+export function MessageBubble({
   children,
 }: PropsWithChildren): React.ReactElement {
-  return <p className="web-chat-message-response">{children}</p>;
+  return <div className="web-chat-message-bubble">{children}</div>;
 }

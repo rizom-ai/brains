@@ -32,7 +32,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(4);
+    expect(routes).toHaveLength(6);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -49,6 +49,16 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[3]).toMatchObject({
+      path: "/api/chat/sessions",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[4]).toMatchObject({
+      path: "/api/chat/messages",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[5]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -68,14 +78,14 @@ describe("WebChatInterface", () => {
     expect(html).toContain("Brain Chat");
     expect(html).toContain("/chat/assets/app.js");
     expect(html).toContain("data-web-chat-styles");
-    expect(html).toContain("--chat-bg: var(--dashboard-bg");
-    expect(html).toContain("--chat-accent: var(--dashboard-accent");
+    expect(html).toContain("--color-bg: var(--palette-bg-deep)");
+    expect(html).toContain("--color-accent: var(--palette-amber-light)");
   });
 
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[5];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -84,7 +94,7 @@ describe("WebChatInterface", () => {
 
     if (response?.status === 200) {
       expect(response.headers.get("content-type")).toContain("text/javascript");
-      expect(text).toContain("Brain Chat");
+      expect(text).toContain("data-web-chat-app");
     } else {
       expect(response?.status).toBe(404);
       expect(text).toContain("not built");
@@ -118,6 +128,114 @@ describe("WebChatInterface", () => {
       "text/event-stream",
     );
     expect(body).toContain("Mock agent response");
+  });
+
+  it("lists web chat sessions", async () => {
+    const shell = harness.getMockShell();
+    shell.getConversationService = () => ({
+      startConversation: async () => "web-session",
+      addMessage: async () => {},
+      getConversation: async () => null,
+      listConversations: async (options) => {
+        const conversations = [
+          {
+            id: "web-session",
+            sessionId: "web-session",
+            interfaceType: "web-chat",
+            channelId: "web-session",
+            started: "2026-05-24T00:00:00.000Z",
+            lastActive: "2026-05-24T00:01:00.000Z",
+            created: "2026-05-24T00:00:00.000Z",
+            updated: "2026-05-24T00:01:00.000Z",
+            metadata: JSON.stringify({ channelName: "Web Chat" }),
+          },
+          {
+            id: "discord-session",
+            sessionId: "discord-session",
+            interfaceType: "discord",
+            channelId: "discord-session",
+            started: "2026-05-24T00:00:00.000Z",
+            lastActive: "2026-05-24T00:01:00.000Z",
+            created: "2026-05-24T00:00:00.000Z",
+            updated: "2026-05-24T00:01:00.000Z",
+            metadata: JSON.stringify({ channelName: "Discord" }),
+          },
+        ];
+        return conversations.filter(
+          (conversation) =>
+            conversation.interfaceType === options?.interfaceType,
+        );
+      },
+      searchConversations: async () => [],
+      getMessages: async () => [],
+      countMessages: async () => 0,
+      close: () => {},
+    });
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[3];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({
+      sessions: [
+        {
+          id: "web-session",
+          title: "Web Chat",
+          lastActiveAt: "2026-05-24T00:01:00.000Z",
+        },
+      ],
+    });
+  });
+
+  it("loads web chat session messages", async () => {
+    const shell = harness.getMockShell();
+    shell.getConversationService = () => ({
+      startConversation: async () => "web-session",
+      addMessage: async () => {},
+      getConversation: async () => ({
+        id: "web-session",
+        sessionId: "web-session",
+        interfaceType: "web-chat",
+        channelId: "web-session",
+        started: "2026-05-24T00:00:00.000Z",
+        lastActive: "2026-05-24T00:01:00.000Z",
+        created: "2026-05-24T00:00:00.000Z",
+        updated: "2026-05-24T00:01:00.000Z",
+        metadata: JSON.stringify({ channelName: "Web Chat" }),
+      }),
+      listConversations: async () => [],
+      searchConversations: async () => [],
+      getMessages: async () => [
+        {
+          id: "message-1",
+          conversationId: "web-session",
+          role: "user",
+          content: "Hello",
+          timestamp: "2026-05-24T00:00:30.000Z",
+          metadata: null,
+        },
+      ],
+      countMessages: async () => 1,
+      close: () => {},
+    });
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[4];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/messages?id=web-session"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({
+      messages: [{ id: "message-1", role: "user", content: "Hello" }],
+    });
   });
 
   it("confirms pending actions through AgentService", async () => {
