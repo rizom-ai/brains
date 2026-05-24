@@ -27,7 +27,8 @@
     "@brains/utils": "workspace:*",
     "ai": "^6.0.86",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "streamdown": "^2.5.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

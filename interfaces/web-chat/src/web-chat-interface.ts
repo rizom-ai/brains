@@ -611,13 +611,40 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--color-accent);
 }
 
-/* ─── Code block ─── */
-.web-chat-code-block {
+/* ─── Markdown / code blocks. Streamdown provides the AI Elements-style
+   markdown renderer; these selectors keep the Rizom visual treatment. ─── */
+.web-chat-markdown-response {
+  display: grid;
+  gap: 0.75rem;
+}
+.web-chat-markdown-response > * { margin-block: 0; }
+.web-chat-markdown-response p { margin: 0; }
+.web-chat-markdown-response blockquote {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.web-chat-markdown-response :not(pre) > code {
+  padding: 0.08rem 0.28rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.25);
+  font-family: var(--font-label);
+  font-size: 0.88em;
+}
+.web-chat-code-block,
+.web-chat-markdown-response pre {
   margin: 0.85rem 0 0;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: auto;
   background: rgb(0 0 0 / 0.35);
+  font-family: var(--font-label);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text);
 }
 .web-chat-code-block figcaption {
   display: flex; align-items: center; justify-content: space-between;

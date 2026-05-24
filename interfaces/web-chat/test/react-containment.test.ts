@@ -95,6 +95,18 @@ describe("React containment", () => {
     expect(appSource).toContain("finally(() => loadSessions())");
     expect(appSource).toContain("/api/chat/sessions");
     expect(appSource).toContain("/api/chat/messages");
+
+    const markdownSource = readFileSync(
+      join(
+        packageRoot,
+        "ui-react",
+        "src",
+        "ai-elements",
+        "markdown-response.tsx",
+      ),
+      "utf-8",
+    );
+    expect(markdownSource).toContain('from "streamdown"');
   });
 
   it("dedupes React entrypoints in the UI build config", () => {
