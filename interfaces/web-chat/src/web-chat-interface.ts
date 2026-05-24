@@ -220,7 +220,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-sessions {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  padding: 1.25rem 0 0.75rem;
+  padding: 1.25rem 0 1.5rem;
   min-height: 0;
 }
 .web-chat-sessions-header {
@@ -386,9 +386,8 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-sessions-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.75rem 1.25rem 0;
+  padding: 0.85rem 1.25rem 0;
   border-top: 1px solid var(--color-border-light);
   margin-top: 0.5rem;
   font-family: var(--font-label);
@@ -456,11 +455,12 @@ button, textarea, input { font: inherit; color: inherit; }
   opacity: 0.85;
 }
 
-/* ─── Empty state ─── */
+/* ─── Empty state — anchored at the spine where the first message
+   would land, not floated in the middle of the pane. ─── */
 .web-chat-empty-state {
-  margin: auto;
+  margin: 0;
   max-width: 38rem;
-  padding: 2rem 1.5rem;
+  padding: 1rem 1.5rem 1rem 0;
   color: var(--color-text-muted);
   display: grid;
   gap: 1.25rem;
