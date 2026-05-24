@@ -118,15 +118,19 @@ button, textarea, input { font: inherit; color: inherit; }
   height: 100%;
   min-height: 100vh;
 }
-.web-chat-shell .web-chat-app { border-left: 1px solid var(--color-border-light); }
-
-/* ─── Chat surface ─── */
+/* ─── Chat surface — capped and centered so the conversation column
+   doesn't spill across the full width on wide displays. The sessions
+   rail's right border (below) provides the divider since the chat
+   itself no longer touches that edge. ─── */
 .web-chat-app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: 1.25rem;
   min-width: 0;
   min-height: 0;
+  width: 100%;
+  max-width: 56rem;
+  justify-self: center;
   padding: 1.25rem 1.5rem 1.5rem;
 }
 /* Header, status, prompt, and error are indented to align with the
@@ -222,6 +226,7 @@ button, textarea, input { font: inherit; color: inherit; }
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 1.25rem 0 1.5rem;
   min-height: 0;
+  border-right: 1px solid var(--color-border-light);
 }
 .web-chat-sessions-header {
   display: flex;
