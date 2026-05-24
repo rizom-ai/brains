@@ -78,6 +78,7 @@ button, textarea { font: inherit; }
   margin: 0 auto;
   padding: 1.25rem;
 }
+.web-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .web-chat-header h1 {
   margin: 0;
   font-family: var(--chat-font-display);
@@ -85,6 +86,8 @@ button, textarea { font: inherit; }
   letter-spacing: -0.04em;
 }
 .web-chat-version, .web-chat-status { color: var(--chat-text-dim); }
+.web-chat-secondary-action { border: 1px solid var(--chat-border); border-radius: 999px; padding: 0.5rem 0.85rem; background: transparent; color: var(--chat-text); cursor: pointer; font-weight: 700; }
+.web-chat-secondary-action:hover { border-color: var(--chat-accent); color: var(--chat-accent); }
 .web-chat-conversation {
   min-height: 0;
   overflow: auto;

@@ -75,6 +75,8 @@ describe("React containment", () => {
     expect(appSource).toContain("brain:web-chat:conversation-id");
     expect(appSource).toContain("localStorage");
     expect(appSource).toContain("id: conversationId");
+    expect(appSource).toContain("New conversation");
+    expect(appSource).toContain("setMessages([])");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {

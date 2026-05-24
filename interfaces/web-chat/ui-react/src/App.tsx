@@ -47,7 +47,9 @@ function getPartData(part: unknown): unknown {
 
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
-  const conversationId = useMemo(() => getBrowserConversationId(), []);
+  const [conversationId, setConversationId] = useState(() =>
+    getBrowserConversationId(),
+  );
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -56,10 +58,18 @@ export function App(): React.ReactElement {
       }),
     [],
   );
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error } = useChat({
     id: conversationId,
     transport,
   });
+
+  function startNewConversation(): void {
+    const next = createConversationId();
+    localStorage.setItem(conversationStorageKey, next);
+    setConversationId(next);
+    setMessages([]);
+    setInput("");
+  }
 
   return (
     <main
@@ -70,10 +80,22 @@ export function App(): React.ReactElement {
       aria-label="Brain chat"
     >
       <header className="web-chat-header">
-        <h1>Brain Chat</h1>
-        <p className="web-chat-version" data-web-chat-version="ai-elements-v0">
-          AI Elements UI
-        </p>
+        <div>
+          <h1>Brain Chat</h1>
+          <p
+            className="web-chat-version"
+            data-web-chat-version="ai-elements-v0"
+          >
+            AI Elements UI
+          </p>
+        </div>
+        <button
+          className="web-chat-secondary-action"
+          type="button"
+          onClick={startNewConversation}
+        >
+          New conversation
+        </button>
       </header>
       <Conversation>
         <ConversationContent>
