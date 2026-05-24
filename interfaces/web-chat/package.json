@@ -20,8 +20,8 @@
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "ai": "^6.0.86",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
