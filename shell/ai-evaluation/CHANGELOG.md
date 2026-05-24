@@ -1,5 +1,41 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.88
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.88
+  - @brains/utils@0.2.0-alpha.88
+  - @brains/ai-service@0.2.0-alpha.88
+  - @brains/app@0.2.0-alpha.88
+  - @brains/plugins@0.2.0-alpha.88
+  - @brains/templates@0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.87
+  - @brains/utils@0.2.0-alpha.87
+  - @brains/ai-service@0.2.0-alpha.87
+  - @brains/app@0.2.0-alpha.87
+  - @brains/plugins@0.2.0-alpha.87
+  - @brains/templates@0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.86
+  - @brains/utils@0.2.0-alpha.86
+  - @brains/ai-service@0.2.0-alpha.86
+  - @brains/app@0.2.0-alpha.86
+  - @brains/plugins@0.2.0-alpha.86
+  - @brains/templates@0.2.0-alpha.86
+
 ## 0.2.0-alpha.85
 
 ### Patch Changes

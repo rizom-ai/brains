@@ -1,5 +1,44 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.88
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.88
+  - @brains/content-formatters@0.2.0-alpha.88
+  - @brains/ui-library@0.2.0-alpha.88
+  - @brains/utils@0.2.0-alpha.88
+  - @brains/conversation-service@0.2.0-alpha.88
+  - @brains/plugins@0.2.0-alpha.88
+  - @brains/templates@0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.87
+  - @brains/content-formatters@0.2.0-alpha.87
+  - @brains/ui-library@0.2.0-alpha.87
+  - @brains/utils@0.2.0-alpha.87
+  - @brains/conversation-service@0.2.0-alpha.87
+  - @brains/plugins@0.2.0-alpha.87
+  - @brains/templates@0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.86
+  - @brains/content-formatters@0.2.0-alpha.86
+  - @brains/ui-library@0.2.0-alpha.86
+  - @brains/utils@0.2.0-alpha.86
+  - @brains/conversation-service@0.2.0-alpha.86
+  - @brains/plugins@0.2.0-alpha.86
+  - @brains/templates@0.2.0-alpha.86
+
 ## 0.2.0-alpha.85
 
 ### Patch Changes

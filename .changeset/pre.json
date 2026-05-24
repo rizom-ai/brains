@@ -104,7 +104,8 @@
     "@brains/media-tools": "0.2.0-alpha.78",
     "@brains/document": "0.2.0-alpha.68",
     "@brains/media-page-composer": "0.2.0-alpha.68",
-    "@brains/media-renderer": "0.2.0-alpha.68"
+    "@brains/media-renderer": "0.2.0-alpha.68",
+    "@brains/web-chat": "0.2.0-alpha.84"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -216,6 +217,9 @@
     "swot-evidence-grounding",
     "tailwind-runtime-deps",
     "themes-export",
+    "web-chat-bundled-ui",
+    "web-chat-light-mode-and-mobile",
+    "web-chat-spine-and-tool-collapse",
     "wordmark-slot-and-generic-suffix"
   ]
 }

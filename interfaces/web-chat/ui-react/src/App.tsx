@@ -24,6 +24,24 @@ import {
 } from "./ai-elements/prompt-input";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
+const themeStorageKey = "brain:theme";
+
+type ThemeMode = "light" | "dark";
+
+function getInitialTheme(): ThemeMode {
+  if (typeof document === "undefined") return "dark";
+  const attr = document.documentElement.getAttribute("data-theme");
+  return attr === "light" ? "light" : "dark";
+}
+
+function applyTheme(theme: ThemeMode): void {
+  document.documentElement.setAttribute("data-theme", theme);
+  try {
+    localStorage.setItem(themeStorageKey, theme);
+  } catch {
+    /* localStorage unavailable — fall back to in-memory only */
+  }
+}
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
@@ -175,6 +193,13 @@ export function App(): React.ReactElement {
   );
   const [sessions, setSessions] = useState<WebChatSession[]>([]);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+
+  function toggleTheme(): void {
+    const next: ThemeMode = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    applyTheme(next);
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
@@ -358,22 +383,68 @@ export function App(): React.ReactElement {
             </h1>
             <p>A field log for talking with the rhizome.</p>
           </div>
-          <button
-            className="web-chat-secondary-action"
-            type="button"
-            onClick={startNewConversation}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              aria-hidden="true"
+          <div className="web-chat-header-actions">
+            <button
+              className="web-chat-icon-action"
+              type="button"
+              onClick={toggleTheme}
+              aria-label={
+                theme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to light mode"
+              }
+              title={
+                theme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to light mode"
+              }
             >
-              <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-            </svg>
-            New
-          </button>
+              {theme === "light" ? (
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <circle cx="8" cy="8" r="3" />
+                  <path
+                    d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </button>
+            <button
+              className="web-chat-secondary-action"
+              type="button"
+              onClick={startNewConversation}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+              </svg>
+              New
+            </button>
+          </div>
         </header>
 
         <Conversation>

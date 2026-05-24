@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Minor Changes
+
+- [`c9c6591`](https://github.com/rizom-ai/brains/commit/c9c65910be5accf101314a170f7ede8cd269ab0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bundle the Brain web chat interface with Rover, including the `/chat` UI, AI SDK-compatible chat routes, confirmations, session switching, derived session titles, and package-owned web chat assets for published brain instances.
+
 ## 0.2.0-alpha.85
 
 ### Patch Changes

@@ -71,12 +71,14 @@ export interface MockShell extends IShell {
   getPlugin(pluginId: string): Plugin | undefined;
   getTemplates(): Map<string, Template>;
   setAgentService(agentService: IAgentService): void;
+  setConversationService(conversationService: IConversationService): void;
   getDaemonRegistry(): IDaemonRegistry;
 }
 
 export interface MockShellOptions {
   logger?: Logger;
   agentService?: IAgentService;
+  conversationService?: IConversationService;
   dataDir?: string;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
@@ -101,6 +103,19 @@ function createDefaultMockAgentService(): IAgentService {
       usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
     }),
     invalidateAgent: (): void => {},
+  };
+}
+
+function createDefaultMockConversationService(): IConversationService {
+  return {
+    startConversation: async () => `conv-${Date.now()}`,
+    addMessage: async (): Promise<void> => {},
+    getMessages: async () => [],
+    countMessages: async () => 0,
+    getConversation: async () => null,
+    listConversations: async () => [],
+    searchConversations: async () => [],
+    close: (): void => {},
   };
 }
 
@@ -163,6 +178,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   let agentService: IAgentService =
     options.agentService ?? createDefaultMockAgentService();
+  let conversationService: IConversationService =
+    options.conversationService ?? createDefaultMockConversationService();
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
   const messageBus: MessageBus = {
@@ -570,17 +587,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         listFormats: () => [],
       }) as unknown as RenderService,
     getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
-    getConversationService: () =>
-      ({
-        startConversation: async () => `conv-${Date.now()}`,
-        addMessage: async (): Promise<void> => {},
-        getConversation: async () => null,
-        listConversations: async () => [],
-        searchConversations: async () => [],
-        getMessages: async () => [],
-        countMessages: async () => 0,
-        close: () => {},
-      }) as IConversationService,
+    getConversationService: () => conversationService,
     getMCPService: () =>
       ({
         getMcpServer: () => {
@@ -808,6 +815,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getTemplates: () => new Map(templates),
     setAgentService: (svc: IAgentService) => {
       agentService = svc;
+    },
+    setConversationService: (svc: IConversationService) => {
+      conversationService = svc;
     },
     getDaemonRegistry: () => daemonRegistry,
   };
