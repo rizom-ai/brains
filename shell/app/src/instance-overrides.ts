@@ -133,9 +133,15 @@ const instanceOverridesSchema = z.object({
         .record(
           z
             .object({
-              create: z.enum(["anchor", "trusted", "public"]).optional(),
-              update: z.enum(["anchor", "trusted", "public"]).optional(),
-              delete: z.enum(["anchor", "trusted", "public"]).optional(),
+              create: z
+                .enum(["never", "anchor", "trusted", "public"])
+                .optional(),
+              update: z
+                .enum(["never", "anchor", "trusted", "public"])
+                .optional(),
+              delete: z
+                .enum(["never", "anchor", "trusted", "public"])
+                .optional(),
             })
             .strict(),
         )

@@ -27,6 +27,15 @@ export function checkEntityActionPermission(
   );
   if (!requiredLevel) return undefined;
 
+  const verb = `${action[0]?.toUpperCase()}${action.slice(1)}`;
+
+  if (requiredLevel === "never") {
+    return {
+      success: false,
+      error: `${verb} ${entityType} is not allowed through system tools.`,
+    };
+  }
+
   const userLevel = context.userPermissionLevel ?? "public";
   if (permissionService.hasPermission(userLevel, requiredLevel)) {
     return undefined;
@@ -34,7 +43,7 @@ export function checkEntityActionPermission(
 
   return {
     success: false,
-    error: `${action[0]?.toUpperCase()}${action.slice(1)} ${entityType} requires ${ROLE_LABELS[requiredLevel]} permission; your current permission is ${ROLE_LABELS[userLevel]}.`,
+    error: `${verb} ${entityType} requires ${ROLE_LABELS[requiredLevel]} permission; your current permission is ${ROLE_LABELS[userLevel]}.`,
   };
 }
 

@@ -459,6 +459,74 @@ describe("PermissionService", () => {
           ),
         ).toBe(true);
       });
+
+      it("should treat undefined userLevel as public", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": { create: "trusted", update: "public" },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "create"),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "update"),
+        ).toBe(true);
+      });
+
+      it("should allow any action when no policy is configured", () => {
+        permissionService = new PermissionService({});
+
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "delete"),
+        ).toBe(true);
+        expect(
+          permissionService.canPerformEntityAction("public", "base", "delete"),
+        ).toBe(true);
+      });
+
+      it("should forbid actions marked never for every caller", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "anchor-profile": {
+              create: "anchor",
+              update: "anchor",
+              delete: "never",
+            },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            undefined,
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        // unrelated actions still resolve normally
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "anchor-profile",
+            "update",
+          ),
+        ).toBe(true);
+      });
     });
   });
 

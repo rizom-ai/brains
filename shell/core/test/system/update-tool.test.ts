@@ -363,6 +363,35 @@ describe("system_update tool", () => {
     });
   });
 
+  // Locks the policy check above the confirmation branch: if a future refactor
+  // hoisted `confirmed: true` ahead of checkEntityActionPermission, this would catch it.
+  it("rejects trusted updates with confirmed: true when policy requires anchor", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        agent: { update: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "agent",
+        id: "old-agent.io",
+        fields: { status: "archived" },
+        confirmed: true,
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Update agent requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+
+    const unchanged = services.getEntities().get("old-agent.io");
+    expect(unchanged?.metadata["status"]).toBe("active");
+  });
+
   it("rejects trusted deletes when entity action policy requires anchor", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
@@ -384,6 +413,29 @@ describe("system_update tool", () => {
       error:
         "Delete newsletter requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
+  });
+
+  it("rejects deletes marked never even for anchor callers", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        newsletter: { delete: "never" },
+      },
+    });
+
+    const result = await execDelete(
+      {
+        entityType: "newsletter",
+        id: "newsletter-1",
+        confirmed: true,
+      },
+      "anchor",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Delete newsletter is not allowed through system tools.",
+    });
+    expect(services.getEntities().has("newsletter-1")).toBe(true);
   });
 
   it("rejects blank content replacement for frontmatter entities", async () => {

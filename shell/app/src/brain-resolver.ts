@@ -1,4 +1,8 @@
 import type { Plugin } from "@brains/plugins";
+import type {
+  EntityActionPolicy,
+  EntityActionPolicyEntry,
+} from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
@@ -498,6 +502,29 @@ export function resolve(
 }
 
 /**
+ * Merge two entity-action policies one level deeper than a spread.
+ *
+ * Why: a top-level spread of `entityActions` lets a yaml entry for `"*"` silently
+ * drop unrelated actions defined in the definition (e.g. yaml `{ "*": { delete: "trusted" } }`
+ * would wipe out the definition's `create`/`update` for `"*"`). Merging per entity
+ * type lets yaml override individual actions while preserving the rest.
+ */
+function mergeEntityActionPolicies(
+  base: EntityActionPolicy | undefined,
+  override: EntityActionPolicy | undefined,
+): EntityActionPolicy {
+  const keys = new Set([
+    ...Object.keys(base ?? {}),
+    ...Object.keys(override ?? {}),
+  ]);
+  const merged: Record<string, EntityActionPolicyEntry> = {};
+  for (const key of keys) {
+    merged[key] = { ...(base?.[key] ?? {}), ...(override?.[key] ?? {}) };
+  }
+  return merged;
+}
+
+/**
  * Build the permissions config by merging definition defaults with yaml overrides.
  *
  * Priority: yaml `permissions` section > yaml top-level `anchors`/`trusted` > definition defaults
@@ -529,10 +556,10 @@ function buildPermissions(
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
       ...(definitionPerms?.entityActions || yamlPerms?.entityActions
         ? {
-            entityActions: {
-              ...(definitionPerms?.entityActions ?? {}),
-              ...(yamlPerms?.entityActions ?? {}),
-            },
+            entityActions: mergeEntityActionPolicies(
+              definitionPerms?.entityActions,
+              yamlPerms?.entityActions,
+            ),
           }
         : {}),
     },

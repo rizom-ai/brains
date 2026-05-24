@@ -21,6 +21,9 @@ Supported levels:
 - `public`
 - `trusted`
 - `anchor`
+- `never` — action is not permitted through system tools, regardless of caller
+  level. Internal plugin code can still mutate the entity directly via
+  `entityService` (the gate is the user-facing tool boundary, not the database).
 
 Configuration lives under `permissions.entityActions`:
 
@@ -65,26 +68,31 @@ Read/search/list access is unchanged and remains governed by entity visibility.
 
 Relay installs a default policy where collaborators can contribute normal team content, while deletes and system/derived entities stay owner-only.
 
-| entity type       | create    | update    | delete   | reason                                                                |
-| ----------------- | --------- | --------- | -------- | --------------------------------------------------------------------- |
-| `*`               | `trusted` | `trusted` | `anchor` | safe default for team-authored content; deletes are owner-only        |
-| `base`            | `trusted` | `trusted` | `anchor` | notes/general team memory                                             |
-| `link`            | `trusted` | `trusted` | `anchor` | shared references                                                     |
-| `doc`             | `trusted` | `trusted` | `anchor` | full-preset team docs                                                 |
-| `deck`            | `trusted` | `trusted` | `anchor` | full-preset team presentations                                        |
-| `decision`        | `trusted` | `trusted` | `anchor` | canonical team decisions, editable but not deletable by collaborators |
-| `action-item`     | `trusted` | `trusted` | `anchor` | team follow-ups                                                       |
-| `image`           | `trusted` | `trusted` | `anchor` | site/team assets in default preset                                    |
-| `site-info`       | `anchor`  | `anchor`  | `anchor` | public identity/config                                                |
-| `site-content`    | `anchor`  | `anchor`  | `anchor` | public site route copy                                                |
-| `prompt`          | `anchor`  | `anchor`  | `anchor` | prompt/template behavior                                              |
-| `anchor-profile`  | `anchor`  | `anchor`  | `anchor` | owner/team identity                                                   |
-| `brain-character` | `anchor`  | `anchor`  | `anchor` | brain identity/instructions                                           |
-| `topic`           | `anchor`  | `anchor`  | `anchor` | derived synthesis artifact                                            |
-| `summary`         | `anchor`  | `anchor`  | `anchor` | system-maintained conversation memory                                 |
-| `agent`           | `anchor`  | `anchor`  | `anchor` | peer-brain trust boundary                                             |
-| `skill`           | `anchor`  | `anchor`  | `anchor` | derived agent capability record                                       |
-| `swot`            | `anchor`  | `anchor`  | `anchor` | derived assessment output                                             |
+Only the wildcard default and the anchor-only overrides are listed in
+`brains/relay/src/index.ts`. Entity types not listed inherit from `"*"` —
+they are described in the table below for auditability, not duplicated in
+code.
+
+| entity type       | create    | update    | delete   | source   | reason                                                                |
+| ----------------- | --------- | --------- | -------- | -------- | --------------------------------------------------------------------- |
+| `*`               | `trusted` | `trusted` | `anchor` | explicit | safe default for team-authored content; deletes are owner-only        |
+| `base`            | `trusted` | `trusted` | `anchor` | inherits | notes/general team memory                                             |
+| `link`            | `trusted` | `trusted` | `anchor` | inherits | shared references                                                     |
+| `doc`             | `trusted` | `trusted` | `anchor` | inherits | full-preset team docs                                                 |
+| `deck`            | `trusted` | `trusted` | `anchor` | inherits | full-preset team presentations                                        |
+| `decision`        | `trusted` | `trusted` | `anchor` | inherits | canonical team decisions, editable but not deletable by collaborators |
+| `action-item`     | `trusted` | `trusted` | `anchor` | inherits | team follow-ups                                                       |
+| `image`           | `trusted` | `trusted` | `anchor` | inherits | site/team assets in default preset                                    |
+| `site-info`       | `anchor`  | `anchor`  | `never`  | explicit | singleton site identity/config — never deletable via system tools     |
+| `site-content`    | `anchor`  | `anchor`  | `anchor` | explicit | public site route copy                                                |
+| `prompt`          | `anchor`  | `anchor`  | `anchor` | explicit | prompt/template behavior                                              |
+| `anchor-profile`  | `anchor`  | `anchor`  | `never`  | explicit | singleton owner/team identity — never deletable via system tools      |
+| `brain-character` | `anchor`  | `anchor`  | `never`  | explicit | singleton brain identity — never deletable via system tools           |
+| `topic`           | `anchor`  | `anchor`  | `anchor` | explicit | derived synthesis artifact                                            |
+| `summary`         | `anchor`  | `anchor`  | `anchor` | explicit | system-maintained conversation memory                                 |
+| `agent`           | `anchor`  | `anchor`  | `anchor` | explicit | peer-brain trust boundary                                             |
+| `skill`           | `anchor`  | `anchor`  | `anchor` | explicit | derived agent capability record                                       |
+| `swot`            | `anchor`  | `anchor`  | `anchor` | explicit | derived assessment output                                             |
 
 ## Denial behavior
 

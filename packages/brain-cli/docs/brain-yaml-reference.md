@@ -242,7 +242,8 @@ permissions:
 Rules:
 
 - supported actions are `create`, `update`, and `delete`;
-- supported levels are `public`, `trusted`, and `anchor`;
+- supported levels are `public`, `trusted`, `anchor`, and `never`;
+- `never` forbids the action through system tools for every caller — useful for singleton identity/config entities that should not be deletable via the agent; internal plugin code can still mutate them directly;
 - `"*"` is the default for entity types without an explicit entry;
 - entity-specific entries override `"*"` per action;
 - omitted actions inherit from `"*"`;

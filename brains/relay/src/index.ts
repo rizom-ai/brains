@@ -194,7 +194,7 @@ export default defineBrain({
     entityActions: {
       "*": { create: "trusted", update: "trusted", delete: "anchor" },
       prompt: { create: "anchor", update: "anchor", delete: "anchor" },
-      "site-info": { create: "anchor", update: "anchor", delete: "anchor" },
+      "site-info": { create: "anchor", update: "anchor", delete: "never" },
       "site-content": {
         create: "anchor",
         update: "anchor",
@@ -203,12 +203,12 @@ export default defineBrain({
       "anchor-profile": {
         create: "anchor",
         update: "anchor",
-        delete: "anchor",
+        delete: "never",
       },
       "brain-character": {
         create: "anchor",
         update: "anchor",
-        delete: "anchor",
+        delete: "never",
       },
       topic: { create: "anchor", update: "anchor", delete: "anchor" },
       summary: { create: "anchor", update: "anchor", delete: "anchor" },

@@ -13,12 +13,14 @@ export {
   PermissionService,
   UserPermissionLevelSchema,
   EntityActionSchema,
+  EntityActionRequiredLevelSchema,
   EntityActionPolicyEntrySchema,
   EntityActionPolicySchema,
 } from "./permission-service";
 export type {
   UserPermissionLevel,
   EntityAction,
+  EntityActionRequiredLevel,
   EntityActionPolicy,
   EntityActionPolicyEntry,
   PermissionConfig,

@@ -15,11 +15,29 @@ export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 export const EntityActionSchema = z.enum(["create", "update", "delete"]);
 export type EntityAction = z.infer<typeof EntityActionSchema>;
 
+/**
+ * Required level for an entity action.
+ *
+ * Superset of `UserPermissionLevel` with the sentinel `"never"`, which
+ * forbids the action through the system tools regardless of caller level.
+ * Internal code can still mutate via direct `entityService` calls — `"never"`
+ * is a user-facing tool gate, not a database constraint.
+ */
+export const EntityActionRequiredLevelSchema = z.enum([
+  "never",
+  "anchor",
+  "trusted",
+  "public",
+]);
+export type EntityActionRequiredLevel = z.infer<
+  typeof EntityActionRequiredLevelSchema
+>;
+
 export const EntityActionPolicyEntrySchema = z
   .object({
-    create: UserPermissionLevelSchema.optional(),
-    update: UserPermissionLevelSchema.optional(),
-    delete: UserPermissionLevelSchema.optional(),
+    create: EntityActionRequiredLevelSchema.optional(),
+    update: EntityActionRequiredLevelSchema.optional(),
+    delete: EntityActionRequiredLevelSchema.optional(),
   })
   .strict();
 export type EntityActionPolicyEntry = z.infer<
@@ -151,7 +169,7 @@ export class PermissionService {
   getRequiredEntityActionLevel(
     entityType: string,
     action: EntityAction,
-  ): UserPermissionLevel | undefined {
+  ): EntityActionRequiredLevel | undefined {
     return (
       this.entityActions[entityType]?.[action] ??
       this.entityActions["*"]?.[action]
@@ -165,6 +183,7 @@ export class PermissionService {
   ): boolean {
     const requiredLevel = this.getRequiredEntityActionLevel(entityType, action);
     if (!requiredLevel) return true;
+    if (requiredLevel === "never") return false;
     return this.hasPermission(userLevel ?? "public", requiredLevel);
   }
 
