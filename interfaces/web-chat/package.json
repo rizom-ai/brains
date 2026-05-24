@@ -7,6 +7,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": [
+    "src",
+    "dist",
+    "package.json"
+  ],
   "scripts": {
     "build": "bun scripts/build-ui.ts",
     "build:ui": "bun scripts/build-ui.ts",

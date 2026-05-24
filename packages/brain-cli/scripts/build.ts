@@ -56,6 +56,9 @@ function findMonorepoRoot(): string {
 }
 
 const monorepoRoot = findMonorepoRoot();
+const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
+const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
+const bundledWebChatUiDir = join(outdir, "ui");
 const sharedInstanceTsConfigPath = join(
   monorepoRoot,
   "shared",
@@ -64,6 +67,21 @@ const sharedInstanceTsConfigPath = join(
 );
 
 cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
+
+console.log("Building bundled web chat UI...");
+const webChatBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: webChatPackageDir,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (webChatBuildResult.exitCode !== 0) {
+  console.error("Web chat UI build failed");
+  process.exit(1);
+}
+if (!existsSync(webChatUiAssetPath)) {
+  console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
+  process.exit(1);
+}
 
 console.log("Generating bundled model env schemas...");
 const envSchemaScript = join(
@@ -260,6 +278,15 @@ const libraryBuilds = libraryEntries.map((entry) =>
 
 // Declarations only need source files; run them concurrently with bundling.
 await Promise.all([cliBuild, ...libraryBuilds, emitLibraryDeclarations()]);
+
+// ─── Copy bundled web chat UI asset ───────────────────────────────────────
+
+mkdirSync(bundledWebChatUiDir, { recursive: true });
+cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
+const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
+if (existsSync(webChatSourceMapPath)) {
+  cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
+}
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 

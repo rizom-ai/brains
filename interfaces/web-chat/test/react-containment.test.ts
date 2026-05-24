@@ -40,6 +40,17 @@ function importsReact(content: string): boolean {
 }
 
 describe("React containment", () => {
+  it("publishes the built UI asset directory", () => {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
+      files: string[];
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts["build"]).toBe("bun scripts/build-ui.ts");
+    expect(packageJson.files).toContain("dist");
+    expect(packageJson.files).toContain("src");
+  });
+
   it("keeps React and React DOM on the same declared range", () => {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
       dependencies: Record<string, string>;
