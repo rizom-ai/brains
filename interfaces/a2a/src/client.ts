@@ -457,7 +457,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "a2a_call",
     description:
-      "Call a saved remote A2A agent by its local directory id. Use only a saved agent id such as yeehaa.io. Never pass a display name like Brain, never pass a full URL, and do not use this tool to probe whether an agent exists. If the user gives a URL, an unsaved agent, or an ambiguous name, ask them to add/save or clarify the agent first.",
+      "Call a saved remote A2A agent by its local directory id. Use this when the user asks what a saved agent has to say or asks a saved agent for its skills/capabilities. Use only a saved agent id such as yeehaa.io. Never pass a display name like Brain, never pass a full URL, and do not use this tool to probe whether an agent exists. If the user gives a URL, an unsaved agent, or an ambiguous name, ask them to add/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {

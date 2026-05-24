@@ -1,0 +1,45 @@
+id: multi-turn-agent-what-does-it-say-skills
+name: Saved Agent Has-to-Say and Skills Questions Use A2A
+description: Verifies that questions like "what does yeehaa.io have to say?" and follow-up skill questions call the saved remote agent instead of answering from local directory metadata.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - regression
+  - tool-invocation
+
+turns:
+  - userMessage: "what does yeehaa.io have to say?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "yeehaa.io"
+        - toolName: system_get
+          shouldBeCalled: false
+      responseNotContains:
+        - "semantic search and listing entities by type"
+        - "lists these skills: semantic search"
+
+  - userMessage: "what skills does it have"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "yeehaa.io"
+        - toolName: system_get
+          shouldBeCalled: false
+      responseNotContains:
+        - "semantic search and listing entities by type"
+        - "lists these skills: semantic search"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 40000

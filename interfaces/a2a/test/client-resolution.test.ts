@@ -74,6 +74,12 @@ function createMockEntityService(
 const toolContext = { interfaceType: "mcp" as const, userId: "test" };
 
 describe("a2a_call agent resolution", () => {
+  it("should describe saved-agent questions as A2A calls", () => {
+    const tool = createA2ACallTool();
+
+    expect(tool.description).toContain("what a saved agent has to say");
+    expect(tool.description).toContain("skills/capabilities");
+  });
   it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
     entities.set("yeehaa.io", {

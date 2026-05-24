@@ -1,0 +1,19 @@
+import { describe, expect, it } from "bun:test";
+import { A2AInterface } from "../src/a2a-interface";
+
+class TestA2AInterface extends A2AInterface {
+  public async instructions(): Promise<string | undefined> {
+    return this.getInstructions();
+  }
+}
+
+describe("A2A instructions", () => {
+  it("treats asking what a saved agent has to say as an A2A call", async () => {
+    const plugin = new TestA2AInterface({ port: 0 });
+    const instructions = await plugin.instructions();
+
+    expect(instructions).toContain("hear what a saved agent has to say");
+    expect(instructions).toContain("call `a2a_call` in the same turn");
+    expect(instructions).toContain("reading the saved agent entity metadata");
+  });
+});
