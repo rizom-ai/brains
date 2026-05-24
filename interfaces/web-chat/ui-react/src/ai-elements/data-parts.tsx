@@ -1,4 +1,9 @@
 /** @jsxImportSource react */
+import { useState } from "react";
+
+interface ConfirmationResult {
+  text: string;
+}
 
 function JsonDetails({
   data,
@@ -44,21 +49,66 @@ export function ToolResultPart({
 }
 
 export function ConfirmationPart({
+  conversationId,
   data,
 }: {
+  conversationId: string;
   data: unknown;
 }): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
   const description = getStringValue(data, "description");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<ConfirmationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submitConfirmation(confirmed: boolean): Promise<void> {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/chat/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id: conversationId, confirmed }),
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      setResult((await response.json()) as ConfirmationResult);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Confirmation failed",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <section className="web-chat-confirmation" role="group" aria-label={title}>
       <h2>{title}</h2>
       {description ? <p>{description}</p> : null}
       <JsonDetails title="Confirmation details" data={data} />
-      <p className="web-chat-confirmation-note">
-        Confirmation actions are not wired in the browser UI yet.
-      </p>
+      <div className="web-chat-confirmation-actions">
+        <button
+          type="button"
+          disabled={isSubmitting || result !== null}
+          onClick={() => void submitConfirmation(true)}
+        >
+          Confirm
+        </button>
+        <button
+          type="button"
+          disabled={isSubmitting || result !== null}
+          onClick={() => void submitConfirmation(false)}
+        >
+          Cancel
+        </button>
+      </div>
+      {result ? (
+        <p className="web-chat-confirmation-result">{result.text}</p>
+      ) : null}
+      {error ? <p className="web-chat-error">{error}</p> : null}
     </section>
   );
 }

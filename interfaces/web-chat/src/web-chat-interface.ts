@@ -34,6 +34,11 @@ const chatRequestSchema = z.object({
   messages: z.array(uiMessageSchema).min(1),
 });
 
+const confirmationRequestSchema = z.object({
+  id: z.string(),
+  confirmed: z.boolean(),
+});
+
 type ChatRequest = z.infer<typeof chatRequestSchema>;
 
 const uiAssetPath = "/chat/assets/app.js";
@@ -100,6 +105,11 @@ button, textarea { font: inherit; }
 .web-chat-code-block pre, .web-chat-data-part pre { overflow: auto; margin: 0; padding: 0.85rem; font-family: var(--chat-font-mono); line-height: 1.5; }
 .web-chat-data-part, .web-chat-confirmation { padding: 0.85rem; }
 .web-chat-data-part summary { cursor: pointer; font-weight: 600; }
+.web-chat-confirmation-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+.web-chat-confirmation-actions button { border: 1px solid var(--chat-border); border-radius: 999px; padding: 0.45rem 0.85rem; background: var(--chat-card-soft); color: var(--chat-text); cursor: pointer; font-weight: 700; }
+.web-chat-confirmation-actions button:first-child { background: var(--chat-accent); color: var(--chat-bg); }
+.web-chat-confirmation-actions button:disabled { cursor: not-allowed; opacity: 0.58; }
+.web-chat-confirmation-result { color: var(--chat-text-dim); }
 .web-chat-error { color: var(--chat-error); }
 .web-chat-prompt-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; align-items: end; border: 1px solid var(--chat-border); border-radius: 1.25rem; padding: 0.75rem; background: var(--chat-card); }
 .web-chat-prompt-input label { grid-column: 1 / -1; color: var(--chat-text-dim); font-size: 0.8rem; }
@@ -157,6 +167,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (request): Promise<Response> =>
           this.handleChatRequest(request),
+      },
+      {
+        path: "/api/chat/confirm",
+        method: "POST",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleConfirmationRequest(request),
       },
       {
         path: uiAssetPath,
@@ -247,6 +264,27 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
 
     return createUIMessageStreamResponse({ stream });
+  }
+
+  private async handleConfirmationRequest(request: Request): Promise<Response> {
+    const authenticated = await this.isAuthorized(request);
+    if (!authenticated) return new Response("Unauthorized", { status: 401 });
+
+    const parsed = confirmationRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return new Response("Invalid confirmation request", { status: 400 });
+    }
+
+    const response = await this.getContext().agent.confirmPendingAction(
+      parsed.data.id,
+      parsed.data.confirmed,
+    );
+
+    return Response.json({
+      text: response.text,
+      toolResults: response.toolResults ?? [],
+      pendingConfirmation: response.pendingConfirmation ?? null,
+    });
   }
 
   private async handleStreamedChat(input: {

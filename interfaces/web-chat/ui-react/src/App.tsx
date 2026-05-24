@@ -104,6 +104,7 @@ export function App(): React.ReactElement {
                       return (
                         <ConfirmationPart
                           key={index}
+                          conversationId={conversationId}
                           data={getPartData(part)}
                         />
                       );
