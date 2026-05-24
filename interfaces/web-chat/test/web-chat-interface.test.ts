@@ -62,6 +62,9 @@ describe("WebChatInterface", () => {
     expect(response?.headers.get("content-type")).toContain("text/html");
     expect(html).toContain("Brain Chat");
     expect(html).toContain("/chat/assets/app.js");
+    expect(html).toContain("data-web-chat-styles");
+    expect(html).toContain("--chat-bg: var(--dashboard-bg");
+    expect(html).toContain("--chat-accent: var(--dashboard-accent");
   });
 
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {

@@ -38,6 +38,76 @@ type ChatRequest = z.infer<typeof chatRequestSchema>;
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
+const chatPageStyles = `
+:root {
+  --chat-bg: var(--dashboard-bg, var(--color-bg, #0a0819));
+  --chat-card: var(--dashboard-card, var(--color-bg-card, #14112b));
+  --chat-card-soft: var(--dashboard-card-soft, var(--color-bg-subtle, #1b1638));
+  --chat-text: var(--dashboard-text, var(--color-text, #f1eadd));
+  --chat-text-dim: var(--dashboard-text-dim, var(--color-text-muted, #bfb7a6));
+  --chat-border: var(--rule-strong, color-mix(in srgb, var(--chat-text) 14%, transparent));
+  --chat-accent: var(--dashboard-accent, var(--color-accent, #ff8b3d));
+  --chat-accent-soft: var(--accent-soft, color-mix(in srgb, var(--chat-accent) 12%, transparent));
+  --chat-error: var(--dashboard-error, var(--color-error, #e26d6d));
+  --chat-font-display: var(--dashboard-font-display, var(--font-display, serif));
+  --chat-font-body: var(--dashboard-font-body, var(--font-body, system-ui, sans-serif));
+  --chat-font-mono: var(--dashboard-font-mono, var(--font-label, ui-monospace, monospace));
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--chat-bg);
+  color: var(--chat-text);
+  font-family: var(--chat-font-body);
+}
+button, textarea { font: inherit; }
+.web-chat-app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  width: min(960px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+.web-chat-header h1 {
+  margin: 0;
+  font-family: var(--chat-font-display);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+.web-chat-version, .web-chat-status { color: var(--chat-text-dim); }
+.web-chat-conversation {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--chat-border);
+  border-radius: 1.5rem;
+  background: var(--chat-card);
+}
+.web-chat-conversation-content { display: flex; flex-direction: column; gap: 1rem; min-height: 100%; padding: 1rem; }
+.web-chat-empty-state { margin: auto; max-width: 32rem; padding: 3rem 1rem; text-align: center; color: var(--chat-text-dim); }
+.web-chat-message { max-width: min(42rem, 92%); border: 1px solid var(--chat-border); border-radius: 1rem; padding: 0.9rem 1rem; background: var(--chat-card-soft); }
+.web-chat-message[data-role="user"] { align-self: flex-end; background: var(--chat-accent-soft); border-color: var(--chat-accent); }
+.web-chat-message[data-role="assistant"] { align-self: flex-start; }
+.web-chat-message-content > strong { display: block; margin-bottom: 0.55rem; color: var(--chat-accent); font-family: var(--chat-font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.web-chat-message-response { margin: 0 0 0.75rem; line-height: 1.6; }
+.web-chat-message-response:last-child { margin-bottom: 0; }
+.web-chat-code-block, .web-chat-data-part, .web-chat-confirmation { margin-top: 0.85rem; overflow: hidden; border: 1px solid var(--chat-border); border-radius: 0.85rem; background: var(--chat-bg); }
+.web-chat-code-block figcaption { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--chat-border); color: var(--chat-text-dim); font-family: var(--chat-font-mono); font-size: 0.75rem; }
+.web-chat-code-block pre, .web-chat-data-part pre { overflow: auto; margin: 0; padding: 0.85rem; font-family: var(--chat-font-mono); line-height: 1.5; }
+.web-chat-data-part, .web-chat-confirmation { padding: 0.85rem; }
+.web-chat-data-part summary { cursor: pointer; font-weight: 600; }
+.web-chat-error { color: var(--chat-error); }
+.web-chat-prompt-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; align-items: end; border: 1px solid var(--chat-border); border-radius: 1.25rem; padding: 0.75rem; background: var(--chat-card); }
+.web-chat-prompt-input label { grid-column: 1 / -1; color: var(--chat-text-dim); font-size: 0.8rem; }
+.web-chat-prompt-textarea { min-height: 4.5rem; max-height: 14rem; resize: vertical; border: 1px solid var(--chat-border); border-radius: 0.9rem; padding: 0.75rem; background: var(--chat-bg); color: inherit; }
+.web-chat-prompt-submit { min-height: 2.75rem; border: 0; border-radius: 999px; padding: 0 1.15rem; background: var(--chat-accent); color: var(--chat-bg); cursor: pointer; font-weight: 700; }
+.web-chat-prompt-submit:disabled { cursor: not-allowed; opacity: 0.58; }
+@media (max-width: 640px) { .web-chat-app { padding: 0.75rem; } .web-chat-prompt-input { grid-template-columns: 1fr; } }
+`;
 
 interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
@@ -275,7 +345,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private renderChatPage(): string {
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Brain Chat</title></head><body><main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brain Chat</title><style data-web-chat-styles>${chatPageStyles}</style></head><body><main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
   }
 
   private createId(prefix: string): string {

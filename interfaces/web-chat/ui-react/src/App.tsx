@@ -8,15 +8,24 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "./ai-elements/message";
+  ConfirmationPart,
+  GenericDataPart,
+  ToolResultPart,
+} from "./ai-elements/data-parts";
+import { MarkdownResponse } from "./ai-elements/markdown-response";
+import { Message, MessageContent } from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "./ai-elements/prompt-input";
+
+function getPartData(part: unknown): unknown {
+  if (typeof part !== "object" || part === null || !("data" in part)) {
+    return undefined;
+  }
+  return part.data;
+}
 
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
@@ -32,12 +41,17 @@ export function App(): React.ReactElement {
 
   return (
     <main
+      className="web-chat-app"
       data-web-chat-app="true"
       data-web-chat-ui="ai-elements-v0"
       aria-label="Brain chat"
     >
-      <h1>Brain Chat</h1>
-      <p data-web-chat-version="ai-elements-v0">AI Elements UI</p>
+      <header className="web-chat-header">
+        <h1>Brain Chat</h1>
+        <p className="web-chat-version" data-web-chat-version="ai-elements-v0">
+          AI Elements UI
+        </p>
+      </header>
       <Conversation>
         <ConversationContent>
           {messages.length === 0 ? (
@@ -53,14 +67,31 @@ export function App(): React.ReactElement {
                   {message.parts.map((part, index) => {
                     if (part.type === "text") {
                       return (
-                        <MessageResponse key={index}>
+                        <MarkdownResponse key={index}>
                           {part.text}
-                        </MessageResponse>
+                        </MarkdownResponse>
+                      );
+                    }
+                    if (part.type === "data-tool-result") {
+                      return (
+                        <ToolResultPart key={index} data={getPartData(part)} />
+                      );
+                    }
+                    if (part.type === "data-confirmation") {
+                      return (
+                        <ConfirmationPart
+                          key={index}
+                          data={getPartData(part)}
+                        />
                       );
                     }
                     if (part.type.startsWith("data-")) {
                       return (
-                        <pre key={index}>{JSON.stringify(part, null, 2)}</pre>
+                        <GenericDataPart
+                          key={index}
+                          type={part.type}
+                          data={getPartData(part)}
+                        />
                       );
                     }
                     return null;
@@ -71,8 +102,16 @@ export function App(): React.ReactElement {
           )}
         </ConversationContent>
       </Conversation>
-      {status !== "ready" ? <p data-status={status}>{status}</p> : null}
-      {error ? <p role="alert">{error.message}</p> : null}
+      {status !== "ready" ? (
+        <p className="web-chat-status" data-status={status}>
+          {status}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="web-chat-error" role="alert">
+          {error.message}
+        </p>
+      ) : null}
       <PromptInput
         onSubmit={() => {
           const text = input.trim();
