@@ -122,6 +122,33 @@ GIT_SYNC_TOKEN=ghp_...
 
 Relay includes `auth-service`, so first boot prints a one-shot `/setup` URL for passkey registration. OAuth-capable MCP clients should use the browser/passkey authorization flow against `/mcp`; keep `MCP_AUTH_TOKEN` only for older clients that cannot do OAuth.
 
+### Permissions UX
+
+Relay treats people in configured shared spaces as collaborators (`trusted`) while anchors remain owners. By default, collaborators can create/update normal team memory, but deletes and system-maintained records stay owner-only.
+
+```yaml
+anchors:
+  - "discord:OWNER_USER_ID"
+
+spaces:
+  - "discord:TEAM_CHANNEL_ID"
+```
+
+Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require owner/anchor permission. Protected entities such as prompts, site identity/content, topics, summaries, agents, skills, SWOTs, anchor profile, and brain character require owner/anchor permission for create/update/delete.
+
+Instances can override individual actions in `brain.yaml`:
+
+```yaml
+permissions:
+  entityActions:
+    doc:
+      delete: trusted
+    summary:
+      update: trusted
+```
+
+Denials are explicit, for example: `Update summary requires Owner/anchor permission; your current permission is Collaborator/trusted.`
+
 ### 4. Run the instance
 
 ```bash

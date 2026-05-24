@@ -2,51 +2,27 @@
 
 ## Status
 
-Proposed next implementation slice for Relay/shared-space trust.
+Implemented in `eac3c0148`.
 
-Shared-space trust now lets configured spaces resolve callers to `trusted`. That is useful for collaboration, but too broad for mutation tools: a trusted collaborator should be able to contribute team content without being able to delete records or rewrite derived/system-maintained memory.
+This plan is now a short design record for the implemented Relay/shared-space trust hardening slice. Shared-space trust can resolve callers in configured spaces to `trusted`; entity action policy constrains what those collaborators can mutate.
 
-This plan replaces the old shared-space trust follow-up notes with an implementation-ready scope.
+## Implemented behavior
 
-## Goal
+Entity mutations can declare the minimum permission level required by `entityType` and action.
 
-Add a central policy layer for entity mutations so the minimum permission level can vary by `entityType` and action.
-
-The first target is Relay:
-
-- collaborators can create/update normal team-authored content;
-- deletes default to Owner/anchor;
-- derived/system-maintained records are anchor-only by default;
-- denial messages identify the blocked action and required level.
-
-## Non-goals
-
-- Full RBAC or custom roles.
-- Runtime users/People UI.
-- A fourth permission level such as `admin`.
-- Per-field permissions.
-- Read/search/list visibility changes; entity visibility already handles those paths.
-- Slack/Teams/shared-web trust integration.
-
-## Policy model
-
-Use existing permission levels as policy values:
-
-- `public`
-- `trusted`
-- `anchor`
-
-Initial actions:
+Supported actions:
 
 - `create`
 - `update`
 - `delete`
 
-Future actions can be added only when there is a concrete mutating tool that needs them, for example `setCover`, `publish`, or `extract`.
+Supported levels:
 
-### Config shape
+- `public`
+- `trusted`
+- `anchor`
 
-Add entity action overrides under the existing `permissions` block:
+Configuration lives under `permissions.entityActions`:
 
 ```yaml
 permissions:
@@ -70,12 +46,24 @@ Rules:
 - `"*"` is the default for any entity type without an explicit override.
 - Entity-specific entries merge over `"*"`.
 - Omitted actions inherit from `"*"`.
-- If no policy is configured, preserve existing behavior for backward compatibility.
-- Brain models may provide defaults; instance config may override them.
+- If no policy is configured, existing mutation-tool behavior is preserved for backward compatibility.
+- Brain model defaults and instance `brain.yaml` overrides merge into one effective policy.
+
+## Enforcement points
+
+Policy is enforced centrally in:
+
+- `system_create`
+- `system_update`
+- `system_delete`
+
+Entity plugins do not enforce their own policy. Create interceptors cannot bypass policy: `system_create` checks the requested entity type and checks again if an interceptor rewrites the effective entity type.
+
+Read/search/list access is unchanged and remains governed by entity visibility.
 
 ## Relay default policy
 
-Relay should install this default once the enforcement layer exists:
+Relay installs a default policy where collaborators can contribute normal team content, while deletes and system/derived entities stay owner-only.
 
 | entity type       | create    | update    | delete   | reason                                                                |
 | ----------------- | --------- | --------- | -------- | --------------------------------------------------------------------- |
@@ -98,58 +86,29 @@ Relay should install this default once the enforcement layer exists:
 | `skill`           | `anchor`  | `anchor`  | `anchor` | derived agent capability record                                       |
 | `swot`            | `anchor`  | `anchor`  | `anchor` | derived assessment output                                             |
 
-## Enforcement points
-
-Enforce policy in central mutation tools before calling entity services or plugin-specific write paths:
-
-- `system_create`
-- `system_update`
-- `system_delete`
-
-Do not make each entity plugin responsible for this check.
-
-Plugin create interceptors must not bypass the policy. The check should run after the requested/derived `entityType` is known and before the interceptor or entity service writes anything.
-
-If an operation changes the effective entity type, run the check against the final entity type.
-
 ## Denial behavior
 
-Denied mutations should return a user-facing message with:
-
-- action;
-- entity type;
-- caller level;
-- required level.
+Denied mutations return user-facing errors that include action, entity type, required level, and caller level.
 
 Example:
 
-> Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.
+> Update summary requires Owner/anchor permission; your current permission is Collaborator/trusted.
 
-## Implementation steps
+## Validation
 
-1. Add typed policy definitions and parser/default-merging logic.
-2. Expose resolved entity action policy through the app/permission layer.
-3. Add a helper such as `assertEntityActionAllowed(entityType, action, context)`.
-4. Call the helper from `system_create`, `system_update`, and `system_delete`.
-5. Ensure plugin create interceptors run only after the create policy passes for the final entity type.
-6. Add Relay model defaults matching the table above.
-7. Add tests for policy parsing, default/override merging, central tool enforcement, interceptor non-bypass, and denial messages.
-8. Update Relay/operator docs with the collaborator vs owner mutation model.
+Implemented coverage includes:
 
-## Validation matrix
+- policy resolution with exact entity overrides and wildcard defaults;
+- permission-level checks for allowed/denied entity actions;
+- `system_create` enforcement before generic direct create;
+- `system_create` enforcement after create interceptors rewrite entity type;
+- `system_update` enforcement;
+- `system_delete` enforcement;
+- denial-message assertions;
+- typechecks for templates, app, core, and Relay.
 
-- public caller cannot create/update/delete Relay team content unless instance policy explicitly allows it.
-- trusted caller can create `base`, `link`, `decision`, and `action-item`.
-- trusted caller can update `base`, `link`, `decision`, and `action-item`.
-- trusted caller cannot delete any entity by default.
-- trusted caller cannot create/update/delete `topic`, `summary`, `agent`, `skill`, or `swot`.
-- trusted caller cannot mutate `prompt`, `site-info`, `site-content`, `anchor-profile`, or `brain-character`.
-- anchor caller can create/update/delete under the default policy.
-- instance config can loosen/tighten a single entity type without replacing the whole policy.
-- denial messages include action, entity type, caller level, and required level.
+## Deferred follow-ups
 
-## Open decisions
-
-1. Exact config path name: this plan proposes `permissions.entityActions`.
-2. Whether `system_extract` should be governed by this policy immediately or wait for a separate `extract` action once its mutation behavior is audited.
-3. Whether status changes/publish flows need a separate `publish` action or can remain covered by `update` for now.
+- `system_extract` is not governed by this policy yet. Add an `extract` action only after auditing which extraction paths mutate durable state.
+- Publish/status-specific policy is not separate yet. Current status/publish-like field changes are covered by `update`; add a `publish` action only if a distinct workflow needs it.
+- Full runtime users, roles, and identity linking remain in `multi-user.md`.
