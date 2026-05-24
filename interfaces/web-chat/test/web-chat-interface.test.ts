@@ -26,13 +26,13 @@ describe("WebChatInterface", () => {
     expect(plugin.packageName).toBe("@brains/web-chat");
   });
 
-  it("exposes chat page and AI SDK chat endpoint routes", async () => {
+  it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(2);
+    expect(routes).toHaveLength(3);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -41,6 +41,11 @@ describe("WebChatInterface", () => {
     expect(routes[1]).toMatchObject({
       path: "/api/chat",
       method: "POST",
+      public: true,
+    });
+    expect(routes[2]).toMatchObject({
+      path: "/chat/assets/app.js",
+      method: "GET",
       public: true,
     });
   });
@@ -56,6 +61,26 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toContain("text/html");
     expect(html).toContain("Brain Chat");
+    expect(html).toContain("/chat/assets/app.js");
+  });
+
+  it("serves the React UI asset when built or a clear 404 otherwise", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[2];
+
+    const response = await route?.handler(
+      new Request("http://brain/chat/assets/app.js"),
+    );
+    const text = await response?.text();
+
+    if (response?.status === 200) {
+      expect(response.headers.get("content-type")).toContain("text/javascript");
+      expect(text).toContain("Brain Chat");
+    } else {
+      expect(response?.status).toBe(404);
+      expect(text).toContain("not built");
+    }
   });
 
   it("routes chat POSTs through AgentService and returns an AI SDK UI stream", async () => {

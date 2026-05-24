@@ -14,6 +14,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
+import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
 
@@ -34,6 +35,9 @@ const chatRequestSchema = z.object({
 });
 
 type ChatRequest = z.infer<typeof chatRequestSchema>;
+
+const uiAssetPath = "/chat/assets/app.js";
+const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
 
 interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
@@ -84,6 +88,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         handler: (request): Promise<Response> =>
           this.handleChatRequest(request),
       },
+      {
+        path: uiAssetPath,
+        method: "GET",
+        public: true,
+        handler: (): Promise<Response> => this.handleUiAssetRequest(),
+      },
     ];
   }
 
@@ -127,6 +137,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
     return new Response(this.renderChatPage(), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
+  private async handleUiAssetRequest(): Promise<Response> {
+    const file = Bun.file(uiAssetFile);
+    if (!(await file.exists())) {
+      return new Response("Web chat UI asset not built", { status: 404 });
+    }
+
+    return new Response(file, {
+      headers: {
+        "Content-Type": "text/javascript; charset=utf-8",
+        "Cache-Control": "no-cache",
+      },
     });
   }
 
@@ -251,7 +275,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private renderChatPage(): string {
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Brain Chat</title></head><body><main id="root" data-web-chat-root>Brain Chat</main></body></html>';
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Brain Chat</title></head><body><main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
   }
 
   private createId(prefix: string): string {

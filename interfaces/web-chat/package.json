@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build:ui": "bun scripts/build-ui.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
