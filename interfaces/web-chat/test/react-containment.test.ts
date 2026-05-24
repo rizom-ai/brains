@@ -79,6 +79,7 @@ describe("React containment", () => {
     expect(appSource).toContain("setMessages([])");
     expect(appSource).toContain("isPlainEnter");
     expect(appSource).toContain("onKeyDown");
+    expect(appSource).toContain("scrollIntoView");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {

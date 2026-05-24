@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
@@ -62,6 +62,7 @@ export function App(): React.ReactElement {
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -74,6 +75,13 @@ export function App(): React.ReactElement {
     id: conversationId,
     transport,
   });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      block: "end",
+      behavior: "smooth",
+    });
+  }, [messages, status]);
 
   function submitMessage(): void {
     const text = input.trim();
@@ -165,6 +173,7 @@ export function App(): React.ReactElement {
               </Message>
             ))
           )}
+          <div ref={messagesEndRef} aria-hidden="true" />
         </ConversationContent>
       </Conversation>
       {status !== "ready" ? (
