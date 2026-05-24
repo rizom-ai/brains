@@ -118,10 +118,10 @@ button, textarea, input { font: inherit; color: inherit; }
   height: 100%;
   min-height: 100vh;
 }
-/* ─── Chat surface — capped and centered so the conversation column
-   doesn't spill across the full width on wide displays. The sessions
-   rail's right border (below) provides the divider since the chat
-   itself no longer touches that edge. ─── */
+/* ─── Chat surface — flush with the sessions rail on the left, capped
+   on the right at a page-width max so the spine inside the centered
+   reading column doesn't drift far from the rail on ultra-wide
+   displays. ─── */
 .web-chat-app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -129,19 +129,27 @@ button, textarea, input { font: inherit; color: inherit; }
   min-width: 0;
   min-height: 0;
   width: 100%;
-  max-width: 56rem;
-  justify-self: center;
+  max-width: 96rem;
+  justify-self: start;
   padding: 1.25rem 1.5rem 1.5rem;
 }
-/* Header, status, prompt, and error are indented to align with the
-   message column inside .web-chat-conversation-content (which has
-   padding-left: 2.75rem to make room for the spine). Keeps the whole
-   chat surface reading as a single coherent column. */
-.web-chat-app > .web-chat-header,
+/* Header is full-width page chrome — title left, "New" button right.
+   The reading column (conversation + status + error + prompt) caps at
+   56rem and centers, with a shared 2.75rem left pad so their content
+   aligns with the message text behind the spine gutter. */
+.web-chat-app > .web-chat-conversation,
 .web-chat-app > .web-chat-status,
 .web-chat-app > .web-chat-error,
 .web-chat-app > .web-chat-prompt-input {
-  margin-left: 2.75rem;
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.web-chat-app > .web-chat-status,
+.web-chat-app > .web-chat-error,
+.web-chat-app > .web-chat-prompt-input {
+  padding-left: 2.75rem;
 }
 
 /* ── Header ── */
@@ -460,17 +468,17 @@ button, textarea, input { font: inherit; color: inherit; }
   opacity: 0.85;
 }
 
-/* ─── Empty state — anchored at the spine where the first message
-   would land, not floated in the middle of the pane. ─── */
+/* ─── Empty state — centered placeholder shown before the first
+   message lands. ─── */
 .web-chat-empty-state {
-  margin: 0;
+  margin: auto;
   max-width: 38rem;
-  padding: 1rem 1.5rem 1rem 0;
+  padding: 2rem 1.5rem;
   color: var(--color-text-muted);
   display: grid;
   gap: 1.25rem;
-  justify-items: start;
-  text-align: left;
+  justify-items: center;
+  text-align: center;
 }
 .web-chat-empty-state-glyph {
   width: 180px;
