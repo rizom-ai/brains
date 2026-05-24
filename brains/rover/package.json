@@ -10,9 +10,10 @@
     "env.schema.template"
   ],
   "scripts": {
-    "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:full": "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "build:web-chat": "turbo run build --filter=@brains/web-chat",
+    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
     "lint": "eslint .",
