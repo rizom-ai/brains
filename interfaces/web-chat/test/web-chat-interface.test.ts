@@ -167,8 +167,17 @@ describe("WebChatInterface", () => {
         );
       },
       searchConversations: async () => [],
-      getMessages: async () => [],
-      countMessages: async () => 0,
+      getMessages: async () => [
+        {
+          id: "message-1",
+          conversationId: "web-session",
+          role: "user",
+          content: "What did Rover do today?\nPlease summarize it.",
+          timestamp: "2026-05-24T00:00:30.000Z",
+          metadata: null,
+        },
+      ],
+      countMessages: async () => 1,
       close: () => {},
     });
     const plugin = new WebChatInterface();
@@ -185,7 +194,7 @@ describe("WebChatInterface", () => {
       sessions: [
         {
           id: "web-session",
-          title: "Web Chat",
+          title: "What did Rover do today?",
           lastActiveAt: "2026-05-24T00:01:00.000Z",
         },
       ],

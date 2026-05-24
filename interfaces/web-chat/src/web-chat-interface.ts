@@ -41,6 +41,8 @@ const confirmationRequestSchema = z.object({
 
 const webChatInterfaceType = "web-chat";
 const webChatSessionLimit = 25;
+const webChatTitleMessageLimit = 6;
+const webChatTitleMaxLength = 48;
 
 type ChatRequest = z.infer<typeof chatRequestSchema>;
 
@@ -91,7 +93,7 @@ const chatPageStyles = `
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+html, body, #root { height: 100%; }
 body {
   margin: 0;
   background-color: var(--color-bg);
@@ -102,20 +104,19 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
+#root { display: block; }
 button, textarea, input { font: inherit; color: inherit; }
 
-/* ─── Shell (sessions rail + chat surface) ─── */
+/* ─── Shell (sessions rail + chat surface).
+   The chat IS the page, so the shell fills the viewport edge-to-edge.
+   No card chrome (border / gradient bg) — the page already provides
+   the noise + ember atmosphere. ─── */
 .web-chat-shell {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  width: min(1280px, 100%);
-  height: 100vh;
-  margin: 0 auto;
-  border: 1px solid var(--color-border-light);
-  background: linear-gradient(180deg, rgb(26 10 62 / 0.55) 0%, rgb(13 10 26 / 0.4) 100%);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
 }
 .web-chat-shell .web-chat-app { border-left: 1px solid var(--color-border-light); }
 
@@ -1203,13 +1204,31 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       interfaceType: webChatInterfaceType,
       limit: webChatSessionLimit,
     });
-    const sessions = conversations.map((conversation) => ({
-      id: conversation.id,
-      title: conversation.channelName ?? "Web Chat",
-      lastActiveAt: conversation.lastActiveAt,
-    }));
+    const sessions = await Promise.all(
+      conversations.map(async (conversation) => ({
+        id: conversation.id,
+        title: await this.getConversationTitle(conversation.id),
+        lastActiveAt: conversation.lastActiveAt,
+      })),
+    );
 
     return Response.json({ sessions });
+  }
+
+  private async getConversationTitle(conversationId: string): Promise<string> {
+    const messages = await this.getContext().conversations.getMessages(
+      conversationId,
+      { limit: webChatTitleMessageLimit },
+    );
+    const firstUserMessage = messages.find(
+      (message) => message.role === "user" && message.content.trim().length > 0,
+    );
+    if (!firstUserMessage) return "New conversation";
+
+    const firstLine =
+      firstUserMessage.content.trim().split(/\r?\n/, 1)[0] ?? "";
+    if (firstLine.length <= webChatTitleMaxLength) return firstLine;
+    return `${firstLine.slice(0, webChatTitleMaxLength - 1).trimEnd()}…`;
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {
