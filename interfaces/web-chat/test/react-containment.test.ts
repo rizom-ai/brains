@@ -66,6 +66,17 @@ describe("React containment", () => {
     expect(reactVersion).toBe(reactDomVersion);
   });
 
+  it("persists a browser conversation id for AI SDK chat requests", () => {
+    const appSource = readFileSync(
+      join(packageRoot, "ui-react", "src", "App.tsx"),
+      "utf-8",
+    );
+
+    expect(appSource).toContain("brain:web-chat:conversation-id");
+    expect(appSource).toContain("localStorage");
+    expect(appSource).toContain("id: conversationId");
+  });
+
   it("dedupes React entrypoints in the UI build config", () => {
     const buildScript = readFileSync(buildScriptPath, "utf-8");
 

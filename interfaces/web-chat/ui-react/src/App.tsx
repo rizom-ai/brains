@@ -20,6 +20,24 @@ import {
   PromptInputTextarea,
 } from "./ai-elements/prompt-input";
 
+const conversationStorageKey = "brain:web-chat:conversation-id";
+
+function createConversationId(): string {
+  return `web-${crypto.randomUUID()}`;
+}
+
+function getBrowserConversationId(): string {
+  try {
+    const stored = localStorage.getItem(conversationStorageKey);
+    if (stored) return stored;
+    const next = createConversationId();
+    localStorage.setItem(conversationStorageKey, next);
+    return next;
+  } catch {
+    return createConversationId();
+  }
+}
+
 function getPartData(part: unknown): unknown {
   if (typeof part !== "object" || part === null || !("data" in part)) {
     return undefined;
@@ -29,6 +47,7 @@ function getPartData(part: unknown): unknown {
 
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
+  const conversationId = useMemo(() => getBrowserConversationId(), []);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -37,13 +56,17 @@ export function App(): React.ReactElement {
       }),
     [],
   );
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  const { messages, sendMessage, status, error } = useChat({
+    id: conversationId,
+    transport,
+  });
 
   return (
     <main
       className="web-chat-app"
       data-web-chat-app="true"
       data-web-chat-ui="ai-elements-v0"
+      data-conversation-id={conversationId}
       aria-label="Brain chat"
     >
       <header className="web-chat-header">
