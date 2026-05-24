@@ -84,6 +84,10 @@ export const deleteInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID"),
   confirmed: z.literal(true).optional().describe("Confirm the deletion"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
 export const extractInputSchema = z.object({

@@ -8,6 +8,13 @@ Proposed foundation. Auth-specific schema and migration details are tracked in [
 
 Introduce a dedicated operator runtime database for private, non-content state that currently lives in small plugin-local files. This should make hosted Rover operations safer and easier to evolve without mixing operator/security state into entity content. Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md).
 
+## Source of truth
+
+This plan owns the runtime-state boundary, storage-root/deploy persistence contract, backup/restore expectations, and shared operator DB service shape. It intentionally does not own auth table schemas or multi-user behavior:
+
+- auth schema, auth migrations, and `single-operator` migration live in [Auth runtime database](./auth-runtime-db.md)
+- roles, permissions, People UX, and runtime user behavior live in [Multi-User & Permissions](./multi-user.md)
+
 ## Scope
 
 The operator DB is for runtime control-plane state, not durable user-authored content. Initial candidates:
@@ -63,9 +70,12 @@ Existing hosted installs may already have auth state under `/app/data/auth`. The
 - make reset/destructive recovery explicit through `brain auth reset-passkeys --yes`, never an accidental side effect of deploy
 - verify after deploy with `brains-ops verify-user` and, where needed, an auth-state-specific check that does not expose secrets
 
+## Resolved decisions
+
+- Use the repo's existing Drizzle/libSQL pattern for runtime SQLite/libSQL storage. Do not introduce Bun SQLite as a second DB stack.
+
 ## Open questions
 
-- Should the first implementation use Bun SQLite directly or the repo's existing Drizzle/libSQL patterns?
-- What is the backup/restore policy for hosted operator state?
+- What is the backup/restore policy for hosted operator state beyond "covered by the persisted runtime data root"?
 - Which data must be encrypted at rest versus protected by host/filesystem permissions?
 - Do we need cross-process locking now, or only when hosted deployments become multi-instance?

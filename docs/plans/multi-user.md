@@ -8,7 +8,11 @@ Proposed, refined against the current implemented baseline. The OAuth/passkey fo
 
 Add a real user model so a brain can support multiple people across OAuth/passkeys, MCP, Discord, A2A, and future interfaces without breaking the current single-owner/self-hosted path.
 
-The first version should stay small: coarse permission levels, explicit operator-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces is tracked separately in `shared-space-trust.md` and can land before this more invasive runtime-user work.
+The first version should stay small: coarse permission levels, explicit operator-managed users, no SaaS account system, and no route-wide dashboard/CMS lock-down. Shared-space trust for Relay/team spaces has landed; the remaining pre-runtime-user hardening is tracked in `entity-action-policy.md`.
+
+## Source of truth
+
+This plan owns product/runtime behavior: roles, permission resolution, MCP per-session authorization, management tools/UX, onboarding flow, and attribution. It treats the auth database as an implementation dependency rather than redefining its schema. Auth tables, migrations, and storage APIs live in [Auth runtime database](./auth-runtime-db.md); runtime storage-root/deploy persistence policy lives in [Operator runtime database](./operator-runtime-db.md).
 
 ## Current baseline
 
@@ -61,7 +65,7 @@ The first version should stay small: coarse permission levels, explicit operator
 
 ## Runtime user record
 
-Store in the runtime auth database described in [Auth runtime database](./auth-runtime-db.md), not in git-backed content. The TypeScript shape remains:
+The canonical schema lives in [Auth runtime database](./auth-runtime-db.md). This section is a behavior-oriented summary of the user shape that multi-user features consume. Store records in the runtime auth database, not in git-backed content:
 
 ```ts
 interface AuthUserRecord {

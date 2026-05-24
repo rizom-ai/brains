@@ -125,4 +125,32 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain("save, or capture content");
   });
+
+  it("should treat asking what a saved agent has to say as an A2A request", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain("what does <agent> have to say");
+    expect(instructions).toContain(
+      "call `a2a_call` in the same turn; do not answer from the saved `agent` entity metadata",
+    );
+  });
+
+  it("should protect identity/profile singletons from vague delete requests", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "`brain-character` and `anchor-profile` are protected singleton identity/profile records",
+    );
+    expect(instructions).toContain(
+      'Do not interpret vague phrases like "old brain" as `brain-character`',
+    );
+  });
+
+  it("should prohibit self-confirming destructive delete requests", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "never pass `confirmed: true` on the initial user request",
+    );
+    expect(instructions).toContain(
+      "Never self-confirm a destructive operation",
+    );
+  });
 });

@@ -10,6 +10,10 @@ Create one private runtime database for users, credentials, OAuth state, identit
 
 The database is runtime state. It must never live under `brain-data`, be exported as markdown, or sync through the content git repo.
 
+## Source of truth
+
+This plan owns auth-specific schema, auth storage APIs, JSON/JWK migration, and the `single-operator` to `usr_<uuid>` migration. Broader runtime storage location, deploy persistence, and backup/restore policy belong to [Operator runtime database](./operator-runtime-db.md). Product behavior, permissions, user-management UX, and attribution phases belong to [Multi-User & Permissions](./multi-user.md).
+
 ## Current baseline
 
 `shell/auth-service` already provides OAuth/passkey/JWT foundation, but persistence is split across JSON/JWK files in `./data/auth`:

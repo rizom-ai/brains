@@ -24,6 +24,9 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_get");
     expect(instructions).toContain("system_list");
     expect(instructions).toContain("system_search");
+    expect(instructions).toContain(
+      "Never pass `confirmed: true` on the initial user request",
+    );
   });
 
   it("should tell agents to use system_update for field changes", () => {

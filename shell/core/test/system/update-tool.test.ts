@@ -124,6 +124,60 @@ describe("system_update tool", () => {
     );
   });
 
+  it("does not delete when confirmed is passed without a pending confirmation token", async () => {
+    const result = await execDelete({
+      entityType: "newsletter",
+      id: "newsletter-1",
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_delete",
+    });
+    expect(services.getEntities().get("newsletter-1")).toBeDefined();
+  });
+
+  it("deletes after the pending confirmation args are submitted", async () => {
+    const confirmation = await execDelete({
+      entityType: "newsletter",
+      id: "newsletter-1",
+    });
+    if (
+      !(
+        typeof confirmation === "object" &&
+        confirmation &&
+        "args" in confirmation
+      )
+    ) {
+      throw new Error("Expected delete confirmation args");
+    }
+
+    const result = await execDelete(
+      confirmation.args as Record<string, unknown>,
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { deleted: "newsletter-1" },
+    });
+    expect(services.getEntities().get("newsletter-1")).toBeUndefined();
+  });
+
+  it("refuses to delete protected identity records even when confirmed", async () => {
+    const result = await execDelete({
+      entityType: "brain-character",
+      id: "brain-character",
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error:
+        "brain-character is a protected identity/profile record and cannot be deleted. Update it instead.",
+    });
+  });
+
   it("normalizes JSON-wrapped field updates passed via content", async () => {
     const result = await exec({
       entityType: "agent",
