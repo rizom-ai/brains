@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Active near-term investment; reframes the previous hosted-Rover Discord gateway direction and narrows `chat-interface-sdk.md` to a web-first scope.
+Implemented for the browser-chat MVP on `feat/web-chat`; remaining v1 follow-ups are explicit conversation sessions, outbound attachments/artifacts, and later inbound uploads. This plan reframes the previous hosted-Rover Discord gateway direction and narrows `chat-interface-sdk.md` to a web-first scope.
 
 ## Context
 
@@ -220,12 +220,20 @@ The Preact-native direction has lower long-term runtime surface, but likely turn
 ## Open decisions
 
 1. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
-2. **Conversation history in v1.** Single active conversation, or sidebar with prior conversations? MVP can be single-conversation; history is a small follow-up.
-3. **Attachments in v1.** File uploads through the chat UI are useful but not strictly required for a first ship. Defer if they add meaningful complexity.
+2. **Conversation sessions in v1.** The MVP can use one browser-persisted conversation id plus a "New conversation" control, but product-ready chat needs explicit session/thread management: list recent conversations, switch between them, create a new session, and eventually rename/archive/delete sessions. The session API should reuse the existing conversation service rather than inventing web-chat-local storage.
+3. **Outbound attachments/artifacts in v1.** The next attachment priority is brain/tool → user artifacts: generated images, PDFs, exports, previews, and other downloadable results. `WebChatInterface` should translate attachment-bearing message-interface events into AI SDK UI `data-*` parts (for example `data-attachment`) and the React island should render previews/download links. Blob serving should use existing attachment/media provider contracts when available.
+4. **Inbound uploads after outbound artifacts.** User → brain file uploads through the chat UI are useful, but separate from outbound attachments. They require multipart upload routes, auth/size/type checks, storage/registry integration, and request schema changes to pass attachment refs into `AgentService.chat()`. Defer unless a concrete use case needs uploads before artifact rendering.
 
 ### Spike target for the React UI dependency
 
 Test **AI Elements** first as the React UI inside the quarantined route. It's first-party Vercel, tightest with AI SDK UI, and has the most coverage for AI-specific patterns (streaming, tool calls, reasoning, attachments). Use `assistant-ui` or a small custom React UI on top of AI SDK UI as fallbacks only if AI Elements hits dealbreaker issues during the spike. Comparing all three within the 3–5 day timebox dilutes the containment signal that's the real point.
+
+## Follow-up sequence
+
+1. **Conversation sessions.** Add authenticated web-chat routes for listing recent conversations, switching the active conversation, and creating a new session. Keep storage in the existing conversation service. The React island should render a compact session switcher/sidebar, with `localStorage` only remembering the last selected session id.
+2. **Outbound attachments/artifacts.** Extend `WebChatInterface` stream adaptation so attachment-bearing interface events become AI SDK UI data parts. Add UI renderers for image previews, downloadable artifacts, and generic file cards. Prefer existing attachment/media provider contracts for blob resolution and download routes.
+3. **Inbound uploads.** Add user file selection/dropzone, multipart upload routes, auth/size/type checks, and attachment refs in `/api/chat` requests only after outbound artifact rendering is stable.
+4. **Deeper streaming.** Token-by-token model streaming remains a later `AgentService` capability; current progress/status/final-response streaming is enough for the MVP.
 
 ## Validation
 
