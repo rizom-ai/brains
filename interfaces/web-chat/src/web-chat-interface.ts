@@ -639,8 +639,103 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--color-text);
 }
 
-/* ─── Data parts (instrument cards) ─── */
-.web-chat-data-part,
+/* ─── Tool calls group — wraps multiple consecutive tool results
+   under a single collapsible header so a message with many tool
+   calls reads as one line, not N. ─── */
+.web-chat-tool-group {
+  margin: 0.6rem 0 0;
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header:hover {
+  color: var(--color-text-muted);
+}
+details.web-chat-tool-group > summary.web-chat-tool-group-header::-webkit-details-marker {
+  display: none;
+}
+details.web-chat-tool-group[open] > summary > .web-chat-data-part-chevron {
+  transform: rotate(45deg);
+}
+.web-chat-tool-group-body {
+  margin-top: 0.4rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--color-border);
+  display: grid;
+  gap: 0.2rem;
+}
+.web-chat-tool-group-body .web-chat-data-part { margin: 0; }
+
+/* ─── Data parts — debugging affordance. Just a tiny muted bracket
+   header you can ignore or click to inspect; no card chrome, no
+   colored accent rails. ─── */
+.web-chat-data-part {
+  margin: 0.6rem 0 0;
+  background: transparent;
+  border: 0;
+}
+details.web-chat-data-part > summary.web-chat-data-part-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+details.web-chat-data-part > summary.web-chat-data-part-header:hover {
+  color: var(--color-text-muted);
+}
+details.web-chat-data-part > summary.web-chat-data-part-header::-webkit-details-marker {
+  display: none;
+}
+.web-chat-data-part-chevron {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+  transform-origin: 60% 60%;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
+  transform: rotate(45deg);
+}
+.web-chat-data-part-body {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 1px solid var(--color-border);
+  background: rgb(0 0 0 / 0.2);
+}
+.web-chat-data-part-body pre {
+  margin: 0;
+  font-family: var(--font-label);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  overflow: auto;
+}
+
+/* ─── Confirmations — instrument card. This is an action affordance,
+   not a debug toggle, so it keeps the card chrome to grab attention. ─── */
 .web-chat-confirmation {
   position: relative;
   margin: 1rem 0 0;
@@ -651,7 +746,6 @@ button, textarea, input { font: inherit; color: inherit; }
   overflow: hidden;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
-.web-chat-data-part::before,
 .web-chat-confirmation::before {
   content: "";
   position: absolute;
@@ -661,28 +755,25 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--color-secondary) r g b / 0.9),
     rgb(from var(--color-secondary) r g b / 0.2));
 }
-.web-chat-data-part-header,
 .web-chat-confirmation-header {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.95rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
   border-bottom: 1px solid var(--color-border);
   font-family: var(--font-label);
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-secondary);
 }
-.web-chat-data-part-header::before,
 .web-chat-confirmation-header::before {
   content: "[";
   color: var(--color-text-light);
   font-weight: 400;
   letter-spacing: 0;
 }
-.web-chat-data-part-header::after,
 .web-chat-confirmation-header::after {
   content: "]";
   color: var(--color-text-light);
@@ -690,22 +781,6 @@ button, textarea, input { font: inherit; color: inherit; }
   letter-spacing: 0;
   margin-left: auto;
 }
-.web-chat-data-part-body { padding: 0.85rem 1rem; }
-.web-chat-data-part-body pre {
-  margin: 0;
-  font-family: var(--font-label);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--color-text);
-  overflow: auto;
-}
-.web-chat-data-part summary {
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
 .web-chat-confirmation[data-state="resolved"] {
   background: linear-gradient(135deg,
     rgb(from var(--color-success) r g b / 0.07) 0%,
@@ -717,18 +792,6 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--color-success) r g b / 0.2));
 }
 .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header { color: var(--color-success); }
-
-.web-chat-data-part[data-kind="tool-result"] {
-  background: linear-gradient(135deg,
-    rgb(from var(--color-accent) r g b / 0.07) 0%,
-    rgb(from var(--color-accent) r g b / 0.01) 100%);
-}
-.web-chat-data-part[data-kind="tool-result"]::before {
-  background: linear-gradient(180deg,
-    rgb(from var(--color-accent) r g b / 0.9),
-    rgb(from var(--color-accent) r g b / 0.2));
-}
-.web-chat-data-part[data-kind="tool-result"] .web-chat-data-part-header { color: var(--color-accent); }
 
 .web-chat-confirmation-body { padding: 0.85rem; display: grid; gap: 0.85rem; }
 .web-chat-confirmation-summary { margin: 0; color: var(--color-text); line-height: 1.6; }

@@ -10,6 +10,7 @@ import {
 import {
   ConfirmationPart,
   GenericDataPart,
+  ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
 import { MarkdownResponse } from "./ai-elements/markdown-response";
@@ -75,6 +76,39 @@ function getPartData(part: unknown): unknown {
     return undefined;
   }
   return part.data;
+}
+
+type MessagePart = UIMessage["parts"][number];
+type RenderedPart =
+  | { kind: "text"; text: string }
+  | { kind: "tools"; tools: unknown[] }
+  | { kind: "confirmation"; data: unknown }
+  | { kind: "generic"; type: string; data: unknown };
+
+function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
+  const out: RenderedPart[] = [];
+  let toolRun: unknown[] = [];
+  const flush = (): void => {
+    if (toolRun.length === 0) return;
+    out.push({ kind: "tools", tools: toolRun });
+    toolRun = [];
+  };
+  for (const part of parts) {
+    if (part.type === "data-tool-result") {
+      toolRun.push(getPartData(part));
+      continue;
+    }
+    flush();
+    if (part.type === "text") {
+      out.push({ kind: "text", text: part.text });
+    } else if (part.type === "data-confirmation") {
+      out.push({ kind: "confirmation", data: getPartData(part) });
+    } else if (part.type.startsWith("data-")) {
+      out.push({ kind: "generic", type: part.type, data: getPartData(part) });
+    }
+  }
+  flush();
+  return out;
 }
 
 function isBusyStatus(status: string): boolean {
@@ -355,41 +389,40 @@ export function App(): React.ReactElement {
                 <Message key={message.id} from={message.role}>
                   <MessageHeader role={message.role} />
                   <MessageBubble>
-                    {message.parts.map((part, index) => {
-                      if (part.type === "text") {
+                    {groupMessageParts(message.parts).map((group, index) => {
+                      if (group.kind === "text") {
                         return (
                           <MarkdownResponse key={index}>
-                            {part.text}
+                            {group.text}
                           </MarkdownResponse>
                         );
                       }
-                      if (part.type === "data-tool-result") {
+                      if (group.kind === "tools") {
+                        if (group.tools.length === 1) {
+                          return (
+                            <ToolResultPart key={index} data={group.tools[0]} />
+                          );
+                        }
                         return (
-                          <ToolResultPart
-                            key={index}
-                            data={getPartData(part)}
-                          />
+                          <ToolCallsGroup key={index} tools={group.tools} />
                         );
                       }
-                      if (part.type === "data-confirmation") {
+                      if (group.kind === "confirmation") {
                         return (
                           <ConfirmationPart
                             key={index}
                             conversationId={conversationId}
-                            data={getPartData(part)}
+                            data={group.data}
                           />
                         );
                       }
-                      if (part.type.startsWith("data-")) {
-                        return (
-                          <GenericDataPart
-                            key={index}
-                            type={part.type}
-                            data={getPartData(part)}
-                          />
-                        );
-                      }
-                      return null;
+                      return (
+                        <GenericDataPart
+                          key={index}
+                          type={group.type}
+                          data={group.data}
+                        />
+                      );
                     })}
                   </MessageBubble>
                 </Message>
