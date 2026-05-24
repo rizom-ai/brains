@@ -258,6 +258,9 @@ export interface IConversationsNamespace {
   list(options?: {
     limit?: number;
     updatedAfter?: string;
+    interfaceType?: string;
+    sessionId?: string;
+    channelId?: string;
   }): Promise<Conversation[]>;
   getMessages(
     conversationId: string,

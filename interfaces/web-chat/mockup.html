@@ -1,0 +1,1910 @@
+<!doctype html>
+<html lang="en" data-theme-profile="product">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Chat — Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* ─── Rizom tokens (excerpt of theme-rizom/src/theme.css, dark default) ─── */
+    :root {
+      --palette-bg-deep: #0d0a1a;
+      --palette-bg-subtle: #0e0b1e;
+      --palette-bg-card: #1a0a3e;
+      --palette-amber-dark: #c45a08;
+      --palette-amber: #e87722;
+      --palette-amber-light: #ffa366;
+      --palette-amber-glow: #ffd4a8;
+      --palette-purple: #6b2fa0;
+      --palette-purple-light: #8c82c8;
+      --palette-purple-muted: #818cf8;
+      --palette-white: #ffffff;
+
+      --color-bg: var(--palette-bg-deep);
+      --color-bg-subtle: var(--palette-bg-subtle);
+      --color-bg-card: var(--palette-bg-card);
+      --color-text: var(--palette-white);
+      --color-text-muted: rgb(255 255 255 / 0.6);
+      --color-text-light: rgb(255 255 255 / 0.4);
+      --color-accent: var(--palette-amber-light);
+      --color-accent-dark: var(--palette-amber);
+      --color-secondary: var(--palette-purple-muted);
+      --color-on-accent: var(--palette-bg-deep);
+      --color-border: rgb(255 255 255 / 0.1);
+      --color-border-light: rgb(255 255 255 / 0.04);
+      --color-success: #4ade80;
+      --color-error: #f87171;
+
+      --color-glow-cta: rgb(255 163 102 / 0.3);
+      --color-glow-cta-strong: rgb(255 163 102 / 0.45);
+      --color-glow-secondary: rgb(140 130 200 / 0.25);
+
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "Barlow", system-ui, sans-serif;
+      --font-label: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      --bg-ember: radial-gradient(
+          ellipse at 18% -10%,
+          rgb(255 163 102 / 0.08) 0%,
+          transparent 55%
+        ),
+        radial-gradient(
+          ellipse at 90% 110%,
+          rgb(140 130 200 / 0.06) 0%,
+          transparent 45%
+        );
+
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background-color: var(--color-bg);
+      background-image: var(--bg-ember), var(--bg-noise);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, textarea, input { font: inherit; color: inherit; }
+
+    /* ─── Mockup scaffolding (showcases multiple states side by side) ─── */
+    .mockup-page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(1.5rem, 3vw, 3rem);
+      display: grid;
+      gap: 2.5rem;
+    }
+    .mockup-intro h1 {
+      margin: 0 0 0.5rem;
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .mockup-intro h1 em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--color-accent);
+    }
+    .mockup-intro p { margin: 0; color: var(--color-text-muted); max-width: 60ch; }
+    .mockup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+      gap: 2rem;
+      align-items: start;
+    }
+    .mockup-frame {
+      display: grid;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .mockup-frame--wide { grid-column: 1 / -1; }
+    .mockup-frame-label {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+
+    /* ─── Chat surface ─── */
+    .web-chat-app {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto auto;
+      gap: 1.25rem;
+      min-width: 0;
+      min-height: 640px;
+      padding: 1.5rem;
+      border: 1px solid var(--color-border-light);
+      border-radius: 24px;
+      background:
+        linear-gradient(
+          180deg,
+          rgb(26 10 62 / 0.55) 0%,
+          rgb(13 10 26 / 0.4) 100%
+        );
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.04) inset,
+        0 24px 60px -30px rgb(0 0 0 / 0.7);
+    }
+
+    /* ── Header ── */
+    .web-chat-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 1rem;
+    }
+    .web-chat-header-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 0.5rem;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .web-chat-header-eyebrow::before {
+      content: "";
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--color-accent);
+      box-shadow: 0 0 10px rgb(from var(--color-accent) r g b / 0.7);
+    }
+    .web-chat-header-eyebrow strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+    .web-chat-header h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: clamp(2rem, 3.4vw, 2.75rem);
+      line-height: 1;
+      letter-spacing: -0.025em;
+    }
+    .web-chat-header h1 em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--color-accent);
+    }
+    .web-chat-header p {
+      margin: 0.55rem 0 0;
+      color: var(--color-text-muted);
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 300;
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 36ch;
+    }
+    .web-chat-secondary-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: rgb(255 255 255 / 0.04);
+      color: var(--color-text);
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+    .web-chat-secondary-action:hover {
+      border-color: rgb(255 255 255 / 0.4);
+      background: rgb(255 255 255 / 0.08);
+    }
+    .web-chat-secondary-action svg { width: 12px; height: 12px; }
+    .web-chat-secondary-action--accent {
+      border-color: rgb(from var(--color-accent) r g b / 0.4);
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+    .web-chat-secondary-action--accent:hover {
+      border-color: var(--color-accent);
+      background: rgb(from var(--color-accent) r g b / 0.1);
+      color: var(--color-accent);
+    }
+    .web-chat-header-actions {
+      display: inline-flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    /* ── Conversation pane ── */
+    .web-chat-conversation {
+      min-height: 0;
+      overflow: auto;
+      padding: 0.25rem;
+      border-radius: 18px;
+      scroll-behavior: smooth;
+    }
+    .web-chat-conversation::-webkit-scrollbar { width: 8px; }
+    .web-chat-conversation::-webkit-scrollbar-thumb {
+      background: rgb(255 255 255 / 0.08);
+      border-radius: 999px;
+    }
+    .web-chat-conversation-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-width: 0;
+      min-height: 100%;
+      padding: 1.25rem 0.5rem 0.5rem 2.75rem;
+    }
+    /* The mycelial spine — a thin gradient line that the conversation
+       grows along. Faded at the ends so it looks rooted, not boxed. */
+    .web-chat-conversation-content::before {
+      content: "";
+      position: absolute;
+      left: 1.25rem;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgb(from var(--color-secondary) r g b / 0.25) 6%,
+        rgb(from var(--color-secondary) r g b / 0.35) 50%,
+        rgb(from var(--color-accent) r g b / 0.25) 94%,
+        transparent 100%);
+      pointer-events: none;
+    }
+    /* Terminus glyph at the bottom of the spine — a tiny pulsing seed
+       to suggest the conversation is still alive. */
+    .web-chat-conversation-content::after {
+      content: "";
+      position: absolute;
+      left: calc(1.25rem - 2px);
+      bottom: -1px;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      box-shadow: 0 0 12px rgb(from var(--color-accent) r g b / 0.7);
+      opacity: 0.85;
+    }
+
+    /* ── Empty state — a mycelial sketch grows on first paint. ── */
+    .web-chat-empty-state {
+      margin: auto;
+      max-width: 38rem;
+      padding: 2rem 1.5rem;
+      color: var(--color-text-muted);
+      display: grid;
+      gap: 1.25rem;
+      justify-items: start;
+      text-align: left;
+    }
+    .web-chat-empty-state-glyph {
+      width: 180px;
+      height: 88px;
+      overflow: visible;
+      color: var(--color-secondary);
+    }
+    .web-chat-empty-state-glyph path,
+    .web-chat-empty-state-glyph line {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1;
+      stroke-linecap: round;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      animation: rhizome-draw 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .web-chat-empty-state-glyph path:nth-child(2) { animation-delay: 0.15s; color: var(--color-secondary); opacity: 0.7; }
+    .web-chat-empty-state-glyph path:nth-child(3) { animation-delay: 0.3s; opacity: 0.55; }
+    .web-chat-empty-state-glyph path:nth-child(4) { animation-delay: 0.45s; opacity: 0.45; }
+    .web-chat-empty-state-glyph circle {
+      fill: var(--color-accent);
+      opacity: 0;
+      animation: rhizome-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      filter: drop-shadow(0 0 4px var(--color-accent));
+    }
+    .web-chat-empty-state-glyph circle:nth-of-type(1) { animation-delay: 1.0s; }
+    .web-chat-empty-state-glyph circle:nth-of-type(2) { animation-delay: 1.3s; fill: var(--color-secondary); filter: drop-shadow(0 0 4px var(--color-secondary)); }
+    .web-chat-empty-state-glyph circle:nth-of-type(3) { animation-delay: 1.6s; }
+    @keyframes rhizome-draw {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes rhizome-pop {
+      to { opacity: 1; }
+    }
+    .web-chat-empty-state-eyebrow {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-empty-state h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--color-text);
+    }
+    .web-chat-empty-state h2 em {
+      font-style: italic;
+      color: var(--color-accent);
+      font-weight: 400;
+    }
+    .web-chat-empty-state p { margin: 0; max-width: 40ch; line-height: 1.7; }
+
+    /* ── Messages ── grow off the spine like nodes on a hypha. ── */
+    .web-chat-message {
+      position: relative;
+      max-width: min(48rem, 100%);
+      min-width: 0;
+      display: grid;
+      gap: 0.5rem;
+    }
+    /* The node on the spine. Sits to the left, slightly outside the
+       message column. Color varies by role; assistant gets a glow because
+       the brain is the collective intelligence in Rizom's metaphor. */
+    .web-chat-message::before {
+      content: "";
+      position: absolute;
+      left: calc(-1.5rem - 5px);
+      top: 0.55rem;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: var(--color-bg);
+      box-shadow:
+        inset 0 0 0 2px var(--color-secondary),
+        0 0 0 4px var(--color-bg);
+    }
+    /* The branch line connecting the node to the message body. */
+    .web-chat-message::after {
+      content: "";
+      position: absolute;
+      left: calc(-1.5rem + 6px);
+      top: 0.95rem;
+      width: calc(1.5rem - 6px);
+      height: 1px;
+      background: linear-gradient(90deg,
+        rgb(from var(--color-secondary) r g b / 0.5),
+        transparent);
+    }
+    .web-chat-message-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-message-header time {
+      color: var(--color-text-light);
+      font-weight: 400;
+      letter-spacing: 0.12em;
+    }
+    .web-chat-message-header time::before {
+      content: "·";
+      margin: 0 0.45rem;
+      opacity: 0.6;
+    }
+    .web-chat-message-bubble { min-width: 0; line-height: 1.7; }
+    .web-chat-message-bubble :first-child { margin-top: 0; }
+    .web-chat-message-bubble :last-child { margin-bottom: 0; }
+    .web-chat-message-bubble p { margin: 0 0 0.75rem; }
+
+    /* ── user — amber panel with a notched corner.
+       Reads as the user inserting an utterance into the brain's stream. ── */
+    .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--color-accent); }
+    .web-chat-message[data-role="user"]::before {
+      box-shadow:
+        inset 0 0 0 2px var(--color-accent),
+        0 0 0 4px var(--color-bg),
+        0 0 14px rgb(from var(--color-accent) r g b / 0.5);
+    }
+    .web-chat-message[data-role="user"]::after {
+      background: linear-gradient(90deg,
+        rgb(from var(--color-accent) r g b / 0.55),
+        transparent);
+    }
+    .web-chat-message[data-role="user"] .web-chat-message-bubble {
+      padding: 0.9rem 1.1rem;
+      background: linear-gradient(135deg,
+        rgb(from var(--color-accent) r g b / 0.14) 0%,
+        rgb(from var(--color-accent) r g b / 0.04) 100%);
+      border: 1px solid rgb(from var(--color-accent) r g b / 0.25);
+      color: var(--color-text);
+      /* Notched bottom-right corner — instrument-card cut. */
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% - 14px),
+        calc(100% - 14px) 100%,
+        0 100%
+      );
+    }
+
+    /* ── assistant — editorial body text, no bubble. The brain *speaks*;
+       it doesn't enclose itself in a container. Drop-cap on the first
+       paragraph in Fraunces gives the journal/field-log feel. ── */
+    .web-chat-message[data-role="assistant"] .web-chat-message-header { color: var(--color-secondary); }
+    .web-chat-message[data-role="assistant"]::before {
+      box-shadow:
+        inset 0 0 0 2px var(--color-secondary),
+        0 0 0 4px var(--color-bg),
+        0 0 14px rgb(from var(--color-secondary) r g b / 0.55);
+    }
+    .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
+      padding: 0.1rem 0 0;
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .web-chat-message[data-role="assistant"] .web-chat-message-bubble > p:first-of-type::first-letter {
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: 2.4em;
+      float: left;
+      line-height: 0.85;
+      padding: 0.18em 0.18em 0 0;
+      color: var(--color-accent);
+    }
+
+    /* ── Inline markdown bits ── */
+    .web-chat-message-bubble code {
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      background: rgb(255 255 255 / 0.06);
+      font-family: var(--font-label);
+      font-size: 0.9em;
+    }
+    .web-chat-message-bubble a {
+      color: var(--color-accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgb(from var(--color-accent) r g b / 0.5);
+    }
+    .web-chat-message-bubble ul,
+    .web-chat-message-bubble ol { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+    .web-chat-message-bubble li { margin-bottom: 0.35rem; }
+
+    /* ── Code block (markdown fenced) ── */
+    .web-chat-code-block {
+      margin: 0.85rem 0 0;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgb(0 0 0 / 0.35);
+    }
+    .web-chat-code-block figcaption {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 0.85rem;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      font-family: var(--font-label);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .web-chat-code-block pre {
+      margin: 0;
+      padding: 0.9rem 1rem;
+      overflow: auto;
+      font-family: var(--font-label);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--color-text);
+    }
+    .web-chat-code-block .tok-key { color: var(--color-accent); }
+    .web-chat-code-block .tok-str { color: var(--color-success); }
+    .web-chat-code-block .tok-com { color: var(--color-text-light); font-style: italic; }
+
+    /* ── Data parts — instrument readouts. Notched corners, a left
+       accent rail, and a sensor-tag header. Reads like a panel in a
+       lab, not a generic dropdown. ── */
+    .web-chat-data-part,
+    .web-chat-confirmation {
+      position: relative;
+      margin: 1rem 0 0;
+      border: 1px solid var(--color-border);
+      background: linear-gradient(135deg,
+        rgb(from var(--palette-purple) r g b / 0.06) 0%,
+        rgb(from var(--palette-purple) r g b / 0.01) 100%);
+      overflow: hidden;
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% - 14px),
+        calc(100% - 14px) 100%,
+        0 100%
+      );
+    }
+    /* Left accent rail — color shifts by kind. */
+    .web-chat-data-part::before,
+    .web-chat-confirmation::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg,
+        rgb(from var(--color-secondary) r g b / 0.9),
+        rgb(from var(--color-secondary) r g b / 0.2));
+    }
+    .web-chat-data-part-header,
+    .web-chat-confirmation-header {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.55rem 0.95rem;
+      border-bottom: 1px solid var(--color-border);
+      font-family: var(--font-label);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+    }
+    .web-chat-data-part-header::before,
+    .web-chat-confirmation-header::before {
+      content: "[";
+      color: var(--color-text-light);
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+    .web-chat-data-part-header::after,
+    .web-chat-confirmation-header::after {
+      content: "]";
+      color: var(--color-text-light);
+      font-weight: 400;
+      letter-spacing: 0;
+      margin-left: auto;
+    }
+    .web-chat-data-part-header svg,
+    .web-chat-confirmation-header svg { width: 12px; height: 12px; }
+    .web-chat-data-part-body { padding: 0.85rem 1rem; }
+    .web-chat-data-part-body pre {
+      margin: 0;
+      font-family: var(--font-label);
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--color-text);
+      overflow: auto;
+    }
+    .web-chat-data-part summary {
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-muted);
+    }
+
+    /* Resolved confirmation — success-tinted rail. */
+    .web-chat-confirmation[data-state="resolved"] {
+      background: linear-gradient(135deg,
+        rgb(from var(--color-success) r g b / 0.07) 0%,
+        rgb(from var(--color-success) r g b / 0.01) 100%);
+    }
+    .web-chat-confirmation[data-state="resolved"]::before {
+      background: linear-gradient(180deg,
+        rgb(from var(--color-success) r g b / 0.9),
+        rgb(from var(--color-success) r g b / 0.2));
+    }
+    .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header {
+      color: var(--color-success);
+    }
+
+    /* Tool result — amber accent (signal: external action completed). */
+    .web-chat-data-part[data-kind="tool-result"] {
+      background: linear-gradient(135deg,
+        rgb(from var(--color-accent) r g b / 0.07) 0%,
+        rgb(from var(--color-accent) r g b / 0.01) 100%);
+    }
+    .web-chat-data-part[data-kind="tool-result"]::before {
+      background: linear-gradient(180deg,
+        rgb(from var(--color-accent) r g b / 0.9),
+        rgb(from var(--color-accent) r g b / 0.2));
+    }
+    .web-chat-data-part[data-kind="tool-result"] .web-chat-data-part-header {
+      color: var(--color-accent);
+    }
+
+    /* Confirmation */
+    .web-chat-confirmation-body {
+      padding: 0.85rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+    .web-chat-confirmation-summary {
+      margin: 0;
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+    .web-chat-confirmation-details {
+      padding: 0.75rem 0.85rem;
+      border-radius: 10px;
+      background: rgb(0 0 0 / 0.25);
+      color: var(--color-text-muted);
+      font-family: var(--font-label);
+      font-size: 12.5px;
+    }
+    .web-chat-confirmation-details strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+    .web-chat-confirmation-actions {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .web-chat-confirmation-actions button {
+      flex: 1 1 auto;
+      min-height: 40px;
+      padding: 0 1.1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: rgb(255 255 255 / 0.04);
+      color: var(--color-text);
+      font-family: var(--font-label);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+    .web-chat-confirmation-actions button:hover {
+      transform: translateY(-1px);
+      border-color: rgb(255 255 255 / 0.4);
+    }
+    .web-chat-confirmation-actions button[data-variant="primary"] {
+      background: var(--color-accent);
+      color: var(--color-on-accent);
+      border-color: transparent;
+      box-shadow: 0 8px 32px -8px var(--color-glow-cta);
+    }
+    .web-chat-confirmation-actions button[data-variant="primary"]:hover {
+      background: var(--color-accent-dark);
+      box-shadow: 0 12px 36px -8px var(--color-glow-cta-strong);
+    }
+    .web-chat-confirmation-actions button:disabled {
+      opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
+    }
+    .web-chat-confirmation-result {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgb(from var(--color-success) r g b / 0.12);
+      color: var(--color-success);
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .web-chat-confirmation-result[data-variant="declined"] {
+      background: rgb(from var(--color-error) r g b / 0.12);
+      color: var(--color-error);
+    }
+
+    /* ── Status — a growing root and a Fraunces italic phrase.
+       Replaces the generic three-dot ellipsis with something that fits
+       the mycelial register: the rhizome is doing work underground. ── */
+    .web-chat-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0;
+      margin: 0;
+      color: var(--color-text-muted);
+      width: max-content;
+      max-width: 100%;
+    }
+    .web-chat-status[data-status="ready"] { display: none; }
+    .web-chat-status-rail {
+      position: relative;
+      width: 56px; height: 14px;
+      flex: none;
+    }
+    .web-chat-status-rail::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 50%;
+      width: 100%; height: 1px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg,
+        rgb(from var(--color-accent) r g b / 0.45),
+        rgb(from var(--color-secondary) r g b / 0.45));
+    }
+    .web-chat-status-rail::after {
+      content: "";
+      position: absolute;
+      left: 100%; top: 50%;
+      width: 6px; height: 6px;
+      transform: translate(-3px, -50%);
+      border-radius: 50%;
+      background: var(--color-accent);
+      box-shadow: 0 0 10px rgb(from var(--color-accent) r g b / 0.7);
+      animation: rhizome-grow 1.6s ease-in-out infinite;
+    }
+    @keyframes rhizome-grow {
+      0%   { left: 10%; opacity: 0.4; }
+      50%  { left: 100%; opacity: 1; }
+      100% { left: 10%; opacity: 0.4; }
+    }
+    .web-chat-status-phrase {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--color-text-muted);
+    }
+    .web-chat-status-meta {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-status-meta::before { content: "·"; margin-right: 0.55rem; opacity: 0.5; }
+
+    /* ── Error — instrument-card with a notched corner, matching the
+       data-part / prompt-input family. Reads as a sensor warning. ── */
+    .web-chat-error {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgb(from var(--color-error) r g b / 0.35);
+      background: linear-gradient(135deg,
+        rgb(from var(--color-error) r g b / 0.1) 0%,
+        rgb(from var(--color-error) r g b / 0.02) 100%);
+      color: var(--color-text);
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% - 12px),
+        calc(100% - 12px) 100%,
+        0 100%
+      );
+    }
+    .web-chat-error::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg,
+        rgb(from var(--color-error) r g b / 0.9),
+        rgb(from var(--color-error) r g b / 0.2));
+    }
+    .web-chat-error-tag {
+      font-family: var(--font-label);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--color-error);
+    }
+    .web-chat-error p {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text);
+    }
+    .web-chat-error button {
+      padding: 0.4rem 0.85rem;
+      border: 1px solid rgb(from var(--color-error) r g b / 0.5);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--color-error);
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .web-chat-error button:hover {
+      background: rgb(from var(--color-error) r g b / 0.18);
+    }
+
+    /* ── Prompt input — instrument-card with a notched corner so it
+       belongs to the same family as the data-parts above. ── */
+    .web-chat-prompt-input {
+      position: relative;
+      display: grid;
+      gap: 0.5rem;
+      padding: 0.95rem 1rem 0.75rem;
+      border: 1px solid var(--color-border);
+      background: rgb(255 255 255 / 0.03);
+      transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% - 16px),
+        calc(100% - 16px) 100%,
+        0 100%
+      );
+    }
+    .web-chat-prompt-input::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 16px;
+      width: 2px;
+      background: linear-gradient(180deg,
+        rgb(from var(--color-accent) r g b / 0.4),
+        transparent);
+    }
+    .web-chat-prompt-input:focus-within {
+      border-color: rgb(from var(--color-accent) r g b / 0.5);
+      background: rgb(from var(--color-accent) r g b / 0.05);
+      box-shadow: 0 0 0 4px rgb(from var(--color-accent) r g b / 0.08);
+    }
+    .web-chat-prompt-input label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-prompt-textarea {
+      width: 100%;
+      min-height: 3.25rem;
+      max-height: 14rem;
+      padding: 0.4rem 0;
+      border: 0;
+      background: transparent;
+      color: var(--color-text);
+      resize: none;
+      outline: none;
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    .web-chat-prompt-textarea::placeholder {
+      color: var(--color-text-light);
+    }
+    .web-chat-prompt-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .web-chat-prompt-hint {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-prompt-hint kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgb(255 255 255 / 0.08);
+      border: 1px solid var(--color-border);
+      font-family: var(--font-label);
+      font-size: 10px;
+      color: var(--color-text);
+    }
+    .web-chat-prompt-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 40px;
+      padding: 0 1.1rem;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-accent);
+      color: var(--color-on-accent);
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      box-shadow: 0 8px 24px -8px var(--color-glow-cta);
+    }
+    .web-chat-prompt-submit:hover {
+      transform: translateY(-1px);
+      background: var(--color-accent-dark);
+      box-shadow: 0 14px 36px -10px var(--color-glow-cta-strong);
+    }
+    .web-chat-prompt-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .web-chat-prompt-submit svg {
+      width: 14px; height: 14px;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .web-chat-prompt-submit:hover svg { transform: translateX(2px); }
+
+    /* Narrow screens */
+    @media (max-width: 640px) {
+      .web-chat-app { padding: 1rem; border-radius: 18px; }
+      .web-chat-message { max-width: 100%; }
+    }
+
+    /* ─── Sessions layout (multi-session shell) ─────────────────────────
+       The full surface is sessions-rail + chat-surface. The active
+       session's node bends into the conversation spine: same line,
+       just rotated 90°. That's the structural metaphor — sessions
+       are branches of the same rhizome.
+       ──────────────────────────────────────────────────────────────── */
+    .web-chat-shell {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 0;
+      min-height: 720px;
+      border: 1px solid var(--color-border-light);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg,
+          rgb(26 10 62 / 0.55) 0%,
+          rgb(13 10 26 / 0.4) 100%);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.04) inset,
+        0 24px 60px -30px rgb(0 0 0 / 0.7);
+      overflow: hidden;
+    }
+    /* When the shell wraps the chat, the chat loses its own card chrome
+       so the two panels share a single surface. */
+    .web-chat-shell .web-chat-app {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      min-height: 0;
+      border-left: 1px solid var(--color-border-light);
+    }
+
+    .web-chat-sessions {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 0;
+      padding: 1.25rem 0 0.75rem;
+    }
+    .web-chat-sessions-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0 1.25rem 0.85rem;
+    }
+    .web-chat-sessions-header h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+      color: var(--color-text);
+    }
+    .web-chat-sessions-header h2 em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--color-accent);
+    }
+    .web-chat-sessions-new {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border: 1px solid var(--color-border);
+      border-radius: 50%;
+      background: rgb(from var(--color-accent) r g b / 0.1);
+      color: var(--color-accent);
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+    .web-chat-sessions-new:hover {
+      background: rgb(from var(--color-accent) r g b / 0.18);
+      border-color: var(--color-accent);
+      transform: rotate(90deg);
+    }
+    .web-chat-sessions-new svg { width: 12px; height: 12px; }
+
+    /* Search row — a quiet input that matches the editorial register. */
+    .web-chat-sessions-search {
+      position: relative;
+      margin: 0 1.25rem 0.75rem;
+    }
+    .web-chat-sessions-search input {
+      width: 100%;
+      padding: 0.5rem 0.7rem 0.5rem 1.85rem;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: rgb(255 255 255 / 0.025);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .web-chat-sessions-search input::placeholder { color: var(--color-text-light); }
+    .web-chat-sessions-search input:focus {
+      border-color: rgb(from var(--color-accent) r g b / 0.5);
+    }
+    .web-chat-sessions-search svg {
+      position: absolute;
+      left: 0.6rem; top: 50%;
+      transform: translateY(-50%);
+      width: 13px; height: 13px;
+      color: var(--color-text-light);
+    }
+
+    /* The session list — a vertical rhizome with its own spine. */
+    .web-chat-sessions-list {
+      position: relative;
+      list-style: none;
+      margin: 0;
+      padding: 0.25rem 0 0 0;
+      overflow: auto;
+    }
+    .web-chat-sessions-list::-webkit-scrollbar { width: 8px; }
+    .web-chat-sessions-list::-webkit-scrollbar-thumb {
+      background: rgb(255 255 255 / 0.08);
+      border-radius: 999px;
+    }
+    /* Vertical spine running through the session list, mirroring the
+       conversation spine. Sits right of the timestamps. */
+    .web-chat-sessions-list::before {
+      content: "";
+      position: absolute;
+      left: 4.25rem;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgb(from var(--color-secondary) r g b / 0.18) 6%,
+        rgb(from var(--color-secondary) r g b / 0.28) 90%,
+        transparent 100%);
+      pointer-events: none;
+    }
+
+    .web-chat-session {
+      position: relative;
+      display: grid;
+      grid-template-columns: 3.4rem 1fr;
+      gap: 0.85rem;
+      align-items: start;
+      padding: 0.75rem 1.25rem 0.75rem 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .web-chat-session:hover {
+      background: rgb(255 255 255 / 0.02);
+    }
+    .web-chat-session-time {
+      padding-top: 0.15rem;
+      font-family: var(--font-label);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+      text-align: right;
+    }
+    /* The node sits on the spine. Hollow purple by default. */
+    .web-chat-session::before {
+      content: "";
+      position: absolute;
+      left: calc(4.25rem - 5px);
+      top: 0.9rem;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: var(--palette-bg-card);
+      box-shadow:
+        inset 0 0 0 2px rgb(from var(--color-secondary) r g b / 0.65),
+        0 0 0 3px var(--palette-bg-card);
+      z-index: 1;
+      transition: box-shadow 0.2s ease;
+    }
+    .web-chat-session:hover::before {
+      box-shadow:
+        inset 0 0 0 2px var(--color-secondary),
+        0 0 0 3px var(--palette-bg-card),
+        0 0 10px rgb(from var(--color-secondary) r g b / 0.5);
+    }
+    /* The branch from spine to text. */
+    .web-chat-session::after {
+      content: "";
+      position: absolute;
+      left: calc(4.25rem + 6px);
+      top: 1.3rem;
+      width: calc(1.6rem - 6px);
+      height: 1px;
+      background: linear-gradient(90deg,
+        rgb(from var(--color-secondary) r g b / 0.4),
+        transparent);
+    }
+    .web-chat-session-body {
+      grid-column: 2;
+      min-width: 0;
+      display: grid;
+      gap: 0.2rem;
+      padding-left: 0.85rem;
+    }
+    .web-chat-session-title {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--color-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+    .web-chat-session-preview {
+      margin: 0;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 300;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--color-text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .web-chat-session-meta {
+      display: inline-flex;
+      gap: 0.6rem;
+      margin-top: 0.15rem;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-session-meta span + span::before {
+      content: "·";
+      margin-right: 0.6rem;
+      opacity: 0.5;
+    }
+
+    /* ── Active session — amber glow, fills the body with a tinted band,
+       and (the key move) extends a branch out to the right edge of the
+       sessions panel so it visually flows into the conversation spine. ── */
+    .web-chat-session[data-active="true"] {
+      background: linear-gradient(90deg,
+        rgb(from var(--color-accent) r g b / 0.08) 0%,
+        rgb(from var(--color-accent) r g b / 0.02) 100%);
+    }
+    .web-chat-session[data-active="true"]::before {
+      background: var(--color-accent);
+      box-shadow:
+        0 0 0 3px var(--palette-bg-card),
+        0 0 14px rgb(from var(--color-accent) r g b / 0.6);
+    }
+    .web-chat-session[data-active="true"]::after {
+      background: linear-gradient(90deg,
+        rgb(from var(--color-accent) r g b / 0.6),
+        rgb(from var(--color-accent) r g b / 0.2));
+    }
+    .web-chat-session[data-active="true"] .web-chat-session-time { color: var(--color-accent); }
+    .web-chat-session[data-active="true"] .web-chat-session-title { color: var(--color-text); }
+    /* The flow-through line: extends from the active node to the right
+       edge of the sessions panel and gently bridges into the chat. */
+    .web-chat-session[data-active="true"] .web-chat-session-flow {
+      position: absolute;
+      left: calc(4.25rem + 5px);
+      top: 1.3rem;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        rgb(from var(--color-accent) r g b / 0.65) 0%,
+        rgb(from var(--color-accent) r g b / 0.2) 80%,
+        transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Footer in the sessions panel — small status of the brain. */
+    .web-chat-sessions-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      padding: 0.75rem 1.25rem 0;
+      border-top: 1px solid var(--color-border-light);
+      margin-top: 0.5rem;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+    }
+    .web-chat-sessions-footer-id {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .web-chat-sessions-footer-id::before {
+      content: "";
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--color-success);
+      box-shadow: 0 0 6px rgb(from var(--color-success) r g b / 0.6);
+    }
+
+    /* Mobile: sessions stack above the chat. */
+    @media (max-width: 760px) {
+      .web-chat-shell { grid-template-columns: 1fr; min-height: 0; }
+      .web-chat-shell .web-chat-app { border-left: 0; border-top: 1px solid var(--color-border-light); }
+      .web-chat-sessions-list { max-height: 240px; }
+    }
+
+    /* ─── Widget variant — embeds in dashboard at constrained dimensions.
+       Collapses the header subtitle/eyebrow, tightens paddings, drops the
+       empty-state glyph to a single line, and inlines the status pill so
+       the prompt input still pins to the bottom even when busy. ─── */
+    .web-chat-app--widget {
+      gap: 0.75rem;
+      min-height: 0;
+      height: 100%;
+      padding: 1rem;
+      border-radius: 16px;
+    }
+    .web-chat-app--widget .web-chat-header h1 { font-size: 1.1rem; line-height: 1.15; }
+    .web-chat-app--widget .web-chat-header-eyebrow,
+    .web-chat-app--widget .web-chat-header p { display: none; }
+    .web-chat-app--widget .web-chat-secondary-action {
+      padding: 0.4rem 0.7rem;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+    .web-chat-app--widget .web-chat-conversation-content {
+      gap: 1rem;
+      padding: 0.5rem 0.25rem 0.25rem;
+    }
+    .web-chat-app--widget .web-chat-message { max-width: 100%; }
+    .web-chat-app--widget .web-chat-message-bubble { padding: 0.7rem 0.85rem; }
+    .web-chat-app--widget .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
+      padding: 0;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    /* Drop-cap is too theatrical at widget size — collapse to normal. */
+    .web-chat-app--widget .web-chat-message[data-role="assistant"] .web-chat-message-bubble > p:first-of-type::first-letter {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 1em;
+      float: none;
+      line-height: inherit;
+      padding: 0;
+      color: inherit;
+    }
+    /* Compact spine in widget mode. */
+    .web-chat-app--widget .web-chat-conversation-content {
+      gap: 1.25rem;
+      padding-left: 2.25rem;
+    }
+    .web-chat-app--widget .web-chat-conversation-content::before { left: 1rem; }
+    .web-chat-app--widget .web-chat-conversation-content::after { left: calc(1rem - 2px); }
+    .web-chat-app--widget .web-chat-message::before { left: calc(-1.25rem - 5px); }
+    .web-chat-app--widget .web-chat-message::after { left: calc(-1.25rem + 6px); width: calc(1.25rem - 6px); }
+    .web-chat-app--widget .web-chat-empty-state {
+      padding: 1.25rem 0.5rem;
+      gap: 0.6rem;
+    }
+    .web-chat-app--widget .web-chat-empty-state-glyph {
+      width: 120px; height: 60px;
+    }
+    .web-chat-app--widget .web-chat-empty-state h2 { font-size: 1.1rem; }
+    .web-chat-app--widget .web-chat-empty-state p { font-size: 13px; }
+    .web-chat-app--widget .web-chat-prompt-input {
+      padding: 0.5rem 0.6rem 0.45rem;
+      border-radius: 14px;
+    }
+    .web-chat-app--widget .web-chat-prompt-input label { display: none; }
+    .web-chat-app--widget .web-chat-prompt-textarea {
+      min-height: 2.25rem;
+      max-height: 6.5rem;
+      font-size: 14px;
+    }
+    .web-chat-app--widget .web-chat-prompt-hint { display: none; }
+    .web-chat-app--widget .web-chat-prompt-submit {
+      min-height: 32px;
+      padding: 0 0.75rem;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+    .web-chat-app--widget .web-chat-prompt-submit span { display: none; }
+    .web-chat-app--widget .web-chat-status {
+      padding: 0.3rem 0.65rem;
+      font-size: 10px;
+    }
+
+    /* Widget frame chrome — simulates a 380×520 dashboard slot. */
+    .widget-shell {
+      width: 380px;
+      max-width: 100%;
+      height: 520px;
+      padding: 0.75rem;
+      border: 1px dashed rgb(255 255 255 / 0.12);
+      border-radius: 20px;
+      background: rgb(0 0 0 / 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-page">
+    <header class="mockup-intro">
+      <h1>Brain Chat — <em>field log</em></h1>
+      <p>
+        Four frames of the chat surface, reimagined as a botanist's field log:
+        a mycelial spine threads each message together, the assistant speaks in
+        editorial body type instead of a bubble, data parts read as instrument
+        cards with notched corners, and the streaming indicator is a growing
+        hypha that pulses along an amber-to-purple rail. Tokens come from
+        <code>theme-rizom</code>.
+      </p>
+    </header>
+
+    <section class="mockup-grid">
+
+      <!-- ─────────────────────────  EMPTY STATE  ───────────────────────── -->
+      <article class="mockup-frame">
+        <span class="mockup-frame-label">A — Empty state</span>
+        <main class="web-chat-app">
+          <header class="web-chat-header">
+            <div>
+              <span class="web-chat-header-eyebrow">Anchor</span>
+              <h1>Brain <em>Chat</em></h1>
+              <p>A field log for talking with the rhizome.</p>
+            </div>
+            <button class="web-chat-secondary-action" type="button">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+              </svg>
+              New
+            </button>
+          </header>
+
+          <div class="web-chat-conversation">
+            <div class="web-chat-conversation-content">
+              <div class="web-chat-empty-state">
+                <svg class="web-chat-empty-state-glyph" viewBox="0 0 180 88" aria-hidden="true">
+                  <!-- main hypha -->
+                  <path d="M4 60 C 30 60, 40 30, 70 30 S 110 60, 140 50 S 174 30, 178 28" />
+                  <!-- branch up -->
+                  <path d="M70 30 C 78 22, 86 12, 96 10" />
+                  <!-- branch down -->
+                  <path d="M70 30 C 68 44, 80 60, 92 70" />
+                  <!-- secondary thread -->
+                  <path d="M120 56 C 128 64, 138 70, 152 72" />
+                  <!-- terminals -->
+                  <circle cx="96" cy="10" r="2.5" />
+                  <circle cx="92" cy="70" r="2.5" />
+                  <circle cx="178" cy="28" r="2.5" />
+                </svg>
+                <span class="web-chat-empty-state-eyebrow">No traces yet</span>
+                <h2>Begin a <em>field note</em>.</h2>
+                <p>Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message.</p>
+              </div>
+            </div>
+          </div>
+
+          <form class="web-chat-prompt-input">
+            <label for="prompt-a">Message</label>
+            <textarea
+              id="prompt-a"
+              class="web-chat-prompt-textarea"
+              placeholder="Plant a question…"
+              rows="2"
+            ></textarea>
+            <div class="web-chat-prompt-footer">
+              <span class="web-chat-prompt-hint">
+                <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline
+              </span>
+              <button class="web-chat-prompt-submit" type="submit" disabled>
+                Send
+                <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </main>
+      </article>
+
+      <!-- ─────────────────────────  ACTIVE CHAT  ───────────────────────── -->
+      <article class="mockup-frame">
+        <span class="mockup-frame-label">B — Conversation with tool result + pending confirm</span>
+        <main class="web-chat-app">
+          <header class="web-chat-header">
+            <div>
+              <span class="web-chat-header-eyebrow">Anchor · <strong>4 messages</strong></span>
+              <h1>Brain <em>Chat</em></h1>
+              <p>The thread grows where the conversation finds purchase.</p>
+            </div>
+            <button class="web-chat-secondary-action" type="button">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+              </svg>
+              New
+            </button>
+          </header>
+
+          <div class="web-chat-conversation">
+            <div class="web-chat-conversation-content">
+
+              <article class="web-chat-message" data-role="user">
+                <span class="web-chat-message-header">You <time>09:42</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>What's on my plate for this week?</p>
+                </div>
+              </article>
+
+              <article class="web-chat-message" data-role="assistant">
+                <span class="web-chat-message-header">Brain <time>09:42</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>Three open tasks tagged <code>this-week</code>. The highlights worth your attention today:</p>
+                  <ul>
+                    <li>Finish the chat interface restyle (today)</li>
+                    <li>Review the entity-action-policy plan</li>
+                    <li>Draft Friday's release notes</li>
+                  </ul>
+                  <p>Want me to pull the full list or focus on a specific one?</p>
+                </div>
+              </article>
+
+              <article class="web-chat-message" data-role="user">
+                <span class="web-chat-message-header">You <time>09:44</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>Show the raw entries for the entity-action-policy review.</p>
+                </div>
+              </article>
+
+              <article class="web-chat-message" data-role="assistant">
+                <span class="web-chat-message-header">Brain <time>09:44</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>Pulled two notes from the <code>entity-action-policy</code> branch. Both touched in the last 48 hours.</p>
+
+                  <section class="web-chat-data-part" data-kind="tool-result">
+                    <header class="web-chat-data-part-header">
+                      tool · entity.search
+                    </header>
+                    <div class="web-chat-data-part-body">
+<pre>[
+  { id: "note/entity-action-policy/overview", updated: "2026-05-22" },
+  { id: "note/entity-action-policy/auth-flow", updated: "2026-05-23" }
+]</pre>
+                    </div>
+                  </section>
+
+                  <figure class="web-chat-code-block">
+                    <figcaption><span>typescript</span><span>auth-flow.ts</span></figcaption>
+<pre><span class="tok-com">// confirmed before mutation</span>
+<span class="tok-key">async function</span> apply(action) {
+  <span class="tok-key">const</span> ok = <span class="tok-key">await</span> confirm(action.id);
+  <span class="tok-key">if</span> (!ok) <span class="tok-key">return</span> <span class="tok-str">"declined"</span>;
+  <span class="tok-key">return</span> dispatch(action);
+}</pre>
+                  </figure>
+
+                  <section class="web-chat-confirmation">
+                    <header class="web-chat-confirmation-header">
+                      confirmation pending
+                    </header>
+                    <div class="web-chat-confirmation-body">
+                      <p class="web-chat-confirmation-summary">
+                        I'd like to update <strong>note/entity-action-policy/auth-flow</strong>
+                        with the revised confirmation step. Shall I proceed?
+                      </p>
+                      <div class="web-chat-confirmation-details">
+                        <div><strong>Action</strong> entity.update</div>
+                        <div><strong>Target</strong> note/entity-action-policy/auth-flow</div>
+                        <div><strong>Changes</strong> +12 / −4 lines</div>
+                      </div>
+                      <div class="web-chat-confirmation-actions">
+                        <button type="button" data-variant="primary">Approve</button>
+                        <button type="button">Decline</button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+            </div>
+          </div>
+
+          <p class="web-chat-status" data-status="streaming">
+            <span class="web-chat-status-rail" aria-hidden="true"></span>
+            <span class="web-chat-status-phrase">the rhizome is listening</span>
+            <span class="web-chat-status-meta">streaming</span>
+          </p>
+
+          <form class="web-chat-prompt-input">
+            <label for="prompt-b">Message</label>
+            <textarea
+              id="prompt-b"
+              class="web-chat-prompt-textarea"
+              placeholder="Plant a question…"
+              rows="2"
+            >Tell me what changed in the auth flow.</textarea>
+            <div class="web-chat-prompt-footer">
+              <span class="web-chat-prompt-hint">
+                <kbd>Enter</kbd> to send
+              </span>
+              <button class="web-chat-prompt-submit" type="submit">
+                Send
+                <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </main>
+      </article>
+
+      <!-- ─────────────────────────  ERROR + RESOLVED CONFIRM  ───────────────────────── -->
+      <article class="mockup-frame">
+        <span class="mockup-frame-label">C — Resolved confirm + error</span>
+        <main class="web-chat-app">
+          <header class="web-chat-header">
+            <div>
+              <span class="web-chat-header-eyebrow">Anchor · <strong>2 messages</strong></span>
+              <h1>Brain <em>Chat</em></h1>
+              <p>Sometimes a thread snaps mid-growth.</p>
+            </div>
+            <button class="web-chat-secondary-action" type="button">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+              </svg>
+              New
+            </button>
+          </header>
+
+          <div class="web-chat-conversation">
+            <div class="web-chat-conversation-content">
+
+              <article class="web-chat-message" data-role="user">
+                <span class="web-chat-message-header">You <time>14:08</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>Delete the stale prompt entity.</p>
+                </div>
+              </article>
+
+              <article class="web-chat-message" data-role="assistant">
+                <span class="web-chat-message-header">Brain <time>14:09</time></span>
+                <div class="web-chat-message-bubble">
+                  <p>Done. Removed <code>prompt/stale-onboarding</code>.</p>
+                  <section class="web-chat-confirmation" data-state="resolved">
+                    <header class="web-chat-confirmation-header">
+                      confirmation resolved
+                    </header>
+                    <div class="web-chat-confirmation-body">
+                      <p class="web-chat-confirmation-summary">
+                        Deleted <strong>prompt/stale-onboarding</strong>.
+                      </p>
+                      <span class="web-chat-confirmation-result">Approved · executed</span>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+            </div>
+          </div>
+
+          <p class="web-chat-status" data-status="thinking">
+            <span class="web-chat-status-rail" aria-hidden="true"></span>
+            <span class="web-chat-status-phrase">the rhizome is listening</span>
+            <span class="web-chat-status-meta">thinking</span>
+          </p>
+
+          <div class="web-chat-error" role="alert">
+            <span class="web-chat-error-tag">[ signal lost ]</span>
+            <p>Connection severed while the response was streaming. Try the question again.</p>
+            <button type="button">Dismiss</button>
+          </div>
+
+          <form class="web-chat-prompt-input">
+            <label for="prompt-c">Message</label>
+            <textarea
+              id="prompt-c"
+              class="web-chat-prompt-textarea"
+              placeholder="Plant a question…"
+              rows="2"
+            ></textarea>
+            <div class="web-chat-prompt-footer">
+              <span class="web-chat-prompt-hint">
+                <kbd>Enter</kbd> to send
+              </span>
+              <button class="web-chat-prompt-submit" type="submit" disabled>
+                Send
+                <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </main>
+      </article>
+
+      <!-- ─────────────────────────  SESSIONS SHELL (E)  ───────────────────────── -->
+      <article class="mockup-frame mockup-frame--wide">
+        <span class="mockup-frame-label">E — Multi-session shell · sessions rail + active conversation</span>
+        <div class="web-chat-shell">
+          <aside class="web-chat-sessions" aria-label="Sessions">
+            <header class="web-chat-sessions-header">
+              <h2>Sessions <em>·</em></h2>
+              <button class="web-chat-sessions-new" type="button" aria-label="New session">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                  <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                </svg>
+              </button>
+            </header>
+
+            <div class="web-chat-sessions-search">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5" />
+                <path d="m11 11 3 3" stroke-linecap="round" />
+              </svg>
+              <input type="search" placeholder="Search sessions…" />
+            </div>
+
+            <ul class="web-chat-sessions-list" role="listbox">
+              <li class="web-chat-session" data-active="true" role="option" aria-selected="true">
+                <span class="web-chat-session-flow" aria-hidden="true"></span>
+                <span class="web-chat-session-time">09:42</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Entity-action-policy review</h3>
+                  <p class="web-chat-session-preview">Pulled two notes from the entity-action-policy branch. Both touched in the last 48 hours.</p>
+                  <span class="web-chat-session-meta">
+                    <span>4 messages</span><span>1 pending</span>
+                  </span>
+                </div>
+              </li>
+
+              <li class="web-chat-session" role="option">
+                <span class="web-chat-session-time">Yest</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Friday's release notes</h3>
+                  <p class="web-chat-session-preview">Draft: what shipped this week. Highlights — web-chat restyle, relay setup email…</p>
+                  <span class="web-chat-session-meta">
+                    <span>12 messages</span>
+                  </span>
+                </div>
+              </li>
+
+              <li class="web-chat-session" role="option">
+                <span class="web-chat-session-time">Mon</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Plate this week</h3>
+                  <p class="web-chat-session-preview">Three open tasks tagged this-week. Highlights worth your attention today…</p>
+                  <span class="web-chat-session-meta">
+                    <span>6 messages</span>
+                  </span>
+                </div>
+              </li>
+
+              <li class="web-chat-session" role="option">
+                <span class="web-chat-session-time">21 May</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Stale prompt cleanup</h3>
+                  <p class="web-chat-session-preview">Removed prompt/stale-onboarding after a confirmation pass.</p>
+                  <span class="web-chat-session-meta">
+                    <span>2 messages</span>
+                  </span>
+                </div>
+              </li>
+
+              <li class="web-chat-session" role="option">
+                <span class="web-chat-session-time">18 May</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Theme tokens audit</h3>
+                  <p class="web-chat-session-preview">Walked through the rizom palette, found two unused surface tokens worth pruning.</p>
+                  <span class="web-chat-session-meta">
+                    <span>9 messages</span>
+                  </span>
+                </div>
+              </li>
+
+              <li class="web-chat-session" role="option">
+                <span class="web-chat-session-time">14 May</span>
+                <div class="web-chat-session-body">
+                  <h3 class="web-chat-session-title">Auth-runtime plan ownership</h3>
+                  <p class="web-chat-session-preview">Confirmed the relay setup email delivery path. Auth runtime plan owner still TBD.</p>
+                  <span class="web-chat-session-meta">
+                    <span>7 messages</span>
+                  </span>
+                </div>
+              </li>
+            </ul>
+
+            <footer class="web-chat-sessions-footer">
+              <span class="web-chat-sessions-footer-id">brain · anchor</span>
+              <span>v0.4.2</span>
+            </footer>
+          </aside>
+
+          <main class="web-chat-app">
+            <header class="web-chat-header">
+              <div>
+                <span class="web-chat-header-eyebrow">Anchor · <strong>4 messages</strong></span>
+                <h1>Entity-action-policy <em>review</em></h1>
+                <p>The thread grows where the conversation finds purchase.</p>
+              </div>
+              <button class="web-chat-secondary-action" type="button">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                </svg>
+                New
+              </button>
+            </header>
+
+            <div class="web-chat-conversation">
+              <div class="web-chat-conversation-content">
+                <article class="web-chat-message" data-role="user">
+                  <span class="web-chat-message-header">You <time>09:42</time></span>
+                  <div class="web-chat-message-bubble">
+                    <p>Show the raw entries for the entity-action-policy review.</p>
+                  </div>
+                </article>
+                <article class="web-chat-message" data-role="assistant">
+                  <span class="web-chat-message-header">Brain <time>09:44</time></span>
+                  <div class="web-chat-message-bubble">
+                    <p>Pulled two notes from the <code>entity-action-policy</code> branch. Both touched in the last 48 hours — the auth-flow note is the one with the pending update.</p>
+                    <p>Open the diff and I'll walk you through the change.</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <p class="web-chat-status" data-status="streaming">
+              <span class="web-chat-status-rail" aria-hidden="true"></span>
+              <span class="web-chat-status-phrase">the rhizome is listening</span>
+              <span class="web-chat-status-meta">streaming</span>
+            </p>
+
+            <form class="web-chat-prompt-input">
+              <label for="prompt-e">Message</label>
+              <textarea
+                id="prompt-e"
+                class="web-chat-prompt-textarea"
+                placeholder="Plant a question…"
+                rows="2"
+              ></textarea>
+              <div class="web-chat-prompt-footer">
+                <span class="web-chat-prompt-hint">
+                  <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline
+                </span>
+                <button class="web-chat-prompt-submit" type="submit">
+                  Send
+                  <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </main>
+        </div>
+      </article>
+
+      <!-- ─────────────────────────  WIDGET FRAME  ───────────────────────── -->
+      <article class="mockup-frame">
+        <span class="mockup-frame-label">D — Dashboard widget (380×520)</span>
+        <div class="widget-shell">
+          <main class="web-chat-app web-chat-app--widget">
+            <header class="web-chat-header">
+              <div>
+                <h1>Brain Chat</h1>
+              </div>
+              <div class="web-chat-header-actions">
+                <button class="web-chat-secondary-action" type="button" aria-label="New conversation">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                  </svg>
+                  New
+                </button>
+                <a
+                  class="web-chat-secondary-action web-chat-secondary-action--accent"
+                  href="/chat"
+                  aria-label="Open full chat"
+                >
+                  Open
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M6 3h7v7" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M13 3 7 9" stroke-linecap="round" />
+                    <path d="M11 9.5V13H3V5h3.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </a>
+              </div>
+            </header>
+
+            <div class="web-chat-conversation">
+              <div class="web-chat-conversation-content">
+                <article class="web-chat-message" data-role="user">
+                  <span class="web-chat-message-header">You</span>
+                  <div class="web-chat-message-bubble">
+                    <p>What's on my plate today?</p>
+                  </div>
+                </article>
+                <article class="web-chat-message" data-role="assistant">
+                  <span class="web-chat-message-header">Brain</span>
+                  <div class="web-chat-message-bubble">
+                    <p>Two open tasks tagged <code>today</code>:</p>
+                    <ul>
+                      <li>Restyle the chat interface</li>
+                      <li>Draft release notes</li>
+                    </ul>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <p class="web-chat-status" data-status="thinking">
+              <span class="web-chat-status-rail" aria-hidden="true"></span>
+              <span class="web-chat-status-phrase">listening</span>
+            </p>
+
+            <form class="web-chat-prompt-input">
+              <label for="prompt-d">Message</label>
+              <textarea
+                id="prompt-d"
+                class="web-chat-prompt-textarea"
+                placeholder="Plant a question…"
+                rows="1"
+              ></textarea>
+              <div class="web-chat-prompt-footer">
+                <button class="web-chat-prompt-submit" type="submit" aria-label="Send">
+                  <span>Send</span>
+                  <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </main>
+        </div>
+      </article>
+
+    </section>
+  </div>
+</body>
+</html>
