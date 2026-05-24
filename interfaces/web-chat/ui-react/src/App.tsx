@@ -24,6 +24,7 @@ import {
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const dayMs = 24 * 60 * 60 * 1000;
+const sessionTitleMaxLength = 48;
 
 interface WebChatSession {
   id: string;
@@ -99,6 +100,13 @@ function isPlainEnter(
     !event.ctrlKey &&
     !event.altKey
   );
+}
+
+function deriveSessionTitle(text: string): string {
+  const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
+  if (!firstLine) return "New conversation";
+  if (firstLine.length <= sessionTitleMaxLength) return firstLine;
+  return `${firstLine.slice(0, sessionTitleMaxLength - 1).trimEnd()}…`;
 }
 
 function formatSessionTime(iso: string, now: Date = new Date()): string {
@@ -183,6 +191,28 @@ export function App(): React.ReactElement {
     setSessions(body.sessions);
   }
 
+  function upsertPendingSession(text: string): void {
+    const now = new Date().toISOString();
+    const pendingSession: WebChatSession = {
+      id: conversationId,
+      title: deriveSessionTitle(text),
+      lastActiveAt: now,
+    };
+    setSessions((current) => {
+      const existingSession = current.find(
+        (session) => session.id === conversationId,
+      );
+      const nextSession =
+        existingSession && existingSession.title !== "New conversation"
+          ? { ...existingSession, lastActiveAt: now }
+          : pendingSession;
+      const withoutCurrent = current.filter(
+        (session) => session.id !== conversationId,
+      );
+      return [nextSession, ...withoutCurrent];
+    });
+  }
+
   async function switchConversation(nextConversationId: string): Promise<void> {
     const response = await fetch(
       `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
@@ -201,8 +231,9 @@ export function App(): React.ReactElement {
   function submitMessage(): void {
     const text = input.trim();
     if (!text || isBusyStatus(status)) return;
+    upsertPendingSession(text);
     setInput("");
-    void sendMessage({ text }).then(() => loadSessions());
+    void sendMessage({ text }).finally(() => loadSessions());
     focusPromptTextarea(promptInputRef.current);
   }
 

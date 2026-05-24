@@ -127,7 +127,17 @@ button, textarea, input { font: inherit; color: inherit; }
   gap: 1.25rem;
   min-width: 0;
   min-height: 0;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+/* Header, status, prompt, and error are indented to align with the
+   message column inside .web-chat-conversation-content (which has
+   padding-left: 2.75rem to make room for the spine). Keeps the whole
+   chat surface reading as a single coherent column. */
+.web-chat-app > .web-chat-header,
+.web-chat-app > .web-chat-status,
+.web-chat-app > .web-chat-error,
+.web-chat-app > .web-chat-prompt-input {
+  margin-left: 2.75rem;
 }
 
 /* ── Header ── */
@@ -209,7 +219,7 @@ button, textarea, input { font: inherit; color: inherit; }
 /* ─── Sessions panel ─── */
 .web-chat-sessions {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 1.25rem 0 0.75rem;
   min-height: 0;
 }

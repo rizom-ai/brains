@@ -90,6 +90,9 @@ describe("React containment", () => {
     expect(appSource).toContain("focusPromptTextarea");
     expect(appSource).toContain("loadSessions");
     expect(appSource).toContain("switchConversation");
+    expect(appSource).toContain("deriveSessionTitle");
+    expect(appSource).toContain("upsertPendingSession");
+    expect(appSource).toContain("finally(() => loadSessions())");
     expect(appSource).toContain("/api/chat/sessions");
     expect(appSource).toContain("/api/chat/messages");
   });
