@@ -45,6 +45,19 @@ function getPartData(part: unknown): unknown {
   return part.data;
 }
 
+function isBusyStatus(status: string): boolean {
+  return status === "submitted" || status === "streaming";
+}
+
+function resizePromptTextarea(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function focusPromptTextarea(textarea: HTMLTextAreaElement | null): void {
+  requestAnimationFrame(() => textarea?.focus());
+}
+
 function isPlainEnter(
   event: React.KeyboardEvent<HTMLTextAreaElement>,
 ): boolean {
@@ -63,6 +76,7 @@ export function App(): React.ReactElement {
     getBrowserConversationId(),
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -71,7 +85,15 @@ export function App(): React.ReactElement {
       }),
     [],
   );
-  const { messages, sendMessage, setMessages, status, error } = useChat({
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    error,
+    stop,
+    clearError,
+  } = useChat({
     id: conversationId,
     transport,
   });
@@ -83,11 +105,22 @@ export function App(): React.ReactElement {
     });
   }, [messages, status]);
 
+  useEffect(() => {
+    if (promptInputRef.current) {
+      resizePromptTextarea(promptInputRef.current);
+    }
+  }, [input]);
+
+  useEffect(() => {
+    focusPromptTextarea(promptInputRef.current);
+  }, []);
+
   function submitMessage(): void {
     const text = input.trim();
-    if (!text) return;
+    if (!text || isBusyStatus(status)) return;
     setInput("");
     void sendMessage({ text });
+    focusPromptTextarea(promptInputRef.current);
   }
 
   function startNewConversation(): void {
@@ -96,6 +129,7 @@ export function App(): React.ReactElement {
     setConversationId(next);
     setMessages([]);
     setInput("");
+    focusPromptTextarea(promptInputRef.current);
   }
 
   return (
@@ -182,14 +216,18 @@ export function App(): React.ReactElement {
         </p>
       ) : null}
       {error ? (
-        <p className="web-chat-error" role="alert">
-          {error.message}
-        </p>
+        <div className="web-chat-error" role="alert">
+          <p>{error.message}</p>
+          <button type="button" onClick={clearError}>
+            Dismiss
+          </button>
+        </div>
       ) : null}
       <PromptInput onSubmit={submitMessage}>
         <label htmlFor="web-chat-input">Message</label>
         <PromptInputTextarea
           id="web-chat-input"
+          ref={promptInputRef}
           value={input}
           onInput={(event) => setInput(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -198,7 +236,11 @@ export function App(): React.ReactElement {
             submitMessage();
           }}
         />
-        <PromptInputSubmit status={status} />
+        <PromptInputSubmit
+          status={status}
+          onStop={stop}
+          disabled={!input.trim()}
+        />
       </PromptInput>
     </main>
   );

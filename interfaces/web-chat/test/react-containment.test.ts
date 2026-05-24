@@ -80,6 +80,13 @@ describe("React containment", () => {
     expect(appSource).toContain("isPlainEnter");
     expect(appSource).toContain("onKeyDown");
     expect(appSource).toContain("scrollIntoView");
+    expect(appSource).toContain("isBusyStatus");
+    expect(appSource).toContain("onStop={stop}");
+    expect(appSource).toContain("clearError");
+    expect(appSource).toContain("Dismiss");
+    expect(appSource).toContain("resizePromptTextarea");
+    expect(appSource).toContain("promptInputRef");
+    expect(appSource).toContain("focusPromptTextarea");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {
