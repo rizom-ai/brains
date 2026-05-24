@@ -81,9 +81,9 @@ const chatPageStyles = `
   --color-glow-cta: rgb(255 163 102 / 0.3);
   --color-glow-cta-strong: rgb(255 163 102 / 0.45);
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Barlow", system-ui, sans-serif;
-  --font-label: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-label: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   --bg-ember: radial-gradient(ellipse at 18% -10%, rgb(255 163 102 / 0.08) 0%, transparent 55%),
@@ -591,7 +591,7 @@ button, textarea, input { font: inherit; color: inherit; }
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
 
-/* assistant — editorial body, Fraunces drop-cap on first paragraph */
+/* assistant — editorial body, serif drop-cap on first paragraph */
 .web-chat-message[data-role="assistant"] .web-chat-message-header { color: var(--color-secondary); }
 .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
   padding: 0.1rem 0 0;
@@ -1068,12 +1068,31 @@ interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
 }
 
+type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+
+export interface WebChatDeps {
+  /** Override how an operator session is detected (used in tests). */
+  resolveOperatorSession?: OperatorSessionResolver;
+}
+
+const defaultResolveOperatorSession: OperatorSessionResolver = async (
+  request,
+) => {
+  const authService = getActiveAuthService();
+  if (!authService) return false;
+  const session = await authService.getOperatorSession(request);
+  return session !== undefined;
+};
+
 export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
+  private readonly resolveOperatorSession: OperatorSessionResolver;
 
-  constructor(config: Partial<WebChatConfig> = {}) {
+  constructor(config: Partial<WebChatConfig> = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
+    this.resolveOperatorSession =
+      deps.resolveOperatorSession ?? defaultResolveOperatorSession;
   }
 
   protected override async onRegister(
@@ -1177,10 +1196,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return true;
   }
 
-  private async handleChatPage(request: Request): Promise<Response> {
-    const authenticated = await this.isAuthorized(request);
-    if (!authenticated) return new Response("Unauthorized", { status: 401 });
-
+  private async handleChatPage(_request: Request): Promise<Response> {
     return new Response(this.renderChatPage(), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
@@ -1201,8 +1217,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const authenticated = await this.isAuthorized(request);
-    if (!authenticated) return new Response("Unauthorized", { status: 401 });
+    const permissionLevel = await this.resolvePermissionLevel(request);
 
     const body = await request.json();
     const parsed = chatRequestSchema.safeParse(body);
@@ -1218,7 +1233,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const conversationId = parsed.data.id ?? this.createId("web");
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
-        await this.handleStreamedChat({ writer, conversationId, message });
+        await this.handleStreamedChat({
+          writer,
+          conversationId,
+          message,
+          permissionLevel,
+        });
       },
     });
 
@@ -1226,8 +1246,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleConfirmationRequest(request: Request): Promise<Response> {
-    const authenticated = await this.isAuthorized(request);
-    if (!authenticated) return new Response("Unauthorized", { status: 401 });
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
 
     const parsed = confirmationRequestSchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -1247,8 +1269,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {
-    const authenticated = await this.isAuthorized(request);
-    if (!authenticated) return new Response("Unauthorized", { status: 401 });
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return Response.json({ sessions: [] });
+    }
 
     const conversations = await this.getContext().conversations.list({
       interfaceType: webChatInterfaceType,
@@ -1282,8 +1306,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {
-    const authenticated = await this.isAuthorized(request);
-    if (!authenticated) return new Response("Unauthorized", { status: 401 });
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
 
     const conversationId = new URL(request.url).searchParams.get("id");
     if (!conversationId) {
@@ -1314,6 +1340,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     writer: UIMessageStreamWriter<UIMessage>;
     conversationId: string;
     message: string;
+    permissionLevel: "anchor" | "public";
   }): Promise<void> {
     this.activeStreams.set(input.conversationId, { writer: input.writer });
     this.startProcessingInput(input.conversationId);
@@ -1329,7 +1356,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         input.message,
         input.conversationId,
         {
-          userPermissionLevel: "anchor",
+          userPermissionLevel: input.permissionLevel,
           interfaceType: webChatInterfaceType,
           channelId: input.conversationId,
           channelName: "Web Chat",
@@ -1362,11 +1389,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return this.activeStreams.get(channelId);
   }
 
-  private async isAuthorized(request: Request): Promise<boolean> {
-    const authService = getActiveAuthService();
-    if (!authService) return true;
-    const session = await authService.getOperatorSession(request);
-    return session !== undefined;
+  private async resolvePermissionLevel(
+    request: Request,
+  ): Promise<"anchor" | "public"> {
+    return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
   }
 
   private extractLastUserText(request: ChatRequest): string {
@@ -1406,10 +1432,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private renderChatPage(): string {
-    return `<!doctype html><html lang="en" data-theme-profile="product"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brain Chat</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style data-web-chat-styles>${chatPageStyles}</style></head><body><main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+    return `<!doctype html><html lang="en" data-theme-profile="product"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brain Chat</title><style data-web-chat-styles>${chatPageStyles}</style></head><body><main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
   }
 
   private createId(prefix: string): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 }
