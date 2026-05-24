@@ -253,8 +253,11 @@ export {
 export type {
   ConversationDigestPayload,
   GetMessagesOptions,
+  IConversationService,
 } from "@brains/conversation-service";
 export { conversationDigestPayloadSchema } from "@brains/conversation-service";
+
+export type { IAgentService } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 

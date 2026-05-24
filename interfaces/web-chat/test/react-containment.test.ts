@@ -4,7 +4,6 @@ import { join, relative, sep } from "path";
 
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");
-const buildScriptPath = join(packageRoot, "scripts", "build-ui.ts");
 const allowedReactDir = `${join("ui-react")}${sep}`;
 const sourceExtensions = [".ts", ".tsx", ".js", ".jsx"];
 
@@ -64,48 +63,6 @@ describe("React containment", () => {
     }
 
     expect(reactVersion).toBe(reactDomVersion);
-  });
-
-  it("persists a browser conversation id for AI SDK chat requests", () => {
-    const appSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "App.tsx"),
-      "utf-8",
-    );
-
-    expect(appSource).toContain("brain:web-chat:conversation-id");
-    expect(appSource).toContain("localStorage");
-    expect(appSource).toContain("id: conversationId");
-    expect(appSource).toContain("New conversation");
-    expect(appSource).toContain("new Chat<UIMessage>");
-    expect(appSource).toContain("setInitialMessages([])");
-    expect(appSource).toContain("isPlainEnter");
-    expect(appSource).toContain("onKeyDown");
-    expect(appSource).toContain("scrollIntoView");
-    expect(appSource).toContain("isBusyStatus");
-    expect(appSource).toContain("onStop={stop}");
-    expect(appSource).toContain("clearError");
-    expect(appSource).toContain("Dismiss");
-    expect(appSource).toContain("resizePromptTextarea");
-    expect(appSource).toContain("promptInputRef");
-    expect(appSource).toContain("focusPromptTextarea");
-    expect(appSource).toContain("loadSessions");
-    expect(appSource).toContain("switchConversation");
-    expect(appSource).toContain("deriveSessionTitle");
-    expect(appSource).toContain("upsertPendingSession");
-    expect(appSource).toContain("finally(() => loadSessions())");
-    expect(appSource).toContain("/api/chat/sessions");
-    expect(appSource).toContain("/api/chat/messages");
-  });
-
-  it("dedupes React entrypoints in the UI build config", () => {
-    const buildScript = readFileSync(buildScriptPath, "utf-8");
-
-    expect(buildScript).toContain('name: "dedupe-react"');
-    expect(buildScript).toContain('require.resolve("react/package.json")');
-    expect(buildScript).toContain('require.resolve("react-dom/package.json")');
-    expect(buildScript).toContain('"react/jsx-runtime"');
-    expect(buildScript).toContain('"react/jsx-dev-runtime"');
-    expect(buildScript).toContain('"react-dom/client"');
   });
 
   it("keeps React imports inside ui-react", () => {

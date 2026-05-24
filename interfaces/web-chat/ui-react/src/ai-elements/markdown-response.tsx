@@ -1,36 +1,35 @@
 /** @jsxImportSource react */
 
-type MarkdownSegment =
-  | { type: "code"; code: string; language: string | undefined }
-  | { type: "text"; text: string };
+import {
+  parseInline,
+  parseMarkdownSegments,
+  type InlineNode,
+} from "./markdown-parser";
 
-function parseMarkdownSegments(markdown: string): MarkdownSegment[] {
-  const segments: MarkdownSegment[] = [];
-  const fencePattern = /```([^\n`]*)\n([\s\S]*?)```/g;
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = fencePattern.exec(markdown)) !== null) {
-    if (match.index > cursor) {
-      segments.push({
-        type: "text",
-        text: markdown.slice(cursor, match.index),
-      });
+function renderInline(nodes: InlineNode[]): React.ReactNode[] {
+  return nodes.map((node, index) => {
+    switch (node.type) {
+      case "text":
+        return <span key={index}>{node.text}</span>;
+      case "code":
+        return <code key={index}>{node.text}</code>;
+      case "bold":
+        return <strong key={index}>{renderInline(node.children)}</strong>;
+      case "italic":
+        return <em key={index}>{renderInline(node.children)}</em>;
+      case "link":
+        return (
+          <a
+            key={index}
+            href={node.href}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {renderInline(node.children)}
+          </a>
+        );
     }
-    const language = match[1]?.trim();
-    segments.push({
-      type: "code",
-      language: language && language.length > 0 ? language : undefined,
-      code: match[2] ?? "",
-    });
-    cursor = match.index + match[0].length;
-  }
-
-  if (cursor < markdown.length) {
-    segments.push({ type: "text", text: markdown.slice(cursor) });
-  }
-
-  return segments;
+  });
 }
 
 function renderText(text: string): React.ReactElement[] {
@@ -38,16 +37,19 @@ function renderText(text: string): React.ReactElement[] {
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph.length > 0)
-    .map((paragraph, index) => (
-      <p className="web-chat-message-response" key={index}>
-        {paragraph.split("\n").map((line, lineIndex) => (
-          <span key={lineIndex}>
-            {lineIndex > 0 ? <br /> : null}
-            {line}
-          </span>
-        ))}
-      </p>
-    ));
+    .map((paragraph, index) => {
+      const lines = paragraph.split("\n");
+      return (
+        <p className="web-chat-message-response" key={index}>
+          {lines.map((line, lineIndex) => (
+            <span key={lineIndex}>
+              {lineIndex > 0 ? <br /> : null}
+              {renderInline(parseInline(line))}
+            </span>
+          ))}
+        </p>
+      );
+    });
 }
 
 export function MarkdownResponse({
