@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useChat } from "@ai-sdk/react";
+import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   Conversation,
@@ -132,6 +132,7 @@ export function App(): React.ReactElement {
     getBrowserConversationId(),
   );
   const [sessions, setSessions] = useState<WebChatSession[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
@@ -142,17 +143,17 @@ export function App(): React.ReactElement {
       }),
     [],
   );
-  const {
-    messages,
-    sendMessage,
-    setMessages,
-    status,
-    error,
-    stop,
-    clearError,
-  } = useChat({
-    id: conversationId,
-    transport,
+  const chat = useMemo(
+    () =>
+      new Chat<UIMessage>({
+        id: conversationId,
+        messages: initialMessages,
+        transport,
+      }),
+    [conversationId, initialMessages, transport],
+  );
+  const { messages, sendMessage, status, error, stop, clearError } = useChat({
+    chat,
   });
 
   useEffect(() => {
@@ -189,9 +190,10 @@ export function App(): React.ReactElement {
     );
     if (!response.ok) return;
     const body = (await response.json()) as WebChatMessagesResponse;
+    const nextMessages = body.messages.map(toUiMessage);
     localStorage.setItem(conversationStorageKey, nextConversationId);
+    setInitialMessages(nextMessages);
     setConversationId(nextConversationId);
-    setMessages(body.messages.map(toUiMessage));
     setInput("");
     focusPromptTextarea(promptInputRef.current);
   }
@@ -207,8 +209,8 @@ export function App(): React.ReactElement {
   function startNewConversation(): void {
     const next = createConversationId();
     localStorage.setItem(conversationStorageKey, next);
+    setInitialMessages([]);
     setConversationId(next);
-    setMessages([]);
     setInput("");
     focusPromptTextarea(promptInputRef.current);
   }

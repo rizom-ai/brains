@@ -76,7 +76,8 @@ describe("React containment", () => {
     expect(appSource).toContain("localStorage");
     expect(appSource).toContain("id: conversationId");
     expect(appSource).toContain("New conversation");
-    expect(appSource).toContain("setMessages([])");
+    expect(appSource).toContain("new Chat<UIMessage>");
+    expect(appSource).toContain("setInitialMessages([])");
     expect(appSource).toContain("isPlainEnter");
     expect(appSource).toContain("onKeyDown");
     expect(appSource).toContain("scrollIntoView");
