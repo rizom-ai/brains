@@ -255,9 +255,7 @@ export function App(): React.ReactElement {
     >
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
-          <h2>
-            Sessions <em>·</em>
-          </h2>
+          <h2>Sessions</h2>
           <button
             className="web-chat-sessions-new"
             type="button"
@@ -340,7 +338,7 @@ export function App(): React.ReactElement {
             >
               <path d="M8 3v10M3 8h10" strokeLinecap="round" />
             </svg>
-            New conversation
+            New
           </button>
         </header>
 
