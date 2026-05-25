@@ -40,6 +40,9 @@ The current web-chat branch has started that correction:
 - Preserve Rizom styling through CSS/tokens and minimal class adaptation, not by
   rewriting component behavior from scratch.
 - Keep `/chat` on AI SDK UI transport and the existing web-chat HTTP boundary.
+- Make the bundled full chat anchor-only by default so durable sessions,
+  confirmations, and tool access share one clear permission model.
+- Defer public/trusted chat until there is an explicit abuse-mitigation design.
 - Defer any dashboard widget until there is a concrete product surface.
 
 ## Non-goals
@@ -53,7 +56,27 @@ The current web-chat branch has started that correction:
 
 ## Decisions
 
-### 1. AI Elements is canonical; local files are generated/adapted registry code
+### 1. Full web chat is anchor-only by default
+
+The full `/chat` surface should require an operator/anchor session. This keeps
+page access, chat POSTs, conversation-service-backed sessions, session message
+loading, confirmations, and sensitive tool access under one permission model.
+
+Current public/trusted chat is deferred. A public chat would be fun, but it has
+real token-abuse and tool-exposure risks. If we add it later, it should be an
+explicit opt-in mode with safeguards such as:
+
+- strict per-IP/session rate limits
+- public-permission tools only
+- short max response/token budget
+- no durable operator-style session sidebar by default
+- abuse logging and a deploy-level kill switch
+- optional CAPTCHA, email gate, or invite token
+
+Until that exists, `/chat` should not silently behave as public chat with broken
+or missing sessions.
+
+### 2. AI Elements is canonical; local files are generated/adapted registry code
 
 Use the official registry workflow as the starting point for chat primitives:
 
@@ -75,7 +98,7 @@ Because AI Elements is registry-based, installed files live locally. That does
 If a component starts drifting into a custom implementation, stop and re-check
 upstream AI Elements before continuing.
 
-### 2. Styling is ours; behavior and structure should remain AI Elements-aligned
+### 3. Styling is ours; behavior and structure should remain AI Elements-aligned
 
 Rizom theme variables, typography, spacing, and interaction styling remain ours.
 But the component contracts and behavior should follow AI Elements where
@@ -96,7 +119,7 @@ Bad adaptations:
   reasoning from scratch.
 - Creating local components named like AI Elements but with unrelated behavior.
 
-### 3. React `/chat` and preact dashboard remain separate runtimes
+### 4. React `/chat` and preact dashboard remain separate runtimes
 
 The full `/chat` route remains the React AI SDK UI surface. Dashboard pages
 remain preact/SSR. They should not import from each other.
@@ -104,7 +127,7 @@ remain preact/SSR. They should not import from each other.
 The contract between surfaces is the HTTP/API boundary, not shared component
 code.
 
-### 4. Dashboard chat widget is deferred and should be designed separately
+### 5. Dashboard chat widget is deferred and should be designed separately
 
 A dashboard widget may eventually make sense, but it should wait until there is
 a specific dashboard placement and UX.
@@ -122,7 +145,7 @@ Do not preemptively fork a full mini-chat implementation now.
 
 ```text
 @brains/web-chat                         React, /chat surface
-  src/                                   route plugin + AI SDK UI stream endpoint
+  src/                                   anchor-only route plugin + AI SDK UI stream endpoint
   ui-react/src/
     App.tsx                              full-page chat shell
     main.tsx                             createRoot mount for /chat
@@ -142,7 +165,19 @@ plugins/dashboard                        preact, SSR + islands
 
 ## Next steps
 
-### 1. Finish AI Elements alignment of existing primitives
+### 1. Make `/chat` consistently anchor-only
+
+Before merging the current branch to `main`, align the HTTP routes with the
+permission model:
+
+- `/chat` should require an operator/anchor session or render a clear sign-in
+  required state.
+- `/api/chat` should reject unauthenticated public callers instead of falling
+  back to `public` permission.
+- `/api/chat/sessions`, `/api/chat/messages`, and `/api/chat/confirm` should
+  remain anchor-only and continue to use the conversation service.
+
+### 2. Finish AI Elements alignment of existing primitives
 
 The first pass aligned message/response/conversation. Continue with the existing
 local primitives in this order:
@@ -155,7 +190,7 @@ local primitives in this order:
 3. Add `reasoning`, `sources`, `actions`, or `suggestions` only when the backend
    emits the corresponding UI parts or the product surface needs them.
 
-### 2. Add local AI Elements adoption notes
+### 3. Add local AI Elements adoption notes
 
 Add a short README under `interfaces/web-chat/ui-react/src/ai-elements/` that
 states:
@@ -167,7 +202,7 @@ states:
 - Prefer CSS/token styling over behavioral rewrites.
 - Document any divergence from upstream.
 
-### 3. Validate in browser before release
+### 4. Validate in browser before release
 
 Before merging this branch to `main`, run the targeted checks and do a visual
 browser pass of `/chat`:
@@ -192,6 +227,8 @@ Browser pass should cover:
 
 ## Open questions
 
+- What should the future public/trusted chat abuse controls be: rate limits,
+  token budgets, CAPTCHA/email/invite gate, or all of the above?
 - Which AI Elements components do we need next: prompt input, tool, reasoning,
   sources, actions, suggestions, or artifact?
 - Do outbound artifacts map cleanly to existing AI Elements artifact/tool
