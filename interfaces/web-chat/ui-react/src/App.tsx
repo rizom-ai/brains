@@ -13,8 +13,12 @@ import {
   ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
-import { MarkdownResponse } from "./ai-elements/markdown-response";
-import { Message, MessageBubble, MessageHeader } from "./ai-elements/message";
+import {
+  Message,
+  MessageContent,
+  MessageHeader,
+  MessageResponse,
+} from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
@@ -459,13 +463,13 @@ export function App(): React.ReactElement {
               messages.map((message) => (
                 <Message key={message.id} from={message.role}>
                   <MessageHeader role={message.role} />
-                  <MessageBubble>
+                  <MessageContent>
                     {groupMessageParts(message.parts).map((group, index) => {
                       if (group.kind === "text") {
                         return (
-                          <MarkdownResponse key={index}>
+                          <MessageResponse key={index}>
                             {group.text}
-                          </MarkdownResponse>
+                          </MessageResponse>
                         );
                       }
                       if (group.kind === "tools") {
@@ -495,7 +499,7 @@ export function App(): React.ReactElement {
                         />
                       );
                     })}
-                  </MessageBubble>
+                  </MessageContent>
                 </Message>
               ))
             )}

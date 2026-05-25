@@ -25,10 +25,15 @@
     "@brains/auth-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@streamdown/cjk": "^1.0.3",
+    "@streamdown/code": "^1.1.1",
+    "@streamdown/math": "^1.0.2",
+    "@streamdown/mermaid": "^1.0.2",
     "ai": "^6.0.86",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "streamdown": "^2.5.0"
+    "streamdown": "^2.5.0",
+    "use-stick-to-bottom": "^1.1.4"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
