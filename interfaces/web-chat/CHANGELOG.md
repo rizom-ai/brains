@@ -1,5 +1,25 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.91
+
+### Patch Changes
+
+- [`f471266`](https://github.com/rizom-ai/brains/commit/f4712665e4e2783ab8a12b368ad97038d71cbe99) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Mobile cleanup against the just-shipped drawer:
+  - Remove the "New" button from the chat header on every breakpoint —
+    the sessions panel "+" button already covers that affordance on
+    desktop (always visible) and mobile (via the drawer), so the header
+    copy was redundant on both.
+  - Drop the legacy `scrollIntoView` effect + sentinel div in `App.tsx`.
+    `Conversation` is now aligned with the AI Elements pattern using
+    `use-stick-to-bottom`, which manages its own scroll. Two scroll
+    controllers were fighting on every streamed token, manifesting as the
+    view jumping up during updates.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.91
+  - @brains/auth-service@0.2.0-alpha.91
+  - @brains/plugins@0.2.0-alpha.91
+
 ## 0.2.0-alpha.90
 
 ### Patch Changes
