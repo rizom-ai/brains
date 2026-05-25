@@ -324,12 +324,21 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    // Save assistant response
-    if (result.text.trim()) {
+    const { toolResults, pendingConfirmation, totalToolCalls } =
+      extractToolResults(result.steps);
+
+    const responseText = pendingConfirmation
+      ? "Confirmation required."
+      : result.text;
+
+    // Save assistant response. When a tool requires confirmation, do not save
+    // potentially misleading model completion text (e.g. "Deleted.") before
+    // the action has actually been confirmed and executed.
+    if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
-        content: result.text,
+        content: responseText,
         ...this.withMessageMetadata(
           this.buildMessageMetadata(
             this.getAssistantActor(),
@@ -339,19 +348,16 @@ export class AgentService implements IAgentService {
       });
     }
 
-    const { toolResults, pendingConfirmation, totalToolCalls } =
-      extractToolResults(result.steps);
-
     this.logger.debug("Chat completed", {
       conversationId,
-      responseLength: result.text.length,
+      responseLength: responseText.length,
       toolCalls: totalToolCalls,
       stepCount: result.steps.length,
       usage: result.usage,
     });
 
     const response: AgentResponse = {
-      text: result.text,
+      text: responseText,
       toolResults,
       usage: toTokenUsage(result.usage),
     };
