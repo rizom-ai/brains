@@ -1,5 +1,3 @@
-import { mkdir, writeFile } from "fs/promises";
-import { join } from "path";
 import type { CommandResult } from "../run-command";
 import type { MCPClient } from "../lib/mcp-client";
 
@@ -107,20 +105,7 @@ export async function operateRemote(
     }
 
     const input = mapArgsFromJsonSchema(tool.inputSchema, args, flags);
-    const localOutputDir =
-      commandName === "preview-attachment" &&
-      typeof flags["outputDir"] === "string"
-        ? flags["outputDir"]
-        : undefined;
-    if (localOutputDir) {
-      delete input["outputDir"];
-    }
-
     const result = await client.callTool(tool.name, input);
-
-    if (localOutputDir && (await writeInlinePreview(result, localOutputDir))) {
-      return { success: true };
-    }
 
     console.log(result);
     return { success: true };
@@ -132,57 +117,5 @@ export async function operateRemote(
     };
   } finally {
     await client.close();
-  }
-}
-
-async function writeInlinePreview(
-  resultText: string,
-  outputDir: string,
-): Promise<boolean> {
-  const parsed = parseToolResult(resultText);
-  if (!parsed?.success || !parsed.data) return false;
-
-  const data = parsed.data;
-  if (
-    typeof data.contentBase64 !== "string" ||
-    typeof data.filename !== "string"
-  ) {
-    return false;
-  }
-
-  await mkdir(outputDir, { recursive: true });
-  const path = join(outputDir, data.filename);
-  await writeFile(path, Buffer.from(data.contentBase64, "base64"));
-
-  const printable = {
-    ...parsed,
-    data: {
-      ...data,
-      path,
-      contentBase64: undefined,
-    },
-    message: `Wrote remote preview artifact to ${path}`,
-  };
-  console.log(JSON.stringify(printable, null, 2));
-  return true;
-}
-
-function parseToolResult(resultText: string):
-  | {
-      success?: boolean;
-      data?: {
-        filename?: unknown;
-        contentBase64?: unknown;
-        [key: string]: unknown;
-      };
-      [key: string]: unknown;
-    }
-  | undefined {
-  try {
-    const parsed: unknown = JSON.parse(resultText);
-    if (typeof parsed !== "object" || parsed === null) return undefined;
-    return parsed as ReturnType<typeof parseToolResult>;
-  } catch {
-    return undefined;
   }
 }

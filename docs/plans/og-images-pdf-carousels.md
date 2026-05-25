@@ -15,7 +15,6 @@ The reusable substrate exists:
 - explicit/frozen `document` entity path, including durable PDF generation from source attachments
 - `social-post.documents[]` references for attaching approved PDF artifacts
 - LinkedIn native PDF document publishing through the current `/rest/documents` and `/rest/posts` APIs
-- local/operator media preview tool with inline preview support for remotely generated artifacts
 - Docker image support for Chromium media rendering
 
 ## Goal
