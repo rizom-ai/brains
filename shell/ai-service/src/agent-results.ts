@@ -48,6 +48,14 @@ export function extractToolResults(
           description: confirmationParsed.data.description,
           args: confirmationParsed.data.args,
         };
+
+        const args = tr.toolCallId
+          ? toolCallArgsMap.get(tr.toolCallId)
+          : undefined;
+        toolResults.push({
+          toolName: tr.toolName,
+          ...(args !== undefined ? { args } : {}),
+        });
         continue;
       }
 

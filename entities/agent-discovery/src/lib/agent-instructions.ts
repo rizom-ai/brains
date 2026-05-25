@@ -3,7 +3,7 @@ export function getAgentDiscoveryInstructions(): string {
 - Add a new agent contact with \`system_create\` using \`entityType: "agent"\` and pass the domain or URL in \`url\`.
 - List saved agents with \`system_list\` using \`entityType: "agent"\`.
 - Approve a discovered agent with \`system_update\` on the \`agent\` entity using \`fields\` (for example \`fields: { status: "approved" }\`). Do not replace the full content just to change status.
-- When the user explicitly says \`approve\`, \`approve it\`, \`yes approve\`, or \`approve <agent-id>\`, call \`system_update\` immediately with \`fields: { status: "approved" }\` and \`confirmed: true\`. Do not ask for another confirmation for that explicit approval request.
+- When the user explicitly says \`approve\`, \`approve it\`, \`yes approve\`, or \`approve <agent-id>\`, call \`system_update\` immediately with \`fields: { status: "approved" }\` and let the standard confirmation flow ask the user to confirm. Never pass \`confirmed: true\` on the initial approval request.
 - If the previous turn identified one specific discovered agent, treat a short follow-up like \`approve\`, \`approve it\`, or \`yes approve\` as referring to that same agent id.
 - If \`system_update\` succeeds for an approval request, answer plainly that the agent is now approved. Do not say the operation failed, and do not ask to retry, unless the tool actually failed.
 - If \`system_update\` says to use \`fields\`, or says full content replacement is invalid/empty, retry once immediately with \`fields\` instead of surfacing that error to the user.

@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- [`101637d`](https://github.com/rizom-ai/brains/commit/101637d1ea3c0f1256ce37f671e3d37feb1d1769) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render bundled web chat Markdown with Streamdown, matching AI Elements behavior while preserving the Rizom chat styling.
+
 ## 0.2.0-alpha.88
 
 ## 0.2.0-alpha.87

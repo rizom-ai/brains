@@ -1,5 +1,44 @@
 # @brains/content-service
 
+## 0.2.0-alpha.91
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.91
+  - @brains/contracts@0.2.0-alpha.91
+  - @brains/utils@0.2.0-alpha.91
+  - @brains/ai-service@0.2.0-alpha.91
+  - @brains/entity-service@0.2.0-alpha.91
+  - @brains/job-queue@0.2.0-alpha.91
+  - @brains/templates@0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.90
+  - @brains/contracts@0.2.0-alpha.90
+  - @brains/utils@0.2.0-alpha.90
+  - @brains/ai-service@0.2.0-alpha.90
+  - @brains/entity-service@0.2.0-alpha.90
+  - @brains/job-queue@0.2.0-alpha.90
+  - @brains/templates@0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.89
+  - @brains/contracts@0.2.0-alpha.89
+  - @brains/utils@0.2.0-alpha.89
+  - @brains/ai-service@0.2.0-alpha.89
+  - @brains/entity-service@0.2.0-alpha.89
+  - @brains/job-queue@0.2.0-alpha.89
+  - @brains/templates@0.2.0-alpha.89
+
 ## 0.2.0-alpha.88
 
 ### Patch Changes

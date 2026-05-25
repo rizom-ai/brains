@@ -47,11 +47,17 @@ export class TestRunner implements ITestRunner {
       if (!turn) continue;
 
       collector.startTurn();
-      const response = await this.agentService.chat(
-        turn.userMessage,
-        conversationId,
-        context,
-      );
+      const response =
+        turn.confirmPendingAction !== undefined
+          ? await this.agentService.confirmPendingAction(
+              conversationId,
+              turn.confirmPendingAction,
+            )
+          : await this.agentService.chat(
+              turn.userMessage,
+              conversationId,
+              context,
+            );
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults:

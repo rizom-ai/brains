@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.88",
+  "version": "0.2.0-alpha.91",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
@@ -38,7 +38,6 @@
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
-    "@brains/media-tools": "workspace:*",
     "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",

@@ -1,5 +1,67 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.91
+
+### Patch Changes
+
+- [`f471266`](https://github.com/rizom-ai/brains/commit/f4712665e4e2783ab8a12b368ad97038d71cbe99) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Mobile cleanup against the just-shipped drawer:
+  - Remove the "New" button from the chat header on every breakpoint —
+    the sessions panel "+" button already covers that affordance on
+    desktop (always visible) and mobile (via the drawer), so the header
+    copy was redundant on both.
+  - Drop the legacy `scrollIntoView` effect + sentinel div in `App.tsx`.
+    `Conversation` is now aligned with the AI Elements pattern using
+    `use-stick-to-bottom`, which manages its own scroll. Two scroll
+    controllers were fighting on every streamed token, manifesting as the
+    view jumping up during updates.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.91
+  - @brains/auth-service@0.2.0-alpha.91
+  - @brains/plugins@0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+### Patch Changes
+
+- [`7b9cfaa`](https://github.com/rizom-ai/brains/commit/7b9cfaaace29ef0efcc8ee6d83762c8615425a24) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Two mobile fixes against the just-shipped drawer:
+  - Move the hamburger menu button out of the right-hand actions group so
+    it anchors to the left edge of the header (matching the mockup, where
+    the menu button sits opposite the theme / new actions).
+  - Fix the drawer panel background under light mode. Previously the panel
+    used `rgb(from var(--chat-surface-deep) r g b / 0.95)`, which extracts
+    the underlying dark RGB even in light mode, leaving the drawer as a
+    dark slab on a light page. Now uses `var(--chat-bg-card)` so the
+    drawer flips with theme.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.90
+  - @brains/auth-service@0.2.0-alpha.90
+  - @brains/plugins@0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Minor Changes
+
+- [`3d05f53`](https://github.com/rizom-ai/brains/commit/3d05f539af35efb4d0c0e364cf4f09aa5ecb8fd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rework the mobile chat layout around a slide-in sessions drawer instead of
+  the previous pill-rail stack. At ≤760px the sessions panel becomes a
+  left-side drawer (86% width, max 320px) triggered by a hamburger in the
+  header, backed by a scrim and a floating close button; tapping a session
+  auto-closes the drawer. The same `.web-chat-sessions` component is
+  reused verbatim — the drawer is just chrome (positioning + transform +
+  backdrop). The mobile header collapses to four icon-only 40px circles
+  (sessions, brand, theme, new) and drops the eyebrow + subtitle for
+  vertical real estate. Touch targets meet 44px, the prompt textarea uses
+  16px to suppress iOS auto-zoom, and prompt + drawer respect
+  `env(safe-area-inset-bottom)`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.89
+  - @brains/auth-service@0.2.0-alpha.89
+  - @brains/plugins@0.2.0-alpha.89
+
 ## 0.2.0-alpha.88
 
 ### Minor Changes

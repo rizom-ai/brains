@@ -65,6 +65,46 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should resolve pending confirmations when a turn requests confirmation", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmation: {
+              toolName: "system_update",
+              description: "Update agent?",
+              args: { entityType: "agent", id: "old-agent.io" },
+            },
+          }),
+        ),
+      );
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve(createMockResponse({ text: "Action confirmed." })),
+      );
+
+      const testCase: TestCase = {
+        id: "test-confirmation-turn",
+        name: "Confirmation Turn Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Approve old-agent.io" },
+          { userMessage: "Approve confirmation", confirmPendingAction: true },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.chat).toHaveBeenCalledTimes(1);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.any(String),
+        true,
+      );
+    });
+
     it("should use explicit eval permission when provided", async () => {
       const testCase: TestCase = {
         id: "test-explicit-anchor",

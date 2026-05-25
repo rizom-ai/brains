@@ -76,6 +76,12 @@ export type SuccessCriteria = z.infer<typeof successCriteriaSchema>;
  */
 export const turnSchema = z.object({
   userMessage: z.string(),
+  confirmPendingAction: z
+    .boolean()
+    .optional()
+    .describe(
+      "When set, this turn resolves the pending confirmation instead of sending a chat message.",
+    ),
   successCriteria: successCriteriaSchema.optional(),
 });
 

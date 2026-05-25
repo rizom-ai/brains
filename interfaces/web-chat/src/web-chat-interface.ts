@@ -1181,10 +1181,11 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     z-index: 5;
     border-right: 1px solid var(--chat-border-soft);
     border-bottom: 0;
-    background:
-      linear-gradient(180deg,
-        rgb(from var(--chat-surface-deep) r g b / 0.95),
-        rgb(from var(--chat-bg) r g b / 0.95));
+    /* Theme-flipping background. Earlier rgb(from --chat-surface-deep ...)
+       extracted the underlying dark RGB even in light mode, leaving the
+       drawer as a dark slab on a light page. */
+    background: var(--chat-bg-card);
+    box-shadow: 0 12px 40px -12px rgb(0 0 0 / 0.45);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     transform: translateX(-100%);
@@ -1253,9 +1254,14 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     }
   }
 
-  /* Header: shrink the brand to single-line, hide eyebrow + subtitle.
-     Hamburger trigger appears as the first action button. */
-  .web-chat-header { gap: 0.4rem; }
+  /* Header on mobile: hamburger (left) · brand (center, takes remaining
+     space) · actions (right). The hamburger button is a direct child of
+     .web-chat-header (not nested in .web-chat-header-actions) so it
+     anchors to the page edge, matching the mockup. */
+  .web-chat-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 0.5rem;
+  }
   .web-chat-header-eyebrow { display: none; }
   .web-chat-header p { display: none; }
   .web-chat-header h1 {
