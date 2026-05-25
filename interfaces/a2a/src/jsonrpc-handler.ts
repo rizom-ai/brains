@@ -4,6 +4,8 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
 
+const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
+
 // -- Zod schemas for request validation --
 
 const messagePartsSchema = z.array(
@@ -197,6 +199,10 @@ interface StreamResult {
   stream: ReadableStream<Uint8Array>;
 }
 
+interface StreamOptions {
+  heartbeatIntervalMs?: number;
+}
+
 /**
  * Handle message/stream — returns an SSE stream of task status updates.
  * Creates a task, starts processing, and streams events until terminal state.
@@ -206,6 +212,7 @@ export function handleStreamMessage(
   requestId: string | number,
   message: z.infer<typeof streamParamsSchema>["message"],
   context: JsonRpcHandlerContext,
+  options: StreamOptions = {},
 ): StreamResult {
   const textParts = message.parts.filter(
     (p): p is { kind: "text"; text: string } =>
@@ -221,30 +228,49 @@ export function handleStreamMessage(
   context.taskManager.updateState(taskId, "working");
 
   const encoder = new TextEncoder();
+  const heartbeatIntervalMs =
+    options.heartbeatIntervalMs ?? SSE_HEARTBEAT_INTERVAL_MS;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let closed = false;
+
+  function stopHeartbeat(): void {
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = undefined;
+    }
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller): void {
-      let closed = false;
-
-      function send(data: Record<string, unknown>): void {
+      function sendRaw(payload: string): void {
         if (closed) return;
         try {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
-          );
+          controller.enqueue(encoder.encode(payload));
         } catch {
           closed = true;
+          stopHeartbeat();
         }
+      }
+
+      function send(data: Record<string, unknown>): void {
+        sendRaw(`data: ${JSON.stringify(data)}\n\n`);
       }
 
       function finish(): void {
         if (closed) return;
         closed = true;
+        stopHeartbeat();
         try {
           controller.close();
         } catch {
           // already closed
         }
+      }
+
+      if (heartbeatIntervalMs > 0) {
+        heartbeat = setInterval(() => {
+          sendRaw(": heartbeat\n\n");
+        }, heartbeatIntervalMs);
       }
 
       function statusEvent(
@@ -302,6 +328,10 @@ export function handleStreamMessage(
           }
           finish();
         });
+    },
+    cancel(): void {
+      closed = true;
+      stopHeartbeat();
     },
   });
 
