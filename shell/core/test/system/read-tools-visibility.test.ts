@@ -102,9 +102,10 @@ describe("read tools enforce caller visibility scope", () => {
 
   async function runList(
     scope: ToolContext["userPermissionLevel"],
+    status?: string,
   ): Promise<string[]> {
     const raw = await getTool("system_list").handler(
-      { entityType: "doc" },
+      { entityType: "doc", ...(status ? { status } : {}) },
       baseContext(scope),
     );
     const data = expectSuccess(raw, listDataSchema);
@@ -154,6 +155,14 @@ describe("read tools enforce caller visibility scope", () => {
 
     it("returns all visibility levels for anchor callers", async () => {
       expect(await runList("anchor")).toEqual([
+        "doc-public",
+        "doc-restricted",
+        "doc-shared",
+      ]);
+    });
+
+    it("treats status any as no status filter", async () => {
+      expect(await runList("anchor", "any")).toEqual([
         "doc-public",
         "doc-restricted",
         "doc-shared",
