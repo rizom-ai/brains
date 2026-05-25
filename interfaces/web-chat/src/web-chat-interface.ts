@@ -825,6 +825,30 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   color: var(--chat-text-muted);
   overflow: auto;
 }
+.web-chat-data-part-body > div + div,
+.web-chat-data-part-body > div + pre {
+  margin-top: 0.6rem;
+}
+.web-chat-data-part-label {
+  margin: 0 0 0.25rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--chat-text-light);
+}
+.web-chat-data-part-status {
+  color: var(--chat-text-light);
+  font-weight: 400;
+}
+.web-chat-data-part-status[data-state="output-error"],
+.web-chat-data-part-status[data-state="output-denied"] {
+  color: var(--chat-error);
+}
+.web-chat-data-part-status[data-state="approval-requested"] {
+  color: var(--chat-accent);
+}
 
 /* ─── Confirmations — instrument card. This is an action affordance,
    not a debug toggle, so it keeps the card chrome to grab attention. ─── */

@@ -6,6 +6,10 @@
     "jsxImportSource": "react",
     "moduleResolution": "bundler",
     "rootDir": "./",
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"]
+    },
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   }
 }

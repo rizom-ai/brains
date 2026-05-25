@@ -1,107 +1,123 @@
 /** @jsxImportSource react */
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import type { ComponentProps, ReactNode } from "react";
-
-function cn(...classes: Array<string | false | null | undefined>): string {
-  return classes.filter(Boolean).join(" ");
-}
+import { isValidElement } from "react";
 
 export type ToolProps = ComponentProps<"details">;
 
-export const Tool = ({
-  className,
-  ...props
-}: ToolProps): React.ReactElement => (
-  <details className={cn("web-chat-data-part", className)} {...props} />
-);
+export const Tool = ({ className, ...props }: ToolProps) => {
+  const composed = className
+    ? `web-chat-data-part ${className}`
+    : "web-chat-data-part";
+  return <details className={composed} {...props} />;
+};
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart;
 
-type ToolState = ToolPart["state"];
-
-const statusLabels: Partial<Record<ToolState, string>> = {
-  "approval-requested": "Awaiting approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
-};
-
-export type ToolHeaderProps = ComponentProps<"summary"> & {
-  state?: ToolState;
+export type ToolHeaderProps = {
   title?: string;
+  className?: string;
+} & (
+  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
+  | {
+      type: DynamicToolUIPart["type"];
+      state: DynamicToolUIPart["state"];
+      toolName: string;
+    }
+);
+
+const statusLabels: Record<ToolPart["state"], string> = {
+  "approval-requested": "awaiting approval",
+  "approval-responded": "responded",
+  "input-available": "running",
+  "input-streaming": "pending",
+  "output-available": "completed",
+  "output-denied": "denied",
+  "output-error": "error",
 };
 
 export const ToolHeader = ({
-  children,
   className,
-  state = "output-available",
-  title = "tool result",
-  ...props
-}: ToolHeaderProps): React.ReactElement => (
-  <summary className={cn("web-chat-data-part-header", className)} {...props}>
-    <span>{children ?? title}</span>
-    <span className="web-chat-tool-status">{statusLabels[state] ?? state}</span>
-    <span className="web-chat-data-part-chevron" aria-hidden="true" />
-  </summary>
-);
+  title,
+  type,
+  state,
+  toolName,
+}: ToolHeaderProps) => {
+  const derivedName =
+    type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+  const composed = className
+    ? `web-chat-data-part-header ${className}`
+    : "web-chat-data-part-header";
+
+  return (
+    <summary className={composed}>
+      <span>
+        {title ?? derivedName}
+        <span className="web-chat-data-part-status" data-state={state}>
+          {" · "}
+          {statusLabels[state]}
+        </span>
+      </span>
+      <span className="web-chat-data-part-chevron" aria-hidden="true" />
+    </summary>
+  );
+};
 
 export type ToolContentProps = ComponentProps<"div">;
 
-export const ToolContent = ({
-  className,
-  ...props
-}: ToolContentProps): React.ReactElement => (
-  <div className={cn("web-chat-data-part-body", className)} {...props} />
-);
-
-export type ToolInputProps = ComponentProps<"div"> & {
-  input: unknown;
+export const ToolContent = ({ className, ...props }: ToolContentProps) => {
+  const composed = className
+    ? `web-chat-data-part-body ${className}`
+    : "web-chat-data-part-body";
+  return <div className={composed} {...props} />;
 };
 
-export const ToolInput = ({
-  className,
-  input,
-  ...props
-}: ToolInputProps): React.ReactElement => (
-  <div className={cn("web-chat-tool-section", className)} {...props}>
-    <h4>Parameters</h4>
+export type ToolInputProps = ComponentProps<"div"> & {
+  input: ToolPart["input"];
+};
+
+export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
+  <div className={className} {...props}>
+    <h4 className="web-chat-data-part-label">Parameters</h4>
     <pre>{JSON.stringify(input, null, 2)}</pre>
   </div>
 );
 
 export type ToolOutputProps = ComponentProps<"div"> & {
-  errorText?: string;
-  output: unknown;
+  output: ToolPart["output"];
+  errorText: ToolPart["errorText"];
 };
 
 export const ToolOutput = ({
   className,
-  errorText,
   output,
+  errorText,
   ...props
-}: ToolOutputProps): React.ReactElement | null => {
-  if (output === undefined && !errorText) return null;
+}: ToolOutputProps) => {
+  if (!(output || errorText)) {
+    return null;
+  }
 
-  let renderedOutput: ReactNode;
-  if (errorText) {
-    renderedOutput = errorText;
+  let body: ReactNode;
+  if (typeof output === "object" && !isValidElement(output)) {
+    body = <pre>{JSON.stringify(output, null, 2)}</pre>;
   } else if (typeof output === "string") {
-    renderedOutput = output;
+    body = <pre>{output}</pre>;
   } else {
-    renderedOutput = JSON.stringify(output, null, 2);
+    body = <div>{output as ReactNode}</div>;
   }
 
   return (
     <div
-      className={cn("web-chat-tool-section", className)}
-      data-error={errorText ? "true" : "false"}
+      className={className}
+      data-variant={errorText ? "error" : "result"}
       {...props}
     >
-      <h4>{errorText ? "Error" : "Result"}</h4>
-      <pre>{renderedOutput}</pre>
+      <h4 className="web-chat-data-part-label">
+        {errorText ? "Error" : "Result"}
+      </h4>
+      {errorText ? <p className="web-chat-error">{errorText}</p> : null}
+      {body}
     </div>
   );
 };

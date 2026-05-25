@@ -3,6 +3,10 @@
   "include": ["src/**/*", "test/**/*"],
   "compilerOptions": {
     "rootDir": "./",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   }
 }
