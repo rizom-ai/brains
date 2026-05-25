@@ -219,7 +219,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-header {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: center;
+  align-items: start;
   gap: 1rem;
 }
 .web-chat-header-eyebrow {
@@ -291,11 +291,14 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-secondary-action svg { width: 12px; height: 12px; }
 
-/* Header actions cluster — theme toggle + New button. */
+/* Header actions cluster — theme toggle + New button. Sits at the
+   top-right of the header; padding-top aligns it with the h1 baseline
+   rather than the very top of the eyebrow. */
 .web-chat-header-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  padding-top: 1.4rem;
 }
 .web-chat-icon-action {
   display: inline-flex;
@@ -1284,8 +1287,17 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
      anchors to the page edge, matching the mockup. */
   .web-chat-header {
     grid-template-columns: auto 1fr auto;
+    align-items: center;
     gap: 0.5rem;
   }
+  .web-chat-header-actions { padding-top: 0; }
+  /* Match the theme toggle size to its neighbors (hamburger + New are
+     both 40×40 on mobile) so the action row reads as one band. */
+  .web-chat-icon-action {
+    width: 40px;
+    height: 40px;
+  }
+  .web-chat-icon-action svg { width: 16px; height: 16px; }
   .web-chat-header-eyebrow { display: none; }
   .web-chat-header p { display: none; }
   .web-chat-header h1 {
