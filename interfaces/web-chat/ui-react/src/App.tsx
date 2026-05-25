@@ -146,18 +146,6 @@ function focusPromptTextarea(textarea: HTMLTextAreaElement | null): void {
   requestAnimationFrame(() => textarea?.focus());
 }
 
-function isPlainEnter(
-  event: React.KeyboardEvent<HTMLTextAreaElement>,
-): boolean {
-  return (
-    event.key === "Enter" &&
-    !event.shiftKey &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.altKey
-  );
-}
-
 function deriveSessionTitle(text: string): string {
   const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
   if (!firstLine) return "New conversation";
@@ -291,8 +279,8 @@ export function App(): React.ReactElement {
     focusPromptTextarea(promptInputRef.current);
   }
 
-  function submitMessage(): void {
-    const text = input.trim();
+  function submitMessage(textOverride?: string): void {
+    const text = (textOverride ?? input).trim();
     if (!text || isBusyStatus(status)) return;
     upsertPendingSession(text);
     setInput("");
@@ -527,7 +515,7 @@ export function App(): React.ReactElement {
           </div>
         ) : null}
 
-        <PromptInput onSubmit={submitMessage}>
+        <PromptInput onSubmit={(message) => submitMessage(message.text)}>
           <label htmlFor="web-chat-input">Message</label>
           <PromptInputTextarea
             id="web-chat-input"
@@ -535,11 +523,6 @@ export function App(): React.ReactElement {
             value={input}
             placeholder="Plant a question…"
             onInput={(event) => setInput(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (!isPlainEnter(event)) return;
-              event.preventDefault();
-              submitMessage();
-            }}
           />
           <PromptInputFooter>
             <PromptInputHint />

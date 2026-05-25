@@ -78,8 +78,12 @@ describe("React containment", () => {
     expect(appSource).toContain("New conversation");
     expect(appSource).toContain("new Chat<UIMessage>");
     expect(appSource).toContain("setInitialMessages([])");
-    expect(appSource).toContain("isPlainEnter");
-    expect(appSource).toContain("onKeyDown");
+    const promptInputSource = readFileSync(
+      join(packageRoot, "ui-react", "src", "ai-elements", "prompt-input.tsx"),
+      "utf-8",
+    );
+    expect(promptInputSource).toContain("requestSubmit");
+    expect(promptInputSource).toContain("PromptInputMessage");
     expect(appSource).toContain("scrollIntoView");
     expect(appSource).toContain("isBusyStatus");
     expect(appSource).toContain("onStop={stop}");
