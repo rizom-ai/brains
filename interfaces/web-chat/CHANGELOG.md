@@ -1,5 +1,26 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.92
+
+### Patch Changes
+
+- [`1aee233`](https://github.com/rizom-ai/brains/commit/1aee2335f9171e302826e54d5c2be4f13feb3e79) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the unstyled tool-call result block. The ai-elements registry's
+  `tool.tsx` shipped raw — Radix Collapsible + Tailwind classes that don't
+  resolve in this build + lucide icons + Badge — so every tool call rendered
+  as an unstyled Radix div, completely bypassing the existing
+  `web-chat-data-part-*` CSS that targets `<details>`. Ported `tool.tsx` to
+  native `<details>`/`<summary>` while keeping the AI Elements export API
+  (`Tool`, `ToolHeader`, `ToolContent`, `ToolInput`, `ToolOutput`) intact so
+  call sites don't change. Status now renders as a small `· running` /
+  `· completed` / `· error` text suffix with a `data-state` attribute for
+  color (errors/denials red, approval-requested amber). Deleted the
+  orphaned `code-block.tsx` and added small CSS for the new
+  `.web-chat-data-part-label` and `.web-chat-data-part-status` selectors.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.92
+  - @brains/auth-service@0.2.0-alpha.92
+  - @brains/plugins@0.2.0-alpha.92
+
 ## 0.2.0-alpha.91
 
 ### Patch Changes
