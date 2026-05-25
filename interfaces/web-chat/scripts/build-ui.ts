@@ -1,3 +1,4 @@
+import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { createRequire } from "module";
 import { dirname, join } from "path";
@@ -5,6 +6,7 @@ import { dirname, join } from "path";
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
+const aliasRoot = packageRoot;
 const outdir = join(packageRoot, "dist", "ui");
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
@@ -27,6 +29,22 @@ const result = await Bun.build({
   sourcemap: "external",
   naming: "app.js",
   plugins: [
+    {
+      name: "web-chat-aliases",
+      setup(build): void {
+        build.onResolve({ filter: /^@\// }, (args) => {
+          const resolved = join(aliasRoot, args.path.slice(2));
+          for (const candidate of [
+            resolved,
+            `${resolved}.tsx`,
+            `${resolved}.ts`,
+          ]) {
+            if (existsSync(candidate)) return { path: candidate };
+          }
+          return { path: resolved };
+        });
+      },
+    },
     {
       name: "dedupe-react",
       setup(build): void {

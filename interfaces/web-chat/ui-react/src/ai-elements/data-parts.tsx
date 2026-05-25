@@ -49,9 +49,14 @@ export function ToolResultPart({
 
   return (
     <Tool data-kind="tool-result">
-      <ToolHeader title={label} />
+      <ToolHeader
+        type="dynamic-tool"
+        state="output-available"
+        toolName={toolName ?? "tool"}
+        title={label}
+      />
       <ToolContent>
-        <ToolOutput output={data} />
+        <ToolOutput output={data} errorText={undefined} />
       </ToolContent>
     </Tool>
   );

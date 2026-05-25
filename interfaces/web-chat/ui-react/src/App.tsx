@@ -16,13 +16,11 @@ import {
 import {
   Message,
   MessageContent,
-  MessageHeader,
   MessageResponse,
 } from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
-  PromptInputHint,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "./ai-elements/prompt-input";
@@ -503,15 +501,17 @@ export function App(): React.ReactElement {
           <ConversationContent>
             {messages.length === 0 ? (
               <ConversationEmptyState
-                eyebrow="No traces yet"
                 title="Begin a field note."
                 description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
               />
             ) : (
               messages.map((message) => (
-                <Message key={message.id} from={message.role}>
-                  <MessageHeader role={message.role} />
-                  <MessageContent>
+                <Message
+                  key={message.id}
+                  from={message.role}
+                  data-role={message.role}
+                >
+                  <MessageContent className="web-chat-message-bubble">
                     {groupMessageParts(message.parts).map((group, index) => {
                       if (group.kind === "text") {
                         return (
@@ -585,7 +585,10 @@ export function App(): React.ReactElement {
             onInput={(event) => setInput(event.currentTarget.value)}
           />
           <PromptInputFooter>
-            <PromptInputHint />
+            <span className="web-chat-prompt-hint">
+              <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
+              newline
+            </span>
             <PromptInputSubmit
               status={status}
               onStop={stop}
