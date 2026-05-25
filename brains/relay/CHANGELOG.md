@@ -1,5 +1,40 @@
 # @brains/relay
 
+## 0.2.0-alpha.90
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.90
+  - @brains/assessment@0.2.0-alpha.90
+  - @brains/conversation-memory@0.2.0-alpha.90
+  - @brains/decks@0.2.0-alpha.90
+  - @brains/doc@0.2.0-alpha.90
+  - @brains/image-plugin@0.2.0-alpha.90
+  - @brains/link@0.2.0-alpha.90
+  - @brains/note@0.2.0-alpha.90
+  - @brains/prompt@0.2.0-alpha.90
+  - @brains/rizom-ecosystem@0.2.0-alpha.90
+  - @brains/site-info@0.2.0-alpha.90
+  - @brains/topics@0.2.0-alpha.90
+  - @brains/a2a@0.2.0-alpha.90
+  - @brains/discord@0.2.0-alpha.90
+  - @brains/mcp@0.2.0-alpha.90
+  - @brains/webserver@0.2.0-alpha.90
+  - @brains/cms@0.2.0-alpha.90
+  - @brains/dashboard@0.2.0-alpha.90
+  - @brains/directory-sync@0.2.0-alpha.90
+  - @brains/site-builder-plugin@0.2.0-alpha.90
+  - @brains/site-content@0.2.0-alpha.90
+  - @brains/content-formatters@0.2.0-alpha.90
+  - @brains/site-composition@0.2.0-alpha.90
+  - @brains/theme-rizom@0.2.0-alpha.90
+  - @brains/utils@0.2.0-alpha.90
+  - @brains/app@0.2.0-alpha.90
+  - @brains/auth-service@0.2.0-alpha.90
+  - @brains/plugins@0.2.0-alpha.90
+  - @brains/site-rizom@0.2.0-alpha.90
+
 ## 0.2.0-alpha.89
 
 ### Patch Changes
