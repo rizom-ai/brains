@@ -12,6 +12,22 @@ export interface ToolContextInfo {
   userPermissionLevel?: UserPermissionLevel;
 }
 
+const INTERNAL_CONFIRMATION_FIELDS = new Set([
+  "confirmed",
+  "confirmationToken",
+  "contentHash",
+]);
+
+export function toModelVisibleInputSchema(
+  inputSchema: Tool["inputSchema"],
+): Tool["inputSchema"] {
+  return Object.fromEntries(
+    Object.entries(inputSchema).filter(
+      ([key]) => !INTERNAL_CONFIRMATION_FIELDS.has(key),
+    ),
+  );
+}
+
 export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
@@ -42,7 +58,7 @@ export function convertToSDKTools(
 
     sdkTools[t.name] = dynamicTool({
       description: t.description,
-      inputSchema: z.object(t.inputSchema),
+      inputSchema: z.object(toModelVisibleInputSchema(t.inputSchema)),
       execute: wrappedExecute,
     });
   }

@@ -1,6 +1,6 @@
 id: multi-turn-agent-approve-then-call-now
 name: Approve Then Call Uses Approved Status Immediately
-description: Verifies that after approving a discovered agent, an immediate follow-up call does not regress to a separate not-approved gate and proceeds to a2a_call
+description: Verifies that approving a discovered agent goes through confirmation, then an immediate follow-up call sees the approved status and proceeds to a2a_call.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -19,12 +19,22 @@ turns:
           argsContain:
             entityType: "agent"
             id: "old-agent.io"
+          argsAbsent:
+            - confirmed
       responseContains:
-        - "Approved"
+        - "Confirmation required"
       responseNotContains:
+        - "Approved"
         - "not approved yet"
         - "approve it first"
         - "still not approved"
+
+  - userMessage: "Approve confirmation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Update"
+        - '"success": true'
 
   - userMessage: "Can you talk to old-agent.io now?"
     successCriteria:
