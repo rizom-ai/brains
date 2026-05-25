@@ -1,37 +1,118 @@
 /** @jsxImportSource react */
-import { forwardRef, type PropsWithChildren } from "react";
-import type { TextareaHTMLAttributes } from "react";
+import type { ChatStatus, FileUIPart } from "ai";
+import {
+  forwardRef,
+  useCallback,
+  useState,
+  type ComponentProps,
+  type FormEvent,
+  type FormEventHandler,
+  type KeyboardEventHandler,
+  type PropsWithChildren,
+} from "react";
 
-type PromptInputStatus = "submitted" | "streaming" | "ready" | "error";
+function cn(...classes: Array<string | false | null | undefined>): string {
+  return classes.filter(Boolean).join(" ");
+}
+
+export interface PromptInputMessage {
+  text: string;
+  files: FileUIPart[];
+}
+
+export type PromptInputProps = Omit<
+  ComponentProps<"form">,
+  "onSubmit" | "onError"
+> & {
+  onSubmit: (
+    message: PromptInputMessage,
+    event: FormEvent<HTMLFormElement>,
+  ) => void | Promise<void>;
+};
 
 export function PromptInput({
   children,
+  className,
   onSubmit,
-}: PropsWithChildren<{ onSubmit: () => void }>): React.ReactElement {
+  ...props
+}: PropsWithChildren<PromptInputProps>): React.ReactElement {
+  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
+    (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const text = (formData.get("message") as string | null) ?? "";
+      void onSubmit({ files: [], text }, event);
+    },
+    [onSubmit],
+  );
+
   return (
     <form
-      className="web-chat-prompt-input"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
+      className={cn("web-chat-prompt-input", className)}
+      onSubmit={handleSubmit}
+      {...props}
     >
       {children}
     </form>
   );
 }
 
+export type PromptInputTextareaProps = ComponentProps<"textarea">;
+
 export const PromptInputTextarea = forwardRef<
   HTMLTextAreaElement,
-  TextareaHTMLAttributes<HTMLTextAreaElement>
->(function PromptInputTextarea(props, ref): React.ReactElement {
-  return <textarea ref={ref} className="web-chat-prompt-textarea" {...props} />;
+  PromptInputTextareaProps
+>(function PromptInputTextarea(
+  { className, name = "message", onKeyDown, ...props },
+  ref,
+): React.ReactElement {
+  const [isComposing, setIsComposing] = useState(false);
+
+  const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+    (event) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+      if (event.key !== "Enter") return;
+      if (event.shiftKey || isComposing || event.nativeEvent.isComposing) {
+        return;
+      }
+      event.preventDefault();
+
+      const submitButton = event.currentTarget.form?.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement | null;
+      if (submitButton?.disabled) return;
+
+      event.currentTarget.form?.requestSubmit();
+    },
+    [isComposing, onKeyDown],
+  );
+
+  return (
+    <textarea
+      ref={ref}
+      className={cn("web-chat-prompt-textarea", className)}
+      name={name}
+      onCompositionEnd={() => setIsComposing(false)}
+      onCompositionStart={() => setIsComposing(true)}
+      onKeyDown={handleKeyDown}
+      {...props}
+    />
+  );
 });
+
+export type PromptInputFooterProps = ComponentProps<"div">;
 
 export function PromptInputFooter({
   children,
-}: PropsWithChildren): React.ReactElement {
-  return <div className="web-chat-prompt-footer">{children}</div>;
+  className,
+  ...props
+}: PropsWithChildren<PromptInputFooterProps>): React.ReactElement {
+  return (
+    <div className={cn("web-chat-prompt-footer", className)} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export function PromptInputHint(): React.ReactElement {
@@ -61,38 +142,52 @@ function SendIcon(): React.ReactElement {
   );
 }
 
+export type PromptInputSubmitProps = ComponentProps<"button"> & {
+  status?: ChatStatus;
+  onStop?: () => void;
+};
+
 export function PromptInputSubmit({
+  children,
+  className,
   disabled = false,
+  onClick,
   onStop,
-  status,
-}: {
-  disabled?: boolean;
-  onStop: () => void;
-  status: PromptInputStatus;
-}): React.ReactElement {
-  const busy = status === "submitted" || status === "streaming";
-  if (busy) {
-    return (
-      <button
-        aria-label="Stop response"
-        className="web-chat-prompt-submit"
-        type="button"
-        onClick={onStop}
-      >
-        Stop
-      </button>
-    );
-  }
+  status = "ready",
+  ...props
+}: PromptInputSubmitProps): React.ReactElement {
+  const isGenerating = status === "submitted" || status === "streaming";
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (isGenerating && onStop) {
+        event.preventDefault();
+        onStop();
+        return;
+      }
+      onClick?.(event);
+    },
+    [isGenerating, onClick, onStop],
+  );
 
   return (
     <button
-      aria-label="Send message"
-      className="web-chat-prompt-submit"
-      type="submit"
-      disabled={disabled}
+      aria-label={isGenerating ? "Stop response" : "Send message"}
+      className={cn("web-chat-prompt-submit", className)}
+      disabled={disabled && !isGenerating}
+      onClick={handleClick}
+      type={isGenerating && onStop ? "button" : "submit"}
+      {...props}
     >
-      Send
-      <SendIcon />
+      {children ??
+        (isGenerating ? (
+          "Stop"
+        ) : (
+          <>
+            Send
+            <SendIcon />
+          </>
+        ))}
     </button>
   );
 }

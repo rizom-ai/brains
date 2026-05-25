@@ -13,8 +13,12 @@ import {
   ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
-import { MarkdownResponse } from "./ai-elements/markdown-response";
-import { Message, MessageBubble, MessageHeader } from "./ai-elements/message";
+import {
+  Message,
+  MessageContent,
+  MessageHeader,
+  MessageResponse,
+} from "./ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
@@ -142,18 +146,6 @@ function focusPromptTextarea(textarea: HTMLTextAreaElement | null): void {
   requestAnimationFrame(() => textarea?.focus());
 }
 
-function isPlainEnter(
-  event: React.KeyboardEvent<HTMLTextAreaElement>,
-): boolean {
-  return (
-    event.key === "Enter" &&
-    !event.shiftKey &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.altKey
-  );
-}
-
 function deriveSessionTitle(text: string): string {
   const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
   if (!firstLine) return "New conversation";
@@ -194,6 +186,11 @@ export function App(): React.ReactElement {
   const [sessions, setSessions] = useState<WebChatSession[]>([]);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  function closeDrawer(): void {
+    setDrawerOpen(false);
+  }
 
   function toggleTheme(): void {
     const next: ThemeMode = theme === "light" ? "dark" : "light";
@@ -219,7 +216,15 @@ export function App(): React.ReactElement {
       }),
     [conversationId, initialMessages, transport],
   );
-  const { messages, sendMessage, status, error, stop, clearError } = useChat({
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    error,
+    stop,
+    clearError,
+  } = useChat({
     chat,
   });
 
@@ -281,14 +286,16 @@ export function App(): React.ReactElement {
     const body = (await response.json()) as WebChatMessagesResponse;
     const nextMessages = body.messages.map(toUiMessage);
     localStorage.setItem(conversationStorageKey, nextConversationId);
+    setMessages(nextMessages);
     setInitialMessages(nextMessages);
     setConversationId(nextConversationId);
     setInput("");
+    closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
 
-  function submitMessage(): void {
-    const text = input.trim();
+  function submitMessage(textOverride?: string): void {
+    const text = (textOverride ?? input).trim();
     if (!text || isBusyStatus(status)) return;
     upsertPendingSession(text);
     setInput("");
@@ -299,9 +306,11 @@ export function App(): React.ReactElement {
   function startNewConversation(): void {
     const next = createConversationId();
     localStorage.setItem(conversationStorageKey, next);
+    setMessages([]);
     setInitialMessages([]);
     setConversationId(next);
     setInput("");
+    closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
 
@@ -311,7 +320,29 @@ export function App(): React.ReactElement {
       data-web-chat-app="true"
       data-web-chat-ui="ai-elements-v0"
       data-conversation-id={conversationId}
+      data-drawer-open={drawerOpen ? "true" : "false"}
     >
+      <div
+        className="web-chat-mobile-drawer-scrim"
+        aria-hidden="true"
+        onClick={closeDrawer}
+      />
+      <button
+        type="button"
+        className="web-chat-mobile-drawer-close"
+        aria-label="Close sessions"
+        onClick={closeDrawer}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+        </svg>
+      </button>
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
           <h2>Sessions</h2>
@@ -384,6 +415,27 @@ export function App(): React.ReactElement {
             <p>A field log for talking with the rhizome.</p>
           </div>
           <div className="web-chat-header-actions">
+            <button
+              type="button"
+              className="web-chat-mobile-trigger"
+              aria-label="Open sessions"
+              aria-expanded={drawerOpen}
+              data-active={drawerOpen ? "true" : "false"}
+              onClick={() => setDrawerOpen(true)}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
             <button
               className="web-chat-icon-action"
               type="button"
@@ -459,13 +511,13 @@ export function App(): React.ReactElement {
               messages.map((message) => (
                 <Message key={message.id} from={message.role}>
                   <MessageHeader role={message.role} />
-                  <MessageBubble>
+                  <MessageContent>
                     {groupMessageParts(message.parts).map((group, index) => {
                       if (group.kind === "text") {
                         return (
-                          <MarkdownResponse key={index}>
+                          <MessageResponse key={index}>
                             {group.text}
-                          </MarkdownResponse>
+                          </MessageResponse>
                         );
                       }
                       if (group.kind === "tools") {
@@ -495,7 +547,7 @@ export function App(): React.ReactElement {
                         />
                       );
                     })}
-                  </MessageBubble>
+                  </MessageContent>
                 </Message>
               ))
             )}
@@ -523,7 +575,7 @@ export function App(): React.ReactElement {
           </div>
         ) : null}
 
-        <PromptInput onSubmit={submitMessage}>
+        <PromptInput onSubmit={(message) => submitMessage(message.text)}>
           <label htmlFor="web-chat-input">Message</label>
           <PromptInputTextarea
             id="web-chat-input"
@@ -531,11 +583,6 @@ export function App(): React.ReactElement {
             value={input}
             placeholder="Plant a question…"
             onInput={(event) => setInput(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (!isPlainEnter(event)) return;
-              event.preventDefault();
-              submitMessage();
-            }}
           />
           <PromptInputFooter>
             <PromptInputHint />

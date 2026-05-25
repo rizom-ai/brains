@@ -676,13 +676,40 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--chat-accent);
 }
 
-/* ─── Code block ─── */
-.web-chat-code-block {
+/* ─── Markdown / code blocks. Streamdown provides the AI Elements-style
+   markdown renderer; these selectors keep the Rizom visual treatment. ─── */
+.web-chat-markdown-response {
+  display: grid;
+  gap: 0.75rem;
+}
+.web-chat-markdown-response > * { margin-block: 0; }
+.web-chat-markdown-response p { margin: 0; }
+.web-chat-markdown-response blockquote {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.web-chat-markdown-response :not(pre) > code {
+  padding: 0.08rem 0.28rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.25);
+  font-family: var(--font-label);
+  font-size: 0.88em;
+}
+.web-chat-code-block,
+.web-chat-markdown-response pre {
   margin: 0.85rem 0 0;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--chat-border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: auto;
   background: var(--chat-surface-deep);
+  font-family: var(--chat-font-label);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--chat-text);
 }
 .web-chat-code-block figcaption {
   display: flex; align-items: center; justify-content: space-between;
@@ -1119,88 +1146,167 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 }
 .web-chat-prompt-submit:hover svg { transform: translateX(2px); }
 
-/* ─── Tablet / large phone ─── */
+/* ─── Mobile drawer trigger + chrome (DOM in all viewports; hidden on desktop) ─── */
+.web-chat-mobile-trigger {
+  display: none;
+}
+.web-chat-mobile-drawer-scrim {
+  display: none;
+}
+.web-chat-mobile-drawer-close {
+  display: none;
+}
+
+/* ─── Tablet / phone ───────────────────────────────────────────────
+   Sessions become a slide-in drawer triggered by a hamburger in the
+   header. The chat surface fills the full width. Drawer state is
+   driven by [data-drawer-open] on .web-chat-shell.
+   ──────────────────────────────────────────────────────────────── */
 @media (max-width: 760px) {
   .web-chat-shell {
+    position: relative;
     grid-template-columns: 1fr;
     height: auto;
     min-height: 100vh;
   }
-  /* Sessions becomes a compact horizontal rail of pills above the
-     chat (rather than the full vertical list panel). Active session
-     glows amber, idle sessions are flat. The vertical spine inside
-     sessions is suppressed since the layout is now horizontal. */
-  .web-chat-sessions {
-    padding: 0.75rem 0.85rem;
-    border-right: 0;
-    border-bottom: 1px solid var(--chat-border-soft);
+
+  /* Sessions panel → absolute, slide-in from the left. The internal
+     component (.web-chat-sessions header, search, list, sessions, footer)
+     stays exactly as on desktop — only positioning + transform change. */
+  .web-chat-shell .web-chat-sessions {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 86%;
+    max-width: 320px;
+    z-index: 5;
+    border-right: 1px solid var(--chat-border-soft);
+    border-bottom: 0;
+    background:
+      linear-gradient(180deg,
+        rgb(from var(--chat-surface-deep) r g b / 0.95),
+        rgb(from var(--chat-bg) r g b / 0.95));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .web-chat-sessions-header {
-    padding: 0 0 0.6rem;
+  .web-chat-shell[data-drawer-open="true"] .web-chat-sessions {
+    transform: translateX(0);
   }
-  .web-chat-sessions-list {
-    display: flex;
-    flex-direction: row;
-    gap: 0.4rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0;
-    max-height: none;
-    scrollbar-width: thin;
+
+  /* Scrim behind the drawer; only renders at mobile widths. */
+  .web-chat-shell .web-chat-mobile-drawer-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: rgb(0 0 0 / 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
   }
-  .web-chat-sessions-list::before { display: none; }
-  .web-chat-sessions-list > li { flex: 0 0 auto; }
-  .web-chat-session {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    grid-template-columns: none;
-    width: auto;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid var(--chat-border);
-    border-radius: 999px;
+  .web-chat-shell[data-drawer-open="true"] .web-chat-mobile-drawer-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Close button floats over the drawer's top-right when open. */
+  .web-chat-shell .web-chat-mobile-drawer-close {
+    display: inline-grid;
+    place-items: center;
+    position: absolute;
+    top: 0.85rem;
+    left: calc(86% - 3rem);
+    z-index: 6;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: var(--chat-surface);
+    color: var(--chat-text-muted);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, color 0.2s, border-color 0.2s;
+  }
+  .web-chat-shell[data-drawer-open="true"] .web-chat-mobile-drawer-close {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .web-chat-shell .web-chat-mobile-drawer-close:hover {
+    color: var(--chat-accent);
+    border-color: rgb(from var(--chat-accent) r g b / 0.35);
+  }
+  .web-chat-shell .web-chat-mobile-drawer-close svg {
+    width: 18px;
+    height: 18px;
+  }
+  @media (max-width: 372px) {
+    /* On very narrow viewports the drawer hits its 320px cap, so the
+       close button needs to be anchored to that cap (not to 86%). */
+    .web-chat-shell .web-chat-mobile-drawer-close {
+      left: auto;
+      right: calc(100% - 320px + 0.85rem);
+    }
+  }
+
+  /* Header: shrink the brand to single-line, hide eyebrow + subtitle.
+     Hamburger trigger appears as the first action button. */
+  .web-chat-header { gap: 0.4rem; }
+  .web-chat-header-eyebrow { display: none; }
+  .web-chat-header p { display: none; }
+  .web-chat-header h1 {
+    font-size: 1.15rem;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  .web-chat-mobile-trigger {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid transparent;
     background: var(--chat-surface-soft);
+    color: var(--chat-text-muted);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
   }
-  .web-chat-session::before,
-  .web-chat-session::after { display: none; }
-  .web-chat-session-time {
+  .web-chat-mobile-trigger:hover,
+  .web-chat-mobile-trigger[data-active="true"] {
+    color: var(--chat-accent);
+    border-color: rgb(from var(--chat-accent) r g b / 0.3);
+    background: rgb(from var(--chat-accent) r g b / 0.08);
+  }
+  .web-chat-mobile-trigger svg { width: 18px; height: 18px; }
+
+  /* Header CTA buttons → 40px icon-only circles, matching the trigger. */
+  .web-chat-header-actions {
+    gap: 0.35rem;
+  }
+  .web-chat-secondary-action {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
     padding: 0;
-    font-size: 9.5px;
-    letter-spacing: 0.12em;
-    text-align: left;
-    color: var(--chat-text-light);
-  }
-  .web-chat-session-body {
-    grid-column: auto;
-    padding-left: 0;
+    border-radius: 50%;
+    font-size: 0;
     gap: 0;
   }
-  .web-chat-session-title {
-    font-size: 12.5px;
-    -webkit-line-clamp: 1;
-    max-width: 12rem;
-  }
-  .web-chat-session[data-active="true"] {
-    background: rgb(from var(--chat-accent) r g b / 0.16);
-    border-color: rgb(from var(--chat-accent) r g b / 0.45);
-  }
-  .web-chat-session[data-active="true"] .web-chat-session-time,
-  .web-chat-session[data-active="true"] .web-chat-session-title {
-    color: var(--chat-accent);
-  }
-  .web-chat-sessions-footer { display: none; }
+  .web-chat-secondary-action svg { width: 16px; height: 16px; }
 
-  /* Chat surface — drop the generous spine gutter for screen real
-     estate. Spine and content tighten to fit phone widths. */
+  /* Chat surface — full width, tighter spine gutter. */
   .web-chat-shell .web-chat-app { border-left: 0; }
   .web-chat-app {
     max-width: 100%;
-    padding: 1rem 1rem 1rem 1.5rem;
+    padding: 0.85rem 1rem 0.85rem 1.5rem;
     gap: 1rem;
   }
   .web-chat-app::before { left: 0.6rem; }
-  .web-chat-app::after { left: calc(0.6rem - 2px); bottom: 1rem; }
-
+  .web-chat-app::after { left: calc(0.6rem - 2px); bottom: 0.85rem; }
   .web-chat-app > .web-chat-conversation,
   .web-chat-app > .web-chat-status,
   .web-chat-app > .web-chat-error,
@@ -1208,16 +1314,32 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     max-width: 100%;
   }
 
-  .web-chat-header h1 { font-size: 1.5rem; }
-  .web-chat-header p { display: none; }
-  .web-chat-conversation-content { padding: 0.75rem 0.25rem 0.25rem; gap: 1.5rem; }
+  .web-chat-conversation-content {
+    padding: 0.75rem 0.25rem 0.25rem;
+    gap: 1.4rem;
+  }
   .web-chat-message { max-width: 100%; }
+
+  /* Prompt: bigger touch targets, safe-area inset, iOS no-zoom font size. */
+  .web-chat-prompt-input {
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+  .web-chat-prompt-textarea {
+    font-size: 16px;
+    min-height: 2.5rem;
+  }
+  .web-chat-prompt-hint { display: none; }
+  .web-chat-prompt-footer { justify-content: flex-end; }
+  .web-chat-prompt-submit {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* ─── Phone portrait ─── */
 @media (max-width: 480px) {
-  /* The drop-cap is theatrical at large sizes but becomes overwhelming
-     on narrow screens — disable it on the smallest viewports. */
+  /* Drop-cap is theatrical at large sizes but overwhelming on narrow
+     screens — disable it on the smallest viewports. */
   .web-chat-message[data-role="assistant"]
     .web-chat-message-bubble
     > .web-chat-markdown-response:first-child
@@ -1233,18 +1355,10 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     padding: 0;
     color: inherit;
   }
-  .web-chat-empty-state-glyph { width: 140px; height: 70px; }
+  .web-chat-empty-state { padding: 2.5rem 1rem 1.5rem; gap: 0.55rem; text-align: center; }
+  .web-chat-empty-state-glyph { width: 130px; height: 64px; }
   .web-chat-empty-state h2 { font-size: 1.4rem; }
-  .web-chat-empty-state p { font-size: 14px; }
-  /* Compact header CTA — icon only. */
-  .web-chat-secondary-action {
-    padding: 0.45rem 0.6rem;
-    font-size: 0;
-    gap: 0;
-  }
-  .web-chat-secondary-action svg { width: 14px; height: 14px; }
-  .web-chat-prompt-hint { display: none; }
-  .web-chat-prompt-footer { justify-content: flex-end; }
+  .web-chat-empty-state p { font-size: 14px; max-width: 26ch; }
 }
 `;
 
@@ -1380,7 +1494,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return true;
   }
 
-  private async handleChatPage(_request: Request): Promise<Response> {
+  private async handleChatPage(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
     return new Response(this.renderChatPage(), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
@@ -1401,7 +1519,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    const permissionLevel = "anchor";
 
     const body = await request.json();
     const parsed = chatRequestSchema.safeParse(body);
@@ -1455,7 +1576,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private async handleSessionsRequest(request: Request): Promise<Response> {
     const permissionLevel = await this.resolvePermissionLevel(request);
     if (permissionLevel !== "anchor") {
-      return Response.json({ sessions: [] });
+      return new Response("Forbidden", { status: 403 });
     }
 
     const conversations = await this.getContext().conversations.list({
@@ -1577,6 +1698,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<"anchor" | "public"> {
     return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
+  }
+
+  private createOperatorLoginRequiredResponse(request: Request): Response {
+    const authService = getActiveAuthService();
+    if (authService) return authService.createOperatorLoginResponse(request);
+
+    return new Response("Operator login required", {
+      status: 401,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
   private extractLastUserText(request: ChatRequest): string {

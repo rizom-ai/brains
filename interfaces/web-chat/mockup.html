@@ -1364,6 +1364,332 @@
       border-radius: 20px;
       background: rgb(0 0 0 / 0.2);
     }
+
+    /* ─── Mobile mockup chrome (phone-shaped frames) ──────────────────
+       Each phone is 360×760 (close to 6.1" device, scaled to fit the
+       page). The chrome simulates rounded glass, a notch, and a
+       status bar so we can read the chat surface at real density.
+       ───────────────────────────────────────────────────────────────── */
+    .mockup-phone-row {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    .phone-frame {
+      flex: 0 0 360px;
+      width: 360px;
+      height: 760px;
+      padding: 10px;
+      border: 1px solid rgb(255 255 255 / 0.14);
+      border-radius: 46px;
+      background:
+        linear-gradient(160deg, rgb(255 255 255 / 0.04), rgb(0 0 0 / 0.4));
+      box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.04) inset,
+        0 30px 70px -30px rgb(0 0 0 / 0.7);
+      position: relative;
+      display: grid;
+    }
+    .phone-frame::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 96px;
+      height: 24px;
+      background: rgb(0 0 0 / 0.92);
+      border-radius: 14px;
+      z-index: 3;
+    }
+    .phone-screen {
+      position: relative;
+      overflow: hidden;
+      border-radius: 36px;
+      background:
+        radial-gradient(
+          ellipse at 50% -20%,
+          rgb(56 22 96 / 0.45) 0%,
+          transparent 55%
+        ),
+        var(--color-bg);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .phone-status-bar {
+      height: 44px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 8px;
+      font-family: var(--font-label);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--color-text);
+      position: relative;
+      z-index: 2;
+    }
+    .phone-status-bar-icons {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .phone-status-bar-icons span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-text);
+      opacity: 0.85;
+    }
+    .phone-status-bar-icons span:nth-child(2) {
+      width: 16px; border-radius: 3px; height: 8px;
+    }
+    .phone-status-bar-icons span:nth-child(3) {
+      width: 22px; border-radius: 3px; height: 9px;
+      border: 1px solid var(--color-text);
+      background: transparent;
+      position: relative;
+    }
+    .phone-status-bar-icons span:nth-child(3)::after {
+      content: "";
+      position: absolute;
+      inset: 1px 6px 1px 1px;
+      background: var(--color-text);
+      border-radius: 1px;
+    }
+
+    /* ─── Mobile chat variant ─────────────────────────────────────────
+       Reframes the chat surface for phone width: drops the glass
+       chrome (the phone IS the chrome), collapses the header to a
+       single 56px row with icon-only actions, anchors the prompt to
+       the bottom with safe-area padding, kills the drop-cap, and
+       tightens the spine so messages get the full reading width.
+       ───────────────────────────────────────────────────────────────── */
+    .web-chat-app--mobile {
+      min-height: 0;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      grid-template-rows: auto minmax(0, 1fr) auto auto;
+      gap: 0;
+    }
+    .web-chat-mobile-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.75rem 0.65rem;
+      border-bottom: 1px solid rgb(255 255 255 / 0.06);
+    }
+    .web-chat-mobile-brand {
+      font-family: var(--font-display);
+      font-weight: 520;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      padding-left: 0.25rem;
+      color: var(--color-text);
+    }
+    .web-chat-mobile-brand em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--color-accent);
+    }
+    .web-chat-mobile-iconbutton {
+      width: 40px;
+      height: 40px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      background: rgb(255 255 255 / 0.04);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .web-chat-mobile-iconbutton:hover {
+      color: var(--color-accent);
+      border-color: rgb(255 139 61 / 0.35);
+      background: rgb(255 139 61 / 0.08);
+    }
+    .web-chat-mobile-iconbutton[data-active="true"] {
+      color: var(--color-accent);
+      background: rgb(255 139 61 / 0.1);
+      border-color: rgb(255 139 61 / 0.3);
+    }
+    .web-chat-mobile-iconbutton svg {
+      width: 18px; height: 18px;
+    }
+
+    .web-chat-app--mobile .web-chat-conversation {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .web-chat-app--mobile .web-chat-conversation-content {
+      padding: 1.25rem 1rem 1.25rem 1.85rem;
+      gap: 1.4rem;
+      max-width: none;
+    }
+    .web-chat-app--mobile .web-chat-conversation-content::before { left: 0.7rem; }
+    .web-chat-app--mobile .web-chat-conversation-content::after { left: calc(0.7rem - 2px); }
+    .web-chat-app--mobile .web-chat-message {
+      max-width: 100%;
+    }
+    .web-chat-app--mobile .web-chat-message::before {
+      left: calc(-1.15rem - 5px);
+    }
+    .web-chat-app--mobile .web-chat-message::after {
+      left: calc(-1.15rem + 6px);
+      width: calc(1.15rem - 6px);
+    }
+    /* Drop-cap is overbearing at phone width — collapse to body. */
+    .web-chat-app--mobile .web-chat-message[data-role="assistant"] .web-chat-message-bubble > p:first-of-type::first-letter {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 1em;
+      float: none;
+      line-height: inherit;
+      padding: 0;
+      color: inherit;
+    }
+    .web-chat-app--mobile .web-chat-message[data-role="assistant"] .web-chat-message-bubble {
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    .web-chat-app--mobile .web-chat-message[data-role="user"] .web-chat-message-bubble {
+      padding: 0.7rem 0.85rem;
+      font-size: 14px;
+    }
+    .web-chat-app--mobile .web-chat-message-header {
+      font-size: 10px;
+    }
+
+    .web-chat-app--mobile .web-chat-empty-state {
+      padding: 2.5rem 1rem 1.5rem;
+      gap: 0.55rem;
+      align-items: center;
+      text-align: center;
+    }
+    .web-chat-app--mobile .web-chat-empty-state-glyph {
+      width: 130px; height: 64px;
+    }
+    .web-chat-app--mobile .web-chat-empty-state-eyebrow {
+      font-size: 10px;
+    }
+    .web-chat-app--mobile .web-chat-empty-state h2 {
+      font-size: 1.5rem;
+      line-height: 1.1;
+    }
+    .web-chat-app--mobile .web-chat-empty-state p {
+      font-size: 13.5px;
+      max-width: 26ch;
+    }
+
+    .web-chat-app--mobile .web-chat-status {
+      margin: 0.5rem 0.85rem 0;
+      align-self: flex-start;
+    }
+
+    /* Prompt as a bottom-fixed bar — safe-area inset baked into bottom padding. */
+    .web-chat-app--mobile .web-chat-prompt-input {
+      border: 0;
+      border-top: 1px solid rgb(255 255 255 / 0.06);
+      border-radius: 0;
+      padding: 0.75rem 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+      background: rgb(13 10 26 / 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .web-chat-app--mobile .web-chat-prompt-input label { display: none; }
+    .web-chat-app--mobile .web-chat-prompt-textarea {
+      min-height: 2.5rem;
+      max-height: 7rem;
+      /* 16px+ prevents iOS auto-zoom on focus */
+      font-size: 16px;
+      padding: 0.7rem 0.9rem;
+    }
+    .web-chat-app--mobile .web-chat-prompt-footer {
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+    .web-chat-app--mobile .web-chat-prompt-hint { display: none; }
+    .web-chat-app--mobile .web-chat-prompt-submit {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 1rem;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+    }
+
+    /* ─── Mobile sessions drawer ──────────────────────────────────────
+       Slides in from the left with a scrim behind. Triggered by the
+       header's sessions icon. Tap scrim or close button to dismiss.
+       ───────────────────────────────────────────────────────────────── */
+    .web-chat-mobile-drawer {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .web-chat-mobile-drawer[data-open="true"] { pointer-events: auto; }
+    .web-chat-mobile-drawer-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgb(5 4 15 / 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .web-chat-mobile-drawer[data-open="true"] .web-chat-mobile-drawer-scrim {
+      opacity: 1;
+    }
+    .web-chat-mobile-drawer-panel {
+      position: absolute;
+      top: 0; bottom: 0; left: 0;
+      width: 86%;
+      max-width: 320px;
+      background:
+        linear-gradient(180deg, rgb(26 10 62 / 0.92), rgb(13 10 26 / 0.95));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid rgb(255 255 255 / 0.08);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .web-chat-mobile-drawer[data-open="true"] .web-chat-mobile-drawer-panel {
+      transform: translateX(0);
+    }
+    /* Close affordance: floats over the sessions header without
+       displacing its layout — the existing "+" round button stays put. */
+    .web-chat-mobile-drawer-close {
+      position: absolute;
+      top: 0.85rem;
+      right: 0.85rem;
+      z-index: 1;
+    }
+    /* Mobile-specific tweaks for the embedded sessions component:
+       drop the bottom padding (env safe-area lives on the panel),
+       slightly larger touch targets, hide the footer status pill. */
+    .web-chat-mobile-drawer-panel .web-chat-sessions {
+      padding-bottom: 0;
+    }
+    .web-chat-mobile-drawer-panel .web-chat-session {
+      min-height: 56px;
+    }
+    .web-chat-mobile-drawer-panel .web-chat-sessions-footer { display: none; }
   </style>
 </head>
 <body>
@@ -1901,6 +2227,310 @@
               </div>
             </form>
           </main>
+        </div>
+      </article>
+
+      <!-- ─────────────────────────  MOBILE FRAMES  ───────────────────────── -->
+      <article class="mockup-frame mockup-frame--wide">
+        <span class="mockup-frame-label">F — Mobile (phone, 360×760) · empty · streaming · sessions drawer</span>
+        <div class="mockup-phone-row">
+
+          <!-- ─── F1: Empty state ─── -->
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status-bar">
+                <span>9:41</span>
+                <div class="phone-status-bar-icons">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+              <main class="web-chat-app web-chat-app--mobile">
+                <header class="web-chat-mobile-header">
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="Sessions">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M3 5h12M3 9h12M3 13h8" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <span class="web-chat-mobile-brand">Brain <em>Chat</em></span>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="Toggle theme">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <circle cx="9" cy="9" r="3.4" />
+                      <path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.6 3.6l1.4 1.4M13 13l1.4 1.4M3.6 14.4l1.4-1.4M13 5l1.4-1.4" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="New conversation">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M9 3.5v11M3.5 9h11" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </header>
+
+                <div class="web-chat-conversation">
+                  <div class="web-chat-conversation-content">
+                    <div class="web-chat-empty-state">
+                      <svg class="web-chat-empty-state-glyph" viewBox="0 0 180 88" aria-hidden="true">
+                        <path d="M4 60 C 30 60, 40 30, 70 30 S 110 60, 140 50 S 174 30, 178 28" />
+                        <path d="M70 30 C 78 22, 86 12, 96 10" />
+                        <path d="M70 30 C 68 44, 80 60, 92 70" />
+                        <path d="M120 56 C 128 64, 138 70, 152 72" />
+                        <circle cx="96" cy="10" r="2.5" />
+                        <circle cx="92" cy="70" r="2.5" />
+                        <circle cx="178" cy="28" r="2.5" />
+                      </svg>
+                      <span class="web-chat-empty-state-eyebrow">No traces yet</span>
+                      <h2>Begin a <em>field note</em>.</h2>
+                      <p>Ask the brain about entities, notes, or recent work.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <form class="web-chat-prompt-input">
+                  <label for="prompt-f1">Message</label>
+                  <textarea
+                    id="prompt-f1"
+                    class="web-chat-prompt-textarea"
+                    placeholder="Plant a question…"
+                    rows="1"
+                  ></textarea>
+                  <div class="web-chat-prompt-footer">
+                    <button class="web-chat-prompt-submit" type="submit" disabled aria-label="Send">
+                      <span>Send</span>
+                      <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </main>
+            </div>
+          </div>
+
+          <!-- ─── F2: Active conversation, streaming ─── -->
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status-bar">
+                <span>9:43</span>
+                <div class="phone-status-bar-icons">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+              <main class="web-chat-app web-chat-app--mobile">
+                <header class="web-chat-mobile-header">
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="Sessions">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M3 5h12M3 9h12M3 13h8" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <span class="web-chat-mobile-brand">Rover · <em>field notes</em></span>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="Toggle theme">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M14 10.5A6.5 6.5 0 1 1 7.5 4a5 5 0 0 0 6.5 6.5z" />
+                    </svg>
+                  </button>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="New conversation">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M9 3.5v11M3.5 9h11" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </header>
+
+                <div class="web-chat-conversation">
+                  <div class="web-chat-conversation-content">
+                    <article class="web-chat-message" data-role="user">
+                      <span class="web-chat-message-header">You</span>
+                      <div class="web-chat-message-bubble">
+                        <p>What did rover do today?</p>
+                      </div>
+                    </article>
+                    <article class="web-chat-message" data-role="assistant">
+                      <span class="web-chat-message-header">Brain</span>
+                      <div class="web-chat-message-bubble">
+                        <p>Three traces since this morning: a note merge, a prompt update, and a directory sync.</p>
+                        <p>The directory sync surfaced two new entities tagged <code>field-log</code> — want me to thread them in?</p>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+
+                <p class="web-chat-status" data-status="thinking">
+                  <span class="web-chat-status-rail" aria-hidden="true"></span>
+                  <span class="web-chat-status-phrase">listening</span>
+                </p>
+
+                <form class="web-chat-prompt-input">
+                  <label for="prompt-f2">Message</label>
+                  <textarea
+                    id="prompt-f2"
+                    class="web-chat-prompt-textarea"
+                    placeholder="Plant a question…"
+                    rows="1"
+                  >Yes, thread them in</textarea>
+                  <div class="web-chat-prompt-footer">
+                    <button class="web-chat-prompt-submit" type="submit" aria-label="Send">
+                      <span>Send</span>
+                      <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </main>
+            </div>
+          </div>
+
+          <!-- ─── F3: Sessions drawer open ─── -->
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status-bar">
+                <span>9:45</span>
+                <div class="phone-status-bar-icons">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+              <main class="web-chat-app web-chat-app--mobile">
+                <header class="web-chat-mobile-header">
+                  <button class="web-chat-mobile-iconbutton" type="button" data-active="true" aria-label="Sessions" aria-expanded="true">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M3 5h12M3 9h12M3 13h8" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <span class="web-chat-mobile-brand">Rover · <em>field notes</em></span>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="Toggle theme">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M14 10.5A6.5 6.5 0 1 1 7.5 4a5 5 0 0 0 6.5 6.5z" />
+                    </svg>
+                  </button>
+                  <button class="web-chat-mobile-iconbutton" type="button" aria-label="New conversation">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <path d="M9 3.5v11M3.5 9h11" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </header>
+
+                <div class="web-chat-conversation">
+                  <div class="web-chat-conversation-content">
+                    <article class="web-chat-message" data-role="user">
+                      <span class="web-chat-message-header">You</span>
+                      <div class="web-chat-message-bubble">
+                        <p>What did rover do today?</p>
+                      </div>
+                    </article>
+                    <article class="web-chat-message" data-role="assistant">
+                      <span class="web-chat-message-header">Brain</span>
+                      <div class="web-chat-message-bubble">
+                        <p>Three traces since this morning…</p>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+
+                <form class="web-chat-prompt-input">
+                  <label for="prompt-f3">Message</label>
+                  <textarea
+                    id="prompt-f3"
+                    class="web-chat-prompt-textarea"
+                    placeholder="Plant a question…"
+                    rows="1"
+                  ></textarea>
+                  <div class="web-chat-prompt-footer">
+                    <button class="web-chat-prompt-submit" type="submit" disabled aria-label="Send">
+                      <span>Send</span>
+                      <svg viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M2 7h10M9 3c1.5 2 3 4 5 4-2 0-3.5 2-5 4" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="2" cy="7" r="1.5" fill="currentColor" stroke="none" />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Drawer overlay (rendered last so it sits above) -->
+                <div class="web-chat-mobile-drawer" data-open="true" aria-hidden="false">
+                  <div class="web-chat-mobile-drawer-scrim"></div>
+                  <aside class="web-chat-mobile-drawer-panel" aria-label="Sessions">
+                    <button class="web-chat-mobile-iconbutton web-chat-mobile-drawer-close" type="button" aria-label="Close sessions">
+                      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                        <path d="M5 5l8 8M13 5l-8 8" stroke-linecap="round" />
+                      </svg>
+                    </button>
+
+                    <aside class="web-chat-sessions" aria-label="Sessions">
+                      <header class="web-chat-sessions-header">
+                        <h2>Sessions <em>·</em></h2>
+                        <button class="web-chat-sessions-new" type="button" aria-label="New session">
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                            <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+                          </svg>
+                        </button>
+                      </header>
+
+                      <div class="web-chat-sessions-search">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <circle cx="7" cy="7" r="4.5" />
+                          <path d="m11 11 3 3" stroke-linecap="round" />
+                        </svg>
+                        <input type="search" placeholder="Search sessions…" />
+                      </div>
+
+                      <ul class="web-chat-sessions-list" role="listbox">
+                        <li class="web-chat-session" data-active="true" role="option" aria-selected="true">
+                          <span class="web-chat-session-flow" aria-hidden="true"></span>
+                          <span class="web-chat-session-time">09:42</span>
+                          <div class="web-chat-session-body">
+                            <h3 class="web-chat-session-title">Rover · field notes</h3>
+                            <p class="web-chat-session-preview">Three traces since this morning — note merge, prompt update, directory sync.</p>
+                            <span class="web-chat-session-meta">
+                              <span>4 messages</span>
+                            </span>
+                          </div>
+                        </li>
+
+                        <li class="web-chat-session" role="option">
+                          <span class="web-chat-session-time">Yest</span>
+                          <div class="web-chat-session-body">
+                            <h3 class="web-chat-session-title">Release notes for alpha.88</h3>
+                            <p class="web-chat-session-preview">Draft of what shipped this week — web chat mobile pass, streamdown adoption…</p>
+                            <span class="web-chat-session-meta">
+                              <span>12 messages</span>
+                            </span>
+                          </div>
+                        </li>
+
+                        <li class="web-chat-session" role="option">
+                          <span class="web-chat-session-time">Mon</span>
+                          <div class="web-chat-session-body">
+                            <h3 class="web-chat-session-title">Restyle chat interface</h3>
+                            <p class="web-chat-session-preview">Iterated on spine alignment, drop-cap behavior, tool-result collapse.</p>
+                            <span class="web-chat-session-meta">
+                              <span>6 messages</span>
+                            </span>
+                          </div>
+                        </li>
+
+                        <li class="web-chat-session" role="option">
+                          <span class="web-chat-session-time">21 May</span>
+                          <div class="web-chat-session-body">
+                            <h3 class="web-chat-session-title">Onboarding doc draft</h3>
+                            <p class="web-chat-session-preview">Pulled the rover quick-start into a tighter onboarding outline.</p>
+                            <span class="web-chat-session-meta">
+                              <span>9 messages</span>
+                            </span>
+                          </div>
+                        </li>
+                      </ul>
+
+                      <footer class="web-chat-sessions-footer">
+                        <span class="web-chat-sessions-footer-id">brain · anchor</span>
+                        <span>v0.4.2</span>
+                      </footer>
+                    </aside>
+                  </aside>
+                </div>
+              </main>
+            </div>
+          </div>
+
         </div>
       </article>
 

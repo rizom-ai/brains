@@ -169,8 +169,20 @@ describe("WebChatInterface", () => {
     });
   });
 
-  it("serves the chat page without auth", async () => {
+  it("requires operator auth for the chat page", async () => {
     const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[0];
+
+    const response = await route?.handler(new Request("http://brain/chat"));
+    const text = await response?.text();
+
+    expect(response?.status).toBe(401);
+    expect(text).toContain("Operator login required");
+  });
+
+  it("serves the chat page for operators", async () => {
+    const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[0];
 
@@ -188,7 +200,7 @@ describe("WebChatInterface", () => {
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[0];
 
@@ -219,7 +231,7 @@ describe("WebChatInterface", () => {
     }
   });
 
-  it("routes chat POSTs through AgentService at public level when no operator session", async () => {
+  it("rejects chat POSTs without an operator session", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = new WebChatInterface();
@@ -241,15 +253,9 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
-    const body = await response?.text();
 
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get("content-type")).toContain(
-      "text/event-stream",
-    );
-    expect(body).toContain("Mock agent response");
-    expect(agent.chatCalls).toHaveLength(1);
-    expect(agent.chatCalls[0]?.context?.userPermissionLevel).toBe("public");
+    expect(response?.status).toBe(403);
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("passes anchor permission level when caller has an operator session", async () => {
@@ -280,7 +286,7 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls[0]?.context?.userPermissionLevel).toBe("anchor");
   });
 
-  it("returns an empty sessions list to non-operators", async () => {
+  it("rejects sessions list requests from non-operators", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
       makeFixedConversationService({
@@ -299,10 +305,10 @@ describe("WebChatInterface", () => {
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
     );
-    const body = await response?.json();
+    const body = await response?.text();
 
-    expect(response?.status).toBe(200);
-    expect(body).toEqual({ sessions: [] });
+    expect(response?.status).toBe(403);
+    expect(body).toBe("Forbidden");
   });
 
   it("lists web chat sessions for an operator", async () => {
@@ -450,7 +456,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects malformed chat POSTs", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[1];
 
@@ -466,7 +472,7 @@ describe("WebChatInterface", () => {
   });
 
   it("generates unique conversation ids across many calls", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[1];
 
