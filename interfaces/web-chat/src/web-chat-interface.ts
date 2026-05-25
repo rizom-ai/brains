@@ -1407,7 +1407,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return true;
   }
 
-  private async handleChatPage(_request: Request): Promise<Response> {
+  private async handleChatPage(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
     return new Response(this.renderChatPage(), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
@@ -1428,7 +1432,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    const permissionLevel = "anchor";
 
     const body = await request.json();
     const parsed = chatRequestSchema.safeParse(body);
@@ -1482,7 +1489,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private async handleSessionsRequest(request: Request): Promise<Response> {
     const permissionLevel = await this.resolvePermissionLevel(request);
     if (permissionLevel !== "anchor") {
-      return Response.json({ sessions: [] });
+      return new Response("Forbidden", { status: 403 });
     }
 
     const conversations = await this.getContext().conversations.list({
@@ -1604,6 +1611,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<"anchor" | "public"> {
     return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
+  }
+
+  private createOperatorLoginRequiredResponse(request: Request): Response {
+    const authService = getActiveAuthService();
+    if (authService) return authService.createOperatorLoginResponse(request);
+
+    return new Response("Operator login required", {
+      status: 401,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
   private extractLastUserText(request: ChatRequest): string {

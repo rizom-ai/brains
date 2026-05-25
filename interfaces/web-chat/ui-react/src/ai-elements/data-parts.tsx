@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { useState } from "react";
+import { Tool, ToolContent, ToolHeader, ToolOutput } from "./tool";
 
 interface ConfirmationResult {
   text: string;
@@ -47,15 +48,12 @@ export function ToolResultPart({
   const label = toolName ? `tool · ${toolName}` : "tool result";
 
   return (
-    <details className="web-chat-data-part" data-kind="tool-result">
-      <summary className="web-chat-data-part-header">
-        {label}
-        <span className="web-chat-data-part-chevron" aria-hidden="true" />
-      </summary>
-      <div className="web-chat-data-part-body">
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-      </div>
-    </details>
+    <Tool data-kind="tool-result">
+      <ToolHeader title={label} />
+      <ToolContent>
+        <ToolOutput output={data} />
+      </ToolContent>
+    </Tool>
   );
 }
 

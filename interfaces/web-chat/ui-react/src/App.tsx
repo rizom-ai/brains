@@ -211,7 +211,15 @@ export function App(): React.ReactElement {
       }),
     [conversationId, initialMessages, transport],
   );
-  const { messages, sendMessage, status, error, stop, clearError } = useChat({
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    error,
+    stop,
+    clearError,
+  } = useChat({
     chat,
   });
 
@@ -273,6 +281,7 @@ export function App(): React.ReactElement {
     const body = (await response.json()) as WebChatMessagesResponse;
     const nextMessages = body.messages.map(toUiMessage);
     localStorage.setItem(conversationStorageKey, nextConversationId);
+    setMessages(nextMessages);
     setInitialMessages(nextMessages);
     setConversationId(nextConversationId);
     setInput("");
@@ -291,6 +300,7 @@ export function App(): React.ReactElement {
   function startNewConversation(): void {
     const next = createConversationId();
     localStorage.setItem(conversationStorageKey, next);
+    setMessages([]);
     setInitialMessages([]);
     setConversationId(next);
     setInput("");
