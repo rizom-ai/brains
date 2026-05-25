@@ -84,7 +84,6 @@ describe("React containment", () => {
     );
     expect(promptInputSource).toContain("requestSubmit");
     expect(promptInputSource).toContain("PromptInputMessage");
-    expect(appSource).toContain("scrollIntoView");
     expect(appSource).toContain("isBusyStatus");
     expect(appSource).toContain("onStop={stop}");
     expect(appSource).toContain("clearError");

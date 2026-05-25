@@ -197,7 +197,6 @@ export function App(): React.ReactElement {
     setTheme(next);
     applyTheme(next);
   }
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const transport = useMemo(
     () =>
@@ -227,13 +226,6 @@ export function App(): React.ReactElement {
   } = useChat({
     chat,
   });
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      block: "end",
-      behavior: "smooth",
-    });
-  }, [messages, status]);
 
   useEffect(() => {
     if (promptInputRef.current) {
@@ -477,22 +469,6 @@ export function App(): React.ReactElement {
                 </svg>
               )}
             </button>
-            <button
-              className="web-chat-secondary-action"
-              type="button"
-              onClick={startNewConversation}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-              </svg>
-              New
-            </button>
           </div>
         </header>
 
@@ -548,7 +524,6 @@ export function App(): React.ReactElement {
                 </Message>
               ))
             )}
-            <div ref={messagesEndRef} aria-hidden="true" />
           </ConversationContent>
         </Conversation>
 
