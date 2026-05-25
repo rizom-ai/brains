@@ -2,10 +2,15 @@
 
 ## Status
 
-Proposed direction. This supersedes the earlier “homebrew ai-elements layer”
-framing: the goal is to align the web chat UI with the official Vercel AI
-Elements registry and stop treating our local chat primitives as an independent
-component system.
+Initial adoption implemented. The web chat now uses official AI Elements
+registry-derived components for message, conversation, prompt input, and tool
+display, with React still quarantined under `interfaces/web-chat/ui-react/` and
+Rizom styling applied through CSS hooks/tokens.
+
+This document now tracks the remaining AI Elements/Web UI follow-ups: visual
+polish, richer structured parts such as reasoning/sources/actions/artifacts when
+the backend emits them, public/trusted chat safeguards, and any future dashboard
+widget.
 
 ## Context
 
@@ -20,15 +25,19 @@ into the app source tree. That means some local source files are expected, but
 they must be treated as **registry-derived AI Elements components**, not a
 homegrown fork that happens to use the same folder name.
 
-The current web-chat branch has started that correction:
+The web-chat AI Elements correction has landed:
 
-- `Message`, `MessageContent`, and `MessageResponse` now follow the official AI
+- `Message`, `MessageContent`, and `MessageResponse` follow the official AI
   Elements `message` component shape.
 - `MessageResponse` uses `streamdown` plus the AI Elements Streamdown plugin
   set.
-- `Conversation` now follows the official AI Elements `conversation` pattern
-  using `use-stick-to-bottom`.
-- The old standalone `markdown-response.tsx` wrapper has been removed.
+- `Conversation` follows the official AI Elements `conversation` pattern using
+  `use-stick-to-bottom`.
+- `PromptInput` and `Tool` are registry-derived/adapted components rather than
+  local primitives with unrelated behavior.
+- Local adoption notes live in
+  `interfaces/web-chat/ui-react/src/ai-elements/README.md`.
+- The old standalone markdown parser/wrapper path has been removed.
 
 ## Goals
 
@@ -152,10 +161,10 @@ Do not preemptively fork a full mini-chat implementation now.
     ai-elements/                         AI Elements registry-derived components
       conversation.tsx                   registry-aligned, use-stick-to-bottom
       message.tsx                        registry-aligned Message/Content/Response
-      prompt-input.tsx                   next candidate for registry alignment
-      data-parts.tsx                     temporary; replace/align with Tool/etc.
-      reasoning.tsx                      future registry component if needed
-      tool.tsx                           future registry component if needed
+      prompt-input.tsx                   registry-derived/adapted PromptInput
+      data-parts.tsx                     temporary bridge for backend data parts
+      reasoning.tsx                      future registry component if backend emits reasoning
+      tool.tsx                           registry-derived/adapted Tool card
       ...
 
 plugins/dashboard                        preact, SSR + islands
@@ -163,49 +172,11 @@ plugins/dashboard                        preact, SSR + islands
     MiniChat.tsx                         future only, if a concrete dashboard UX asks for it
 ```
 
-## Next steps
+## Remaining next steps
 
-### 1. Make `/chat` consistently anchor-only
+### 1. Keep `/chat` visually production-ready
 
-Before merging the current branch to `main`, align the HTTP routes with the
-permission model:
-
-- `/chat` should require an operator/anchor session or render a clear sign-in
-  required state.
-- `/api/chat` should reject unauthenticated public callers instead of falling
-  back to `public` permission.
-- `/api/chat/sessions`, `/api/chat/messages`, and `/api/chat/confirm` should
-  remain anchor-only and continue to use the conversation service.
-
-### 2. Finish AI Elements alignment of existing primitives
-
-The first pass aligned message/response/conversation. Continue with the existing
-local primitives in this order:
-
-1. `prompt-input.tsx` → align with official AI Elements `prompt-input` API where
-   practical, while keeping current simple UX if attachments/model menus are not
-   needed yet.
-2. `data-parts.tsx` → replace generic tool-result display with AI
-   Elements-derived `tool` patterns.
-3. Add `reasoning`, `sources`, `actions`, or `suggestions` only when the backend
-   emits the corresponding UI parts or the product surface needs them.
-
-### 3. Add local AI Elements adoption notes
-
-Add a short README under `interfaces/web-chat/ui-react/src/ai-elements/` that
-states:
-
-- AI Elements is the canonical source.
-- Files in this directory are registry-derived/adapted, not homebrew.
-- Use `npx ai-elements@latest add <component>` or inspect the registry before
-  changing component behavior.
-- Prefer CSS/token styling over behavioral rewrites.
-- Document any divergence from upstream.
-
-### 4. Validate in browser before release
-
-Before merging this branch to `main`, run the targeted checks and do a visual
-browser pass of `/chat`:
+Run targeted checks and a browser pass whenever the bundled web chat UI changes:
 
 ```sh
 bun run --filter @brains/web-chat build
@@ -217,20 +188,44 @@ bun run --filter @brains/web-chat lint
 Browser pass should cover:
 
 - Empty state
+- Sign-in required state
 - Sending a message
 - Streaming markdown
-- Code blocks
-- Session switching
+- Code blocks and long-message overflow
+- Session switching and new-session flow
 - Tool result collapse/expand
 - Confirmation approve/decline
 - Light/dark mode
+- Mobile drawer/header/action layout
+
+### 2. Add richer AI Elements parts only when backed by protocol
+
+Do not add `reasoning`, `sources`, `actions`, `suggestions`, or artifact UI as
+standalone component work. Add the registry component when the backend emits the
+corresponding structured part or a concrete product surface needs it.
+
+### 3. Decide outbound artifact mapping
+
+Before implementing artifact cards, decide whether generated images, PDFs,
+exports, previews, and downloads map to existing AI Elements artifact/tool/data
+patterns or need a small Brain-specific `data-attachment` contract.
+
+### 4. Keep public/trusted chat deferred behind safeguards
+
+The full chat remains anchor-only. Public/trusted chat requires an explicit
+abuse-control design before implementation.
+
+### 5. Keep dashboard chat widget deferred
+
+A dashboard widget should be designed only when there is a concrete dashboard
+placement and UX. Until then, `/chat` remains the canonical full chat surface.
 
 ## Open questions
 
 - What should the future public/trusted chat abuse controls be: rate limits,
   token budgets, CAPTCHA/email/invite gate, or all of the above?
-- Which AI Elements components do we need next: prompt input, tool, reasoning,
-  sources, actions, suggestions, or artifact?
+- Which AI Elements components do we need next after the backend emits matching
+  structured parts: reasoning, sources, actions, suggestions, or artifact?
 - Do outbound artifacts map cleanly to existing AI Elements artifact/tool
   patterns, or do we need a protocol decision first?
 - If a dashboard chat widget becomes real, should it be an isolated React island

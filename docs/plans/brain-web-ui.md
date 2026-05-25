@@ -2,7 +2,16 @@
 
 ## Status
 
-Implemented for the browser-chat MVP on `feat/web-chat`; remaining v1 follow-ups are explicit conversation sessions, outbound attachments/artifacts, and later inbound uploads. This plan reframes the previous hosted-Rover Discord gateway direction and narrows `chat-interface-sdk.md` to a web-first scope.
+Implemented for the browser-chat MVP. The bundled `/chat` surface ships in
+`@rizom/brain`, uses the AI SDK UI transport, is served from the installed
+`@brains/web-chat` package, is anchor-only by default, and has conversation
+sessions/sidebar support.
+
+Remaining v1 follow-ups are web UI polish, clearer sign-in UX, session
+management refinements such as rename/archive/delete, outbound
+attachments/artifacts, and later inbound uploads. This plan reframes the
+previous hosted-Rover Discord gateway direction and narrows
+`chat-interface-sdk.md` to a web-first scope.
 
 ## Context
 
@@ -219,8 +228,13 @@ The Preact-native direction has lower long-term runtime surface, but likely turn
 
 ## Open decisions
 
-1. **Default landing.** Should opening the brain's root URL land you on the chat surface or the dashboard? My instinct: chat for a fresh install (the first thing a new user wants), dashboard once the brain has content. But a deterministic answer is simpler.
-2. **Conversation sessions in v1.** The MVP can use one browser-persisted conversation id plus a "New conversation" control, but product-ready chat needs explicit session/thread management: list recent conversations, switch between them, create a new session, and eventually rename/archive/delete sessions. The session API should reuse the existing conversation service rather than inventing web-chat-local storage.
+1. **Default landing.** Should opening the brain's root URL land on chat, the
+   dashboard, or a small chooser? `/chat` exists and is bundled, but root
+   routing remains a product decision.
+2. **Session refinements.** Basic explicit sessions are implemented: list recent
+   conversations, switch between them, create a new session, and remember the
+   last selected session in browser storage. Product-ready chat still needs
+   rename/archive/delete and better loading/empty/error states.
 3. **Outbound attachments/artifacts in v1.** The next attachment priority is brain/tool → user artifacts: generated images, PDFs, exports, previews, and other downloadable results. `WebChatInterface` should translate attachment-bearing message-interface events into AI SDK UI `data-*` parts (for example `data-attachment`) and the React island should render previews/download links. Blob serving should use existing attachment/media provider contracts when available.
 4. **Inbound uploads after outbound artifacts.** User → brain file uploads through the chat UI are useful, but separate from outbound attachments. They require multipart upload routes, auth/size/type checks, storage/registry integration, and request schema changes to pass attachment refs into `AgentService.chat()`. Defer unless a concrete use case needs uploads before artifact rendering.
 
@@ -230,26 +244,31 @@ Test **AI Elements** first as the React UI inside the quarantined route. It's fi
 
 ## Follow-up sequence
 
-1. **Conversation sessions.** Add authenticated web-chat routes for listing recent conversations, switching the active conversation, and creating a new session. Keep storage in the existing conversation service. The public conversation namespace should support future-proof list filters (`interfaceType`, `sessionId`, `channelId`, plus time/limit options) so interfaces can query their own sessions without importing conversation-service internals or filtering after a lossy limit. The React island should render a compact session switcher/sidebar, with `localStorage` only remembering the last selected session id.
-2. **Outbound attachments/artifacts.** Extend `WebChatInterface` stream adaptation so attachment-bearing interface events become AI SDK UI data parts. Add UI renderers for image previews, downloadable artifacts, and generic file cards. Prefer existing attachment/media provider contracts for blob resolution and download routes.
-3. **Inbound uploads.** Add user file selection/dropzone, multipart upload routes, auth/size/type checks, and attachment refs in `/api/chat` requests only after outbound artifact rendering is stable.
-4. **Deeper streaming.** Token-by-token model streaming remains a later `AgentService` capability; current progress/status/final-response streaming is enough for the MVP.
+1. **Web UI polish and smoke fixes.** Keep `/chat` usable after each release:
+   sign-in required state, mobile layout, header/action alignment,
+   empty/loading/error states, long-message overflow, tool/code card
+   readability, theme switching, and confirmation UI.
+2. **Session refinements.** Add rename/archive/delete and better loading/error
+   handling on top of the implemented session list/switch/new flow.
+3. **Outbound attachments/artifacts.** Extend `WebChatInterface` stream adaptation so attachment-bearing interface events become AI SDK UI data parts. Add UI renderers for image previews, downloadable artifacts, and generic file cards. Prefer existing attachment/media provider contracts for blob resolution and download routes.
+4. **Inbound uploads.** Add user file selection/dropzone, multipart upload routes, auth/size/type checks, and attachment refs in `/api/chat` requests only after outbound artifact rendering is stable.
+5. **Deeper streaming.** Token-by-token model streaming remains a later `AgentService` capability; current progress/status/final-response streaming is enough for the MVP.
 
 ## Validation
 
-- A fresh `brain init` + `brain start` exposes a working chat UI at the brain's URL with no extra setup.
+- A fresh `brain init` + `brain start` exposes a working chat UI at `/chat` with no extra frontend setup.
 - Rover/dev start paths build `@brains/web-chat` before launching so local runs do not depend on a manually prebuilt `dist/ui/app.js`.
 - Published package verification confirms `@brains/web-chat` includes `dist/ui/app.js` and that `/chat/assets/app.js` is served from the installed package.
 - Progress/status feedback is visible during multi-second AI responses; token-by-token model streaming is not required for v0.
-- Auth gates the chat surface to the right permission tier.
+- Auth gates the full chat surface to anchor/operator sessions by default.
 - Existing Discord, MCP, and CLI interfaces continue to work unchanged.
-- Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues for Relay (header indicating team context) are added once Relay-specific work lands.
+- Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues for Relay (header indicating team context) can be refined once Relay-specific product work lands.
 
-## Done when
+## Completed MVP criteria
 
-1. `@rizom/brain` ships a bundled web chat UI mounted at the brain's URL.
+1. `@rizom/brain` ships a bundled web chat UI mounted at `/chat`.
 2. `@brains/web-chat` publishes the compiled UI bundle in `dist/ui/app.js`, and installed-package smoke tests prove `/chat/assets/app.js` works without a consumer-side frontend build.
-3. New users can chat with their brain in a browser with no Discord, MCP, or CLI prerequisite.
-4. Progress/status feedback works for long responses; true token streaming remains a later `AgentService` enhancement.
+3. Users can chat with their brain in a browser with no Discord, MCP, or CLI prerequisite once they have an operator session.
+4. Progress/status/final-response streaming works for long responses; true token streaming remains a later `AgentService` enhancement.
 5. The dashboard continues to work alongside chat.
 6. `chat-interface-sdk.md` stays parked; multi-platform adapter consolidation only revives when a new platform is actually prioritized.
