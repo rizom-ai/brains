@@ -397,6 +397,24 @@ export function App(): React.ReactElement {
 
       <main className="web-chat-app" aria-label="Brain chat">
         <header className="web-chat-header">
+          <button
+            type="button"
+            className="web-chat-mobile-trigger"
+            aria-label="Open sessions"
+            aria-expanded={drawerOpen}
+            data-active={drawerOpen ? "true" : "false"}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden="true"
+            >
+              <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7" strokeLinecap="round" />
+            </svg>
+          </button>
           <div>
             <span className="web-chat-header-eyebrow">
               Anchor
@@ -415,27 +433,6 @@ export function App(): React.ReactElement {
             <p>A field log for talking with the rhizome.</p>
           </div>
           <div className="web-chat-header-actions">
-            <button
-              type="button"
-              className="web-chat-mobile-trigger"
-              aria-label="Open sessions"
-              aria-expanded={drawerOpen}
-              data-active={drawerOpen ? "true" : "false"}
-              onClick={() => setDrawerOpen(true)}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                aria-hidden="true"
-              >
-                <path
-                  d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
             <button
               className="web-chat-icon-action"
               type="button"
