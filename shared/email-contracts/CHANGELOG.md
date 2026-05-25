@@ -1,5 +1,12 @@
 # @brains/email-contracts
 
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.89
+
 ## 0.2.0-alpha.88
 
 ### Patch Changes

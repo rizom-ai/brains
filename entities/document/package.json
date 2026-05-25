@@ -1,7 +1,7 @@
 {
   "name": "@brains/document-plugin",
   "private": true,
-  "version": "0.2.0-alpha.88",
+  "version": "0.2.0-alpha.89",
   "description": "Document entity type for generated PDFs and publishable document attachments",
   "type": "module",
   "exports": {

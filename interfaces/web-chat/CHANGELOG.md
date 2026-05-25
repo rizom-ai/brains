@@ -1,5 +1,28 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.89
+
+### Minor Changes
+
+- [`3d05f53`](https://github.com/rizom-ai/brains/commit/3d05f539af35efb4d0c0e364cf4f09aa5ecb8fd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rework the mobile chat layout around a slide-in sessions drawer instead of
+  the previous pill-rail stack. At ≤760px the sessions panel becomes a
+  left-side drawer (86% width, max 320px) triggered by a hamburger in the
+  header, backed by a scrim and a floating close button; tapping a session
+  auto-closes the drawer. The same `.web-chat-sessions` component is
+  reused verbatim — the drawer is just chrome (positioning + transform +
+  backdrop). The mobile header collapses to four icon-only 40px circles
+  (sessions, brand, theme, new) and drops the eyebrow + subtitle for
+  vertical real estate. Touch targets meet 44px, the prompt textarea uses
+  16px to suppress iOS auto-zoom, and prompt + drawer respect
+  `env(safe-area-inset-bottom)`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.89
+  - @brains/auth-service@0.2.0-alpha.89
+  - @brains/plugins@0.2.0-alpha.89
+
 ## 0.2.0-alpha.88
 
 ### Minor Changes
