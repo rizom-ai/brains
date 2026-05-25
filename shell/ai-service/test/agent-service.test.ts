@@ -947,6 +947,7 @@ describe("AgentService", () => {
           interfaceType: "matrix",
           channelId: "!room:example.org",
           channelName: "Ops",
+          userPermissionLevel: "trusted",
         }),
       );
     });

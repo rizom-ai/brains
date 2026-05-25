@@ -399,6 +399,7 @@ export class AgentService implements IAgentService {
       userId: "agent-user",
       channelId,
       channelName,
+      userPermissionLevel,
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
