@@ -186,6 +186,11 @@ export function App(): React.ReactElement {
   const [sessions, setSessions] = useState<WebChatSession[]>([]);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  function closeDrawer(): void {
+    setDrawerOpen(false);
+  }
 
   function toggleTheme(): void {
     const next: ThemeMode = theme === "light" ? "dark" : "light";
@@ -276,6 +281,7 @@ export function App(): React.ReactElement {
     setInitialMessages(nextMessages);
     setConversationId(nextConversationId);
     setInput("");
+    closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
 
@@ -294,6 +300,7 @@ export function App(): React.ReactElement {
     setInitialMessages([]);
     setConversationId(next);
     setInput("");
+    closeDrawer();
     focusPromptTextarea(promptInputRef.current);
   }
 
@@ -303,7 +310,29 @@ export function App(): React.ReactElement {
       data-web-chat-app="true"
       data-web-chat-ui="ai-elements-v0"
       data-conversation-id={conversationId}
+      data-drawer-open={drawerOpen ? "true" : "false"}
     >
+      <div
+        className="web-chat-mobile-drawer-scrim"
+        aria-hidden="true"
+        onClick={closeDrawer}
+      />
+      <button
+        type="button"
+        className="web-chat-mobile-drawer-close"
+        aria-label="Close sessions"
+        onClick={closeDrawer}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+        </svg>
+      </button>
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
           <h2>Sessions</h2>
@@ -376,6 +405,27 @@ export function App(): React.ReactElement {
             <p>A field log for talking with the rhizome.</p>
           </div>
           <div className="web-chat-header-actions">
+            <button
+              type="button"
+              className="web-chat-mobile-trigger"
+              aria-label="Open sessions"
+              aria-expanded={drawerOpen}
+              data-active={drawerOpen ? "true" : "false"}
+              onClick={() => setDrawerOpen(true)}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
             <button
               className="web-chat-icon-action"
               type="button"
