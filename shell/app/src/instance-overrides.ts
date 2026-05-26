@@ -1,3 +1,4 @@
+import { EntityActionRequiredLevelSchema } from "@brains/templates";
 import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 import { logLevelSchema } from "./types";
@@ -133,15 +134,9 @@ const instanceOverridesSchema = z.object({
         .record(
           z
             .object({
-              create: z
-                .enum(["never", "anchor", "trusted", "public"])
-                .optional(),
-              update: z
-                .enum(["never", "anchor", "trusted", "public"])
-                .optional(),
-              delete: z
-                .enum(["never", "anchor", "trusted", "public"])
-                .optional(),
+              create: EntityActionRequiredLevelSchema.optional(),
+              update: EntityActionRequiredLevelSchema.optional(),
+              delete: EntityActionRequiredLevelSchema.optional(),
             })
             .strict(),
         )
