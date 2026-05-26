@@ -840,7 +840,7 @@ A saved research link.`;
     expect(result).toMatchObject({
       success: false,
       error:
-        "Create summary requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Creating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
     expect(services.getEntities().size).toBe(0);
   });
@@ -871,7 +871,7 @@ A saved research link.`;
     expect(result).toMatchObject({
       success: false,
       error:
-        "Create summary requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Creating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
     expect(services.getEntities().size).toBe(0);
   });

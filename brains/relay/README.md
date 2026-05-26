@@ -34,6 +34,16 @@
 
 System tools such as create, update, search, extract, and status are framework-level surfaces provided by the shell.
 
+## Mutation permissions
+
+Relay separates collaborator writes from owner/operator writes:
+
+- trusted teammates can create and update normal team-authored memory such as notes, links, decisions, action items, images, docs, and decks;
+- deletes default to owner/operator (`anchor`) permission;
+- derived/system-maintained or identity/config records (`summary`, `topic`, `agent`, `skill`, `swot`, `prompt`, `site-info`, `site-content`, `anchor-profile`, `brain-character`) are owner/operator-only by default.
+
+Instances can override these defaults with `permissions.entityActions` in `brain.yaml`.
+
 ## Interfaces
 
 | Interface   | Purpose                                              |

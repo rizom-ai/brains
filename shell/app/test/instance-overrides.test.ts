@@ -371,6 +371,41 @@ permissions:
     expect(result.permissions?.trusted).toEqual(["discord:123456789"]);
   });
 
+  test("should parse entity action policy in permissions", () => {
+    const yaml = `brain: "@brains/relay"
+permissions:
+  entityActions:
+    "*":
+      create: trusted
+      update: trusted
+      delete: anchor
+    summary:
+      create: anchor
+      update: anchor
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.permissions?.entityActions).toEqual({
+      "*": { create: "trusted", update: "trusted", delete: "anchor" },
+      summary: { create: "anchor", update: "anchor" },
+    });
+  });
+
+  test("should reject invalid entity action policy levels", () => {
+    const yaml = `brain: "@brains/relay"
+permissions:
+  entityActions:
+    summary:
+      update: admin
+`;
+
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      InstanceOverridesParseError,
+    );
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      "permissions.entityActions.summary.update",
+    );
+  });
+
   test("should parse shared conversation spaces", () => {
     const yaml = `brain: relay
 spaces:
@@ -965,6 +1000,38 @@ describe("resolve with instance overrides", () => {
 
     // yaml anchors override definition anchors
     expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
+  });
+
+  test("should merge yaml entity action policy with definition defaults", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+      permissions: {
+        entityActions: {
+          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+          summary: { create: "anchor", update: "anchor", delete: "anchor" },
+        },
+      },
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        permissions: {
+          entityActions: {
+            summary: { update: "trusted" },
+          },
+        },
+      },
+    );
+
+    expect(config.permissions?.entityActions).toEqual({
+      "*": { create: "trusted", update: "trusted", delete: "anchor" },
+      summary: { create: "anchor", update: "trusted", delete: "anchor" },
+    });
   });
 
   test("should pass spaces from yaml overrides to app config", () => {

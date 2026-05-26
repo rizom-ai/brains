@@ -1,5 +1,5 @@
-import { EntityActionRequiredLevelSchema } from "@brains/templates";
 import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { entityActionPolicyConfigSchema } from "@brains/templates";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 import { logLevelSchema } from "./types";
 
@@ -130,17 +130,7 @@ const instanceOverridesSchema = z.object({
           }),
         )
         .optional(),
-      entityActions: z
-        .record(
-          z
-            .object({
-              create: EntityActionRequiredLevelSchema.optional(),
-              update: EntityActionRequiredLevelSchema.optional(),
-              delete: EntityActionRequiredLevelSchema.optional(),
-            })
-            .strict(),
-        )
-        .optional(),
+      entityActions: entityActionPolicyConfigSchema.optional(),
     })
     .optional(),
 });

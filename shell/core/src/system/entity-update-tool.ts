@@ -8,9 +8,9 @@ import {
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { updateInputSchema } from "./schemas";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
-  checkEntityActionPermission,
   createSystemTool,
   getEntityDisplayLabel,
   normalizeUpdateInput,
@@ -70,6 +70,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     "Update an entity's fields or content. Requires confirmation.",
     updateInputSchema,
     async (input, context) => {
+      const policyError = assertEntityActionAllowed(
+        services,
+        input.entityType,
+        "update",
+        context,
+      );
+      if (policyError) return policyError;
+
       const visibilityScope = permissionToVisibilityScope(
         context.userPermissionLevel,
       );
@@ -83,13 +91,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
-      const policyError = checkEntityActionPermission(
-        services.permissionService,
-        context,
-        entity.entityType,
-        "update",
-      );
-      if (policyError) return policyError;
 
       let normalizedInput = normalizeUpdateInput({
         ...(input.fields !== undefined ? { fields: input.fields } : {}),

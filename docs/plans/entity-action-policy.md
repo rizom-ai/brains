@@ -2,30 +2,51 @@
 
 ## Status
 
-Implemented in `eac3c0148`.
+Implemented for the central entity mutation tools and Relay defaults.
 
-This plan is now a short design record for the implemented Relay/shared-space trust hardening slice. Shared-space trust can resolve callers in configured spaces to `trusted`; entity action policy constrains what those collaborators can mutate.
+Shared-space trust now lets configured spaces resolve callers to `trusted`. That is useful for collaboration, but too broad for mutation tools: a trusted collaborator should be able to contribute team content without being able to delete records or rewrite derived/system-maintained memory.
 
-## Implemented behavior
+This plan replaces the old shared-space trust follow-up notes with the implemented scope and remaining follow-up questions.
 
-Entity mutations can declare the minimum permission level required by `entityType` and action.
+## Goal
 
-Supported actions:
+Add a central policy layer for entity mutations so the minimum permission level can vary by `entityType` and action.
+
+The first target is Relay:
+
+- collaborators can create/update normal team-authored content;
+- deletes default to Owner/anchor;
+- derived/system-maintained records are anchor-only by default;
+- denial messages identify the blocked action and required level.
+
+## Non-goals
+
+- Full RBAC or custom roles.
+- Runtime users/People UI.
+- A fourth permission level such as `admin`.
+- Per-field permissions.
+- Read/search/list visibility changes; entity visibility already handles those paths.
+- Slack/Teams/shared-web trust integration.
+
+## Policy model
+
+Use existing permission levels as policy values:
+
+- `public`
+- `trusted`
+- `anchor`
+
+Initial actions:
 
 - `create`
 - `update`
 - `delete`
 
-Supported levels:
+Future actions can be added only when there is a concrete mutating tool that needs them, for example `setCover`, `publish`, or `extract`.
 
-- `public`
-- `trusted`
-- `anchor`
-- `never` — action is not permitted through system tools, regardless of caller
-  level. Internal plugin code can still mutate the entity directly via
-  `entityService` (the gate is the user-facing tool boundary, not the database).
+### Config shape
 
-Configuration lives under `permissions.entityActions`:
+Add entity action overrides under the existing `permissions` block:
 
 ```yaml
 permissions:
@@ -49,74 +70,85 @@ Rules:
 - `"*"` is the default for any entity type without an explicit override.
 - Entity-specific entries merge over `"*"`.
 - Omitted actions inherit from `"*"`.
-- If no policy is configured, existing mutation-tool behavior is preserved for backward compatibility.
-- Brain model defaults and instance `brain.yaml` overrides merge into one effective policy.
+- If no policy is configured, preserve existing behavior for backward compatibility.
+- Brain models may provide defaults; instance config may override them.
+
+## Relay default policy
+
+Relay installs this default policy:
+
+| entity type       | create    | update    | delete   | reason                                                                |
+| ----------------- | --------- | --------- | -------- | --------------------------------------------------------------------- |
+| `*`               | `trusted` | `trusted` | `anchor` | safe default for team-authored content; deletes are owner-only        |
+| `base`            | `trusted` | `trusted` | `anchor` | notes/general team memory                                             |
+| `link`            | `trusted` | `trusted` | `anchor` | shared references                                                     |
+| `doc`             | `trusted` | `trusted` | `anchor` | full-preset team docs                                                 |
+| `deck`            | `trusted` | `trusted` | `anchor` | full-preset team presentations                                        |
+| `decision`        | `trusted` | `trusted` | `anchor` | canonical team decisions, editable but not deletable by collaborators |
+| `action-item`     | `trusted` | `trusted` | `anchor` | team follow-ups                                                       |
+| `image`           | `trusted` | `trusted` | `anchor` | site/team assets in default preset                                    |
+| `site-info`       | `anchor`  | `anchor`  | `anchor` | public identity/config                                                |
+| `site-content`    | `anchor`  | `anchor`  | `anchor` | public site route copy                                                |
+| `prompt`          | `anchor`  | `anchor`  | `anchor` | prompt/template behavior                                              |
+| `anchor-profile`  | `anchor`  | `anchor`  | `anchor` | owner/team identity                                                   |
+| `brain-character` | `anchor`  | `anchor`  | `anchor` | brain identity/instructions                                           |
+| `topic`           | `anchor`  | `anchor`  | `anchor` | derived synthesis artifact                                            |
+| `summary`         | `anchor`  | `anchor`  | `anchor` | system-maintained conversation memory                                 |
+| `agent`           | `anchor`  | `anchor`  | `anchor` | peer-brain trust boundary                                             |
+| `skill`           | `anchor`  | `anchor`  | `anchor` | derived agent capability record                                       |
+| `swot`            | `anchor`  | `anchor`  | `anchor` | derived assessment output                                             |
 
 ## Enforcement points
 
-Policy is enforced centrally in:
+Enforce policy in central mutation tools before calling entity services or plugin-specific write paths:
 
 - `system_create`
 - `system_update`
 - `system_delete`
 
-Entity plugins do not enforce their own policy. Create interceptors cannot bypass policy: `system_create` checks the requested entity type and checks again if an interceptor rewrites the effective entity type.
+Do not make each entity plugin responsible for this check.
 
-Read/search/list access is unchanged and remains governed by entity visibility.
+Plugin create interceptors must not bypass the policy. The check should run after the requested/derived `entityType` is known and before the interceptor or entity service writes anything.
 
-## Relay default policy
-
-Relay installs a default policy where collaborators can contribute normal team content, while deletes and system/derived entities stay owner-only.
-
-Only the wildcard default and the anchor-only overrides are listed in
-`brains/relay/src/index.ts`. Entity types not listed inherit from `"*"` —
-they are described in the table below for auditability, not duplicated in
-code.
-
-| entity type       | create    | update    | delete   | source   | reason                                                                |
-| ----------------- | --------- | --------- | -------- | -------- | --------------------------------------------------------------------- |
-| `*`               | `trusted` | `trusted` | `anchor` | explicit | safe default for team-authored content; deletes are owner-only        |
-| `base`            | `trusted` | `trusted` | `anchor` | inherits | notes/general team memory                                             |
-| `link`            | `trusted` | `trusted` | `anchor` | inherits | shared references                                                     |
-| `doc`             | `trusted` | `trusted` | `anchor` | inherits | full-preset team docs                                                 |
-| `deck`            | `trusted` | `trusted` | `anchor` | inherits | full-preset team presentations                                        |
-| `decision`        | `trusted` | `trusted` | `anchor` | inherits | canonical team decisions, editable but not deletable by collaborators |
-| `action-item`     | `trusted` | `trusted` | `anchor` | inherits | team follow-ups                                                       |
-| `image`           | `trusted` | `trusted` | `anchor` | inherits | site/team assets in default preset                                    |
-| `site-info`       | `anchor`  | `anchor`  | `never`  | explicit | singleton site identity/config — never deletable via system tools     |
-| `site-content`    | `anchor`  | `anchor`  | `anchor` | explicit | public site route copy                                                |
-| `prompt`          | `anchor`  | `anchor`  | `anchor` | explicit | prompt/template behavior                                              |
-| `anchor-profile`  | `anchor`  | `anchor`  | `never`  | explicit | singleton owner/team identity — never deletable via system tools      |
-| `brain-character` | `anchor`  | `anchor`  | `never`  | explicit | singleton brain identity — never deletable via system tools           |
-| `topic`           | `anchor`  | `anchor`  | `anchor` | explicit | derived synthesis artifact                                            |
-| `summary`         | `anchor`  | `anchor`  | `anchor` | explicit | system-maintained conversation memory                                 |
-| `agent`           | `anchor`  | `anchor`  | `anchor` | explicit | peer-brain trust boundary                                             |
-| `skill`           | `anchor`  | `anchor`  | `anchor` | explicit | derived agent capability record                                       |
-| `swot`            | `anchor`  | `anchor`  | `anchor` | explicit | derived assessment output                                             |
+If an operation changes the effective entity type, run the check against the final entity type.
 
 ## Denial behavior
 
-Denied mutations return user-facing errors that include action, entity type, required level, and caller level.
+Denied mutations should return a user-facing message with:
+
+- action;
+- entity type;
+- caller level;
+- required level.
 
 Example:
 
-> Update summary requires Owner/anchor permission; your current permission is Collaborator/trusted.
+> Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.
 
-## Validation
+## Implementation steps
 
-Implemented coverage includes:
+- [x] Add typed policy definitions and parser/default-merging logic.
+- [x] Expose resolved entity action policy through the app/permission layer.
+- [x] Add `assertEntityActionAllowed(entityType, action, context)` enforcement helper.
+- [x] Call the helper from `system_create`, `system_update`, and `system_delete`.
+- [x] Re-check create policy after a plugin create interceptor changes the effective entity type.
+- [x] Add Relay model defaults matching the table above.
+- [x] Add tests for policy parsing, default/override merging, central tool enforcement, interceptor non-bypass, and denial messages.
+- [x] Update Relay docs with the collaborator vs owner mutation model.
 
-- policy resolution with exact entity overrides and wildcard defaults;
-- permission-level checks for allowed/denied entity actions;
-- `system_create` enforcement before generic direct create;
-- `system_create` enforcement after create interceptors rewrite entity type;
-- `system_update` enforcement;
-- `system_delete` enforcement;
-- denial-message assertions;
-- typechecks for templates, app, core, and Relay.
+## Validation matrix
 
-## Deferred follow-ups
+- public caller cannot create/update/delete Relay team content unless instance policy explicitly allows it.
+- trusted caller can create `base`, `link`, `decision`, and `action-item`.
+- trusted caller can update `base`, `link`, `decision`, and `action-item`.
+- trusted caller cannot delete any entity by default.
+- trusted caller cannot create/update/delete `topic`, `summary`, `agent`, `skill`, or `swot`.
+- trusted caller cannot mutate `prompt`, `site-info`, `site-content`, `anchor-profile`, or `brain-character`.
+- anchor caller can create/update/delete under the default policy.
+- instance config can loosen/tighten a single entity type without replacing the whole policy.
+- denial messages include action, entity type, caller level, and required level.
 
-- `system_extract` is not governed by this policy yet. Add an `extract` action only after auditing which extraction paths mutate durable state.
-- Publish/status-specific policy is not separate yet. Current status/publish-like field changes are covered by `update`; add a `publish` action only if a distinct workflow needs it.
-- Full runtime users, roles, and identity linking remain in `multi-user.md`.
+## Open decisions
+
+1. Whether `system_extract` should be governed by this policy or wait for a separate `extract` action once its mutation behavior is audited.
+2. Whether status changes/publish flows need a separate `publish` action or can remain covered by `update` for now.

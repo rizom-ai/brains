@@ -359,7 +359,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Update agent requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
   });
 
@@ -385,7 +385,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Update agent requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
 
     const unchanged = services.getEntities().get("old-agent.io");
@@ -411,7 +411,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: false,
       error:
-        "Delete newsletter requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+        "Deleting `newsletter` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
   });
 
@@ -433,7 +433,7 @@ describe("system_update tool", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Delete newsletter is not allowed through system tools.",
+      error: "Deleting `newsletter` is not allowed through system tools.",
     });
     expect(services.getEntities().has("newsletter-1")).toBe(true);
   });

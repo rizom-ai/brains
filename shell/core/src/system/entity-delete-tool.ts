@@ -4,12 +4,9 @@ import {
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
-import {
-  checkEntityActionPermission,
-  createSystemTool,
-  getEntityDisplayLabel,
-} from "./tool-helpers";
+import { createSystemTool, getEntityDisplayLabel } from "./tool-helpers";
 
 const PROTECTED_ENTITY_TYPES = new Set(["brain-character", "anchor-profile"]);
 
@@ -29,6 +26,14 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         };
       }
 
+      const policyError = assertEntityActionAllowed(
+        services,
+        input.entityType,
+        "delete",
+        context,
+      );
+      if (policyError) return policyError;
+
       const visibilityScope = permissionToVisibilityScope(
         context.userPermissionLevel,
       );
@@ -42,13 +47,6 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
-      const policyError = checkEntityActionPermission(
-        services.permissionService,
-        context,
-        entity.entityType,
-        "delete",
-      );
-      if (policyError) return policyError;
 
       if (input.confirmed) {
         const token = input.confirmationToken;

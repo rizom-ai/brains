@@ -621,4 +621,64 @@ describe("PermissionService", () => {
       });
     });
   });
+
+  describe("Entity action policy", () => {
+    it("returns undefined when no entity action policy is configured", () => {
+      const service = new PermissionService({});
+
+      expect(service.getResolvedEntityActionPolicy("base")).toBeUndefined();
+      expect(
+        service.getEntityActionRequiredLevel("base", "create"),
+      ).toBeUndefined();
+    });
+
+    it("merges entity-specific entries over wildcard defaults", () => {
+      const service = new PermissionService({
+        entityActions: {
+          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+          summary: { create: "anchor" },
+        },
+      });
+
+      expect(service.getResolvedEntityActionPolicy("base")).toEqual({
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+      });
+      expect(service.getResolvedEntityActionPolicy("summary")).toEqual({
+        create: "anchor",
+        update: "trusted",
+        delete: "anchor",
+      });
+    });
+
+    it("allows callers meeting the required entity action level", () => {
+      const service = new PermissionService({
+        entityActions: {
+          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+        },
+      });
+
+      expect(() =>
+        service.assertEntityActionAllowed("base", "create", "trusted"),
+      ).not.toThrow();
+      expect(() =>
+        service.assertEntityActionAllowed("base", "delete", "anchor"),
+      ).not.toThrow();
+    });
+
+    it("throws a denial message with action, type, caller, and required level", () => {
+      const service = new PermissionService({
+        entityActions: {
+          summary: { update: "anchor" },
+        },
+      });
+
+      expect(() =>
+        service.assertEntityActionAllowed("summary", "update", "trusted"),
+      ).toThrow(
+        "Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      );
+    });
+  });
 });

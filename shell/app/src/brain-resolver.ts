@@ -1,8 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import type {
-  EntityActionPolicy,
-  EntityActionPolicyEntry,
-} from "@brains/templates";
+import type { EntityActionPolicyConfig } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
@@ -502,29 +499,6 @@ export function resolve(
 }
 
 /**
- * Merge two entity-action policies one level deeper than a spread.
- *
- * Why: a top-level spread of `entityActions` lets a yaml entry for `"*"` silently
- * drop unrelated actions defined in the definition (e.g. yaml `{ "*": { delete: "trusted" } }`
- * would wipe out the definition's `create`/`update` for `"*"`). Merging per entity
- * type lets yaml override individual actions while preserving the rest.
- */
-function mergeEntityActionPolicies(
-  base: EntityActionPolicy | undefined,
-  override: EntityActionPolicy | undefined,
-): EntityActionPolicy {
-  const keys = new Set([
-    ...Object.keys(base ?? {}),
-    ...Object.keys(override ?? {}),
-  ]);
-  const merged: Record<string, EntityActionPolicyEntry> = {};
-  for (const key of keys) {
-    merged[key] = { ...(base?.[key] ?? {}), ...(override?.[key] ?? {}) };
-  }
-  return merged;
-}
-
-/**
  * Build the permissions config by merging definition defaults with yaml overrides.
  *
  * Priority: yaml `permissions` section > yaml top-level `anchors`/`trusted` > definition defaults
@@ -544,6 +518,11 @@ function buildPermissions(
 
   if (!hasYamlPerms && !hasTopLevel && !hasDefPerms) return {};
 
+  const entityActions = mergeEntityActions(
+    definitionPerms?.entityActions,
+    yamlPerms?.entityActions,
+  );
+
   return {
     permissions: {
       ...(definitionPerms ?? {}),
@@ -554,16 +533,29 @@ function buildPermissions(
       ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
       ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
-      ...(definitionPerms?.entityActions || yamlPerms?.entityActions
-        ? {
-            entityActions: mergeEntityActionPolicies(
-              definitionPerms?.entityActions,
-              yamlPerms?.entityActions,
-            ),
-          }
-        : {}),
+      ...(entityActions && { entityActions }),
     },
   };
+}
+
+function mergeEntityActions(
+  defaults?: EntityActionPolicyConfig,
+  overrides?: EntityActionPolicyConfig,
+): EntityActionPolicyConfig | undefined {
+  if (!defaults && !overrides) return undefined;
+
+  const merged: EntityActionPolicyConfig = {};
+  for (const source of [defaults, overrides]) {
+    if (!source) continue;
+    for (const [entityType, actions] of Object.entries(source)) {
+      merged[entityType] = {
+        ...(merged[entityType] ?? {}),
+        ...actions,
+      };
+    }
+  }
+
+  return merged;
 }
 
 /** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */
