@@ -8,6 +8,19 @@ Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native t
 
 Discord and chat-repl should consume the Brain `ToolApprovalCard` contract directly. They do not need AI SDK stream chunks, but they should include/pass the same approval IDs.
 
+## Layered summary
+
+What changes per layer, and where each layer is today:
+
+| Layer                           | Today                                               | Bridge state                                    | Final state                                                                |
+| ------------------------------- | --------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| Brain agent emits               | `pendingConfirmation` + `cards: ToolApprovalCard[]` | same                                            | same (Brain stays interface-agnostic)                                      |
+| Web-chat wire format            | custom `data-approval-card` part                    | custom part + native `tool-*` parts in parallel | `tool-input-available` + `tool-approval-request` + `tool-output-*` only    |
+| Web-chat submission             | `POST /api/chat/confirm` with `approvalId`          | same                                            | `tool-approval-response` part on the next user turn (no side-channel POST) |
+| Discord / chat-repl wire format | `response.text`                                     | `response.cards` for state, text for fallback   | `response.cards` is the primary signal                                     |
+
+Translation between Brain cards and AI SDK chunks lives in **web-chat**, not in the agent. The agent keeps emitting Brain `ToolApprovalCard` so Discord and chat-repl never have to learn the SDK wire format. If translation later moves into the agent, Brain becomes SDK-coupled — currently rejected.
+
 ## Context
 
 Brains currently has an interface-agnostic confirmation flow in
@@ -85,7 +98,21 @@ interface ToolApprovalCard {
 The key requirement is that approvals are attached to explicit tool/action IDs,
 not just a loose conversation-level boolean.
 
-Web-chat translation target:
+### State lifecycle notes
+
+- `approval-responded` is an SDK-defined intermediate state ("user has decided, action not yet executed"). Brain's `executeConfirmedAction` currently jumps `approval-requested` → `output-*` directly and never produces `approval-responded`. **Decision:** keep it that way for now — the executing-an-approval window is short and the existing "Confirmation required." → "Completed/Failed" transition reads fine. Revisit only if a destructive tool grows long enough latency that users need an intermediate "executing your approval…" state.
+- `approval.reason` (an SDK-side optional free-text field on `approval-responded`/`output-denied`) is **not** carried on Brain's `ToolApprovalCard`. **Known omission:** if/when interfaces want to capture user-supplied decline reasons ("no, wrong note"), add a `reason?: string` slot to the card and propagate it through `confirmPendingAction`. Until then, declines are reasonless.
+
+### Web-chat translation target
+
+Two wire-level distinctions matter when mapping Brain cards to AI SDK UI:
+
+- **The stream chunk** the writer emits is _flat_: `{ type: "tool-approval-request", approvalId, toolCallId }`.
+- **The resulting `UIToolInvocation` UI part** the renderer sees is _nested_: `{ state: "approval-requested", approval: { id, ... } }`.
+
+This is why `ConfirmationPart` reads both `data.id` and `data.approval?.id` — the same approval ID lives at different paths depending on which shape you're looking at.
+
+Pending approval — writer chunks:
 
 ```ts
 writer.write({
@@ -104,7 +131,7 @@ writer.write({
 });
 ```
 
-Resolved approvals should stream native output chunks:
+Resolved approvals — writer chunks:
 
 ```ts
 writer.write({
