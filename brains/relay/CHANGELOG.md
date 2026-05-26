@@ -1,5 +1,43 @@
 # @brains/relay
 
+## 0.2.0-alpha.94
+
+### Patch Changes
+
+- [`2f3efe7`](https://github.com/rizom-ai/brains/commit/2f3efe79457f73aabfb138400623797fb0784f62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the operator web chat interface to Relay presets, mirroring Rover's web-chat build step for local test-app startup and keeping the browser chat surface anchor-only by default.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.94
+  - @brains/assessment@0.2.0-alpha.94
+  - @brains/conversation-memory@0.2.0-alpha.94
+  - @brains/decks@0.2.0-alpha.94
+  - @brains/doc@0.2.0-alpha.94
+  - @brains/image-plugin@0.2.0-alpha.94
+  - @brains/link@0.2.0-alpha.94
+  - @brains/note@0.2.0-alpha.94
+  - @brains/prompt@0.2.0-alpha.94
+  - @brains/rizom-ecosystem@0.2.0-alpha.94
+  - @brains/site-info@0.2.0-alpha.94
+  - @brains/topics@0.2.0-alpha.94
+  - @brains/a2a@0.2.0-alpha.94
+  - @brains/discord@0.2.0-alpha.94
+  - @brains/mcp@0.2.0-alpha.94
+  - @brains/web-chat@0.2.0-alpha.94
+  - @brains/webserver@0.2.0-alpha.94
+  - @brains/cms@0.2.0-alpha.94
+  - @brains/dashboard@0.2.0-alpha.94
+  - @brains/directory-sync@0.2.0-alpha.94
+  - @brains/site-builder-plugin@0.2.0-alpha.94
+  - @brains/site-content@0.2.0-alpha.94
+  - @brains/content-formatters@0.2.0-alpha.94
+  - @brains/site-composition@0.2.0-alpha.94
+  - @brains/theme-rizom@0.2.0-alpha.94
+  - @brains/utils@0.2.0-alpha.94
+  - @brains/app@0.2.0-alpha.94
+  - @brains/auth-service@0.2.0-alpha.94
+  - @brains/plugins@0.2.0-alpha.94
+  - @brains/site-rizom@0.2.0-alpha.94
+
 ## 0.2.0-alpha.93
 
 ### Patch Changes
