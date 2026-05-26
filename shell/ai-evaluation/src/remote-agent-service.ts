@@ -24,6 +24,8 @@ const agentResponseSchema = z.object({
     .optional(),
   pendingConfirmation: z
     .object({
+      id: z.string(),
+      toolCallId: z.string().optional(),
       toolName: z.string(),
       description: z.string(),
       args: z.unknown(),
@@ -50,6 +52,10 @@ function parseAgentResponse(json: unknown): AgentResponse {
   }
   if (p.pendingConfirmation) {
     response.pendingConfirmation = {
+      id: p.pendingConfirmation.id,
+      ...(p.pendingConfirmation.toolCallId !== undefined && {
+        toolCallId: p.pendingConfirmation.toolCallId,
+      }),
       toolName: p.pendingConfirmation.toolName,
       description: p.pendingConfirmation.description,
       args: p.pendingConfirmation.args,

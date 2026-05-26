@@ -2,7 +2,9 @@
 
 ## Status
 
-In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path.
+In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. `PendingConfirmation.id` is required across the runtime types and the public zod contract. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path. Web-chat emits a dedicated `data-approval-card` stream (with a legacy `data-confirmation` fallback) and `formatConfirmationResult` prefers the card's `state` and `output` over the legacy `toolResults`/`Result:` text parsing.
+
+Discord and chat-repl still consume only `response.text`. They now correctly render the `Failed:`/`Completed:` distinction but do not yet read the structured cards.
 
 ## Context
 

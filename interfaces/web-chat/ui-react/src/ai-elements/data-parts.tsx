@@ -5,6 +5,7 @@ import { Tool, ToolContent, ToolHeader, ToolOutput } from "./tool";
 interface ConfirmationResult {
   text: string;
   toolResults?: unknown[];
+  cards?: unknown[];
 }
 
 type ConfirmationResultVariant = "success" | "error" | "declined";
@@ -35,6 +36,13 @@ function getBooleanValue(data: unknown, key: string): boolean | undefined {
 
 function getFirstToolResult(result: ConfirmationResult): unknown {
   return Array.isArray(result.toolResults) ? result.toolResults[0] : undefined;
+}
+
+function getFirstApprovalCard(result: ConfirmationResult): unknown {
+  if (!Array.isArray(result.cards)) return undefined;
+  return result.cards.find(
+    (card) => getStringValue(card, "kind") === "tool-approval",
+  );
 }
 
 function getToolResultData(toolResult: unknown): unknown {
@@ -75,14 +83,36 @@ export function formatConfirmationResult(
     return { label: "Declined", variant: "declined" };
   }
 
+  const approvalCard = getFirstApprovalCard(result);
   const toolResult = getFirstToolResult(result);
-  const toolLabel = humanizeToolName(getStringValue(toolResult, "toolName"));
+  const toolLabel = humanizeToolName(
+    getStringValue(approvalCard, "toolName") ??
+      getStringValue(toolResult, "toolName"),
+  );
   const resultData =
-    getToolResultData(toolResult) ?? parseResultJson(result.text);
+    getRecordValue(approvalCard, "output") ??
+    getToolResultData(toolResult) ??
+    parseResultJson(result.text);
+  const cardState = getStringValue(approvalCard, "state");
   const success = getBooleanValue(resultData, "success");
   const errorMessage =
+    getStringValue(approvalCard, "error") ??
     getStringValue(resultData, "error") ??
     getStringValue(resultData, "message");
+
+  if (cardState === "output-error") {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
+  }
+
+  if (cardState === "output-available") {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
 
   if (success === false) {
     const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
@@ -96,6 +126,13 @@ export function formatConfirmationResult(
       label: `Action failed · ${result.text.replace(/^Error:\s*/, "")}`,
       variant: "error",
     };
+  }
+
+  if (result.text.startsWith("Failed:")) {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
   }
 
   if (success === true) {
@@ -173,9 +210,7 @@ export function ConfirmationPart({
 }): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
   const description = getStringValue(data, "description");
-  const approvalId =
-    getStringValue(data, "id") ??
-    getStringValue(getRecordValue(data, "card"), "id");
+  const approvalId = getStringValue(data, "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ConfirmationResult | null>(null);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(

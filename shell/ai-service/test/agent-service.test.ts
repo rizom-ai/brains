@@ -914,6 +914,7 @@ describe("AgentService", () => {
         true,
       );
 
+      expect(response.text).toStartWith("Failed: Delete note 'Meeting Notes'?");
       expect(response.text).toContain('"success": false');
       expect(response.text).toContain("Entity not found: base/woodchuck-note");
       expect(response.toolResults).toEqual([

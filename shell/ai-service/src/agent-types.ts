@@ -86,7 +86,7 @@ export interface ChatContext {
  * Pending confirmation for destructive operations
  */
 export interface PendingConfirmation {
-  id?: string;
+  id: string;
   toolCallId?: string;
   toolName: string;
   description: string;

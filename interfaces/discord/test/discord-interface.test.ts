@@ -18,6 +18,7 @@ interface MockAgentService {
         totalTokens: number;
       };
       pendingConfirmation?: {
+        id: string;
         toolName: string;
         description: string;
         args: unknown;
@@ -36,6 +37,7 @@ interface MockAgentService {
         totalTokens: number;
       };
       pendingConfirmation?: {
+        id: string;
         toolName: string;
         description: string;
         args: unknown;
@@ -708,6 +710,7 @@ describe("DiscordInterface", () => {
       mockAgentService.chat.mockResolvedValueOnce({
         text: "Are you sure?",
         pendingConfirmation: {
+          id: "approval:dangerous-tool",
           toolName: "dangerous_tool",
           description: "Delete all",
           args: {},

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented. The shared `shell/ai-service` flow no longer returns or persists misleading model text while a destructive action is pending confirmation. Confirmed-action responses now also expose structured tool result data, and web chat renders failed confirmation results as clear error badges instead of raw JSON.
+Implemented. The shared `shell/ai-service` flow no longer returns or persists misleading model text while a destructive action is pending confirmation. Confirmed-action responses now also expose structured tool result data, and web chat renders failed confirmation results as clear error badges instead of raw JSON. The persisted assistant text now uses a `Failed:` prefix when the confirmed tool returns `success: false`, so Discord, chat-repl, and any other text-only renderer no longer show `Completed:` over a failed result.
 
 The broader cross-interface structured approval/card protocol remains tracked in [structured-chat-confirmations.md](./structured-chat-confirmations.md).
 

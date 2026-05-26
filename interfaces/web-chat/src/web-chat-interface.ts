@@ -1745,14 +1745,21 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           data: toolResult,
         });
       }
-      if (response.pendingConfirmation) {
+      const approvalCards = (response.cards ?? []).filter(
+        (card) => card.kind === "tool-approval",
+      );
+      for (const card of approvalCards) {
+        input.writer.write({
+          type: "data-approval-card",
+          id: this.createId("approval"),
+          data: card,
+        });
+      }
+      if (response.pendingConfirmation && approvalCards.length === 0) {
         input.writer.write({
           type: "data-confirmation",
           id: this.createId("confirmation"),
-          data: {
-            ...response.pendingConfirmation,
-            card: response.cards?.find((card) => card.kind === "tool-approval"),
-          },
+          data: response.pendingConfirmation,
         });
       }
     } finally {

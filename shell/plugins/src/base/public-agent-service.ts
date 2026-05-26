@@ -44,9 +44,7 @@ export function toPublicAgentResponse(
     }),
     ...(response.pendingConfirmation && {
       pendingConfirmation: {
-        ...(response.pendingConfirmation.id !== undefined && {
-          id: response.pendingConfirmation.id,
-        }),
+        id: response.pendingConfirmation.id,
         ...(response.pendingConfirmation.toolCallId !== undefined && {
           toolCallId: response.pendingConfirmation.toolCallId,
         }),

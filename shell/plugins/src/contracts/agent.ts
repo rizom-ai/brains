@@ -17,7 +17,7 @@ export const ChatContextSchema = z.object({
 export type ChatContext = z.infer<typeof ChatContextSchema>;
 
 export const PendingConfirmationSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   toolCallId: z.string().optional(),
   toolName: z.string(),
   description: z.string(),

@@ -438,7 +438,9 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const failed = isFailedToolOutput(result);
+    const prefix = failed ? "Failed" : "Completed";
+    const resultText = `${prefix}: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
     const toolResult: ToolResultData = {
       toolName: pendingConfirmation.toolName,
       data: result,
@@ -448,7 +450,7 @@ export class AgentService implements IAgentService {
     };
     const approvalCard: StructuredChatCard = {
       kind: "tool-approval",
-      id: pendingConfirmation.id ?? `approval:${pendingConfirmation.toolName}`,
+      id: pendingConfirmation.id,
       ...(pendingConfirmation.toolCallId
         ? { toolCallId: pendingConfirmation.toolCallId }
         : {}),
@@ -457,9 +459,9 @@ export class AgentService implements IAgentService {
         ? { input: pendingConfirmation.args }
         : {}),
       description: pendingConfirmation.description,
-      state: isFailedToolOutput(result) ? "output-error" : "output-available",
+      state: failed ? "output-error" : "output-available",
       output: result,
-      ...(isFailedToolOutput(result)
+      ...(failed
         ? { error: getStringField(result, "error") ?? "Action failed" }
         : {}),
     };
