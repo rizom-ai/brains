@@ -2,8 +2,12 @@
 
 ## Status
 
-Proposed. Follow-up to the web-chat AI Elements migration and the confirmation
-result-integrity work.
+Ready / unblocked. The AI Elements baseline this plan was sequenced behind has
+landed in `@brains/web-chat` (see [brain-web-ui.md](./brain-web-ui.md)). This is
+now the biggest outstanding cross-interface workstream for chat: web-chat still
+uses a custom `/api/chat/confirm` endpoint, and Discord / chat-repl track
+pending confirmations separately. The next branch should align all three behind
+a shared structured tool/approval contract.
 
 ## Context
 

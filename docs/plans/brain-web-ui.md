@@ -1,274 +1,263 @@
-# Plan: Brain Web UI (bundled chat surface)
+# Plan: Brain web chat surface
 
 ## Status
 
-Implemented for the browser-chat MVP. The bundled `/chat` surface ships in
-`@rizom/brain`, uses the AI SDK UI transport, is served from the installed
-`@brains/web-chat` package, is anchor-only by default, and has conversation
-sessions/sidebar support.
+MVP shipped. Every `@rizom/brain` install exposes a bundled `/chat` route backed
+by `@brains/web-chat`, served from the brain runtime's installed package. The
+surface is anchor-only by default, runs over AI SDK UI transport, renders with
+AI Elements registry-derived components inside a quarantined React island, and
+has session list/switch/new with last-session memory.
 
-Remaining v1 follow-ups are web UI polish, clearer sign-in UX, session
-management refinements such as rename/archive/delete, outbound
-attachments/artifacts, and later inbound uploads. This plan reframes the
-previous hosted-Rover Discord gateway direction and narrows
-`chat-interface-sdk.md` to a web-first scope.
+This plan now tracks the remaining follow-ups: session management gaps, outbound
+artifacts, default landing, deferred public/trusted chat, and the deferred
+dashboard widget. Structured confirmations are tracked separately in
+[structured-chat-confirmations.md](./structured-chat-confirmations.md), which is
+unblocked now that the AI Elements baseline has landed.
 
-## Context
+The previous "hosted Rover Discord gateway" direction has been dropped, and
+multi-platform chat adapter consolidation is parked in
+[chat-interface-sdk.md](./chat-interface-sdk.md).
 
-Today a user who wants to interact with their Rover has three options: install the CLI and use `brain chat` in a terminal, set up a Discord bot, or wire up MCP through a desktop assistant. None of these is a credible "click and try" path. The static sites and dashboard already render in the browser, but there is no in-browser way to actually _chat_ with the brain.
+## Why this shape (load-bearing decisions)
 
-This gap forces every hosted/onboarding conversation to pick one of two bad framings: "Discord-first" (mandating per-user Discord setup) or "CLI-first" (mandating local terminal). A previous "hosted Rover Discord" plan tried to fix the Discord-first framing with a shared bot + gateway, which introduced significant accidental complexity (new transports, forwarded-chat package, SSE wire protocol, tracking keys) to solve a problem that disappears once Discord stops being load-bearing. That plan has been deleted in favour of this one.
+1. **Bundled with `@rizom/brain`.** Every brain instance ships the chat surface.
+   Not a separate package consumers opt into. The brain runtime serves the
+   compiled UI from `node_modules/@brains/web-chat/dist/ui/app.js`; external
+   sites do not bundle or host the React app themselves.
+2. **Web-first, Discord optional.** Discord stays as one possible additional
+   interface, not the primary one. Rover users bring their own Discord app
+   token if they want it; Relay teams install per-team Discord apps. No shared
+   bot, no per-user routing layer.
+3. **Anchor-only by default.** The full `/chat` surface requires an
+   operator/anchor session so page access, chat POSTs, conversation sessions,
+   confirmations, and tool access share one permission model. Public/trusted
+   chat is explicitly deferred until an abuse-control design exists.
+4. **AI SDK UI transport, not the Vercel Chat SDK platform adapter.** The web
+   UI needs browser chat ergonomics and streaming state, not platform-adapter
+   plumbing. `WebChatInterface` extends `MessageInterfacePlugin`; the AI SDK
+   transport replaces hand-written frontend fetch logic, not the interface
+   plugin.
+5. **React quarantined under `interfaces/web-chat/ui-react/`.** Mirrors the
+   `interfaces/chat-repl` containment pattern: React deps live inside the route
+   UI boundary, the dashboard and other site routes stay Preact, and a guard
+   test fails if `react` imports appear outside the approved boundary.
+6. **AI Elements is canonical for chat primitives.** Components come from the
+   shadcn-style registry workflow (`npx ai-elements@latest add <component>`)
+   and stay close to upstream behavior. Styling is ours via CSS classes/tokens;
+   contracts and structure track upstream so we don't accumulate a homebrew
+   fork.
+7. **Progress feedback from day one.** Silent 10–30 second waits are not
+   acceptable UX. Progress/status/final-response streaming is shipped; true
+   token-by-token model streaming remains a later `AgentService` capability.
 
-A bundled web chat UI changes the framing:
-
-- Primary UI = web. Every brain ships with a working chat surface at its own URL.
-- Discord = optional integration. A user who wants `@MyRover` in their DMs creates their own Discord app (one-time, ~5 minutes) and pastes the token into their config. No gateway, no shared bot, no routing layer.
-- The same shape applies to Relay: web UI for admin/config, Discord installed per-team for native team-channel use.
-
-## Goals
-
-- Every `@rizom/brain` install has a working web chat surface out of the box.
-- A new user can `brain init`, `brain start`, open the brain's URL, and chat with their brain — no Discord, no MCP, no CLI prerequisites.
-- Long AI responses give visible "thinking…" / progress feedback from day one; true token-by-token model streaming is not required for v0.
-- The web UI complements the existing dashboard; it does not replace it.
-- The Discord interface (`@brains/discord`) keeps working exactly as today for users who want it.
-
-## Non-goals
-
-- Replacing the dashboard or absorbing CMS/admin flows into v1.
-- Multi-platform chat adapters (Slack/Teams/etc.) in v1 — those become optional later additions, not load-bearing.
-- A hosted gateway that forwards Discord messages between users and per-user brain instances.
-- Per-user shared Discord bot tokens.
-- Standalone front-end app distributed separately from the brain runtime.
-
-## Decisions
-
-1. **Bundled with `@rizom/brain`.** Every brain instance has the web UI. Not a separate package consumers opt into.
-2. **Coexists with the dashboard.** The dashboard keeps owning status/widgets; chat is a new surface alongside it. Shared navigation is fine.
-3. **Web-first, Discord optional.** Discord stays as one possible additional interface, not the primary one. The previous "hosted Rover Discord gateway" direction is dropped.
-4. **Bring-your-own Discord app.** Users who want Discord create their own app and paste the token in. No shared `@Rover` bot, no per-user routing.
-5. **Per-team Discord apps for Relay.** A team admin installs the team's own Discord app once when setting up Relay; Relay lives in the team's existing server channels.
-6. **Progress feedback from v1.** No "v1 ships without progress indicators." Silent 10–30 second waits are not acceptable UX. Token-by-token model streaming can come later behind a deeper `AgentService` streaming API.
-
-## Architecture sketch
-
-The chat UI is a new `MessageInterfacePlugin` variant mounted on the existing webserver:
-
-```text
-browser (chat UI)
-  → GET /chat                         (HTML shell)
-  → GET /chat/assets/app.js           (compiled React chat bundle)
-  → POST /api/chat                    (AI SDK UI transport request)
-    → AI SDK UI stream response       (progress, edits, final response)
-      → WebChatInterface (MessageInterfacePlugin)
-        → AgentService.chat()
-          → existing tool/permission/conversation pipeline
-```
-
-Concrete components:
-
-- **`interfaces/web-chat/`** — new package, extends `MessageInterfacePlugin`. Owns HTTP routes, SSE streaming, request authentication (via existing `@brains/auth-service` passkey flow), and the browser UI assets.
-- **Frontend** — prefer Vercel **AI SDK UI** (`useChat`, transport API, stream protocol) over the Vercel **Chat SDK** platform-adapter package. The web UI needs browser chat ergonomics and streaming state, not Discord/Slack/Teams adapter plumbing. Because AI Elements and assistant-ui are React-first, v0 should test a quarantined React route rather than forcing the chat UI through Preact.
-- **Brain ↔ AI SDK adapter** — add a thin adapter that translates brain-native chat events (`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI-compatible stream parts. Do not model the brain as a raw AI SDK model provider in v1; the brain runtime remains the orchestration layer.
-- **Routes** — `/chat` for the chat surface; `/chat/assets/app.js` for the compiled browser bundle; existing `/dashboard` stays put. Navigation between them lives in the existing app shell. The message endpoint should speak an AI SDK UI-compatible protocol, currently `/api/chat`, and must be registered/owned by `WebChatInterface` rather than bypassing the brain interface layer.
-- **Conversation persistence** — reuse the existing conversation service. Each browser session maps to a `conversationId` like `web-${userId}-${sessionId}`.
-- **Auth** — already wired. Passkey via auth-service grants anchor; trusted/public callers see the same permission tiers they get elsewhere.
-
-## What this supersedes or narrows
-
-- **Hosted Rover Discord gateway direction** — the previous plan's gateway + forwarded-chat + per-user routing model is no longer the direction. That plan has been deleted.
-- **`chat-interface-sdk.md`** — parked. Multi-platform chat consolidation revisited only if a new platform (Slack/Teams/Matrix return) is actually prioritized.
-
-## UI SDK direction
-
-Use the Vercel **AI SDK UI** stream/transport contract as the preferred browser-chat integration point:
-
-```text
-AI Elements (spike target; fallback to assistant-ui or custom React UI)
-  → @ai-sdk/react useChat
-  → DefaultChatTransport/custom ChatTransport
-  → authenticated POST /api/chat
-  → WebChatInterface route handler
-  → MessageInterfacePlugin flow
-  → AgentService.chat()
-  → AI SDK UI-compatible stream
-```
-
-This keeps the web UI aligned with a mature chat frontend contract while avoiding the complexity of the platform Chat SDK adapter model. AI Elements is only a React component layer; it is not the transport. `DefaultChatTransport` (or a custom `ChatTransport` if needed) is the browser protocol layer, and `WebChatInterface` remains the backend interface implementation.
-
-The adapter boundary is:
-
-```text
-Brain AgentResponse/progress events ↔ AI SDK UI stream parts
-```
-
-Implementation notes:
-
-- Start with `DefaultChatTransport({ api: "/api/chat", credentials: "include" })`; use request preparation hooks for session/conversation metadata where possible. **Pre-spike check:** confirm `auth-service` issues cookie-based sessions; if it uses bearer tokens, swap `credentials: "include"` for a custom transport that adds the auth header.
-- Prefer a custom transport only if the default `useChat` request/response shape cannot support the brain's auth/session/conversation/reconnect requirements.
-- Do not use `DirectChatTransport` for the browser route; it would couple UI directly to an AI SDK agent shape and bypass the brain runtime abstractions.
-- Keep permission, conversation, confirmation, and tool orchestration in `MessageInterfacePlugin` / `AgentService`.
-- Bias toward a quarantined React route for v0/v1 if it can be cleanly isolated from the existing Preact site/dashboard stack. This mirrors the existing Ink/CLI solution: real React where the React ecosystem is required, behind a hard package/runtime boundary.
-- Treat AI Elements and assistant-ui as viable dependencies inside that isolated route only. They must not pull React imports/types into shared/server packages or the Preact dashboard/site runtime.
-- Treat the Vercel `chat` package / platform adapters as separate future work covered by `chat-interface-sdk.md`.
-
-## Published package and asset delivery contract
-
-External sites do not fetch the chat UI from a separate hosted frontend. They get it from the running brain server:
+## Architecture
 
 ```text
 browser
-  → https://brain.example.com/chat
-    → WebChatInterface returns HTML shell
-      → <script type="module" src="/chat/assets/app.js">
-        → WebChatInterface serves node_modules/@brains/web-chat/dist/ui/app.js
+  → GET /chat                         (HTML shell)
+  → GET /chat/assets/app.js           (compiled React chat bundle)
+  → POST /api/chat                    (AI SDK UI transport request)
+    → AI SDK UI stream response
+      → WebChatInterface (MessageInterfacePlugin)
+        → AgentService.chat()
+          → tool/permission/conversation pipeline
 ```
 
-That means the published `@brains/web-chat` package must contain the compiled browser bundle. The package contract is:
-
-- `interfaces/web-chat` has a `build` script that generates `dist/ui/app.js`.
-- `dist` is included in the package `files` list before publish.
-- The release/publish pipeline runs `bun run --filter @brains/web-chat build` before packing/publishing.
-- Runtime serving reads from package-local `dist/ui/app.js`; it must not depend on the consumer's site build, Vite/Next config, or React being installed by the external site.
-- If `dist/ui/app.js` is missing, `/chat` may load but `/chat/assets/app.js` must fail clearly with `404 Web chat UI asset not built` rather than silently serving stale or empty UI.
-
-This is the key deployment invariant: the brain runtime serves the static UI asset from its installed package. External sites only need to run the brain; they do not import, bundle, or host the React chat app separately.
-
-## Interface-plugin boundary
-
-`WebChatInterface` must extend `MessageInterfacePlugin<WebChatConfig>`. The AI SDK transport replaces hand-written frontend fetch logic; it does **not** replace the brain interface plugin.
-
-Backend shape:
-
-```typescript
-export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
-  protected override async onRegister(context: InterfacePluginContext) {
-    await super.onRegister(context);
-
-    // register /chat page/assets
-    // register /api/chat endpoint
-  }
-
-  // send/edit methods write to the active web stream/session
-}
-```
-
-Runtime flow:
-
-```text
-/api/chat route
-  → WebChatInterface.handleChatRequest()
-    → authenticate request / resolve session
-    → derive permission + conversation context
-    → startProcessingInput()
-    → check pending confirmation
-    → context.agent.chat(...)
-    → translate AgentResponse/progress to AI SDK UI stream parts
-    → endProcessingInput()
-```
-
-`MessageInterfacePlugin` remains the source of shared message-interface behavior: processing state, buffered completion/progress handling, confirmation flow, progress/job subscriptions, and consistent `AgentService` use.
-
-Because web chat replies over a per-request stream rather than a persistent Discord/terminal channel, `WebChatInterface` may need a small active-session registry:
-
-```text
-conversationId/channelId → active UI stream writer
-```
-
-The baseclass `sendMessageToChannel`, `sendMessageWithId`, and `editMessage` implementations can then write/update the active stream when present.
-
-**No-active-stream policy for v1:** do not persist transient progress/completion UI events as conversation messages. If an active stream exists, send progress/completion to that stream. If no active stream exists, drop the in-flight UI event so disconnected sessions do not leak memory holding stream writers. Durable job status remains in the job queue. Revisit conversation-visible progress later once the conversation model supports non-model UI events, for example `metadata.kind: "ui-event"` excluded from model context or a separate conversation-events table.
-
-## v0 spike: quarantined React chat route
-
-Before committing to v1, run a timeboxed (~3–5 day) spike to verify that a React chat surface can be cleanly isolated from the existing Preact runtime. The spike's job is to produce a real go/no-go signal, not a "looks fine" vibe.
-
-This follows the precedent from `interfaces/chat-repl`: Ink needs real React, so `@brains/chat-repl` owns its React deps, has its own `jsxImportSource: "react"`, dynamically imports Ink/React at runtime, and keeps React out of shared/server code. `/chat` should use the same containment principle.
-
-### Isolation shape
-
-Single workspace package with internal subdirectories, matching the existing `interfaces/chat-repl` shape for consistency:
+Package layout:
 
 ```text
 interfaces/web-chat/
-  src/              # WebChatInterface server/plugin code; no React imports
-  ui-react/         # isolated React route app; owns React deps + tsconfig
+  src/                                anchor-only route plugin + AI SDK UI stream endpoint
+    web-chat-interface.ts             extends MessageInterfacePlugin
+    config.ts
+    index.ts
+  ui-react/
+    src/
+      App.tsx                         full-page chat shell
+      main.tsx                        createRoot mount for /chat
+      ai-elements/                    AI Elements registry-derived components
+        conversation.tsx              use-stick-to-bottom
+        message.tsx                   Message/Content/Response with streamdown
+        prompt-input.tsx
+        tool.tsx
+        data-parts.tsx                temporary bridge for backend data parts
+        README.md                     adoption notes / divergences
+      ui/                             local primitives below the AI Elements layer
+      lib/
+      styles.css
+  test/
+    web-chat-interface.test.ts
+    react-containment.test.ts         fails if React imports leak outside ui-react
 ```
 
-Splitting into two workspaces (`interfaces/web-chat` + `interfaces/web-chat-react-ui`) is a fallback only if the spike surfaces concrete dependency or build-isolation problems that the single-package shape cannot solve.
+The brain ↔ AI SDK adapter translates brain-native chat events
+(`AgentResponse`, progress, pending confirmations, tool results) into AI SDK UI
+stream parts. The brain runtime stays the orchestration layer; we do not model
+the brain as a raw AI SDK model provider.
 
-Containment rules:
+Active session bookkeeping: `conversationId/channelId → active UI stream
+writer`. Baseclass `sendMessageToChannel`, `sendMessageWithId`, and
+`editMessage` write/update the active stream when present. **No-active-stream
+policy:** in-flight UI events drop silently rather than persisting as
+conversation messages or holding stream writers for disconnected sessions.
+Durable job status remains in the job queue.
 
-- React imports are allowed only inside the route UI boundary.
-- The server/plugin side communicates with the UI only through HTTP/SSE contracts, not shared React state/components.
-- Do not use `preact/compat` as the first approach for AI Elements/assistant-ui.
-- Existing dashboard/site routes remain Preact.
-- Add a guard/test that fails if `react` imports appear outside the approved route UI boundary.
-- Add package/build tests that prevent regressions in the delivery contract: `build` exists, React entrypoints are deduped in the UI bundle config, React/React DOM ranges stay aligned, and `dist` is included in package files before publish.
+## Delivery contract
 
-### Spike scope
+External sites do not fetch the chat UI from a separate hosted frontend. They
+get it from the running brain server:
 
-Build a working `/chat` route in React connected to a brain's `AgentService.chat()` via SSE. Must render all four:
+- `interfaces/web-chat` has a `build` script that generates `dist/ui/app.js`.
+- `dist` is included in the package `files` list before publish.
+- The release/publish pipeline runs `bun run --filter @brains/web-chat build`
+  before packing/publishing.
+- Runtime serving reads from package-local `dist/ui/app.js`; it must not depend
+  on the consumer's site build, Vite/Next config, or React being installed by
+  the external site.
+- If `dist/ui/app.js` is missing, `/chat` may load but `/chat/assets/app.js`
+  must fail clearly with `404 Web chat UI asset not built` rather than silently
+  serving stale or empty UI.
 
-1. **Progress/status feedback** — request accepted, "thinking…" state, tool/job progress where available, and final answer delivery over the AI SDK UI stream. True token deltas are optional in the spike and may be simulated only to test UI behavior.
-2. **Markdown rendering** with code blocks and syntax highlighting.
-3. **Tool-call display** — collapsed/expanded tool invocations with parameters, results, status. The AI-specific pattern where `ai-elements` does real work; the hardest one to replicate.
-4. **One confirmation prompt** — `pendingConfirmation` from `AgentResponse` rendered as something interactive.
+Package/build tests prevent regressions in this contract: `build` exists, React
+entrypoints are deduped in the UI bundle config, React/React DOM ranges stay
+aligned, and `dist` is included in package `files`.
 
-Out of scope for the spike: attachments, conversation history sidebar, voice, theming, polished styling.
+## Completed
 
-### Exit criteria
+1. `@rizom/brain` ships a bundled web chat UI mounted at `/chat`.
+2. `@brains/web-chat` publishes the compiled UI bundle in `dist/ui/app.js`, and
+   installed-package smoke tests prove `/chat/assets/app.js` works without a
+   consumer-side frontend build.
+3. Anchor-only auth on the full `/chat` surface.
+4. AI Elements registry-derived `Message`/`MessageContent`/`MessageResponse`,
+   `Conversation` (use-stick-to-bottom), `PromptInput`, and `Tool`. Streamdown
+   for markdown. Local adoption notes in
+   `interfaces/web-chat/ui-react/src/ai-elements/README.md`.
+5. Session list/switch/new flow with last-selected-session memory.
+6. Mobile drawer + compact header, light/dark toggle, header action alignment,
+   collapsed tool result styling.
+7. React containment test guards `ui-react/` boundary.
+8. Progress/status/final-response streaming for long responses; true token
+   streaming remains a later `AgentService` enhancement.
 
-- ✅ **Pass:** React route bundles only for `/chat`; React imports/types stay inside the approved UI boundary; AI Elements/assistant-ui can render progress/status feedback, markdown/code, tool-call panels, and confirmations quickly; dependency/version management remains sane. Proceed with the quarantined React route.
-- ❌ **Fail:** React or shadcn/Radix types leak into shared/server/Preact packages, route bundling requires invasive app-wide build changes, or dependency/version management repeats the earlier monorepo pain. Fall back to a Preact-native stream client and use AI Elements only as reference material.
+## Open follow-ups
 
-### Why this is the right next step
+### 1. Session refinements
 
-The Preact-native direction has lower long-term runtime surface, but likely turns AI-specific UI into a custom component-library project. A quarantined React route is more pragmatic if the isolation holds: `/chat` gets the mature AI UI ecosystem while the rest of the brain stays Preact. The spike resolves the real uncertainty — React containment — before sinking weeks into either path.
+Basic explicit sessions are implemented: list recent conversations, switch,
+create new, remember last selected in browser storage. Product-ready chat still
+needs:
 
-## Open decisions
+- rename / archive / delete
+- better loading / empty / error states
+- clearer disconnected-session UX
 
-1. **Default landing.** Should opening the brain's root URL land on chat, the
-   dashboard, or a small chooser? `/chat` exists and is bundled, but root
-   routing remains a product decision.
-2. **Session refinements.** Basic explicit sessions are implemented: list recent
-   conversations, switch between them, create a new session, and remember the
-   last selected session in browser storage. Product-ready chat still needs
-   rename/archive/delete and better loading/empty/error states.
-3. **Outbound attachments/artifacts in v1.** The next attachment priority is brain/tool → user artifacts: generated images, PDFs, exports, previews, and other downloadable results. `WebChatInterface` should translate attachment-bearing message-interface events into AI SDK UI `data-*` parts (for example `data-attachment`) and the React island should render previews/download links. Blob serving should use existing attachment/media provider contracts when available.
-4. **Inbound uploads after outbound artifacts.** User → brain file uploads through the chat UI are useful, but separate from outbound attachments. They require multipart upload routes, auth/size/type checks, storage/registry integration, and request schema changes to pass attachment refs into `AgentService.chat()`. Defer unless a concrete use case needs uploads before artifact rendering.
+### 2. Outbound attachments / artifacts
 
-### Spike target for the React UI dependency
+Next attachment priority is brain/tool → user artifacts: generated images,
+PDFs, exports, previews, and other downloadable results.
 
-Test **AI Elements** first as the React UI inside the quarantined route. It's first-party Vercel, tightest with AI SDK UI, and has the most coverage for AI-specific patterns (streaming, tool calls, reasoning, attachments). Use `assistant-ui` or a small custom React UI on top of AI SDK UI as fallbacks only if AI Elements hits dealbreaker issues during the spike. Comparing all three within the 3–5 day timebox dilutes the containment signal that's the real point.
+Two open decisions before implementation:
 
-## Follow-up sequence
+- **Protocol shape.** Do generated artifacts map cleanly to existing AI
+  Elements `artifact`/`tool`/`data` patterns, or do we need a small
+  Brain-specific `data-attachment` contract? Resolve before building renderers.
+- **Blob serving.** Prefer existing attachment/media provider contracts for
+  resolution and download routes rather than a new web-chat-only path.
 
-1. **Web UI polish and smoke fixes.** Keep `/chat` usable after each release:
-   sign-in required state, mobile layout, header/action alignment,
-   empty/loading/error states, long-message overflow, tool/code card
-   readability, theme switching, and confirmation UI.
-2. **Session refinements.** Add rename/archive/delete and better loading/error
-   handling on top of the implemented session list/switch/new flow.
-3. **Outbound attachments/artifacts.** Extend `WebChatInterface` stream adaptation so attachment-bearing interface events become AI SDK UI data parts. Add UI renderers for image previews, downloadable artifacts, and generic file cards. Prefer existing attachment/media provider contracts for blob resolution and download routes.
-4. **Inbound uploads.** Add user file selection/dropzone, multipart upload routes, auth/size/type checks, and attachment refs in `/api/chat` requests only after outbound artifact rendering is stable.
-5. **Deeper streaming.** Token-by-token model streaming remains a later `AgentService` capability; current progress/status/final-response streaming is enough for the MVP.
+Once decided: `WebChatInterface` translates attachment-bearing message-interface
+events into AI SDK UI data parts; the React island renders previews / download
+links / generic file cards.
+
+### 3. Default landing route
+
+`/chat` exists and is bundled. Whether the brain's root URL should land on
+chat, the dashboard, or a small chooser remains a product call.
+
+### 4. Inbound uploads
+
+User → brain file uploads are separate from outbound artifacts. They require
+multipart upload routes, auth/size/type checks, storage/registry integration,
+and request schema changes to pass attachment refs into `AgentService.chat()`.
+Defer until outbound artifact rendering is stable or a concrete use case forces
+it earlier.
+
+### 5. Richer AI Elements parts (protocol-gated)
+
+Do not add `reasoning`, `sources`, `actions`, `suggestions`, or artifact UI as
+standalone component work. Install the registry component only when the backend
+emits the corresponding structured part or a concrete product surface needs it.
+
+### 6. Deeper streaming
+
+Token-by-token model streaming remains a later `AgentService` capability;
+current progress/status/final-response streaming is enough for the MVP.
+
+### 7. Per-release polish pass
+
+Whenever the bundled web chat UI changes, run:
+
+```sh
+bun run --filter @brains/web-chat build
+bun test interfaces/web-chat/test
+bun run --filter @brains/web-chat typecheck
+bun run --filter @brains/web-chat lint
+```
+
+Browser pass covers: empty state, sign-in required state, sending a message,
+streaming markdown, code blocks and long-message overflow, session
+switching/new-session, tool result collapse/expand, confirmation
+approve/decline, light/dark mode, mobile drawer/header/action layout.
+
+## Deferred
+
+### Public / trusted chat
+
+A public chat would be fun, but it has real token-abuse and tool-exposure
+risks. Until an explicit abuse-control design exists, `/chat` should not
+silently behave as public chat with broken or missing sessions. Likely
+safeguards when revived:
+
+- strict per-IP/session rate limits
+- public-permission tools only
+- short max response/token budget
+- no durable operator-style session sidebar by default
+- abuse logging and a deploy-level kill switch
+- optional CAPTCHA, email gate, or invite token
+
+### Dashboard chat widget
+
+May eventually make sense, but should wait until there is a specific dashboard
+placement and UX. When that happens, choose the implementation based on the
+surface:
+
+- If it can be isolated as a React island without colliding with the dashboard,
+  it may reuse the AI Elements / AI SDK UI stack.
+- If it must be a preact-native dashboard island, build only the minimal widget
+  needed and keep it behind the same `/api/chat` protocol.
+
+Do not preemptively fork a full mini-chat implementation.
+
+## Related plans
+
+- [structured-chat-confirmations.md](./structured-chat-confirmations.md) —
+  unblocked now that AI Elements has landed; aligns confirmation UX across
+  web-chat, Discord, and chat-repl behind a shared structured tool/approval
+  contract. The biggest outstanding cross-interface workstream.
+- [chat-interface-sdk.md](./chat-interface-sdk.md) — parked multi-platform
+  Chat SDK adapter consolidation. Revisit only when Slack/Teams/Matrix lands.
 
 ## Validation
 
-- A fresh `brain init` + `brain start` exposes a working chat UI at `/chat` with no extra frontend setup.
-- Rover/dev start paths build `@brains/web-chat` before launching so local runs do not depend on a manually prebuilt `dist/ui/app.js`.
-- Published package verification confirms `@brains/web-chat` includes `dist/ui/app.js` and that `/chat/assets/app.js` is served from the installed package.
-- Progress/status feedback is visible during multi-second AI responses; token-by-token model streaming is not required for v0.
+- A fresh `brain init` + `brain start` exposes a working chat UI at `/chat`
+  with no extra frontend setup.
+- Rover/dev start paths build `@brains/web-chat` before launching so local runs
+  do not depend on a manually prebuilt `dist/ui/app.js`.
+- Published package verification confirms `@brains/web-chat` includes
+  `dist/ui/app.js` and that `/chat/assets/app.js` is served from the installed
+  package.
+- Progress/status feedback is visible during multi-second AI responses.
 - Auth gates the full chat surface to anchor/operator sessions by default.
 - Existing Discord, MCP, and CLI interfaces continue to work unchanged.
-- Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues for Relay (header indicating team context) can be refined once Relay-specific product work lands.
-
-## Completed MVP criteria
-
-1. `@rizom/brain` ships a bundled web chat UI mounted at `/chat`.
-2. `@brains/web-chat` publishes the compiled UI bundle in `dist/ui/app.js`, and installed-package smoke tests prove `/chat/assets/app.js` works without a consumer-side frontend build.
-3. Users can chat with their brain in a browser with no Discord, MCP, or CLI prerequisite once they have an operator session.
-4. Progress/status/final-response streaming works for long responses; true token streaming remains a later `AgentService` enhancement.
-5. The dashboard continues to work alongside chat.
-6. `chat-interface-sdk.md` stays parked; multi-platform adapter consolidation only revives when a new platform is actually prioritized.
+- Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues
+  for Relay can be refined once Relay-specific product work lands.
