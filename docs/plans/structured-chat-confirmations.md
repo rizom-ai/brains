@@ -38,17 +38,7 @@ the same structured chat events as Discord embeds/buttons or terminal prompts.
 
 ## Problem
 
-The current confirmation flow is custom and loosely coupled to conversation
-state:
-
-- web-chat still uses a custom endpoint: `POST /api/chat/confirm`, now carrying `approvalId` during the transition
-- Discord/chat-repl track pending confirmations separately
-- confirmations are represented as structured cards in `AgentResponse`; web-chat translates them to AI SDK native tool chunks, while Discord/chat-repl still need to consume them
-- approval execution is still tied mostly to a conversation rather than an explicit tool/action id
-- UI can show misleading assistant text before the confirmed action actually succeeds — fixed by the result-integrity slice
-
-This makes web-chat, Discord, and chat-repl diverge even though they are all
-rendering the same underlying agent interaction.
+Web-chat, Discord, and chat-repl render the same underlying agent interaction in three different shapes — see the Layered Summary above for the per-layer state. The shared concern across all three is that approval execution is still tied to a conversation rather than an explicit tool/action id, which is what makes them diverge in the first place. (Misleading assistant text before a confirmed action succeeded was a related symptom; it's already fixed by the result-integrity slice.)
 
 ## Goal
 
@@ -225,9 +215,20 @@ Target behavior:
 
 - render approval requests with AI Elements `Tool`/approval-style cards backed by AI SDK native tool parts — implemented for the pending approval request path
 - translate `ToolApprovalCard` to AI SDK UI chunks (`tool-input-available`, `tool-approval-request`, `tool-output-*`) instead of custom `data-approval-card` — implemented for streamed agent responses
-- remove or adapt custom `/api/chat/confirm` so approval is part of the shared structured tool/card flow; until then, it may remain as a bridge that carries `approvalId`
 - show approval requested/responded/running/succeeded/failed states clearly
 - avoid burying failures inside raw JSON
+
+#### Submission mechanism change
+
+The biggest architectural shift in this slice is **how the client tells the server "approved/declined"**, not just how the server renders the request.
+
+| Aspect             | Today / bridge                                                       | Native AI SDK                                                                                |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Wire               | `POST /api/chat/confirm` with `{ id, approvalId, confirmed }`        | `tool-approval-response` content part on the next user message                               |
+| Server entrypoint  | `WebChatInterface.handleConfirm` → `agent.confirmPendingAction(...)` | regular `/api/chat` POST; AgentService reads the approval-response part out of the next turn |
+| Transport coupling | side-channel REST endpoint                                           | rides the existing AI SDK transport                                                          |
+
+Migration order: keep `POST /api/chat/confirm` working as the bridge submission path. Add native `tool-approval-response` handling as a second supported path. Remove the endpoint once all clients (web-chat builds, any embed/iframe consumers) are on the native path. Do not delete the endpoint in the same slice that adds native handling — leave a bake window.
 
 ### 5. Update Discord
 
@@ -272,7 +273,7 @@ Target behavior:
 
 ### 7. Tests
 
-Add or update tests for:
+Shared across modes:
 
 - agent-service pending approval card creation
 - approval by explicit id
@@ -280,9 +281,23 @@ Add or update tests for:
 - confirmed success result
 - confirmed failure result
 - no misleading completion text before approval
-- web-chat approval card rendering/endpoint behavior
-- Discord approval button mapping
-- chat-repl yes/no approval mapping
+
+Web-chat — bridge mode (while `POST /api/chat/confirm` lives):
+
+- `handleConfirm` rejects mismatched `approvalId`
+- `data-approval-card` part renders Tool UI with `approval-requested` state
+- `formatConfirmationResult` prefers card state over legacy text
+
+Web-chat — native mode (once `tool-approval-response` lands):
+
+- agent emits a `tool-approval-request` chunk with the same approval id as the Brain card
+- a synthetic next-turn message with a `tool-approval-response` part triggers `executeConfirmedAction`
+- denied responses produce `tool-output-denied`, not just declined-as-text
+
+Per-interface:
+
+- Discord approval button custom-ids carry the explicit approval id; stale buttons fail safely
+- chat-repl yes/no prompt binds to the explicit approval id
 
 ## Migration strategy
 
@@ -301,10 +316,20 @@ Add or update tests for:
   preserved carefully.
 - Risk of breaking Discord/chat-repl if the shared contract changes too
   abruptly.
+- Dual UI rendering paths during the web-chat bridge period: custom
+  `data-approval-card` rendering and native `tool-*` part rendering can drift,
+  e.g. different "approved" badge styling or different decline-reason handling.
+  Mitigate by routing both paths through one shared formatter.
+- Approval-id drift between Brain `ToolApprovalCard.id` and the AI SDK
+  `approval.id` it gets translated to. They are meant to be the same string,
+  but nothing currently enforces it at the translation seam — a test that
+  round-trips one through the other should be part of the native-mode slice.
 
 ## Recommendation
 
-Do this as a dedicated branch after the web-chat AI Elements migration lands.
-It is worth doing because it aligns web-chat, Discord, and chat-repl around the
-same structured chat/card substrate, but it should not be hidden inside the
-current UI migration.
+Next slice: web-chat native `tool-approval-response` submission. Land it
+alongside the existing `POST /api/chat/confirm` so both paths coexist for one
+release; remove the endpoint only after the native path is exercised in
+production. After that, Discord card consumption is the highest-value
+follow-up because it removes the largest remaining string-rendered confirmation
+surface; chat-repl can ride the same Brain-card contract opportunistically.
