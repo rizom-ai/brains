@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. First slice implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. The existing `pendingConfirmation` flow remains compatible while web-chat starts consuming the richer confirmed-action data.
+In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path.
 
 ## Context
 
@@ -24,7 +24,7 @@ the same structured chat events as Discord embeds/buttons or terminal prompts.
 The current confirmation flow is custom and loosely coupled to conversation
 state:
 
-- web-chat uses a custom endpoint: `POST /api/chat/confirm`
+- web-chat still uses a custom endpoint: `POST /api/chat/confirm`, now carrying `approvalId` during the transition
 - Discord/chat-repl track pending confirmations separately
 - confirmations are only partially represented as structured chat/tool card events
 - approval execution is still tied mostly to a conversation rather than an explicit tool/action id
@@ -102,7 +102,7 @@ The contract includes:
 - approval state
 - output/error payload when resolved
 
-Remaining follow-up: make approval execution address the explicit approval/action id instead of only the conversation id.
+Implemented follow-up: approval execution can now validate the explicit approval/action id in addition to the conversation id. Remaining follow-up: move more interface rendering and button/prompt state to consume `AgentResponse.cards` directly instead of using the legacy `pendingConfirmation` field as the primary UI signal.
 
 ### 2. Update `shell/ai-service`
 
@@ -119,7 +119,7 @@ Responsibilities:
 - preserve tool-call metadata needed to resume/execute approved actions
 - expose pending confirmations as structured approval cards
 - prevent misleading assistant completion text while approval is pending
-- execute approved actions by explicit approval/action id
+- execute approved actions by explicit approval/action id — first slice implemented as optional id validation on `confirmPendingAction`
 - surface success/failure as structured output/error state
 
 ### 3. Update destructive tools

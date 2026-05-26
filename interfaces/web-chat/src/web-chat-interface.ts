@@ -36,6 +36,7 @@ const chatRequestSchema = z.object({
 
 const confirmationRequestSchema = z.object({
   id: z.string(),
+  approvalId: z.string().optional(),
   confirmed: z.boolean(),
 });
 
@@ -1630,6 +1631,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const response = await this.getContext().agent.confirmPendingAction(
       parsed.data.id,
       parsed.data.confirmed,
+      parsed.data.approvalId,
     );
 
     return Response.json({

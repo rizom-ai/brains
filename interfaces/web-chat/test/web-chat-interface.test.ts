@@ -19,13 +19,24 @@ interface AgentChatCall {
   context: ChatContext | undefined;
 }
 
+interface AgentConfirmCall {
+  conversationId: string;
+  confirmed: boolean;
+  approvalId: string | undefined;
+}
+
 function createSpyAgentService(): IAgentService & {
   readonly chatCalls: ReadonlyArray<AgentChatCall>;
+  readonly confirmCalls: ReadonlyArray<AgentConfirmCall>;
 } {
   const calls: AgentChatCall[] = [];
+  const confirmCalls: AgentConfirmCall[] = [];
   return {
     get chatCalls(): ReadonlyArray<AgentChatCall> {
       return calls;
+    },
+    get confirmCalls(): ReadonlyArray<AgentConfirmCall> {
+      return confirmCalls;
     },
     chat: async (
       message: string,
@@ -38,10 +49,17 @@ function createSpyAgentService(): IAgentService & {
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       };
     },
-    confirmPendingAction: async (): Promise<AgentResponse> => ({
-      text: "Action confirmed.",
-      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-    }),
+    confirmPendingAction: async (
+      conversationId: string,
+      confirmed: boolean,
+      approvalId?: string,
+    ): Promise<AgentResponse> => {
+      confirmCalls.push({ conversationId, confirmed, approvalId });
+      return {
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      };
+    },
     invalidateAgent: (): void => {},
   };
 }
@@ -422,6 +440,8 @@ describe("WebChatInterface", () => {
   });
 
   it("confirms pending actions through AgentService for an operator", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[2];
@@ -430,13 +450,24 @@ describe("WebChatInterface", () => {
       new Request("http://brain/api/chat/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation", confirmed: true }),
+        body: JSON.stringify({
+          id: "test-conversation",
+          approvalId: "approval:call-1",
+          confirmed: true,
+        }),
       }),
     );
     const body = await response?.json();
 
     expect(response?.status).toBe(200);
     expect(body).toMatchObject({ text: "Action confirmed." });
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+    ]);
   });
 
   it("rejects malformed confirmation POSTs for an operator", async () => {

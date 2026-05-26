@@ -175,6 +175,7 @@ export interface IAgentService {
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId?: string,
   ): Promise<AgentResponse>;
 
   /**

@@ -736,6 +736,43 @@ describe("AgentService", () => {
       expect(deleteHandler).not.toHaveBeenCalled();
     });
 
+    it("rejects confirmation when the explicit approval id does not match", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:wrong-call",
+      );
+
+      expect(response.text).toBe(
+        "No pending action matches approval id 'approval:wrong-call'.",
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
     it("does not return or persist misleading model completion text before confirmation", async () => {
       setupConfirmationResponse("Deleted.");
 
@@ -810,6 +847,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
       expect(response.text).toContain(

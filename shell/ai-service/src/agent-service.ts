@@ -257,12 +257,30 @@ export class AgentService implements IAgentService {
   public async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId?: string,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
-
-    if (!actor?.getSnapshot().matches("awaitingConfirmation")) {
+    if (!actor) {
       return {
         text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
+
+    const snapshotBeforeConfirm = actor.getSnapshot();
+
+    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
+      return {
+        text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
+
+    const pendingApprovalId =
+      snapshotBeforeConfirm.context.pendingConfirmation?.id;
+    if (approvalId && pendingApprovalId !== approvalId) {
+      return {
+        text: `No pending action matches approval id '${approvalId}'.`,
         usage: emptyUsage,
       };
     }

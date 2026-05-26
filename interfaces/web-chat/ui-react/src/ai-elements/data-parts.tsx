@@ -173,6 +173,9 @@ export function ConfirmationPart({
 }): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
   const description = getStringValue(data, "description");
+  const approvalId =
+    getStringValue(data, "id") ??
+    getStringValue(getRecordValue(data, "card"), "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ConfirmationResult | null>(null);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(
@@ -188,7 +191,7 @@ export function ConfirmationPart({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ id: conversationId, confirmed }),
+        body: JSON.stringify({ id: conversationId, approvalId, confirmed }),
       });
       if (!response.ok) {
         throw new Error(await response.text());

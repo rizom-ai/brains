@@ -96,9 +96,14 @@ export function createPublicAgentNamespace(
     confirmPendingAction: async (
       conversationId,
       confirmed,
+      approvalId,
     ): Promise<AgentResponse> => {
       return toPublicAgentResponse(
-        await agentService.confirmPendingAction(conversationId, confirmed),
+        await agentService.confirmPendingAction(
+          conversationId,
+          confirmed,
+          approvalId,
+        ),
       );
     },
     invalidate: (): void => {
