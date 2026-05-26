@@ -72,11 +72,6 @@ permissions:
       update: trusted
       delete: anchor
       extract: anchor
-    topic:
-      create: anchor
-      update: anchor
-      delete: anchor
-      extract: anchor
 ```
 
 Rules:
@@ -84,11 +79,10 @@ Rules:
 - `"*"` is the default for any entity type without an explicit override.
 - Entity-specific entries merge over `"*"`.
 - Omitted actions inherit from `"*"`.
-- The platform fallback should be most restrictive: if action policy is enabled but no type-specific rule applies, require `anchor` for mutating/extracting actions.
-- If no policy is configured at all, preserve existing behavior until the compatibility window closes.
-- Defaults should be layered, from lowest to highest priority:
+- The platform fallback is most restrictive: if no type-specific rule applies, require `anchor` for mutating/extracting actions.
+- Defaults are layered, from lowest to highest priority:
   1. platform fallback: anchor-only for `create`, `update`, `delete`, and `extract`;
-  2. entity/plugin defaults for entity-owned safety constraints;
+  2. plugin/entity exceptions only when they differ from the platform fallback (for example `delete: never`);
   3. brain model defaults for model-level collaboration posture;
   4. instance config overrides.
 
@@ -96,11 +90,10 @@ Rules:
 
 The platform fallback should be conservative enough that Rover/personal brains can simply inherit it: durable mutations and extraction are owner/operator-only unless explicitly loosened.
 
-Entity/plugin packages should own defaults that are true for the entity type in every brain. Examples:
+Entity/plugin packages should not restate the anchor-only platform fallback. They should declare only exceptions that are stricter or genuinely different across all brains. Examples:
 
-- derived/system-maintained entities such as `topic`, `summary`, `skill`, and `swot` should remain owner-only for mutation and extraction;
-- identity/config entities such as `anchor-profile`, `brain-character`, `site-info`, `site-content`, and `prompt` should remain owner-only for mutation;
-- peer-brain trust-boundary entities such as `agent` should remain owner-only for mutation.
+- protected identity records such as `anchor-profile` and `brain-character` may declare `delete: never` because system tools should never delete them;
+- an entity type with an explicitly public capture surface could declare a looser default if that is safe in every brain, though this should be rare.
 
 Brain models should only loosen policy where their collaboration posture requires it:
 
@@ -111,28 +104,11 @@ Instance config remains the final override layer for operators who need to loose
 
 ## Relay default policy
 
-Current Relay installs this explicit default policy. After platform/entity/plugin defaults exist, Relay should shrink toward only its model-level loosening and Relay-specific exceptions.
+Relay should only need to install the model-level loosening from the platform fallback:
 
-| entity type       | create    | update    | delete   | extract  | reason                                                                  |
-| ----------------- | --------- | --------- | -------- | -------- | ----------------------------------------------------------------------- |
-| `*`               | `trusted` | `trusted` | `anchor` | `anchor` | safe default for team-authored content; deletes/extracts are owner-only |
-| `base`            | `trusted` | `trusted` | `anchor` | `anchor` | notes/general team memory                                               |
-| `link`            | `trusted` | `trusted` | `anchor` | `anchor` | shared references                                                       |
-| `doc`             | `trusted` | `trusted` | `anchor` | `anchor` | full-preset team docs                                                   |
-| `deck`            | `trusted` | `trusted` | `anchor` | `anchor` | full-preset team presentations                                          |
-| `decision`        | `trusted` | `trusted` | `anchor` | `anchor` | canonical team decisions, editable but not deletable by collaborators   |
-| `action-item`     | `trusted` | `trusted` | `anchor` | `anchor` | team follow-ups                                                         |
-| `image`           | `trusted` | `trusted` | `anchor` | `anchor` | site/team assets in default preset                                      |
-| `site-info`       | `anchor`  | `anchor`  | `anchor` | `anchor` | public identity/config                                                  |
-| `site-content`    | `anchor`  | `anchor`  | `anchor` | `anchor` | public site route copy                                                  |
-| `prompt`          | `anchor`  | `anchor`  | `anchor` | `anchor` | prompt/template behavior                                                |
-| `anchor-profile`  | `anchor`  | `anchor`  | `anchor` | `anchor` | owner/team identity                                                     |
-| `brain-character` | `anchor`  | `anchor`  | `anchor` | `anchor` | brain identity/instructions                                             |
-| `topic`           | `anchor`  | `anchor`  | `anchor` | `anchor` | derived synthesis artifact                                              |
-| `summary`         | `anchor`  | `anchor`  | `anchor` | `anchor` | system-maintained conversation memory                                   |
-| `agent`           | `anchor`  | `anchor`  | `anchor` | `anchor` | peer-brain trust boundary                                               |
-| `skill`           | `anchor`  | `anchor`  | `anchor` | `anchor` | derived agent capability record                                         |
-| `swot`            | `anchor`  | `anchor`  | `anchor` | `anchor` | derived assessment output                                               |
+| entity type | create    | update    | delete   | extract  | reason                                                                  |
+| ----------- | --------- | --------- | -------- | -------- | ----------------------------------------------------------------------- |
+| `*`         | `trusted` | `trusted` | `anchor` | `anchor` | safe default for team-authored content; deletes/extracts are owner-only |
 
 ## Enforcement points
 

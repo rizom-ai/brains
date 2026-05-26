@@ -30,6 +30,15 @@ import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import { getPackage, hasPackage } from "./package-registry";
 
+const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
+  "*": {
+    create: "anchor",
+    update: "anchor",
+    delete: "anchor",
+    extract: "anchor",
+  },
+};
+
 /**
  * Determine which plugin/interface IDs are active.
  *
@@ -484,7 +493,7 @@ export function resolve(
     ...(definition.agentInstructions && {
       agentInstructions: definition.agentInstructions,
     }),
-    ...buildPermissions(definition.permissions, overrides),
+    ...buildPermissions(definition.permissions, overrides, capabilities),
     ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
     ...buildRuntimeOverrides(env, overrides),
@@ -506,19 +515,14 @@ export function resolve(
 function buildPermissions(
   definitionPerms: BrainDefinition["permissions"],
   overrides?: Omit<InstanceOverrides, "brain">,
+  plugins: Plugin[] = [],
 ): { permissions: Record<string, unknown> } | Record<string, never> {
   const yamlPerms = overrides?.permissions;
-  const hasYamlPerms =
-    yamlPerms?.anchors ??
-    yamlPerms?.trusted ??
-    yamlPerms?.rules ??
-    yamlPerms?.entityActions;
-  const hasTopLevel = overrides?.anchors ?? overrides?.trusted;
-  const hasDefPerms = !!definitionPerms;
-
-  if (!hasYamlPerms && !hasTopLevel && !hasDefPerms) return {};
+  const pluginEntityActions = mergePluginEntityActions(plugins);
 
   const entityActions = mergeEntityActions(
+    PLATFORM_ENTITY_ACTION_DEFAULTS,
+    pluginEntityActions,
     definitionPerms?.entityActions,
     yamlPerms?.entityActions,
   );
@@ -538,14 +542,21 @@ function buildPermissions(
   };
 }
 
-function mergeEntityActions(
-  defaults?: EntityActionPolicyConfig,
-  overrides?: EntityActionPolicyConfig,
+function mergePluginEntityActions(
+  plugins: Plugin[],
 ): EntityActionPolicyConfig | undefined {
-  if (!defaults && !overrides) return undefined;
+  return mergeEntityActions(
+    ...plugins.map((plugin) => plugin.entityActionPolicy).filter(Boolean),
+  );
+}
+
+function mergeEntityActions(
+  ...sources: Array<EntityActionPolicyConfig | undefined>
+): EntityActionPolicyConfig | undefined {
+  if (!sources.some(Boolean)) return undefined;
 
   const merged: EntityActionPolicyConfig = {};
-  for (const source of [defaults, overrides]) {
+  for (const source of sources) {
     if (!source) continue;
     for (const [entityType, actions] of Object.entries(source)) {
       merged[entityType] = {

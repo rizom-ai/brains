@@ -1008,6 +1008,26 @@ describe("resolve with instance overrides", () => {
     expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
   });
 
+  test("should apply restrictive platform entity action defaults", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.permissions?.entityActions).toEqual({
+      "*": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+        extract: "anchor",
+      },
+    });
+  });
+
   test("should merge yaml entity action policy with definition defaults", () => {
     const def = defineBrain({
       name: "test",
