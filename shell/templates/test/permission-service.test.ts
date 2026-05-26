@@ -414,7 +414,12 @@ describe("PermissionService", () => {
       it("should resolve exact entity action policy before wildcard defaults", () => {
         permissionService = new PermissionService({
           entityActions: {
-            "*": { create: "trusted", update: "trusted", delete: "anchor" },
+            "*": {
+              create: "trusted",
+              update: "trusted",
+              delete: "anchor",
+              extract: "anchor",
+            },
             summary: { create: "anchor", update: "anchor" },
           },
         });
@@ -428,12 +433,15 @@ describe("PermissionService", () => {
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "delete"),
         ).toBe("anchor");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "extract"),
+        ).toBe("anchor");
       });
 
       it("should allow entity actions only when the caller meets the required level", () => {
         permissionService = new PermissionService({
           entityActions: {
-            "*": { create: "trusted", delete: "anchor" },
+            "*": { create: "trusted", delete: "anchor", extract: "anchor" },
             summary: { update: "anchor" },
           },
         });
@@ -443,6 +451,13 @@ describe("PermissionService", () => {
         ).toBe(true);
         expect(
           permissionService.canPerformEntityAction("trusted", "base", "delete"),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "base",
+            "extract",
+          ),
         ).toBe(false);
         expect(
           permissionService.canPerformEntityAction(
@@ -635,7 +650,12 @@ describe("PermissionService", () => {
     it("merges entity-specific entries over wildcard defaults", () => {
       const service = new PermissionService({
         entityActions: {
-          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
           summary: { create: "anchor" },
         },
       });
@@ -644,18 +664,25 @@ describe("PermissionService", () => {
         create: "trusted",
         update: "trusted",
         delete: "anchor",
+        extract: "anchor",
       });
       expect(service.getResolvedEntityActionPolicy("summary")).toEqual({
         create: "anchor",
         update: "trusted",
         delete: "anchor",
+        extract: "anchor",
       });
     });
 
     it("allows callers meeting the required entity action level", () => {
       const service = new PermissionService({
         entityActions: {
-          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
         },
       });
 
@@ -665,12 +692,15 @@ describe("PermissionService", () => {
       expect(() =>
         service.assertEntityActionAllowed("base", "delete", "anchor"),
       ).not.toThrow();
+      expect(() =>
+        service.assertEntityActionAllowed("base", "extract", "anchor"),
+      ).not.toThrow();
     });
 
     it("throws a denial message with action, type, caller, and required level", () => {
       const service = new PermissionService({
         entityActions: {
-          summary: { update: "anchor" },
+          summary: { update: "anchor", extract: "anchor" },
         },
       });
 
@@ -678,6 +708,11 @@ describe("PermissionService", () => {
         service.assertEntityActionAllowed("summary", "update", "trusted"),
       ).toThrow(
         "Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      );
+      expect(() =>
+        service.assertEntityActionAllowed("summary", "extract", "trusted"),
+      ).toThrow(
+        "Extracting `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
       );
     });
   });

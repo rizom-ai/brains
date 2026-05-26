@@ -12,7 +12,12 @@ export const UserPermissionLevelSchema = z.enum([
 
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
-export const EntityActionSchema = z.enum(["create", "update", "delete"]);
+export const EntityActionSchema = z.enum([
+  "create",
+  "update",
+  "delete",
+  "extract",
+]);
 export type EntityAction = z.infer<typeof EntityActionSchema>;
 
 /**
@@ -35,6 +40,7 @@ export const entityActionPolicyRuleSchema = z
     create: EntityActionRequiredLevelSchema.optional(),
     update: EntityActionRequiredLevelSchema.optional(),
     delete: EntityActionRequiredLevelSchema.optional(),
+    extract: EntityActionRequiredLevelSchema.optional(),
   })
   .strict();
 
@@ -56,6 +62,7 @@ const ACTION_LABELS: Record<EntityAction, string> = {
   create: "Creating",
   update: "Updating",
   delete: "Deleting",
+  extract: "Extracting",
 };
 
 const LEVEL_LABELS: Record<UserPermissionLevel, string> = {

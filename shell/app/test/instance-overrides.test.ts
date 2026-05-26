@@ -379,13 +379,19 @@ permissions:
       create: trusted
       update: trusted
       delete: anchor
+      extract: anchor
     summary:
       create: anchor
       update: anchor
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.permissions?.entityActions).toEqual({
-      "*": { create: "trusted", update: "trusted", delete: "anchor" },
+      "*": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      },
       summary: { create: "anchor", update: "anchor" },
     });
   });
@@ -1010,7 +1016,12 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
       permissions: {
         entityActions: {
-          "*": { create: "trusted", update: "trusted", delete: "anchor" },
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
           summary: { create: "anchor", update: "anchor", delete: "anchor" },
         },
       },
@@ -1029,7 +1040,12 @@ describe("resolve with instance overrides", () => {
     );
 
     expect(config.permissions?.entityActions).toEqual({
-      "*": { create: "trusted", update: "trusted", delete: "anchor" },
+      "*": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      },
       summary: { create: "anchor", update: "trusted", delete: "anchor" },
     });
   });

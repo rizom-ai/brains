@@ -40,7 +40,8 @@ Relay separates collaborator writes from owner/operator writes:
 
 - trusted teammates can create and update normal team-authored memory such as notes, links, decisions, action items, images, docs, and decks;
 - deletes default to owner/operator (`anchor`) permission;
-- derived/system-maintained or identity/config records (`summary`, `topic`, `agent`, `skill`, `swot`, `prompt`, `site-info`, `site-content`, `anchor-profile`, `brain-character`) are owner/operator-only by default.
+- derived/system-maintained or identity/config records (`summary`, `topic`, `agent`, `skill`, `swot`, `prompt`, `site-info`, `site-content`, `anchor-profile`, `brain-character`) are owner/operator-only by default;
+- extraction/rebuild actions for derived records such as `topic`, `summary`, `skill`, and `swot` require owner/operator permission.
 
 Instances can override these defaults with `permissions.entityActions` in `brain.yaml`.
 

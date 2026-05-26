@@ -228,6 +228,14 @@ export default defineBrain({
       { pattern: "discord:*", level: "public" },
       { pattern: "web-chat:*", level: "anchor" },
     ],
+    entityActions: {
+      "*": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+        extract: "anchor",
+      },
+    },
   },
 
   deployment: {
