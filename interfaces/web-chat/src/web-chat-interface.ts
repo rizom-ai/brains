@@ -1749,11 +1749,42 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         (card) => card.kind === "tool-approval",
       );
       for (const card of approvalCards) {
+        const toolCallId = card.toolCallId ?? card.id;
+        const inputData = card.input ?? {};
         input.writer.write({
-          type: "data-approval-card",
-          id: this.createId("approval"),
-          data: card,
+          type: "tool-input-available",
+          toolCallId,
+          toolName: card.toolName,
+          input: inputData,
+          dynamic: true,
+          title: card.description,
         });
+        if (card.state === "approval-requested") {
+          input.writer.write({
+            type: "tool-approval-request",
+            approvalId: card.id,
+            toolCallId,
+          });
+        } else if (card.state === "output-available") {
+          input.writer.write({
+            type: "tool-output-available",
+            toolCallId,
+            output: card.output,
+            dynamic: true,
+          });
+        } else if (card.state === "output-error") {
+          input.writer.write({
+            type: "tool-output-error",
+            toolCallId,
+            errorText: card.error ?? "Tool failed",
+            dynamic: true,
+          });
+        } else if (card.state === "output-denied") {
+          input.writer.write({
+            type: "tool-output-denied",
+            toolCallId,
+          });
+        }
       }
       if (response.pendingConfirmation && approvalCards.length === 0) {
         input.writer.write({

@@ -25,7 +25,12 @@ interface AgentConfirmCall {
   approvalId: string | undefined;
 }
 
-function createSpyAgentService(): IAgentService & {
+function createSpyAgentService(
+  chatResponse: AgentResponse = {
+    text: "Mock agent response",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  },
+): IAgentService & {
   readonly chatCalls: ReadonlyArray<AgentChatCall>;
   readonly confirmCalls: ReadonlyArray<AgentConfirmCall>;
 } {
@@ -44,10 +49,7 @@ function createSpyAgentService(): IAgentService & {
       context?: ChatContext,
     ): Promise<AgentResponse> => {
       calls.push({ message, conversationId, context });
-      return {
-        text: "Mock agent response",
-        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-      };
+      return chatResponse;
     },
     confirmPendingAction: async (
       conversationId: string,
@@ -274,6 +276,58 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(403);
     expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("streams approval cards as AI SDK native tool chunks", async () => {
+    const agent = createSpyAgentService({
+      text: "Confirmation required.",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          description: "Delete note?",
+          state: "approval-requested",
+        },
+      ],
+      pendingConfirmation: {
+        id: "approval:call-1",
+        toolCallId: "call-1",
+        toolName: "delete_note",
+        description: "Delete note?",
+        args: { noteId: "123" },
+      },
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Delete it" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("tool-input-available");
+    expect(body).toContain("tool-approval-request");
+    expect(body).toContain("approval:call-1");
+    expect(body).not.toContain("data-approval-card");
   });
 
   it("passes anchor permission level when caller has an operator session", async () => {

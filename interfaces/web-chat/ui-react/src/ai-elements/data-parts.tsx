@@ -201,6 +201,33 @@ export function ToolResultPart({
   );
 }
 
+export function NativeToolPart({
+  data,
+}: {
+  data: unknown;
+}): React.ReactElement {
+  const toolName = getStringValue(data, "toolName") ?? "tool";
+  const state = getStringValue(data, "state") ?? "input-available";
+  const title = getStringValue(data, "title") ?? `tool · ${toolName}`;
+  const output =
+    getRecordValue(data, "output") ?? getRecordValue(data, "input");
+  const errorText = getStringValue(data, "errorText");
+
+  return (
+    <Tool data-kind="tool-result">
+      <ToolHeader
+        type="dynamic-tool"
+        state={state as Parameters<typeof ToolHeader>[0]["state"]}
+        toolName={toolName}
+        title={title}
+      />
+      <ToolContent>
+        <ToolOutput output={output} errorText={errorText} />
+      </ToolContent>
+    </Tool>
+  );
+}
+
 export function ConfirmationPart({
   conversationId,
   data,
@@ -209,8 +236,11 @@ export function ConfirmationPart({
   data: unknown;
 }): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
-  const description = getStringValue(data, "description");
-  const approvalId = getStringValue(data, "id");
+  const description =
+    getStringValue(data, "description") ?? getStringValue(data, "title");
+  const approval = getRecordValue(data, "approval");
+  const approvalId =
+    getStringValue(data, "id") ?? getStringValue(approval, "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ConfirmationResult | null>(null);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(

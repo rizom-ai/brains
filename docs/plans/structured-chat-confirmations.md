@@ -2,9 +2,11 @@
 
 ## Status
 
-In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. `PendingConfirmation.id` is required across the runtime types and the public zod contract. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path. Web-chat emits a dedicated `data-approval-card` stream (with a legacy `data-confirmation` fallback) and `formatConfirmationResult` prefers the card's `state` and `output` over the legacy `toolResults`/`Result:` text parsing.
+In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. `PendingConfirmation.id` is required across the runtime types and the public zod contract. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path.
 
-Discord and chat-repl still consume only `response.text`. They now correctly render the `Failed:`/`Completed:` distinction but do not yet read the structured cards.
+Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat still keeps a legacy `data-confirmation` fallback when an old response has `pendingConfirmation` without `cards`.
+
+Discord and chat-repl should consume the Brain `ToolApprovalCard` contract directly. They do not need AI SDK stream chunks, but they should include/pass the same approval IDs.
 
 ## Context
 
@@ -28,7 +30,7 @@ state:
 
 - web-chat still uses a custom endpoint: `POST /api/chat/confirm`, now carrying `approvalId` during the transition
 - Discord/chat-repl track pending confirmations separately
-- confirmations are only partially represented as structured chat/tool card events
+- confirmations are represented as structured cards in `AgentResponse`; web-chat translates them to AI SDK native tool chunks, while Discord/chat-repl still need to consume them
 - approval execution is still tied mostly to a conversation rather than an explicit tool/action id
 - UI can show misleading assistant text before the confirmed action actually succeeds — fixed by the result-integrity slice
 
@@ -58,7 +60,11 @@ chat-repl renderer  → terminal prompts/text cards
 ## Desired model
 
 Represent pending approvals as structured message/tool parts with explicit IDs
-and state, for example:
+and state. The internal cross-interface contract remains a small Brain-owned
+approval-card shape; web-chat translates that shape to AI SDK UI's native tool
+chunks.
+
+Internal contract example:
 
 ```ts
 interface ToolApprovalCard {
@@ -76,9 +82,47 @@ interface ToolApprovalCard {
 }
 ```
 
-The exact shape should follow AI SDK / Chat SDK conventions where possible.
 The key requirement is that approvals are attached to explicit tool/action IDs,
 not just a loose conversation-level boolean.
+
+Web-chat translation target:
+
+```ts
+writer.write({
+  type: "tool-input-available",
+  toolCallId,
+  toolName,
+  input,
+  dynamic: true,
+  title: description,
+});
+
+writer.write({
+  type: "tool-approval-request",
+  approvalId,
+  toolCallId,
+});
+```
+
+Resolved approvals should stream native output chunks:
+
+```ts
+writer.write({
+  type: "tool-output-available",
+  toolCallId,
+  output,
+  dynamic: true,
+});
+writer.write({
+  type: "tool-output-error",
+  toolCallId,
+  errorText,
+  dynamic: true,
+});
+writer.write({ type: "tool-output-denied", toolCallId });
+```
+
+Custom `data-approval-card` should not be the final web-chat protocol.
 
 ## Work involved
 
@@ -104,7 +148,7 @@ The contract includes:
 - approval state
 - output/error payload when resolved
 
-Implemented follow-up: approval execution can now validate the explicit approval/action id in addition to the conversation id. Remaining follow-up: move more interface rendering and button/prompt state to consume `AgentResponse.cards` directly instead of using the legacy `pendingConfirmation` field as the primary UI signal.
+Implemented follow-up: approval execution can now validate the explicit approval/action id in addition to the conversation id. Remaining follow-up: move Discord/chat-repl rendering and button/prompt state to consume `AgentResponse.cards` directly instead of using the legacy `pendingConfirmation` field as the primary UI signal.
 
 ### 2. Update `shell/ai-service`
 
@@ -152,9 +196,9 @@ interfaces/web-chat
 
 Target behavior:
 
-- render approval requests with AI Elements `Tool`/approval-style cards
-- remove or adapt custom `/api/chat/confirm` so approval is part of the shared
-  structured tool/card flow
+- render approval requests with AI Elements `Tool`/approval-style cards backed by AI SDK native tool parts — implemented for the pending approval request path
+- translate `ToolApprovalCard` to AI SDK UI chunks (`tool-input-available`, `tool-approval-request`, `tool-output-*`) instead of custom `data-approval-card` — implemented for streamed agent responses
+- remove or adapt custom `/api/chat/confirm` so approval is part of the shared structured tool/card flow; until then, it may remain as a bridge that carries `approvalId`
 - show approval requested/responded/running/succeeded/failed states clearly
 - avoid burying failures inside raw JSON
 
@@ -215,13 +259,12 @@ Add or update tests for:
 
 ## Migration strategy
 
-1. Keep the current `pendingConfirmation` behavior working while introducing the
-   structured card shape.
-2. Update web-chat to render the structured card first, falling back to old
-   `pendingConfirmation` only during transition.
-3. Update Discord and chat-repl to consume the structured shape.
-4. Remove the old loose conversation-level confirmation boolean/endpoint once
-   all interfaces use explicit approval IDs.
+1. Keep the current `pendingConfirmation` behavior working while introducing the structured card shape.
+2. Update web-chat in two steps:
+   - short bridge: render structured card first, falling back to old `pendingConfirmation`;
+   - final web-chat protocol: stream AI SDK native tool chunks and render `dynamic-tool` parts directly — implemented for initial approval cards; approval submission still uses `/api/chat/confirm` as a bridge.
+3. Update Discord and chat-repl to consume the Brain structured card shape directly; they do not need AI SDK chunks.
+4. Remove the old loose conversation-level confirmation boolean/endpoint once all interfaces use explicit approval IDs and web-chat approval submission is no longer endpoint-only.
 
 ## Risks
 
