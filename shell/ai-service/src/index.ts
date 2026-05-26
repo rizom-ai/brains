@@ -48,6 +48,9 @@ export type {
   ChatContext,
   IAgentService,
   PendingConfirmation,
+  StructuredChatCard,
+  ToolApprovalCard,
+  ToolApprovalCardState,
   ToolResultData,
 } from "./agent-types";
 

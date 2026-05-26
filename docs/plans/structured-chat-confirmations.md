@@ -2,12 +2,7 @@
 
 ## Status
 
-Ready / unblocked. The AI Elements baseline this plan was sequenced behind has
-landed in `@brains/web-chat` (see [brain-web-ui.md](./brain-web-ui.md)). This is
-now the biggest outstanding cross-interface workstream for chat: web-chat still
-uses a custom `/api/chat/confirm` endpoint, and Discord / chat-repl track
-pending confirmations separately. The next branch should align all three behind
-a shared structured tool/approval contract.
+In progress. First slice implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. The existing `pendingConfirmation` flow remains compatible while web-chat starts consuming the richer confirmed-action data.
 
 ## Context
 
@@ -31,11 +26,9 @@ state:
 
 - web-chat uses a custom endpoint: `POST /api/chat/confirm`
 - Discord/chat-repl track pending confirmations separately
-- confirmations are not represented as normal structured chat/tool card events
-- approval state is tied mostly to a conversation rather than an explicit tool
-  call/action id
-- UI can show misleading assistant text before the confirmed action actually
-  succeeds
+- confirmations are only partially represented as structured chat/tool card events
+- approval execution is still tied mostly to a conversation rather than an explicit tool/action id
+- UI can show misleading assistant text before the confirmed action actually succeeds — fixed by the result-integrity slice
 
 This makes web-chat, Discord, and chat-repl diverge even though they are all
 rendering the same underlying agent interaction.
@@ -89,8 +82,9 @@ not just a loose conversation-level boolean.
 
 ### 1. Define the shared confirmation/card contract
 
-Create or extend shared types for structured chat cards/tool approvals.
-Likely areas:
+First slice implemented. Shared runtime/public types now define `StructuredChatCard` / `ToolApprovalCard`, and `AgentResponse.cards` carries approval card state alongside the legacy `pendingConfirmation` compatibility field.
+
+Touched areas:
 
 ```text
 shell/plugins/src/contracts/agent.ts
@@ -98,7 +92,7 @@ shell/ai-service/src/agent-types.ts
 shell/ai-service/src/agent-results.ts
 ```
 
-The contract should include:
+The contract includes:
 
 - stable approval/action id
 - tool call id when available
@@ -107,6 +101,8 @@ The contract should include:
 - human-readable description
 - approval state
 - output/error payload when resolved
+
+Remaining follow-up: make approval execution address the explicit approval/action id instead of only the conversation id.
 
 ### 2. Update `shell/ai-service`
 

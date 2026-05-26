@@ -53,7 +53,20 @@ describe("public agent contracts", () => {
           data: { count: 2 },
         },
       ],
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete",
+          input: { id: "item-1" },
+          description: "Delete item",
+          state: "approval-requested",
+        },
+      ],
       pendingConfirmation: {
+        id: "approval:call-1",
+        toolCallId: "call-1",
         toolName: "delete",
         description: "Delete item",
         args: { id: "item-1" },
@@ -75,7 +88,20 @@ describe("public agent contracts", () => {
           data: { count: 2 },
         },
       ],
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete",
+          input: { id: "item-1" },
+          description: "Delete item",
+          state: "approval-requested",
+        },
+      ],
       pendingConfirmation: {
+        id: "approval:call-1",
+        toolCallId: "call-1",
         toolName: "delete",
         description: "Delete item",
         args: { id: "item-1" },

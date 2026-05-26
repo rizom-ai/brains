@@ -86,10 +86,33 @@ export interface ChatContext {
  * Pending confirmation for destructive operations
  */
 export interface PendingConfirmation {
+  id?: string;
+  toolCallId?: string;
   toolName: string;
   description: string;
   args: unknown;
 }
+
+export type ToolApprovalCardState =
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-denied"
+  | "output-error";
+
+export interface ToolApprovalCard {
+  kind: "tool-approval";
+  id: string;
+  toolCallId?: string;
+  toolName: string;
+  input?: Record<string, unknown>;
+  description: string;
+  state: ToolApprovalCardState;
+  output?: unknown;
+  error?: string;
+}
+
+export type StructuredChatCard = ToolApprovalCard;
 
 /**
  * Tool result data for tracking
@@ -112,6 +135,10 @@ export interface AgentResponse {
   // Tool results for structured rendering
   // Interfaces should render these directly to ensure data is shown
   toolResults?: ToolResultData[];
+
+  // Structured chat cards for interface-specific rendering of approvals,
+  // tool outputs, artifacts, and future rich parts.
+  cards?: StructuredChatCard[];
 
   // Confirmation flow for destructive operations
   pendingConfirmation?: PendingConfirmation;

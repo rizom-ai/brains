@@ -911,6 +911,18 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     rgb(from var(--chat-success) r g b / 0.2));
 }
 .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header { color: var(--chat-success); }
+.web-chat-confirmation[data-state="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.35);
+}
+.web-chat-confirmation[data-state="error"]::before {
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--chat-error) r g b / 0.9),
+    rgb(from var(--chat-error) r g b / 0.2));
+}
+.web-chat-confirmation[data-state="error"] .web-chat-confirmation-header {
+  color: var(--chat-error);
+}
 
 .web-chat-confirmation-body { padding: 0.85rem; display: grid; gap: 0.85rem; }
 .web-chat-confirmation-summary { margin: 0; color: var(--chat-text); line-height: 1.6; }
@@ -956,6 +968,8 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   background: rgb(from var(--chat-success) r g b / 0.12);
@@ -964,7 +978,17 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
+}
+.web-chat-confirmation-result[data-variant="error"] {
+  background: rgb(from var(--chat-error) r g b / 0.12);
+  color: var(--chat-error);
+}
+.web-chat-confirmation-result[data-variant="declined"] {
+  background: rgb(from var(--chat-text-muted) r g b / 0.12);
+  color: var(--chat-text-muted);
 }
 
 /* ─── Status (growing root + italic phrase) ─── */
@@ -1611,6 +1635,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return Response.json({
       text: response.text,
       toolResults: response.toolResults ?? [],
+      cards: response.cards ?? [],
       pendingConfirmation: response.pendingConfirmation ?? null,
     });
   }
@@ -1722,7 +1747,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         input.writer.write({
           type: "data-confirmation",
           id: this.createId("confirmation"),
-          data: response.pendingConfirmation,
+          data: {
+            ...response.pendingConfirmation,
+            card: response.cards?.find((card) => card.kind === "tool-approval"),
+          },
         });
       }
     } finally {

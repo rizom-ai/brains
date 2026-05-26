@@ -16,6 +16,8 @@ import type {
   BrainAgent,
   ChatContext,
   IAgentService,
+  StructuredChatCard,
+  ToolResultData,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 import {
@@ -34,6 +36,20 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getStringField(value: unknown, field: string): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const fieldValue = value[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
+}
+
+function isFailedToolOutput(value: unknown): boolean {
+  return isRecord(value) && value["success"] === false;
+}
 
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
@@ -324,7 +340,7 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    const { toolResults, pendingConfirmation, totalToolCalls } =
+    const { toolResults, pendingConfirmation, cards, totalToolCalls } =
       extractToolResults(result.steps);
 
     const responseText = pendingConfirmation
@@ -359,6 +375,7 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
+      ...(cards.length > 0 ? { cards } : {}),
       usage: toTokenUsage(result.usage),
     };
 
@@ -404,6 +421,30 @@ export class AgentService implements IAgentService {
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
     const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const toolResult: ToolResultData = {
+      toolName: pendingConfirmation.toolName,
+      data: result,
+      ...(isRecord(pendingConfirmation.args)
+        ? { args: pendingConfirmation.args }
+        : {}),
+    };
+    const approvalCard: StructuredChatCard = {
+      kind: "tool-approval",
+      id: pendingConfirmation.id ?? `approval:${pendingConfirmation.toolName}`,
+      ...(pendingConfirmation.toolCallId
+        ? { toolCallId: pendingConfirmation.toolCallId }
+        : {}),
+      toolName: pendingConfirmation.toolName,
+      ...(isRecord(pendingConfirmation.args)
+        ? { input: pendingConfirmation.args }
+        : {}),
+      description: pendingConfirmation.description,
+      state: isFailedToolOutput(result) ? "output-error" : "output-available",
+      output: result,
+      ...(isFailedToolOutput(result)
+        ? { error: getStringField(result, "error") ?? "Action failed" }
+        : {}),
+    };
 
     await this.conversationService.addMessage({
       conversationId,
@@ -419,6 +460,8 @@ export class AgentService implements IAgentService {
 
     return {
       text: resultText,
+      toolResults: [toolResult],
+      cards: [approvalCard],
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }

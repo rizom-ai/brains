@@ -2,9 +2,11 @@
 
 ## Status
 
-Proposed. Fix misleading assistant output around destructive-action confirmations.
+Implemented. The shared `shell/ai-service` flow no longer returns or persists misleading model text while a destructive action is pending confirmation. Confirmed-action responses now also expose structured tool result data, and web chat renders failed confirmation results as clear error badges instead of raw JSON.
 
-## Problem
+The broader cross-interface structured approval/card protocol remains tracked in [structured-chat-confirmations.md](./structured-chat-confirmations.md).
+
+## Historical problem
 
 Observed in web chat:
 
@@ -71,7 +73,7 @@ interfaces/web-chat
 - Making destructive tools execute before confirmation.
 - Solving all UI rendering polish for tool failures in this pass.
 
-## Proposed fix
+## Implemented fix
 
 In `AgentService.processMessage`:
 
@@ -106,13 +108,10 @@ Add tests in `shell/ai-service` covering:
 
 ## Web UI follow-up
 
-After the shared fix, improve `interfaces/web-chat` rendering so failed
-confirmation/tool results are obvious instead of buried inside raw JSON.
-
-For example, a failed confirmation result should render as an error state:
+Implemented in `interfaces/web-chat`: confirmation responses use structured tool result data when available, fall back to parsing legacy `Result: {...}` text, and render failed approvals as error-state badges such as:
 
 ```text
-Delete failed · Entity not found: base/woodchuck-note
+Delete note failed · Entity not found: base/woodchuck-note
 ```
 
 rather than only showing a JSON blob inside the expanded tool result.

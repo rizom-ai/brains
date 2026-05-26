@@ -754,6 +754,17 @@ describe("AgentService", () => {
       );
 
       expect(response.pendingConfirmation).toBeDefined();
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          description: "Delete note 'Meeting Notes'?",
+          state: "approval-requested",
+        },
+      ]);
       expect(response.text).toBe("Confirmation required.");
       expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -805,6 +816,25 @@ describe("AgentService", () => {
         "Completed: Delete note 'Meeting Notes'?",
       );
       expect(response.text).toContain('"success": true');
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: { success: true },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          description: "Delete note 'Meeting Notes'?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
@@ -848,6 +878,32 @@ describe("AgentService", () => {
 
       expect(response.text).toContain('"success": false');
       expect(response.text).toContain("Entity not found: base/woodchuck-note");
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          description: "Delete note 'Meeting Notes'?",
+          state: "output-error",
+          output: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+          error: "Entity not found: base/woodchuck-note",
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",

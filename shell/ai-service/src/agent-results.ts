@@ -7,6 +7,7 @@ import {
 import type {
   BrainAgentResult,
   PendingConfirmation,
+  StructuredChatCard,
   ToolResultData,
 } from "./agent-types";
 
@@ -16,6 +17,7 @@ const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmation: PendingConfirmation | null;
+  cards: StructuredChatCard[];
   totalToolCalls: number;
 }
 
@@ -23,6 +25,7 @@ export function extractToolResults(
   steps: BrainAgentResult["steps"],
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
+  const cards: StructuredChatCard[] = [];
   let pendingConfirmation: PendingConfirmation | null = null;
   let totalToolCalls = 0;
 
@@ -43,18 +46,32 @@ export function extractToolResults(
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
+        const approvalId = tr.toolCallId
+          ? `approval:${tr.toolCallId}`
+          : `approval:${tr.toolName}:${totalToolCalls}`;
+        const args = tr.toolCallId
+          ? toolCallArgsMap.get(tr.toolCallId)
+          : undefined;
         pendingConfirmation = {
+          id: approvalId,
+          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           description: confirmationParsed.data.description,
           args: confirmationParsed.data.args,
         };
 
-        const args = tr.toolCallId
-          ? toolCallArgsMap.get(tr.toolCallId)
-          : undefined;
         toolResults.push({
           toolName: tr.toolName,
           ...(args !== undefined ? { args } : {}),
+        });
+        cards.push({
+          kind: "tool-approval",
+          id: approvalId,
+          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
+          toolName: confirmationParsed.data.toolName,
+          ...(args !== undefined ? { input: args } : {}),
+          description: confirmationParsed.data.description,
+          state: "approval-requested",
         });
         continue;
       }
@@ -87,5 +104,5 @@ export function extractToolResults(
     }
   }
 
-  return { toolResults, pendingConfirmation, totalToolCalls };
+  return { toolResults, pendingConfirmation, cards, totalToolCalls };
 }

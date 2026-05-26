@@ -4,16 +4,118 @@ import { Tool, ToolContent, ToolHeader, ToolOutput } from "./tool";
 
 interface ConfirmationResult {
   text: string;
+  toolResults?: unknown[];
+}
+
+type ConfirmationResultVariant = "success" | "error" | "declined";
+
+interface ConfirmationResultDisplay {
+  label: string;
+  variant: ConfirmationResultVariant;
+}
+
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null && !Array.isArray(data);
 }
 
 function getRecordValue(data: unknown, key: string): unknown {
-  if (typeof data !== "object" || data === null) return undefined;
-  return (data as Record<string, unknown>)[key];
+  if (!isRecord(data)) return undefined;
+  return data[key];
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {
   const value = getRecordValue(data, key);
   return typeof value === "string" ? value : undefined;
+}
+
+function getBooleanValue(data: unknown, key: string): boolean | undefined {
+  const value = getRecordValue(data, key);
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function getFirstToolResult(result: ConfirmationResult): unknown {
+  return Array.isArray(result.toolResults) ? result.toolResults[0] : undefined;
+}
+
+function getToolResultData(toolResult: unknown): unknown {
+  return getRecordValue(toolResult, "data");
+}
+
+function parseResultJson(text: string): unknown {
+  const marker = "\n\nResult:";
+  const markerIndex = text.indexOf(marker);
+  if (markerIndex === -1) return undefined;
+
+  const json = text.slice(markerIndex + marker.length).trim();
+  if (!json) return undefined;
+
+  try {
+    return JSON.parse(json) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function humanizeToolName(toolName: string | undefined): string | undefined {
+  if (!toolName) return undefined;
+  const words = toolName
+    .replace(/^system[_-]/, "")
+    .split(/[_-]+/)
+    .filter(Boolean);
+  if (words.length === 0) return undefined;
+  const label = words.join(" ");
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+}
+
+export function formatConfirmationResult(
+  result: ConfirmationResult,
+  decision: "approved" | "declined" | null,
+): ConfirmationResultDisplay {
+  if (decision === "declined") {
+    return { label: "Declined", variant: "declined" };
+  }
+
+  const toolResult = getFirstToolResult(result);
+  const toolLabel = humanizeToolName(getStringValue(toolResult, "toolName"));
+  const resultData =
+    getToolResultData(toolResult) ?? parseResultJson(result.text);
+  const success = getBooleanValue(resultData, "success");
+  const errorMessage =
+    getStringValue(resultData, "error") ??
+    getStringValue(resultData, "message");
+
+  if (success === false) {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
+  }
+
+  if (result.text.startsWith("Error:")) {
+    return {
+      label: `Action failed · ${result.text.replace(/^Error:\s*/, "")}`,
+      variant: "error",
+    };
+  }
+
+  if (success === true) {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
+
+  if (result.text.startsWith("Completed:")) {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
+
+  return {
+    label: result.text ? `Approved · ${result.text}` : "Approved",
+    variant: "success",
+  };
 }
 
 export function ToolCallsGroup({
@@ -103,24 +205,35 @@ export function ConfirmationPart({
   }
 
   const resolved = result !== null;
+  const display = result ? formatConfirmationResult(result, decision) : null;
   const headerLabel = resolved
-    ? "confirmation resolved"
+    ? display?.variant === "error"
+      ? "confirmation failed"
+      : "confirmation resolved"
     : "confirmation pending";
 
   return (
     <section
       className="web-chat-confirmation"
-      data-state={resolved ? "resolved" : "pending"}
+      data-state={
+        display?.variant === "error"
+          ? "error"
+          : resolved
+            ? "resolved"
+            : "pending"
+      }
       role="group"
       aria-label={title}
     >
       <header className="web-chat-confirmation-header">{headerLabel}</header>
       <div className="web-chat-confirmation-body">
         <p className="web-chat-confirmation-summary">{description ?? title}</p>
-        {resolved ? (
-          <span className="web-chat-confirmation-result">
-            {decision === "declined" ? "Declined" : "Approved"}
-            {result.text ? ` · ${result.text}` : ""}
+        {resolved && display ? (
+          <span
+            className="web-chat-confirmation-result"
+            data-variant={display.variant}
+          >
+            {display.label}
           </span>
         ) : (
           <div className="web-chat-confirmation-actions">

@@ -8,6 +8,7 @@ import type {
   AgentResponse,
   ChatContext,
   PendingConfirmation,
+  StructuredChatCard,
   ToolResultData,
 } from "../contracts/agent";
 
@@ -26,8 +27,29 @@ export function toPublicAgentResponse(
         }),
       ),
     }),
+    ...(response.cards && {
+      cards: response.cards.map(
+        (card): StructuredChatCard => ({
+          kind: card.kind,
+          id: card.id,
+          ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
+          toolName: card.toolName,
+          ...(card.input !== undefined && { input: card.input }),
+          description: card.description,
+          state: card.state,
+          ...(card.output !== undefined && { output: card.output }),
+          ...(card.error !== undefined && { error: card.error }),
+        }),
+      ),
+    }),
     ...(response.pendingConfirmation && {
       pendingConfirmation: {
+        ...(response.pendingConfirmation.id !== undefined && {
+          id: response.pendingConfirmation.id,
+        }),
+        ...(response.pendingConfirmation.toolCallId !== undefined && {
+          toolCallId: response.pendingConfirmation.toolCallId,
+        }),
         toolName: response.pendingConfirmation.toolName,
         description: response.pendingConfirmation.description,
         args: response.pendingConfirmation.args,
