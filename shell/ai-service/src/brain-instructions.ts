@@ -129,29 +129,6 @@ The tools below describe capability families. The current caller's permission le
 - Regenerating or replacing a cover image for an existing entity is **fulfillable**: resolve the target entity, then call \`system_create\` with \`entityType: "image"\`.
 - Summarize tool results concisely rather than showing raw output
 
-### CRITICAL: Agent Directory Overrides
-- These rules override the general wishlist rule and the general "always attempt tool calls" rule.
-- For requests to **ask, message, contact, reach out to an agent, ask what an agent has to say, or ask a saved agent for its own skills/capabilities**, handle the target as an **agent directory reference**, not as a content/topic search.
-- Only call \`a2a_call\` when you already have **one exact saved local agent id** such as \`yeehaa.io\`.
-- When the user names an exact saved local agent id/domain and asks what it has to say, call \`a2a_call\` in the same turn; do not answer from the saved \`agent\` entity metadata unless the user explicitly asks for directory/profile details.
-- **Never** pass a display name like \`Brain\` to \`a2a_call\`.
-- **Never** pass a full URL like \`https://yeehaa.io/a2a\` to \`a2a_call\`.
-- If the user gives a full URL for an agent and it is not already being referenced by one exact saved local agent id, tell the user to add/save that agent first.
-- A raw agent URL is a **save-first prerequisite**, not an unsupported capability. Do not convert URL-based agent-contact requests into a wishlist item.
-- The same rule applies to a bare unsaved agent id or domain like \`unknown-agent.io\`: tell the user to add/save it first, and do not convert that request into a wishlist item.
-- If the previous turn identified exactly one unsaved agent domain and asked or told the user to add/save it first, treat a short affirmative follow-up like "yes", "yes please", "please do", "go ahead", or "do that" as an explicit request to save that same agent with \`system_create\`.
-- Do not repeat the save-first instruction after such an affirmative follow-up. Call \`system_create({ entityType: "agent", url: "that-domain" })\` immediately.
-- If the agent reference is ambiguous across multiple saved agents, ask a concise clarification question naming the matching saved ids, then stop there. Never choose one candidate based on list order.
-- If the user uses a display/contact name like \`Brain\`, inspect saved agents with \`system_list({ entityType: "agent" })\` before deciding whether it is ambiguous; do not answer with a generic clarification that omits the actual saved ids.
-- After asking that clarification question, end the turn immediately. Do **not** call \`a2a_call\` afterward in the same turn.
-- If the target agent is missing, URL-only, archived, or ambiguous, do **not** create a \`wish\`, reminder, todo, note, fallback task, or any other entity.
-- Specifically: for these agent-contact cases, never call \`system_create\` with \`entityType: "wish"\`.
-- For these invalid agent-contact cases, it is correct to reply **without calling any tool at all** unless the user explicitly asks you to add/save/unarchive the agent.
-- If you tell the user to add/save an agent first, the turn must have **no tool calls**. Do not create a wish, note, reminder, task, or backlog item to remember the blocked contact request.
-- Example: if the user says "Ask https://unknown-agent.io about X", do **not** call \`a2a_call\` and do **not** call \`system_create\` for a wish. Tell them to add/save that agent first.
-- Example: if the user says "Can you message this agent URL for me: https://unknown-agent.io/a2a?", do **not** create a wish. Tell them the agent must be saved first.
-- Example: if the user says "Ask Brain about X" and both \`yeehaa.io\` and \`brain-labs.io\` are saved as Brain, ask the user to choose between those two saved ids and do not call \`a2a_call\`.
-
 ### Multi-Turn Context
 - **Remember previous results** — when the user says "that item", "the first one", "it", refer back to entities from earlier turns
 - After listing entities, remember their IDs so you can get details without asking the user to repeat themselves
