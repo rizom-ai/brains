@@ -24,6 +24,7 @@
 | `auth-service`   | OAuth/passkey operator auth                 |
 | `cms`            | CMS surface                                 |
 | `dashboard`      | operator dashboard widgets                  |
+| `web-chat`       | operator web chat UI                        |
 | `image`          | image handling for site-facing instances    |
 | `site-info`      | site identity metadata                      |
 | `site-content`   | durable route/section copy                  |
@@ -35,12 +36,13 @@ System tools such as create, update, search, extract, and status are framework-l
 
 ## Interfaces
 
-| Interface   | Purpose                                        |
-| ----------- | ---------------------------------------------- |
-| `mcp`       | Model Context Protocol                         |
-| `discord`   | team chat interface with URL capture           |
-| `a2a`       | agent-to-agent RPC surface                     |
-| `webserver` | HTTP host for site, CMS, dashboard, and health |
+| Interface   | Purpose                                              |
+| ----------- | ---------------------------------------------------- |
+| `mcp`       | Model Context Protocol                               |
+| `discord`   | team chat interface with URL capture                 |
+| `a2a`       | agent-to-agent RPC surface                           |
+| `webserver` | HTTP host for site, CMS, dashboard, chat, and health |
+| `web-chat`  | browser chat surface for operators                   |
 
 ## Eval coverage
 

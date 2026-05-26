@@ -85,6 +85,7 @@
         "@brains/theme-rizom": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@brains/web-chat": "workspace:*",
         "@brains/webserver": "workspace:*",
         "preact": "^10.27.2",
       },

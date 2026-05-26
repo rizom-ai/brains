@@ -4,6 +4,7 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { A2AInterface } from "@brains/a2a";
 import { WebserverInterface } from "@brains/webserver";
+import { WebChatInterface } from "@brains/web-chat";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
 import { notificationsPlugin } from "@brains/notifications";
@@ -72,6 +73,7 @@ const core = [
   "dashboard",
   "mcp",
   "webserver",
+  "web-chat",
   "discord",
   "a2a",
 ];
@@ -115,7 +117,7 @@ export default defineBrain({
     full,
   },
 
-  evalDisable: ["webserver", "mcp", "discord"],
+  evalDisable: ["webserver", "web-chat", "mcp", "discord"],
 
   agentInstructions,
 
@@ -178,6 +180,7 @@ export default defineBrain({
     ["discord", DiscordInterface, (): PluginConfig => ({ captureUrls: true })],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {
@@ -186,6 +189,7 @@ export default defineBrain({
       { pattern: "mcp:stdio", level: "anchor" },
       { pattern: "mcp:http", level: "anchor" },
       { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "anchor" },
     ],
   },
 
