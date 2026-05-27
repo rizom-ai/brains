@@ -2,11 +2,11 @@
 
 ## Status
 
-Not started. Audit complete: 19/19 tool handlers currently produce shapes compliant with `toolResponseSchema`. No tool fixes required; the work is purely the addition of a validation gate.
+Not started. Revised after code review: the validation seam is the set of registered tool handlers consumed by agent-service, not MCP protocol dispatch. The previous draft also referenced stale downstream code (`isFailedToolOutput`) that no longer exists.
 
 ## Problem
 
-`shell/mcp-service/src/types.ts` defines a strict contract for tool responses:
+`shell/mcp-service/src/types.ts` defines the intended contract for tool responses:
 
 ```ts
 toolResponseSchema = z.union([
@@ -16,110 +16,152 @@ toolResponseSchema = z.union([
 ]);
 ```
 
-But the agent-service uses a loose runtime check:
+Agent-service already parses tool outputs in `shell/ai-service/src/agent-results.ts`, but that parse is downstream of execution and is mostly used to extract structured display data. It does not prevent a non-compliant handler result from reaching the model/tool loop, and the direct confirmed-action path currently calls the handler and stringifies whatever it returns.
 
-```ts
-function isFailedToolOutput(value: unknown): boolean {
-  return isRecord(value) && value["success"] === false;
-}
-```
-
-The runtime check is strictly more permissive than the schema. A tool that returns `{ success: false }` with no `error` field passes `isFailedToolOutput` but violates `toolErrorSchema`. The contract exists; nothing currently enforces it. Symptoms are minor today (e.g., degraded failure text when an error message is missing) but the boundary will rot silently as new tools are added.
+There is also a schema sharp edge: with the current Zod version, `z.object({ data: z.unknown() })` accepts a missing `data` field, and object schemas strip unknown keys by default. So `toolResponseSchema.safeParse` is useful, but it is not as strict as the prose contract suggests unless the schemas are tightened.
 
 ## Goal
 
-Enforce `toolResponseSchema.safeParse` at the boundary where tool handler results enter agent-service. Surface contract violations loudly instead of letting them produce degraded UX downstream.
+Validate registered tool handler results at the boundary before agent-service consumes them, and convert invalid results into a standard synthetic tool error:
+
+```ts
+{
+  success: false,
+  error: `Tool ${tool.name} returned an invalid response shape`,
+}
+```
+
+The agent should continue its tool loop with a well-formed error instead of receiving an arbitrary shape.
 
 ## Non-goals
 
-- No changes to tool author API. The contract is unchanged.
-- No changes to existing tools. Audit shows all 19 are compliant.
-- No enforcement for resource handlers (`{ contents: ... }`) or prompt handlers (`{ messages: ... }`) — different contracts, out of scope.
+- No changes to the tool authoring API.
+- No validation for resource handlers (`{ contents: ... }`) or prompt handlers (`{ messages: ... }`).
+- No first-slice change to MCP protocol/message-bus response envelopes. External MCP tool calls go through `mcp-registration.ts` → message bus → `BasePlugin.setupMessageHandlers`, where the tool result is nested inside a `MessageResponse`; that is a different contract.
+- No broad plugin migration unless schema tightening reveals real production handlers returning non-compliant shapes.
 
-## Audit baseline
+## Current execution paths
 
-19/19 tool handlers compliant:
+Agent-visible tool execution uses registered `Tool.handler` functions from `IMCPService`:
 
-- ~13 tools route through `createSystemTool` (`shell/core/src/system/tool-helpers.ts`) or `createTool` (`shell/mcp-service/src/tool-helpers.ts`). Both helpers guarantee compliant shapes.
-- ~6 tools (examples, mcp-bridge) construct compliant shapes manually.
-- 0 tools return ad-hoc shapes (`{ result: ... }`, bare strings, undefined).
+1. **Normal agent tool calls**
+   - `shell/ai-service/src/sdk-tools.ts`
+   - `convertToSDKTools(...)` wraps each registered `Tool.handler` for the AI SDK.
 
-This baseline means the validation gate can land without any tool-side migration.
+2. **Confirmed actions**
+   - `shell/ai-service/src/agent-service.ts`
+   - `executeConfirmedAction(...)` looks up a registered tool and calls `tool.tool.handler(...)` directly.
+
+3. **MCP protocol tool calls**
+   - `shell/mcp-service/src/mcp-registration.ts`
+   - Does not call `Tool.handler`; it sends a plugin message-bus request and serializes the message response. Keep this path out of the first validation slice.
 
 ## Desired model
 
-Wrap tool handler invocation once, at the central execution point in mcp-service. On parse failure, coerce to a synthetic `toolError`:
+Add one mcp-service-owned helper that wraps registered tool handlers:
 
 ```ts
-async function executeToolWithValidation(
+function wrapToolWithResponseValidation(
+  pluginId: string,
   tool: Tool,
-  args: unknown,
-  context: ToolContext,
-): Promise<ToolResponse> {
-  const raw = await tool.handler(args, context);
-  const parsed = toolResponseSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
-
-  logger.error("Tool returned non-compliant response", {
-    toolName: tool.name,
-    issues: parsed.error.issues,
-  });
+  logger: Logger,
+): Tool {
   return {
-    success: false,
-    error: `Tool ${tool.name} returned an invalid response shape`,
+    ...tool,
+    handler: async (args, context) => {
+      const raw = await tool.handler(args, context);
+      const parsed = toolResponseSchema.safeParse(raw);
+      if (parsed.success) return parsed.data;
+
+      logger.error("Tool returned non-compliant response", {
+        pluginId,
+        toolName: tool.name,
+        issues: parsed.error.issues,
+      });
+
+      return {
+        success: false,
+        error: `Tool ${tool.name} returned an invalid response shape`,
+      };
+    },
   };
 }
 ```
 
-Once the gate is in place, `isFailedToolOutput` can be tightened to use the schema instead of duck-typing — or removed in favor of branching on the parsed discriminated union.
+Use this wrapper when storing tools in `MCPService.registerTool(...)`. Then both agent-service paths consume validated handlers through the existing `listTools*()` APIs without adding duplicate validation in ai-service.
 
 ## Work involved
 
-### 1. Add the validation gate
+### 1. Decide schema strictness for this slice
 
 Relevant file:
 
 ```text
-shell/mcp-service/src/mcp-service.ts
+shell/mcp-service/src/types.ts
 ```
 
-- Wrap the tool execution path with `toolResponseSchema.safeParse`.
-- Define the failure policy: log + coerce to synthetic `toolError`. (Throwing would break the agent's tool-loop; silent pass-through defeats the point.)
+Two viable options:
 
-### 2. Tighten downstream consumers
+- **Option A — validate against current schema only.** Lowest risk, but missing success `data` and extra keys may still parse.
+- **Option B — tighten `toolResponseSchema` to match the documented contract.** Prefer this if the intent is true enforcement. Make success `data` actually required and reject unknown keys on response objects. Update tests that use stale shapes such as `{ success: true, formatted: "ok" }`.
+
+Recommendation: use **Option B** if an extended audit shows no real handlers depend on the permissive behavior. The earlier audit only checked response shape compliance (`success`/`error`/etc.) — Option B requires extending it to also check (a) handlers that pass extra keys silently stripped today and (b) handlers that return undefined `data` on success. Otherwise land Option A and create a follow-up schema-tightening plan.
+
+### 2. Add the registered-handler validation wrapper
 
 Relevant files:
 
 ```text
-shell/ai-service/src/agent-service.ts
+shell/mcp-service/src/mcp-service.ts
+shell/mcp-service/src/tool-response-validation.ts # or similar small helper file
+```
+
+- Wrap tools before placing them in `registeredTools`.
+- Preserve tool metadata (`name`, `description`, `inputSchema`, `visibility`, `cli`, `outputSchema`).
+- Log parse failures with plugin id, tool name, and Zod issues.
+- Return a synthetic `toolError` instead of throwing.
+
+### 3. Keep downstream parsing, but simplify only if still useful
+
+Relevant file:
+
+```text
 shell/ai-service/src/agent-results.ts
 ```
 
-- Replace `isFailedToolOutput` with discrimination on the parsed shape, or keep it as a thin alias over `parsed.success === false`.
-- Remove the no-error fallback hedging in failure-text formatting once the contract guarantees `error` is present.
+`agent-results.ts` already parses `toolResponseSchema`. Keep that parse for structured extraction unless it becomes redundant after implementation. There is no `isFailedToolOutput` cleanup to do; that reference was stale.
 
-### 3. Tests
+### 4. Tests
+
+Relevant tests:
 
 ```text
 shell/mcp-service/test/mcp-service.test.ts
+shell/ai-service/test/*tool*.test.ts # targeted existing tests where available
 ```
 
-- Compliant success/error/confirmation responses pass through unchanged.
-- Non-compliant response (e.g. `{ success: false }` with no error) is coerced to a synthetic toolError and logged.
-- Each branch of `toolResponseSchema` is exercised at least once.
+Add/adjust tests for:
+
+- Compliant success/error/confirmation responses pass through unchanged from `listTools()` / `listToolsForPermissionLevel()` handlers.
+- Non-compliant registered handler output is coerced to synthetic `toolError` and logs an error.
+- Normal agent tool calls receive the coerced error through the SDK tool wrapper.
+- Confirmed actions receive the coerced error when the confirmed handler returns an invalid shape.
+- If schema strictness is tightened, stale test fixtures using extra fields or missing `data` are updated.
 
 ## Migration strategy
 
-1. Land the gate with a coerce-to-error policy. No tool changes required (audit confirms compliance).
-2. Tighten downstream consumers in the same slice — the gate guarantees parsed shape, so `isFailedToolOutput` and the failure-text fallback can simplify.
-3. No bake period needed; the gate is purely additive and the audit baseline says it has nothing to coerce today.
+1. Extend the production handler audit if choosing schema tightening (cover missing `data` and silently-stripped extra keys, not just response-shape compliance).
+2. Add the wrapper at registration time and update tests that compare stored tool object identity; wrapped tools should be compared by behavior/metadata instead.
+3. Keep MCP protocol/message-bus behavior unchanged in this slice.
+4. Optionally follow with a separate slice to validate/normalize message-bus tool envelopes if needed.
 
 ## Risks
 
-- **False positives on adjacent handler types.** Resource handlers (`{ contents: ... }`) and prompt handlers (`{ messages: ... }`) are not tool responses. The wrapper must be scoped to tool execution only, not generic MCP handler dispatch.
-- **Future tool drift.** New tools written without going through `createSystemTool` / `createTool` could still return non-compliant shapes. The gate catches them but the right long-term answer is to make those helpers the only sanctioned construction path.
-- **Hidden type loosening.** `Tool.handler` is currently typed as returning `unknown` in some places. Parsing tightens this at runtime but doesn't fix the static typing — worth a follow-up to type the handler return as `ToolResponse`.
+- **Object identity changes.** Wrapping in `registerTool` means `listTools()[0].tool !== originalTool`. Existing tests or callers may need to assert metadata/behavior instead of identity.
+- **Schema permissiveness.** If `toolResponseSchema` is not tightened, the gate will not catch every shape the prose contract calls invalid.
+- **False positives if protocol envelopes are validated.** Do not apply `toolResponseSchema` to `MessageResponse` envelopes from MCP protocol dispatch; unwrap or scope separately.
+- **Hidden public helper drift.** `shell/plugins/src/public/types.ts` exposes a looser `ToolResponse` helper shape. If external plugin authoring flows feed directly into runtime `Tool.handler`, schema tightening could reveal mismatches.
 
 ## Estimated size
 
-~50-80 LOC total: ~30 LOC in mcp-service for the gate, ~10-20 LOC in agent-service for tightening, ~30-40 LOC of tests. Half a day of work.
+~80-140 LOC depending on schema tightening and test fixture updates. Expected files touched: mcp-service types/helper/tests, plus targeted ai-service tests for the two agent execution paths.
