@@ -92,7 +92,7 @@ The platform fallback should be conservative enough that Rover/personal brains c
 
 Entity/plugin packages should not restate the anchor-only platform fallback. They should declare only exceptions that are stricter or genuinely different across all brains. Examples:
 
-- protected identity records such as `anchor-profile` and `brain-character` may declare `delete: never` because system tools should never delete them;
+- singleton records such as `anchor-profile`, `brain-character`, and `site-info` declare singleton semantics through their adapters; central system deletion refuses singleton deletes;
 - an entity type with an explicitly public capture surface could declare a looser default if that is safe in every brain, though this should be rare.
 
 Brain models should only loosen policy where their collaboration posture requires it:
@@ -146,9 +146,10 @@ Example:
 - [x] Call the helper from `system_create`, `system_update`, and `system_delete`.
 - [x] Re-check create policy after a plugin create interceptor changes the effective entity type.
 - [x] Add Relay model defaults matching the table above.
-- [ ] Move entity-owned defaults from Relay into entity/plugin declarations and merge them before brain and instance overrides.
-- [ ] Add the restrictive platform fallback so Rover/personal brains can inherit anchor-only durable mutations by default.
-- [ ] Add and enforce the `extract` action for `system_extract`.
+- [x] Replace Relay's broad wildcard loosening/protected-type list with an explicit collaborator-editable allowlist; unlisted types inherit the platform fallback.
+- [x] Add the restrictive platform fallback so Rover/personal brains can inherit anchor-only durable mutations by default.
+- [x] Add and enforce the `extract` action for `system_extract`.
+- [x] Make singleton entity deletion a generic central denial based on adapter singleton semantics, not a Relay or type-name policy list.
 - [x] Add tests for policy parsing, default/override merging, central tool enforcement, interceptor non-bypass, and denial messages.
 - [x] Update Relay docs with the collaborator vs owner mutation model.
 
@@ -167,6 +168,4 @@ Example:
 
 ## Open decisions
 
-1. Exact plugin/entity API for declaring default entity action policy.
-2. Whether Rover should enforce anchor-only durable mutations immediately or preserve current behavior until a migration note/release boundary.
-3. Whether status changes/publish flows need a separate `publish` action or can remain covered by `update` for now.
+1. Whether status changes/publish flows need a separate `publish` action or can remain covered by `update` for now.

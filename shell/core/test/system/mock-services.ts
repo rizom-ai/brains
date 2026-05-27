@@ -73,6 +73,11 @@ export function createMockSystemServices(
         "series",
         "social-post",
       ]);
+      const singletonEntityTypes = new Set([
+        "anchor-profile",
+        "brain-character",
+        "site-info",
+      ]);
 
       if (type === "link") {
         return {
@@ -128,7 +133,7 @@ export function createMockSystemServices(
       return {
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
-        isSingleton: false,
+        isSingleton: singletonEntityTypes.has(type),
         parseFrontMatter,
         fromMarkdown: (): unknown => ({}),
       };

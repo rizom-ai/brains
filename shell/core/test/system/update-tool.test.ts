@@ -70,6 +70,16 @@ describe("system_update tool", () => {
         created: new Date("2026-03-13T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-13T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "site-info",
+        entityType: "site-info",
+        content: "---\ntitle: Test Site\n---\n",
+        contentHash: "hash-site-info",
+        visibility: "public",
+        metadata: { title: "Test Site" },
+        created: new Date("2026-03-14T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-14T10:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -171,18 +181,19 @@ describe("system_update tool", () => {
     expect(services.getEntities().get("newsletter-1")).toBeUndefined();
   });
 
-  it("refuses to delete protected identity records even when confirmed", async () => {
+  it("refuses to delete singleton records even when confirmed", async () => {
     const result = await execDelete({
-      entityType: "brain-character",
-      id: "brain-character",
+      entityType: "site-info",
+      id: "site-info",
       confirmed: true,
     });
 
     expect(result).toMatchObject({
       success: false,
       error:
-        "brain-character is a protected identity/profile record and cannot be deleted. Update it instead.",
+        "site-info is a singleton entity and cannot be deleted through system tools. Update it instead.",
     });
+    expect(services.getEntities().get("site-info")).toBeDefined();
   });
 
   it("normalizes JSON-wrapped field updates passed via content", async () => {

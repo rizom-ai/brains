@@ -192,12 +192,6 @@ export default defineBrain({
       { pattern: "web-chat:*", level: "anchor" },
     ],
     entityActions: {
-      "*": {
-        create: "trusted",
-        update: "trusted",
-        delete: "anchor",
-        extract: "anchor",
-      },
       base: { create: "trusted", update: "trusted", delete: "anchor" },
       link: { create: "trusted", update: "trusted", delete: "anchor" },
       doc: { create: "trusted", update: "trusted", delete: "anchor" },
@@ -209,48 +203,6 @@ export default defineBrain({
         delete: "anchor",
       },
       image: { create: "trusted", update: "trusted", delete: "anchor" },
-      "site-info": { create: "anchor", update: "anchor", delete: "anchor" },
-      "site-content": {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-      },
-      prompt: { create: "anchor", update: "anchor", delete: "anchor" },
-      "anchor-profile": {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-      },
-      "brain-character": {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-      },
-      topic: {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
-      },
-      summary: {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
-      },
-      agent: { create: "anchor", update: "anchor", delete: "anchor" },
-      skill: {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
-      },
-      swot: {
-        create: "anchor",
-        update: "anchor",
-        delete: "anchor",
-        extract: "anchor",
-      },
     },
   },
 

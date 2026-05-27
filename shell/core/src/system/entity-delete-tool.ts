@@ -8,10 +8,8 @@ import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { createSystemTool, getEntityDisplayLabel } from "./tool-helpers";
 
-const PROTECTED_ENTITY_TYPES = new Set(["brain-character", "anchor-profile"]);
-
 export function createEntityDeleteTool(services: SystemServices): Tool {
-  const { entityService, logger } = services;
+  const { entityService, entityRegistry, logger } = services;
   const pendingConfirmationTokens = new Set<string>();
 
   return createSystemTool(
@@ -19,10 +17,10 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
     "Delete an entity. Requires confirmation. On the initial delete request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     deleteInputSchema,
     async (input, context) => {
-      if (PROTECTED_ENTITY_TYPES.has(input.entityType)) {
+      if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
         return {
           success: false,
-          error: `${input.entityType} is a protected identity/profile record and cannot be deleted. Update it instead.`,
+          error: `${input.entityType} is a singleton entity and cannot be deleted through system tools. Update it instead.`,
         };
       }
 

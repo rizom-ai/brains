@@ -145,7 +145,7 @@ spaces:
   - "discord:TEAM_CHANNEL_ID"
 ```
 
-Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require owner/anchor permission. Protected entities such as prompts, site content, topics, summaries, agents, skills, and SWOTs require owner/anchor permission for create/update/delete. Singleton identity entities — site-info, anchor-profile, and brain-character — additionally have `delete: never`, meaning they cannot be deleted through system tools at all; resetting them must go through plugin or directory-sync paths.
+Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require owner/anchor permission. Protected entities such as prompts, site content, topics, summaries, agents, skills, and SWOTs require owner/anchor permission for create/update/delete. Singleton identity/config entities — site-info, anchor-profile, and brain-character — cannot be deleted through system tools at all; reset them through plugin or directory-sync paths.
 
 Instances can override individual actions in `brain.yaml`:
 
