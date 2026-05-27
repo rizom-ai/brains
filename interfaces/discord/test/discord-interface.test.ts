@@ -4,66 +4,6 @@ import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
 import type { Mock } from "bun:test";
 
-interface MockAgentService {
-  chat: Mock<
-    (
-      message: string,
-      conversationId: string,
-      context?: ChatContext,
-    ) => Promise<{
-      text: string;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-      pendingConfirmation?: {
-        id: string;
-        toolName: string;
-        description: string;
-        args: unknown;
-      };
-      cards?: Array<{
-        kind: "tool-approval";
-        id: string;
-        toolCallId?: string;
-        toolName: string;
-        input?: Record<string, unknown>;
-        description: string;
-        state:
-          | "approval-requested"
-          | "approval-responded"
-          | "output-available"
-          | "output-denied"
-          | "output-error";
-        output?: unknown;
-        error?: string;
-      }>;
-    }>
-  >;
-  confirmPendingAction: Mock<
-    (
-      conversationId: string,
-      confirmed: boolean,
-      approvalId?: string,
-    ) => Promise<{
-      text: string;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-      pendingConfirmation?: {
-        id: string;
-        toolName: string;
-        description: string;
-        args: unknown;
-      };
-    }>
-  >;
-  invalidateAgent: () => void;
-}
-
 interface MockConversationService {
   startConversation: Mock<(request: { sessionId: string }) => Promise<string>>;
   addMessage: Mock<(_request: unknown) => Promise<void>>;
@@ -176,6 +116,17 @@ void mock.module("discord.js", () => ({
 
 // Import after mock
 const { DiscordInterface } = await import("../src/discord-interface");
+
+type MockAgentServiceBase = Parameters<
+  PluginTestHarness<InstanceType<typeof DiscordInterface>>["setAgentService"]
+>[0];
+type MockAgentService = Omit<
+  MockAgentServiceBase,
+  "chat" | "confirmPendingAction"
+> & {
+  chat: Mock<MockAgentServiceBase["chat"]>;
+  confirmPendingAction: Mock<MockAgentServiceBase["confirmPendingAction"]>;
+};
 
 // ── Helpers ──
 
@@ -840,10 +791,27 @@ describe("DiscordInterface", () => {
         ],
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Completed: Delete note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            description: "Delete note?",
+            state: "output-available",
+            output: { success: true, data: { deleted: "123" } },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
 
       const msg = createDiscordMessage();
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
 
       const interaction = createDiscordButtonInteraction();
       interactionCreateHandler?.(interaction);
@@ -854,6 +822,18 @@ describe("DiscordInterface", () => {
         "discord-thread-456",
         true,
         "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "Completed: Delete note?",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action completed",
+              description: "Delete note?",
+            }),
+          ]),
+          components: [],
+        }),
       );
     });
 
@@ -887,10 +867,28 @@ describe("DiscordInterface", () => {
         ],
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Failed: Delete note?\n\nEntity not found",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            description: "Delete note?",
+            state: "output-error",
+            output: { success: false, error: "Entity not found" },
+            error: "Entity not found",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
 
       const msg = createDiscordMessage();
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
 
       const yesMsg = createDiscordMessage({ content: "yes" });
       messageCreateHandler?.(yesMsg);
@@ -900,6 +898,24 @@ describe("DiscordInterface", () => {
         expect.stringContaining("discord-"),
         true,
         "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "Failed: Delete note?\n\nEntity not found",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action failed",
+              description: "Delete note?",
+              fields: expect.arrayContaining([
+                expect.objectContaining({
+                  name: "Error",
+                  value: "Entity not found",
+                }),
+              ]),
+            }),
+          ]),
+          components: [],
+        }),
       );
     });
   });

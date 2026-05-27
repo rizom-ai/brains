@@ -110,7 +110,17 @@ describe("CLIInterface", () => {
           _confirmed: boolean,
           _approvalId?: string,
         ): Promise<MockAgentResponse> => ({
-          text: "Confirmed",
+          text: "Completed: Delete note?",
+          cards: [
+            {
+              kind: "tool-approval",
+              id: "approval:call-1",
+              toolName: "delete_note",
+              description: "Delete note?",
+              state: "output-available",
+              output: { success: true, data: { deleted: "123" } },
+            },
+          ],
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
@@ -146,6 +156,7 @@ describe("CLIInterface", () => {
         expect.stringContaining("Please reply with **yes**"),
       );
       expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1");
+      expect(responseHandler).toHaveBeenCalledWith("✓ Delete note?");
     });
   });
 

@@ -262,6 +262,17 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     );
   }
 
+  private getResolvedApprovalCard(
+    cards: StructuredChatCard[] | undefined,
+  ): ToolApprovalCard | undefined {
+    return cards?.find(
+      (card): card is ToolApprovalCard =>
+        card.state === "output-available" ||
+        card.state === "output-error" ||
+        card.state === "output-denied",
+    );
+  }
+
   /**
    * Format CLI response text for structured approval cards.
    */
@@ -273,6 +284,24 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
     const base = text.trim().length > 0 ? text : approvalCard.description;
     return `${base}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
+  }
+
+  private formatApprovalResultText(
+    text: string,
+    cards: StructuredChatCard[] | undefined,
+  ): string {
+    const resultCard = this.getResolvedApprovalCard(cards);
+    if (!resultCard) return text;
+
+    if (resultCard.state === "output-error") {
+      return resultCard.error
+        ? `✗ ${resultCard.description}\n\n${resultCard.error}`
+        : `✗ ${resultCard.description}`;
+    }
+    if (resultCard.state === "output-denied") {
+      return `○ ${resultCard.description}`;
+    }
+    return `✓ ${resultCard.description}`;
   }
 
   /**
@@ -308,7 +337,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     // Send response to UI
     this.sendMessageToChannel({
       channelId: null,
-      message: response.text,
+      message: this.formatApprovalResultText(response.text, response.cards),
     });
   }
 
