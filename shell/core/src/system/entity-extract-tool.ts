@@ -10,7 +10,7 @@ export function createEntityExtractTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "extract",
-    'Project derived entities from source content. Provide source for single, omit for batch. `mode: "rebuild"` is currently only supported for `entityType: "topic"` and requires confirmation; other entity types fall back to normal projection mode.',
+    'Generate derived entities (e.g. topics) from existing content. Use this for requests like "generate topics for me", "extract topics", "derive topics from my notes" — call once with `entityType` (typically `"topic"`); do not preflight with search/list. Provide `source` to derive from a single entity, omit for a batch over all sources. `mode: "rebuild"` is currently only supported for `entityType: "topic"` and requires confirmation; other entity types fall back to normal projection mode.',
     extractInputSchema,
     async (input, toolContext) => {
       const { entityType, source } = input;
