@@ -677,6 +677,7 @@ describe("AgentService", () => {
     // Helper: make the agent return a tool result with needsConfirmation
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
+      description = "Delete note 'Meeting Notes'?",
     ): void => {
       mockAgentGenerateResult = {
         text,
@@ -696,7 +697,7 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "delete_note",
-                  description: "Delete note 'Meeting Notes'?",
+                  description,
                   args: { noteId: "123" },
                 },
               },
@@ -878,6 +879,52 @@ describe("AgentService", () => {
           role: "assistant",
           content: response.text,
         }),
+      );
+    });
+
+    it("does not repeat destructive preview text after confirmation", async () => {
+      setupConfirmationResponse(
+        "Deleted.",
+        "Delete note 'Meeting Notes'?\n\nPreview:\nSensitive content that should only appear before approval.",
+      );
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat("delete my note", "test-conversation");
+      expect(pending.pendingConfirmation?.description).toContain("Preview:");
+
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
+
+      expect(response.text).toContain(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(response.text).not.toContain("Preview:");
+      expect(response.text).not.toContain("Sensitive content");
+      expect(response.cards?.[0]?.description).toBe(
+        "Delete note 'Meeting Notes'?",
       );
     });
 
