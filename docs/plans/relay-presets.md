@@ -130,7 +130,7 @@ into relay once they land:
 | future plugin / feature                                       | target tier                  | notes                                                                                                |
 | ------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
 | **shared-space trust**                                        | `core`                       | shipped resolver: configured team spaces grant collaborator/trusted access before full runtime users |
-| **entity action policy** ([plan](./entity-action-policy.md))  | `core`                       | next hardening: constrain collaborator mutations by entity type and action                           |
+| **entity action policy**                                      | `core`                       | shipped: collaborator mutations constrained by entity type and action through central policy layer   |
 | **multi-user + permissions** ([plan](./multi-user.md))        | `core`                       | defining feature for a team brain — users, roles, audit trail                                        |
 | **Chat SDK migration** ([plan](./chat-interface-sdk.md))      | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                                                              |
 | **AT Protocol phases 1-2** ([plan](./atproto-integration.md)) | `default`                    | outbound publishing — teams push knowledge to decentralized feed                                     |
