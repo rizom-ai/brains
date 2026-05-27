@@ -76,7 +76,8 @@ interface ToolApprovalCard {
   toolCallId: string;
   toolName: string;
   input: Record<string, unknown>;
-  description: string;
+  summary: string; // short title; identical pre and post approval
+  preview?: string; // optional pre-approval detail; dropped post-approval
   state:
     | "approval-requested"
     | "approval-responded"
@@ -88,6 +89,8 @@ interface ToolApprovalCard {
 
 The key requirement is that approvals are attached to explicit tool/action IDs,
 not just a loose conversation-level boolean.
+
+The `summary` / `preview` split replaces the original single `description` field. `summary` is identical pre and post approval, so post-approval renderers and `Completed:` / `Failed:` text don't repeat preview content. `preview` only travels on the `approval-requested` card and the `pendingConfirmation`; it is dropped from the post-approval card and the completion text. This removes the blank-line-heuristic in `agent-service.getConfirmationSummary` and gives `summary` stable lifecycle semantics.
 
 ### State lifecycle notes
 
@@ -151,6 +154,7 @@ First slice implemented. Shared runtime/public types now define `StructuredChatC
 Touched areas:
 
 ```text
+shell/mcp-service/src/types.ts          # toolConfirmationSchema: split description → summary + preview
 shell/plugins/src/contracts/agent.ts
 shell/ai-service/src/agent-types.ts
 shell/ai-service/src/agent-results.ts
@@ -162,7 +166,8 @@ The contract includes:
 - tool call id when available
 - tool name
 - input/args
-- human-readable description
+- `summary` (short title; lifecycle-stable across pre/post approval)
+- `preview` (optional pre-approval detail; only present on `approval-requested` cards and `pendingConfirmation`)
 - approval state
 - output/error payload when resolved
 
@@ -185,6 +190,7 @@ Responsibilities:
 - prevent misleading assistant completion text while approval is pending
 - execute approved actions by explicit approval/action id — first slice implemented as optional id validation on `confirmPendingAction`
 - surface success/failure as structured output/error state
+- use `summary` directly for `Completed:` / `Failed:` text and the post-approval card; omit `preview` from both. Drops the blank-line `getConfirmationSummary` heuristic once the schema split lands.
 
 ### 3. Update destructive tools
 
@@ -196,12 +202,15 @@ shell/core/src/system/entity-delete-tool.ts
 
 Destructive tools should keep their safety guarantees, including confirmation
 tokens, but return data that can be represented as structured approval cards.
+Each tool emits `summary` (short title) and optional `preview` (sensitive
+detail, diff, or "what will happen") instead of a single bundled
+`description`.
 
 Affected flows likely include:
 
-- entity delete
-- entity update
-- destructive extract/rebuild operations
+- entity delete (`shell/core/src/system/entity-delete-tool.ts`)
+- entity update (`shell/core/src/system/entity-update-tool.ts`)
+- destructive extract/rebuild operations (`shell/core/src/system/entity-extract-tool.ts`)
 - any future destructive plugin tool
 
 ### 4. Update web-chat
@@ -218,6 +227,7 @@ Target behavior:
 - translate `ToolApprovalCard` to AI SDK UI chunks (`tool-input-available`, `tool-approval-request`, `tool-output-*`) instead of custom `data-approval-card` — implemented for streamed agent responses
 - show approval requested/responded/running/succeeded/failed states clearly
 - avoid burying failures inside raw JSON
+- pre-approval `ConfirmationPart` renders `summary` + `preview`; post-approval state renders `summary` only
 
 #### Submission mechanism change
 
@@ -255,6 +265,7 @@ Remaining target behavior:
 
 - multiple simultaneous pending actions should not collide
 - success/failure should be shown from the structured output/error state
+- pre-approval embed body shows `preview` when present; post-approval message uses `summary` only
 
 User-facing Discord UX can remain familiar:
 
@@ -280,6 +291,7 @@ Implemented behavior:
 Remaining target behavior:
 
 - show structured success/failure output
+- pre-approval prompt shows `summary` + `preview`; post-approval line shows `summary` only
 
 ### 7. Tests
 
@@ -291,6 +303,7 @@ Shared across modes:
 - confirmed success result
 - confirmed failure result
 - no misleading completion text before approval
+- post-approval card carries `summary` only; `preview` is absent from both the card and the `Completed:` / `Failed:` text (prevents preview-content leakage)
 
 Web-chat — legacy fallback mode (while `POST /api/chat/confirm` lives):
 
