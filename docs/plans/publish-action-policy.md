@@ -8,13 +8,13 @@ Proposed follow-up to the now-shipped central entity action policy.
 
 Entity action policy now separates durable mutations by action (`create`, `update`, `delete`, `extract`). That still leaves one important user-facing distinction unresolved: editing draft/internal content is not the same as committing content to a distribution path.
 
-Today, publish-like behavior is spread across status updates and publish-pipeline/plugin tools. A generic `update` check is too coarse for long-term collaborator workflows: a teammate may be allowed to edit a draft but not queue, schedule, send, or publish it.
+Today, publish-like behavior is spread across status updates and publish-pipeline tools (`plugins/content-pipeline/src/tools/publish.ts`, social-media/newsletter `publish:execute` handlers). A generic `update` check is too coarse for long-term collaborator workflows: a teammate may be allowed to edit a draft but not queue, schedule, send, or publish it.
 
 ## Goal
 
 Add a shared `publish` entity action for operations that cross a distribution or commitment boundary.
 
-The policy layer should answer authorization. Publish-capable plugins and workflows should define which operations count as publishing.
+The policy layer answers authorization. Publish-capable entity packages declare which states count as publishing.
 
 ## Non-goals
 
@@ -30,17 +30,20 @@ The policy layer should answer authorization. Publish-capable plugins and workfl
 
 `publish` means moving an entity into an externally visible, externally distributed, or automation-committed state.
 
+The boundary crossing is **the human commitment**, not the side-effect timing. Queueing content with a future `scheduledFor` is publishing — the human authorized the commitment; the timer firing is automation. Likewise, a `failed` status reached after a publish attempt is a publish state: the boundary was already crossed; retrying is automation, not a new commitment.
+
 Examples requiring `publish`:
 
 - queueing content for outbound distribution when the queue is execution-backed;
-- scheduling content for publication;
+- scheduling content for publication (regardless of `scheduledFor` timing);
 - executing a publish/send action;
 - marking content as published/sent/live through a publish-aware workflow;
-- changing a publish-aware entity from a non-publish state into a publish state.
+- changing a publish-aware entity from a non-publish state into a publish state;
+- retrying a `failed` publish (still a publish state; not a new commitment, but the action must remain gated).
 
 Examples that remain `update`:
 
-- editing title/body/tags/summary;
+- editing title/body/tags/summary on a draft;
 - moving internal work from `new` to `planned`;
 - changing review-only statuses such as `draft` to `needs-review`;
 - changing status on entity types that do not declare publish semantics.
@@ -65,46 +68,54 @@ Rules:
 - Platform fallback is `publish: anchor`.
 - Brain models may loosen `publish` only for explicitly safe entity types.
 - Instance config may override `publish` like other entity actions.
-- `publish` does not replace `update`; a publish operation may require both content validity and publish authorization, but the policy denial should name `publish` when publication is the blocked boundary.
+- **Invariant: `publish` must be ≥ `update` for the same entity type.** Publishing implies updating; an operator who loosens `publish` below `update` has produced an inconsistent policy. The merge layer validates this invariant at config parse time and rejects with a clear error naming the entity type.
+- Because of the invariant, `system_update` checks **only `publish`** when a transition crosses the publish boundary — `publish` automatically covers `update`. The denial message names `publish` when publication is the blocked boundary.
 
 ## Publish semantics declaration
 
-Publish-aware entity/plugin packages should declare publish semantics explicitly. Do not infer from status names globally.
+Publish-aware entity packages declare publish semantics explicitly. Do not infer from status names globally.
 
-Candidate entity type config extension:
+`EntityTypeConfig` (in `shell/entity-service/src/types.ts`) is extended:
 
 ```ts
 interface EntityTypeConfig {
+  weight?: number;
+  embeddable?: boolean;
+  projectionSource?: boolean;
   publish?: {
-    statusField?: string; // default: "status"
-    publishStatuses?: string[];
+    publishStatuses: string[];
   };
 }
 ```
 
-Example declarations:
+The `status` metadata field is the convention across all current publish-aware schemas (`blog-post`, `social-post`, `newsletter`). The plan treats `"status"` as the field name; no per-type field override is needed for the first slice. If a future entity type needs a different field, extend the config then — YAGNI.
+
+Boundary detection compares `oldStatus ∈ publishStatuses` against `newStatus ∈ publishStatuses`. A transition crosses the boundary when `oldStatus` is NOT in `publishStatuses` and `newStatus` IS in `publishStatuses`. Transitions within the publish-state set (e.g. `queued → failed`, `failed → published`) do not cross the boundary again but **still require `publish`** because they manipulate publication state.
+
+Plugin-declared `publishStatuses` is structural — it defines what publishing means for that entity. Instance config cannot redefine the boundary; operators only override the required permission level via `permissions.entityActions.{type}.publish`. This matches the existing entity-action separation: plugin owns semantics, operator owns authorization.
+
+### Declarations for current publish-aware types
+
+These match the actual status enums in the codebase as of this plan:
 
 ```ts
-// blog/post
+// blog/schemas/blog-post.ts — status: draft | queued | published
 publish: {
-  publishStatuses: ["published"],
+  publishStatuses: ["queued", "published"];
 }
 
-// social-post
+// social-media/schemas/social-post.ts — status: draft | queued | published | failed
 publish: {
-  publishStatuses: ["queued", "scheduled", "published", "sent"],
+  publishStatuses: ["queued", "published", "failed"];
 }
 
-// newsletter
+// newsletter/schemas/newsletter.ts — status: draft | queued | published | failed
 publish: {
-  publishStatuses: ["queued", "sent"],
+  publishStatuses: ["queued", "published", "failed"];
 }
 ```
 
-Interpretation:
-
-- `draft -> queued` requires `publish` only for entity types where `queued` is declared as a publish status.
-- `draft -> queued` on a generic internal workflow entity remains `update` unless that entity declares publish semantics.
+`draft` is the only non-publish state in each — that's the editable surface for collaborators.
 
 ## Enforcement points
 
@@ -114,44 +125,52 @@ When updating fields or replacing content:
 
 1. resolve the existing entity;
 2. compute the effective next metadata/status;
-3. if the entity type declares publish semantics and the transition crosses from non-publish state into publish state, require `publish`;
-4. otherwise require `update` as today.
+3. if the entity type declares publish semantics, check whether the transition crosses the publish boundary OR remains inside the publish-state set;
+4. if either, require `publish` (single check — invariant guarantees this covers `update`);
+5. otherwise require `update` as today.
 
-Open detail: if an update both edits content and crosses the publish boundary, checking `publish` may be sufficient because it is stricter by default. If an instance loosens `publish` below `update`, the system should either check both or reject invalid policy ordering. Decide during implementation.
+### Publish pipeline and plugin handlers
 
-### Publish pipeline plugin
+All publish pipeline operations call the same central policy helper before performing the operation. Operations that count as publication commitment:
 
-Publish pipeline tools should call the same central policy helper before operations such as:
+- `publish-pipeline:publish` tool — explicit commit.
+- `publish:execute` handlers (social-media, newsletter) — actual send. Note: these handlers run from automation, not direct caller input; when invoked by the scheduler they execute under the system identity. When invoked by a tool call (e.g. operator-triggered immediate publish), the check runs against the caller's level.
+- Retry of a `failed` publish via tool or handler — still gated, even though `failed → queued/published` does not cross the boundary again.
 
-- add to execution-backed queue;
-- schedule;
-- publish/send now;
-- mark as published/sent;
-- retry a publish execution.
+Operations that remain `update` (not publish commitments):
 
-Queue-only/internal review operations should remain `update` unless they commit the entity to publication automation.
+- editing draft body/title/metadata;
+- moving review-only statuses among non-publish states;
+- automation reporting `publish:report:success/failure` messages (these are status updates triggered by completed work, not new commitments).
 
-### Plugin-specific publish tools
+### Cross-entity publish workflows
 
-Any plugin-specific tool that publishes, sends, schedules, or transitions to a publish state must enforce `publish`. It should not rely on the generic `system_update` path unless it actually uses that path.
+Derived publish-aware entities (e.g. a `social-post` auto-generated from a published `post`) get their own publish gate evaluated against their own caller context. The source entity's permission check is not re-evaluated when the derived entity is published — each entity is its own subject.
+
+When the derivation pipeline runs as automation, it executes under the system identity (anchor-level), so the check passes. When a user manually triggers a derived publish, the check runs against that user's level for the derived entity type.
 
 ## Implementation steps
 
 1. Add `publish` to `EntityActionSchema`, config parsing, type exports, labels, and tests.
-2. Add platform fallback `publish: anchor`.
-3. Extend entity type config with publish semantics declaration.
-4. Add helper to detect publish-boundary transitions from old entity metadata to new metadata.
-5. Enforce `publish` in `system_update` for declared publish-boundary transitions.
-6. Update publish pipeline tools to call the central policy helper for publish/schedule/queue execution operations.
-7. Add entity/plugin declarations for the first concrete publish-capable entity types being covered.
-8. Add tests for:
+2. Add platform fallback `publish: anchor` in `shell/app/src/brain-resolver.ts` `PLATFORM_ENTITY_ACTION_DEFAULTS`.
+3. Add the `publish >= update` invariant check during entity action policy merge; reject inconsistent policies with a clear error.
+4. Extend `EntityTypeConfig` in `shell/entity-service/src/types.ts` with the `publish.publishStatuses` field.
+5. Add a `crossesPublishBoundary(entityType, oldStatus, newStatus, registry)` helper that returns `boundary` | `within-publish-set` | `non-publish`. The helper drives whether `publish` is required.
+6. Enforce `publish` in `system_update` based on the helper's result.
+7. Update `publish-pipeline:publish` and the social-media/newsletter `publish:execute` handlers to call `assertEntityActionAllowed(type, "publish", context)` before performing the operation.
+8. Add entity type declarations for the first slice: **social-post**, because it exercises the most edge cases (`failed` state, retry semantics, deferred execution). Then blog post and newsletter follow the same shape.
+9. Add tests for:
    - policy parsing/merging with `publish`;
    - fallback `publish: anchor`;
+   - rejection of policies where `publish < update`;
    - non-publish status changes still requiring only `update`;
-   - declared publish transition requiring `publish`;
-   - `draft -> queued` requiring `publish` only for publish-aware entity types;
-   - publish pipeline tool denial for caller below required level.
-9. Update docs and eval cases for collaborator draft-edit vs owner publish behavior.
+   - declared publish-boundary transition requiring `publish`;
+   - transitions within the publish-state set (`queued → failed`, `failed → published`) requiring `publish`;
+   - `draft → queued` requiring `publish` only for publish-aware entity types;
+   - `failed` retries still gated;
+   - publish-pipeline tool and `publish:execute` handler denial for caller below required level;
+   - automation-triggered publish (system identity) bypassing user-level checks.
+10. Update docs and eval cases for collaborator draft-edit vs owner publish behavior.
 
 ## Validation matrix
 
@@ -159,13 +178,20 @@ Any plugin-specific tool that publishes, sends, schedules, or transitions to a p
 - trusted collaborator cannot publish/schedule/queue that entity when `publish: anchor`.
 - anchor can publish/schedule/queue.
 - status changes on non-publish-aware entities remain governed by `update`.
-- publish-aware `draft -> queued` requires `publish`.
-- non-publish-aware `draft -> queued` does not require `publish`.
+- publish-aware `draft → queued` requires `publish`.
+- publish-aware `queued → failed` requires `publish` (still inside publish-state set).
+- publish-aware `failed → published` requires `publish` (retry path).
+- non-publish-aware `draft → queued` does not require `publish`.
 - plugin publish tools and `system_update` produce consistent denials.
+- automation-triggered publish (`publish:execute` from scheduler) runs under system identity and is not gated by user-level checks.
+- a policy with `update: anchor, publish: trusted` is rejected at config parse with a clear error.
+- derived publish-aware entity (e.g. social-post from blog post) is gated by the derived type's policy, not the source type's.
 
-## Open decisions
+## Closed decisions
 
-1. Exact `EntityTypeConfig.publish` shape.
-2. Whether publish-boundary updates require both `update` and `publish`, or only `publish`.
-3. Which existing publish-pipeline operations are internal queue management vs publication commitment.
-4. First entity/plugin slice to wire end-to-end.
+The original "Open decisions" section is resolved:
+
+1. **`EntityTypeConfig.publish` shape:** `{ publishStatuses: string[] }`. `statusField` dropped — `"status"` is the universal convention; revisit if a future entity diverges.
+2. **Update + publish together:** enforce `publish ≥ update` as a validated invariant at config parse. For boundary-crossing or within-publish-state updates, check only `publish` — the invariant guarantees this covers `update`.
+3. **Internal queue management vs publication commitment:** queueing is the commitment (the human authorized it). Automation timing (scheduler firing, retry loops) is not a new commitment. Status updates triggered by completed automation (`publish:report:*`) are not commitments either.
+4. **First entity slice:** social-post. It has the richest workflow (`failed` retries, deferred execution, derived-from-source semantics), so getting it right validates the design for blog post and newsletter, which follow the same shape.
