@@ -74,7 +74,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   private client: Client | null = null;
   private readonly fetchText: (url: string) => Promise<string>;
 
-  private pendingConfirmations = new Map<string, string>();
+  private pendingConfirmations = new Map<string, Set<string>>();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
   constructor(config: Partial<DiscordConfig>, deps: DiscordDeps = {}) {
@@ -169,14 +169,19 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     channelId,
     message,
     approvalCard,
+    approvalCards: approvalCardsInput,
   }: {
     channelId: string | null;
     message: string;
     approvalCard?: ToolApprovalCard | undefined;
+    approvalCards?: ToolApprovalCard[] | undefined;
   }): Promise<string | undefined> {
-    const payload = approvalCard
-      ? this.buildApprovalMessagePayload(message, approvalCard)
-      : message;
+    const approvalCards =
+      approvalCardsInput ?? (approvalCard ? [approvalCard] : []);
+    const payload =
+      approvalCards.length > 0
+        ? this.buildApprovalMessagePayload(message, approvalCards)
+        : message;
     return this.sendPayloadWithId(channelId, payload);
   }
 
@@ -365,8 +370,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     if (!parsed) return;
 
     const conversationId = `discord-${interaction.channelId}`;
-    const pendingApprovalId = this.pendingConfirmations.get(conversationId);
-    if (pendingApprovalId !== parsed.approvalId) {
+    const pendingApprovalIds = this.pendingConfirmations.get(conversationId);
+    if (!pendingApprovalIds?.has(parsed.approvalId)) {
       await interaction
         .reply({
           content: "This approval is no longer pending or has changed.",
@@ -386,7 +391,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         this.logger.debug("Failed to defer approval button", { error }),
       );
 
-    this.pendingConfirmations.delete(conversationId);
+    this.removePendingApproval(conversationId, parsed.approvalId);
     const response = await this.context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
@@ -509,20 +514,32 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         ),
       });
 
-      const approvalCard = this.getPendingApprovalCard(response.cards);
-      if (approvalCard) {
-        this.pendingConfirmations.set(conversationId, approvalCard.id);
+      const approvalCards = this.getPendingApprovalCards(response.cards);
+      if (approvalCards.length > 0) {
+        this.pendingConfirmations.set(
+          conversationId,
+          new Set(approvalCards.map((card) => card.id)),
+        );
+      } else if (response.pendingConfirmations) {
+        this.pendingConfirmations.set(
+          conversationId,
+          new Set(
+            response.pendingConfirmations.map(
+              (confirmation) => confirmation.id,
+            ),
+          ),
+        );
       } else if (response.pendingConfirmation) {
         this.pendingConfirmations.set(
           conversationId,
-          response.pendingConfirmation.id,
+          new Set([response.pendingConfirmation.id]),
         );
       }
 
       const messageId = await this.sendMessageWithId({
         channelId: replyChannelId,
-        message: this.formatAgentResponseText(response.text, approvalCard),
-        approvalCard,
+        message: this.formatAgentResponseText(response.text, approvalCards),
+        approvalCards,
       });
 
       if (messageId && response.toolResults) {
@@ -555,59 +572,55 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   private buildApprovalMessagePayload(
     text: string,
-    approvalCard: ToolApprovalCard,
+    approvalCards: ToolApprovalCard[],
   ): DiscordSendOptions {
+    const multiple = approvalCards.length > 1;
     return {
       content: truncateText(
         text.trim().length > 0
-          ? `${text}\n\nUse the buttons below, or reply **yes** / **no**.`
-          : "Use the buttons below, or reply **yes** / **no**.",
+          ? `${text}\n\nUse the buttons below${multiple ? " for the matching action" : ", or reply **yes** / **no**"}.`
+          : `Use the buttons below${multiple ? " for the matching action" : ", or reply **yes** / **no**"}.`,
         DISCORD_MAX_LENGTH,
       ),
-      embeds: [
-        {
-          title: "Approval required",
-          description: truncateText(approvalCard.description, 1024),
-          color: 0xf59e0b,
-          fields: [
-            {
-              name: "Tool",
-              value: `\`${approvalCard.toolName}\``,
-              inline: true,
-            },
-            {
-              name: "Approval ID",
-              value: `\`${truncateText(approvalCard.id, 80)}\``,
-              inline: true,
-            },
-          ],
-        },
-      ],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 3,
-              label: "Approve",
-              custom_id: this.formatApprovalButtonCustomId(
-                true,
-                approvalCard.id,
-              ),
-            },
-            {
-              type: 2,
-              style: 4,
-              label: "Decline",
-              custom_id: this.formatApprovalButtonCustomId(
-                false,
-                approvalCard.id,
-              ),
-            },
-          ],
-        },
-      ],
+      embeds: approvalCards.slice(0, 10).map((approvalCard, index) => ({
+        title: multiple
+          ? `Approval required #${index + 1}`
+          : "Approval required",
+        description: truncateText(approvalCard.description, 1024),
+        color: 0xf59e0b,
+        fields: [
+          {
+            name: "Tool",
+            value: `\`${approvalCard.toolName}\``,
+            inline: true,
+          },
+          {
+            name: "Approval ID",
+            value: `\`${truncateText(approvalCard.id, 80)}\``,
+            inline: true,
+          },
+        ],
+      })),
+      components: approvalCards.slice(0, 5).map((approvalCard, index) => ({
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 3,
+            label: multiple ? `Approve #${index + 1}` : "Approve",
+            custom_id: this.formatApprovalButtonCustomId(true, approvalCard.id),
+          },
+          {
+            type: 2,
+            style: 4,
+            label: multiple ? `Decline #${index + 1}` : "Decline",
+            custom_id: this.formatApprovalButtonCustomId(
+              false,
+              approvalCard.id,
+            ),
+          },
+        ],
+      })),
     };
   }
 
@@ -629,6 +642,18 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     return { confirmed: action === "approve", approvalId };
   }
 
+  private removePendingApproval(
+    conversationId: string,
+    approvalId: string,
+  ): void {
+    const approvalIds = this.pendingConfirmations.get(conversationId);
+    if (!approvalIds) return;
+    approvalIds.delete(approvalId);
+    if (approvalIds.size === 0) {
+      this.pendingConfirmations.delete(conversationId);
+    }
+  }
+
   private async sendApprovalResultMessage({
     channelId,
     response,
@@ -643,12 +668,11 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
     return this.sendPayloadWithId(
       channelId,
-      this.buildApprovalResultMessagePayload(response.text, resultCard),
+      this.buildApprovalResultMessagePayload(resultCard),
     );
   }
 
   private buildApprovalResultMessagePayload(
-    text: string,
     approvalCard: ToolApprovalCard,
   ): DiscordSendOptions {
     const failed = approvalCard.state === "output-error";
@@ -668,7 +692,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     }
 
     return {
-      content: truncateText(text, DISCORD_MAX_LENGTH),
+      content: "",
       embeds: [
         {
           title: failed
@@ -685,11 +709,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     };
   }
 
-  private getPendingApprovalCard(
+  private getPendingApprovalCards(
     cards: StructuredChatCard[] | undefined,
-  ): ToolApprovalCard | undefined {
-    return cards?.find(
-      (card): card is ToolApprovalCard => card.state === "approval-requested",
+  ): ToolApprovalCard[] {
+    return (
+      cards?.filter(
+        (card): card is ToolApprovalCard => card.state === "approval-requested",
+      ) ?? []
     );
   }
 
@@ -706,10 +732,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   private formatAgentResponseText(
     text: string,
-    approvalCard: ToolApprovalCard | undefined,
+    approvalCards: ToolApprovalCard[],
   ): string {
-    if (!approvalCard) return text;
-    return text.trim().length > 0 ? text : approvalCard.description;
+    if (approvalCards.length === 0) return text;
+    if (text.trim().length > 0) return text;
+    if (approvalCards.length === 1)
+      return approvalCards[0]?.description ?? text;
+    return "Multiple approvals required.";
   }
 
   private async handleConfirmationResponse(
@@ -726,8 +755,22 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       });
       return;
     }
-    const approvalId = this.pendingConfirmations.get(conversationId);
-    this.pendingConfirmations.delete(conversationId);
+    const approvalIds = this.pendingConfirmations.get(conversationId);
+    if (approvalIds && approvalIds.size > 1) {
+      this.sendMessageToChannel({
+        channelId,
+        message:
+          "Multiple approvals are pending. Please use the matching Discord button.",
+      });
+      return;
+    }
+
+    const approvalId = approvalIds ? [...approvalIds][0] : undefined;
+    if (approvalId) {
+      this.removePendingApproval(conversationId, approvalId);
+    } else {
+      this.pendingConfirmations.delete(conversationId);
+    }
     const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,

@@ -158,6 +158,59 @@ describe("CLIInterface", () => {
       expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1");
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete note?");
     });
+
+    it("should format declined confirmations from output-denied cards", async () => {
+      const responseHandler = mock(() => {});
+      const confirmMock = mock(
+        async (
+          _conversationId: string,
+          _confirmed: boolean,
+          _approvalId?: string,
+        ): Promise<MockAgentResponse> => ({
+          text: "Cancelled: Delete note?",
+          cards: [
+            {
+              kind: "tool-approval",
+              id: "approval:call-1",
+              toolName: "delete_note",
+              description: "Delete note?",
+              state: "output-denied",
+            },
+          ],
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+      );
+      harness.reset();
+      harness = createPluginHarness<CLIInterface>();
+
+      const mockAgentService: MockAgentService = {
+        chat: async (): Promise<MockAgentResponse> => ({
+          text: "Approval needed.",
+          cards: [
+            {
+              kind: "tool-approval",
+              id: "approval:call-1",
+              toolName: "delete_note",
+              description: "Delete note?",
+              state: "approval-requested",
+            },
+          ],
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+        confirmPendingAction: confirmMock,
+        invalidateAgent: (): void => {},
+      };
+      harness.setAgentService(mockAgentService);
+      cliInterface = new CLIInterface();
+      await harness.installPlugin(cliInterface);
+      cliInterface.registerResponseCallback(responseHandler);
+
+      await cliInterface.processInput("delete it");
+      await cliInterface.processInput("no");
+
+      expect(confirmMock).toHaveBeenCalledWith("cli", false, "approval:call-1");
+      expect(responseHandler).toHaveBeenCalledWith("○ Delete note?");
+    });
   });
 
   describe("callback registration", () => {

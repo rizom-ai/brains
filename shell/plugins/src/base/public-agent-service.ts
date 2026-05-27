@@ -43,17 +43,30 @@ export function toPublicAgentResponse(
       ),
     }),
     ...(response.pendingConfirmation && {
-      pendingConfirmation: {
-        id: response.pendingConfirmation.id,
-        ...(response.pendingConfirmation.toolCallId !== undefined && {
-          toolCallId: response.pendingConfirmation.toolCallId,
-        }),
-        toolName: response.pendingConfirmation.toolName,
-        description: response.pendingConfirmation.description,
-        args: response.pendingConfirmation.args,
-      } satisfies PendingConfirmation,
+      pendingConfirmation: toPublicPendingConfirmation(
+        response.pendingConfirmation,
+      ),
+    }),
+    ...(response.pendingConfirmations && {
+      pendingConfirmations: response.pendingConfirmations.map((confirmation) =>
+        toPublicPendingConfirmation(confirmation),
+      ),
     }),
     usage: response.usage,
+  };
+}
+
+function toPublicPendingConfirmation(
+  confirmation: NonNullable<RuntimeAgentResponse["pendingConfirmation"]>,
+): PendingConfirmation {
+  return {
+    id: confirmation.id,
+    ...(confirmation.toolCallId !== undefined && {
+      toolCallId: confirmation.toolCallId,
+    }),
+    toolName: confirmation.toolName,
+    description: confirmation.description,
+    args: confirmation.args,
   };
 }
 

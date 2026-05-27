@@ -143,6 +143,10 @@ export interface AgentResponse {
   // Confirmation flow for destructive operations
   pendingConfirmation?: PendingConfirmation;
 
+  // All pending confirmations when a response contains more than one
+  // destructive action. `pendingConfirmation` remains for compatibility.
+  pendingConfirmations?: PendingConfirmation[];
+
   // Token usage for tracking
   usage: {
     promptTokens: number;

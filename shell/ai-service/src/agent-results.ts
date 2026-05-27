@@ -17,6 +17,7 @@ const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmation: PendingConfirmation | null;
+  pendingConfirmations: PendingConfirmation[];
   cards: StructuredChatCard[];
   totalToolCalls: number;
 }
@@ -26,6 +27,7 @@ export function extractToolResults(
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
+  const pendingConfirmations: PendingConfirmation[] = [];
   let pendingConfirmation: PendingConfirmation | null = null;
   let totalToolCalls = 0;
 
@@ -52,13 +54,15 @@ export function extractToolResults(
         const args = tr.toolCallId
           ? toolCallArgsMap.get(tr.toolCallId)
           : undefined;
-        pendingConfirmation = {
+        const confirmation: PendingConfirmation = {
           id: approvalId,
           ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           description: confirmationParsed.data.description,
           args: confirmationParsed.data.args,
         };
+        pendingConfirmation ??= confirmation;
+        pendingConfirmations.push(confirmation);
 
         toolResults.push({
           toolName: tr.toolName,
@@ -104,5 +108,11 @@ export function extractToolResults(
     }
   }
 
-  return { toolResults, pendingConfirmation, cards, totalToolCalls };
+  return {
+    toolResults,
+    pendingConfirmation,
+    pendingConfirmations,
+    cards,
+    totalToolCalls,
+  };
 }

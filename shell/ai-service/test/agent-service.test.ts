@@ -1072,6 +1072,116 @@ describe("AgentService", () => {
       expect(response.text).toBeDefined();
     });
 
+    it("keeps multiple pending approvals distinct by approval id", async () => {
+      mockAgentGenerateResult = {
+        text: "Delete and update requested.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                input: { noteId: "456", title: "New title" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  description: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "update_note",
+                  description: "Update note 'Roadmap'?",
+                  args: { noteId: "456", title: "New title" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      const updateTool: Tool = {
+        name: "update_note",
+        description: "Update note",
+        inputSchema: { noteId: z.string(), title: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+        { pluginId: "test", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat(
+        "delete and update",
+        "test-conversation",
+      );
+
+      expect(pending.cards?.map((card) => card.id)).toEqual([
+        "approval:call-delete",
+        "approval:call-update",
+      ]);
+
+      const updateResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update",
+      );
+      expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'?");
+      expect(updateHandler).toHaveBeenCalledWith(
+        { noteId: "456", title: "New title" },
+        expect.any(Object),
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      const deleteResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-delete",
+      );
+      expect(deleteResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(deleteHandler).toHaveBeenCalledWith(
+        { noteId: "123" },
+        expect.any(Object),
+      );
+    });
+
     it("should cancel pending confirmation when user declines", async () => {
       setupConfirmationResponse();
 

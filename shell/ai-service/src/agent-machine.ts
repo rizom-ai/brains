@@ -21,6 +21,8 @@ export interface AgentMachineContext {
   source: ConversationMessageSource | null;
   response: AgentResponse | null;
   pendingConfirmation: PendingConfirmation | null;
+  pendingConfirmations: PendingConfirmation[];
+  activeConfirmation: PendingConfirmation | null;
   error: string | null;
 }
 
@@ -39,8 +41,8 @@ export type AgentMachineEvent =
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
     }
-  | { type: "CONFIRM" }
-  | { type: "CANCEL" };
+  | { type: "CONFIRM"; approvalId?: string }
+  | { type: "CANCEL"; approvalId?: string };
 
 /**
  * Input for the processMessage actor
@@ -73,6 +75,96 @@ export const emptyUsage = {
   completionTokens: 0,
   totalTokens: 0,
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function firstPending(
+  pendingConfirmations: PendingConfirmation[],
+): PendingConfirmation | null {
+  return pendingConfirmations[0] ?? null;
+}
+
+function getPendingConfirmations(
+  response: AgentResponse,
+): PendingConfirmation[] {
+  if (response.pendingConfirmations) return response.pendingConfirmations;
+  return response.pendingConfirmation ? [response.pendingConfirmation] : [];
+}
+
+function findPendingConfirmation(
+  context: AgentMachineContext,
+  approvalId: string | undefined,
+): PendingConfirmation | null {
+  if (approvalId) {
+    return (
+      context.pendingConfirmations.find(
+        (confirmation) => confirmation.id === approvalId,
+      ) ?? null
+    );
+  }
+  return context.pendingConfirmation;
+}
+
+function remainingPendingConfirmations(
+  context: AgentMachineContext,
+  approvalId: string | undefined,
+): PendingConfirmation[] {
+  const selected = findPendingConfirmation(context, approvalId);
+  if (!selected) return context.pendingConfirmations;
+  return context.pendingConfirmations.filter(
+    (confirmation) => confirmation.id !== selected.id,
+  );
+}
+
+function hasRemainingPendingConfirmations({
+  context,
+  event,
+}: {
+  context: AgentMachineContext;
+  event: AgentMachineEvent;
+}): boolean {
+  if (event.type !== "CONFIRM" && event.type !== "CANCEL") return false;
+  return remainingPendingConfirmations(context, event.approvalId).length > 0;
+}
+
+function getConfirmationSummary(description: string): string {
+  const [summary] = description.split(/\n\s*\n/);
+  const trimmed = summary?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : description;
+}
+
+function buildCancelledResponse(
+  confirmation: PendingConfirmation | null,
+): AgentResponse {
+  const description = getConfirmationSummary(
+    confirmation?.description ?? "unknown action",
+  );
+  return {
+    text: `Action cancelled: ${description}`,
+    ...(confirmation
+      ? {
+          cards: [
+            {
+              kind: "tool-approval",
+              id: confirmation.id,
+              ...(confirmation.toolCallId
+                ? { toolCallId: confirmation.toolCallId }
+                : {}),
+              toolName: confirmation.toolName,
+              ...(isRecord(confirmation.args)
+                ? { input: confirmation.args }
+                : {}),
+              description,
+              state: "output-denied",
+            },
+          ],
+        }
+      : {}),
+    usage: emptyUsage,
+  };
+}
 
 /**
  * Create the agent state machine.
@@ -114,6 +206,8 @@ export const agentMachine = setup({
     source: null,
     response: null,
     pendingConfirmation: null,
+    pendingConfirmations: [],
+    activeConfirmation: null,
     error: null,
   },
   states: {
@@ -132,6 +226,8 @@ export const agentMachine = setup({
             source: event.source,
             response: null,
             pendingConfirmation: null,
+            pendingConfirmations: [],
+            activeConfirmation: null,
             error: null,
           })),
         },
@@ -153,12 +249,20 @@ export const agentMachine = setup({
         }),
         onDone: [
           {
-            guard: ({ event }): boolean => !!event.output.pendingConfirmation,
+            guard: ({ event }): boolean =>
+              getPendingConfirmations(event.output).length > 0,
             target: "awaitingConfirmation",
-            actions: assign(({ event }) => ({
-              response: event.output,
-              pendingConfirmation: event.output.pendingConfirmation ?? null,
-            })),
+            actions: assign(({ event }) => {
+              const pendingConfirmations = getPendingConfirmations(
+                event.output,
+              );
+              return {
+                response: event.output,
+                pendingConfirmation: firstPending(pendingConfirmations),
+                pendingConfirmations,
+                activeConfirmation: null,
+              };
+            }),
           },
           {
             target: "idle",
@@ -190,17 +294,59 @@ export const agentMachine = setup({
       on: {
         CONFIRM: {
           target: "executing",
+          actions: assign(({ context, event }) => {
+            const activeConfirmation = findPendingConfirmation(
+              context,
+              event.approvalId,
+            );
+            const pendingConfirmations = remainingPendingConfirmations(
+              context,
+              event.approvalId,
+            );
+            return {
+              activeConfirmation,
+              pendingConfirmations,
+              pendingConfirmation: firstPending(pendingConfirmations),
+            };
+          }),
         },
-        CANCEL: {
-          target: "idle",
-          actions: assign(({ context }) => ({
-            response: {
-              text: `Action cancelled: ${context.pendingConfirmation?.description ?? "unknown action"}`,
-              usage: emptyUsage,
-            },
-            pendingConfirmation: null,
-          })),
-        },
+        CANCEL: [
+          {
+            guard: hasRemainingPendingConfirmations,
+            target: "awaitingConfirmation",
+            actions: assign(({ context, event }) => {
+              const selected = findPendingConfirmation(
+                context,
+                event.approvalId,
+              );
+              const pendingConfirmations = remainingPendingConfirmations(
+                context,
+                event.approvalId,
+              );
+              return {
+                response: buildCancelledResponse(selected),
+                pendingConfirmations,
+                pendingConfirmation: firstPending(pendingConfirmations),
+                activeConfirmation: null,
+              };
+            }),
+          },
+          {
+            target: "idle",
+            actions: assign(({ context, event }) => {
+              const selected = findPendingConfirmation(
+                context,
+                event.approvalId,
+              );
+              return {
+                response: buildCancelledResponse(selected),
+                pendingConfirmations: [],
+                pendingConfirmation: null,
+                activeConfirmation: null,
+              };
+            }),
+          },
+        ],
       },
     },
 
@@ -208,43 +354,82 @@ export const agentMachine = setup({
       invoke: {
         src: "executeConfirmedAction",
         input: ({ context }): ExecuteActionInput => {
-          if (!context.pendingConfirmation) {
+          if (!context.activeConfirmation) {
             throw new Error("No pending confirmation in executing state");
           }
           return {
             conversationId: context.conversationId,
-            pendingConfirmation: context.pendingConfirmation,
+            pendingConfirmation: context.activeConfirmation,
             interfaceType: context.interfaceType,
             channelId: context.channelId,
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,
           };
         },
-        onDone: {
-          target: "idle",
-          actions: assign(({ event }) => ({
-            response: event.output,
-            pendingConfirmation: null,
-          })),
-        },
-        onError: {
-          target: "idle",
-          actions: assign(({ context, event }) => ({
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : "Unknown error",
-            response: {
-              text: `Error executing ${context.pendingConfirmation?.toolName ?? "action"}: ${
+        onDone: [
+          {
+            guard: ({ context }): boolean =>
+              context.pendingConfirmations.length > 0,
+            target: "awaitingConfirmation",
+            actions: assign(({ context, event }) => ({
+              response: event.output,
+              pendingConfirmation: firstPending(context.pendingConfirmations),
+              activeConfirmation: null,
+            })),
+          },
+          {
+            target: "idle",
+            actions: assign(({ event }) => ({
+              response: event.output,
+              pendingConfirmation: null,
+              pendingConfirmations: [],
+              activeConfirmation: null,
+            })),
+          },
+        ],
+        onError: [
+          {
+            guard: ({ context }): boolean =>
+              context.pendingConfirmations.length > 0,
+            target: "awaitingConfirmation",
+            actions: assign(({ context, event }) => ({
+              error:
                 event.error instanceof Error
                   ? event.error.message
-                  : "Unknown error"
-              }`,
-              usage: emptyUsage,
-            },
-            pendingConfirmation: null,
-          })),
-        },
+                  : "Unknown error",
+              response: {
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
+                  event.error instanceof Error
+                    ? event.error.message
+                    : "Unknown error"
+                }`,
+                usage: emptyUsage,
+              },
+              pendingConfirmation: firstPending(context.pendingConfirmations),
+              activeConfirmation: null,
+            })),
+          },
+          {
+            target: "idle",
+            actions: assign(({ context, event }) => ({
+              error:
+                event.error instanceof Error
+                  ? event.error.message
+                  : "Unknown error",
+              response: {
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
+                  event.error instanceof Error
+                    ? event.error.message
+                    : "Unknown error"
+                }`,
+                usage: emptyUsage,
+              },
+              pendingConfirmation: null,
+              pendingConfirmations: [],
+              activeConfirmation: null,
+            })),
+          },
+        ],
       },
     },
   },

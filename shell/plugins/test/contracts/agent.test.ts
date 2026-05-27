@@ -71,6 +71,15 @@ describe("public agent contracts", () => {
         description: "Delete item",
         args: { id: "item-1" },
       },
+      pendingConfirmations: [
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete",
+          description: "Delete item",
+          args: { id: "item-1" },
+        },
+      ],
       usage: {
         promptTokens: 1,
         completionTokens: 2,
@@ -106,6 +115,15 @@ describe("public agent contracts", () => {
         description: "Delete item",
         args: { id: "item-1" },
       },
+      pendingConfirmations: [
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete",
+          description: "Delete item",
+          args: { id: "item-1" },
+        },
+      ],
       usage: {
         promptTokens: 1,
         completionTokens: 2,

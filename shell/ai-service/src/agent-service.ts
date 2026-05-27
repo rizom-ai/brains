@@ -276,18 +276,46 @@ export class AgentService implements IAgentService {
       };
     }
 
-    const pendingApprovalId =
-      snapshotBeforeConfirm.context.pendingConfirmation?.id;
-    if (approvalId && pendingApprovalId !== approvalId) {
+    const pendingConfirmations =
+      snapshotBeforeConfirm.context.pendingConfirmations.length > 0
+        ? snapshotBeforeConfirm.context.pendingConfirmations
+        : snapshotBeforeConfirm.context.pendingConfirmation
+          ? [snapshotBeforeConfirm.context.pendingConfirmation]
+          : [];
+    const selectedApprovalId = approvalId ?? pendingConfirmations[0]?.id;
+
+    if (approvalId) {
+      const matchesApproval = pendingConfirmations.some(
+        (confirmation) => confirmation.id === approvalId,
+      );
+      if (!matchesApproval) {
+        return {
+          text: `No pending action matches approval id '${approvalId}'.`,
+          usage: emptyUsage,
+        };
+      }
+    } else if (pendingConfirmations.length > 1) {
       return {
-        text: `No pending action matches approval id '${approvalId}'.`,
+        text: "Multiple pending actions require an approval id.",
         usage: emptyUsage,
       };
     }
 
-    actor.send({ type: confirmed ? "CONFIRM" : "CANCEL" });
+    actor.send({
+      type: confirmed ? "CONFIRM" : "CANCEL",
+      ...(approvalId ? { approvalId } : {}),
+    });
 
-    const snapshot = await waitFor(actor, (s) => s.matches("idle"));
+    const snapshot = await waitFor(
+      actor,
+      (s) =>
+        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+        (selectedApprovalId
+          ? !s.context.pendingConfirmations.some(
+              (confirmation) => confirmation.id === selectedApprovalId,
+            )
+          : true),
+    );
 
     return (
       snapshot.context.response ?? {
@@ -358,8 +386,13 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    const { toolResults, pendingConfirmation, cards, totalToolCalls } =
-      extractToolResults(result.steps);
+    const {
+      toolResults,
+      pendingConfirmation,
+      pendingConfirmations,
+      cards,
+      totalToolCalls,
+    } = extractToolResults(result.steps);
 
     const responseText = pendingConfirmation
       ? "Confirmation required."
@@ -399,6 +432,9 @@ export class AgentService implements IAgentService {
 
     if (pendingConfirmation) {
       response.pendingConfirmation = pendingConfirmation;
+    }
+    if (pendingConfirmations.length > 0) {
+      response.pendingConfirmations = pendingConfirmations;
     }
 
     return response;

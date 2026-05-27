@@ -775,6 +775,102 @@ describe("DiscordInterface", () => {
       );
     });
 
+    it("should render multiple approval cards without collapsing their ids", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-delete",
+            toolCallId: "call-delete",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            description: "Delete note?",
+            state: "approval-requested",
+          },
+          {
+            kind: "tool-approval",
+            id: "approval:call-update",
+            toolCallId: "call-update",
+            toolName: "update_note",
+            input: { noteId: "456" },
+            description: "Update note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Completed: Update note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-update",
+            toolCallId: "call-update",
+            toolName: "update_note",
+            input: { noteId: "456" },
+            description: "Update note?",
+            state: "output-available",
+            output: { success: true },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({ description: "Delete note?" }),
+            expect.objectContaining({ description: "Update note?" }),
+          ]),
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              components: expect.arrayContaining([
+                expect.objectContaining({
+                  custom_id: "brains:approval:approve:approval:call-delete",
+                }),
+              ]),
+            }),
+            expect.objectContaining({
+              components: expect.arrayContaining([
+                expect.objectContaining({
+                  custom_id: "brains:approval:approve:approval:call-update",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+      mockSend.mockClear();
+
+      const interaction = createDiscordButtonInteraction({
+        customId: "brains:approval:approve:approval:call-update",
+      });
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        "discord-thread-456",
+        true,
+        "approval:call-update",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action completed",
+              description: "Update note?",
+            }),
+          ]),
+        }),
+      );
+    });
+
     it("should confirm structured approval button responses with the explicit approval id", async () => {
       mockAgentService.chat.mockResolvedValueOnce({
         text: "Confirmation required.",
@@ -825,7 +921,7 @@ describe("DiscordInterface", () => {
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: "Completed: Delete note?",
+          content: "",
           embeds: expect.arrayContaining([
             expect.objectContaining({
               title: "Action completed",
@@ -901,7 +997,7 @@ describe("DiscordInterface", () => {
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: "Failed: Delete note?\n\nEntity not found",
+          content: "",
           embeds: expect.arrayContaining([
             expect.objectContaining({
               title: "Action failed",
@@ -912,6 +1008,66 @@ describe("DiscordInterface", () => {
                   value: "Entity not found",
                 }),
               ]),
+            }),
+          ]),
+          components: [],
+        }),
+      );
+    });
+
+    it("should render denied approval results as a declined embed", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            description: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Cancelled: Delete note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            description: "Delete note?",
+            state: "output-denied",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const noMsg = createDiscordMessage({ content: "no" });
+      messageCreateHandler?.(noMsg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.stringContaining("discord-"),
+        false,
+        "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action declined",
+              description: "Delete note?",
             }),
           ]),
           components: [],

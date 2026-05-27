@@ -6,7 +6,7 @@ In progress. First slices implemented: `AgentResponse` now carries shared struct
 
 Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat approval submission now uses native AI SDK `approval-responded` parts through `/api/chat`; the legacy `/api/chat/confirm` side-channel and `data-confirmation` fallback have been removed.
 
-Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs. Chat-repl now consumes the same card contract for terminal yes/no prompts. Neither interface needs AI SDK stream chunks.
+Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs, including multiple pending approval cards in the same conversation. Chat-repl now consumes the same card contract for terminal yes/no prompts. Neither interface needs AI SDK stream chunks.
 
 ## Layered summary
 
@@ -166,7 +166,7 @@ The contract includes:
 - approval state
 - output/error payload when resolved
 
-Implemented follow-up: approval execution can now validate the explicit approval/action id in addition to the conversation id. Discord now renders approval cards as embeds/buttons and passes explicit approval ids for both button clicks and text yes/no fallback. Chat-repl now binds terminal yes/no responses to explicit approval ids from `AgentResponse.cards`.
+Implemented follow-up: approval execution now tracks all pending approval/action ids for a conversation and executes the matching id, instead of overwriting earlier pending actions. Discord now renders approval cards as embeds/buttons and passes explicit approval ids for both button clicks and text yes/no fallback. Chat-repl now binds terminal yes/no responses to explicit approval ids from `AgentResponse.cards`.
 
 ### 2. Update `shell/ai-service`
 
@@ -183,7 +183,7 @@ Responsibilities:
 - preserve tool-call metadata needed to resume/execute approved actions
 - expose pending confirmations as structured approval cards
 - prevent misleading assistant completion text while approval is pending
-- execute approved actions by explicit approval/action id — first slice implemented as optional id validation on `confirmPendingAction`
+- execute approved actions by explicit approval/action id — implemented, including multiple simultaneous pending approvals per conversation
 - surface success/failure as structured output/error state
 - summarize confirmed results without repeating destructive preview text or raw success JSON
 
@@ -250,10 +250,10 @@ Implemented behavior:
 - stale approvals fail safely
 - text yes/no fallback passes the explicit approval/action id
 
-Remaining target behavior:
+Implemented follow-up behavior:
 
-- multiple simultaneous pending actions should not collide
-- success/failure should be shown from the structured output/error state
+- multiple simultaneous pending actions do not collide; Discord stores every pending approval id and button custom ids select the exact action
+- success/failure is shown from the structured output/error state
 
 User-facing Discord UX can remain familiar:
 
@@ -275,9 +275,6 @@ Implemented behavior:
 
 - render approval cards as terminal yes/no prompts
 - bind response to explicit approval/action id
-
-Remaining target behavior:
-
 - show structured success/failure output
 
 ### 7. Tests
@@ -327,4 +324,4 @@ Per-interface:
 
 ## Recommendation
 
-Next slice: route confirmed success/failure displays through structured output/error states across non-web interfaces.
+Next slice: remove remaining loose conversation-level confirmation compatibility once downstream callers no longer depend on `pendingConfirmation` without an explicit approval id.
