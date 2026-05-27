@@ -1831,31 +1831,40 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         dynamic: true,
         title: card.description,
       });
-      if (card.state === "approval-requested") {
-        writer.write({
-          type: "tool-approval-request",
-          approvalId: card.id,
-          toolCallId,
-        });
-      } else if (card.state === "output-available") {
-        writer.write({
-          type: "tool-output-available",
-          toolCallId,
-          output: card.output,
-          dynamic: true,
-        });
-      } else if (card.state === "output-error") {
-        writer.write({
-          type: "tool-output-error",
-          toolCallId,
-          errorText: card.error ?? "Tool failed",
-          dynamic: true,
-        });
-      } else if (card.state === "output-denied") {
-        writer.write({
-          type: "tool-output-denied",
-          toolCallId,
-        });
+      switch (card.state) {
+        case "approval-requested":
+          writer.write({
+            type: "tool-approval-request",
+            approvalId: card.id,
+            toolCallId,
+          });
+          break;
+        case "approval-responded":
+          // Agent skips this state — it transitions directly from
+          // approval-requested to one of the output-* states.
+          break;
+        case "output-available":
+          writer.write({
+            type: "tool-output-available",
+            toolCallId,
+            output: card.output,
+            dynamic: true,
+          });
+          break;
+        case "output-error":
+          writer.write({
+            type: "tool-output-error",
+            toolCallId,
+            errorText: card.error ?? "Tool failed",
+            dynamic: true,
+          });
+          break;
+        case "output-denied":
+          writer.write({
+            type: "tool-output-denied",
+            toolCallId,
+          });
+          break;
       }
     }
   }

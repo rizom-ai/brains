@@ -1,6 +1,29 @@
 /** @jsxImportSource react */
 import { useState } from "react";
-import { Tool, ToolContent, ToolHeader, ToolOutput } from "./tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolOutput,
+  type ToolPart,
+} from "./tool";
+
+const TOOL_STATES: readonly ToolPart["state"][] = [
+  "approval-requested",
+  "approval-responded",
+  "input-streaming",
+  "input-available",
+  "output-available",
+  "output-denied",
+  "output-error",
+];
+
+function narrowToolState(value: string | undefined): ToolPart["state"] {
+  if (value && (TOOL_STATES as readonly string[]).includes(value)) {
+    return value as ToolPart["state"];
+  }
+  return "input-available";
+}
 
 interface ConfirmationResult {
   text: string;
@@ -207,7 +230,7 @@ export function NativeToolPart({
   data: unknown;
 }): React.ReactElement {
   const toolName = getStringValue(data, "toolName") ?? "tool";
-  const state = getStringValue(data, "state") ?? "input-available";
+  const state = narrowToolState(getStringValue(data, "state"));
   const title = getStringValue(data, "title") ?? `tool · ${toolName}`;
   const output =
     getRecordValue(data, "output") ?? getRecordValue(data, "input");
@@ -217,7 +240,7 @@ export function NativeToolPart({
     <Tool data-kind="tool-result">
       <ToolHeader
         type="dynamic-tool"
-        state={state as Parameters<typeof ToolHeader>[0]["state"]}
+        state={state}
         toolName={toolName}
         title={title}
       />
