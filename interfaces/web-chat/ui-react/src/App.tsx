@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chat, useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type UIMessage,
+} from "ai";
 import {
   Conversation,
   ConversationContent,
@@ -129,10 +133,7 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       }
     } else if (part.type === "text") {
       out.push({ kind: "text", text: part.text });
-    } else if (
-      part.type === "data-approval-card" ||
-      part.type === "data-confirmation"
-    ) {
+    } else if (part.type === "data-confirmation") {
       out.push({ kind: "confirmation", data: getPartData(part) });
     } else if (part.type.startsWith("data-")) {
       out.push({ kind: "generic", type: part.type, data: getPartData(part) });
@@ -221,6 +222,8 @@ export function App(): React.ReactElement {
         id: conversationId,
         messages: initialMessages,
         transport,
+        sendAutomaticallyWhen:
+          lastAssistantMessageIsCompleteWithApprovalResponses,
       }),
     [conversationId, initialMessages, transport],
   );
@@ -232,6 +235,7 @@ export function App(): React.ReactElement {
     error,
     stop,
     clearError,
+    addToolApprovalResponse,
   } = useChat({
     chat,
   });
@@ -520,6 +524,7 @@ export function App(): React.ReactElement {
                             key={index}
                             conversationId={conversationId}
                             data={group.data}
+                            addToolApprovalResponse={addToolApprovalResponse}
                           />
                         );
                       }

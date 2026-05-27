@@ -30,6 +30,10 @@ function createSpyAgentService(
     text: "Mock agent response",
     usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   },
+  confirmResponse: AgentResponse = {
+    text: "Action confirmed.",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  },
 ): IAgentService & {
   readonly chatCalls: ReadonlyArray<AgentChatCall>;
   readonly confirmCalls: ReadonlyArray<AgentConfirmCall>;
@@ -57,10 +61,7 @@ function createSpyAgentService(
       approvalId?: string,
     ): Promise<AgentResponse> => {
       confirmCalls.push({ conversationId, confirmed, approvalId });
-      return {
-        text: "Action confirmed.",
-        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-      };
+      return confirmResponse;
     },
     invalidateAgent: (): void => {},
   };
@@ -328,6 +329,72 @@ describe("WebChatInterface", () => {
     expect(body).toContain("tool-approval-request");
     expect(body).toContain("approval:call-1");
     expect(body).not.toContain("data-approval-card");
+  });
+
+  it("handles AI SDK approval responses through the chat endpoint", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Completed: Delete note?",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          description: "Delete note?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          trigger: "submit-message",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  input: { noteId: "123" },
+                  approval: {
+                    id: "approval:call-1",
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+    ]);
+    expect(body).toContain("tool-output-available");
+    expect(body).toContain("call-1");
   });
 
   it("passes anchor permission level when caller has an operator session", async () => {

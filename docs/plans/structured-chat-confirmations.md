@@ -12,12 +12,12 @@ Discord and chat-repl should consume the Brain `ToolApprovalCard` contract direc
 
 What changes per layer, and where each layer is today:
 
-| Layer                           | Today                                               | Bridge state                                    | Final state                                                                |
-| ------------------------------- | --------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
-| Brain agent emits               | `pendingConfirmation` + `cards: ToolApprovalCard[]` | same                                            | same (Brain stays interface-agnostic)                                      |
-| Web-chat wire format            | custom `data-approval-card` part                    | custom part + native `tool-*` parts in parallel | `tool-input-available` + `tool-approval-request` + `tool-output-*` only    |
-| Web-chat submission             | `POST /api/chat/confirm` with `approvalId`          | same                                            | `tool-approval-response` part on the next user turn (no side-channel POST) |
-| Discord / chat-repl wire format | `response.text`                                     | `response.cards` for state, text for fallback   | `response.cards` is the primary signal                                     |
+| Layer                           | Today                                                                                                  | Bridge state                                  | Final state                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------------------- |
+| Brain agent emits               | `pendingConfirmation` + `cards: ToolApprovalCard[]`                                                    | same                                          | same (Brain stays interface-agnostic)                                   |
+| Web-chat wire format            | AI SDK native `tool-*` chunks; legacy `data-confirmation` fallback                                     | same                                          | `tool-input-available` + `tool-approval-request` + `tool-output-*` only |
+| Web-chat submission             | AI SDK `approval-responded` dynamic-tool part through `/api/chat`; legacy `/api/chat/confirm` fallback | same                                          | `/api/chat` only; no side-channel POST                                  |
+| Discord / chat-repl wire format | `response.text`                                                                                        | `response.cards` for state, text for fallback | `response.cards` is the primary signal                                  |
 
 Translation between Brain cards and AI SDK chunks lives in **web-chat**, not in the agent. The agent keeps emitting Brain `ToolApprovalCard` so Discord and chat-repl never have to learn the SDK wire format. If translation later moves into the agent, Brain becomes SDK-coupled — currently rejected.
 
@@ -222,13 +222,15 @@ Target behavior:
 
 The biggest architectural shift in this slice is **how the client tells the server "approved/declined"**, not just how the server renders the request.
 
-| Aspect             | Today / bridge                                                       | Native AI SDK                                                                                |
-| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Wire               | `POST /api/chat/confirm` with `{ id, approvalId, confirmed }`        | `tool-approval-response` content part on the next user message                               |
-| Server entrypoint  | `WebChatInterface.handleConfirm` → `agent.confirmPendingAction(...)` | regular `/api/chat` POST; AgentService reads the approval-response part out of the next turn |
-| Transport coupling | side-channel REST endpoint                                           | rides the existing AI SDK transport                                                          |
+| Aspect             | Today / bridge                                                       | Native AI SDK                                                                                                  |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Aspect             | Legacy fallback                                                      | Native AI SDK                                                                                                  |
+| ------------------ | --------------------------------------------------------------       | -------------------------------------------------------------------------------------------------------------- |
+| Wire               | `POST /api/chat/confirm` with `{ id, approvalId, confirmed }`        | `approval-responded` dynamic-tool UI part on the next `/api/chat` request                                      |
+| Server entrypoint  | `WebChatInterface.handleConfirm` → `agent.confirmPendingAction(...)` | regular `/api/chat` POST; WebChatInterface reads the approval response out of the incoming UI message parts    |
+| Transport coupling | side-channel REST endpoint                                           | rides the existing AI SDK transport                                                                            |
 
-Migration order: keep `POST /api/chat/confirm` working as the bridge submission path. Add native `tool-approval-response` handling as a second supported path. Remove the endpoint once all clients (web-chat builds, any embed/iframe consumers) are on the native path. Do not delete the endpoint in the same slice that adds native handling — leave a bake window.
+Current migration state: native approval-response handling is implemented and is the web-chat primary path via `addToolApprovalResponse` + `lastAssistantMessageIsCompleteWithApprovalResponses`. Keep `POST /api/chat/confirm` working as a fallback for one release/bake window, then remove it once all clients (web-chat builds, any embed/iframe consumers) are on the native path.
 
 ### 5. Update Discord
 
@@ -282,16 +284,16 @@ Shared across modes:
 - confirmed failure result
 - no misleading completion text before approval
 
-Web-chat — bridge mode (while `POST /api/chat/confirm` lives):
+Web-chat — legacy fallback mode (while `POST /api/chat/confirm` lives):
 
 - `handleConfirm` rejects mismatched `approvalId`
-- `data-approval-card` part renders Tool UI with `approval-requested` state
+- `data-confirmation` fallback renders Tool UI with `approval-requested` state
 - `formatConfirmationResult` prefers card state over legacy text
 
-Web-chat — native mode (once `tool-approval-response` lands):
+Web-chat — native mode:
 
 - agent emits a `tool-approval-request` chunk with the same approval id as the Brain card
-- a synthetic next-turn message with a `tool-approval-response` part triggers `executeConfirmedAction`
+- a synthetic next-turn message with an `approval-responded` dynamic-tool part triggers `executeConfirmedAction`
 - denied responses produce `tool-output-denied`, not just declined-as-text
 
 Per-interface:
@@ -304,7 +306,7 @@ Per-interface:
 1. Keep the current `pendingConfirmation` behavior working while introducing the structured card shape.
 2. Update web-chat in two steps:
    - short bridge: render structured card first, falling back to old `pendingConfirmation`;
-   - final web-chat protocol: stream AI SDK native tool chunks and render `dynamic-tool` parts directly — implemented for initial approval cards; approval submission still uses `/api/chat/confirm` as a bridge.
+   - final web-chat protocol: stream AI SDK native tool chunks and render `dynamic-tool` parts directly — implemented for approval requests and approval-response submission; `/api/chat/confirm` remains as a fallback only.
 3. Update Discord and chat-repl to consume the Brain structured card shape directly; they do not need AI SDK chunks.
 4. Remove the old loose conversation-level confirmation boolean/endpoint once all interfaces use explicit approval IDs and web-chat approval submission is no longer endpoint-only.
 
@@ -316,8 +318,8 @@ Per-interface:
   preserved carefully.
 - Risk of breaking Discord/chat-repl if the shared contract changes too
   abruptly.
-- Dual UI rendering paths during the web-chat bridge period: custom
-  `data-approval-card` rendering and native `tool-*` part rendering can drift,
+- Dual UI rendering paths during the web-chat bridge period: legacy
+  `data-confirmation` rendering and native `tool-*` part rendering can drift,
   e.g. different "approved" badge styling or different decline-reason handling.
   Mitigate by routing both paths through one shared formatter.
 - Approval-id drift between Brain `ToolApprovalCard.id` and the AI SDK
@@ -327,9 +329,4 @@ Per-interface:
 
 ## Recommendation
 
-Next slice: web-chat native `tool-approval-response` submission. Land it
-alongside the existing `POST /api/chat/confirm` so both paths coexist for one
-release; remove the endpoint only after the native path is exercised in
-production. After that, Discord card consumption is the highest-value
-follow-up because it removes the largest remaining string-rendered confirmation
-surface; chat-repl can ride the same Brain-card contract opportunistically.
+Next slice: remove the legacy web-chat `/api/chat/confirm` endpoint after the native `/api/chat` approval path has baked. After that, Discord card consumption is the highest-value follow-up because it removes the largest remaining string-rendered confirmation surface; chat-repl can ride the same Brain-card contract opportunistically.

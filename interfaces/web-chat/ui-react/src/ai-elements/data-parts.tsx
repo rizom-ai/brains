@@ -231,9 +231,15 @@ export function NativeToolPart({
 export function ConfirmationPart({
   conversationId,
   data,
+  addToolApprovalResponse,
 }: {
   conversationId: string;
   data: unknown;
+  addToolApprovalResponse?: (input: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) => void | PromiseLike<void>;
 }): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
   const description =
@@ -252,6 +258,12 @@ export function ConfirmationPart({
     setIsSubmitting(true);
     setError(null);
     try {
+      if (addToolApprovalResponse && approvalId) {
+        await addToolApprovalResponse({ id: approvalId, approved: confirmed });
+        setDecision(confirmed ? "approved" : "declined");
+        return;
+      }
+
       const response = await fetch("/api/chat/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

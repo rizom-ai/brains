@@ -5,6 +5,7 @@ import {
   type InterfacePluginContext,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
+  type StructuredChatCard,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -23,6 +24,16 @@ const textPartSchema = z.object({
   text: z.string(),
 });
 
+const approvalResponsePartSchema = z
+  .object({
+    state: z.literal("approval-responded"),
+    approval: z.object({
+      id: z.string(),
+      approved: z.boolean(),
+    }),
+  })
+  .passthrough();
+
 const uiMessageSchema = z.object({
   role: z.string(),
   parts: z.array(z.unknown()).optional(),
@@ -32,6 +43,7 @@ const uiMessageSchema = z.object({
 const chatRequestSchema = z.object({
   id: z.string().optional(),
   messages: z.array(uiMessageSchema).min(1),
+  trigger: z.string().optional(),
 });
 
 const confirmationRequestSchema = z.object({
@@ -46,6 +58,7 @@ const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 
 type ChatRequest = z.infer<typeof chatRequestSchema>;
+type ApprovalResponse = z.infer<typeof approvalResponsePartSchema>["approval"];
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -1597,14 +1610,25 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Invalid chat request", { status: 400 });
     }
 
+    const conversationId = parsed.data.id ?? this.createId("web");
+    const approvalResponse = this.extractLastApprovalResponse(parsed.data);
     const message = this.extractLastUserText(parsed.data);
-    if (!message) {
+    if (!message && !approvalResponse) {
       return new Response("No user message found", { status: 400 });
     }
 
-    const conversationId = parsed.data.id ?? this.createId("web");
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
+        if (approvalResponse) {
+          await this.handleStreamedConfirmation({
+            writer,
+            conversationId,
+            approvalId: approvalResponse.id,
+            confirmed: approvalResponse.approved,
+          });
+          return;
+        }
+
         await this.handleStreamedChat({
           writer,
           conversationId,
@@ -1748,44 +1772,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       const approvalCards = (response.cards ?? []).filter(
         (card) => card.kind === "tool-approval",
       );
-      for (const card of approvalCards) {
-        const toolCallId = card.toolCallId ?? card.id;
-        const inputData = card.input ?? {};
-        input.writer.write({
-          type: "tool-input-available",
-          toolCallId,
-          toolName: card.toolName,
-          input: inputData,
-          dynamic: true,
-          title: card.description,
-        });
-        if (card.state === "approval-requested") {
-          input.writer.write({
-            type: "tool-approval-request",
-            approvalId: card.id,
-            toolCallId,
-          });
-        } else if (card.state === "output-available") {
-          input.writer.write({
-            type: "tool-output-available",
-            toolCallId,
-            output: card.output,
-            dynamic: true,
-          });
-        } else if (card.state === "output-error") {
-          input.writer.write({
-            type: "tool-output-error",
-            toolCallId,
-            errorText: card.error ?? "Tool failed",
-            dynamic: true,
-          });
-        } else if (card.state === "output-denied") {
-          input.writer.write({
-            type: "tool-output-denied",
-            toolCallId,
-          });
-        }
-      }
+      this.writeApprovalCards(input.writer, approvalCards);
       if (response.pendingConfirmation && approvalCards.length === 0) {
         input.writer.write({
           type: "data-confirmation",
@@ -1796,6 +1783,80 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private async handleStreamedConfirmation(input: {
+    writer: UIMessageStreamWriter<UIMessage>;
+    conversationId: string;
+    approvalId: string;
+    confirmed: boolean;
+  }): Promise<void> {
+    this.activeStreams.set(input.conversationId, { writer: input.writer });
+    this.startProcessingInput(input.conversationId);
+    input.writer.write({
+      type: "data-status",
+      id: this.createId("status"),
+      data: { status: input.confirmed ? "approving" : "declining" },
+      transient: true,
+    });
+
+    try {
+      const response = await this.getContext().agent.confirmPendingAction(
+        input.conversationId,
+        input.confirmed,
+        input.approvalId,
+      );
+      this.writeText(input.writer, response.text, "text");
+      this.writeApprovalCards(input.writer, response.cards ?? []);
+    } finally {
+      this.endProcessingInput();
+      this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private writeApprovalCards(
+    writer: UIMessageStreamWriter<UIMessage>,
+    cards: StructuredChatCard[],
+  ): void {
+    for (const card of cards) {
+      if (card.kind !== "tool-approval") continue;
+      const toolCallId = card.toolCallId ?? card.id;
+      const input = card.input ?? {};
+      writer.write({
+        type: "tool-input-available",
+        toolCallId,
+        toolName: card.toolName,
+        input,
+        dynamic: true,
+        title: card.description,
+      });
+      if (card.state === "approval-requested") {
+        writer.write({
+          type: "tool-approval-request",
+          approvalId: card.id,
+          toolCallId,
+        });
+      } else if (card.state === "output-available") {
+        writer.write({
+          type: "tool-output-available",
+          toolCallId,
+          output: card.output,
+          dynamic: true,
+        });
+      } else if (card.state === "output-error") {
+        writer.write({
+          type: "tool-output-error",
+          toolCallId,
+          errorText: card.error ?? "Tool failed",
+          dynamic: true,
+        });
+      } else if (card.state === "output-denied") {
+        writer.write({
+          type: "tool-output-denied",
+          toolCallId,
+        });
+      }
     }
   }
 
@@ -1832,6 +1893,24 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       })
       .filter((part) => part.length > 0)
       .join("\n");
+  }
+
+  private extractLastApprovalResponse(
+    request: ChatRequest,
+  ): ApprovalResponse | undefined {
+    for (
+      let messageIndex = request.messages.length - 1;
+      messageIndex >= 0;
+      messageIndex -= 1
+    ) {
+      const message = request.messages[messageIndex];
+      const parts = message?.parts ?? [];
+      for (let partIndex = parts.length - 1; partIndex >= 0; partIndex -= 1) {
+        const parsed = approvalResponsePartSchema.safeParse(parts[partIndex]);
+        if (parsed.success) return parsed.data.approval;
+      }
+    }
+    return undefined;
   }
 
   private findLastUserMessage(
