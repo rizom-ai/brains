@@ -2,7 +2,7 @@
 
 ## Status
 
-Not started. Revised after code review: the validation seam is the set of registered tool handlers consumed by agent-service, not MCP protocol dispatch. The previous draft also referenced stale downstream code (`isFailedToolOutput`) that no longer exists.
+In progress. Implementation is landing Option A first: validate registered tool handler results against the current `toolResponseSchema` at registration time, without tightening the schema in this slice. The validation seam is the set of registered tool handlers consumed by agent-service, not MCP protocol dispatch. The previous draft also referenced stale downstream code (`isFailedToolOutput`) that no longer exists.
 
 ## Problem
 

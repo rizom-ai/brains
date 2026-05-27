@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
@@ -144,10 +144,15 @@ describe("MCPService", () => {
 
       const tools = mcpService.listTools();
       expect(tools).toHaveLength(1);
-      expect(tools[0]).toEqual({
-        pluginId: "test-plugin",
-        tool,
-      });
+      expect(tools[0]?.pluginId).toBe("test-plugin");
+      expect(tools[0]?.tool).toEqual(
+        expect.objectContaining({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          visibility: tool.visibility,
+        }),
+      );
     });
 
     it("should always store tools in registry regardless of permission level", () => {
@@ -213,6 +218,75 @@ describe("MCPService", () => {
         },
         sender: "MCPService",
       });
+    });
+
+    it("should pass compliant registered tool responses through unchanged", async () => {
+      const context = { interfaceType: "test", userId: "user-1" };
+      const responses = [
+        { success: true as const, data: { value: "ok" }, message: "Done" },
+        { success: false as const, error: "Nope", code: "NOPE" },
+        {
+          needsConfirmation: true as const,
+          toolName: "confirm_tool",
+          description: "Confirm?",
+          args: { id: "123" },
+        },
+      ];
+
+      for (const [index, response] of responses.entries()) {
+        const tool: Tool = {
+          name: `compliant_tool_${index}`,
+          description: "Compliant tool",
+          inputSchema: {},
+          handler: async () => response,
+        };
+
+        mcpService.registerTool("test-plugin", tool);
+        const registeredTool = mcpService.listTools()[index]?.tool;
+        expect(registeredTool).toBeDefined();
+        if (!registeredTool) {
+          throw new Error("Expected registered tool");
+        }
+        expect(await registeredTool.handler({}, context)).toEqual(response);
+      }
+    });
+
+    it("should coerce non-compliant registered tool responses to tool errors", async () => {
+      const logger = createMockLogger();
+      mcpService = MCPService.createFresh(mockMessageBus, logger);
+      const invalidHandler = mock(async () => JSON.parse('{"success":false}'));
+      const tool: Tool = {
+        name: "invalid_tool",
+        description: "Invalid tool",
+        inputSchema: {},
+        handler: invalidHandler,
+      };
+
+      mcpService.registerTool("invalid-plugin", tool);
+
+      const registeredTool = mcpService.listTools()[0]?.tool;
+      expect(registeredTool).toBeDefined();
+      if (!registeredTool) {
+        throw new Error("Expected registered tool");
+      }
+
+      expect(
+        await registeredTool.handler(
+          {},
+          { interfaceType: "test", userId: "user-1" },
+        ),
+      ).toEqual({
+        success: false,
+        error: "Tool invalid_tool returned an invalid response shape",
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        "Tool returned non-compliant response",
+        expect.objectContaining({
+          pluginId: "invalid-plugin",
+          toolName: "invalid_tool",
+          issues: expect.any(Array),
+        }),
+      );
     });
 
     it("should register multiple tools from different plugins", () => {
