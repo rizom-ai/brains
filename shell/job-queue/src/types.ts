@@ -189,7 +189,13 @@ export type { DbConfig as JobQueueDbConfig } from "@brains/contracts";
 /**
  * Configuration for the JobQueueService.
  */
-export type JobQueueServiceConfig = DbConfig;
+export type JobQueueServiceConfig = DbConfig & {
+  /**
+   * Reclaim a processing job whose startedAt timestamp is older than this.
+   * Defaults to 300_000 ms.
+   */
+  claimTimeoutMs?: number;
+};
 
 /**
  * Configuration for the JobQueueWorker

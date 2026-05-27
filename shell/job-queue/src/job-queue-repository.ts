@@ -24,6 +24,7 @@ export class JobQueueRepository {
   constructor(
     private db: LibSQLDatabase<Record<string, unknown>>,
     logger: Logger,
+    private claimTimeoutMs: number = 300_000,
   ) {
     this.logger = logger.child("JobQueueRepository");
   }
@@ -248,31 +249,51 @@ export class JobQueueRepository {
    * at once, exactly one of them gets the job and the other gets `null`.
    */
   public async claimNextReady(now = Date.now()): Promise<JobQueue | null> {
+    const claimExpiredBefore = now - this.claimTimeoutMs;
+    const terminalClaimExpired = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
+
     const candidate = this.db
       .select({ id: jobQueue.id })
       .from(jobQueue)
       .where(
-        and(
-          eq(jobQueue.status, JOB_STATUS.PENDING),
-          lte(jobQueue.scheduledFor, now),
+        or(
+          and(
+            eq(jobQueue.status, JOB_STATUS.PENDING),
+            lte(jobQueue.scheduledFor, now),
+          ),
+          and(
+            eq(jobQueue.status, JOB_STATUS.PROCESSING),
+            lte(jobQueue.startedAt, claimExpiredBefore),
+          ),
         ),
       )
       .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
       .limit(1);
 
+    // Three branches collapsed into one UPDATE for atomicity:
+    //   1. pending → processing (normal claim): startedAt=now, other fields unchanged
+    //   2. processing → processing (reclaim within retry budget): startedAt=now,
+    //      retryCount++, lastError='Claim expired'
+    //   3. processing → failed (reclaim exhausts retries): completedAt=now,
+    //      retryCount++, lastError='Claim expired', startedAt preserved
     const result = await this.db
       .update(jobQueue)
       .set({
-        status: JOB_STATUS.PROCESSING,
-        startedAt: now,
+        status: sql`CASE WHEN ${terminalClaimExpired} THEN ${JOB_STATUS.FAILED} ELSE ${JOB_STATUS.PROCESSING} END`,
+        retryCount: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${jobQueue.retryCount} + 1 ELSE ${jobQueue.retryCount} END`,
+        lastError: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'Claim expired' ELSE ${jobQueue.lastError} END`,
+        startedAt: sql`CASE WHEN ${terminalClaimExpired} THEN ${jobQueue.startedAt} ELSE ${now} END`,
+        completedAt: sql`CASE WHEN ${terminalClaimExpired} THEN ${now} ELSE ${jobQueue.completedAt} END`,
       })
       .where(inArray(jobQueue.id, candidate))
       .returning();
 
     const claimed = result[0];
-    if (claimed) {
-      this.logger.debug("Job claimed", { jobId: claimed.id });
+    if (claimed?.status !== JOB_STATUS.PROCESSING) {
+      return null;
     }
-    return claimed ?? null;
+
+    this.logger.debug("Job claimed", { jobId: claimed.id });
+    return claimed;
   }
 }
