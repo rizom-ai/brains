@@ -300,13 +300,11 @@ export function NativeToolPart({
 }
 
 export function ConfirmationPart({
-  conversationId,
   data,
   addToolApprovalResponse,
 }: {
-  conversationId: string;
   data: unknown;
-  addToolApprovalResponse?: (input: {
+  addToolApprovalResponse: (input: {
     id: string;
     approved: boolean;
     reason?: string;
@@ -319,7 +317,6 @@ export function ConfirmationPart({
   const approvalId =
     getStringValue(data, "id") ?? getStringValue(approval, "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<ConfirmationResult | null>(null);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(
     null,
   );
@@ -329,22 +326,10 @@ export function ConfirmationPart({
     setIsSubmitting(true);
     setError(null);
     try {
-      if (addToolApprovalResponse && approvalId) {
-        await addToolApprovalResponse({ id: approvalId, approved: confirmed });
-        setDecision(confirmed ? "approved" : "declined");
-        return;
+      if (!approvalId) {
+        throw new Error("Missing approval id");
       }
-
-      const response = await fetch("/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ id: conversationId, approvalId, confirmed }),
-      });
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      setResult((await response.json()) as ConfirmationResult);
+      await addToolApprovalResponse({ id: approvalId, approved: confirmed });
       setDecision(confirmed ? "approved" : "declined");
     } catch (caught) {
       setError(
@@ -355,8 +340,10 @@ export function ConfirmationPart({
     }
   }
 
-  const resolved = result !== null;
-  const display = result ? formatConfirmationResult(result, decision) : null;
+  const resolved = decision !== null;
+  const display = decision
+    ? formatConfirmationResult({ text: "" }, decision)
+    : null;
   const headerLabel = resolved
     ? display?.variant === "error"
       ? "confirmation failed"

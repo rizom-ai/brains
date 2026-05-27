@@ -4,7 +4,7 @@
 
 In progress. First slices implemented: `AgentResponse` now carries shared structured `tool-approval` cards with explicit approval IDs, tool call IDs when available, input, state, and output/error payloads. `PendingConfirmation.id` is required across the runtime types and the public zod contract. Confirmation endpoints can pass the explicit approval id through to `AgentService`, which rejects stale/mismatched ids while preserving the existing conversation-level compatibility path.
 
-Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat still keeps a legacy `data-confirmation` fallback when an old response has `pendingConfirmation` without `cards`.
+Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat approval submission now uses native AI SDK `approval-responded` parts through `/api/chat`; the legacy `/api/chat/confirm` side-channel and `data-confirmation` fallback have been removed.
 
 Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs. Chat-repl now consumes the same card contract for terminal yes/no prompts. Neither interface needs AI SDK stream chunks.
 
@@ -12,13 +12,13 @@ Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/b
 
 What changes per layer, and where each layer is today:
 
-| Layer                 | Today                                                                                                  | Bridge state | Final state                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------ | ------------ | ----------------------------------------------------------------------- |
-| Brain agent emits     | `pendingConfirmation` + `cards: ToolApprovalCard[]`                                                    | same         | same (Brain stays interface-agnostic)                                   |
-| Web-chat wire format  | AI SDK native `tool-*` chunks; legacy `data-confirmation` fallback                                     | same         | `tool-input-available` + `tool-approval-request` + `tool-output-*` only |
-| Web-chat submission   | AI SDK `approval-responded` dynamic-tool part through `/api/chat`; legacy `/api/chat/confirm` fallback | same         | `/api/chat` only; no side-channel POST                                  |
-| Discord wire format   | `response.cards` rendered as embeds/buttons, text fallback                                             | same         | `response.cards` is the primary signal                                  |
-| Chat-repl wire format | `response.cards` for approval id, text fallback                                                        | same         | `response.cards` is the primary signal                                  |
+| Layer                 | Today                                                             | Bridge state | Final state                                                             |
+| --------------------- | ----------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| Brain agent emits     | `pendingConfirmation` + `cards: ToolApprovalCard[]`               | same         | same (Brain stays interface-agnostic)                                   |
+| Web-chat wire format  | AI SDK native `tool-*` chunks                                     | same         | `tool-input-available` + `tool-approval-request` + `tool-output-*` only |
+| Web-chat submission   | AI SDK `approval-responded` dynamic-tool part through `/api/chat` | same         | `/api/chat` only; no side-channel POST                                  |
+| Discord wire format   | `response.cards` rendered as embeds/buttons, text fallback        | same         | `response.cards` is the primary signal                                  |
+| Chat-repl wire format | `response.cards` for approval id, text fallback                   | same         | `response.cards` is the primary signal                                  |
 
 Translation between Brain cards and AI SDK chunks lives in **web-chat**, not in the agent. The agent keeps emitting Brain `ToolApprovalCard` so Discord and chat-repl never have to learn the SDK wire format. If translation later moves into the agent, Brain becomes SDK-coupled — currently rejected.
 
@@ -76,8 +76,7 @@ interface ToolApprovalCard {
   toolCallId: string;
   toolName: string;
   input: Record<string, unknown>;
-  summary: string; // short title; identical pre and post approval
-  preview?: string; // optional pre-approval detail; dropped post-approval
+  description: string;
   state:
     | "approval-requested"
     | "approval-responded"
@@ -89,8 +88,6 @@ interface ToolApprovalCard {
 
 The key requirement is that approvals are attached to explicit tool/action IDs,
 not just a loose conversation-level boolean.
-
-The `summary` / `preview` split replaces the original single `description` field. `summary` is identical pre and post approval, so post-approval renderers and `Completed:` / `Failed:` text don't repeat preview content. `preview` only travels on the `approval-requested` card and the `pendingConfirmation`; it is dropped from the post-approval card and the completion text. This removes the blank-line-heuristic in `agent-service.getConfirmationSummary` and gives `summary` stable lifecycle semantics.
 
 ### State lifecycle notes
 
@@ -154,7 +151,6 @@ First slice implemented. Shared runtime/public types now define `StructuredChatC
 Touched areas:
 
 ```text
-shell/mcp-service/src/types.ts          # toolConfirmationSchema: split description → summary + preview
 shell/plugins/src/contracts/agent.ts
 shell/ai-service/src/agent-types.ts
 shell/ai-service/src/agent-results.ts
@@ -166,8 +162,7 @@ The contract includes:
 - tool call id when available
 - tool name
 - input/args
-- `summary` (short title; lifecycle-stable across pre/post approval)
-- `preview` (optional pre-approval detail; only present on `approval-requested` cards and `pendingConfirmation`)
+- human-readable description
 - approval state
 - output/error payload when resolved
 
@@ -190,7 +185,7 @@ Responsibilities:
 - prevent misleading assistant completion text while approval is pending
 - execute approved actions by explicit approval/action id — first slice implemented as optional id validation on `confirmPendingAction`
 - surface success/failure as structured output/error state
-- use `summary` directly for `Completed:` / `Failed:` text and the post-approval card; omit `preview` from both. Drops the blank-line `getConfirmationSummary` heuristic once the schema split lands.
+- summarize confirmed results without repeating destructive preview text or raw success JSON
 
 ### 3. Update destructive tools
 
@@ -202,10 +197,6 @@ shell/core/src/system/entity-delete-tool.ts
 
 Destructive tools should keep their safety guarantees, including confirmation
 tokens, but return data that can be represented as structured approval cards.
-Each tool emits `summary` (short title) and optional `preview` (sensitive
-detail, diff, or "what will happen") instead of a single bundled
-`description`.
-
 Affected flows likely include:
 
 - entity delete (`shell/core/src/system/entity-delete-tool.ts`)
@@ -227,21 +218,19 @@ Target behavior:
 - translate `ToolApprovalCard` to AI SDK UI chunks (`tool-input-available`, `tool-approval-request`, `tool-output-*`) instead of custom `data-approval-card` — implemented for streamed agent responses
 - show approval requested/responded/running/succeeded/failed states clearly
 - avoid burying failures inside raw JSON
-- pre-approval `ConfirmationPart` renders `summary` + `preview`; post-approval state renders `summary` only
+- post-approval native tool output renders a summarized status instead of raw success JSON
 
 #### Submission mechanism change
 
 The biggest architectural shift in this slice is **how the client tells the server "approved/declined"**, not just how the server renders the request.
 
-| Aspect             | Today / bridge                                                       | Native AI SDK                                                                                                  |
-| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Aspect             | Legacy fallback                                                      | Native AI SDK                                                                                                  |
-| ------------------ | --------------------------------------------------------------       | -------------------------------------------------------------------------------------------------------------- |
-| Wire               | `POST /api/chat/confirm` with `{ id, approvalId, confirmed }`        | `approval-responded` dynamic-tool UI part on the next `/api/chat` request                                      |
-| Server entrypoint  | `WebChatInterface.handleConfirm` → `agent.confirmPendingAction(...)` | regular `/api/chat` POST; WebChatInterface reads the approval response out of the incoming UI message parts    |
-| Transport coupling | side-channel REST endpoint                                           | rides the existing AI SDK transport                                                                            |
+| Aspect             | Native AI SDK                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Wire               | `approval-responded` dynamic-tool UI part on the next `/api/chat` request                                   |
+| Server entrypoint  | regular `/api/chat` POST; WebChatInterface reads the approval response out of the incoming UI message parts |
+| Transport coupling | rides the existing AI SDK transport                                                                         |
 
-Current migration state: native approval-response handling is implemented and is the web-chat primary path via `addToolApprovalResponse` + `lastAssistantMessageIsCompleteWithApprovalResponses`. Keep `POST /api/chat/confirm` working as a fallback for one release/bake window, then remove it once all clients (web-chat builds, any embed/iframe consumers) are on the native path.
+Current migration state: native approval-response handling is implemented and is the only web-chat approval submission path via `addToolApprovalResponse` + `lastAssistantMessageIsCompleteWithApprovalResponses`.
 
 ### 5. Update Discord
 
@@ -265,7 +254,6 @@ Remaining target behavior:
 
 - multiple simultaneous pending actions should not collide
 - success/failure should be shown from the structured output/error state
-- pre-approval embed body shows `preview` when present; post-approval message uses `summary` only
 
 User-facing Discord UX can remain familiar:
 
@@ -291,7 +279,6 @@ Implemented behavior:
 Remaining target behavior:
 
 - show structured success/failure output
-- pre-approval prompt shows `summary` + `preview`; post-approval line shows `summary` only
 
 ### 7. Tests
 
@@ -303,13 +290,7 @@ Shared across modes:
 - confirmed success result
 - confirmed failure result
 - no misleading completion text before approval
-- post-approval card carries `summary` only; `preview` is absent from both the card and the `Completed:` / `Failed:` text (prevents preview-content leakage)
-
-Web-chat — legacy fallback mode (while `POST /api/chat/confirm` lives):
-
-- `handleConfirm` rejects mismatched `approvalId`
-- `data-confirmation` fallback renders Tool UI with `approval-requested` state
-- `formatConfirmationResult` prefers card state over legacy text
+- post-approval results omit preview content and raw success JSON
 
 Web-chat — native mode:
 
@@ -327,7 +308,7 @@ Per-interface:
 1. Keep the current `pendingConfirmation` behavior working while introducing the structured card shape.
 2. Update web-chat in two steps:
    - short bridge: render structured card first, falling back to old `pendingConfirmation`;
-   - final web-chat protocol: stream AI SDK native tool chunks and render `dynamic-tool` parts directly — implemented for approval requests and approval-response submission; `/api/chat/confirm` remains as a fallback only.
+   - final web-chat protocol: stream AI SDK native tool chunks and render `dynamic-tool` parts directly — implemented for approval requests and approval-response submission; `/api/chat/confirm` has been removed.
 3. Update Discord and chat-repl to consume the Brain structured card shape directly; they do not need AI SDK chunks. Discord and chat-repl approval-id binding are implemented.
 4. Remove the old loose conversation-level confirmation boolean/endpoint once all interfaces use explicit approval IDs and web-chat approval submission is no longer endpoint-only.
 
@@ -339,10 +320,6 @@ Per-interface:
   preserved carefully.
 - Risk of breaking Discord/chat-repl if the shared contract changes too
   abruptly.
-- Dual UI rendering paths during the web-chat bridge period: legacy
-  `data-confirmation` rendering and native `tool-*` part rendering can drift,
-  e.g. different "approved" badge styling or different decline-reason handling.
-  Mitigate by routing both paths through one shared formatter.
 - Approval-id drift between Brain `ToolApprovalCard.id` and the AI SDK
   `approval.id` it gets translated to. They are meant to be the same string,
   but nothing currently enforces it at the translation seam — a test that
@@ -350,4 +327,4 @@ Per-interface:
 
 ## Recommendation
 
-Next slice: remove the legacy web-chat `/api/chat/confirm` endpoint after the native `/api/chat` approval path has baked, then route confirmed success/failure displays through structured output/error states across non-web interfaces.
+Next slice: route confirmed success/failure displays through structured output/error states across non-web interfaces.

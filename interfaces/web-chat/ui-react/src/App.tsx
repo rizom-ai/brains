@@ -133,8 +133,6 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       }
     } else if (part.type === "text") {
       out.push({ kind: "text", text: part.text });
-    } else if (part.type === "data-confirmation") {
-      out.push({ kind: "confirmation", data: getPartData(part) });
     } else if (part.type.startsWith("data-")) {
       out.push({ kind: "generic", type: part.type, data: getPartData(part) });
     }
@@ -522,7 +520,6 @@ export function App(): React.ReactElement {
                         return (
                           <ConfirmationPart
                             key={index}
-                            conversationId={conversationId}
                             data={group.data}
                             addToolApprovalResponse={addToolApprovalResponse}
                           />

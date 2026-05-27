@@ -46,12 +46,6 @@ const chatRequestSchema = z.object({
   trigger: z.string().optional(),
 });
 
-const confirmationRequestSchema = z.object({
-  id: z.string(),
-  approvalId: z.string().optional(),
-  confirmed: z.boolean(),
-});
-
 const webChatInterfaceType = "web-chat";
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
@@ -1511,13 +1505,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatRequest(request),
       },
       {
-        path: "/api/chat/confirm",
-        method: "POST",
-        public: true,
-        handler: (request): Promise<Response> =>
-          this.handleConfirmationRequest(request),
-      },
-      {
         path: "/api/chat/sessions",
         method: "GET",
         public: true,
@@ -1641,31 +1628,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return createUIMessageStreamResponse({ stream });
   }
 
-  private async handleConfirmationRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
-    if (permissionLevel !== "anchor") {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    const parsed = confirmationRequestSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return new Response("Invalid confirmation request", { status: 400 });
-    }
-
-    const response = await this.getContext().agent.confirmPendingAction(
-      parsed.data.id,
-      parsed.data.confirmed,
-      parsed.data.approvalId,
-    );
-
-    return Response.json({
-      text: response.text,
-      toolResults: response.toolResults ?? [],
-      cards: response.cards ?? [],
-      pendingConfirmation: response.pendingConfirmation ?? null,
-    });
-  }
-
   private async handleSessionsRequest(request: Request): Promise<Response> {
     const permissionLevel = await this.resolvePermissionLevel(request);
     if (permissionLevel !== "anchor") {
@@ -1773,13 +1735,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         (card) => card.kind === "tool-approval",
       );
       this.writeApprovalCards(input.writer, approvalCards);
-      if (response.pendingConfirmation && approvalCards.length === 0) {
-        input.writer.write({
-          type: "data-confirmation",
-          id: this.createId("confirmation"),
-          data: response.pendingConfirmation,
-        });
-      }
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);

@@ -157,7 +157,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(6);
+    expect(routes).toHaveLength(5);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -169,21 +169,16 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[2]).toMatchObject({
-      path: "/api/chat/confirm",
-      method: "POST",
-      public: true,
-    });
-    expect(routes[3]).toMatchObject({
       path: "/api/chat/sessions",
       method: "GET",
       public: true,
     });
-    expect(routes[4]).toMatchObject({
+    expect(routes[3]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[5]).toMatchObject({
+    expect(routes[4]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -236,7 +231,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = plugin.getWebRoutes()[4];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -439,7 +434,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[2];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -475,7 +470,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[2];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -508,7 +503,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = plugin.getWebRoutes()[3];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -531,7 +526,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = plugin.getWebRoutes()[3];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -542,69 +537,6 @@ describe("WebChatInterface", () => {
     expect(body).toEqual({
       messages: [{ id: "message-1", role: "user", content: "Hello" }],
     });
-  });
-
-  it("refuses to confirm pending actions for non-operators", async () => {
-    const plugin = new WebChatInterface();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation", confirmed: true }),
-      }),
-    );
-
-    expect(response?.status).toBe(403);
-  });
-
-  it("confirms pending actions through AgentService for an operator", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          approvalId: "approval:call-1",
-          confirmed: true,
-        }),
-      }),
-    );
-    const body = await response?.json();
-
-    expect(response?.status).toBe(200);
-    expect(body).toMatchObject({ text: "Action confirmed." });
-    expect(agent.confirmCalls).toEqual([
-      {
-        conversationId: "test-conversation",
-        confirmed: true,
-        approvalId: "approval:call-1",
-      },
-    ]);
-  });
-
-  it("rejects malformed confirmation POSTs for an operator", async () => {
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation" }),
-      }),
-    );
-
-    expect(response?.status).toBe(400);
   });
 
   it("rejects malformed chat POSTs", async () => {
