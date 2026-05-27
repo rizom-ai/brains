@@ -62,16 +62,19 @@ permissions:
       extract: anchor
 ```
 
-Collaborative brain models or instances can loosen selected actions explicitly:
+Collaborative brain models or instances can loosen selected entity types explicitly:
 
 ```yaml
 permissions:
   entityActions:
-    "*":
+    base:
       create: trusted
       update: trusted
       delete: anchor
-      extract: anchor
+    link:
+      create: trusted
+      update: trusted
+      delete: anchor
 ```
 
 Rules:
@@ -82,33 +85,38 @@ Rules:
 - The platform fallback is most restrictive: if no type-specific rule applies, require `anchor` for mutating/extracting actions.
 - Defaults are layered, from lowest to highest priority:
   1. platform fallback: anchor-only for `create`, `update`, `delete`, and `extract`;
-  2. plugin/entity exceptions only when they differ from the platform fallback (for example `delete: never`);
-  3. brain model defaults for model-level collaboration posture;
-  4. instance config overrides.
+  2. brain model defaults for model-level collaboration posture;
+  3. instance config overrides.
+- Hard universal denials should use semantic central checks where possible, not type-name policy lists. Singleton deletion is denied centrally from adapter `isSingleton` metadata.
 
 ### Default ownership
 
 The platform fallback should be conservative enough that Rover/personal brains can simply inherit it: durable mutations and extraction are owner/operator-only unless explicitly loosened.
 
-Entity/plugin packages should not restate the anchor-only platform fallback. They should declare only exceptions that are stricter or genuinely different across all brains. Examples:
+Entity/plugin packages should not restate the anchor-only platform fallback. Universal semantics should be modeled directly when available:
 
-- singleton records such as `anchor-profile`, `brain-character`, and `site-info` declare singleton semantics through their adapters; central system deletion refuses singleton deletes;
-- an entity type with an explicitly public capture surface could declare a looser default if that is safe in every brain, though this should be rare.
+- singleton records such as `anchor-profile`, `brain-character`, and `site-info` declare singleton semantics through their adapters; central system deletion refuses singleton deletes.
 
 Brain models should only loosen policy where their collaboration posture requires it:
 
-- Relay can set `"*"` to trusted create/update and anchor delete/extract for team-authored content;
+- Relay explicitly lists collaborator-editable team content types and leaves everything else on the anchor-only fallback;
 - Rover should inherit the anchor-only fallback unless a specific public/trusted capture flow is explicitly designed.
 
 Instance config remains the final override layer for operators who need to loosen or tighten a single entity type/action. If some entity actions must never be loosened, use a separate hard-deny value such as `never` rather than relying on default precedence.
 
 ## Relay default policy
 
-Relay should only need to install the model-level loosening from the platform fallback:
+Relay installs only a model-level allowlist for collaborator-editable content. Unlisted entity types inherit the platform anchor-only fallback.
 
-| entity type | create    | update    | delete   | extract  | reason                                                                  |
-| ----------- | --------- | --------- | -------- | -------- | ----------------------------------------------------------------------- |
-| `*`         | `trusted` | `trusted` | `anchor` | `anchor` | safe default for team-authored content; deletes/extracts are owner-only |
+| entity type   | create    | update    | delete   | extract  | reason                            |
+| ------------- | --------- | --------- | -------- | -------- | --------------------------------- |
+| `base`        | `trusted` | `trusted` | `anchor` | `anchor` | general team notes                |
+| `link`        | `trusted` | `trusted` | `anchor` | `anchor` | team link capture                 |
+| `decision`    | `trusted` | `trusted` | `anchor` | `anchor` | explicit team decisions           |
+| `action-item` | `trusted` | `trusted` | `anchor` | `anchor` | explicit team follow-up work      |
+| `doc`         | `trusted` | `trusted` | `anchor` | `anchor` | team documentation                |
+| `deck`        | `trusted` | `trusted` | `anchor` | `anchor` | team presentations                |
+| `image`       | `trusted` | `trusted` | `anchor` | `anchor` | generated/supporting team imagery |
 
 ## Enforcement points
 
@@ -117,9 +125,9 @@ Enforce policy in central mutation tools before calling entity services or plugi
 - `system_create`
 - `system_update`
 - `system_delete`
-- `system_extract` once the `extract` action lands
+- `system_extract`
 
-Do not make each entity plugin responsible for this check.
+Do not make each entity plugin responsible for this check. Singleton delete denial is also central and runs from adapter metadata before delete confirmation.
 
 Plugin create interceptors must not bypass the policy. The check should run after the requested/derived `entityType` is known and before the interceptor or entity service writes anything.
 
