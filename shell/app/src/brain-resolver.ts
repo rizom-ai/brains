@@ -1,5 +1,8 @@
 import type { Plugin } from "@brains/plugins";
-import type { EntityActionPolicyConfig } from "@brains/templates";
+import {
+  entityActionPolicyConfigSchema,
+  type EntityActionPolicyConfig,
+} from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
@@ -545,9 +548,20 @@ function buildPermissions(
 function mergePluginEntityActions(
   plugins: Plugin[],
 ): EntityActionPolicyConfig | undefined {
-  return mergeEntityActions(
-    ...plugins.map((plugin) => plugin.entityActionPolicy).filter(Boolean),
-  );
+  const validated: EntityActionPolicyConfig[] = [];
+  for (const plugin of plugins) {
+    if (!plugin.entityActionPolicy) continue;
+    const parsed = entityActionPolicyConfigSchema.safeParse(
+      plugin.entityActionPolicy,
+    );
+    if (!parsed.success) {
+      throw new Error(
+        `Plugin "${plugin.id}" declared an invalid entityActionPolicy: ${parsed.error.message}`,
+      );
+    }
+    validated.push(parsed.data);
+  }
+  return mergeEntityActions(...validated);
 }
 
 function mergeEntityActions(

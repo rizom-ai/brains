@@ -16,6 +16,7 @@ import {
   isExternalPluginDeclaration,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import { PermissionService } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 
 // --- Test helpers ---
@@ -1028,6 +1029,65 @@ describe("resolve with instance overrides", () => {
     });
   });
 
+  test("should merge plugin-declared entity action policies with definition defaults", () => {
+    const pluginWithPolicy: Plugin = {
+      id: "fancy-entity",
+      version: "1.0.0",
+      description: "fancy entity",
+      packageName: "@brains/fancy",
+      type: "entity",
+      entityActionPolicy: {
+        "fancy-singleton": { delete: "never" },
+      },
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["fancy", (): Plugin => pluginWithPolicy, undefined]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.permissions?.entityActions?.["fancy-singleton"]).toEqual({
+      delete: "never",
+    });
+  });
+
+  test("should reject a plugin declaring an invalid entity action policy", () => {
+    const pluginWithBadPolicy: Plugin = {
+      id: "broken",
+      version: "1.0.0",
+      description: "broken policy",
+      packageName: "@brains/broken",
+      type: "entity",
+      entityActionPolicy: {
+        // @ts-expect-error — invalid required level for testing runtime guard
+        topic: { delete: "admin" },
+      },
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["broken", (): Plugin => pluginWithBadPolicy, undefined]],
+      interfaces: [],
+    });
+
+    expect(() => resolve(def, {})).toThrow(
+      /Plugin "broken" declared an invalid entityActionPolicy/,
+    );
+  });
+
   test("should merge yaml entity action policy with definition defaults", () => {
     const def = defineBrain({
       name: "test",
@@ -1068,6 +1128,46 @@ describe("resolve with instance overrides", () => {
       },
       summary: { create: "anchor", update: "trusted", delete: "anchor" },
     });
+  });
+
+  test("yaml-loosened entity action is enforceable through PermissionService", () => {
+    // End-to-end: YAML text -> parseInstanceOverrides -> resolve() ->
+    // PermissionService.canPerformEntityAction. Verifies that the full
+    // merge pipeline produces a policy that actually permits the action
+    // a trusted caller was previously denied.
+    const yaml = `brain: "@brains/test"
+permissions:
+  entityActions:
+    summary:
+      update: trusted
+`;
+    const overrides = parseInstanceOverrides(yaml);
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const baselineConfig = resolve(def, {});
+    const baseline = new PermissionService(baselineConfig.permissions ?? {});
+    expect(
+      baseline.canPerformEntityAction("trusted", "summary", "update"),
+    ).toBe(false);
+
+    const config = resolve(def, {}, overrides);
+    const service = new PermissionService(config.permissions ?? {});
+
+    expect(service.canPerformEntityAction("trusted", "summary", "update")).toBe(
+      true,
+    );
+    expect(service.canPerformEntityAction("trusted", "summary", "delete")).toBe(
+      false,
+    );
+    expect(service.canPerformEntityAction("trusted", "base", "delete")).toBe(
+      false,
+    );
   });
 
   test("should pass spaces from yaml overrides to app config", () => {

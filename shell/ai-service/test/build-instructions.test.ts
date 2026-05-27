@@ -145,4 +145,12 @@ describe("buildInstructions", () => {
       "Never self-confirm a destructive operation",
     );
   });
+
+  it("should teach the model to refuse never-gated and level-gated actions", () => {
+    const instructions = buildInstructions(identity, "trusted");
+    expect(instructions).toContain("### Entity Action Permissions");
+    expect(instructions).toContain("Hard-denied actions");
+    expect(instructions).toContain("Level-gated actions");
+    expect(instructions).toContain("do not retry the same call");
+  });
 });

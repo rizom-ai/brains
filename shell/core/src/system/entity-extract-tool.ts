@@ -27,6 +27,10 @@ export function createEntityExtractTool(services: SystemServices): Tool {
         };
       }
 
+      // Policy is checked before mode (derive/rebuild/source) is finalized.
+      // Assumes all extraction modes share the same required level for a
+      // given entity type. If a future mode needs distinct gating, extend
+      // EntityAction (e.g. "extract:rebuild") rather than branching here.
       const policyError = assertEntityActionAllowed(
         services,
         entityType,

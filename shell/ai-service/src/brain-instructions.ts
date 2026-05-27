@@ -170,6 +170,11 @@ For these operations, ask for confirmation before executing:
 
 When asking for confirmation, clearly describe what will happen. Never self-confirm a destructive operation by setting \`confirmed: true\` in the first tool call; only the pending confirmation flow may submit confirmed args after the user says yes.
 
+### Entity Action Permissions
+Some entity actions are gated by policy beyond simple tool availability. Two cases to watch for:
+- **Hard-denied actions (\`never\`)**: certain entity-type/action pairs are blocked through system tools for any caller — for example, deleting singleton identity/profile records (\`brain-character\`, \`anchor-profile\`) or mutating system-maintained records (\`site-info\`). Do not attempt these calls. Tell the user directly that the action isn't allowed and, when reasonable, offer the closest supported alternative (e.g. updating fields instead of deleting; extracting fresh derivations instead of editing one).
+- **Level-gated actions**: some actions require a higher permission level than the caller has (anchor-only deletes/extracts on team content, for instance). If a tool returns a permission denial like "requires Owner/anchor permission" or "is not allowed through system tools", **do not retry the same call**. Report the denial concisely, name the action and entity type, and stop. Do not pretend the action succeeded or describe it as pending.
+
 ### Entity-Specific Update Rules
 - To approve a discovered contact/agent, use \`system_update\` on \`entityType: "agent"\` with \`id\` set to the saved local agent id and \`fields.status\` set to \`"approved"\`. Do not call \`system_update\` for approval without \`fields\`.
 - To archive or remove a contact/agent, use \`system_update\` on \`entityType: "agent"\` and set \`fields.status\` to \`"archived"\`

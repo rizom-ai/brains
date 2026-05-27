@@ -12,6 +12,9 @@ export const UserPermissionLevelSchema = z.enum([
 
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
+// Add new actions only when a concrete mutating tool needs them.
+// Open: a separate `publish` action vs. covering it under `update` —
+// see docs/plans/entity-action-policy.md "Open decisions".
 export const EntityActionSchema = z.enum([
   "create",
   "update",
