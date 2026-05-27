@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { formatConfirmationResult } from "../ui-react/src/ai-elements/data-parts";
+import {
+  formatConfirmationResult,
+  formatNativeToolDisplay,
+} from "../ui-react/src/ai-elements/data-parts";
 
 describe("confirmation result display", () => {
   it("prefers structured approval cards over legacy tool results", () => {
@@ -58,6 +61,24 @@ describe("confirmation result display", () => {
       label: "Delete note failed · Entity not found: base/woodchuck-note",
     });
     expect(display.label).not.toContain('"success"');
+  });
+
+  it("summarizes native tool success output without raw JSON", () => {
+    const display = formatNativeToolDisplay({
+      type: "dynamic-tool",
+      toolName: "system_delete",
+      state: "output-available",
+      title: "Delete note?",
+      output: {
+        success: true,
+        data: { deleted: "typescript-patterns" },
+      },
+    });
+
+    expect(display).toEqual({
+      variant: "success",
+      label: "Delete completed",
+    });
   });
 
   it("falls back to parsing legacy result text", () => {

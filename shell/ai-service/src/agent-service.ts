@@ -443,7 +443,12 @@ export class AgentService implements IAgentService {
     const confirmationSummary = this.getConfirmationSummary(
       pendingConfirmation.description,
     );
-    const resultText = `${prefix}: ${confirmationSummary}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const errorMessage = failed
+      ? (getStringField(result, "error") ?? getStringField(result, "message"))
+      : undefined;
+    const resultText = errorMessage
+      ? `${prefix}: ${confirmationSummary}\n\n${errorMessage}`
+      : `${prefix}: ${confirmationSummary}`;
     const toolResult: ToolResultData = {
       toolName: pendingConfirmation.toolName,
       data: result,

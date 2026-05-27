@@ -33,7 +33,7 @@ interface ConfirmationResult {
 
 type ConfirmationResultVariant = "success" | "error" | "declined";
 
-interface ConfirmationResultDisplay {
+export interface ConfirmationResultDisplay {
   label: string;
   variant: ConfirmationResultVariant;
 }
@@ -224,6 +224,44 @@ export function ToolResultPart({
   );
 }
 
+export function formatNativeToolDisplay(
+  data: unknown,
+): ConfirmationResultDisplay | null {
+  const state = narrowToolState(getStringValue(data, "state"));
+  if (
+    state !== "output-available" &&
+    state !== "output-error" &&
+    state !== "output-denied"
+  ) {
+    return null;
+  }
+
+  const toolName = getStringValue(data, "toolName") ?? "tool";
+  if (state === "output-denied") {
+    const toolLabel = humanizeToolName(toolName);
+    return {
+      label: toolLabel ? `${toolLabel} denied` : "Action denied",
+      variant: "declined",
+    };
+  }
+
+  return formatConfirmationResult(
+    {
+      text: getStringValue(data, "title") ?? "",
+      cards: [
+        {
+          kind: "tool-approval",
+          toolName,
+          state,
+          output: getRecordValue(data, "output"),
+          error: getStringValue(data, "errorText"),
+        },
+      ],
+    },
+    null,
+  );
+}
+
 export function NativeToolPart({
   data,
 }: {
@@ -235,6 +273,7 @@ export function NativeToolPart({
   const output =
     getRecordValue(data, "output") ?? getRecordValue(data, "input");
   const errorText = getStringValue(data, "errorText");
+  const display = formatNativeToolDisplay(data);
 
   return (
     <Tool data-kind="tool-result">
@@ -245,7 +284,16 @@ export function NativeToolPart({
         title={title}
       />
       <ToolContent>
-        <ToolOutput output={output} errorText={errorText} />
+        {display ? (
+          <span
+            className="web-chat-confirmation-result"
+            data-variant={display.variant}
+          >
+            {display.label}
+          </span>
+        ) : (
+          <ToolOutput output={output} errorText={errorText} />
+        )}
       </ToolContent>
     </Tool>
   );

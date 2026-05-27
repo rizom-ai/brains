@@ -851,10 +851,9 @@ describe("AgentService", () => {
         "approval:call-1",
       );
 
-      expect(response.text).toContain(
-        "Completed: Delete note 'Meeting Notes'?",
-      );
-      expect(response.text).toContain('"success": true');
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'?");
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": true');
       expect(response.toolResults).toEqual([
         {
           toolName: "delete_note",
@@ -961,9 +960,11 @@ describe("AgentService", () => {
         true,
       );
 
-      expect(response.text).toStartWith("Failed: Delete note 'Meeting Notes'?");
-      expect(response.text).toContain('"success": false');
-      expect(response.text).toContain("Entity not found: base/woodchuck-note");
+      expect(response.text).toBe(
+        "Failed: Delete note 'Meeting Notes'?\n\nEntity not found: base/woodchuck-note",
+      );
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": false');
       expect(response.toolResults).toEqual([
         {
           toolName: "delete_note",
