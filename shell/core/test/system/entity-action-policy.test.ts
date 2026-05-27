@@ -55,7 +55,7 @@ function expectSuccess<TSchema extends z.ZodTypeAny>(
 
 function expectConfirmation(raw: unknown): void {
   const response = toolResponseSchema.parse(raw);
-  if (!("needsConfirmation" in response) || !response.needsConfirmation) {
+  if (!("needsConfirmation" in response)) {
     throw new Error(
       `Expected confirmation response, got: ${JSON.stringify(response)}`,
     );

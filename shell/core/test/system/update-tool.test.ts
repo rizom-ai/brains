@@ -160,13 +160,7 @@ describe("system_update tool", () => {
       entityType: "newsletter",
       id: "newsletter-1",
     });
-    if (
-      !(
-        typeof confirmation === "object" &&
-        confirmation &&
-        "args" in confirmation
-      )
-    ) {
+    if (!(typeof confirmation === "object" && "args" in confirmation)) {
       throw new Error("Expected delete confirmation args");
     }
 

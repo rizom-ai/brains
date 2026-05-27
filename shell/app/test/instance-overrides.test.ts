@@ -16,7 +16,10 @@ import {
   isExternalPluginDeclaration,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
-import { PermissionService } from "@brains/templates";
+import {
+  EntityActionPermissionError,
+  PermissionService,
+} from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 
 // --- Test helpers ---
@@ -1132,9 +1135,10 @@ describe("resolve with instance overrides", () => {
 
   test("yaml-loosened entity action is enforceable through PermissionService", () => {
     // End-to-end: YAML text -> parseInstanceOverrides -> resolve() ->
-    // PermissionService.canPerformEntityAction. Verifies that the full
-    // merge pipeline produces a policy that actually permits the action
-    // a trusted caller was previously denied.
+    // PermissionService.assertEntityActionAllowed. assertEntityActionAllowed
+    // is the exact method the system_* tools invoke, so this exercises the
+    // same code path production runs through, against config produced by
+    // the real merge pipeline.
     const yaml = `brain: "@brains/test"
 permissions:
   entityActions:
@@ -1152,22 +1156,25 @@ permissions:
 
     const baselineConfig = resolve(def, {});
     const baseline = new PermissionService(baselineConfig.permissions ?? {});
-    expect(
-      baseline.canPerformEntityAction("trusted", "summary", "update"),
-    ).toBe(false);
+    expect(() =>
+      baseline.assertEntityActionAllowed("summary", "update", "trusted"),
+    ).toThrow(EntityActionPermissionError);
 
     const config = resolve(def, {}, overrides);
     const service = new PermissionService(config.permissions ?? {});
 
-    expect(service.canPerformEntityAction("trusted", "summary", "update")).toBe(
-      true,
-    );
-    expect(service.canPerformEntityAction("trusted", "summary", "delete")).toBe(
-      false,
-    );
-    expect(service.canPerformEntityAction("trusted", "base", "delete")).toBe(
-      false,
-    );
+    // Loosened: trusted can now update summary.
+    expect(() =>
+      service.assertEntityActionAllowed("summary", "update", "trusted"),
+    ).not.toThrow();
+    // Untouched: summary delete still anchor-only.
+    expect(() =>
+      service.assertEntityActionAllowed("summary", "delete", "trusted"),
+    ).toThrow(EntityActionPermissionError);
+    // Untouched: other entity types still locked to anchor.
+    expect(() =>
+      service.assertEntityActionAllowed("base", "delete", "trusted"),
+    ).toThrow(EntityActionPermissionError);
   });
 
   test("should pass spaces from yaml overrides to app config", () => {
