@@ -11,6 +11,11 @@ import { CLIInterface } from "../src/cli-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 
+type MockAgentService = Parameters<
+  PluginTestHarness<CLIInterface>["setAgentService"]
+>[0];
+type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
+
 // Mock console.clear
 const originalClear = console.clear;
 console.clear = mock(() => {});
@@ -95,6 +100,52 @@ describe("CLIInterface", () => {
       // Process a normal query
       await cliInterface.processInput("Test query");
       expect(responseHandler).toHaveBeenCalled();
+    });
+
+    it("should bind yes/no confirmations to structured approval card ids", async () => {
+      const responseHandler = mock(() => {});
+      const confirmMock = mock(
+        async (
+          _conversationId: string,
+          _confirmed: boolean,
+          _approvalId?: string,
+        ): Promise<MockAgentResponse> => ({
+          text: "Confirmed",
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+      );
+      harness.reset();
+      harness = createPluginHarness<CLIInterface>();
+
+      const mockAgentService: MockAgentService = {
+        chat: async (): Promise<MockAgentResponse> => ({
+          text: "Approval needed.",
+          cards: [
+            {
+              kind: "tool-approval",
+              id: "approval:call-1",
+              toolName: "delete_note",
+              description: "Delete note?",
+              state: "approval-requested",
+            },
+          ],
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+        confirmPendingAction: confirmMock,
+        invalidateAgent: (): void => {},
+      };
+      harness.setAgentService(mockAgentService);
+      cliInterface = new CLIInterface();
+      await harness.installPlugin(cliInterface);
+      cliInterface.registerResponseCallback(responseHandler);
+
+      await cliInterface.processInput("delete it");
+      await cliInterface.processInput("yes");
+
+      expect(responseHandler).toHaveBeenCalledWith(
+        expect.stringContaining("Please reply with **yes**"),
+      );
+      expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1");
     });
   });
 

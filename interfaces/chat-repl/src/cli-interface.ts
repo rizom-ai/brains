@@ -3,6 +3,8 @@ import {
   type InterfacePluginContext,
   PluginError,
   parseConfirmationResponse,
+  type StructuredChatCard,
+  type ToolApprovalCard,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
@@ -26,8 +28,8 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private responseCallback: ((response: string) => void) | undefined;
   private agentService?: AgentNamespace;
 
-  // Track pending confirmations
-  private pendingConfirmation = false;
+  // Track pending confirmation approval id
+  private pendingConfirmationId: string | undefined;
 
   constructor(config: Partial<CLIConfig> = {}) {
     super("cli", packageJson, config, cliConfigSchema);
@@ -187,7 +189,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
     try {
       // Check for confirmation response
-      if (this.pendingConfirmation) {
+      if (this.pendingConfirmationId) {
         await this.handleConfirmationResponse(input, conversationId);
         return;
       }
@@ -205,12 +207,18 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       );
 
       // Track pending confirmation if returned
-      if (response.pendingConfirmation) {
-        this.pendingConfirmation = true;
+      const approvalCard = this.getPendingApprovalCard(response.cards);
+      if (approvalCard) {
+        this.pendingConfirmationId = approvalCard.id;
+      } else if (response.pendingConfirmation) {
+        this.pendingConfirmationId = response.pendingConfirmation.id;
       }
 
       // Build response with tool results
-      const responseText = response.text;
+      const responseText = this.formatAgentResponseText(
+        response.text,
+        approvalCard,
+      );
 
       // Debug: log tool results
       this.logger.debug("Agent response received", {
@@ -244,6 +252,30 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
+   * Get pending approval card from structured agent response cards.
+   */
+  private getPendingApprovalCard(
+    cards: StructuredChatCard[] | undefined,
+  ): ToolApprovalCard | undefined {
+    return cards?.find(
+      (card): card is ToolApprovalCard => card.state === "approval-requested",
+    );
+  }
+
+  /**
+   * Format CLI response text for structured approval cards.
+   */
+  private formatAgentResponseText(
+    text: string,
+    approvalCard: ToolApprovalCard | undefined,
+  ): string {
+    if (!approvalCard) return text;
+
+    const base = text.trim().length > 0 ? text : approvalCard.description;
+    return `${base}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
+  }
+
+  /**
    * Handle confirmation responses (yes/no)
    */
   private async handleConfirmationResponse(
@@ -263,12 +295,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     }
 
     // Clear pending confirmation
-    this.pendingConfirmation = false;
+    const approvalId = this.pendingConfirmationId;
+    this.pendingConfirmationId = undefined;
 
     // Call AgentService to confirm or cancel
     const response = await this.getAgentService().confirmPendingAction(
       conversationId,
       result.confirmed,
+      approvalId,
     );
 
     // Send response to UI
