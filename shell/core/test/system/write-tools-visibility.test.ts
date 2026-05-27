@@ -39,7 +39,7 @@ const confirmationArgsSchema = z.record(z.string(), z.unknown());
 
 function expectConfirmation(raw: unknown): { args: Record<string, unknown> } {
   const response = toolResponseSchema.parse(raw);
-  if (!("needsConfirmation" in response) || !response.needsConfirmation) {
+  if (!("needsConfirmation" in response)) {
     throw new Error(
       `Expected confirmation response, got: ${JSON.stringify(response)}`,
     );

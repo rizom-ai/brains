@@ -409,6 +409,140 @@ describe("PermissionService", () => {
         }
       });
     });
+
+    describe("entity action policy", () => {
+      it("should resolve exact entity action policy before wildcard defaults", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": {
+              create: "trusted",
+              update: "trusted",
+              delete: "anchor",
+              extract: "anchor",
+            },
+            summary: { create: "anchor", update: "anchor" },
+          },
+        });
+
+        expect(
+          permissionService.getRequiredEntityActionLevel("base", "create"),
+        ).toBe("trusted");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "create"),
+        ).toBe("anchor");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "delete"),
+        ).toBe("anchor");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "extract"),
+        ).toBe("anchor");
+      });
+
+      it("should allow entity actions only when the caller meets the required level", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": { create: "trusted", delete: "anchor", extract: "anchor" },
+            summary: { update: "anchor" },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction("trusted", "base", "create"),
+        ).toBe(true);
+        expect(
+          permissionService.canPerformEntityAction("trusted", "base", "delete"),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "base",
+            "extract",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "summary",
+            "update",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "summary",
+            "update",
+          ),
+        ).toBe(true);
+      });
+
+      it("should treat undefined userLevel as public", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "*": { create: "trusted", update: "public" },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "create"),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "update"),
+        ).toBe(true);
+      });
+
+      it("should allow any action when no policy is configured", () => {
+        permissionService = new PermissionService({});
+
+        expect(
+          permissionService.canPerformEntityAction(undefined, "base", "delete"),
+        ).toBe(true);
+        expect(
+          permissionService.canPerformEntityAction("public", "base", "delete"),
+        ).toBe(true);
+      });
+
+      it("should forbid actions marked never for every caller", () => {
+        permissionService = new PermissionService({
+          entityActions: {
+            "anchor-profile": {
+              create: "anchor",
+              update: "anchor",
+              delete: "never",
+            },
+          },
+        });
+
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            undefined,
+            "anchor-profile",
+            "delete",
+          ),
+        ).toBe(false);
+        // unrelated actions still resolve normally
+        expect(
+          permissionService.canPerformEntityAction(
+            "anchor",
+            "anchor-profile",
+            "update",
+          ),
+        ).toBe(true);
+      });
+    });
   });
 
   describe("Filtering", () => {
@@ -500,6 +634,86 @@ describe("PermissionService", () => {
           "basic",
         ]);
       });
+    });
+  });
+
+  describe("Entity action policy", () => {
+    it("returns undefined when no entity action policy is configured", () => {
+      const service = new PermissionService({});
+
+      expect(service.getResolvedEntityActionPolicy("base")).toBeUndefined();
+      expect(
+        service.getEntityActionRequiredLevel("base", "create"),
+      ).toBeUndefined();
+    });
+
+    it("merges entity-specific entries over wildcard defaults", () => {
+      const service = new PermissionService({
+        entityActions: {
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
+          summary: { create: "anchor" },
+        },
+      });
+
+      expect(service.getResolvedEntityActionPolicy("base")).toEqual({
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      });
+      expect(service.getResolvedEntityActionPolicy("summary")).toEqual({
+        create: "anchor",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      });
+    });
+
+    it("allows callers meeting the required entity action level", () => {
+      const service = new PermissionService({
+        entityActions: {
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
+        },
+      });
+
+      expect(() =>
+        service.assertEntityActionAllowed("base", "create", "trusted"),
+      ).not.toThrow();
+      expect(() =>
+        service.assertEntityActionAllowed("base", "delete", "anchor"),
+      ).not.toThrow();
+      expect(() =>
+        service.assertEntityActionAllowed("base", "extract", "anchor"),
+      ).not.toThrow();
+    });
+
+    it("throws a denial message with action, type, caller, and required level", () => {
+      const service = new PermissionService({
+        entityActions: {
+          summary: { update: "anchor", extract: "anchor" },
+        },
+      });
+
+      expect(() =>
+        service.assertEntityActionAllowed("summary", "update", "trusted"),
+      ).toThrow(
+        "Updating `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      );
+      expect(() =>
+        service.assertEntityActionAllowed("summary", "extract", "trusted"),
+      ).toThrow(
+        "Extracting `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      );
     });
   });
 });

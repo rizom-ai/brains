@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import type { Tool } from "@brains/mcp-service";
+import type { Tool, ToolResponse } from "@brains/mcp-service";
+import { PermissionService } from "@brains/templates";
 
 describe("system_update tool", () => {
   let tools: Tool[];
@@ -69,27 +70,43 @@ describe("system_update tool", () => {
         created: new Date("2026-03-13T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-13T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "site-info",
+        entityType: "site-info",
+        content: "---\ntitle: Test Site\n---\n",
+        contentHash: "hash-site-info",
+        visibility: "public",
+        metadata: { title: "Test Site" },
+        created: new Date("2026-03-14T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-14T10:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
 
-  async function exec(input: Record<string, unknown>): Promise<unknown> {
+  async function exec(
+    input: Record<string, unknown>,
+    userPermissionLevel: "anchor" | "trusted" | "public" = "anchor",
+  ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_update");
     if (!tool) throw new Error("system_update not found");
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
-      userPermissionLevel: "anchor",
+      userPermissionLevel,
     });
   }
 
-  async function execDelete(input: Record<string, unknown>): Promise<unknown> {
+  async function execDelete(
+    input: Record<string, unknown>,
+    userPermissionLevel: "anchor" | "trusted" | "public" = "anchor",
+  ): Promise<ToolResponse> {
     const tool = tools.find((t) => t.name === "system_delete");
     if (!tool) throw new Error("system_delete not found");
     return tool.handler(input, {
       interfaceType: "test",
       userId: "test",
-      userPermissionLevel: "anchor",
+      userPermissionLevel,
     });
   }
 
@@ -143,13 +160,7 @@ describe("system_update tool", () => {
       entityType: "newsletter",
       id: "newsletter-1",
     });
-    if (
-      !(
-        typeof confirmation === "object" &&
-        confirmation &&
-        "args" in confirmation
-      )
-    ) {
+    if (!(typeof confirmation === "object" && "args" in confirmation)) {
       throw new Error("Expected delete confirmation args");
     }
 
@@ -164,18 +175,19 @@ describe("system_update tool", () => {
     expect(services.getEntities().get("newsletter-1")).toBeUndefined();
   });
 
-  it("refuses to delete protected identity records even when confirmed", async () => {
+  it("refuses to delete singleton records even when confirmed", async () => {
     const result = await execDelete({
-      entityType: "brain-character",
-      id: "brain-character",
+      entityType: "site-info",
+      id: "site-info",
       confirmed: true,
     });
 
     expect(result).toMatchObject({
       success: false,
       error:
-        "brain-character is a protected identity/profile record and cannot be deleted. Update it instead.",
+        "site-info is a singleton entity and cannot be deleted through system tools. Update it instead.",
     });
+    expect(services.getEntities().get("site-info")).toBeDefined();
   });
 
   it("normalizes JSON-wrapped field updates passed via content", async () => {
@@ -331,6 +343,104 @@ describe("system_update tool", () => {
 
     const updated = services.getEntities().get("approved-agent.io");
     expect(updated?.metadata["status"]).toBe("approved");
+  });
+
+  it("rejects trusted updates when entity action policy requires anchor", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        agent: { update: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "agent",
+        id: "old-agent.io",
+        fields: { status: "archived" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  // Locks the policy check above the confirmation branch: if a future refactor
+  // hoisted `confirmed: true` ahead of checkEntityActionPermission, this would catch it.
+  it("rejects trusted updates with confirmed: true when policy requires anchor", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        agent: { update: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "agent",
+        id: "old-agent.io",
+        fields: { status: "archived" },
+        confirmed: true,
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Updating `agent` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+
+    const unchanged = services.getEntities().get("old-agent.io");
+    expect(unchanged?.metadata["status"]).toBe("active");
+  });
+
+  it("rejects trusted deletes when entity action policy requires anchor", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "*": { delete: "anchor" },
+      },
+    });
+
+    const result = await execDelete(
+      {
+        entityType: "newsletter",
+        id: "newsletter-1",
+        confirmed: true,
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Deleting `newsletter` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("rejects deletes marked never even for anchor callers", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        newsletter: { delete: "never" },
+      },
+    });
+
+    const result = await execDelete(
+      {
+        entityType: "newsletter",
+        id: "newsletter-1",
+        confirmed: true,
+      },
+      "anchor",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Deleting `newsletter` is not allowed through system tools.",
+    });
+    expect(services.getEntities().has("newsletter-1")).toBe(true);
   });
 
   it("rejects blank content replacement for frontmatter entities", async () => {

@@ -1,6 +1,7 @@
 import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { extractInputSchema } from "./schemas";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { createSystemTool } from "./tool-helpers";
 
@@ -25,6 +26,18 @@ export function createEntityExtractTool(services: SystemServices): Tool {
           error: `Unknown entity type: ${entityType}. Available types: ${entityService.getEntityTypes().join(", ")}`,
         };
       }
+
+      // Policy is checked before mode (derive/rebuild/source) is finalized.
+      // Assumes all extraction modes share the same required level for a
+      // given entity type. If a future mode needs distinct gating, extend
+      // EntityAction (e.g. "extract:rebuild") rather than branching here.
+      const policyError = assertEntityActionAllowed(
+        services,
+        entityType,
+        "extract",
+        toolContext,
+      );
+      if (policyError) return policyError;
 
       if (rebuildRequested && rebuildSupported && !input.confirmed) {
         return {

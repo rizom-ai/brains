@@ -1,6 +1,7 @@
 import { z } from "@brains/utils";
 import {
   UserPermissionLevelSchema,
+  type EntityActionPolicyConfig,
   type UserPermissionLevel,
 } from "@brains/templates";
 import {
@@ -377,6 +378,7 @@ export interface PluginCapabilities {
  * Plugin interface - combines validated metadata with the register function
  */
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
+  entityActionPolicy?: EntityActionPolicyConfig;
   register(
     shell: IShell,
     context?: PluginRegistrationContext,

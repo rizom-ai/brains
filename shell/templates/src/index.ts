@@ -12,9 +12,20 @@ export { TemplateCapabilities } from "./capabilities";
 export {
   PermissionService,
   UserPermissionLevelSchema,
+  EntityActionSchema,
+  EntityActionRequiredLevelSchema,
+  entityActionPolicyRuleSchema,
+  entityActionPolicyConfigSchema,
+  EntityActionPermissionError,
 } from "./permission-service";
 export type {
   UserPermissionLevel,
+  EntityAction,
+  EntityActionRequiredLevel,
+  EntityActionPolicyRule,
+  EntityActionPolicyConfig,
+  EntityActionPolicyEntry,
+  EntityActionPolicy,
   PermissionConfig,
   PermissionRule,
   PermissionLookupContext,

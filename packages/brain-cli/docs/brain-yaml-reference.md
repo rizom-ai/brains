@@ -63,6 +63,15 @@ permissions:
   rules:
     - pattern: "a2a:*"
       level: public
+  entityActions:
+    "*":
+      create: trusted
+      update: trusted
+      delete: anchor
+    summary:
+      create: anchor
+      update: anchor
+      delete: anchor
 ```
 
 ## Fields
@@ -206,6 +215,41 @@ anchors:
 ### `trusted`
 
 Top-level shorthand for elevated-access identities.
+
+### `permissions`
+
+Permission overrides.
+
+`anchors`, `trusted`, and `rules` control the caller permission level. `entityActions` controls which permission level is required to mutate each entity type through central system tools.
+
+```yaml
+permissions:
+  entityActions:
+    "*":
+      create: trusted
+      update: trusted
+      delete: anchor
+    topic:
+      create: anchor
+      update: anchor
+      delete: anchor
+    summary:
+      create: anchor
+      update: anchor
+      delete: anchor
+```
+
+Rules:
+
+- supported actions are `create`, `update`, and `delete`;
+- supported levels are `public`, `trusted`, `anchor`, and `never`;
+- `never` forbids the action through system tools for every caller — useful for singleton identity/config entities that should not be deletable via the agent; internal plugin code can still mutate them directly;
+- `"*"` is the default for entity types without an explicit entry;
+- entity-specific entries override `"*"` per action;
+- omitted actions inherit from `"*"`;
+- if no `entityActions` policy is configured by the brain model or instance, existing mutation-tool behavior is preserved.
+
+This policy is enforced by `system_create`, `system_update`, and `system_delete`. It does not control read/search/list visibility; use entity visibility for read access.
 
 ### `plugins`
 

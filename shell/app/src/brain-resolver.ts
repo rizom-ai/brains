@@ -1,4 +1,8 @@
 import type { Plugin } from "@brains/plugins";
+import {
+  entityActionPolicyConfigSchema,
+  type EntityActionPolicyConfig,
+} from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
@@ -28,6 +32,15 @@ import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import { getPackage, hasPackage } from "./package-registry";
+
+const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
+  "*": {
+    create: "anchor",
+    update: "anchor",
+    delete: "anchor",
+    extract: "anchor",
+  },
+};
 
 /**
  * Determine which plugin/interface IDs are active.
@@ -483,7 +496,7 @@ export function resolve(
     ...(definition.agentInstructions && {
       agentInstructions: definition.agentInstructions,
     }),
-    ...buildPermissions(definition.permissions, overrides),
+    ...buildPermissions(definition.permissions, overrides, capabilities),
     ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
     ...buildRuntimeOverrides(env, overrides),
@@ -505,14 +518,17 @@ export function resolve(
 function buildPermissions(
   definitionPerms: BrainDefinition["permissions"],
   overrides?: Omit<InstanceOverrides, "brain">,
+  plugins: Plugin[] = [],
 ): { permissions: Record<string, unknown> } | Record<string, never> {
   const yamlPerms = overrides?.permissions;
-  const hasYamlPerms =
-    yamlPerms?.anchors ?? yamlPerms?.trusted ?? yamlPerms?.rules;
-  const hasTopLevel = overrides?.anchors ?? overrides?.trusted;
-  const hasDefPerms = !!definitionPerms;
+  const pluginEntityActions = mergePluginEntityActions(plugins);
 
-  if (!hasYamlPerms && !hasTopLevel && !hasDefPerms) return {};
+  const entityActions = mergeEntityActions(
+    PLATFORM_ENTITY_ACTION_DEFAULTS,
+    pluginEntityActions,
+    definitionPerms?.entityActions,
+    yamlPerms?.entityActions,
+  );
 
   return {
     permissions: {
@@ -524,8 +540,47 @@ function buildPermissions(
       ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
       ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
+      ...(entityActions && { entityActions }),
     },
   };
+}
+
+function mergePluginEntityActions(
+  plugins: Plugin[],
+): EntityActionPolicyConfig | undefined {
+  const validated: EntityActionPolicyConfig[] = [];
+  for (const plugin of plugins) {
+    if (!plugin.entityActionPolicy) continue;
+    const parsed = entityActionPolicyConfigSchema.safeParse(
+      plugin.entityActionPolicy,
+    );
+    if (!parsed.success) {
+      throw new Error(
+        `Plugin "${plugin.id}" declared an invalid entityActionPolicy: ${parsed.error.message}`,
+      );
+    }
+    validated.push(parsed.data);
+  }
+  return mergeEntityActions(...validated);
+}
+
+function mergeEntityActions(
+  ...sources: Array<EntityActionPolicyConfig | undefined>
+): EntityActionPolicyConfig | undefined {
+  if (!sources.some(Boolean)) return undefined;
+
+  const merged: EntityActionPolicyConfig = {};
+  for (const source of sources) {
+    if (!source) continue;
+    for (const [entityType, actions] of Object.entries(source)) {
+      merged[entityType] = {
+        ...(merged[entityType] ?? {}),
+        ...actions,
+      };
+    }
+  }
+
+  return merged;
 }
 
 /** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */

@@ -1,8 +1,51 @@
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
+import type {
+  EntityAction,
+  PermissionService,
+  UserPermissionLevel,
+} from "@brains/templates";
 import { getErrorMessage, type z } from "@brains/utils";
 
 const PLUGIN_ID = "system";
+
+const ROLE_LABELS: Record<UserPermissionLevel, string> = {
+  anchor: "Owner/anchor",
+  trusted: "Collaborator/trusted",
+  public: "Public",
+};
+
+export function checkEntityActionPermission(
+  permissionService: PermissionService,
+  context: ToolContext,
+  entityType: string,
+  action: EntityAction,
+): ToolResponse | undefined {
+  const requiredLevel = permissionService.getRequiredEntityActionLevel(
+    entityType,
+    action,
+  );
+  if (!requiredLevel) return undefined;
+
+  const verb = `${action[0]?.toUpperCase()}${action.slice(1)}`;
+
+  if (requiredLevel === "never") {
+    return {
+      success: false,
+      error: `${verb} ${entityType} is not allowed through system tools.`,
+    };
+  }
+
+  const userLevel = context.userPermissionLevel ?? "public";
+  if (permissionService.hasPermission(userLevel, requiredLevel)) {
+    return undefined;
+  }
+
+  return {
+    success: false,
+    error: `${verb} ${entityType} requires ${ROLE_LABELS[requiredLevel]} permission; your current permission is ${ROLE_LABELS[userLevel]}.`,
+  };
+}
 
 /**
  * Like createTool but allows ToolResponse (incl. confirmations) as return type.

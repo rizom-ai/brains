@@ -191,6 +191,26 @@ export default defineBrain({
       { pattern: "discord:*", level: "public" },
       { pattern: "web-chat:*", level: "anchor" },
     ],
+    // Only team-authored entity types are loosened to trusted create/update.
+    // Derived/system-maintained types (summary, topic, agent, skill, swot,
+    // site-info, prompt, brain-character, anchor-profile, ...) are
+    // intentionally absent — they inherit the anchor-only platform fallback
+    // from PLATFORM_ENTITY_ACTION_DEFAULTS. Adding a new derived type does
+    // not require a relay-side change; adding a new collaborator-authored
+    // type does.
+    entityActions: {
+      base: { create: "trusted", update: "trusted", delete: "anchor" },
+      link: { create: "trusted", update: "trusted", delete: "anchor" },
+      doc: { create: "trusted", update: "trusted", delete: "anchor" },
+      deck: { create: "trusted", update: "trusted", delete: "anchor" },
+      decision: { create: "trusted", update: "trusted", delete: "anchor" },
+      "action-item": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+      },
+      image: { create: "trusted", update: "trusted", delete: "anchor" },
+    },
   },
 
   deployment: {
