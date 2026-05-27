@@ -129,20 +129,12 @@ function hasRemainingPendingConfirmations({
   return remainingPendingConfirmations(context, event.approvalId).length > 0;
 }
 
-function getConfirmationSummary(description: string): string {
-  const [summary] = description.split(/\n\s*\n/);
-  const trimmed = summary?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : description;
-}
-
 function buildCancelledResponse(
   confirmation: PendingConfirmation | null,
 ): AgentResponse {
-  const description = getConfirmationSummary(
-    confirmation?.description ?? "unknown action",
-  );
+  const summary = confirmation?.summary ?? "unknown action";
   return {
-    text: `Action cancelled: ${description}`,
+    text: `Action cancelled: ${summary}`,
     ...(confirmation
       ? {
           cards: [
@@ -156,7 +148,7 @@ function buildCancelledResponse(
               ...(isRecord(confirmation.args)
                 ? { input: confirmation.args }
                 : {}),
-              description,
+              summary,
               state: "output-denied",
             },
           ],

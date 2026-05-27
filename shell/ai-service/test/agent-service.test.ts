@@ -677,7 +677,8 @@ describe("AgentService", () => {
     // Helper: make the agent return a tool result with needsConfirmation
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
-      description = "Delete note 'Meeting Notes'?",
+      summary = "Delete note 'Meeting Notes'?",
+      preview?: string,
     ): void => {
       mockAgentGenerateResult = {
         text,
@@ -697,7 +698,8 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "delete_note",
-                  description,
+                  summary,
+                  ...(preview !== undefined ? { preview } : {}),
                   args: { noteId: "123" },
                 },
               },
@@ -799,7 +801,7 @@ describe("AgentService", () => {
           toolCallId: "call-1",
           toolName: "delete_note",
           input: { noteId: "123" },
-          description: "Delete note 'Meeting Notes'?",
+          summary: "Delete note 'Meeting Notes'?",
           state: "approval-requested",
         },
       ]);
@@ -868,7 +870,7 @@ describe("AgentService", () => {
           toolCallId: "call-1",
           toolName: "delete_note",
           input: { noteId: "123" },
-          description: "Delete note 'Meeting Notes'?",
+          summary: "Delete note 'Meeting Notes'?",
           state: "output-available",
           output: { success: true },
         },
@@ -884,7 +886,8 @@ describe("AgentService", () => {
     it("does not repeat destructive preview text after confirmation", async () => {
       setupConfirmationResponse(
         "Deleted.",
-        "Delete note 'Meeting Notes'?\n\nPreview:\nSensitive content that should only appear before approval.",
+        "Delete note 'Meeting Notes'?",
+        "Sensitive content that should only appear before approval.",
       );
 
       const deleteHandler = mock(async () => ({ success: true as const }));
@@ -909,7 +912,12 @@ describe("AgentService", () => {
       );
 
       const pending = await service.chat("delete my note", "test-conversation");
-      expect(pending.pendingConfirmation?.description).toContain("Preview:");
+      expect(pending.pendingConfirmation?.summary).toBe(
+        "Delete note 'Meeting Notes'?",
+      );
+      expect(pending.pendingConfirmation?.preview).toBe(
+        "Sensitive content that should only appear before approval.",
+      );
 
       const response = await service.confirmPendingAction(
         "test-conversation",
@@ -920,11 +928,10 @@ describe("AgentService", () => {
       expect(response.text).toContain(
         "Completed: Delete note 'Meeting Notes'?",
       );
-      expect(response.text).not.toContain("Preview:");
       expect(response.text).not.toContain("Sensitive content");
-      expect(response.cards?.[0]?.description).toBe(
-        "Delete note 'Meeting Notes'?",
-      );
+      const resolvedCard = response.cards?.[0];
+      expect(resolvedCard?.summary).toBe("Delete note 'Meeting Notes'?");
+      expect(resolvedCard?.preview).toBeUndefined();
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {
@@ -982,7 +989,7 @@ describe("AgentService", () => {
           toolCallId: "call-1",
           toolName: "delete_note",
           input: { noteId: "123" },
-          description: "Delete note 'Meeting Notes'?",
+          summary: "Delete note 'Meeting Notes'?",
           state: "output-error",
           output: {
             success: false,
@@ -1096,7 +1103,7 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "delete_note",
-                  description: "Delete note 'Meeting Notes'?",
+                  summary: "Delete note 'Meeting Notes'?",
                   args: { noteId: "123" },
                 },
               },
@@ -1106,7 +1113,7 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "update_note",
-                  description: "Update note 'Roadmap'?",
+                  summary: "Update note 'Roadmap'?",
                   args: { noteId: "456", title: "New title" },
                 },
               },

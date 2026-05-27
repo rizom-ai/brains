@@ -150,7 +150,7 @@ describe("ConfirmationTracker", () => {
       const confirmation = {
         id: "approval:call-1",
         toolName: "delete_note",
-        description: "Delete note 'My Note'",
+        summary: "Delete note 'My Note'",
         args: { id: "note-123" },
       };
 
@@ -167,13 +167,13 @@ describe("ConfirmationTracker", () => {
       const first = {
         id: "approval:first",
         toolName: "delete_note",
-        description: "First",
+        summary: "First",
         args: {},
       };
       const second = {
         id: "approval:second",
         toolName: "publish",
-        description: "Second",
+        summary: "Second",
         args: {},
       };
 
@@ -189,7 +189,7 @@ describe("ConfirmationTracker", () => {
       tracker.setPending("conv-1", {
         id: "approval:clear",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
 
@@ -208,7 +208,7 @@ describe("ConfirmationTracker", () => {
       tracker.setPending("conv-1", {
         id: "approval:pending",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
 
@@ -223,7 +223,7 @@ describe("ConfirmationTracker", () => {
       tracker.setPending("conv-1", {
         id: "approval:cleared",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
       tracker.clearPending("conv-1");
@@ -237,13 +237,13 @@ describe("ConfirmationTracker", () => {
       const conf1 = {
         id: "approval:conv-1",
         toolName: "delete",
-        description: "Delete 1",
+        summary: "Delete 1",
         args: {},
       };
       const conf2 = {
         id: "approval:conv-2",
         toolName: "publish",
-        description: "Publish 2",
+        summary: "Publish 2",
         args: {},
       };
 
@@ -260,13 +260,13 @@ describe("ConfirmationTracker", () => {
       tracker.setPending("conv-1", {
         id: "approval:a",
         toolName: "a",
-        description: "A",
+        summary: "A",
         args: {},
       });
       tracker.setPending("conv-2", {
         id: "approval:b",
         toolName: "b",
-        description: "B",
+        summary: "B",
         args: {},
       });
 

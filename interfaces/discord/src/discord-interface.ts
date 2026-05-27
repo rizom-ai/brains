@@ -586,7 +586,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         title: multiple
           ? `Approval required #${index + 1}`
           : "Approval required",
-        description: truncateText(approvalCard.description, 1024),
+        description: truncateText(approvalCard.summary, 1024),
         color: 0xf59e0b,
         fields: [
           {
@@ -599,6 +599,14 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
             value: `\`${truncateText(approvalCard.id, 80)}\``,
             inline: true,
           },
+          ...(approvalCard.preview
+            ? [
+                {
+                  name: "Preview",
+                  value: truncateText(approvalCard.preview, 1024),
+                },
+              ]
+            : []),
         ],
       })),
       components: approvalCards.slice(0, 5).map((approvalCard, index) => ({
@@ -700,7 +708,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
             : denied
               ? "Action declined"
               : "Action completed",
-          description: truncateText(approvalCard.description, 1024),
+          description: truncateText(approvalCard.summary, 1024),
           color: failed ? 0xef4444 : denied ? 0x94a3b8 : 0x22c55e,
           fields,
         },
@@ -736,8 +744,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   ): string {
     if (approvalCards.length === 0) return text;
     if (text.trim().length > 0) return text;
-    if (approvalCards.length === 1)
-      return approvalCards[0]?.description ?? text;
+    if (approvalCards.length === 1) return approvalCards[0]?.summary ?? text;
     return "Multiple approvals required.";
   }
 

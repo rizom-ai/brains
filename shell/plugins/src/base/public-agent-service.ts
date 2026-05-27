@@ -35,7 +35,8 @@ export function toPublicAgentResponse(
           ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
           toolName: card.toolName,
           ...(card.input !== undefined && { input: card.input }),
-          description: card.description,
+          summary: card.summary,
+          ...(card.preview !== undefined && { preview: card.preview }),
           state: card.state,
           ...(card.output !== undefined && { output: card.output }),
           ...(card.error !== undefined && { error: card.error }),
@@ -65,7 +66,10 @@ function toPublicPendingConfirmation(
       toolCallId: confirmation.toolCallId,
     }),
     toolName: confirmation.toolName,
-    description: confirmation.description,
+    summary: confirmation.summary,
+    ...(confirmation.preview !== undefined && {
+      preview: confirmation.preview,
+    }),
     args: confirmation.args,
   };
 }

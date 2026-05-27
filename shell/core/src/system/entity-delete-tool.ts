@@ -74,7 +74,8 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       return {
         needsConfirmation: true,
         toolName: "system_delete",
-        description: `Delete "${label}"?\n\nPreview:\n${entity.content.slice(0, 200)}`,
+        summary: `Delete "${label}"?`,
+        preview: entity.content.slice(0, 200),
         args: { ...input, id: entity.id, confirmed: true, confirmationToken },
       };
     },

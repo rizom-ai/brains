@@ -1784,7 +1784,9 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         toolName: card.toolName,
         input,
         dynamic: true,
-        title: card.description,
+        title: card.preview
+          ? `${card.summary}\n\n${card.preview}`
+          : card.summary,
       });
       switch (card.state) {
         case "approval-requested":

@@ -20,7 +20,7 @@ describe("confirmation result display", () => {
             kind: "tool-approval",
             id: "approval:call-1",
             toolName: "delete_note",
-            description: "Delete note?",
+            summary: "Delete note?",
             state: "output-error",
             output: {
               success: false,

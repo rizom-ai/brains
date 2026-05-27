@@ -282,8 +282,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   ): string {
     if (!approvalCard) return text;
 
-    const base = text.trim().length > 0 ? text : approvalCard.description;
-    return `${base}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
+    const baseText = text.trim().length > 0 ? text : approvalCard.summary;
+    const preview = approvalCard.preview ? `\n\n${approvalCard.preview}` : "";
+    return `${baseText}${preview}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
   }
 
   private formatApprovalResultText(
@@ -295,13 +296,13 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
     if (resultCard.state === "output-error") {
       return resultCard.error
-        ? `✗ ${resultCard.description}\n\n${resultCard.error}`
-        : `✗ ${resultCard.description}`;
+        ? `✗ ${resultCard.summary}\n\n${resultCard.error}`
+        : `✗ ${resultCard.summary}`;
     }
     if (resultCard.state === "output-denied") {
-      return `○ ${resultCard.description}`;
+      return `○ ${resultCard.summary}`;
     }
-    return `✓ ${resultCard.description}`;
+    return `✓ ${resultCard.summary}`;
   }
 
   /**

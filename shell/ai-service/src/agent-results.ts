@@ -58,7 +58,10 @@ export function extractToolResults(
           id: approvalId,
           ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
-          description: confirmationParsed.data.description,
+          summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.preview !== undefined
+            ? { preview: confirmationParsed.data.preview }
+            : {}),
           args: confirmationParsed.data.args,
         };
         pendingConfirmation ??= confirmation;
@@ -74,7 +77,10 @@ export function extractToolResults(
           ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           ...(args !== undefined ? { input: args } : {}),
-          description: confirmationParsed.data.description,
+          summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.preview !== undefined
+            ? { preview: confirmationParsed.data.preview }
+            : {}),
           state: "approval-requested",
         });
         continue;

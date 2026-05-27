@@ -76,7 +76,8 @@ interface ToolApprovalCard {
   toolCallId: string;
   toolName: string;
   input: Record<string, unknown>;
-  description: string;
+  summary: string; // short title; identical pre and post approval
+  preview?: string; // optional pre-approval detail; dropped post-approval
   state:
     | "approval-requested"
     | "approval-responded"

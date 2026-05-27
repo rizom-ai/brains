@@ -73,7 +73,7 @@ describe("TestRunner", () => {
             pendingConfirmation: {
               id: "approval:system_update",
               toolName: "system_update",
-              description: "Update agent?",
+              summary: "Update agent?",
               args: { entityType: "agent", id: "old-agent.io" },
             },
           }),

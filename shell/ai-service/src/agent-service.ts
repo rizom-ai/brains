@@ -476,15 +476,12 @@ export class AgentService implements IAgentService {
     const result = await tool.tool.handler(pendingConfirmation.args, context);
     const failed = isFailedToolOutput(result);
     const prefix = failed ? "Failed" : "Completed";
-    const confirmationSummary = this.getConfirmationSummary(
-      pendingConfirmation.description,
-    );
     const errorMessage = failed
       ? (getStringField(result, "error") ?? getStringField(result, "message"))
       : undefined;
     const resultText = errorMessage
-      ? `${prefix}: ${confirmationSummary}\n\n${errorMessage}`
-      : `${prefix}: ${confirmationSummary}`;
+      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
+      : `${prefix}: ${pendingConfirmation.summary}`;
     const toolResult: ToolResultData = {
       toolName: pendingConfirmation.toolName,
       data: result,
@@ -502,7 +499,7 @@ export class AgentService implements IAgentService {
       ...(isRecord(pendingConfirmation.args)
         ? { input: pendingConfirmation.args }
         : {}),
-      description: confirmationSummary,
+      summary: pendingConfirmation.summary,
       state: failed ? "output-error" : "output-available",
       output: result,
       ...(failed
@@ -528,12 +525,6 @@ export class AgentService implements IAgentService {
       cards: [approvalCard],
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
-  }
-
-  private getConfirmationSummary(description: string): string {
-    const [summary] = description.split(/\n\s*\n/);
-    const trimmed = summary?.trim();
-    return trimmed && trimmed.length > 0 ? trimmed : description.trim();
   }
 
   private buildMessageMetadata(
