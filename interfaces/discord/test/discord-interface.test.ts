@@ -12,6 +12,8 @@ interface MockConversationService {
   searchConversations: Mock<() => Promise<never[]>>;
   getMessages: Mock<() => Promise<never[]>>;
   countMessages: Mock<() => Promise<number>>;
+  updateConversationMetadata: Mock<() => Promise<boolean>>;
+  deleteConversation: Mock<() => Promise<boolean>>;
   close: Mock<() => void>;
 }
 
@@ -160,6 +162,8 @@ const createMockConversationService = (): MockConversationService => ({
   searchConversations: mock(() => Promise.resolve([])),
   getMessages: mock(() => Promise.resolve([])),
   countMessages: mock(() => Promise.resolve(0)),
+  updateConversationMetadata: mock(() => Promise.resolve(false)),
+  deleteConversation: mock(() => Promise.resolve(false)),
   close: mock((): void => {}),
 });
 

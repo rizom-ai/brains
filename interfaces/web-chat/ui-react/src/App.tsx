@@ -34,6 +34,11 @@ const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
 
 type ThemeMode = "light" | "dark";
+type AsyncStatus = "idle" | "loading" | "ready" | "error";
+type SessionDialog =
+  | { kind: "rename"; session: WebChatSession }
+  | { kind: "delete"; session: WebChatSession }
+  | null;
 
 function getInitialTheme(): ThemeMode {
   if (typeof document === "undefined") return "dark";
@@ -186,12 +191,33 @@ function statusPhrase(status: string): string {
   return "";
 }
 
+function describeFetchFailure(response: Response, fallback: string): string {
+  if (response.status === 401 || response.status === 403) {
+    return "Your operator session may have expired. Refresh or sign in again.";
+  }
+  return `${fallback} (${response.status})`;
+}
+
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );
   const [sessions, setSessions] = useState<WebChatSession[]>([]);
+  const [sessionsStatus, setSessionsStatus] = useState<AsyncStatus>("idle");
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [loadingConversationId, setLoadingConversationId] = useState<
+    string | null
+  >(null);
+  const [deletingConversationId, setDeletingConversationId] = useState<
+    string | null
+  >(null);
+  const [renamingConversationId, setRenamingConversationId] = useState<
+    string | null
+  >(null);
+  const [sessionDialog, setSessionDialog] = useState<SessionDialog>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -249,13 +275,35 @@ export function App(): React.ReactElement {
     void loadSessions();
   }, []);
 
-  async function loadSessions(): Promise<void> {
-    const response = await fetch("/api/chat/sessions", {
-      credentials: "include",
-    });
-    if (!response.ok) return;
-    const body = (await response.json()) as WebChatSessionsResponse;
-    setSessions(body.sessions);
+  async function loadSessions(
+    options: { quiet?: boolean } = {},
+  ): Promise<void> {
+    if (!options.quiet) {
+      setSessionsStatus("loading");
+      setSessionError(null);
+    }
+
+    try {
+      const response = await fetch("/api/chat/sessions", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(
+          describeFetchFailure(response, "Could not load saved sessions."),
+        );
+      }
+      const body = (await response.json()) as WebChatSessionsResponse;
+      setSessions(body.sessions);
+      setSessionsStatus("ready");
+      setSessionError(null);
+    } catch (error) {
+      setSessionsStatus("error");
+      setSessionError(
+        error instanceof Error
+          ? error.message
+          : "Could not load saved sessions.",
+      );
+    }
   }
 
   function upsertPendingSession(text: string): void {
@@ -281,40 +329,316 @@ export function App(): React.ReactElement {
   }
 
   async function switchConversation(nextConversationId: string): Promise<void> {
-    const response = await fetch(
-      `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
-      { credentials: "include" },
-    );
-    if (!response.ok) return;
-    const body = (await response.json()) as WebChatMessagesResponse;
-    const nextMessages = body.messages.map(toUiMessage);
-    localStorage.setItem(conversationStorageKey, nextConversationId);
-    setMessages(nextMessages);
-    setInitialMessages(nextMessages);
-    setConversationId(nextConversationId);
-    setInput("");
-    closeDrawer();
-    focusPromptTextarea(promptInputRef.current);
+    if (isBusyStatus(status) || loadingConversationId) return;
+
+    setHistoryError(null);
+    setLoadingConversationId(nextConversationId);
+    try {
+      const response = await fetch(
+        `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
+        { credentials: "include" },
+      );
+      if (!response.ok) {
+        throw new Error(
+          describeFetchFailure(response, "Could not reopen that session."),
+        );
+      }
+      const body = (await response.json()) as WebChatMessagesResponse;
+      const nextMessages = body.messages.map(toUiMessage);
+      try {
+        localStorage.setItem(conversationStorageKey, nextConversationId);
+      } catch {
+        /* localStorage unavailable — switching still works in memory */
+      }
+      setMessages(nextMessages);
+      setInitialMessages(nextMessages);
+      setConversationId(nextConversationId);
+      setInput("");
+      closeDrawer();
+      focusPromptTextarea(promptInputRef.current);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not reopen that session.",
+      );
+    } finally {
+      setLoadingConversationId(null);
+    }
   }
 
   function submitMessage(textOverride?: string): void {
     const text = (textOverride ?? input).trim();
     if (!text || isBusyStatus(status)) return;
+    setHistoryError(null);
     upsertPendingSession(text);
     setInput("");
-    void sendMessage({ text }).finally(() => loadSessions());
+    void sendMessage({ text }).finally(() => loadSessions({ quiet: true }));
     focusPromptTextarea(promptInputRef.current);
   }
 
-  function startNewConversation(): void {
+  function resetToNewConversation(): void {
     const next = createConversationId();
-    localStorage.setItem(conversationStorageKey, next);
+    try {
+      localStorage.setItem(conversationStorageKey, next);
+    } catch {
+      /* localStorage unavailable — the new session still works in memory */
+    }
     setMessages([]);
     setInitialMessages([]);
     setConversationId(next);
     setInput("");
+  }
+
+  function startNewConversation(): void {
+    setHistoryError(null);
+    resetToNewConversation();
     closeDrawer();
     focusPromptTextarea(promptInputRef.current);
+  }
+
+  function openRenameDialog(session: WebChatSession): void {
+    closeDrawer();
+    setRenameDraft(session.title);
+    setSessionDialog({ kind: "rename", session });
+  }
+
+  function openDeleteDialog(session: WebChatSession): void {
+    closeDrawer();
+    setSessionDialog({ kind: "delete", session });
+  }
+
+  function closeSessionDialog(): void {
+    setSessionDialog(null);
+    setRenameDraft("");
+  }
+
+  async function renameConversation(
+    session: WebChatSession,
+    nextTitle: string,
+  ): Promise<void> {
+    const trimmedTitle = nextTitle.trim();
+    if (
+      isBusyStatus(status) ||
+      renamingConversationId ||
+      !trimmedTitle ||
+      trimmedTitle === session.title
+    ) {
+      closeSessionDialog();
+      return;
+    }
+
+    setHistoryError(null);
+    setRenamingConversationId(session.id);
+    try {
+      const response = await fetch(
+        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: trimmedTitle }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(
+          describeFetchFailure(response, "Could not rename that session."),
+        );
+      }
+      setSessions((current) =>
+        current.map((candidate) =>
+          candidate.id === session.id
+            ? { ...candidate, title: trimmedTitle }
+            : candidate,
+        ),
+      );
+      closeSessionDialog();
+      focusPromptTextarea(promptInputRef.current);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not rename that session.",
+      );
+    } finally {
+      setRenamingConversationId(null);
+    }
+  }
+
+  async function deleteConversation(session: WebChatSession): Promise<void> {
+    if (isBusyStatus(status) || deletingConversationId) return;
+
+    setHistoryError(null);
+    setDeletingConversationId(session.id);
+    try {
+      const response = await fetch(
+        `/api/chat/sessions?id=${encodeURIComponent(session.id)}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      if (!response.ok) {
+        throw new Error(
+          describeFetchFailure(response, "Could not delete that session."),
+        );
+      }
+      setSessions((current) =>
+        current.filter((candidate) => candidate.id !== session.id),
+      );
+      if (session.id === conversationId) {
+        resetToNewConversation();
+      }
+      closeSessionDialog();
+      focusPromptTextarea(promptInputRef.current);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not delete that session.",
+      );
+    } finally {
+      setDeletingConversationId(null);
+    }
+  }
+
+  function renderSessions(): React.ReactNode {
+    if (sessionsStatus === "loading" && sessions.length === 0) {
+      return (
+        <ul
+          className="web-chat-sessions-list"
+          aria-busy="true"
+          aria-label="Loading sessions"
+        >
+          {Array.from({ length: 4 }, (_, index) => (
+            <li key={index} className="web-chat-session-skeleton">
+              <span />
+              <div>
+                <span />
+                <span />
+              </div>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (sessionError && sessions.length === 0) {
+      return (
+        <div className="web-chat-sessions-state" data-tone="error" role="alert">
+          <span className="web-chat-sessions-state-tag">Signal lost</span>
+          <p>{sessionError}</p>
+          <button type="button" onClick={() => void loadSessions()}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (sessions.length === 0) {
+      return (
+        <div className="web-chat-sessions-state" aria-live="polite">
+          <span className="web-chat-sessions-state-tag">No traces yet</span>
+          <p>Your first thread will root here after you plant a question.</p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {sessionError ? (
+          <div className="web-chat-sessions-inline-error" role="status">
+            <span>Sync paused</span>
+            <button type="button" onClick={() => void loadSessions()}>
+              Retry
+            </button>
+          </div>
+        ) : null}
+        <ul className="web-chat-sessions-list" role="listbox">
+          {sessions.map((session) => {
+            const isLoading = session.id === loadingConversationId;
+            const isDeleting = session.id === deletingConversationId;
+            const isRenaming = session.id === renamingConversationId;
+            const actionsDisabled =
+              isBusyStatus(status) ||
+              loadingConversationId !== null ||
+              deletingConversationId !== null ||
+              renamingConversationId !== null;
+            return (
+              <li key={session.id} className="web-chat-session-item">
+                <button
+                  className="web-chat-session"
+                  type="button"
+                  role="option"
+                  aria-selected={session.id === conversationId}
+                  aria-busy={isLoading || isDeleting || isRenaming}
+                  disabled={actionsDisabled}
+                  data-active={session.id === conversationId ? "true" : "false"}
+                  data-loading={isLoading ? "true" : "false"}
+                  onClick={() => void switchConversation(session.id)}
+                >
+                  <span className="web-chat-session-time">
+                    {formatSessionTime(session.lastActiveAt)}
+                  </span>
+                  <div className="web-chat-session-body">
+                    <h3 className="web-chat-session-title">{session.title}</h3>
+                    {isLoading || isDeleting || isRenaming ? (
+                      <span className="web-chat-session-subtitle">
+                        {isRenaming
+                          ? "renaming…"
+                          : isDeleting
+                            ? "deleting…"
+                            : "reopening…"}
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+                <button
+                  className="web-chat-session-rename"
+                  type="button"
+                  aria-label={`Rename ${session.title}`}
+                  disabled={actionsDisabled}
+                  onClick={() => openRenameDialog(session)}
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M9.8 3.2 12.8 6.2" strokeLinecap="round" />
+                    <path
+                      d="M3.5 12.5 4.2 9.4 10.9 2.7a1.4 1.4 0 0 1 2 2L6.2 11.4l-2.7 1.1Z"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  className="web-chat-session-delete"
+                  type="button"
+                  aria-label={`Delete ${session.title}`}
+                  disabled={actionsDisabled}
+                  onClick={() => openDeleteDialog(session)}
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M3.5 4.5h9" strokeLinecap="round" />
+                    <path d="M6 4.5V3.2h4v1.3" strokeLinejoin="round" />
+                    <path
+                      d="M5 6.5v5.2M8 6.5v5.2M11 6.5v5.2M4.7 4.5l.45 8.3h5.7l.45-8.3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    );
   }
 
   return (
@@ -346,6 +670,84 @@ export function App(): React.ReactElement {
           <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
         </svg>
       </button>
+
+      {sessionDialog ? (
+        <div className="web-chat-session-dialog-backdrop" role="presentation">
+          <section
+            className="web-chat-session-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="web-chat-session-dialog-title"
+          >
+            <span className="web-chat-session-dialog-kicker">
+              {sessionDialog.kind === "rename"
+                ? "Retitle trace"
+                : "Prune trace"}
+            </span>
+            <h2 id="web-chat-session-dialog-title">
+              {sessionDialog.kind === "rename"
+                ? "Rename this thread"
+                : "Delete this thread?"}
+            </h2>
+            {sessionDialog.kind === "rename" ? (
+              <form
+                className="web-chat-session-dialog-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void renameConversation(sessionDialog.session, renameDraft);
+                }}
+              >
+                <label htmlFor="web-chat-session-rename-input">
+                  Trace title
+                </label>
+                <input
+                  id="web-chat-session-rename-input"
+                  value={renameDraft}
+                  maxLength={sessionTitleMaxLength}
+                  onInput={(event) => setRenameDraft(event.currentTarget.value)}
+                />
+                <div className="web-chat-session-dialog-actions">
+                  <button type="button" onClick={closeSessionDialog}>
+                    Keep old title
+                  </button>
+                  <button
+                    type="submit"
+                    data-primary="true"
+                    disabled={
+                      renamingConversationId !== null || !renameDraft.trim()
+                    }
+                  >
+                    Rename
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <p>
+                  This removes <strong>{sessionDialog.session.title}</strong>{" "}
+                  and its saved messages from the session rail.
+                </p>
+                <div className="web-chat-session-dialog-actions">
+                  <button type="button" onClick={closeSessionDialog}>
+                    Keep trace
+                  </button>
+                  <button
+                    type="button"
+                    data-danger="true"
+                    disabled={deletingConversationId !== null}
+                    onClick={() =>
+                      void deleteConversation(sessionDialog.session)
+                    }
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      ) : null}
+
       <aside className="web-chat-sessions" aria-label="Sessions">
         <header className="web-chat-sessions-header">
           <h2>Sessions</h2>
@@ -367,31 +769,7 @@ export function App(): React.ReactElement {
           </button>
         </header>
 
-        {sessions.length === 0 ? (
-          <p className="web-chat-sessions-list-empty">No traces yet.</p>
-        ) : (
-          <ul className="web-chat-sessions-list" role="listbox">
-            {sessions.map((session) => (
-              <li key={session.id}>
-                <button
-                  className="web-chat-session"
-                  type="button"
-                  role="option"
-                  aria-selected={session.id === conversationId}
-                  data-active={session.id === conversationId ? "true" : "false"}
-                  onClick={() => void switchConversation(session.id)}
-                >
-                  <span className="web-chat-session-time">
-                    {formatSessionTime(session.lastActiveAt)}
-                  </span>
-                  <div className="web-chat-session-body">
-                    <h3 className="web-chat-session-title">{session.title}</h3>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {renderSessions()}
 
         <footer className="web-chat-sessions-footer">
           <span className="web-chat-sessions-footer-id">brain · anchor</span>
@@ -482,6 +860,20 @@ export function App(): React.ReactElement {
             </button>
           </div>
         </header>
+
+        {historyError ? (
+          <div
+            className="web-chat-session-notice"
+            data-tone="error"
+            role="alert"
+          >
+            <span className="web-chat-session-notice-tag">Session drift</span>
+            <p>{historyError}</p>
+            <button type="button" onClick={() => setHistoryError(null)}>
+              Dismiss
+            </button>
+          </div>
+        ) : null}
 
         <Conversation>
           <ConversationContent>

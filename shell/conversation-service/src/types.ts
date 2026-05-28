@@ -99,6 +99,11 @@ export interface AddConversationMessageRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface UpdateConversationMetadataRequest {
+  conversationId: string;
+  metadata: Record<string, unknown>;
+}
+
 export interface ListConversationsOptions {
   limit?: number;
   updatedAfter?: string;
@@ -120,6 +125,10 @@ export interface IConversationService {
   listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;
+  updateConversationMetadata(
+    request: UpdateConversationMetadataRequest,
+  ): Promise<boolean>;
+  deleteConversation(conversationId: string): Promise<boolean>;
 
   // Search operations
   searchConversations(

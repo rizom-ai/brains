@@ -51,8 +51,15 @@ const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 
+const renameSessionRequestSchema = z.object({
+  title: z.string().trim().min(1).max(webChatTitleMaxLength),
+});
+
 type ChatRequest = z.infer<typeof chatRequestSchema>;
 type ApprovalResponse = z.infer<typeof approvalResponsePartSchema>["approval"];
+type WebChatConversation = NonNullable<
+  Awaited<ReturnType<InterfacePluginContext["conversations"]["get"]>>
+>;
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -214,6 +221,7 @@ button, textarea, input { font: inherit; color: inherit; }
    56rem and centers, with a shared 2.75rem left pad so their content
    aligns with the message text behind the spine gutter. */
 .web-chat-app > .web-chat-conversation,
+.web-chat-app > .web-chat-session-notice,
 .web-chat-app > .web-chat-status,
 .web-chat-app > .web-chat-error,
 .web-chat-app > .web-chat-prompt-input {
@@ -330,6 +338,116 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-icon-action svg { width: 14px; height: 14px; }
 
+/* ─── Session dialogs ─── */
+.web-chat-session-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(0 0 0 / 0.42);
+  backdrop-filter: blur(10px);
+}
+.web-chat-session-dialog {
+  width: min(100%, 28rem);
+  padding: 1.25rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.25);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, var(--chat-bg-card), var(--chat-bg-subtle)),
+    var(--chat-bg-card);
+  box-shadow:
+    0 24px 80px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.web-chat-session-dialog-kicker {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--chat-font-display);
+  font-size: 1.45rem;
+  font-weight: 520;
+  letter-spacing: -0.02em;
+}
+.web-chat-session-dialog p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.web-chat-session-dialog strong { color: var(--chat-text); }
+.web-chat-session-dialog-form {
+  display: grid;
+  gap: 0.65rem;
+}
+.web-chat-session-dialog label {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chat-text-light);
+}
+.web-chat-session-dialog input {
+  width: 100%;
+  border: 1px solid var(--chat-border);
+  border-radius: 16px;
+  background: var(--chat-surface-inset);
+  color: var(--chat-text);
+  padding: 0.75rem 0.85rem;
+  outline: none;
+}
+.web-chat-session-dialog input:focus {
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 0 3px rgb(from var(--chat-accent) r g b / 0.14);
+}
+.web-chat-session-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+.web-chat-session-dialog-actions button {
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  background: var(--chat-surface-soft);
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  padding: 0.55rem 0.85rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-session-dialog-actions button:hover:not(:disabled) {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog-actions button[data-primary="true"] {
+  border-color: rgb(from var(--chat-accent) r g b / 0.55);
+  background: rgb(from var(--chat-accent) r g b / 0.14);
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog-actions button[data-danger="true"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.45);
+  background: rgb(from var(--chat-error) r g b / 0.12);
+  color: var(--chat-error);
+}
+.web-chat-session-dialog-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ─── Sessions panel ─── */
 .web-chat-sessions {
   display: grid;
@@ -397,14 +515,114 @@ button, textarea, input { font: inherit; color: inherit; }
     transparent 100%);
   pointer-events: none;
 }
-.web-chat-sessions-list-empty {
+.web-chat-sessions-state {
   margin: 1rem 1.25rem;
-  color: var(--chat-text-light);
+  padding: 1rem;
+  border: 1px solid var(--chat-border-soft);
+  border-radius: 18px;
+  background: var(--chat-surface-inset);
+  color: var(--chat-text-muted);
+}
+.web-chat-sessions-state[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.28);
+  background: rgb(from var(--chat-error) r g b / 0.08);
+}
+.web-chat-sessions-state-tag {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-sessions-state[data-tone="error"] .web-chat-sessions-state-tag {
+  color: var(--chat-error);
+}
+.web-chat-sessions-state p {
+  margin: 0;
   font-family: var(--chat-font-display);
-  font-style: italic;
   font-size: 13px;
+  font-style: italic;
+  line-height: 1.45;
+}
+.web-chat-sessions-state button,
+.web-chat-sessions-inline-error button,
+.web-chat-session-notice button {
+  border: 0;
+  background: transparent;
+  color: var(--chat-accent);
+  cursor: pointer;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.web-chat-sessions-state button {
+  margin-top: 0.8rem;
+  padding: 0;
+}
+.web-chat-sessions-empty-spacer {
+  min-height: 0;
+}
+.web-chat-sessions-inline-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.25rem 1.25rem 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(from var(--chat-error) r g b / 0.22);
+  border-radius: 999px;
+  background: rgb(from var(--chat-error) r g b / 0.07);
+  color: var(--chat-error);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-session-skeleton {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  gap: 0.85rem;
+  padding: 0.8rem 1.25rem 0.8rem 0.85rem;
+}
+.web-chat-session-skeleton > span,
+.web-chat-session-skeleton div span {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    var(--chat-surface-soft),
+    var(--chat-surface),
+    var(--chat-surface-soft));
+  background-size: 200% 100%;
+  animation: web-chat-session-pulse 1.2s ease-in-out infinite;
+}
+.web-chat-session-skeleton > span {
+  width: 2.6rem;
+  height: 0.55rem;
+  justify-self: end;
+  margin-top: 0.25rem;
+}
+.web-chat-session-skeleton div {
+  display: grid;
+  gap: 0.45rem;
+  padding-left: 0.85rem;
+}
+.web-chat-session-skeleton div span:first-child { width: 82%; height: 0.7rem; }
+.web-chat-session-skeleton div span:last-child { width: 46%; height: 0.55rem; }
+@keyframes web-chat-session-pulse {
+  0% { background-position: 0% 50%; }
+  100% { background-position: -200% 50%; }
 }
 
+.web-chat-session-item {
+  position: relative;
+}
 .web-chat-session {
   position: relative;
   display: grid;
@@ -414,13 +632,20 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 100%;
   border: 0;
   background: transparent;
-  padding: 0.75rem 1.25rem 0.75rem 0.85rem;
+  padding: 0.75rem 4.85rem 0.75rem 0.85rem;
   cursor: pointer;
   text-align: left;
   color: inherit;
   transition: background 0.2s ease;
 }
-.web-chat-session:hover { background: var(--chat-surface-soft); }
+.web-chat-session:hover:not(:disabled) { background: var(--chat-surface-soft); }
+.web-chat-session:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.web-chat-session:disabled:not([data-loading="true"]) {
+  cursor: not-allowed;
+}
 .web-chat-session-time {
   padding-top: 0.15rem;
   font-family: var(--chat-font-label);
@@ -480,6 +705,14 @@ button, textarea, input { font: inherit; color: inherit; }
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
+.web-chat-session-subtitle {
+  font-family: var(--chat-font-label);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
 .web-chat-session[data-active="true"] {
   background: linear-gradient(90deg,
     rgb(from var(--chat-accent) r g b / 0.08) 0%,
@@ -497,6 +730,52 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--chat-accent) r g b / 0.2));
 }
 .web-chat-session[data-active="true"] .web-chat-session-time { color: var(--chat-accent); }
+.web-chat-session-rename,
+.web-chat-session-delete {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  opacity: 0.72;
+  transform: translateY(-50%) scale(1);
+  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+.web-chat-session-rename { right: 2.65rem; }
+.web-chat-session-delete { right: 0.85rem; }
+.web-chat-session-item:hover .web-chat-session-rename,
+.web-chat-session-item:hover .web-chat-session-delete,
+.web-chat-session-rename:focus-visible,
+.web-chat-session-delete:focus-visible,
+.web-chat-session-rename:disabled,
+.web-chat-session-delete:disabled {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.web-chat-session-rename:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-accent) r g b / 0.34);
+  background: rgb(from var(--chat-accent) r g b / 0.1);
+  color: var(--chat-accent);
+}
+.web-chat-session-delete:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-error) r g b / 0.34);
+  background: rgb(from var(--chat-error) r g b / 0.1);
+  color: var(--chat-error);
+}
+.web-chat-session-rename:disabled,
+.web-chat-session-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.web-chat-session-rename svg,
+.web-chat-session-delete svg { width: 13px; height: 13px; }
 
 .web-chat-sessions-footer {
   display: flex;
@@ -526,6 +805,45 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 
 /* ─── Conversation (mycelial spine) ─── */
+.web-chat-session-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.24);
+  border-radius: 20px;
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-accent) r g b / 0.09),
+    var(--chat-surface-inset));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.web-chat-session-notice[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.28);
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-error) r g b / 0.1),
+    var(--chat-surface-inset));
+}
+.web-chat-session-notice-tag {
+  grid-column: 1 / -1;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-session-notice[data-tone="error"] .web-chat-session-notice-tag {
+  color: var(--chat-error);
+}
+.web-chat-session-notice p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.web-chat-session-notice button { padding: 0.15rem 0 0; }
+
 .web-chat-conversation {
   min-height: 0;
   overflow: auto;
@@ -1357,6 +1675,23 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   }
   .web-chat-mobile-trigger svg { width: 18px; height: 18px; }
 
+  .web-chat-session-rename,
+  .web-chat-session-delete {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+
+  .web-chat-session-dialog-backdrop {
+    place-items: end center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  .web-chat-session-dialog {
+    width: 100%;
+    max-height: calc(100vh - 2rem - env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+  }
+
   /* Header CTA buttons → 40px icon-only circles, matching the trigger. */
   .web-chat-header-actions {
     gap: 0.35rem;
@@ -1382,6 +1717,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-app::before { left: 0.6rem; }
   .web-chat-app::after { left: calc(0.6rem - 2px); bottom: 0.85rem; }
   .web-chat-app > .web-chat-conversation,
+  .web-chat-app > .web-chat-session-notice,
   .web-chat-app > .web-chat-status,
   .web-chat-app > .web-chat-error,
   .web-chat-app > .web-chat-prompt-input {
@@ -1433,6 +1769,11 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-empty-state-glyph { width: 130px; height: 64px; }
   .web-chat-empty-state h2 { font-size: 1.4rem; }
   .web-chat-empty-state p { font-size: 14px; max-width: 26ch; }
+  .web-chat-session-dialog-actions { flex-direction: column-reverse; }
+  .web-chat-session-dialog-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
 }
 `;
 
@@ -1510,6 +1851,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (request): Promise<Response> =>
           this.handleSessionsRequest(request),
+      },
+      {
+        path: "/api/chat/sessions",
+        method: "DELETE",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleDeleteSessionRequest(request),
+      },
+      {
+        path: "/api/chat/sessions",
+        method: "PUT",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleRenameSessionRequest(request),
       },
       {
         path: "/api/chat/messages",
@@ -1650,7 +2005,70 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return Response.json({ sessions });
   }
 
+  private async handleDeleteSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const deleted = await this.getContext().conversations.delete(
+      conversation.id,
+    );
+    return Response.json({ deleted });
+  }
+
+  private async handleRenameSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const parsed = renameSessionRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return new Response("Invalid rename request", { status: 400 });
+    }
+
+    const renamed = await this.getContext().conversations.updateMetadata({
+      conversationId: conversation.id,
+      metadata: { title: parsed.data.title },
+    });
+
+    return Response.json({ renamed, title: parsed.data.title });
+  }
+
+  private async resolveWebChatSession(
+    request: Request,
+  ): Promise<WebChatConversation | Response> {
+    const conversationId = new URL(request.url).searchParams.get("id");
+    if (!conversationId) {
+      return new Response("Missing conversation id", { status: 400 });
+    }
+
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    if (conversation?.interfaceType !== webChatInterfaceType) {
+      return new Response("Conversation not found", { status: 404 });
+    }
+
+    return conversation;
+  }
+
   private async getConversationTitle(conversationId: string): Promise<string> {
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    const renamedTitle = this.getMetadataTitle(conversation?.metadata);
+    if (renamedTitle) return renamedTitle;
+
     const messages = await this.getContext().conversations.getMessages(
       conversationId,
       { limit: webChatTitleMessageLimit },
@@ -1664,6 +2082,26 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       firstUserMessage.content.trim().split(/\r?\n/, 1)[0] ?? "";
     if (firstLine.length <= webChatTitleMaxLength) return firstLine;
     return `${firstLine.slice(0, webChatTitleMaxLength - 1).trimEnd()}…`;
+  }
+
+  private getMetadataTitle(metadata: unknown): string | undefined {
+    if (typeof metadata === "object" && metadata !== null) {
+      const title = (metadata as Record<string, unknown>)["title"];
+      if (typeof title === "string" && title.trim().length > 0) {
+        return title;
+      }
+    }
+    if (typeof metadata !== "string") return undefined;
+    try {
+      const parsed: unknown = JSON.parse(metadata);
+      if (typeof parsed !== "object" || parsed === null) return undefined;
+      const title = (parsed as Record<string, unknown>)["title"];
+      return typeof title === "string" && title.trim().length > 0
+        ? title
+        : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {

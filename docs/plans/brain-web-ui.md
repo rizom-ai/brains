@@ -117,12 +117,11 @@ aligned, and `dist` is included in package `files`.
 ### 1. Session refinements
 
 Basic explicit sessions are implemented: list recent conversations, switch,
-create new, remember last selected in browser storage. Product-ready chat still
+create new, remember last selected in browser storage. Loading/empty/error
+states, rename, and explicit delete are in place. Product-ready chat still
 needs:
 
-- rename / archive / delete
-- better loading / empty / error states
-- clearer disconnected-session UX
+- archive
 
 ### 2. Outbound attachments / artifacts
 
