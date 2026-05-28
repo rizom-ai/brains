@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chat, useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type UIMessage,
+} from "ai";
 import {
   Conversation,
   ConversationContent,
@@ -10,6 +14,7 @@ import {
 import {
   ConfirmationPart,
   GenericDataPart,
+  NativeToolPart,
   ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
@@ -103,6 +108,7 @@ type RenderedPart =
   | { kind: "text"; text: string }
   | { kind: "tools"; tools: unknown[] }
   | { kind: "confirmation"; data: unknown }
+  | { kind: "native-tool"; data: unknown }
   | { kind: "generic"; type: string; data: unknown };
 
 function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
@@ -119,10 +125,14 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       continue;
     }
     flush();
-    if (part.type === "text") {
+    if (part.type === "dynamic-tool") {
+      if (part.state === "approval-requested") {
+        out.push({ kind: "confirmation", data: part });
+      } else {
+        out.push({ kind: "native-tool", data: part });
+      }
+    } else if (part.type === "text") {
       out.push({ kind: "text", text: part.text });
-    } else if (part.type === "data-confirmation") {
-      out.push({ kind: "confirmation", data: getPartData(part) });
     } else if (part.type.startsWith("data-")) {
       out.push({ kind: "generic", type: part.type, data: getPartData(part) });
     }
@@ -210,6 +220,8 @@ export function App(): React.ReactElement {
         id: conversationId,
         messages: initialMessages,
         transport,
+        sendAutomaticallyWhen:
+          lastAssistantMessageIsCompleteWithApprovalResponses,
       }),
     [conversationId, initialMessages, transport],
   );
@@ -221,6 +233,7 @@ export function App(): React.ReactElement {
     error,
     stop,
     clearError,
+    addToolApprovalResponse,
   } = useChat({
     chat,
   });
@@ -507,10 +520,13 @@ export function App(): React.ReactElement {
                         return (
                           <ConfirmationPart
                             key={index}
-                            conversationId={conversationId}
                             data={group.data}
+                            addToolApprovalResponse={addToolApprovalResponse}
                           />
                         );
+                      }
+                      if (group.kind === "native-tool") {
+                        return <NativeToolPart key={index} data={group.data} />;
                       }
                       return (
                         <GenericDataPart

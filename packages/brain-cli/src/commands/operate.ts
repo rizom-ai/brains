@@ -102,7 +102,8 @@ async function operateBuiltin(
     });
 
     if ("needsConfirmation" in result) {
-      console.log(`Confirmation needed: ${result.description}`);
+      const detail = result.preview ? `\n\n${result.preview}` : "";
+      console.log(`Confirmation needed: ${result.summary}${detail}`);
       return { success: true };
     }
 

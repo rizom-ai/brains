@@ -86,10 +86,35 @@ export interface ChatContext {
  * Pending confirmation for destructive operations
  */
 export interface PendingConfirmation {
+  id: string;
+  toolCallId?: string;
   toolName: string;
-  description: string;
+  summary: string;
+  preview?: string;
   args: unknown;
 }
+
+export type ToolApprovalCardState =
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-denied"
+  | "output-error";
+
+export interface ToolApprovalCard {
+  kind: "tool-approval";
+  id: string;
+  toolCallId?: string;
+  toolName: string;
+  input?: Record<string, unknown>;
+  summary: string;
+  preview?: string;
+  state: ToolApprovalCardState;
+  output?: unknown;
+  error?: string;
+}
+
+export type StructuredChatCard = ToolApprovalCard;
 
 /**
  * Tool result data for tracking
@@ -113,8 +138,16 @@ export interface AgentResponse {
   // Interfaces should render these directly to ensure data is shown
   toolResults?: ToolResultData[];
 
+  // Structured chat cards for interface-specific rendering of approvals,
+  // tool outputs, artifacts, and future rich parts.
+  cards?: StructuredChatCard[];
+
   // Confirmation flow for destructive operations
   pendingConfirmation?: PendingConfirmation;
+
+  // All pending confirmations when a response contains more than one
+  // destructive action. `pendingConfirmation` remains for compatibility.
+  pendingConfirmations?: PendingConfirmation[];
 
   // Token usage for tracking
   usage: {
@@ -144,10 +177,12 @@ export interface IAgentService {
    * Confirm a pending destructive operation
    * @param conversationId - ID of the conversation
    * @param confirmed - Whether the user confirmed the operation
+   * @param approvalId - Explicit approval/action id to resolve
    */
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId: string,
   ): Promise<AgentResponse>;
 
   /**

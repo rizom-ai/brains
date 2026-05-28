@@ -1,4 +1,8 @@
-import type { IAgentService, ChatContext } from "@brains/ai-service";
+import type {
+  IAgentService,
+  ChatContext,
+  AgentResponse,
+} from "@brains/ai-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
@@ -41,23 +45,36 @@ export class TestRunner implements ITestRunner {
     const failures: FailureDetail[] = [];
 
     const context = this.buildChatContext(testCase);
+    let pendingApprovalIds: string[] = [];
 
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
       if (!turn) continue;
 
       collector.startTurn();
-      const response =
-        turn.confirmPendingAction !== undefined
-          ? await this.agentService.confirmPendingAction(
-              conversationId,
-              turn.confirmPendingAction,
-            )
-          : await this.agentService.chat(
-              turn.userMessage,
-              conversationId,
-              context,
-            );
+      let response: AgentResponse;
+      if (turn.confirmPendingAction !== undefined) {
+        const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
+        if (!approvalId) {
+          throw new Error(
+            `Turn ${i}: cannot resolve approvalId for confirmPendingAction. ` +
+              `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
+              `(pending=${pendingApprovalIds.length}).`,
+          );
+        }
+        response = await this.agentService.confirmPendingAction(
+          conversationId,
+          turn.confirmPendingAction,
+          approvalId,
+        );
+      } else {
+        response = await this.agentService.chat(
+          turn.userMessage,
+          conversationId,
+          context,
+        );
+      }
+      pendingApprovalIds = this.extractPendingApprovalIds(response);
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults:
@@ -126,6 +143,33 @@ export class TestRunner implements ITestRunner {
       efficiencyFailures:
         efficiencyFailures.length > 0 ? efficiencyFailures : undefined,
     };
+  }
+
+  private resolveApprovalId(
+    turn: AgentTestCase["turns"][number],
+    pendingApprovalIds: string[],
+  ): string | undefined {
+    if (turn.approvalId) return turn.approvalId;
+    if (pendingApprovalIds.length !== 1) return undefined;
+    return pendingApprovalIds[0];
+  }
+
+  private extractPendingApprovalIds(response: AgentResponse): string[] {
+    const approvalCards =
+      response.cards?.filter((card) => card.state === "approval-requested") ??
+      [];
+    if (approvalCards.length > 0) {
+      return approvalCards.map((card) => card.id);
+    }
+    if (
+      response.pendingConfirmations &&
+      response.pendingConfirmations.length > 0
+    ) {
+      return response.pendingConfirmations.map(
+        (confirmation) => confirmation.id,
+      );
+    }
+    return [];
   }
 
   private buildChatContext(testCase: AgentTestCase): ChatContext {

@@ -1,5 +1,6 @@
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { App as AppClass } from "./app";
+import type { ToolResponse } from "@brains/mcp-service";
 
 interface AppFactory {
   create: typeof AppClass.create;
@@ -8,11 +9,6 @@ interface AppFactory {
 type InitializeOptions = Parameters<
   ReturnType<typeof AppClass.create>["initialize"]
 >[0];
-
-type CliToolResult =
-  | { needsConfirmation: true; description: string }
-  | { success: false; error: string }
-  | { success: true; message?: string | undefined; data?: unknown };
 
 function getArgValue(args: string[], flag: string): string | undefined {
   const flagIdx = args.indexOf(flag);
@@ -61,9 +57,10 @@ async function initializeHeadlessApp(
   return app;
 }
 
-function printToolResult(result: CliToolResult): void {
+function printToolResult(result: ToolResponse): void {
   if ("needsConfirmation" in result) {
-    console.log(`Confirmation needed: ${result.description}`);
+    const detail = result.preview ? `\n\n${result.preview}` : "";
+    console.log(`Confirmation needed: ${result.summary}${detail}`);
     process.exit(0);
   }
 
@@ -88,7 +85,7 @@ async function invokeCliTool(
   handler: (
     input: unknown,
     context: { interfaceType: string; userId: string },
-  ) => Promise<CliToolResult>,
+  ) => Promise<ToolResponse>,
   input: unknown,
   failureLabel: string,
 ): Promise<void> {

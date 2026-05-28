@@ -84,7 +84,8 @@ export const toolConfirmationSchema = z
   .object({
     needsConfirmation: z.literal(true),
     toolName: z.string(),
-    description: z.string(),
+    summary: z.string(),
+    preview: z.string().optional(),
     args: z.unknown(),
   })
   .strict();

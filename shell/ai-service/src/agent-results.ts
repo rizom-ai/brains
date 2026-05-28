@@ -7,6 +7,7 @@ import {
 import type {
   BrainAgentResult,
   PendingConfirmation,
+  StructuredChatCard,
   ToolResultData,
 } from "./agent-types";
 
@@ -16,6 +17,8 @@ const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmation: PendingConfirmation | null;
+  pendingConfirmations: PendingConfirmation[];
+  cards: StructuredChatCard[];
   totalToolCalls: number;
 }
 
@@ -23,6 +26,8 @@ export function extractToolResults(
   steps: BrainAgentResult["steps"],
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
+  const cards: StructuredChatCard[] = [];
+  const pendingConfirmations: PendingConfirmation[] = [];
   let pendingConfirmation: PendingConfirmation | null = null;
   let totalToolCalls = 0;
 
@@ -43,18 +48,40 @@ export function extractToolResults(
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
-        pendingConfirmation = {
-          toolName: confirmationParsed.data.toolName,
-          description: confirmationParsed.data.description,
-          args: confirmationParsed.data.args,
-        };
-
+        const approvalId = tr.toolCallId
+          ? `approval:${tr.toolCallId}`
+          : `approval:${tr.toolName}:${totalToolCalls}`;
         const args = tr.toolCallId
           ? toolCallArgsMap.get(tr.toolCallId)
           : undefined;
+        const confirmation: PendingConfirmation = {
+          id: approvalId,
+          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
+          toolName: confirmationParsed.data.toolName,
+          summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.preview !== undefined
+            ? { preview: confirmationParsed.data.preview }
+            : {}),
+          args: confirmationParsed.data.args,
+        };
+        pendingConfirmation ??= confirmation;
+        pendingConfirmations.push(confirmation);
+
         toolResults.push({
           toolName: tr.toolName,
           ...(args !== undefined ? { args } : {}),
+        });
+        cards.push({
+          kind: "tool-approval",
+          id: approvalId,
+          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
+          toolName: confirmationParsed.data.toolName,
+          ...(args !== undefined ? { input: args } : {}),
+          summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.preview !== undefined
+            ? { preview: confirmationParsed.data.preview }
+            : {}),
+          state: "approval-requested",
         });
         continue;
       }
@@ -87,5 +114,11 @@ export function extractToolResults(
     }
   }
 
-  return { toolResults, pendingConfirmation, totalToolCalls };
+  return {
+    toolResults,
+    pendingConfirmation,
+    pendingConfirmations,
+    cards,
+    totalToolCalls,
+  };
 }

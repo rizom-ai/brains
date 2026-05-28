@@ -186,7 +186,8 @@ describe("AgentService", () => {
 
       expect(response.text).toBe("I found some results for you.");
       expect(response.usage.totalTokens).toBe(150);
-      expect(response.pendingConfirmation).toBeUndefined();
+      expect(response.pendingConfirmations).toBeUndefined();
+      expect(response.cards).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalled();
     });
 
@@ -677,6 +678,8 @@ describe("AgentService", () => {
     // Helper: make the agent return a tool result with needsConfirmation
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
+      summary = "Delete note 'Meeting Notes'?",
+      preview?: string,
     ): void => {
       mockAgentGenerateResult = {
         text,
@@ -696,7 +699,8 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "delete_note",
-                  description: "Delete note 'Meeting Notes'?",
+                  summary,
+                  ...(preview !== undefined ? { preview } : {}),
                   args: { noteId: "123" },
                 },
               },
@@ -736,6 +740,43 @@ describe("AgentService", () => {
       expect(deleteHandler).not.toHaveBeenCalled();
     });
 
+    it("rejects confirmation when the explicit approval id does not match", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:wrong-call",
+      );
+
+      expect(response.text).toBe(
+        "No pending action matches approval id 'approval:wrong-call'.",
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
     it("does not return or persist misleading model completion text before confirmation", async () => {
       setupConfirmationResponse("Deleted.");
 
@@ -753,7 +794,26 @@ describe("AgentService", () => {
         "test-conversation",
       );
 
-      expect(response.pendingConfirmation).toBeDefined();
+      expect(response.pendingConfirmations).toEqual([
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          summary: "Delete note 'Meeting Notes'?",
+          args: { noteId: "123" },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "approval-requested",
+        },
+      ]);
       expect(response.text).toBe("Confirmation required.");
       expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -799,18 +859,88 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain(
-        "Completed: Delete note 'Meeting Notes'?",
-      );
-      expect(response.text).toContain('"success": true');
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'?");
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": true');
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: { success: true },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
           content: response.text,
         }),
       );
+    });
+
+    it("does not repeat destructive preview text after confirmation", async () => {
+      setupConfirmationResponse(
+        "Deleted.",
+        "Delete note 'Meeting Notes'?",
+        "Sensitive content that should only appear before approval.",
+      );
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat("delete my note", "test-conversation");
+      expect(pending.pendingConfirmations?.[0]?.summary).toBe(
+        "Delete note 'Meeting Notes'?",
+      );
+      expect(pending.pendingConfirmations?.[0]?.preview).toBe(
+        "Sensitive content that should only appear before approval.",
+      );
+
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
+
+      expect(response.text).toContain(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(response.text).not.toContain("Sensitive content");
+      const resolvedCard = response.cards?.[0];
+      expect(resolvedCard?.summary).toBe("Delete note 'Meeting Notes'?");
+      expect(resolvedCard?.preview).toBeUndefined();
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {
@@ -844,10 +974,40 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain('"success": false');
-      expect(response.text).toContain("Entity not found: base/woodchuck-note");
+      expect(response.text).toBe(
+        "Failed: Delete note 'Meeting Notes'?\n\nEntity not found: base/woodchuck-note",
+      );
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": false');
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "output-error",
+          output: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+          error: "Entity not found: base/woodchuck-note",
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
@@ -892,11 +1052,18 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain('"success": false');
+      expect(response.text).not.toContain('"success": false');
       expect(response.text).toContain(
         "Tool delete_note returned an invalid response shape",
+      );
+      expect(response.cards?.[0]).toEqual(
+        expect.objectContaining({
+          state: "output-error",
+          error: "Tool delete_note returned an invalid response shape",
+        }),
       );
     });
 
@@ -917,16 +1084,129 @@ describe("AgentService", () => {
         "delete my note",
         "test-conversation",
       );
-      expect(chatResponse.pendingConfirmation).toBeDefined();
-      expect(chatResponse.pendingConfirmation?.toolName).toBe("delete_note");
+      expect(chatResponse.pendingConfirmations?.[0]?.toolName).toBe(
+        "delete_note",
+      );
+      expect(chatResponse.cards?.[0]?.id).toBe("approval:call-1");
 
       // Confirm the action
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
       expect(response.text).toBeDefined();
+    });
+
+    it("keeps multiple pending approvals distinct by approval id", async () => {
+      mockAgentGenerateResult = {
+        text: "Delete and update requested.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                input: { noteId: "456", title: "New title" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  summary: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "update_note",
+                  summary: "Update note 'Roadmap'?",
+                  args: { noteId: "456", title: "New title" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      const updateTool: Tool = {
+        name: "update_note",
+        description: "Update note",
+        inputSchema: { noteId: z.string(), title: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+        { pluginId: "test", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat(
+        "delete and update",
+        "test-conversation",
+      );
+
+      expect(pending.cards?.map((card) => card.id)).toEqual([
+        "approval:call-delete",
+        "approval:call-update",
+      ]);
+
+      const updateResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update",
+      );
+      expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'?");
+      expect(updateHandler).toHaveBeenCalledWith(
+        { noteId: "456", title: "New title" },
+        expect.any(Object),
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      const deleteResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-delete",
+      );
+      expect(deleteResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(deleteHandler).toHaveBeenCalledWith(
+        { noteId: "123" },
+        expect.any(Object),
+      );
     });
 
     it("should cancel pending confirmation when user declines", async () => {
@@ -948,6 +1228,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         false,
+        "approval:call-1",
       );
 
       expect(response.text).toContain("cancelled");
@@ -983,7 +1264,11 @@ describe("AgentService", () => {
         channelId: "!room:example.org",
         channelName: "Ops",
       });
-      await service.confirmPendingAction("test-conversation", true);
+      await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
 
       expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
         "trusted",
@@ -1012,6 +1297,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:noop",
       );
 
       expect(response.text).toContain("No pending");

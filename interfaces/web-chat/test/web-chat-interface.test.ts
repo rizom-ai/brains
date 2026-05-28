@@ -19,13 +19,33 @@ interface AgentChatCall {
   context: ChatContext | undefined;
 }
 
-function createSpyAgentService(): IAgentService & {
+interface AgentConfirmCall {
+  conversationId: string;
+  confirmed: boolean;
+  approvalId: string | undefined;
+}
+
+function createSpyAgentService(
+  chatResponse: AgentResponse = {
+    text: "Mock agent response",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  },
+  confirmResponse: AgentResponse = {
+    text: "Action confirmed.",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  },
+): IAgentService & {
   readonly chatCalls: ReadonlyArray<AgentChatCall>;
+  readonly confirmCalls: ReadonlyArray<AgentConfirmCall>;
 } {
   const calls: AgentChatCall[] = [];
+  const confirmCalls: AgentConfirmCall[] = [];
   return {
     get chatCalls(): ReadonlyArray<AgentChatCall> {
       return calls;
+    },
+    get confirmCalls(): ReadonlyArray<AgentConfirmCall> {
+      return confirmCalls;
     },
     chat: async (
       message: string,
@@ -33,15 +53,16 @@ function createSpyAgentService(): IAgentService & {
       context?: ChatContext,
     ): Promise<AgentResponse> => {
       calls.push({ message, conversationId, context });
-      return {
-        text: "Mock agent response",
-        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-      };
+      return chatResponse;
     },
-    confirmPendingAction: async (): Promise<AgentResponse> => ({
-      text: "Action confirmed.",
-      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-    }),
+    confirmPendingAction: async (
+      conversationId: string,
+      confirmed: boolean,
+      approvalId?: string,
+    ): Promise<AgentResponse> => {
+      confirmCalls.push({ conversationId, confirmed, approvalId });
+      return confirmResponse;
+    },
     invalidateAgent: (): void => {},
   };
 }
@@ -136,7 +157,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(6);
+    expect(routes).toHaveLength(5);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -148,21 +169,16 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[2]).toMatchObject({
-      path: "/api/chat/confirm",
-      method: "POST",
-      public: true,
-    });
-    expect(routes[3]).toMatchObject({
       path: "/api/chat/sessions",
       method: "GET",
       public: true,
     });
-    expect(routes[4]).toMatchObject({
+    expect(routes[3]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[5]).toMatchObject({
+    expect(routes[4]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -215,7 +231,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = plugin.getWebRoutes()[4];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -256,6 +272,246 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(403);
     expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("streams approval cards as AI SDK native tool chunks", async () => {
+    const agent = createSpyAgentService({
+      text: "Confirmation required.",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note?",
+          state: "approval-requested",
+        },
+      ],
+      pendingConfirmations: [
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          summary: "Delete note?",
+          args: { noteId: "123" },
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Delete it" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("tool-input-available");
+    expect(body).toContain("tool-approval-request");
+    expect(body).toContain("approval:call-1");
+    expect(body).not.toContain("data-approval-card");
+  });
+
+  it("handles AI SDK approval responses through the chat endpoint", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Completed: Delete note?",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          trigger: "submit-message",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  input: { noteId: "123" },
+                  approval: {
+                    id: "approval:call-1",
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+    ]);
+    expect(body).toContain("tool-output-available");
+    expect(body).toContain("call-1");
+  });
+
+  it("handles multiple AI SDK approval responses through one chat request", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Completed approval.",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-1", approved: true },
+                },
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-2",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-2", approved: false },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+      {
+        conversationId: "test-conversation",
+        confirmed: false,
+        approvalId: "approval:call-2",
+      },
+    ]);
+    expect(body).toContain("tool-output-available");
+  });
+
+  it("routes new user messages instead of replaying old approval responses", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-1", approved: true },
+                },
+              ],
+            },
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What happened next?" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.confirmCalls).toHaveLength(0);
+    expect(agent.chatCalls).toEqual([
+      {
+        message: "What happened next?",
+        conversationId: "test-conversation",
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      },
+    ]);
   });
 
   it("passes anchor permission level when caller has an operator session", async () => {
@@ -300,7 +556,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[2];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -336,7 +592,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[2];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -369,7 +625,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = plugin.getWebRoutes()[3];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -392,7 +648,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = plugin.getWebRoutes()[3];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -403,56 +659,6 @@ describe("WebChatInterface", () => {
     expect(body).toEqual({
       messages: [{ id: "message-1", role: "user", content: "Hello" }],
     });
-  });
-
-  it("refuses to confirm pending actions for non-operators", async () => {
-    const plugin = new WebChatInterface();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation", confirmed: true }),
-      }),
-    );
-
-    expect(response?.status).toBe(403);
-  });
-
-  it("confirms pending actions through AgentService for an operator", async () => {
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation", confirmed: true }),
-      }),
-    );
-    const body = await response?.json();
-
-    expect(response?.status).toBe(200);
-    expect(body).toMatchObject({ text: "Action confirmed." });
-  });
-
-  it("rejects malformed confirmation POSTs for an operator", async () => {
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "test-conversation" }),
-      }),
-    );
-
-    expect(response?.status).toBe(400);
   });
 
   it("rejects malformed chat POSTs", async () => {

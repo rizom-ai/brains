@@ -17,12 +17,42 @@ export const ChatContextSchema = z.object({
 export type ChatContext = z.infer<typeof ChatContextSchema>;
 
 export const PendingConfirmationSchema = z.object({
+  id: z.string(),
+  toolCallId: z.string().optional(),
   toolName: z.string(),
-  description: z.string(),
+  summary: z.string(),
+  preview: z.string().optional(),
   args: z.unknown(),
 });
 
 export type PendingConfirmation = z.infer<typeof PendingConfirmationSchema>;
+
+export const ToolApprovalCardStateSchema = z.enum([
+  "approval-requested",
+  "approval-responded",
+  "output-available",
+  "output-denied",
+  "output-error",
+]);
+
+export const ToolApprovalCardSchema = z.object({
+  kind: z.literal("tool-approval"),
+  id: z.string(),
+  toolCallId: z.string().optional(),
+  toolName: z.string(),
+  input: z.record(z.unknown()).optional(),
+  summary: z.string(),
+  preview: z.string().optional(),
+  state: ToolApprovalCardStateSchema,
+  output: z.unknown().optional(),
+  error: z.string().optional(),
+});
+
+export type ToolApprovalCard = z.infer<typeof ToolApprovalCardSchema>;
+
+export const StructuredChatCardSchema = ToolApprovalCardSchema;
+
+export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
 
 export const ToolResultDataSchema = z.object({
   toolName: z.string(),
@@ -36,7 +66,9 @@ export type ToolResultData = z.infer<typeof ToolResultDataSchema>;
 export const AgentResponseSchema = z.object({
   text: z.string(),
   toolResults: z.array(ToolResultDataSchema).optional(),
+  cards: z.array(StructuredChatCardSchema).optional(),
   pendingConfirmation: PendingConfirmationSchema.optional(),
+  pendingConfirmations: z.array(PendingConfirmationSchema).optional(),
   usage: z.object({
     promptTokens: z.number(),
     completionTokens: z.number(),
@@ -55,6 +87,7 @@ export interface AgentNamespace {
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId: string,
   ): Promise<AgentResponse>;
   invalidate(): void;
 }

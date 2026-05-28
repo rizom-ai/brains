@@ -16,6 +16,8 @@ import type {
   BrainAgent,
   ChatContext,
   IAgentService,
+  StructuredChatCard,
+  ToolResultData,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 import {
@@ -34,6 +36,20 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getStringField(value: unknown, field: string): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const fieldValue = value[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
+}
+
+function isFailedToolOutput(value: unknown): boolean {
+  return isRecord(value) && value["success"] === false;
+}
 
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
@@ -241,19 +257,55 @@ export class AgentService implements IAgentService {
   public async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId: string,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
-
-    if (!actor?.getSnapshot().matches("awaitingConfirmation")) {
+    if (!actor) {
       return {
         text: "No pending action to confirm.",
         usage: emptyUsage,
       };
     }
 
-    actor.send({ type: confirmed ? "CONFIRM" : "CANCEL" });
+    const snapshotBeforeConfirm = actor.getSnapshot();
 
-    const snapshot = await waitFor(actor, (s) => s.matches("idle"));
+    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
+      return {
+        text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
+
+    const pendingConfirmations =
+      snapshotBeforeConfirm.context.pendingConfirmations.length > 0
+        ? snapshotBeforeConfirm.context.pendingConfirmations
+        : snapshotBeforeConfirm.context.pendingConfirmation
+          ? [snapshotBeforeConfirm.context.pendingConfirmation]
+          : [];
+
+    const matchesApproval = pendingConfirmations.some(
+      (confirmation) => confirmation.id === approvalId,
+    );
+    if (!matchesApproval) {
+      return {
+        text: `No pending action matches approval id '${approvalId}'.`,
+        usage: emptyUsage,
+      };
+    }
+
+    actor.send({
+      type: confirmed ? "CONFIRM" : "CANCEL",
+      approvalId,
+    });
+
+    const snapshot = await waitFor(
+      actor,
+      (s) =>
+        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+        !s.context.pendingConfirmations.some(
+          (confirmation) => confirmation.id === approvalId,
+        ),
+    );
 
     return (
       snapshot.context.response ?? {
@@ -324,8 +376,13 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    const { toolResults, pendingConfirmation, totalToolCalls } =
-      extractToolResults(result.steps);
+    const {
+      toolResults,
+      pendingConfirmation,
+      pendingConfirmations,
+      cards,
+      totalToolCalls,
+    } = extractToolResults(result.steps);
 
     const responseText = pendingConfirmation
       ? "Confirmation required."
@@ -359,11 +416,15 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
+      ...(cards.length > 0 ? { cards } : {}),
       usage: toTokenUsage(result.usage),
     };
 
     if (pendingConfirmation) {
       response.pendingConfirmation = pendingConfirmation;
+    }
+    if (pendingConfirmations.length > 0) {
+      response.pendingConfirmations = pendingConfirmations;
     }
 
     return response;
@@ -403,7 +464,38 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const failed = isFailedToolOutput(result);
+    const prefix = failed ? "Failed" : "Completed";
+    const errorMessage = failed
+      ? (getStringField(result, "error") ?? getStringField(result, "message"))
+      : undefined;
+    const resultText = errorMessage
+      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
+      : `${prefix}: ${pendingConfirmation.summary}`;
+    const toolResult: ToolResultData = {
+      toolName: pendingConfirmation.toolName,
+      data: result,
+      ...(isRecord(pendingConfirmation.args)
+        ? { args: pendingConfirmation.args }
+        : {}),
+    };
+    const approvalCard: StructuredChatCard = {
+      kind: "tool-approval",
+      id: pendingConfirmation.id,
+      ...(pendingConfirmation.toolCallId
+        ? { toolCallId: pendingConfirmation.toolCallId }
+        : {}),
+      toolName: pendingConfirmation.toolName,
+      ...(isRecord(pendingConfirmation.args)
+        ? { input: pendingConfirmation.args }
+        : {}),
+      summary: pendingConfirmation.summary,
+      state: failed ? "output-error" : "output-available",
+      output: result,
+      ...(failed
+        ? { error: getStringField(result, "error") ?? "Action failed" }
+        : {}),
+    };
 
     await this.conversationService.addMessage({
       conversationId,
@@ -419,6 +511,8 @@ export class AgentService implements IAgentService {
 
     return {
       text: resultText,
+      toolResults: [toolResult],
+      cards: [approvalCard],
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }

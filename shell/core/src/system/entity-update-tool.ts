@@ -203,7 +203,8 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       return {
         needsConfirmation: true,
         toolName: "system_update",
-        description: `Update "${label}"?\n\nChanges:\n${diff}`,
+        summary: `Update "${label}"?`,
+        preview: diff,
         args: {
           ...input,
           ...normalizedInput,

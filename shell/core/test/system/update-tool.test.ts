@@ -120,10 +120,8 @@ describe("system_update tool", () => {
     expect(result).toMatchObject({
       needsConfirmation: true,
       toolName: "system_update",
+      summary: expect.stringContaining('Update "Notes on Living Systems"?'),
     });
-    expect((result as { description: string }).description).toContain(
-      'Update "Notes on Living Systems"?',
-    );
   });
 
   it("uses non-title metadata as the display label in delete confirmations", async () => {
@@ -135,10 +133,8 @@ describe("system_update tool", () => {
     expect(result).toMatchObject({
       needsConfirmation: true,
       toolName: "system_delete",
+      summary: expect.stringContaining('Delete "Notes on Living Systems"?'),
     });
-    expect((result as { description: string }).description).toContain(
-      'Delete "Notes on Living Systems"?',
-    );
   });
 
   it("does not delete when confirmed is passed without a pending confirmation token", async () => {

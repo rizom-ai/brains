@@ -148,8 +148,9 @@ describe("ConfirmationTracker", () => {
   describe("setPending and getPending", () => {
     it("should store and retrieve pending confirmation", () => {
       const confirmation = {
+        id: "approval:call-1",
         toolName: "delete_note",
-        description: "Delete note 'My Note'",
+        summary: "Delete note 'My Note'",
         args: { id: "note-123" },
       };
 
@@ -164,13 +165,15 @@ describe("ConfirmationTracker", () => {
 
     it("should overwrite existing confirmation for same conversation", () => {
       const first = {
+        id: "approval:first",
         toolName: "delete_note",
-        description: "First",
+        summary: "First",
         args: {},
       };
       const second = {
+        id: "approval:second",
         toolName: "publish",
-        description: "Second",
+        summary: "Second",
         args: {},
       };
 
@@ -184,8 +187,9 @@ describe("ConfirmationTracker", () => {
   describe("clearPending", () => {
     it("should remove pending confirmation", () => {
       tracker.setPending("conv-1", {
+        id: "approval:clear",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
 
@@ -202,8 +206,9 @@ describe("ConfirmationTracker", () => {
   describe("isPending", () => {
     it("should return true when confirmation is pending", () => {
       tracker.setPending("conv-1", {
+        id: "approval:pending",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
 
@@ -216,8 +221,9 @@ describe("ConfirmationTracker", () => {
 
     it("should return false after clearing", () => {
       tracker.setPending("conv-1", {
+        id: "approval:cleared",
         toolName: "delete",
-        description: "Delete",
+        summary: "Delete",
         args: {},
       });
       tracker.clearPending("conv-1");
@@ -228,8 +234,18 @@ describe("ConfirmationTracker", () => {
 
   describe("multiple conversations", () => {
     it("should track confirmations independently per conversation", () => {
-      const conf1 = { toolName: "delete", description: "Delete 1", args: {} };
-      const conf2 = { toolName: "publish", description: "Publish 2", args: {} };
+      const conf1 = {
+        id: "approval:conv-1",
+        toolName: "delete",
+        summary: "Delete 1",
+        args: {},
+      };
+      const conf2 = {
+        id: "approval:conv-2",
+        toolName: "publish",
+        summary: "Publish 2",
+        args: {},
+      };
 
       tracker.setPending("conv-1", conf1);
       tracker.setPending("conv-2", conf2);
@@ -242,13 +258,15 @@ describe("ConfirmationTracker", () => {
 
     it("should clear only the specified conversation", () => {
       tracker.setPending("conv-1", {
+        id: "approval:a",
         toolName: "a",
-        description: "A",
+        summary: "A",
         args: {},
       });
       tracker.setPending("conv-2", {
+        id: "approval:b",
         toolName: "b",
-        description: "B",
+        summary: "B",
         args: {},
       });
 

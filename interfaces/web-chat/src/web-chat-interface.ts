@@ -5,6 +5,7 @@ import {
   type InterfacePluginContext,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
+  type StructuredChatCard,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -23,6 +24,16 @@ const textPartSchema = z.object({
   text: z.string(),
 });
 
+const approvalResponsePartSchema = z
+  .object({
+    state: z.literal("approval-responded"),
+    approval: z.object({
+      id: z.string(),
+      approved: z.boolean(),
+    }),
+  })
+  .passthrough();
+
 const uiMessageSchema = z.object({
   role: z.string(),
   parts: z.array(z.unknown()).optional(),
@@ -32,11 +43,7 @@ const uiMessageSchema = z.object({
 const chatRequestSchema = z.object({
   id: z.string().optional(),
   messages: z.array(uiMessageSchema).min(1),
-});
-
-const confirmationRequestSchema = z.object({
-  id: z.string(),
-  confirmed: z.boolean(),
+  trigger: z.string().optional(),
 });
 
 const webChatInterfaceType = "web-chat";
@@ -45,6 +52,7 @@ const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 
 type ChatRequest = z.infer<typeof chatRequestSchema>;
+type ApprovalResponse = z.infer<typeof approvalResponsePartSchema>["approval"];
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -911,6 +919,18 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     rgb(from var(--chat-success) r g b / 0.2));
 }
 .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header { color: var(--chat-success); }
+.web-chat-confirmation[data-state="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.35);
+}
+.web-chat-confirmation[data-state="error"]::before {
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--chat-error) r g b / 0.9),
+    rgb(from var(--chat-error) r g b / 0.2));
+}
+.web-chat-confirmation[data-state="error"] .web-chat-confirmation-header {
+  color: var(--chat-error);
+}
 
 .web-chat-confirmation-body { padding: 0.85rem; display: grid; gap: 0.85rem; }
 .web-chat-confirmation-summary { margin: 0; color: var(--chat-text); line-height: 1.6; }
@@ -956,6 +976,8 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   background: rgb(from var(--chat-success) r g b / 0.12);
@@ -964,7 +986,17 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
+}
+.web-chat-confirmation-result[data-variant="error"] {
+  background: rgb(from var(--chat-error) r g b / 0.12);
+  color: var(--chat-error);
+}
+.web-chat-confirmation-result[data-variant="declined"] {
+  background: rgb(from var(--chat-text-muted) r g b / 0.12);
+  color: var(--chat-text-muted);
 }
 
 /* ─── Status (growing root + italic phrase) ─── */
@@ -1473,13 +1505,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatRequest(request),
       },
       {
-        path: "/api/chat/confirm",
-        method: "POST",
-        public: true,
-        handler: (request): Promise<Response> =>
-          this.handleConfirmationRequest(request),
-      },
-      {
         path: "/api/chat/sessions",
         method: "GET",
         public: true,
@@ -1572,14 +1597,26 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Invalid chat request", { status: 400 });
     }
 
+    const conversationId = parsed.data.id ?? this.createId("web");
     const message = this.extractLastUserText(parsed.data);
-    if (!message) {
+    const approvalResponses = message
+      ? []
+      : this.extractLatestApprovalResponses(parsed.data);
+    if (!message && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
     }
 
-    const conversationId = parsed.data.id ?? this.createId("web");
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
+        if (approvalResponses.length > 0) {
+          await this.handleStreamedConfirmations({
+            writer,
+            conversationId,
+            approvalResponses,
+          });
+          return;
+        }
+
         await this.handleStreamedChat({
           writer,
           conversationId,
@@ -1590,29 +1627,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
 
     return createUIMessageStreamResponse({ stream });
-  }
-
-  private async handleConfirmationRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
-    if (permissionLevel !== "anchor") {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    const parsed = confirmationRequestSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return new Response("Invalid confirmation request", { status: 400 });
-    }
-
-    const response = await this.getContext().agent.confirmPendingAction(
-      parsed.data.id,
-      parsed.data.confirmed,
-    );
-
-    return Response.json({
-      text: response.text,
-      toolResults: response.toolResults ?? [],
-      pendingConfirmation: response.pendingConfirmation ?? null,
-    });
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {
@@ -1718,16 +1732,98 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           data: toolResult,
         });
       }
-      if (response.pendingConfirmation) {
-        input.writer.write({
-          type: "data-confirmation",
-          id: this.createId("confirmation"),
-          data: response.pendingConfirmation,
-        });
+      this.writeApprovalCards(input.writer, response.cards ?? []);
+    } finally {
+      this.endProcessingInput();
+      this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private async handleStreamedConfirmations(input: {
+    writer: UIMessageStreamWriter<UIMessage>;
+    conversationId: string;
+    approvalResponses: ApprovalResponse[];
+  }): Promise<void> {
+    this.activeStreams.set(input.conversationId, { writer: input.writer });
+    this.startProcessingInput(input.conversationId);
+    const allApproved = input.approvalResponses.every(
+      (approvalResponse) => approvalResponse.approved,
+    );
+    input.writer.write({
+      type: "data-status",
+      id: this.createId("status"),
+      data: { status: allApproved ? "approving" : "resolving approvals" },
+      transient: true,
+    });
+
+    try {
+      for (const approvalResponse of input.approvalResponses) {
+        const response = await this.getContext().agent.confirmPendingAction(
+          input.conversationId,
+          approvalResponse.approved,
+          approvalResponse.id,
+        );
+        this.writeText(input.writer, response.text, "text");
+        this.writeApprovalCards(input.writer, response.cards ?? []);
       }
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private writeApprovalCards(
+    writer: UIMessageStreamWriter<UIMessage>,
+    cards: StructuredChatCard[],
+  ): void {
+    for (const card of cards) {
+      const toolCallId = card.toolCallId ?? card.id;
+      const input = card.input ?? {};
+      writer.write({
+        type: "tool-input-available",
+        toolCallId,
+        toolName: card.toolName,
+        input,
+        dynamic: true,
+        title: card.preview
+          ? `${card.summary}\n\n${card.preview}`
+          : card.summary,
+      });
+      switch (card.state) {
+        case "approval-requested":
+          writer.write({
+            type: "tool-approval-request",
+            approvalId: card.id,
+            toolCallId,
+          });
+          break;
+        case "approval-responded":
+          // Agent skips this state — it transitions directly from
+          // approval-requested to one of the output-* states.
+          break;
+        case "output-available":
+          writer.write({
+            type: "tool-output-available",
+            toolCallId,
+            output: card.output,
+            dynamic: true,
+          });
+          break;
+        case "output-error":
+          writer.write({
+            type: "tool-output-error",
+            toolCallId,
+            errorText: card.error ?? "Tool failed",
+            dynamic: true,
+          });
+          break;
+        case "output-denied":
+          writer.write({
+            type: "tool-output-denied",
+            toolCallId,
+          });
+          break;
+      }
     }
   }
 
@@ -1764,6 +1860,22 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       })
       .filter((part) => part.length > 0)
       .join("\n");
+  }
+
+  private extractLatestApprovalResponses(
+    request: ChatRequest,
+  ): ApprovalResponse[] {
+    // Clients resend the full message history on every turn, but only the
+    // trailing assistant message carries this turn's approval responses.
+    // Scanning earlier messages would replay decisions the agent already
+    // executed.
+    const lastMessage = request.messages.at(-1);
+    if (!lastMessage || lastMessage.role === "user") return [];
+
+    return (lastMessage.parts ?? [])
+      .map((part) => approvalResponsePartSchema.safeParse(part))
+      .filter((result) => result.success)
+      .map((result) => result.data.approval);
   }
 
   private findLastUserMessage(

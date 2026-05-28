@@ -1,19 +1,181 @@
 /** @jsxImportSource react */
 import { useState } from "react";
-import { Tool, ToolContent, ToolHeader, ToolOutput } from "./tool";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolOutput,
+  type ToolPart,
+} from "./tool";
+
+const TOOL_STATES: readonly ToolPart["state"][] = [
+  "approval-requested",
+  "approval-responded",
+  "input-streaming",
+  "input-available",
+  "output-available",
+  "output-denied",
+  "output-error",
+];
+
+function narrowToolState(value: string | undefined): ToolPart["state"] {
+  if (value && (TOOL_STATES as readonly string[]).includes(value)) {
+    return value as ToolPart["state"];
+  }
+  return "input-available";
+}
 
 interface ConfirmationResult {
   text: string;
+  toolResults?: unknown[];
+  cards?: unknown[];
+}
+
+type ConfirmationResultVariant = "success" | "error" | "declined";
+
+export interface ConfirmationResultDisplay {
+  label: string;
+  variant: ConfirmationResultVariant;
+}
+
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null && !Array.isArray(data);
 }
 
 function getRecordValue(data: unknown, key: string): unknown {
-  if (typeof data !== "object" || data === null) return undefined;
-  return (data as Record<string, unknown>)[key];
+  if (!isRecord(data)) return undefined;
+  return data[key];
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {
   const value = getRecordValue(data, key);
   return typeof value === "string" ? value : undefined;
+}
+
+function getBooleanValue(data: unknown, key: string): boolean | undefined {
+  const value = getRecordValue(data, key);
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function getFirstToolResult(result: ConfirmationResult): unknown {
+  return Array.isArray(result.toolResults) ? result.toolResults[0] : undefined;
+}
+
+function getFirstApprovalCard(result: ConfirmationResult): unknown {
+  if (!Array.isArray(result.cards)) return undefined;
+  return result.cards.find(
+    (card) => getStringValue(card, "kind") === "tool-approval",
+  );
+}
+
+function getToolResultData(toolResult: unknown): unknown {
+  return getRecordValue(toolResult, "data");
+}
+
+function parseResultJson(text: string): unknown {
+  const marker = "\n\nResult:";
+  const markerIndex = text.indexOf(marker);
+  if (markerIndex === -1) return undefined;
+
+  const json = text.slice(markerIndex + marker.length).trim();
+  if (!json) return undefined;
+
+  try {
+    return JSON.parse(json) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function humanizeToolName(toolName: string | undefined): string | undefined {
+  if (!toolName) return undefined;
+  const words = toolName
+    .replace(/^system[_-]/, "")
+    .split(/[_-]+/)
+    .filter(Boolean);
+  if (words.length === 0) return undefined;
+  const label = words.join(" ");
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+}
+
+export function formatConfirmationResult(
+  result: ConfirmationResult,
+  decision: "approved" | "declined" | null,
+): ConfirmationResultDisplay {
+  if (decision === "declined") {
+    return { label: "Declined", variant: "declined" };
+  }
+
+  const approvalCard = getFirstApprovalCard(result);
+  const toolResult = getFirstToolResult(result);
+  const toolLabel = humanizeToolName(
+    getStringValue(approvalCard, "toolName") ??
+      getStringValue(toolResult, "toolName"),
+  );
+  const resultData =
+    getRecordValue(approvalCard, "output") ??
+    getToolResultData(toolResult) ??
+    parseResultJson(result.text);
+  const cardState = getStringValue(approvalCard, "state");
+  const success = getBooleanValue(resultData, "success");
+  const errorMessage =
+    getStringValue(approvalCard, "error") ??
+    getStringValue(resultData, "error") ??
+    getStringValue(resultData, "message");
+
+  if (cardState === "output-error") {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
+  }
+
+  if (cardState === "output-available") {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
+
+  if (success === false) {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
+  }
+
+  if (result.text.startsWith("Error:")) {
+    return {
+      label: `Action failed · ${result.text.replace(/^Error:\s*/, "")}`,
+      variant: "error",
+    };
+  }
+
+  if (result.text.startsWith("Failed:")) {
+    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
+      errorMessage ? ` · ${errorMessage}` : ""
+    }`;
+    return { label, variant: "error" };
+  }
+
+  if (success === true) {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
+
+  if (result.text.startsWith("Completed:")) {
+    return {
+      label: toolLabel ? `${toolLabel} completed` : "Action completed",
+      variant: "success",
+    };
+  }
+
+  return {
+    label: result.text ? `Approved · ${result.text}` : "Approved",
+    variant: "success",
+  };
 }
 
 export function ToolCallsGroup({
@@ -62,17 +224,99 @@ export function ToolResultPart({
   );
 }
 
-export function ConfirmationPart({
-  conversationId,
+export function formatNativeToolDisplay(
+  data: unknown,
+): ConfirmationResultDisplay | null {
+  const state = narrowToolState(getStringValue(data, "state"));
+  if (
+    state !== "output-available" &&
+    state !== "output-error" &&
+    state !== "output-denied"
+  ) {
+    return null;
+  }
+
+  const toolName = getStringValue(data, "toolName") ?? "tool";
+  if (state === "output-denied") {
+    const toolLabel = humanizeToolName(toolName);
+    return {
+      label: toolLabel ? `${toolLabel} denied` : "Action denied",
+      variant: "declined",
+    };
+  }
+
+  return formatConfirmationResult(
+    {
+      text: getStringValue(data, "title") ?? "",
+      cards: [
+        {
+          kind: "tool-approval",
+          toolName,
+          state,
+          output: getRecordValue(data, "output"),
+          error: getStringValue(data, "errorText"),
+        },
+      ],
+    },
+    null,
+  );
+}
+
+export function NativeToolPart({
   data,
 }: {
-  conversationId: string;
   data: unknown;
 }): React.ReactElement {
+  const toolName = getStringValue(data, "toolName") ?? "tool";
+  const state = narrowToolState(getStringValue(data, "state"));
+  const title = getStringValue(data, "title") ?? `tool · ${toolName}`;
+  const output =
+    getRecordValue(data, "output") ?? getRecordValue(data, "input");
+  const errorText = getStringValue(data, "errorText");
+  const display = formatNativeToolDisplay(data);
+
+  return (
+    <Tool data-kind="tool-result">
+      <ToolHeader
+        type="dynamic-tool"
+        state={state}
+        toolName={toolName}
+        title={title}
+      />
+      <ToolContent>
+        {display ? (
+          <span
+            className="web-chat-confirmation-result"
+            data-variant={display.variant}
+          >
+            {display.label}
+          </span>
+        ) : (
+          <ToolOutput output={output} errorText={errorText} />
+        )}
+      </ToolContent>
+    </Tool>
+  );
+}
+
+export function ConfirmationPart({
+  data,
+  addToolApprovalResponse,
+}: {
+  data: unknown;
+  addToolApprovalResponse: (input: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) => void | PromiseLike<void>;
+}): React.ReactElement {
   const title = getStringValue(data, "title") ?? "Confirmation required";
-  const description = getStringValue(data, "description");
+  const description =
+    getStringValue(data, "description") ?? getStringValue(data, "title");
+  const approval = getRecordValue(data, "approval");
+  const approvalId =
+    getStringValue(data, "id") ?? getStringValue(approval, "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<ConfirmationResult | null>(null);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(
     null,
   );
@@ -82,16 +326,10 @@ export function ConfirmationPart({
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await fetch("/api/chat/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ id: conversationId, confirmed }),
-      });
-      if (!response.ok) {
-        throw new Error(await response.text());
+      if (!approvalId) {
+        throw new Error("Missing approval id");
       }
-      setResult((await response.json()) as ConfirmationResult);
+      await addToolApprovalResponse({ id: approvalId, approved: confirmed });
       setDecision(confirmed ? "approved" : "declined");
     } catch (caught) {
       setError(
@@ -102,25 +340,38 @@ export function ConfirmationPart({
     }
   }
 
-  const resolved = result !== null;
+  const resolved = decision !== null;
+  const display = decision
+    ? formatConfirmationResult({ text: "" }, decision)
+    : null;
   const headerLabel = resolved
-    ? "confirmation resolved"
+    ? display?.variant === "error"
+      ? "confirmation failed"
+      : "confirmation resolved"
     : "confirmation pending";
 
   return (
     <section
       className="web-chat-confirmation"
-      data-state={resolved ? "resolved" : "pending"}
+      data-state={
+        display?.variant === "error"
+          ? "error"
+          : resolved
+            ? "resolved"
+            : "pending"
+      }
       role="group"
       aria-label={title}
     >
       <header className="web-chat-confirmation-header">{headerLabel}</header>
       <div className="web-chat-confirmation-body">
         <p className="web-chat-confirmation-summary">{description ?? title}</p>
-        {resolved ? (
-          <span className="web-chat-confirmation-result">
-            {decision === "declined" ? "Declined" : "Approved"}
-            {result.text ? ` · ${result.text}` : ""}
+        {resolved && display ? (
+          <span
+            className="web-chat-confirmation-result"
+            data-variant={display.variant}
+          >
+            {display.label}
           </span>
         ) : (
           <div className="web-chat-confirmation-actions">

@@ -219,11 +219,16 @@ export {
   AgentResponseSchema,
   ChatContextSchema,
   PendingConfirmationSchema,
+  StructuredChatCardSchema,
+  ToolApprovalCardSchema,
+  ToolApprovalCardStateSchema,
   ToolResultDataSchema,
   type AgentResponse,
   type ChatContext,
   type AgentNamespace,
   type PendingConfirmation,
+  type StructuredChatCard,
+  type ToolApprovalCard,
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
