@@ -1,0 +1,61 @@
+{
+  "lexicon": 1,
+  "id": "ai.rizom.brain.post",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Markdown blog post distributed by a Rizom brain.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "body", "createdAt"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "body": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "knownValues": ["text/markdown"]
+          },
+          "brainDid": {
+            "type": "string"
+          },
+          "anchorDid": {
+            "type": "string"
+          },
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxLength": 50
+          },
+          "series": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}
