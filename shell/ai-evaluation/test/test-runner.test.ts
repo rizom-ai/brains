@@ -103,6 +103,60 @@ describe("TestRunner", () => {
       expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
         expect.any(String),
         true,
+        "approval:system_update",
+      );
+    });
+
+    it("should pass explicit approval ids for multi-confirmation eval turns", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                args: { entityType: "agent", id: "old-agent.io" },
+              },
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve(createMockResponse({ text: "Action confirmed." })),
+      );
+
+      const testCase: TestCase = {
+        id: "test-explicit-approval-id",
+        name: "Explicit Approval ID Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Prepare update and delete" },
+          {
+            userMessage: "Approve delete",
+            confirmPendingAction: true,
+            approvalId: "approval:delete",
+          },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.any(String),
+        true,
+        "approval:delete",
       );
     });
 

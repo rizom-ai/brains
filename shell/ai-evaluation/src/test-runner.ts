@@ -41,23 +41,27 @@ export class TestRunner implements ITestRunner {
     const failures: FailureDetail[] = [];
 
     const context = this.buildChatContext(testCase);
+    let pendingApprovalIds: string[] = [];
 
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
       if (!turn) continue;
 
       collector.startTurn();
+      const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
       const response =
         turn.confirmPendingAction !== undefined
           ? await this.agentService.confirmPendingAction(
               conversationId,
               turn.confirmPendingAction,
+              approvalId,
             )
           : await this.agentService.chat(
               turn.userMessage,
               conversationId,
               context,
             );
+      pendingApprovalIds = this.extractPendingApprovalIds(response);
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults:
@@ -126,6 +130,32 @@ export class TestRunner implements ITestRunner {
       efficiencyFailures:
         efficiencyFailures.length > 0 ? efficiencyFailures : undefined,
     };
+  }
+
+  private resolveApprovalId(
+    turn: AgentTestCase["turns"][number],
+    pendingApprovalIds: string[],
+  ): string | undefined {
+    if (turn.approvalId) return turn.approvalId;
+    if (pendingApprovalIds.length !== 1) return undefined;
+    return pendingApprovalIds[0];
+  }
+
+  private extractPendingApprovalIds(response: {
+    pendingConfirmation?: { id: string };
+    pendingConfirmations?: Array<{ id: string }>;
+  }): string[] {
+    if (
+      response.pendingConfirmations &&
+      response.pendingConfirmations.length > 0
+    ) {
+      return response.pendingConfirmations.map(
+        (confirmation) => confirmation.id,
+      );
+    }
+    return response.pendingConfirmation
+      ? [response.pendingConfirmation.id]
+      : [];
   }
 
   private buildChatContext(testCase: AgentTestCase): ChatContext {

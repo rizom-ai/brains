@@ -82,6 +82,12 @@ export const turnSchema = z.object({
     .describe(
       "When set, this turn resolves the pending confirmation instead of sending a chat message.",
     ),
+  approvalId: z
+    .string()
+    .optional()
+    .describe(
+      "Explicit approval id to resolve when confirmPendingAction is set. Required when multiple confirmations are pending.",
+    ),
   successCriteria: successCriteriaSchema.optional(),
 });
 

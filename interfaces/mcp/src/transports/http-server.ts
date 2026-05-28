@@ -404,6 +404,66 @@ export class StreamableHTTPServer {
     }
   }
 
+  private async handleAgentConfirmRequest(request: Request): Promise<Response> {
+    if (!this.agentService) {
+      return this.createJsonResponse(
+        {
+          error: "Agent service not connected",
+        },
+        503,
+      );
+    }
+
+    const { conversationId, confirmed, approvalId } =
+      (await request.json()) as {
+        conversationId?: string;
+        confirmed?: boolean;
+        approvalId?: string;
+      };
+
+    if (!conversationId || typeof conversationId !== "string") {
+      return this.createJsonResponse(
+        { error: "Missing or invalid 'conversationId' field" },
+        400,
+      );
+    }
+
+    if (typeof confirmed !== "boolean") {
+      return this.createJsonResponse(
+        { error: "Missing or invalid 'confirmed' field" },
+        400,
+      );
+    }
+
+    if (approvalId !== undefined && typeof approvalId !== "string") {
+      return this.createJsonResponse(
+        { error: "Invalid 'approvalId' field" },
+        400,
+      );
+    }
+
+    this.logger.debug(
+      `POST /api/chat/confirm - conversation: ${conversationId}`,
+    );
+
+    try {
+      const response = await this.agentService.confirmPendingAction(
+        conversationId,
+        confirmed,
+        approvalId,
+      );
+      return this.createJsonResponse(response);
+    } catch (error) {
+      this.logger.error("Agent confirm error:", error);
+      return this.createJsonResponse(
+        {
+          error: error instanceof Error ? error.message : "Internal error",
+        },
+        500,
+      );
+    }
+  }
+
   public async handleRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
@@ -436,6 +496,10 @@ export class StreamableHTTPServer {
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       return this.handleAgentChatRequest(request);
+    }
+
+    if (url.pathname === "/api/chat/confirm" && request.method === "POST") {
+      return this.handleAgentConfirmRequest(request);
     }
 
     return this.createTextResponse("Not Found", 404);

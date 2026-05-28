@@ -3,68 +3,78 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
-import { z } from "@brains/utils";
-
-const agentResponseSchema = z.object({
-  text: z.string(),
-  usage: z.object({
-    promptTokens: z.number(),
-    completionTokens: z.number(),
-    totalTokens: z.number(),
-  }),
-  toolResults: z
-    .array(
-      z.object({
-        toolName: z.string(),
-        args: z.record(z.unknown()).optional(),
-        jobId: z.string().optional(),
-        data: z.unknown().optional(),
-      }),
-    )
-    .optional(),
-  pendingConfirmation: z
-    .object({
-      id: z.string(),
-      toolCallId: z.string().optional(),
-      toolName: z.string(),
-      summary: z.string(),
-      preview: z.string().optional(),
-      args: z.unknown(),
-    })
-    .optional(),
-});
+import { AgentResponseSchema } from "@brains/plugins";
 
 function parseAgentResponse(json: unknown): AgentResponse {
-  const result = agentResponseSchema.safeParse(json);
+  const result = AgentResponseSchema.safeParse(json);
   if (!result.success) {
     throw new Error(
       `Invalid response from remote agent: ${result.error.message}`,
     );
   }
-  const p = result.data;
-  const response: AgentResponse = { text: p.text, usage: p.usage };
-  if (p.toolResults) {
-    response.toolResults = p.toolResults.map((t) => ({
-      toolName: t.toolName,
-      ...(t.args && { args: t.args }),
-      ...(t.jobId && { jobId: t.jobId }),
-      ...(t.data !== undefined && { data: t.data }),
+
+  const parsed = result.data;
+  const response: AgentResponse = {
+    text: parsed.text,
+    usage: parsed.usage,
+  };
+
+  if (parsed.toolResults) {
+    response.toolResults = parsed.toolResults.map((toolResult) => ({
+      toolName: toolResult.toolName,
+      ...(toolResult.args !== undefined ? { args: toolResult.args } : {}),
+      ...(toolResult.jobId !== undefined ? { jobId: toolResult.jobId } : {}),
+      ...(toolResult.data !== undefined ? { data: toolResult.data } : {}),
     }));
   }
-  if (p.pendingConfirmation) {
+
+  if (parsed.cards) {
+    response.cards = parsed.cards.map((card) => ({
+      kind: card.kind,
+      id: card.id,
+      ...(card.toolCallId !== undefined ? { toolCallId: card.toolCallId } : {}),
+      toolName: card.toolName,
+      ...(card.input !== undefined ? { input: card.input } : {}),
+      summary: card.summary,
+      ...(card.preview !== undefined ? { preview: card.preview } : {}),
+      state: card.state,
+      ...(card.output !== undefined ? { output: card.output } : {}),
+      ...(card.error !== undefined ? { error: card.error } : {}),
+    }));
+  }
+
+  if (parsed.pendingConfirmation) {
     response.pendingConfirmation = {
-      id: p.pendingConfirmation.id,
-      ...(p.pendingConfirmation.toolCallId !== undefined && {
-        toolCallId: p.pendingConfirmation.toolCallId,
-      }),
-      toolName: p.pendingConfirmation.toolName,
-      summary: p.pendingConfirmation.summary,
-      ...(p.pendingConfirmation.preview !== undefined && {
-        preview: p.pendingConfirmation.preview,
-      }),
-      args: p.pendingConfirmation.args,
+      id: parsed.pendingConfirmation.id,
+      ...(parsed.pendingConfirmation.toolCallId !== undefined
+        ? { toolCallId: parsed.pendingConfirmation.toolCallId }
+        : {}),
+      toolName: parsed.pendingConfirmation.toolName,
+      summary: parsed.pendingConfirmation.summary,
+      ...(parsed.pendingConfirmation.preview !== undefined
+        ? { preview: parsed.pendingConfirmation.preview }
+        : {}),
+      args: parsed.pendingConfirmation.args,
     };
   }
+
+  if (parsed.pendingConfirmations) {
+    response.pendingConfirmations = parsed.pendingConfirmations.map(
+      (confirmation) => ({
+        id: confirmation.id,
+        ...(confirmation.toolCallId !== undefined
+          ? { toolCallId: confirmation.toolCallId }
+          : {}),
+        toolName: confirmation.toolName,
+        summary: confirmation.summary,
+        ...(confirmation.preview !== undefined
+          ? { preview: confirmation.preview }
+          : {}),
+        args: confirmation.args,
+      }),
+    );
+  }
+
   return response;
 }
 
@@ -109,6 +119,7 @@ export class RemoteAgentService implements IAgentService {
   async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId?: string,
   ): Promise<AgentResponse> {
     const response = await fetch(`${this.baseUrl}/api/chat/confirm`, {
       method: "POST",
@@ -116,7 +127,11 @@ export class RemoteAgentService implements IAgentService {
         "Content-Type": "application/json",
         ...(this.authToken && { Authorization: `Bearer ${this.authToken}` }),
       },
-      body: JSON.stringify({ conversationId, confirmed }),
+      body: JSON.stringify({
+        conversationId,
+        confirmed,
+        ...(approvalId ? { approvalId } : {}),
+      }),
     });
 
     if (!response.ok) {
