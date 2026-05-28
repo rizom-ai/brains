@@ -104,7 +104,8 @@
     "@brains/media-tools": "0.2.0-alpha.78",
     "@brains/document": "0.2.0-alpha.68",
     "@brains/media-page-composer": "0.2.0-alpha.68",
-    "@brains/media-renderer": "0.2.0-alpha.68"
+    "@brains/media-renderer": "0.2.0-alpha.68",
+    "@brains/web-chat": "0.2.0-alpha.84"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -177,7 +178,10 @@
     "public-entity-types-reconciliation",
     "relay-auth-service",
     "relay-operator-surface-evals",
+    "relay-package-version",
     "relay-poc-topic-sources",
+    "relay-setup-email-delivery",
+    "relay-web-chat",
     "rizom-brain-first-alpha",
     "rizom-ecosystem-no-nested-anchor",
     "rizom-font-display-weight",
@@ -214,6 +218,15 @@
     "swot-evidence-grounding",
     "tailwind-runtime-deps",
     "themes-export",
+    "web-chat-bundled-ui",
+    "web-chat-light-mode-and-mobile",
+    "web-chat-mobile-cleanup",
+    "web-chat-mobile-drawer",
+    "web-chat-mobile-fixes",
+    "web-chat-spine-and-tool-collapse",
+    "web-chat-streamdown-markdown",
+    "web-chat-theme-toggle-placement",
+    "web-chat-tool-styling-fix",
     "wordmark-slot-and-generic-suffix"
   ]
 }

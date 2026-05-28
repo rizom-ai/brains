@@ -1,5 +1,43 @@
 # @rizom/brain
 
+## 0.2.0-alpha.94
+
+## 0.2.0-alpha.93
+
+## 0.2.0-alpha.92
+
+## 0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- [`101637d`](https://github.com/rizom-ai/brains/commit/101637d1ea3c0f1256ce37f671e3d37feb1d1769) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render bundled web chat Markdown with Streamdown, matching AI Elements behavior while preserving the Rizom chat styling.
+
+## 0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Minor Changes
+
+- [`c9c6591`](https://github.com/rizom-ai/brains/commit/c9c65910be5accf101314a170f7ede8cd269ab0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bundle the Brain web chat interface with Rover, including the `/chat` UI, AI SDK-compatible chat routes, confirmations, session switching, derived session titles, and package-owned web chat assets for published brain instances.
+
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- [`0dab8eb`](https://github.com/rizom-ai/brains/commit/0dab8ebca6c0dd9cf8cd3d23e77071060bff369c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include notifications and Resend email delivery in Relay presets so configured first-passkey setup emails are actually delivered.
+
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- [`0421fcf`](https://github.com/rizom-ai/brains/commit/0421fcfce5bc85335022ecadd0d8b7682533f92c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Have Relay report its package version from package.json, matching Rover, so model status tracks the released runtime bundle instead of a stale hardcoded version.
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes

@@ -595,6 +595,31 @@ describe("JSON-RPC Handler", () => {
       expect(typeof result.taskId).toBe("string");
     });
 
+    it("should emit SSE heartbeat comments while work is pending", async () => {
+      const slowAgent = createCustomAgentService({
+        chat: async () => new Promise<AgentResponse>(() => {}),
+      });
+
+      const result = handleStreamMessage(
+        1,
+        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        {
+          taskManager,
+          agentService: slowAgent,
+          callerPermissionLevel: "public",
+        },
+        { heartbeatIntervalMs: 5 },
+      );
+
+      const reader = result.stream.getReader();
+      const decoder = new TextDecoder();
+      await reader.read(); // initial working event
+      const heartbeat = await reader.read();
+      expect(heartbeat.done).toBe(false);
+      expect(decoder.decode(heartbeat.value)).toBe(": heartbeat\n\n");
+      await reader.cancel();
+    });
+
     it("should not throw when consumer disconnects early", async () => {
       // Slow agent — consumer will cancel before it completes
       const slowAgent = createCustomAgentService({

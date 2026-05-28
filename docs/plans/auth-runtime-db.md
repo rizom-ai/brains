@@ -10,6 +10,10 @@ Create one private runtime database for users, credentials, OAuth state, identit
 
 The database is runtime state. It must never live under `brain-data`, be exported as markdown, or sync through the content git repo.
 
+## Source of truth
+
+This plan owns auth-specific schema, auth storage APIs, JSON/JWK migration, and the `single-operator` to `usr_<uuid>` migration. Broader runtime storage location, deploy persistence, and backup/restore policy belong to [Operator runtime database](./operator-runtime-db.md). Product behavior, permissions, user-management UX, and attribution phases belong to [Multi-User & Permissions](./multi-user.md).
+
 ## Current baseline
 
 `shell/auth-service` already provides OAuth/passkey/JWT foundation, but persistence is split across JSON/JWK files in `./data/auth`:
@@ -296,7 +300,7 @@ Validation: linked Discord user maps to a brain user; CMS commits show editor at
 
 - [Multi-user and permissions](./multi-user.md)
 - [Conversation speaker attribution](./conversation-speaker-attribution.md)
-- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md)
-- [Hosted Rover Discord UX](./hosted-rover-discord.md)
+- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md)
+- [Brain web UI](./brain-web-ui.md)
 - [CMS heavy backend](./cms-heavy-backend.md)
 - [Operator runtime database](./operator-runtime-db.md)

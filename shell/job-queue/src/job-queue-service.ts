@@ -79,7 +79,11 @@ export class JobQueueService implements IJobQueueService {
     this.logger = (logger ?? Logger.getInstance()).child("JobQueueService");
 
     this.handlerRegistry = new HandlerRegistry(this.logger);
-    this.repository = new JobQueueRepository(db, this.logger);
+    this.repository = new JobQueueRepository(
+      db,
+      this.logger,
+      config.claimTimeoutMs ?? 300_000,
+    );
     this.deduplicator = new JobDeduplicator();
 
     // Enable WAL mode asynchronously (non-blocking)

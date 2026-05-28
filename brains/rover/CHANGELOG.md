@@ -1,5 +1,473 @@
 # @brains/rover
 
+## 0.2.0-alpha.94
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.94
+  - @brains/assessment@0.2.0-alpha.94
+  - @brains/blog@0.2.0-alpha.94
+  - @brains/decks@0.2.0-alpha.94
+  - @brains/document-plugin@0.2.0-alpha.94
+  - @brains/image-plugin@0.2.0-alpha.94
+  - @brains/link@0.2.0-alpha.94
+  - @brains/note@0.2.0-alpha.94
+  - @brains/portfolio@0.2.0-alpha.94
+  - @brains/prompt@0.2.0-alpha.94
+  - @brains/rizom-ecosystem@0.2.0-alpha.94
+  - @brains/series@0.2.0-alpha.94
+  - @brains/site-info@0.2.0-alpha.94
+  - @brains/social-media@0.2.0-alpha.94
+  - @brains/topics@0.2.0-alpha.94
+  - @brains/wishlist@0.2.0-alpha.94
+  - @brains/a2a@0.2.0-alpha.94
+  - @brains/discord@0.2.0-alpha.94
+  - @brains/mcp@0.2.0-alpha.94
+  - @brains/web-chat@0.2.0-alpha.94
+  - @brains/webserver@0.2.0-alpha.94
+  - @brains/analytics@0.2.0-alpha.94
+  - @brains/cms@0.2.0-alpha.94
+  - @brains/content-pipeline@0.2.0-alpha.94
+  - @brains/dashboard@0.2.0-alpha.94
+  - @brains/directory-sync@0.2.0-alpha.94
+  - @brains/email-resend@0.2.0-alpha.94
+  - @brains/newsletter@0.2.0-alpha.94
+  - @brains/notifications@0.2.0-alpha.94
+  - @brains/obsidian-vault@0.2.0-alpha.94
+  - @brains/site-builder-plugin@0.2.0-alpha.94
+  - @brains/stock-photo@0.2.0-alpha.94
+  - @brains/theme-default@0.2.0-alpha.94
+  - @brains/app@0.2.0-alpha.94
+  - @brains/auth-service@0.2.0-alpha.94
+  - @brains/site-default@0.2.0-alpha.94
+
+## 0.2.0-alpha.93
+
+### Patch Changes
+
+- Updated dependencies [[`8437060`](https://github.com/rizom-ai/brains/commit/84370600a5936888c882e8c37b7ecff7b65bed12)]:
+  - @brains/web-chat@0.2.0-alpha.93
+  - @brains/agent-discovery@0.2.0-alpha.93
+  - @brains/assessment@0.2.0-alpha.93
+  - @brains/blog@0.2.0-alpha.93
+  - @brains/decks@0.2.0-alpha.93
+  - @brains/document-plugin@0.2.0-alpha.93
+  - @brains/image-plugin@0.2.0-alpha.93
+  - @brains/link@0.2.0-alpha.93
+  - @brains/note@0.2.0-alpha.93
+  - @brains/portfolio@0.2.0-alpha.93
+  - @brains/prompt@0.2.0-alpha.93
+  - @brains/rizom-ecosystem@0.2.0-alpha.93
+  - @brains/series@0.2.0-alpha.93
+  - @brains/site-info@0.2.0-alpha.93
+  - @brains/social-media@0.2.0-alpha.93
+  - @brains/topics@0.2.0-alpha.93
+  - @brains/wishlist@0.2.0-alpha.93
+  - @brains/a2a@0.2.0-alpha.93
+  - @brains/discord@0.2.0-alpha.93
+  - @brains/mcp@0.2.0-alpha.93
+  - @brains/webserver@0.2.0-alpha.93
+  - @brains/analytics@0.2.0-alpha.93
+  - @brains/cms@0.2.0-alpha.93
+  - @brains/content-pipeline@0.2.0-alpha.93
+  - @brains/dashboard@0.2.0-alpha.93
+  - @brains/directory-sync@0.2.0-alpha.93
+  - @brains/email-resend@0.2.0-alpha.93
+  - @brains/newsletter@0.2.0-alpha.93
+  - @brains/notifications@0.2.0-alpha.93
+  - @brains/obsidian-vault@0.2.0-alpha.93
+  - @brains/site-builder-plugin@0.2.0-alpha.93
+  - @brains/stock-photo@0.2.0-alpha.93
+  - @brains/theme-default@0.2.0-alpha.93
+  - @brains/app@0.2.0-alpha.93
+  - @brains/auth-service@0.2.0-alpha.93
+  - @brains/site-default@0.2.0-alpha.93
+
+## 0.2.0-alpha.92
+
+### Patch Changes
+
+- Updated dependencies [[`1aee233`](https://github.com/rizom-ai/brains/commit/1aee2335f9171e302826e54d5c2be4f13feb3e79)]:
+  - @brains/web-chat@0.2.0-alpha.92
+  - @brains/agent-discovery@0.2.0-alpha.92
+  - @brains/assessment@0.2.0-alpha.92
+  - @brains/blog@0.2.0-alpha.92
+  - @brains/decks@0.2.0-alpha.92
+  - @brains/document-plugin@0.2.0-alpha.92
+  - @brains/image-plugin@0.2.0-alpha.92
+  - @brains/link@0.2.0-alpha.92
+  - @brains/note@0.2.0-alpha.92
+  - @brains/portfolio@0.2.0-alpha.92
+  - @brains/prompt@0.2.0-alpha.92
+  - @brains/rizom-ecosystem@0.2.0-alpha.92
+  - @brains/series@0.2.0-alpha.92
+  - @brains/site-info@0.2.0-alpha.92
+  - @brains/social-media@0.2.0-alpha.92
+  - @brains/topics@0.2.0-alpha.92
+  - @brains/wishlist@0.2.0-alpha.92
+  - @brains/a2a@0.2.0-alpha.92
+  - @brains/discord@0.2.0-alpha.92
+  - @brains/mcp@0.2.0-alpha.92
+  - @brains/webserver@0.2.0-alpha.92
+  - @brains/analytics@0.2.0-alpha.92
+  - @brains/cms@0.2.0-alpha.92
+  - @brains/content-pipeline@0.2.0-alpha.92
+  - @brains/dashboard@0.2.0-alpha.92
+  - @brains/directory-sync@0.2.0-alpha.92
+  - @brains/email-resend@0.2.0-alpha.92
+  - @brains/newsletter@0.2.0-alpha.92
+  - @brains/notifications@0.2.0-alpha.92
+  - @brains/obsidian-vault@0.2.0-alpha.92
+  - @brains/site-builder-plugin@0.2.0-alpha.92
+  - @brains/stock-photo@0.2.0-alpha.92
+  - @brains/theme-default@0.2.0-alpha.92
+  - @brains/app@0.2.0-alpha.92
+  - @brains/auth-service@0.2.0-alpha.92
+  - @brains/site-default@0.2.0-alpha.92
+
+## 0.2.0-alpha.91
+
+### Patch Changes
+
+- Updated dependencies [[`f471266`](https://github.com/rizom-ai/brains/commit/f4712665e4e2783ab8a12b368ad97038d71cbe99)]:
+  - @brains/web-chat@0.2.0-alpha.91
+  - @brains/agent-discovery@0.2.0-alpha.91
+  - @brains/assessment@0.2.0-alpha.91
+  - @brains/blog@0.2.0-alpha.91
+  - @brains/decks@0.2.0-alpha.91
+  - @brains/document-plugin@0.2.0-alpha.91
+  - @brains/image-plugin@0.2.0-alpha.91
+  - @brains/link@0.2.0-alpha.91
+  - @brains/note@0.2.0-alpha.91
+  - @brains/portfolio@0.2.0-alpha.91
+  - @brains/prompt@0.2.0-alpha.91
+  - @brains/rizom-ecosystem@0.2.0-alpha.91
+  - @brains/series@0.2.0-alpha.91
+  - @brains/site-info@0.2.0-alpha.91
+  - @brains/social-media@0.2.0-alpha.91
+  - @brains/topics@0.2.0-alpha.91
+  - @brains/wishlist@0.2.0-alpha.91
+  - @brains/a2a@0.2.0-alpha.91
+  - @brains/discord@0.2.0-alpha.91
+  - @brains/mcp@0.2.0-alpha.91
+  - @brains/webserver@0.2.0-alpha.91
+  - @brains/analytics@0.2.0-alpha.91
+  - @brains/cms@0.2.0-alpha.91
+  - @brains/content-pipeline@0.2.0-alpha.91
+  - @brains/dashboard@0.2.0-alpha.91
+  - @brains/directory-sync@0.2.0-alpha.91
+  - @brains/email-resend@0.2.0-alpha.91
+  - @brains/media-tools@0.2.0-alpha.91
+  - @brains/newsletter@0.2.0-alpha.91
+  - @brains/notifications@0.2.0-alpha.91
+  - @brains/obsidian-vault@0.2.0-alpha.91
+  - @brains/site-builder-plugin@0.2.0-alpha.91
+  - @brains/stock-photo@0.2.0-alpha.91
+  - @brains/theme-default@0.2.0-alpha.91
+  - @brains/app@0.2.0-alpha.91
+  - @brains/auth-service@0.2.0-alpha.91
+  - @brains/site-default@0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+### Patch Changes
+
+- Updated dependencies [[`7b9cfaa`](https://github.com/rizom-ai/brains/commit/7b9cfaaace29ef0efcc8ee6d83762c8615425a24)]:
+  - @brains/web-chat@0.2.0-alpha.90
+  - @brains/agent-discovery@0.2.0-alpha.90
+  - @brains/assessment@0.2.0-alpha.90
+  - @brains/blog@0.2.0-alpha.90
+  - @brains/decks@0.2.0-alpha.90
+  - @brains/document-plugin@0.2.0-alpha.90
+  - @brains/image-plugin@0.2.0-alpha.90
+  - @brains/link@0.2.0-alpha.90
+  - @brains/note@0.2.0-alpha.90
+  - @brains/portfolio@0.2.0-alpha.90
+  - @brains/prompt@0.2.0-alpha.90
+  - @brains/rizom-ecosystem@0.2.0-alpha.90
+  - @brains/series@0.2.0-alpha.90
+  - @brains/site-info@0.2.0-alpha.90
+  - @brains/social-media@0.2.0-alpha.90
+  - @brains/topics@0.2.0-alpha.90
+  - @brains/wishlist@0.2.0-alpha.90
+  - @brains/a2a@0.2.0-alpha.90
+  - @brains/discord@0.2.0-alpha.90
+  - @brains/mcp@0.2.0-alpha.90
+  - @brains/webserver@0.2.0-alpha.90
+  - @brains/analytics@0.2.0-alpha.90
+  - @brains/cms@0.2.0-alpha.90
+  - @brains/content-pipeline@0.2.0-alpha.90
+  - @brains/dashboard@0.2.0-alpha.90
+  - @brains/directory-sync@0.2.0-alpha.90
+  - @brains/email-resend@0.2.0-alpha.90
+  - @brains/media-tools@0.2.0-alpha.90
+  - @brains/newsletter@0.2.0-alpha.90
+  - @brains/notifications@0.2.0-alpha.90
+  - @brains/obsidian-vault@0.2.0-alpha.90
+  - @brains/site-builder-plugin@0.2.0-alpha.90
+  - @brains/stock-photo@0.2.0-alpha.90
+  - @brains/theme-default@0.2.0-alpha.90
+  - @brains/app@0.2.0-alpha.90
+  - @brains/auth-service@0.2.0-alpha.90
+  - @brains/site-default@0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- Updated dependencies [[`3d05f53`](https://github.com/rizom-ai/brains/commit/3d05f539af35efb4d0c0e364cf4f09aa5ecb8fd9)]:
+  - @brains/web-chat@0.2.0-alpha.89
+  - @brains/agent-discovery@0.2.0-alpha.89
+  - @brains/assessment@0.2.0-alpha.89
+  - @brains/blog@0.2.0-alpha.89
+  - @brains/decks@0.2.0-alpha.89
+  - @brains/document-plugin@0.2.0-alpha.89
+  - @brains/image-plugin@0.2.0-alpha.89
+  - @brains/link@0.2.0-alpha.89
+  - @brains/note@0.2.0-alpha.89
+  - @brains/portfolio@0.2.0-alpha.89
+  - @brains/prompt@0.2.0-alpha.89
+  - @brains/rizom-ecosystem@0.2.0-alpha.89
+  - @brains/series@0.2.0-alpha.89
+  - @brains/site-info@0.2.0-alpha.89
+  - @brains/social-media@0.2.0-alpha.89
+  - @brains/topics@0.2.0-alpha.89
+  - @brains/wishlist@0.2.0-alpha.89
+  - @brains/a2a@0.2.0-alpha.89
+  - @brains/discord@0.2.0-alpha.89
+  - @brains/mcp@0.2.0-alpha.89
+  - @brains/webserver@0.2.0-alpha.89
+  - @brains/analytics@0.2.0-alpha.89
+  - @brains/cms@0.2.0-alpha.89
+  - @brains/content-pipeline@0.2.0-alpha.89
+  - @brains/dashboard@0.2.0-alpha.89
+  - @brains/directory-sync@0.2.0-alpha.89
+  - @brains/email-resend@0.2.0-alpha.89
+  - @brains/media-tools@0.2.0-alpha.89
+  - @brains/newsletter@0.2.0-alpha.89
+  - @brains/notifications@0.2.0-alpha.89
+  - @brains/obsidian-vault@0.2.0-alpha.89
+  - @brains/site-builder-plugin@0.2.0-alpha.89
+  - @brains/stock-photo@0.2.0-alpha.89
+  - @brains/theme-default@0.2.0-alpha.89
+  - @brains/app@0.2.0-alpha.89
+  - @brains/auth-service@0.2.0-alpha.89
+  - @brains/site-default@0.2.0-alpha.89
+
+## 0.2.0-alpha.88
+
+### Patch Changes
+
+- Updated dependencies [[`13e800c`](https://github.com/rizom-ai/brains/commit/13e800cd08eaac36951b5300c5fc53d11d3f6313)]:
+  - @brains/web-chat@0.2.0-alpha.88
+  - @brains/agent-discovery@0.2.0-alpha.88
+  - @brains/assessment@0.2.0-alpha.88
+  - @brains/blog@0.2.0-alpha.88
+  - @brains/decks@0.2.0-alpha.88
+  - @brains/document-plugin@0.2.0-alpha.88
+  - @brains/image-plugin@0.2.0-alpha.88
+  - @brains/link@0.2.0-alpha.88
+  - @brains/note@0.2.0-alpha.88
+  - @brains/portfolio@0.2.0-alpha.88
+  - @brains/prompt@0.2.0-alpha.88
+  - @brains/rizom-ecosystem@0.2.0-alpha.88
+  - @brains/series@0.2.0-alpha.88
+  - @brains/site-info@0.2.0-alpha.88
+  - @brains/social-media@0.2.0-alpha.88
+  - @brains/topics@0.2.0-alpha.88
+  - @brains/wishlist@0.2.0-alpha.88
+  - @brains/a2a@0.2.0-alpha.88
+  - @brains/discord@0.2.0-alpha.88
+  - @brains/mcp@0.2.0-alpha.88
+  - @brains/webserver@0.2.0-alpha.88
+  - @brains/analytics@0.2.0-alpha.88
+  - @brains/cms@0.2.0-alpha.88
+  - @brains/content-pipeline@0.2.0-alpha.88
+  - @brains/dashboard@0.2.0-alpha.88
+  - @brains/directory-sync@0.2.0-alpha.88
+  - @brains/email-resend@0.2.0-alpha.88
+  - @brains/media-tools@0.2.0-alpha.88
+  - @brains/newsletter@0.2.0-alpha.88
+  - @brains/notifications@0.2.0-alpha.88
+  - @brains/obsidian-vault@0.2.0-alpha.88
+  - @brains/site-builder-plugin@0.2.0-alpha.88
+  - @brains/stock-photo@0.2.0-alpha.88
+  - @brains/theme-default@0.2.0-alpha.88
+  - @brains/app@0.2.0-alpha.88
+  - @brains/auth-service@0.2.0-alpha.88
+  - @brains/site-default@0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies [[`543190c`](https://github.com/rizom-ai/brains/commit/543190ca21364d582dceb64e5fa2f95b71318e70)]:
+  - @brains/web-chat@0.2.0-alpha.87
+  - @brains/agent-discovery@0.2.0-alpha.87
+  - @brains/assessment@0.2.0-alpha.87
+  - @brains/blog@0.2.0-alpha.87
+  - @brains/decks@0.2.0-alpha.87
+  - @brains/document-plugin@0.2.0-alpha.87
+  - @brains/image-plugin@0.2.0-alpha.87
+  - @brains/link@0.2.0-alpha.87
+  - @brains/note@0.2.0-alpha.87
+  - @brains/portfolio@0.2.0-alpha.87
+  - @brains/prompt@0.2.0-alpha.87
+  - @brains/rizom-ecosystem@0.2.0-alpha.87
+  - @brains/series@0.2.0-alpha.87
+  - @brains/site-info@0.2.0-alpha.87
+  - @brains/social-media@0.2.0-alpha.87
+  - @brains/topics@0.2.0-alpha.87
+  - @brains/wishlist@0.2.0-alpha.87
+  - @brains/a2a@0.2.0-alpha.87
+  - @brains/discord@0.2.0-alpha.87
+  - @brains/mcp@0.2.0-alpha.87
+  - @brains/webserver@0.2.0-alpha.87
+  - @brains/analytics@0.2.0-alpha.87
+  - @brains/cms@0.2.0-alpha.87
+  - @brains/content-pipeline@0.2.0-alpha.87
+  - @brains/dashboard@0.2.0-alpha.87
+  - @brains/directory-sync@0.2.0-alpha.87
+  - @brains/email-resend@0.2.0-alpha.87
+  - @brains/media-tools@0.2.0-alpha.87
+  - @brains/newsletter@0.2.0-alpha.87
+  - @brains/notifications@0.2.0-alpha.87
+  - @brains/obsidian-vault@0.2.0-alpha.87
+  - @brains/site-builder-plugin@0.2.0-alpha.87
+  - @brains/stock-photo@0.2.0-alpha.87
+  - @brains/theme-default@0.2.0-alpha.87
+  - @brains/app@0.2.0-alpha.87
+  - @brains/auth-service@0.2.0-alpha.87
+  - @brains/site-default@0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.86
+  - @brains/assessment@0.2.0-alpha.86
+  - @brains/blog@0.2.0-alpha.86
+  - @brains/decks@0.2.0-alpha.86
+  - @brains/document-plugin@0.2.0-alpha.86
+  - @brains/image-plugin@0.2.0-alpha.86
+  - @brains/link@0.2.0-alpha.86
+  - @brains/note@0.2.0-alpha.86
+  - @brains/portfolio@0.2.0-alpha.86
+  - @brains/prompt@0.2.0-alpha.86
+  - @brains/rizom-ecosystem@0.2.0-alpha.86
+  - @brains/series@0.2.0-alpha.86
+  - @brains/site-info@0.2.0-alpha.86
+  - @brains/social-media@0.2.0-alpha.86
+  - @brains/topics@0.2.0-alpha.86
+  - @brains/wishlist@0.2.0-alpha.86
+  - @brains/a2a@0.2.0-alpha.86
+  - @brains/discord@0.2.0-alpha.86
+  - @brains/mcp@0.2.0-alpha.86
+  - @brains/web-chat@0.2.0-alpha.86
+  - @brains/webserver@0.2.0-alpha.86
+  - @brains/analytics@0.2.0-alpha.86
+  - @brains/cms@0.2.0-alpha.86
+  - @brains/content-pipeline@0.2.0-alpha.86
+  - @brains/dashboard@0.2.0-alpha.86
+  - @brains/directory-sync@0.2.0-alpha.86
+  - @brains/email-resend@0.2.0-alpha.86
+  - @brains/media-tools@0.2.0-alpha.86
+  - @brains/newsletter@0.2.0-alpha.86
+  - @brains/notifications@0.2.0-alpha.86
+  - @brains/obsidian-vault@0.2.0-alpha.86
+  - @brains/site-builder-plugin@0.2.0-alpha.86
+  - @brains/stock-photo@0.2.0-alpha.86
+  - @brains/theme-default@0.2.0-alpha.86
+  - @brains/app@0.2.0-alpha.86
+  - @brains/auth-service@0.2.0-alpha.86
+  - @brains/site-default@0.2.0-alpha.86
+
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.85
+  - @brains/assessment@0.2.0-alpha.85
+  - @brains/blog@0.2.0-alpha.85
+  - @brains/decks@0.2.0-alpha.85
+  - @brains/document-plugin@0.2.0-alpha.85
+  - @brains/image-plugin@0.2.0-alpha.85
+  - @brains/link@0.2.0-alpha.85
+  - @brains/note@0.2.0-alpha.85
+  - @brains/portfolio@0.2.0-alpha.85
+  - @brains/prompt@0.2.0-alpha.85
+  - @brains/rizom-ecosystem@0.2.0-alpha.85
+  - @brains/series@0.2.0-alpha.85
+  - @brains/site-info@0.2.0-alpha.85
+  - @brains/social-media@0.2.0-alpha.85
+  - @brains/topics@0.2.0-alpha.85
+  - @brains/wishlist@0.2.0-alpha.85
+  - @brains/a2a@0.2.0-alpha.85
+  - @brains/discord@0.2.0-alpha.85
+  - @brains/mcp@0.2.0-alpha.85
+  - @brains/webserver@0.2.0-alpha.85
+  - @brains/analytics@0.2.0-alpha.85
+  - @brains/cms@0.2.0-alpha.85
+  - @brains/content-pipeline@0.2.0-alpha.85
+  - @brains/dashboard@0.2.0-alpha.85
+  - @brains/directory-sync@0.2.0-alpha.85
+  - @brains/email-resend@0.2.0-alpha.85
+  - @brains/media-tools@0.2.0-alpha.85
+  - @brains/newsletter@0.2.0-alpha.85
+  - @brains/notifications@0.2.0-alpha.85
+  - @brains/obsidian-vault@0.2.0-alpha.85
+  - @brains/site-builder-plugin@0.2.0-alpha.85
+  - @brains/stock-photo@0.2.0-alpha.85
+  - @brains/theme-default@0.2.0-alpha.85
+  - @brains/app@0.2.0-alpha.85
+  - @brains/auth-service@0.2.0-alpha.85
+  - @brains/site-default@0.2.0-alpha.85
+
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.84
+  - @brains/assessment@0.2.0-alpha.84
+  - @brains/blog@0.2.0-alpha.84
+  - @brains/decks@0.2.0-alpha.84
+  - @brains/document-plugin@0.2.0-alpha.84
+  - @brains/image-plugin@0.2.0-alpha.84
+  - @brains/link@0.2.0-alpha.84
+  - @brains/note@0.2.0-alpha.84
+  - @brains/portfolio@0.2.0-alpha.84
+  - @brains/prompt@0.2.0-alpha.84
+  - @brains/rizom-ecosystem@0.2.0-alpha.84
+  - @brains/series@0.2.0-alpha.84
+  - @brains/site-info@0.2.0-alpha.84
+  - @brains/social-media@0.2.0-alpha.84
+  - @brains/topics@0.2.0-alpha.84
+  - @brains/wishlist@0.2.0-alpha.84
+  - @brains/a2a@0.2.0-alpha.84
+  - @brains/discord@0.2.0-alpha.84
+  - @brains/mcp@0.2.0-alpha.84
+  - @brains/webserver@0.2.0-alpha.84
+  - @brains/analytics@0.2.0-alpha.84
+  - @brains/cms@0.2.0-alpha.84
+  - @brains/content-pipeline@0.2.0-alpha.84
+  - @brains/dashboard@0.2.0-alpha.84
+  - @brains/directory-sync@0.2.0-alpha.84
+  - @brains/email-resend@0.2.0-alpha.84
+  - @brains/media-tools@0.2.0-alpha.84
+  - @brains/newsletter@0.2.0-alpha.84
+  - @brains/notifications@0.2.0-alpha.84
+  - @brains/obsidian-vault@0.2.0-alpha.84
+  - @brains/site-builder-plugin@0.2.0-alpha.84
+  - @brains/stock-photo@0.2.0-alpha.84
+  - @brains/theme-default@0.2.0-alpha.84
+  - @brains/app@0.2.0-alpha.84
+  - @brains/auth-service@0.2.0-alpha.84
+  - @brains/site-default@0.2.0-alpha.84
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes

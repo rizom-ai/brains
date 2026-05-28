@@ -1,0 +1,35 @@
+id: relay-permission-trusted-save-team-note
+name: Trusted teammate can save Relay team notes
+description: >-
+  Verifies that a shared/trusted Relay teammate can create normal team-authored
+  memory through the central entity mutation surface.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - relay
+  - permissions
+  - trusted
+  - entity-action-policy
+
+turns:
+  - userMessage: >-
+      As a shared Relay teammate, save this team note: Customer Delta wants the
+      onboarding checklist linked from next week's pilot handoff.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: base
+  responseNotContains:
+    - "permission denied"
+    - "owner only"
+    - "cannot save"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

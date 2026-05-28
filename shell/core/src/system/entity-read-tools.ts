@@ -105,7 +105,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         } = {
           visibilityScope,
         };
-        if (input.status) filter.metadata = { status: input.status };
+        if (input.status && input.status !== "any") {
+          filter.metadata = { status: input.status };
+        }
         const entities = await entityService.listEntities({
           entityType: input.entityType,
           options: { limit: input.limit ?? 20, filter },

@@ -1,6 +1,6 @@
 id: tool-invocation-agent-approve
 name: Approve Discovered Agent
-description: Tests that the agent approves a discovered contact via system_update fields instead of trying full content replacement
+description: Tests that approving a discovered contact uses system_update fields and waits for the standard confirmation flow instead of self-confirming.
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -20,9 +20,13 @@ successCriteria:
       argsContain:
         entityType: "agent"
         id: "old-agent.io"
+        fields.status: "approved"
+      argsAbsent:
+        - confirmed
   responseContains:
-    - "Approved"
+    - "Confirmation required"
   responseNotContains:
+    - "Approved"
     - "field-based update rather than content replacement"
     - "It’s still not approved yet"
     - "It's still not approved yet"

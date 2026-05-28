@@ -40,6 +40,10 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     );
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return `When a user asks to generate, save, prepare, or preview a deck carousel PDF, call document_generate with sourceEntityType: "deck", sourceEntityId set to the deck ID, and attachmentType: "carousel". Do not use generic attachment types like "document" for deck carousel PDFs.`;
+  }
+
   protected override async getTools(): Promise<Tool[]> {
     const context = this.pluginContext;
     if (!context) {

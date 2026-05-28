@@ -143,7 +143,8 @@ export abstract class BasePlugin<
               }),
           };
 
-          // Execute the tool with optional context
+          // Response shape is validated at the consumer boundary
+          // (MCPService registry wrapper / mcp-registration protocol path).
           const result = await tool.handler(args, toolContext);
           return {
             success: true,

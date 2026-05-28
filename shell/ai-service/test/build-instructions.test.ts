@@ -125,4 +125,32 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain("save, or capture content");
   });
+
+  it("should protect identity/profile singletons from vague delete requests", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "`brain-character` and `anchor-profile` are protected singleton identity/profile records",
+    );
+    expect(instructions).toContain(
+      'Do not interpret vague phrases like "old brain" as `brain-character`',
+    );
+  });
+
+  it("should prohibit self-confirming destructive delete requests", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "never pass `confirmed: true` on the initial user request",
+    );
+    expect(instructions).toContain(
+      "Never self-confirm a destructive operation",
+    );
+  });
+
+  it("should teach the model to refuse never-gated and level-gated actions", () => {
+    const instructions = buildInstructions(identity, "trusted");
+    expect(instructions).toContain("### Entity Action Permissions");
+    expect(instructions).toContain("Hard-denied actions");
+    expect(instructions).toContain("Level-gated actions");
+    expect(instructions).toContain("do not retry the same call");
+  });
 });

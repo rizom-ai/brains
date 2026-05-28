@@ -1,0 +1,53 @@
+{
+  "name": "@brains/web-chat",
+  "private": true,
+  "version": "0.2.0-alpha.94",
+  "description": "Web chat interface for Brains",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "bun scripts/build-ui.ts",
+    "build:ui": "bun scripts/build-ui.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "^3.0.116",
+    "@brains/auth-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@streamdown/cjk": "^1.0.3",
+    "@streamdown/code": "^1.1.1",
+    "@streamdown/math": "^1.0.2",
+    "@streamdown/mermaid": "^1.0.2",
+    "ai": "^6.0.86",
+    "class-variance-authority": "^0.7.0",
+    "cmdk": "^1.1.1",
+    "lucide-react": "^1.16.0",
+    "nanoid": "^5.0.4",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "shiki": "^4.1.0",
+    "streamdown": "^2.5.0",
+    "use-stick-to-bottom": "^1.1.4"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.3",
+    "typescript": "^5.3.3",
+    "vite": "^7.2.4"
+  }
+}

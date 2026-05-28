@@ -156,7 +156,6 @@ const nodes = [
   { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
   { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Composite plugin bundling the newsletter entity with the buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
   { id:'examples',    label:'Examples',    sub:'plugins/examples',         desc:'Reference plugin patterns published as @brains/plugin-examples for documentation and authoring guides.', x:324, y:304, w:W, h:H, layer:'plugins' },
-  { id:'media-tools', label:'Media Tools', sub:'plugins/media-tools',       desc:'Disposable operator media previews for source-derived attachments, including inline remote preview payloads.', x:1044, y:248, w:W, h:H, layer:'plugins' },
   { id:'notifications', label:'Notifications', sub:'plugins/notifications', desc:'Notification plugin surface for operator/runtime delivery flows.', x:1044, y:304, w:W, h:H, layer:'plugins' },
   { id:'email-resend', label:'Email Resend', sub:'plugins/email-resend',     desc:'Resend-backed email delivery service plugin, used by hosted onboarding/setup-email flows.', x:1188, y:304, w:W, h:H, layer:'plugins' },
 
@@ -237,9 +236,6 @@ const connections = [
   { from:'newsletter-p', to:'plugin-fw', type:'dep' },
   { from:'examples', to:'plugin-fw', type:'dep' },
   { from:'rizom-eco', to:'plugin-fw', type:'dep' },
-  { from:'media-tools', to:'plugin-fw', type:'dep' },
-  { from:'media-tools', to:'media-renderer', type:'dep' },
-  { from:'media-tools', to:'media-composer', type:'dep' },
   { from:'notifications', to:'plugin-fw', type:'dep' },
   { from:'email-resend', to:'plugin-fw', type:'dep' },
   { from:'email-resend', to:'email-contracts', type:'dep' },
@@ -271,7 +267,6 @@ const connections = [
   { from:'social-media', to:'blog', type:'event', label:'derive' },
   { from:'document-entity', to:'decks', type:'event', label:'carousel pdf' },
   { from:'social-media', to:'document-entity', type:'event', label:'publish doc' },
-  { from:'media-tools', to:'decks', type:'event', label:'preview' },
   { from:'assessment', to:'agent-disc', type:'event', label:'evidence' },
   { from:'assessment', to:'plugin-fw', type:'dep' },
 

@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Shared space trust](./shared-space-trust.md) — first slice implemented; entity action policy follow-up remains
+- [Publish action policy](./publish-action-policy.md) — proposed follow-up for draft/edit vs publish authorization
 - [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
@@ -50,12 +50,13 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
-- [Hosted Rover Discord UX](./hosted-rover-discord.md) — proposed hosted-product UX
 - [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
 ### New interfaces, renderers, and runtimes
 
-- [Unified ChatInterface using Vercel Chat SDK](./chat-interface-sdk.md) — proposed; first package slice only
+- [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
+- [Structured chat confirmations](./structured-chat-confirmations.md) — ready / unblocked; align web-chat, Discord, and chat-repl behind a shared structured tool/approval contract
+- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — parked
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike

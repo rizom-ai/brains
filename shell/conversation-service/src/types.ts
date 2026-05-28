@@ -102,6 +102,9 @@ export interface AddConversationMessageRequest {
 export interface ListConversationsOptions {
   limit?: number;
   updatedAfter?: string;
+  interfaceType?: string;
+  sessionId?: string;
+  channelId?: string;
 }
 
 export interface IConversationService {

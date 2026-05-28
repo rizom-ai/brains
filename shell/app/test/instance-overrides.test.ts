@@ -16,6 +16,10 @@ import {
   isExternalPluginDeclaration,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import {
+  EntityActionPermissionError,
+  PermissionService,
+} from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 
 // --- Test helpers ---
@@ -369,6 +373,47 @@ permissions:
     const result = parseInstanceOverrides(yaml);
     expect(result.permissions?.anchors).toEqual(["cli:*"]);
     expect(result.permissions?.trusted).toEqual(["discord:123456789"]);
+  });
+
+  test("should parse entity action policy in permissions", () => {
+    const yaml = `brain: "@brains/relay"
+permissions:
+  entityActions:
+    "*":
+      create: trusted
+      update: trusted
+      delete: anchor
+      extract: anchor
+    summary:
+      create: anchor
+      update: anchor
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.permissions?.entityActions).toEqual({
+      "*": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      },
+      summary: { create: "anchor", update: "anchor" },
+    });
+  });
+
+  test("should reject invalid entity action policy levels", () => {
+    const yaml = `brain: "@brains/relay"
+permissions:
+  entityActions:
+    summary:
+      update: admin
+`;
+
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      InstanceOverridesParseError,
+    );
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      "permissions.entityActions.summary.update",
+    );
   });
 
   test("should parse shared conversation spaces", () => {
@@ -965,6 +1010,171 @@ describe("resolve with instance overrides", () => {
 
     // yaml anchors override definition anchors
     expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
+  });
+
+  test("should apply restrictive platform entity action defaults", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.permissions?.entityActions).toEqual({
+      "*": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+        extract: "anchor",
+      },
+    });
+  });
+
+  test("should merge plugin-declared entity action policies with definition defaults", () => {
+    const pluginWithPolicy: Plugin = {
+      id: "fancy-entity",
+      version: "1.0.0",
+      description: "fancy entity",
+      packageName: "@brains/fancy",
+      type: "entity",
+      entityActionPolicy: {
+        "fancy-singleton": { delete: "never" },
+      },
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["fancy", (): Plugin => pluginWithPolicy, undefined]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.permissions?.entityActions?.["fancy-singleton"]).toEqual({
+      delete: "never",
+    });
+  });
+
+  test("should reject a plugin declaring an invalid entity action policy", () => {
+    const pluginWithBadPolicy: Plugin = {
+      id: "broken",
+      version: "1.0.0",
+      description: "broken policy",
+      packageName: "@brains/broken",
+      type: "entity",
+      entityActionPolicy: {
+        // @ts-expect-error — invalid required level for testing runtime guard
+        topic: { delete: "admin" },
+      },
+      register: async (): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["broken", (): Plugin => pluginWithBadPolicy, undefined]],
+      interfaces: [],
+    });
+
+    expect(() => resolve(def, {})).toThrow(
+      /Plugin "broken" declared an invalid entityActionPolicy/,
+    );
+  });
+
+  test("should merge yaml entity action policy with definition defaults", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+      permissions: {
+        entityActions: {
+          "*": {
+            create: "trusted",
+            update: "trusted",
+            delete: "anchor",
+            extract: "anchor",
+          },
+          summary: { create: "anchor", update: "anchor", delete: "anchor" },
+        },
+      },
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        permissions: {
+          entityActions: {
+            summary: { update: "trusted" },
+          },
+        },
+      },
+    );
+
+    expect(config.permissions?.entityActions).toEqual({
+      "*": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+        extract: "anchor",
+      },
+      summary: { create: "anchor", update: "trusted", delete: "anchor" },
+    });
+  });
+
+  test("yaml-loosened entity action is enforceable through PermissionService", () => {
+    // End-to-end: YAML text -> parseInstanceOverrides -> resolve() ->
+    // PermissionService.assertEntityActionAllowed. assertEntityActionAllowed
+    // is the exact method the system_* tools invoke, so this exercises the
+    // same code path production runs through, against config produced by
+    // the real merge pipeline.
+    const yaml = `brain: "@brains/test"
+permissions:
+  entityActions:
+    summary:
+      update: trusted
+`;
+    const overrides = parseInstanceOverrides(yaml);
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const baselineConfig = resolve(def, {});
+    const baseline = new PermissionService(baselineConfig.permissions ?? {});
+    expect(() =>
+      baseline.assertEntityActionAllowed("summary", "update", "trusted"),
+    ).toThrow(EntityActionPermissionError);
+
+    const config = resolve(def, {}, overrides);
+    const service = new PermissionService(config.permissions ?? {});
+
+    // Loosened: trusted can now update summary.
+    expect(() =>
+      service.assertEntityActionAllowed("summary", "update", "trusted"),
+    ).not.toThrow();
+    // Untouched: summary delete still anchor-only.
+    expect(() =>
+      service.assertEntityActionAllowed("summary", "delete", "trusted"),
+    ).toThrow(EntityActionPermissionError);
+    // Untouched: other entity types still locked to anchor.
+    expect(() =>
+      service.assertEntityActionAllowed("base", "delete", "trusted"),
+    ).toThrow(EntityActionPermissionError);
   });
 
   test("should pass spaces from yaml overrides to app config", () => {

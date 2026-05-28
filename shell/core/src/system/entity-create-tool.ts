@@ -11,6 +11,7 @@ import {
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
 import { createInputSchema } from "./schemas";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
   createSystemTool,
@@ -146,6 +147,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         if (validationError) return validationError;
       }
 
+      const policyError = assertEntityActionAllowed(
+        services,
+        createInput.entityType,
+        "create",
+        toolContext,
+      );
+      if (policyError) return policyError;
+
       const interceptor = services.entityRegistry.getCreateInterceptor(
         createInput.entityType,
       );
@@ -181,6 +190,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           return interception.result;
         }
         createInput = interception.input;
+        const transformedPolicyError = assertEntityActionAllowed(
+          services,
+          createInput.entityType,
+          "create",
+          toolContext,
+        );
+        if (transformedPolicyError) return transformedPolicyError;
+
         coverImage = normalizeCoverImageInput(createInput.coverImage);
         if (coverImage) {
           const validationError = validateCoverImageSupport(

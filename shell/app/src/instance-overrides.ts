@@ -1,4 +1,5 @@
 import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
+import { entityActionPolicyConfigSchema } from "@brains/templates";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 import { logLevelSchema } from "./types";
 
@@ -129,6 +130,7 @@ const instanceOverridesSchema = z.object({
           }),
         )
         .optional(),
+      entityActions: entityActionPolicyConfigSchema.optional(),
     })
     .optional(),
 });

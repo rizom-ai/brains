@@ -14,6 +14,7 @@ worker execution, retries, progress events, and in-process batch tracking.
 - Progress reporting through `JobProgressMonitor`
 - Batch job management
 - Job priorities, delays, retries, and deduplication
+- Claim timeout recovery for crashed workers
 - SQLite/libSQL persistence
 - Worker concurrency controls
 
@@ -43,16 +44,31 @@ jobQueue.registerHandler("entity:embed", {
   },
 });
 
-const jobId = await jobQueue.enqueue(
-  "entity:embed",
-  { entityId: "123" },
-  {
+const jobId = await jobQueue.enqueue({
+  type: "entity:embed",
+  data: { entityId: "123" },
+  options: {
     source: "example",
     priority: 1,
     metadata: { operationType: "data_processing" },
   },
-);
+});
 ```
+
+## Configuration
+
+`JobQueueService` accepts a `claimTimeoutMs` option. A `processing` job whose
+`startedAt` timestamp is older than this timeout is eligible to be reclaimed by
+another worker. The default is `300_000` ms.
+
+If a worker crashes after claiming a job, the next worker can reclaim it after
+the timeout. Reclaims increment `retryCount` and set `lastError` to
+`"Claim expired"`; if the reclaim would exceed `maxRetries`, the job is marked
+`failed` instead of being returned for processing.
+
+Handlers that legitimately run longer than `claimTimeoutMs` can be processed
+again before they finish because heartbeat/claim-extension support is not yet
+implemented. Increase `claimTimeoutMs` for long-running workloads.
 
 ## Workers
 

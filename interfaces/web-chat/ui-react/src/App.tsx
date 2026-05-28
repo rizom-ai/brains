@@ -1,0 +1,574 @@
+/** @jsxImportSource react */
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Chat, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+} from "./ai-elements/conversation";
+import {
+  ConfirmationPart,
+  GenericDataPart,
+  ToolCallsGroup,
+  ToolResultPart,
+} from "./ai-elements/data-parts";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "./ai-elements/message";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "./ai-elements/prompt-input";
+
+const conversationStorageKey = "brain:web-chat:conversation-id";
+const themeStorageKey = "brain:theme";
+
+type ThemeMode = "light" | "dark";
+
+function getInitialTheme(): ThemeMode {
+  if (typeof document === "undefined") return "dark";
+  const attr = document.documentElement.getAttribute("data-theme");
+  return attr === "light" ? "light" : "dark";
+}
+
+function applyTheme(theme: ThemeMode): void {
+  document.documentElement.setAttribute("data-theme", theme);
+  try {
+    localStorage.setItem(themeStorageKey, theme);
+  } catch {
+    /* localStorage unavailable — fall back to in-memory only */
+  }
+}
+const dayMs = 24 * 60 * 60 * 1000;
+const sessionTitleMaxLength = 48;
+
+interface WebChatSession {
+  id: string;
+  title: string;
+  lastActiveAt: string;
+}
+
+interface WebChatHistoryMessage {
+  id: string;
+  role: UIMessage["role"];
+  content: string;
+}
+
+interface WebChatSessionsResponse {
+  sessions: WebChatSession[];
+}
+
+interface WebChatMessagesResponse {
+  messages: WebChatHistoryMessage[];
+}
+
+function createConversationId(): string {
+  return `web-${crypto.randomUUID()}`;
+}
+
+function getBrowserConversationId(): string {
+  try {
+    const stored = localStorage.getItem(conversationStorageKey);
+    if (stored) return stored;
+    const next = createConversationId();
+    localStorage.setItem(conversationStorageKey, next);
+    return next;
+  } catch {
+    return createConversationId();
+  }
+}
+
+function toUiMessage(message: WebChatHistoryMessage): UIMessage {
+  return {
+    id: message.id,
+    role: message.role,
+    parts: [{ type: "text", text: message.content }],
+  };
+}
+
+function getPartData(part: unknown): unknown {
+  if (typeof part !== "object" || part === null || !("data" in part)) {
+    return undefined;
+  }
+  return part.data;
+}
+
+type MessagePart = UIMessage["parts"][number];
+type RenderedPart =
+  | { kind: "text"; text: string }
+  | { kind: "tools"; tools: unknown[] }
+  | { kind: "confirmation"; data: unknown }
+  | { kind: "generic"; type: string; data: unknown };
+
+function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
+  const out: RenderedPart[] = [];
+  let toolRun: unknown[] = [];
+  const flush = (): void => {
+    if (toolRun.length === 0) return;
+    out.push({ kind: "tools", tools: toolRun });
+    toolRun = [];
+  };
+  for (const part of parts) {
+    if (part.type === "data-tool-result") {
+      toolRun.push(getPartData(part));
+      continue;
+    }
+    flush();
+    if (part.type === "text") {
+      out.push({ kind: "text", text: part.text });
+    } else if (part.type === "data-confirmation") {
+      out.push({ kind: "confirmation", data: getPartData(part) });
+    } else if (part.type.startsWith("data-")) {
+      out.push({ kind: "generic", type: part.type, data: getPartData(part) });
+    }
+  }
+  flush();
+  return out;
+}
+
+function isBusyStatus(status: string): boolean {
+  return status === "submitted" || status === "streaming";
+}
+
+function resizePromptTextarea(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function focusPromptTextarea(textarea: HTMLTextAreaElement | null): void {
+  requestAnimationFrame(() => textarea?.focus());
+}
+
+function deriveSessionTitle(text: string): string {
+  const firstLine = text.trim().split(/\r?\n/, 1)[0] ?? "";
+  if (!firstLine) return "New conversation";
+  if (firstLine.length <= sessionTitleMaxLength) return firstLine;
+  return `${firstLine.slice(0, sessionTitleMaxLength - 1).trimEnd()}…`;
+}
+
+function formatSessionTime(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return "—";
+  const diff = now.getTime() - then.getTime();
+  if (diff < dayMs && then.getDate() === now.getDate()) {
+    return then.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  const yesterday = new Date(now.getTime() - dayMs);
+  if (then.getDate() === yesterday.getDate()) return "Yest";
+  if (diff < 7 * dayMs) {
+    return then.toLocaleDateString(undefined, { weekday: "short" });
+  }
+  return then.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function statusPhrase(status: string): string {
+  if (status === "submitted") return "the rhizome is listening";
+  if (status === "streaming") return "the rhizome is listening";
+  if (status === "error") return "a thread broke mid-growth";
+  return "";
+}
+
+export function App(): React.ReactElement {
+  const [input, setInput] = useState("");
+  const [conversationId, setConversationId] = useState(() =>
+    getBrowserConversationId(),
+  );
+  const [sessions, setSessions] = useState<WebChatSession[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  function closeDrawer(): void {
+    setDrawerOpen(false);
+  }
+
+  function toggleTheme(): void {
+    const next: ThemeMode = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    applyTheme(next);
+  }
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        credentials: "include",
+      }),
+    [],
+  );
+  const chat = useMemo(
+    () =>
+      new Chat<UIMessage>({
+        id: conversationId,
+        messages: initialMessages,
+        transport,
+      }),
+    [conversationId, initialMessages, transport],
+  );
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    error,
+    stop,
+    clearError,
+  } = useChat({
+    chat,
+  });
+
+  useEffect(() => {
+    if (promptInputRef.current) {
+      resizePromptTextarea(promptInputRef.current);
+    }
+  }, [input]);
+
+  useEffect(() => {
+    focusPromptTextarea(promptInputRef.current);
+    void loadSessions();
+  }, []);
+
+  async function loadSessions(): Promise<void> {
+    const response = await fetch("/api/chat/sessions", {
+      credentials: "include",
+    });
+    if (!response.ok) return;
+    const body = (await response.json()) as WebChatSessionsResponse;
+    setSessions(body.sessions);
+  }
+
+  function upsertPendingSession(text: string): void {
+    const now = new Date().toISOString();
+    const pendingSession: WebChatSession = {
+      id: conversationId,
+      title: deriveSessionTitle(text),
+      lastActiveAt: now,
+    };
+    setSessions((current) => {
+      const existingSession = current.find(
+        (session) => session.id === conversationId,
+      );
+      const nextSession =
+        existingSession && existingSession.title !== "New conversation"
+          ? { ...existingSession, lastActiveAt: now }
+          : pendingSession;
+      const withoutCurrent = current.filter(
+        (session) => session.id !== conversationId,
+      );
+      return [nextSession, ...withoutCurrent];
+    });
+  }
+
+  async function switchConversation(nextConversationId: string): Promise<void> {
+    const response = await fetch(
+      `/api/chat/messages?id=${encodeURIComponent(nextConversationId)}`,
+      { credentials: "include" },
+    );
+    if (!response.ok) return;
+    const body = (await response.json()) as WebChatMessagesResponse;
+    const nextMessages = body.messages.map(toUiMessage);
+    localStorage.setItem(conversationStorageKey, nextConversationId);
+    setMessages(nextMessages);
+    setInitialMessages(nextMessages);
+    setConversationId(nextConversationId);
+    setInput("");
+    closeDrawer();
+    focusPromptTextarea(promptInputRef.current);
+  }
+
+  function submitMessage(textOverride?: string): void {
+    const text = (textOverride ?? input).trim();
+    if (!text || isBusyStatus(status)) return;
+    upsertPendingSession(text);
+    setInput("");
+    void sendMessage({ text }).finally(() => loadSessions());
+    focusPromptTextarea(promptInputRef.current);
+  }
+
+  function startNewConversation(): void {
+    const next = createConversationId();
+    localStorage.setItem(conversationStorageKey, next);
+    setMessages([]);
+    setInitialMessages([]);
+    setConversationId(next);
+    setInput("");
+    closeDrawer();
+    focusPromptTextarea(promptInputRef.current);
+  }
+
+  return (
+    <div
+      className="web-chat-shell"
+      data-web-chat-app="true"
+      data-web-chat-ui="ai-elements-v0"
+      data-conversation-id={conversationId}
+      data-drawer-open={drawerOpen ? "true" : "false"}
+    >
+      <div
+        className="web-chat-mobile-drawer-scrim"
+        aria-hidden="true"
+        onClick={closeDrawer}
+      />
+      <button
+        type="button"
+        className="web-chat-mobile-drawer-close"
+        aria-label="Close sessions"
+        onClick={closeDrawer}
+      >
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+        </svg>
+      </button>
+      <aside className="web-chat-sessions" aria-label="Sessions">
+        <header className="web-chat-sessions-header">
+          <h2>Sessions</h2>
+          <button
+            className="web-chat-sessions-new"
+            type="button"
+            aria-label="New conversation"
+            onClick={startNewConversation}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              aria-hidden="true"
+            >
+              <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+            </svg>
+          </button>
+        </header>
+
+        {sessions.length === 0 ? (
+          <p className="web-chat-sessions-list-empty">No traces yet.</p>
+        ) : (
+          <ul className="web-chat-sessions-list" role="listbox">
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <button
+                  className="web-chat-session"
+                  type="button"
+                  role="option"
+                  aria-selected={session.id === conversationId}
+                  data-active={session.id === conversationId ? "true" : "false"}
+                  onClick={() => void switchConversation(session.id)}
+                >
+                  <span className="web-chat-session-time">
+                    {formatSessionTime(session.lastActiveAt)}
+                  </span>
+                  <div className="web-chat-session-body">
+                    <h3 className="web-chat-session-title">{session.title}</h3>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <footer className="web-chat-sessions-footer">
+          <span className="web-chat-sessions-footer-id">brain · anchor</span>
+        </footer>
+      </aside>
+
+      <main className="web-chat-app" aria-label="Brain chat">
+        <header className="web-chat-header">
+          <button
+            type="button"
+            className="web-chat-mobile-trigger"
+            aria-label="Open sessions"
+            aria-expanded={drawerOpen}
+            data-active={drawerOpen ? "true" : "false"}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden="true"
+            >
+              <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7" strokeLinecap="round" />
+            </svg>
+          </button>
+          <div>
+            <span className="web-chat-header-eyebrow">
+              Anchor
+              {messages.length > 0 ? (
+                <>
+                  {" · "}
+                  <strong>
+                    {messages.length} message{messages.length === 1 ? "" : "s"}
+                  </strong>
+                </>
+              ) : null}
+            </span>
+            <h1>
+              Brain <em>Chat</em>
+            </h1>
+            <p>A field log for talking with the rhizome.</p>
+          </div>
+          <div className="web-chat-header-actions">
+            <button
+              className="web-chat-icon-action"
+              type="button"
+              onClick={toggleTheme}
+              aria-label={
+                theme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to light mode"
+              }
+              title={
+                theme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to light mode"
+              }
+            >
+              {theme === "light" ? (
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <circle cx="8" cy="8" r="3" />
+                  <path
+                    d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1.1 1.1M11.9 11.9 13 13M3 13l1.1-1.1M11.9 4.1 13 3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+        </header>
+
+        <Conversation>
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <ConversationEmptyState
+                title="Begin a field note."
+                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+              />
+            ) : (
+              messages.map((message) => (
+                <Message
+                  key={message.id}
+                  from={message.role}
+                  data-role={message.role}
+                >
+                  <MessageContent className="web-chat-message-bubble">
+                    {groupMessageParts(message.parts).map((group, index) => {
+                      if (group.kind === "text") {
+                        return (
+                          <MessageResponse key={index}>
+                            {group.text}
+                          </MessageResponse>
+                        );
+                      }
+                      if (group.kind === "tools") {
+                        if (group.tools.length === 1) {
+                          return (
+                            <ToolResultPart key={index} data={group.tools[0]} />
+                          );
+                        }
+                        return (
+                          <ToolCallsGroup key={index} tools={group.tools} />
+                        );
+                      }
+                      if (group.kind === "confirmation") {
+                        return (
+                          <ConfirmationPart
+                            key={index}
+                            conversationId={conversationId}
+                            data={group.data}
+                          />
+                        );
+                      }
+                      return (
+                        <GenericDataPart
+                          key={index}
+                          type={group.type}
+                          data={group.data}
+                        />
+                      );
+                    })}
+                  </MessageContent>
+                </Message>
+              ))
+            )}
+          </ConversationContent>
+        </Conversation>
+
+        {status !== "ready" ? (
+          <p className="web-chat-status" data-status={status}>
+            <span className="web-chat-status-rail" aria-hidden="true" />
+            <span className="web-chat-status-phrase">
+              {statusPhrase(status)}
+            </span>
+            <span className="web-chat-status-meta">{status}</span>
+          </p>
+        ) : null}
+
+        {error ? (
+          <div className="web-chat-error" role="alert">
+            <span className="web-chat-error-tag">[ signal lost ]</span>
+            <p>{error.message}</p>
+            <button type="button" onClick={clearError}>
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
+        <PromptInput onSubmit={(message) => submitMessage(message.text)}>
+          <label htmlFor="web-chat-input">Message</label>
+          <PromptInputTextarea
+            id="web-chat-input"
+            ref={promptInputRef}
+            value={input}
+            placeholder="Plant a question…"
+            onInput={(event) => setInput(event.currentTarget.value)}
+          />
+          <PromptInputFooter>
+            <span className="web-chat-prompt-hint">
+              <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
+              newline
+            </span>
+            <PromptInputSubmit
+              status={status}
+              onStop={stop}
+              disabled={!input.trim()}
+            />
+          </PromptInputFooter>
+        </PromptInput>
+      </main>
+    </div>
+  );
+}

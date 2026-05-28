@@ -347,6 +347,30 @@ describe("ConversationService", () => {
 
       expect(result).toHaveLength(0);
     });
+
+    it("should filter conversations by interface, session, and channel", async () => {
+      await service.startConversation({
+        sessionId: "web-session",
+        interfaceType: "web-chat",
+        channelId: "web-channel",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "discord-session",
+        interfaceType: "discord",
+        channelId: "discord-channel",
+        metadata: testMetadata,
+      });
+
+      const result = await service.listConversations({
+        interfaceType: "web-chat",
+        sessionId: "web-session",
+        channelId: "web-channel",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("web-session");
+    });
   });
 
   describe("getMessages with range", () => {

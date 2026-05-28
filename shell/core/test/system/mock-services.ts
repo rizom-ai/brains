@@ -8,6 +8,7 @@ import {
   type ListEntitiesRequest,
 } from "@brains/entity-service";
 import { z } from "@brains/utils";
+import { PermissionService } from "@brains/templates";
 
 type SeedEntity = Omit<BaseEntity, "visibility"> & {
   visibility?: BaseEntity["visibility"];
@@ -72,6 +73,11 @@ export function createMockSystemServices(
         "series",
         "social-post",
       ]);
+      const singletonEntityTypes = new Set([
+        "anchor-profile",
+        "brain-character",
+        "site-info",
+      ]);
 
       if (type === "link") {
         return {
@@ -127,7 +133,7 @@ export function createMockSystemServices(
       return {
         supportsCoverImage: coverImageEntityTypes.has(type),
         hasBody: true,
-        isSingleton: false,
+        isSingleton: singletonEntityTypes.has(type),
         parseFrontMatter,
         fromMarkdown: (): unknown => ({}),
       };
@@ -319,6 +325,7 @@ export function createMockSystemServices(
     }),
     searchLimit: 10,
     insights: createInsightsRegistry(),
+    permissionService: new PermissionService({}),
     ...overrides,
     // Test helpers
     getEntities: () => entities,

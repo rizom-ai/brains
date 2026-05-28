@@ -1,7 +1,7 @@
 {
   "name": "@brains/relay",
   "private": true,
-  "version": "0.2.0-alpha.83",
+  "version": "0.2.0-alpha.94",
   "description": "Relay brain model — collaborative knowledge management",
   "type": "module",
   "files": [
@@ -13,10 +13,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:full": "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:docs": "cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "build:web-chat": "turbo run build --filter=@brains/web-chat",
+    "start:core": "bun run build:web-chat && cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "bun run build:web-chat && cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:docs": "bun run build:web-chat && cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "eval": "brain-eval",
@@ -37,10 +38,12 @@
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
     "@brains/doc": "workspace:*",
+    "@brains/email-resend": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
+    "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
@@ -52,6 +55,7 @@
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@brains/web-chat": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.27.2"
   },

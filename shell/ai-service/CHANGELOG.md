@@ -1,5 +1,148 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.94
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.94
+  - @brains/conversation-service@0.2.0-alpha.94
+  - @brains/entity-service@0.2.0-alpha.94
+  - @brains/identity-service@0.2.0-alpha.94
+  - @brains/mcp-service@0.2.0-alpha.94
+  - @brains/messaging-service@0.2.0-alpha.94
+  - @brains/templates@0.2.0-alpha.94
+
+## 0.2.0-alpha.93
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.93
+  - @brains/conversation-service@0.2.0-alpha.93
+  - @brains/entity-service@0.2.0-alpha.93
+  - @brains/identity-service@0.2.0-alpha.93
+  - @brains/mcp-service@0.2.0-alpha.93
+  - @brains/messaging-service@0.2.0-alpha.93
+  - @brains/templates@0.2.0-alpha.93
+
+## 0.2.0-alpha.92
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.92
+  - @brains/conversation-service@0.2.0-alpha.92
+  - @brains/entity-service@0.2.0-alpha.92
+  - @brains/identity-service@0.2.0-alpha.92
+  - @brains/mcp-service@0.2.0-alpha.92
+  - @brains/messaging-service@0.2.0-alpha.92
+  - @brains/templates@0.2.0-alpha.92
+
+## 0.2.0-alpha.91
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.91
+  - @brains/conversation-service@0.2.0-alpha.91
+  - @brains/entity-service@0.2.0-alpha.91
+  - @brains/identity-service@0.2.0-alpha.91
+  - @brains/mcp-service@0.2.0-alpha.91
+  - @brains/messaging-service@0.2.0-alpha.91
+  - @brains/templates@0.2.0-alpha.91
+
+## 0.2.0-alpha.90
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.90
+  - @brains/conversation-service@0.2.0-alpha.90
+  - @brains/entity-service@0.2.0-alpha.90
+  - @brains/identity-service@0.2.0-alpha.90
+  - @brains/mcp-service@0.2.0-alpha.90
+  - @brains/messaging-service@0.2.0-alpha.90
+  - @brains/templates@0.2.0-alpha.90
+
+## 0.2.0-alpha.89
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.89
+  - @brains/conversation-service@0.2.0-alpha.89
+  - @brains/entity-service@0.2.0-alpha.89
+  - @brains/identity-service@0.2.0-alpha.89
+  - @brains/mcp-service@0.2.0-alpha.89
+  - @brains/messaging-service@0.2.0-alpha.89
+  - @brains/templates@0.2.0-alpha.89
+
+## 0.2.0-alpha.88
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.88
+  - @brains/conversation-service@0.2.0-alpha.88
+  - @brains/entity-service@0.2.0-alpha.88
+  - @brains/identity-service@0.2.0-alpha.88
+  - @brains/mcp-service@0.2.0-alpha.88
+  - @brains/messaging-service@0.2.0-alpha.88
+  - @brains/templates@0.2.0-alpha.88
+
+## 0.2.0-alpha.87
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.87
+  - @brains/conversation-service@0.2.0-alpha.87
+  - @brains/entity-service@0.2.0-alpha.87
+  - @brains/identity-service@0.2.0-alpha.87
+  - @brains/mcp-service@0.2.0-alpha.87
+  - @brains/messaging-service@0.2.0-alpha.87
+  - @brains/templates@0.2.0-alpha.87
+
+## 0.2.0-alpha.86
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.86
+  - @brains/conversation-service@0.2.0-alpha.86
+  - @brains/entity-service@0.2.0-alpha.86
+  - @brains/identity-service@0.2.0-alpha.86
+  - @brains/mcp-service@0.2.0-alpha.86
+  - @brains/messaging-service@0.2.0-alpha.86
+  - @brains/templates@0.2.0-alpha.86
+
+## 0.2.0-alpha.85
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.85
+  - @brains/conversation-service@0.2.0-alpha.85
+  - @brains/entity-service@0.2.0-alpha.85
+  - @brains/identity-service@0.2.0-alpha.85
+  - @brains/mcp-service@0.2.0-alpha.85
+  - @brains/messaging-service@0.2.0-alpha.85
+  - @brains/templates@0.2.0-alpha.85
+
+## 0.2.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.84
+  - @brains/conversation-service@0.2.0-alpha.84
+  - @brains/entity-service@0.2.0-alpha.84
+  - @brains/identity-service@0.2.0-alpha.84
+  - @brains/mcp-service@0.2.0-alpha.84
+  - @brains/messaging-service@0.2.0-alpha.84
+  - @brains/templates@0.2.0-alpha.84
+
 ## 0.2.0-alpha.83
 
 ### Patch Changes

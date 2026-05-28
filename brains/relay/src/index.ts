@@ -4,8 +4,11 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { A2AInterface } from "@brains/a2a";
 import { WebserverInterface } from "@brains/webserver";
+import { WebChatInterface } from "@brains/web-chat";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
+import { notificationsPlugin } from "@brains/notifications";
+import { emailResendPlugin } from "@brains/email-resend";
 
 import { join } from "path";
 import { cmsPlugin } from "@brains/cms";
@@ -26,6 +29,7 @@ import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import rizomTheme from "@brains/theme-rizom";
 import { relaySite, relaySiteContentDefinition } from "./site";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
  * Relay Brain Model
@@ -63,10 +67,13 @@ const core = [
   "agents",
   "assessment",
   "auth-service",
+  "notifications",
+  "email-resend",
   "cms",
   "dashboard",
   "mcp",
   "webserver",
+  "web-chat",
   "discord",
   "a2a",
 ];
@@ -100,7 +107,7 @@ const agentInstructions = [
 
 export default defineBrain({
   name: "relay",
-  version: "0.1.0",
+  version: packageJson.version,
   model: "gpt-5.4-mini",
   site: relaySite,
   theme: rizomTheme,
@@ -110,7 +117,7 @@ export default defineBrain({
     full,
   },
 
-  evalDisable: ["webserver", "mcp", "discord"],
+  evalDisable: ["webserver", "web-chat", "mcp", "discord"],
 
   agentInstructions,
 
@@ -145,6 +152,8 @@ export default defineBrain({
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
+    ["notifications", notificationsPlugin, undefined],
+    ["email-resend", emailResendPlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     [
@@ -171,6 +180,7 @@ export default defineBrain({
     ["discord", DiscordInterface, (): PluginConfig => ({ captureUrls: true })],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {
@@ -179,7 +189,28 @@ export default defineBrain({
       { pattern: "mcp:stdio", level: "anchor" },
       { pattern: "mcp:http", level: "anchor" },
       { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "anchor" },
     ],
+    // Only team-authored entity types are loosened to trusted create/update.
+    // Derived/system-maintained types (summary, topic, agent, skill, swot,
+    // site-info, prompt, brain-character, anchor-profile, ...) are
+    // intentionally absent — they inherit the anchor-only platform fallback
+    // from PLATFORM_ENTITY_ACTION_DEFAULTS. Adding a new derived type does
+    // not require a relay-side change; adding a new collaborator-authored
+    // type does.
+    entityActions: {
+      base: { create: "trusted", update: "trusted", delete: "anchor" },
+      link: { create: "trusted", update: "trusted", delete: "anchor" },
+      doc: { create: "trusted", update: "trusted", delete: "anchor" },
+      deck: { create: "trusted", update: "trusted", delete: "anchor" },
+      decision: { create: "trusted", update: "trusted", delete: "anchor" },
+      "action-item": {
+        create: "trusted",
+        update: "trusted",
+        delete: "anchor",
+      },
+      image: { create: "trusted", update: "trusted", delete: "anchor" },
+    },
   },
 
   deployment: {

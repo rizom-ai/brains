@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import type { Tool } from "@brains/mcp-service";
+import type { Tool, ToolContext } from "@brains/mcp-service";
+import { PermissionService } from "@brains/templates";
 
 describe("system_extract tool", () => {
   let tools: Tool[];
@@ -41,10 +42,17 @@ describe("system_extract tool", () => {
     tools = createSystemTools(services);
   });
 
-  function exec(input: Record<string, unknown>): Promise<unknown> {
+  function exec(
+    input: Record<string, unknown>,
+    context: Partial<ToolContext> = {},
+  ): Promise<unknown> {
     const tool = tools.find((t) => t.name === "system_extract");
     if (!tool) throw new Error("system_extract not found");
-    return tool.handler(input, { interfaceType: "test", userId: "test" });
+    return tool.handler(input, {
+      interfaceType: "test",
+      userId: "test",
+      ...context,
+    });
   }
 
   it("requires confirmation for topic rebuild", async () => {
@@ -84,6 +92,37 @@ describe("system_extract tool", () => {
       mode: "source",
       entityId: "post-1",
       entityType: "post",
+    });
+  });
+
+  it("denies extraction when entity action policy requires a higher level", async () => {
+    services = createMockSystemServices({
+      permissionService: new PermissionService({
+        entityActions: { topic: { extract: "anchor" } },
+      }),
+    });
+    services.addEntities([
+      {
+        id: "topic-1",
+        entityType: "topic",
+        content: "",
+        contentHash: "hash",
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
+    ]);
+    tools = createSystemTools(services);
+
+    const result = await exec(
+      { entityType: "topic", mode: "rebuild" },
+      { userPermissionLevel: "trusted" },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Extracting `topic` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
     });
   });
 

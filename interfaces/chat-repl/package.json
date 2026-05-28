@@ -1,7 +1,7 @@
 {
   "name": "@brains/chat-repl",
   "private": true,
-  "version": "0.2.0-alpha.83",
+  "version": "0.2.0-alpha.94",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
@@ -23,7 +23,7 @@
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^12.0.0",
-    "react": "^19.1.0"
+    "react": "^19.2.6"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

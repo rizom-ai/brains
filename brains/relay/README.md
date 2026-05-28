@@ -24,6 +24,7 @@
 | `auth-service`   | OAuth/passkey operator auth                 |
 | `cms`            | CMS surface                                 |
 | `dashboard`      | operator dashboard widgets                  |
+| `web-chat`       | operator web chat UI                        |
 | `image`          | image handling for site-facing instances    |
 | `site-info`      | site identity metadata                      |
 | `site-content`   | durable route/section copy                  |
@@ -33,14 +34,26 @@
 
 System tools such as create, update, search, extract, and status are framework-level surfaces provided by the shell.
 
+## Mutation permissions
+
+Relay separates collaborator writes from owner/operator writes:
+
+- trusted teammates can create and update normal team-authored memory such as notes, links, decisions, action items, images, docs, and decks;
+- deletes default to owner/operator (`anchor`) permission;
+- derived/system-maintained or identity/config records (`summary`, `topic`, `agent`, `skill`, `swot`, `prompt`, `site-info`, `site-content`, `anchor-profile`, `brain-character`) are owner/operator-only by default;
+- extraction/rebuild actions for derived records such as `topic`, `summary`, `skill`, and `swot` require owner/operator permission.
+
+Instances can override these defaults with `permissions.entityActions` in `brain.yaml`.
+
 ## Interfaces
 
-| Interface   | Purpose                                        |
-| ----------- | ---------------------------------------------- |
-| `mcp`       | Model Context Protocol                         |
-| `discord`   | team chat interface with URL capture           |
-| `a2a`       | agent-to-agent RPC surface                     |
-| `webserver` | HTTP host for site, CMS, dashboard, and health |
+| Interface   | Purpose                                              |
+| ----------- | ---------------------------------------------------- |
+| `mcp`       | Model Context Protocol                               |
+| `discord`   | team chat interface with URL capture                 |
+| `a2a`       | agent-to-agent RPC surface                           |
+| `webserver` | HTTP host for site, CMS, dashboard, chat, and health |
+| `web-chat`  | browser chat surface for operators                   |
 
 ## Eval coverage
 
@@ -119,6 +132,33 @@ GIT_SYNC_TOKEN=ghp_...
 ```
 
 Relay includes `auth-service`, so first boot prints a one-shot `/setup` URL for passkey registration. OAuth-capable MCP clients should use the browser/passkey authorization flow against `/mcp`; keep `MCP_AUTH_TOKEN` only for older clients that cannot do OAuth.
+
+### Permissions UX
+
+Relay treats people in configured shared spaces as collaborators (`trusted`) while anchors remain owners. By default, collaborators can create/update normal team memory, but deletes and system-maintained records stay owner-only.
+
+```yaml
+anchors:
+  - "discord:OWNER_USER_ID"
+
+spaces:
+  - "discord:TEAM_CHANNEL_ID"
+```
+
+Relay's built-in entity action policy allows collaborators to create/update general team content such as notes, links, decisions, action items, docs, decks, and images. Deletes require owner/anchor permission. Protected entities such as prompts, site content, topics, summaries, agents, skills, and SWOTs require owner/anchor permission for create/update/delete. Singleton identity/config entities — site-info, anchor-profile, and brain-character — cannot be deleted through system tools at all; reset them through plugin or directory-sync paths.
+
+Instances can override individual actions in `brain.yaml`:
+
+```yaml
+permissions:
+  entityActions:
+    doc:
+      delete: trusted
+    summary:
+      update: trusted
+```
+
+Denials are explicit, for example: `Update summary requires Owner/anchor permission; your current permission is Collaborator/trusted.`
 
 ### 4. Run the instance
 

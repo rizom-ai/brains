@@ -5,6 +5,7 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { ChatInterface } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
+import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
 import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
@@ -15,7 +16,6 @@ import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
 import { documentPlugin } from "@brains/document-plugin";
-import { mediaToolsPlugin } from "@brains/media-tools";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
@@ -69,6 +69,7 @@ const core = [
   "dashboard-root",
   "mcp",
   "webserver",
+  "web-chat",
   "discord",
   "a2a",
 ];
@@ -95,7 +96,6 @@ const full = [
   "social-media",
   "newsletter",
   "stock-photo",
-  "media-tools",
 ];
 
 const agentInstructions = [
@@ -120,6 +120,7 @@ export default defineBrain({
     "discord",
     "chat",
     "webserver",
+    "web-chat",
     "mcp",
     "analytics",
     "dashboard",
@@ -142,7 +143,6 @@ export default defineBrain({
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
     ["document", documentPlugin, undefined],
-    ["media-tools", mediaToolsPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["portfolio", portfolioPlugin, {}],
@@ -219,6 +219,7 @@ export default defineBrain({
     ["discord", DiscordInterface, (): PluginConfig => ({})],
     ["chat", ChatInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
 
@@ -228,7 +229,16 @@ export default defineBrain({
       { pattern: "mcp:stdio", level: "anchor" },
       { pattern: "mcp:http", level: "public" },
       { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "anchor" },
     ],
+    entityActions: {
+      "*": {
+        create: "anchor",
+        update: "anchor",
+        delete: "anchor",
+        extract: "anchor",
+      },
+    },
   },
 
   deployment: {

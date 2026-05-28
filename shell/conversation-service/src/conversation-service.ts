@@ -26,7 +26,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
-import { eq, desc, asc, sql, count, gt } from "drizzle-orm";
+import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -285,22 +285,30 @@ export class ConversationService implements IConversationService {
   async listConversations(
     options: ListConversationsOptions = {},
   ): Promise<Conversation[]> {
-    const { limit = 100, updatedAfter } = options;
+    const {
+      limit = 100,
+      updatedAfter,
+      interfaceType,
+      sessionId,
+      channelId,
+    } = options;
+    const filters = [
+      updatedAfter ? gt(conversations.updated, updatedAfter) : undefined,
+      interfaceType
+        ? eq(conversations.interfaceType, interfaceType)
+        : undefined,
+      sessionId ? eq(conversations.sessionId, sessionId) : undefined,
+      channelId ? eq(conversations.channelId, channelId) : undefined,
+    ].filter((filter) => filter !== undefined);
 
-    if (updatedAfter) {
-      return this.db
-        .select()
-        .from(conversations)
-        .where(gt(conversations.updated, updatedAfter))
-        .orderBy(desc(conversations.lastActive))
-        .limit(limit);
-    }
-
-    return this.db
+    const query = this.db
       .select()
       .from(conversations)
       .orderBy(desc(conversations.lastActive))
       .limit(limit);
+
+    if (filters.length === 0) return query;
+    return query.where(and(...filters));
   }
 
   /**

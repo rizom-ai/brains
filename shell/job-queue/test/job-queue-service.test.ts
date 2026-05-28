@@ -266,6 +266,25 @@ describe("JobQueueService", () => {
         secondService.close();
       }
     });
+    it("should thread claimTimeoutMs into dequeue claim behavior", async () => {
+      service.close();
+      service = JobQueueService.createFresh(
+        { ...config, claimTimeoutMs: 0 },
+        createSilentLogger(),
+      );
+      service.registerHandler("shell:embedding", testHandler);
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      const firstClaim = await service.dequeue();
+      const reclaimed = await service.dequeue();
+      expect(firstClaim?.id).toBe(jobId);
+      expect(reclaimed?.id).toBe(jobId);
+      expect(reclaimed?.retryCount).toBe(1);
+      expect(reclaimed?.lastError).toBe("Claim expired");
+    });
     it("should return null when no jobs are available", async () => {
       const job = await service.dequeue();
       expect(job).toBeNull();

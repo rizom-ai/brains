@@ -12,6 +12,67 @@ export const UserPermissionLevelSchema = z.enum([
 
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
+// Add new actions only when a concrete mutating tool needs them.
+// `publish` is the next candidate — see docs/plans/publish-action-policy.md.
+export const EntityActionSchema = z.enum([
+  "create",
+  "update",
+  "delete",
+  "extract",
+]);
+export type EntityAction = z.infer<typeof EntityActionSchema>;
+
+/**
+ * Required level for an entity action.
+ *
+ * `never` forbids the action through system tools regardless of caller level.
+ */
+export const EntityActionRequiredLevelSchema = z.enum([
+  "never",
+  "anchor",
+  "trusted",
+  "public",
+]);
+export type EntityActionRequiredLevel = z.infer<
+  typeof EntityActionRequiredLevelSchema
+>;
+
+export const entityActionPolicyRuleSchema = z
+  .object({
+    create: EntityActionRequiredLevelSchema.optional(),
+    update: EntityActionRequiredLevelSchema.optional(),
+    delete: EntityActionRequiredLevelSchema.optional(),
+    extract: EntityActionRequiredLevelSchema.optional(),
+  })
+  .strict();
+
+export const entityActionPolicyConfigSchema = z.record(
+  z.string(),
+  entityActionPolicyRuleSchema,
+);
+
+export type EntityActionPolicyRule = z.infer<
+  typeof entityActionPolicyRuleSchema
+>;
+export type EntityActionPolicyConfig = z.infer<
+  typeof entityActionPolicyConfigSchema
+>;
+export type EntityActionPolicyEntry = EntityActionPolicyRule;
+export type EntityActionPolicy = EntityActionPolicyConfig;
+
+const ACTION_LABELS: Record<EntityAction, string> = {
+  create: "Creating",
+  update: "Updating",
+  delete: "Deleting",
+  extract: "Extracting",
+};
+
+const LEVEL_LABELS: Record<UserPermissionLevel, string> = {
+  public: "Public/public",
+  trusted: "Collaborator/trusted",
+  anchor: "Owner/anchor",
+};
+
 /**
  * Generic interface for items with visibility
  */
@@ -34,6 +95,30 @@ export interface PermissionConfig {
   anchors?: string[];
   trusted?: string[];
   rules?: PermissionRule[];
+  entityActions?: EntityActionPolicyConfig;
+}
+
+export class EntityActionPermissionError extends Error {
+  public readonly entityType: string;
+  public readonly action: EntityAction;
+  public readonly callerLevel: UserPermissionLevel;
+  public readonly requiredLevel: UserPermissionLevel;
+
+  constructor(input: {
+    entityType: string;
+    action: EntityAction;
+    callerLevel: UserPermissionLevel;
+    requiredLevel: UserPermissionLevel;
+  }) {
+    super(
+      `${ACTION_LABELS[input.action]} \`${input.entityType}\` requires ${LEVEL_LABELS[input.requiredLevel]} permission; your current permission is ${LEVEL_LABELS[input.callerLevel]}.`,
+    );
+    this.name = "EntityActionPermissionError";
+    this.entityType = input.entityType;
+    this.action = input.action;
+    this.callerLevel = input.callerLevel;
+    this.requiredLevel = input.requiredLevel;
+  }
 }
 
 /**
@@ -68,6 +153,7 @@ export class PermissionService {
   private trusted: Set<string>;
   private rules: PermissionRule[];
   private spaces: string[];
+  private entityActions?: EntityActionPolicyConfig;
 
   constructor(
     config: PermissionConfig,
@@ -77,6 +163,11 @@ export class PermissionService {
     this.trusted = new Set(config.trusted ?? []);
     this.rules = config.rules ?? [];
     this.spaces = options.spaces ?? [];
+    if (config.entityActions) {
+      this.entityActions = entityActionPolicyConfigSchema.parse(
+        config.entityActions,
+      );
+    }
   }
 
   /**
@@ -113,6 +204,72 @@ export class PermissionService {
     }
 
     return patternLevel ?? "public";
+  }
+
+  /**
+   * Return the merged entity action policy for an entity type.
+   * Entity-specific entries override the "*" default one action at a time.
+   */
+  getResolvedEntityActionPolicy(
+    entityType: string,
+  ): EntityActionPolicyRule | undefined {
+    if (!this.entityActions) return undefined;
+
+    const policy = {
+      ...(this.entityActions["*"] ?? {}),
+      ...(this.entityActions[entityType] ?? {}),
+    };
+
+    return Object.keys(policy).length > 0 ? policy : undefined;
+  }
+
+  getEntityActionRequiredLevel(
+    entityType: string,
+    action: EntityAction,
+  ): EntityActionRequiredLevel | undefined {
+    return this.getResolvedEntityActionPolicy(entityType)?.[action];
+  }
+
+  getRequiredEntityActionLevel(
+    entityType: string,
+    action: EntityAction,
+  ): EntityActionRequiredLevel | undefined {
+    return this.getEntityActionRequiredLevel(entityType, action);
+  }
+
+  canPerformEntityAction(
+    userLevel: UserPermissionLevel | undefined,
+    entityType: string,
+    action: EntityAction,
+  ): boolean {
+    const requiredLevel = this.getEntityActionRequiredLevel(entityType, action);
+    if (!requiredLevel) return true;
+    if (requiredLevel === "never") return false;
+    return this.hasPermission(userLevel ?? "public", requiredLevel);
+  }
+
+  assertEntityActionAllowed(
+    entityType: string,
+    action: EntityAction,
+    userLevel: UserPermissionLevel | undefined,
+  ): void {
+    const requiredLevel = this.getEntityActionRequiredLevel(entityType, action);
+    if (!requiredLevel) return;
+    if (requiredLevel === "never") {
+      throw new Error(
+        `${ACTION_LABELS[action]} \`${entityType}\` is not allowed through system tools.`,
+      );
+    }
+
+    const callerLevel = userLevel ?? "public";
+    if (this.hasPermission(callerLevel, requiredLevel)) return;
+
+    throw new EntityActionPermissionError({
+      entityType,
+      action,
+      callerLevel,
+      requiredLevel,
+    });
   }
 
   /**

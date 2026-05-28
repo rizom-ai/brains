@@ -4,7 +4,7 @@
 
 Partially implemented follow-up to the PDF carousel MVP.
 
-The current `preview-attachment` tool proves that source-derived attachments can render correctly, and `document_generate` now supports saving a source-derived PDF as a durable `document` entity and optionally attaching it to `social-post.documents[]`. The remaining design question is whether to keep that explicit document tool or fold durable attachment-derived saves into `system_create`, so generated media uses one normal entity lifecycle surface.
+`document_generate` supports saving a source-derived PDF as a durable `document` entity and optionally attaching it to `social-post.documents[]`. The remaining design question is whether to keep that explicit document tool or fold durable attachment-derived saves into `system_create`, so generated media uses one normal entity lifecycle surface.
 
 ## Goal
 
@@ -14,7 +14,6 @@ The same path should support:
 
 - generating source-derived attachments such as `deck` → `carousel` PDFs
 - generating prompt-derived images such as cover images (already works today)
-- previewing a generated artifact locally without persisting it
 - saving the generated artifact as a durable entity when explicitly requested
 - attaching saved or existing media to target entities
 - publishing the exact approved artifact without regenerating it
@@ -22,17 +21,15 @@ The same path should support:
 ## Non-goals
 
 - Do not add implicit caching to every source-derived publish.
-- Do not make previews durable unless explicitly requested.
 - Do not remove source-derived publishing fallback; publishing should still regenerate when no saved artifact is attached.
 - Do not introduce a new entity type for every artifact kind.
 - Do not introduce parallel durable `media_generate`/`media_attach` tools when `system_create`/`system_update` already cover the case.
-- Keep one media-specific preview tool for disposable render-to-file workflows; preview is not entity lifecycle.
+- Do not introduce disposable preview tools that return local-only paths or inline binary payloads; carousel/PDF inspection should use durable document artifacts.
 
 ## What already works
 
 Existing facilities cover most of the surface:
 
-- **Disposable attachment preview:** `media-tools_preview-attachment` resolves a source attachment such as `deck` → `carousel`, renders it to an operator-visible file/inline response, and creates no entity.
 - **Durable document generation:** `document_generate` renders a PDF from a source attachment or render URL, stores it as a `document` entity, supports dedup keys, and can attach the result to a target `social-post.documents[]` field.
 - **Publishing precedence:** social-post publishing prefers explicit `documents[]` artifacts before falling back to source-derived carousel rendering.
 - **Image generation + attach (existing entity):** `system_create({ entityType: "image", prompt, targetEntityType, targetEntityId })` generates the image and sets the target's `coverImageId` via the image-generation job handler.
@@ -43,7 +40,6 @@ The remaining missing piece is **surface unification**: attachment-derived docum
 
 ## Plugin ownership
 
-- `media-tools` owns the disposable preview tool only.
 - `entities/document` owns the document schema, adapter, storage, `document_generate` tool, and attachment-derived generation handler.
 - `entities/image` is unchanged.
 - Source entity plugins (e.g. `decks`) own their attachment providers.
@@ -88,12 +84,6 @@ system_update({
 - Add a guard: when `fields` includes `coverImageId`, verify the adapter's existing `supportsCoverImage` flag.
 - `supportsOgImage` does not exist today. Add it to the adapter contract only when OG-image assignment lands; until then, do not mention or validate `ogImageId` through a non-existent adapter capability.
 - Once the `coverImageId` guard exists, `system_set-cover` is fully redundant and gets deleted.
-
-### `media_preview` — disposable case
-
-Rename `preview-attachment` → `preview`, exposed by `plugins/media-tools` as MCP tool `media-tools_preview` and CLI alias `media-preview` unless/until plugin naming changes. It resolves a provider, writes to disk, and creates no entity.
-
-Do not model preview as `system_create({ dryRun: true })`: preview renders real bytes to an operator file path but intentionally does not create an entity. Keeping it in `media-tools` preserves `system_create` as durable create/enqueue semantics.
 
 ### `--replace` flag
 
@@ -154,12 +144,11 @@ Only proceed to implementation once the baseline is green and the regression cov
 3. Extend `system_create` / `CreateInput` schemas with `from:` and `replace:` fields; accept `from` as a valid create source.
 4. Define `replace: true` behavior precisely in tests: new artifact ID, no in-place mutation of previously saved documents, and target `documents[]` deduped/repointed for the same source/attachment pair.
 5. Add `supportsCoverImage` guard to `system_update` for `coverImageId` updates. Leave `ogImageId` guards for the OG-image phase when `supportsOgImage` exists.
-6. Rename `preview-attachment` → `preview` in `plugins/media-tools` (`media-tools_preview` MCP name; CLI alias `media-preview`).
-7. Remove or deprecate the existing `document_generate` tool once `system_create({ entityType: "document", from: ... })` is available; do not keep two durable document-generation surfaces.
-8. Update agent prompts and rover eval cases (`system-set-cover*.yaml`) to use `system_update` for reference assignment and `system_create({ entityType: "image", ... })` for generation.
-9. Delete `system_set-cover` tool and `createEntityCoverTool` registration.
-10. Add publishing integration test: a social post with a saved `documents[]` entry does not invoke the carousel renderer at publish time.
-11. Document the `from:` pattern in `system_create` for operators/agents.
+6. Remove or deprecate the existing `document_generate` tool once `system_create({ entityType: "document", from: ... })` is available; do not keep two durable document-generation surfaces.
+7. Update agent prompts and rover eval cases (`system-set-cover*.yaml`) to use `system_update` for reference assignment and `system_create({ entityType: "image", ... })` for generation.
+8. Delete `system_set-cover` tool and `createEntityCoverTool` registration.
+9. Add publishing integration test: a social post with a saved `documents[]` entry does not invoke the carousel renderer at publish time.
+10. Document the `from:` pattern in `system_create` for operators/agents.
 
 ## New evals (add at the end)
 
@@ -181,7 +170,7 @@ Once the migration is complete, add rover evals covering the new surface so futu
 
 7. **Adapter guard rejection** — `system_update` on an entity type without `supportsCoverImage` returns a clear error. (Unit test on the tool, not an agent eval.)
 
-8. **media preview disposable** — "Preview the carousel for deck X" → expect `media-tools_preview` / CLI `media-preview` with no entity created. (Integration test.)
+8. **carousel document preview** — "Preview the carousel for deck X" → expect `document_generate` so the operator receives a durable document artifact rather than a local-only temp path or inline binary payload. (Integration test.)
 
 9. **Publishing precedence** — social post with `documents[]` populated publishes without invoking the deck carousel renderer. (Integration test from step 8 of implementation.)
 
@@ -193,7 +182,7 @@ Once the migration is complete, add rover evals covering the new surface so futu
 - Re-running the same call returns the existing entity ID without re-rendering.
 - `replace: true` forces a new render, creates a new saved artifact, and repoints/dedupes target references when a target is provided.
 - `system_create({ entityType: "document", from: ..., targetEntityType: "social-post", targetEntityId })` saves the document and attaches it to the target.
-- `media-tools_preview` writes the rendered artifact to disk and creates no entity.
+- Carousel/PDF preview requests create durable document artifacts via `document_generate`.
 - `system_update({ fields: { coverImageId: "img-1" } })` rejects on entity types without `supportsCoverImage`.
 - `system_update({ fields: { coverImageId: null } })` clears the reference.
 - Publishing a social post with `documents[]` populated does not invoke the deck carousel renderer.

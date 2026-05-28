@@ -13,7 +13,7 @@ import type {
   DataSource,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { Template } from "@brains/templates";
+import type { EntityActionPolicyConfig, Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils";
 import type { EntityPluginContext } from "./context";
@@ -41,6 +41,9 @@ export abstract class EntityPlugin<
   /** The entity type name (e.g. "post", "deck", "note") */
   abstract readonly entityType: string;
 
+  /** Optional default action policy owned by this entity plugin. */
+  public readonly entityActionPolicy?: EntityActionPolicyConfig;
+
   private readonly derivedEntityProjectionControllers = new Map<
     string,
     DerivedEntityProjectionController
@@ -51,8 +54,12 @@ export abstract class EntityPlugin<
     packageJson: { name: string; version: string; description?: string },
     config: Partial<TConfig> = {} as Partial<TConfig>,
     configSchema: z.ZodTypeAny = emptyConfigSchema,
+    entityActionPolicy?: EntityActionPolicyConfig,
   ) {
     super(id, packageJson, config, configSchema);
+    if (entityActionPolicy !== undefined) {
+      this.entityActionPolicy = entityActionPolicy;
+    }
   }
 
   /** Zod schema for validating entities of this type */

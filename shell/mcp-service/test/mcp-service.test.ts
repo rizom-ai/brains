@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
@@ -136,7 +136,7 @@ describe("MCPService", () => {
           input: z.string(),
         },
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Test success" }),
+        handler: async () => ({ success: true, data: "Test success" }),
       };
 
       mcpService.setPermissionLevel("anchor");
@@ -144,10 +144,15 @@ describe("MCPService", () => {
 
       const tools = mcpService.listTools();
       expect(tools).toHaveLength(1);
-      expect(tools[0]).toEqual({
-        pluginId: "test-plugin",
-        tool,
-      });
+      expect(tools[0]?.pluginId).toBe("test-plugin");
+      expect(tools[0]?.tool).toEqual(
+        expect.objectContaining({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          visibility: tool.visibility,
+        }),
+      );
     });
 
     it("should always store tools in registry regardless of permission level", () => {
@@ -156,7 +161,7 @@ describe("MCPService", () => {
         description: "Admin tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Admin success" }),
+        handler: async () => ({ success: true, data: "Admin success" }),
       };
 
       mcpService.setPermissionLevel("public");
@@ -215,19 +220,96 @@ describe("MCPService", () => {
       });
     });
 
+    it("should pass compliant registered tool responses through unchanged", async () => {
+      const context = { interfaceType: "test", userId: "user-1" };
+      const responses = [
+        { success: true as const, data: { value: "ok" }, message: "Done" },
+        { success: false as const, error: "Nope", code: "NOPE" },
+        {
+          needsConfirmation: true as const,
+          toolName: "confirm_tool",
+          description: "Confirm?",
+          args: { id: "123" },
+        },
+      ];
+
+      for (const [index, response] of responses.entries()) {
+        const tool: Tool = {
+          name: `compliant_tool_${index}`,
+          description: "Compliant tool",
+          inputSchema: {},
+          handler: async () => response,
+        };
+
+        mcpService.registerTool("test-plugin", tool);
+        const registeredTool = mcpService.listTools()[index]?.tool;
+        expect(registeredTool).toBeDefined();
+        if (!registeredTool) {
+          throw new Error("Expected registered tool");
+        }
+        expect(await registeredTool.handler({}, context)).toEqual(response);
+      }
+    });
+
+    it("should coerce non-compliant registered tool responses to tool errors", async () => {
+      const logger = createMockLogger();
+      mcpService = MCPService.createFresh(mockMessageBus, logger);
+      const invalidResponses = [
+        JSON.parse('{"success":false}'),
+        JSON.parse('{"success":true}'),
+        { success: true, data: "ok", formatted: "extra" },
+      ];
+
+      for (const [index, invalidResponse] of invalidResponses.entries()) {
+        const tool: Tool = {
+          name: `invalid_tool_${index}`,
+          description: "Invalid tool",
+          inputSchema: {},
+          handler: async () => invalidResponse,
+        };
+
+        mcpService.registerTool("invalid-plugin", tool);
+        const registeredTool = mcpService.listTools()[index]?.tool;
+        expect(registeredTool).toBeDefined();
+        if (!registeredTool) {
+          throw new Error("Expected registered tool");
+        }
+
+        expect(
+          await registeredTool.handler(
+            {},
+            { interfaceType: "test", userId: "user-1" },
+          ),
+        ).toEqual({
+          success: false,
+          error: `Tool invalid_tool_${index} returned an invalid response shape`,
+        });
+      }
+
+      expect(logger.error).toHaveBeenCalledTimes(invalidResponses.length);
+      expect(logger.error).toHaveBeenCalledWith(
+        "Tool returned non-compliant response",
+        expect.objectContaining({
+          pluginId: "invalid-plugin",
+          toolName: "invalid_tool_0",
+          issues: expect.any(Array),
+        }),
+      );
+    });
+
     it("should register multiple tools from different plugins", () => {
       const tool1: Tool = {
         name: "plugin1_tool",
         description: "Plugin 1 tool",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Plugin 1 success" }),
+        handler: async () => ({ success: true, data: "Plugin 1 success" }),
       };
 
       const tool2: Tool = {
         name: "plugin2_tool",
         description: "Plugin 2 tool",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Plugin 2 success" }),
+        handler: async () => ({ success: true, data: "Plugin 2 success" }),
       };
 
       mcpService.setPermissionLevel("anchor");
@@ -352,7 +434,7 @@ describe("MCPService", () => {
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "Public success" }),
+        handler: async () => ({ success: true, data: "Public success" }),
       };
 
       const trustedTool: Tool = {
@@ -360,7 +442,7 @@ describe("MCPService", () => {
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Trusted success" }),
+        handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
       const anchorTool: Tool = {
@@ -368,7 +450,7 @@ describe("MCPService", () => {
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Anchor success" }),
+        handler: async () => ({ success: true, data: "Anchor success" }),
       };
 
       // Even with public permission, all tools are in the internal registry
@@ -496,7 +578,7 @@ describe("MCPService", () => {
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "Public success" }),
+        handler: async () => ({ success: true, data: "Public success" }),
       };
 
       const trustedTool: Tool = {
@@ -504,7 +586,7 @@ describe("MCPService", () => {
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Trusted success" }),
+        handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
       const anchorTool: Tool = {
@@ -512,7 +594,7 @@ describe("MCPService", () => {
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Anchor success" }),
+        handler: async () => ({ success: true, data: "Anchor success" }),
       };
 
       // Tool with default visibility (should be anchor)
@@ -520,7 +602,7 @@ describe("MCPService", () => {
         name: "default_tool",
         description: "Tool with default visibility",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Default success" }),
+        handler: async () => ({ success: true, data: "Default success" }),
       };
 
       mcpService.registerTool("plugin", publicTool);
@@ -1036,7 +1118,7 @@ describe("MCPService", () => {
         description: "Search",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "ok" }),
+        handler: async () => ({ success: true, data: "ok" }),
       };
 
       const anchorTool: Tool = {
@@ -1044,7 +1126,7 @@ describe("MCPService", () => {
         description: "Create entity",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "ok" }),
+        handler: async () => ({ success: true, data: "ok" }),
       };
 
       // Simulate: tools registered at anchor level during plugin init

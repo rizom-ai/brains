@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-23
+Last updated: 2026-05-24
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -81,19 +81,30 @@ The central product bet is now explicit:
 
 The roadmap is organized around that story rather than generic short/medium/long buckets. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what story the work supports.
 
-### 1. Keep Rover solid and independent
+### 1. Keep Rover sharp as the public reference
 
-Rover is the public reference brain and should continue to work without Relay. It proves the personal/professional path: durable markdown knowledge, publishing, site generation, content workflows, and agent interoperability for one owner.
+Rover is the public reference brain and should keep working without Relay. The posture has shifted from "maintain Rover" to "actively harden Rover alongside the Relay POC" — both produce signal worth acting on, and both feed the same weekly review cadence.
 
-Current state:
+Three parallel sub-tracks:
 
-- Rover is usable today as a standalone personal/professional brain.
-- Publishing/site/content workflows remain valuable in their own right.
-- Media publishing landed substantially in this cycle — PDF carousels, LinkedIn document publishing, durable media artifacts. This is real Rover product work and shares attention with §2 rather than running underneath it; remaining OG image and unified generation work is tracked below.
+**Primary: bundled web chat UI.** Rover (and every brain) currently has no in-browser way to actually chat with the brain — the options are CLI, Discord setup, or MCP through a desktop assistant. None of these is a credible "try it" path for new users. A bundled web chat surface closes that gap and is the most leveraged Rover hardening investment. See [brain-web-ui.md](./plans/brain-web-ui.md).
+
+**Planned: media/OG follow-through.** PDF carousels, LinkedIn document publishing, and durable media artifacts landed in this cycle. Remaining work is the OG image substrate and a unified media generation lifecycle. Cap this at a defined slice — media work has its own gravity and will pull attention from friction work if unchecked.
+
+**Reactive: user-testing friction.** Real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction the Relay POC won't. Operating model:
+
+- one capture channel (Discord, issues, wherever) so reported friction does not get lost in scattered conversations;
+- prioritize by frequency × severity, not by what looks interesting to fix;
+- bias toward small ships that propagate via the next deploy rather than coordinated rollouts;
+- give setup/first-run friction disproportionate weight — current users are past the onboarding wall, so it is invisible from inside the project but lethal for anyone new;
+- keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
+
+Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
 
 Supporting plans:
 
-- [generic-media-generation.md](./plans/generic-media-generation.md) — make generated media artifacts use a cleaner lifecycle surface.
+- [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
+- [generic-media-generation.md](./plans/generic-media-generation.md) — clean lifecycle surface for generated media artifacts.
 - [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
@@ -127,7 +138,6 @@ Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
 - [summary-conversation-memory.md](./plans/summary-conversation-memory.md) — conversation memory policy and remaining eval/policy tightening.
-- [shared-space-trust.md](./plans/shared-space-trust.md) — implemented first trust slice; entity action policy remains a follow-up.
 - [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
 ### 3. Make shared Relay trustworthy enough to matter
@@ -169,10 +179,9 @@ Plans:
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
-- [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — hosted Discord UX direction.
 - [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — tactical CMS OAuth proxy.
 - [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — longer-term brain-hosted CMS git gateway.
-- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — deferred multi-platform chat consolidation via Vercel Chat SDK; not v0.2.0-gating.
+- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — parked; revisits multi-platform chat adapter consolidation only when a new platform is prioritized.
 
 ### 5. Make the ecosystem credible
 

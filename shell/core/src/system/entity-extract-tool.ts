@@ -1,6 +1,7 @@
 import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { extractInputSchema } from "./schemas";
+import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { createSystemTool } from "./tool-helpers";
 
@@ -9,7 +10,7 @@ export function createEntityExtractTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "extract",
-    'Project derived entities from source content. Provide source for single, omit for batch. `mode: "rebuild"` is currently only supported for `entityType: "topic"` and requires confirmation; other entity types fall back to normal projection mode.',
+    'Generate derived entities (e.g. topics) from existing content. Use this for requests like "generate topics for me", "extract topics", "derive topics from my notes" — call once with `entityType` (typically `"topic"`); do not preflight with search/list. Provide `source` to derive from a single entity, omit for a batch over all sources. `mode: "rebuild"` is currently only supported for `entityType: "topic"` and requires confirmation; other entity types fall back to normal projection mode.',
     extractInputSchema,
     async (input, toolContext) => {
       const { entityType, source } = input;
@@ -25,6 +26,18 @@ export function createEntityExtractTool(services: SystemServices): Tool {
           error: `Unknown entity type: ${entityType}. Available types: ${entityService.getEntityTypes().join(", ")}`,
         };
       }
+
+      // Policy is checked before mode (derive/rebuild/source) is finalized.
+      // Assumes all extraction modes share the same required level for a
+      // given entity type. If a future mode needs distinct gating, extend
+      // EntityAction (e.g. "extract:rebuild") rather than branching here.
+      const policyError = assertEntityActionAllowed(
+        services,
+        entityType,
+        "extract",
+        toolContext,
+      );
+      if (policyError) return policyError;
 
       if (rebuildRequested && rebuildSupported && !input.confirmed) {
         return {
