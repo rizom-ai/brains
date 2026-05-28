@@ -44,7 +44,8 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
-    this.getThemeMode = deps.getThemeMode ?? (async () => "dark");
+    this.getThemeMode =
+      deps.getThemeMode ?? (async (): Promise<"light" | "dark"> => "dark");
   }
 
   async resolve(request: {

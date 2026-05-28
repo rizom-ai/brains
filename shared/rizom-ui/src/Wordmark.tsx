@@ -12,11 +12,11 @@ export interface WordmarkProps {
   suffixClassName?: string;
 }
 
-const DOT_BY_SUFFIX: Record<RizomBrandSuffix, string> = {
-  work: "text-accent",
-  foundation: "text-secondary",
-  ai: "text-accent-bright",
-};
+const DOT_BY_SUFFIX = new Map<string, string>([
+  ["work", "text-accent"],
+  ["foundation", "text-secondary"],
+  ["ai", "text-accent-bright"],
+]);
 
 export const Wordmark = ({
   name = "rizom",
@@ -25,7 +25,7 @@ export const Wordmark = ({
   dotClassName,
   suffixClassName,
 }: WordmarkProps): JSX.Element => {
-  const knownDotClass = DOT_BY_SUFFIX[brandSuffix as RizomBrandSuffix];
+  const knownDotClass = DOT_BY_SUFFIX.get(brandSuffix);
   return (
     <span
       className={cn(

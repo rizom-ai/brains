@@ -163,7 +163,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
       ...this.deps,
       getThemeMode:
         this.deps.getThemeMode ??
-        (async () => {
+        (async (): Promise<"light" | "dark"> => {
           try {
             const info = await fetchSiteInfo(context.entityService);
             return info.themeMode ?? "dark";
