@@ -2,20 +2,10 @@
 
 ## Status
 
-MVP shipped. Every `@rizom/brain` install exposes a bundled `/chat` route backed
-by `@brains/web-chat`, served from the brain runtime's installed package. The
-surface is anchor-only by default, runs over AI SDK UI transport, renders with
-AI Elements registry-derived components inside a quarantined React island, and
-has session list/switch/new with last-session memory.
-
-This plan now tracks the remaining follow-ups: session management gaps, outbound
-artifacts, default landing, deferred public/trusted chat, and the deferred
-dashboard widget. Structured confirmations are tracked separately in
-[structured-chat-confirmations.md](./structured-chat-confirmations.md), which is
-unblocked now that the AI Elements baseline has landed.
-
-The previous "hosted Rover Discord gateway" direction has been dropped, and
-multi-platform chat adapter consolidation is parked in
+MVP shipped — the code is the source of truth for what works today. This plan
+now tracks open follow-ups only. Structured confirmations live in
+[structured-chat-confirmations.md](./structured-chat-confirmations.md);
+multi-platform adapter consolidation is parked in
 [chat-interface-sdk.md](./chat-interface-sdk.md).
 
 ## Why this shape (load-bearing decisions)
@@ -121,24 +111,6 @@ get it from the running brain server:
 Package/build tests prevent regressions in this contract: `build` exists, React
 entrypoints are deduped in the UI bundle config, React/React DOM ranges stay
 aligned, and `dist` is included in package `files`.
-
-## Completed
-
-1. `@rizom/brain` ships a bundled web chat UI mounted at `/chat`.
-2. `@brains/web-chat` publishes the compiled UI bundle in `dist/ui/app.js`, and
-   installed-package smoke tests prove `/chat/assets/app.js` works without a
-   consumer-side frontend build.
-3. Anchor-only auth on the full `/chat` surface.
-4. AI Elements registry-derived `Message`/`MessageContent`/`MessageResponse`,
-   `Conversation` (use-stick-to-bottom), `PromptInput`, and `Tool`. Streamdown
-   for markdown. Local adoption notes in
-   `interfaces/web-chat/ui-react/src/ai-elements/README.md`.
-5. Session list/switch/new flow with last-selected-session memory.
-6. Mobile drawer + compact header, light/dark toggle, header action alignment,
-   collapsed tool result styling.
-7. React containment test guards `ui-react/` boundary.
-8. Progress/status/final-response streaming for long responses; true token
-   streaming remains a later `AgentService` enhancement.
 
 ## Open follow-ups
 
@@ -246,18 +218,3 @@ Do not preemptively fork a full mini-chat implementation.
   contract. The biggest outstanding cross-interface workstream.
 - [chat-interface-sdk.md](./chat-interface-sdk.md) — parked multi-platform
   Chat SDK adapter consolidation. Revisit only when Slack/Teams/Matrix lands.
-
-## Validation
-
-- A fresh `brain init` + `brain start` exposes a working chat UI at `/chat`
-  with no extra frontend setup.
-- Rover/dev start paths build `@brains/web-chat` before launching so local runs
-  do not depend on a manually prebuilt `dist/ui/app.js`.
-- Published package verification confirms `@brains/web-chat` includes
-  `dist/ui/app.js` and that `/chat/assets/app.js` is served from the installed
-  package.
-- Progress/status feedback is visible during multi-second AI responses.
-- Auth gates the full chat surface to anchor/operator sessions by default.
-- Existing Discord, MCP, and CLI interfaces continue to work unchanged.
-- Rover, Ranger, and Relay all get the same chat surface; team-shared UX cues
-  for Relay can be refined once Relay-specific product work lands.
