@@ -288,13 +288,15 @@ describe("WebChatInterface", () => {
           state: "approval-requested",
         },
       ],
-      pendingConfirmation: {
-        id: "approval:call-1",
-        toolCallId: "call-1",
-        toolName: "delete_note",
-        summary: "Delete note?",
-        args: { noteId: "123" },
-      },
+      pendingConfirmations: [
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          summary: "Delete note?",
+          args: { noteId: "123" },
+        },
+      ],
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
