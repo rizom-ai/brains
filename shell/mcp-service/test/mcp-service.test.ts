@@ -228,7 +228,7 @@ describe("MCPService", () => {
         {
           needsConfirmation: true as const,
           toolName: "confirm_tool",
-          description: "Confirm?",
+          summary: "Confirm?",
           args: { id: "123" },
         },
       ];

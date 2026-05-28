@@ -186,7 +186,8 @@ describe("AgentService", () => {
 
       expect(response.text).toBe("I found some results for you.");
       expect(response.usage.totalTokens).toBe(150);
-      expect(response.pendingConfirmation).toBeUndefined();
+      expect(response.pendingConfirmations).toBeUndefined();
+      expect(response.cards).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalled();
     });
 
@@ -793,7 +794,15 @@ describe("AgentService", () => {
         "test-conversation",
       );
 
-      expect(response.pendingConfirmation).toBeDefined();
+      expect(response.pendingConfirmations).toEqual([
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          summary: "Delete note 'Meeting Notes'?",
+          args: { noteId: "123" },
+        },
+      ]);
       expect(response.cards).toEqual([
         {
           kind: "tool-approval",
@@ -912,10 +921,10 @@ describe("AgentService", () => {
       );
 
       const pending = await service.chat("delete my note", "test-conversation");
-      expect(pending.pendingConfirmation?.summary).toBe(
+      expect(pending.pendingConfirmations?.[0]?.summary).toBe(
         "Delete note 'Meeting Notes'?",
       );
-      expect(pending.pendingConfirmation?.preview).toBe(
+      expect(pending.pendingConfirmations?.[0]?.preview).toBe(
         "Sensitive content that should only appear before approval.",
       );
 
@@ -1043,11 +1052,18 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain('"success": false');
+      expect(response.text).not.toContain('"success": false');
       expect(response.text).toContain(
         "Tool delete_note returned an invalid response shape",
+      );
+      expect(response.cards?.[0]).toEqual(
+        expect.objectContaining({
+          state: "output-error",
+          error: "Tool delete_note returned an invalid response shape",
+        }),
       );
     });
 
@@ -1068,8 +1084,10 @@ describe("AgentService", () => {
         "delete my note",
         "test-conversation",
       );
-      expect(chatResponse.pendingConfirmation).toBeDefined();
-      expect(chatResponse.pendingConfirmation?.toolName).toBe("delete_note");
+      expect(chatResponse.pendingConfirmations?.[0]?.toolName).toBe(
+        "delete_note",
+      );
+      expect(chatResponse.cards?.[0]?.id).toBe("approval:call-1");
 
       // Confirm the action
       const response = await service.confirmPendingAction(
