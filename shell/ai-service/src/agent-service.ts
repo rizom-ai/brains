@@ -276,16 +276,10 @@ export class AgentService implements IAgentService {
       };
     }
 
-    const pendingConfirmations =
-      snapshotBeforeConfirm.context.pendingConfirmations.length > 0
-        ? snapshotBeforeConfirm.context.pendingConfirmations
-        : snapshotBeforeConfirm.context.pendingConfirmation
-          ? [snapshotBeforeConfirm.context.pendingConfirmation]
-          : [];
-
-    const matchesApproval = pendingConfirmations.some(
-      (confirmation) => confirmation.id === approvalId,
-    );
+    const matchesApproval =
+      snapshotBeforeConfirm.context.pendingConfirmations.some(
+        (confirmation) => confirmation.id === approvalId,
+      );
     if (!matchesApproval) {
       return {
         text: `No pending action matches approval id '${approvalId}'.`,
