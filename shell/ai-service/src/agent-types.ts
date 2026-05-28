@@ -142,9 +142,7 @@ export interface AgentResponse {
   // tool outputs, artifacts, and future rich parts.
   cards?: StructuredChatCard[];
 
-  // Pending confirmations for destructive operations. Public adapters may
-  // synthesize a singular `pendingConfirmation` compatibility field at the
-  // plugin/API boundary, but runtime consumers should use this array.
+  // Pending confirmations for destructive operations.
   pendingConfirmations?: PendingConfirmation[];
 
   // Token usage for tracking

@@ -58,21 +58,6 @@ function parseAgentResponse(json: unknown): AgentResponse {
         args: confirmation.args,
       }),
     );
-  } else if (parsed.pendingConfirmation) {
-    response.pendingConfirmations = [
-      {
-        id: parsed.pendingConfirmation.id,
-        ...(parsed.pendingConfirmation.toolCallId !== undefined
-          ? { toolCallId: parsed.pendingConfirmation.toolCallId }
-          : {}),
-        toolName: parsed.pendingConfirmation.toolName,
-        summary: parsed.pendingConfirmation.summary,
-        ...(parsed.pendingConfirmation.preview !== undefined
-          ? { preview: parsed.pendingConfirmation.preview }
-          : {}),
-        args: parsed.pendingConfirmation.args,
-      },
-    ];
   }
 
   return response;

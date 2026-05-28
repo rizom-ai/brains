@@ -82,4 +82,29 @@ describe("RemoteAgentService", () => {
     ).toEqual(["approval:update", "approval:delete"]);
     expect(response.cards?.[0]?.id).toBe("approval:update");
   });
+
+  it("should ignore legacy singular pending confirmations from remote responses", async () => {
+    const fetchMock = mock(
+      async () =>
+        new Response(
+          JSON.stringify({
+            text: "Confirmation required.",
+            pendingConfirmation: {
+              id: "approval:legacy",
+              toolName: "system_delete",
+              summary: "Delete note?",
+              args: { id: "note-1" },
+            },
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const response = await service.chat("delete note", "conversation-1");
+
+    expect(response.pendingConfirmations).toBeUndefined();
+  });
 });

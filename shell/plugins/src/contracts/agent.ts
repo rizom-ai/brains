@@ -67,7 +67,6 @@ export const AgentResponseSchema = z.object({
   text: z.string(),
   toolResults: z.array(ToolResultDataSchema).optional(),
   cards: z.array(StructuredChatCardSchema).optional(),
-  pendingConfirmation: PendingConfirmationSchema.optional(),
   pendingConfirmations: z.array(PendingConfirmationSchema).optional(),
   usage: z.object({
     promptTokens: z.number(),

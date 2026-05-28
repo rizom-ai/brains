@@ -16,8 +16,6 @@ import type {
 export function toPublicAgentResponse(
   response: RuntimeAgentResponse,
 ): AgentResponse {
-  const pendingConfirmation = response.pendingConfirmations?.[0];
-
   return {
     text: response.text,
     ...(response.toolResults && {
@@ -45,9 +43,6 @@ export function toPublicAgentResponse(
           ...(card.error !== undefined && { error: card.error }),
         }),
       ),
-    }),
-    ...(pendingConfirmation && {
-      pendingConfirmation: toPublicPendingConfirmation(pendingConfirmation),
     }),
     ...(response.pendingConfirmations && {
       pendingConfirmations: response.pendingConfirmations.map((confirmation) =>

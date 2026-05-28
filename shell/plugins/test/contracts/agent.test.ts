@@ -101,13 +101,6 @@ describe("public agent contracts", () => {
           state: "approval-requested",
         },
       ],
-      pendingConfirmation: {
-        id: "approval:call-1",
-        toolCallId: "call-1",
-        toolName: "delete",
-        summary: "Delete item",
-        args: { id: "item-1" },
-      },
       pendingConfirmations: [
         {
           id: "approval:call-1",
@@ -125,7 +118,7 @@ describe("public agent contracts", () => {
     });
   });
 
-  it("keeps singular pendingConfirmation as compatibility-only first pending approval", () => {
+  it("does not expose singular pendingConfirmation in the public response", () => {
     const response = toPublicAgentResponse({
       text: "Confirmation required.",
       pendingConfirmations: [
@@ -135,12 +128,6 @@ describe("public agent contracts", () => {
           summary: "Delete first item",
           args: { id: "first" },
         },
-        {
-          id: "approval:second",
-          toolName: "delete",
-          summary: "Delete second item",
-          args: { id: "second" },
-        },
       ],
       usage: {
         promptTokens: 1,
@@ -149,14 +136,9 @@ describe("public agent contracts", () => {
       },
     });
 
-    expect(response.pendingConfirmation).toEqual({
-      id: "approval:first",
-      toolName: "delete",
-      summary: "Delete first item",
-      args: { id: "first" },
-    });
+    expect("pendingConfirmation" in response).toBe(false);
     expect(
       response.pendingConfirmations?.map((confirmation) => confirmation.id),
-    ).toEqual(["approval:first", "approval:second"]);
+    ).toEqual(["approval:first"]);
   });
 });
