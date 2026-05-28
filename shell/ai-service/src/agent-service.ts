@@ -257,7 +257,7 @@ export class AgentService implements IAgentService {
   public async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
-    approvalId?: string,
+    approvalId: string,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
     if (!actor) {
@@ -283,14 +283,6 @@ export class AgentService implements IAgentService {
           ? [snapshotBeforeConfirm.context.pendingConfirmation]
           : [];
 
-    if (!approvalId) {
-      return {
-        text: "Approval id is required to confirm pending actions.",
-        usage: emptyUsage,
-      };
-    }
-
-    const selectedApprovalId = approvalId;
     const matchesApproval = pendingConfirmations.some(
       (confirmation) => confirmation.id === approvalId,
     );
@@ -303,18 +295,16 @@ export class AgentService implements IAgentService {
 
     actor.send({
       type: confirmed ? "CONFIRM" : "CANCEL",
-      ...(approvalId ? { approvalId } : {}),
+      approvalId,
     });
 
     const snapshot = await waitFor(
       actor,
       (s) =>
         (s.matches("idle") || s.matches("awaitingConfirmation")) &&
-        (selectedApprovalId
-          ? !s.context.pendingConfirmations.some(
-              (confirmation) => confirmation.id === selectedApprovalId,
-            )
-          : true),
+        !s.context.pendingConfirmations.some(
+          (confirmation) => confirmation.id === approvalId,
+        ),
     );
 
     return (

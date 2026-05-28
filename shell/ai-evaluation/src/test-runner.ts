@@ -52,19 +52,28 @@ export class TestRunner implements ITestRunner {
       if (!turn) continue;
 
       collector.startTurn();
-      const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
-      const response =
-        turn.confirmPendingAction !== undefined
-          ? await this.agentService.confirmPendingAction(
-              conversationId,
-              turn.confirmPendingAction,
-              approvalId,
-            )
-          : await this.agentService.chat(
-              turn.userMessage,
-              conversationId,
-              context,
-            );
+      let response: AgentResponse;
+      if (turn.confirmPendingAction !== undefined) {
+        const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
+        if (!approvalId) {
+          throw new Error(
+            `Turn ${i}: cannot resolve approvalId for confirmPendingAction. ` +
+              `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
+              `(pending=${pendingApprovalIds.length}).`,
+          );
+        }
+        response = await this.agentService.confirmPendingAction(
+          conversationId,
+          turn.confirmPendingAction,
+          approvalId,
+        );
+      } else {
+        response = await this.agentService.chat(
+          turn.userMessage,
+          conversationId,
+          context,
+        );
+      }
       pendingApprovalIds = this.extractPendingApprovalIds(response);
       const metrics = collector.endTurn({
         usage: response.usage,

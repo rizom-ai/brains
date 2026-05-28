@@ -87,7 +87,7 @@ export interface AgentNamespace {
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
-    approvalId?: string,
+    approvalId: string,
   ): Promise<AgentResponse>;
   invalidate(): void;
 }

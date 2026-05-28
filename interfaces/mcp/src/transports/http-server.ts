@@ -435,9 +435,9 @@ export class StreamableHTTPServer {
       );
     }
 
-    if (approvalId !== undefined && typeof approvalId !== "string") {
+    if (typeof approvalId !== "string" || approvalId.length === 0) {
       return this.createJsonResponse(
-        { error: "Invalid 'approvalId' field" },
+        { error: "Missing or invalid 'approvalId' field" },
         400,
       );
     }

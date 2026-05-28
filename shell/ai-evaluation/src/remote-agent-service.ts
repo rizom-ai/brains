@@ -126,7 +126,7 @@ export class RemoteAgentService implements IAgentService {
   async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
-    approvalId?: string,
+    approvalId: string,
   ): Promise<AgentResponse> {
     const response = await fetch(`${this.baseUrl}/api/chat/confirm`, {
       method: "POST",
@@ -137,7 +137,7 @@ export class RemoteAgentService implements IAgentService {
       body: JSON.stringify({
         conversationId,
         confirmed,
-        ...(approvalId ? { approvalId } : {}),
+        approvalId,
       }),
     });
 

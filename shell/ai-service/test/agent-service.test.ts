@@ -1284,30 +1284,6 @@ describe("AgentService", () => {
       );
     });
 
-    it("requires an explicit approval id when confirming a pending action", async () => {
-      setupConfirmationResponse();
-
-      const service = AgentService.createFresh(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      await service.chat("delete my note", "test-conversation");
-
-      const response = await service.confirmPendingAction(
-        "test-conversation",
-        true,
-      );
-
-      expect(response.text).toBe(
-        "Approval id is required to confirm pending actions.",
-      );
-    });
-
     it("should return error when confirming without pending action", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
@@ -1321,6 +1297,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:noop",
       );
 
       expect(response.text).toContain("No pending");

@@ -768,11 +768,15 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     }
 
     const approvalId = approvalIds ? [...approvalIds][0] : undefined;
-    if (approvalId) {
-      this.removePendingApproval(conversationId, approvalId);
-    } else {
+    if (!approvalId) {
       this.pendingConfirmations.delete(conversationId);
+      this.sendMessageToChannel({
+        channelId,
+        message: "No pending approval to resolve.",
+      });
+      return;
     }
+    this.removePendingApproval(conversationId, approvalId);
     const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
