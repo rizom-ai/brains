@@ -1865,6 +1865,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private extractLatestApprovalResponses(
     request: ChatRequest,
   ): ApprovalResponse[] {
+    // Clients resend the full message history on every turn, but only the
+    // trailing assistant message carries this turn's approval responses.
+    // Scanning earlier messages would replay decisions the agent already
+    // executed.
     const lastMessage = request.messages.at(-1);
     if (!lastMessage || lastMessage.role === "user") return [];
 
