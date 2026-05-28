@@ -965,6 +965,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
       expect(response.text).toBe(
@@ -1074,6 +1075,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
       expect(response.text).toBeDefined();
@@ -1208,6 +1210,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         false,
+        "approval:call-1",
       );
 
       expect(response.text).toContain("cancelled");
@@ -1243,7 +1246,11 @@ describe("AgentService", () => {
         channelId: "!room:example.org",
         channelName: "Ops",
       });
-      await service.confirmPendingAction("test-conversation", true);
+      await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
 
       expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
         "trusted",
@@ -1256,6 +1263,30 @@ describe("AgentService", () => {
           channelName: "Ops",
           userPermissionLevel: "trusted",
         }),
+      );
+    });
+
+    it("requires an explicit approval id when confirming a pending action", async () => {
+      setupConfirmationResponse();
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation");
+
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+      );
+
+      expect(response.text).toBe(
+        "Approval id is required to confirm pending actions.",
       );
     });
 

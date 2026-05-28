@@ -177,6 +177,7 @@ export interface IAgentService {
    * Confirm a pending destructive operation
    * @param conversationId - ID of the conversation
    * @param confirmed - Whether the user confirmed the operation
+   * @param approvalId - Explicit approval/action id to resolve
    */
   confirmPendingAction(
     conversationId: string,

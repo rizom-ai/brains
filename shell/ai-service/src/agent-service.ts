@@ -282,21 +282,21 @@ export class AgentService implements IAgentService {
         : snapshotBeforeConfirm.context.pendingConfirmation
           ? [snapshotBeforeConfirm.context.pendingConfirmation]
           : [];
-    const selectedApprovalId = approvalId ?? pendingConfirmations[0]?.id;
 
-    if (approvalId) {
-      const matchesApproval = pendingConfirmations.some(
-        (confirmation) => confirmation.id === approvalId,
-      );
-      if (!matchesApproval) {
-        return {
-          text: `No pending action matches approval id '${approvalId}'.`,
-          usage: emptyUsage,
-        };
-      }
-    } else if (pendingConfirmations.length > 1) {
+    if (!approvalId) {
       return {
-        text: "Multiple pending actions require an approval id.",
+        text: "Approval id is required to confirm pending actions.",
+        usage: emptyUsage,
+      };
+    }
+
+    const selectedApprovalId = approvalId;
+    const matchesApproval = pendingConfirmations.some(
+      (confirmation) => confirmation.id === approvalId,
+    );
+    if (!matchesApproval) {
+      return {
+        text: `No pending action matches approval id '${approvalId}'.`,
         usage: emptyUsage,
       };
     }
