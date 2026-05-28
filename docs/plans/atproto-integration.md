@@ -54,7 +54,9 @@ ai.rizom.brain.socialPost — social media posts (platform, content)
 ai.rizom.brain.card       — brain capability card (name, role, skills, endpoints)
 ```
 
-Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. The lexicon schema is generated from existing Zod entity schemas where possible.
+Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. Lexicons are distribution projections of existing brain entities, not replacement entity models. For example, `ai.rizom.brain.post` is the ATProto projection of the existing blog `post` entity (`entities/blog`, entityType `post`). The local entity remains the source of truth; the atproto plugin owns record mapping and transport only. Do not introduce a parallel brain-post entity.
+
+The lexicon schema should be generated from existing Zod entity schemas where possible, or kept explicitly tested against those schemas when generation is not wired yet.
 
 ## Identity Model
 
@@ -174,12 +176,13 @@ First product promise: **"Publish from your brain to Bluesky/ATProto, with porta
 ### Phase 2: Content distribution (outbound)
 
 1. Implement explicit outbound publishing in the atproto plugin: entity → custom record via `com.atproto.repo.createRecord`
-2. Do not initially replace existing content-pipeline providers for entity types such as `post`; the current registry is one provider per entity type and internal publish status semantics are separate from distribution targets
-3. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
-4. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images
-5. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata
-6. Add remaining lexicons (`note`, `link`, `deck`, `socialPost`) only after `post` and `card` are stable
-7. Tests: entity → custom record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers
+2. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful
+3. Do not initially replace existing content-pipeline providers for entity types such as `post`; the current registry is one provider per entity type and internal publish status semantics are separate from distribution targets
+4. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
+5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images
+6. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata
+7. Add remaining lexicons (`note`, `link`, `deck`, `socialPost`) only after `post` and `card` are stable
+8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers
 
 ### Phase 3: Inbound ingestion
 
