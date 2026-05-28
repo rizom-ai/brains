@@ -68,7 +68,7 @@ Rules:
 - Platform fallback is `publish: anchor`.
 - Brain models may loosen `publish` only for explicitly safe entity types.
 - Instance config may override `publish` like other entity actions.
-- **Invariant: `publish` must be ≥ `update` for the same entity type.** Publishing implies updating; an operator who loosens `publish` below `update` has produced an inconsistent policy. The merge layer validates this invariant at config parse time and rejects with a clear error naming the entity type.
+- **Invariant: effective `publish` must be ≥ effective `update` for the same entity type.** Publishing implies updating; an operator who loosens `publish` below `update` has produced an inconsistent policy. Validate this after full policy merge/resolution, including wildcard inheritance and entity-specific overrides, and reject with a clear error naming the entity type. Permission order: `never > anchor > trusted > public`.
 - Because of the invariant, `system_update` checks **only `publish`** when a transition crosses the publish boundary — `publish` automatically covers `update`. The denial message names `publish` when publication is the blocked boundary.
 
 ## Publish semantics declaration
@@ -129,48 +129,76 @@ When updating fields or replacing content:
 4. if either, require `publish` (single check — invariant guarantees this covers `update`);
 5. otherwise require `update` as today.
 
+### Shared policy API for plugins
+
+The current `assertEntityActionAllowed` helper lives in system-tool code. This plan requires a public runtime policy surface that plugins can call, for example:
+
+```ts
+context.permissions.assertEntityActionAllowed(
+  entityType,
+  "publish",
+  toolContext,
+);
+```
+
+Add this through plugin context (or an equivalent public service), not by importing shell/core internals from plugins. Enforce the boundary by extending the existing `no-restricted-imports` block in `shared/eslint-config/index.js` (which already restricts `**/plugins/**/*.ts` and `**/interfaces/**/*.ts` from reaching into shell packages directly) to include `@brains/core` and any package that re-exports `assertEntityActionAllowed` outside the plugin context surface.
+
+### Caller context propagation
+
+Publish operations must preserve the authorization context that created the commitment:
+
+- direct tool calls use the caller's tool context;
+- queued/scheduled work stores or forwards the original commitment context or an explicit internal authorization context;
+- scheduler-triggered automation runs under an explicit internal/system authorization context and should be auditable as automation, not described as bypassing policy.
+
+`publish:execute` payloads currently carry only `{ entityType, entityId }`; implementation must extend the payload/job metadata enough for handlers to distinguish user-triggered execution from scheduler automation.
+
 ### Publish pipeline and plugin handlers
 
-All publish pipeline operations call the same central policy helper before performing the operation. Operations that count as publication commitment:
+All publish pipeline operations call the shared policy API before performing the operation. Operations that count as publication commitment:
 
-- `publish-pipeline:publish` tool — explicit commit.
-- `publish:execute` handlers (social-media, newsletter) — actual send. Note: these handlers run from automation, not direct caller input; when invoked by the scheduler they execute under the system identity. When invoked by a tool call (e.g. operator-triggered immediate publish), the check runs against the caller's level.
-- Retry of a `failed` publish via tool or handler — still gated, even though `failed → queued/published` does not cross the boundary again.
+- `content-pipeline_publish` tool — explicit commit.
+- `publish:execute` handlers (social-media, newsletter) — actual send. Scheduler-invoked handlers execute under the explicit internal/system authorization context. Tool-invoked immediate publish checks the caller's level.
+- Manual retry of a `failed` publish via tool — still gated, even though `failed → queued/published` does not cross the boundary again.
 
-Operations that remain `update` (not publish commitments):
+Operations that remain `update` (not new publish commitments):
 
 - editing draft body/title/metadata;
 - moving review-only statuses among non-publish states;
+- scheduler retry after an already-authorized queued publish; this uses the stored/internal authorization context rather than asking the original user again;
 - automation reporting `publish:report:success/failure` messages (these are status updates triggered by completed work, not new commitments).
 
 ### Cross-entity publish workflows
 
 Derived publish-aware entities (e.g. a `social-post` auto-generated from a published `post`) get their own publish gate evaluated against their own caller context. The source entity's permission check is not re-evaluated when the derived entity is published — each entity is its own subject.
 
-When the derivation pipeline runs as automation, it executes under the system identity (anchor-level), so the check passes. When a user manually triggers a derived publish, the check runs against that user's level for the derived entity type.
+When the derivation pipeline runs as automation, it executes under the explicit internal/system authorization context, so the check is auditable as automation. When a user manually triggers a derived publish, the check runs against that user's level for the derived entity type.
 
 ## Implementation steps
 
 1. Add `publish` to `EntityActionSchema`, config parsing, type exports, labels, and tests.
 2. Add platform fallback `publish: anchor` in `shell/app/src/brain-resolver.ts` `PLATFORM_ENTITY_ACTION_DEFAULTS`.
-3. Add the `publish >= update` invariant check during entity action policy merge; reject inconsistent policies with a clear error.
-4. Extend `EntityTypeConfig` in `shell/entity-service/src/types.ts` with the `publish.publishStatuses` field.
-5. Add a `crossesPublishBoundary(entityType, oldStatus, newStatus, registry)` helper that returns `boundary` | `within-publish-set` | `non-publish`. The helper drives whether `publish` is required.
-6. Enforce `publish` in `system_update` based on the helper's result.
-7. Update `publish-pipeline:publish` and the social-media/newsletter `publish:execute` handlers to call `assertEntityActionAllowed(type, "publish", context)` before performing the operation.
-8. Add entity type declarations for the first slice: **social-post**, because it exercises the most edge cases (`failed` state, retry semantics, deferred execution). Then blog post and newsletter follow the same shape.
-9. Add tests for:
-   - policy parsing/merging with `publish`;
-   - fallback `publish: anchor`;
-   - rejection of policies where `publish < update`;
-   - non-publish status changes still requiring only `update`;
-   - declared publish-boundary transition requiring `publish`;
-   - transitions within the publish-state set (`queued → failed`, `failed → published`) requiring `publish`;
-   - `draft → queued` requiring `publish` only for publish-aware entity types;
-   - `failed` retries still gated;
-   - publish-pipeline tool and `publish:execute` handler denial for caller below required level;
-   - automation-triggered publish (system identity) bypassing user-level checks.
-10. Update docs and eval cases for collaborator draft-edit vs owner publish behavior.
+3. Add the effective `publish >= update` invariant check after entity action policy merge/resolution; reject inconsistent policies with a clear error.
+4. Expose a shared entity-action policy assertion API through plugin context or an equivalent public service.
+5. Extend `EntityTypeConfig` in `shell/entity-service/src/types.ts` with the `publish.publishStatuses` field.
+6. Add a `crossesPublishBoundary(entityType, oldStatus, newStatus, registry)` helper that returns `boundary` | `within-publish-set` | `non-publish`. The helper drives whether `publish` is required.
+7. Enforce `publish` in `system_update` based on the helper's result.
+8. Extend publish job/message payloads (`publish:execute` and scheduler metadata) to carry either caller tool context or explicit internal/system authorization context.
+9. Wire the first end-to-end slice for **social-post** only: entity declaration, `system_update`, `content-pipeline_publish`, social-media `publish:execute`, failed retry semantics, and deferred scheduler execution.
+10. After social-post proves the helper/API shape, add blog post and newsletter declarations/handlers using the same pattern.
+11. Add tests for:
+    - policy parsing/merging with `publish`;
+    - fallback `publish: anchor`;
+    - rejection of policies where effective `publish < update`, including wildcard + entity override combinations;
+    - non-publish status changes still requiring only `update`;
+    - declared publish-boundary transition requiring `publish`;
+    - transitions within the publish-state set (`queued → failed`, `failed → published`) requiring `publish`;
+    - `draft → queued` requiring `publish` only for publish-aware entity types;
+    - manual `failed` retries still gated;
+    - `content-pipeline_publish` tool and `publish:execute` handler denial for caller below required level;
+    - scheduler-triggered publish using explicit internal/system authorization context;
+    - lint enforces that `**/plugins/**/*.ts` and `**/interfaces/**/*.ts` cannot import `@brains/core` (or other restricted internals) for policy checks — verified by an ESLint rule extension in `shared/eslint-config/index.js` and a CI lint pass.
+12. Update docs and eval cases for collaborator draft-edit vs owner publish behavior.
 
 ## Validation matrix
 
@@ -183,8 +211,8 @@ When the derivation pipeline runs as automation, it executes under the system id
 - publish-aware `failed → published` requires `publish` (retry path).
 - non-publish-aware `draft → queued` does not require `publish`.
 - plugin publish tools and `system_update` produce consistent denials.
-- automation-triggered publish (`publish:execute` from scheduler) runs under system identity and is not gated by user-level checks.
-- a policy with `update: anchor, publish: trusted` is rejected at config parse with a clear error.
+- automation-triggered publish (`publish:execute` from scheduler) runs under explicit internal/system authorization context and is auditable as automation.
+- a policy with effective `update: anchor, publish: trusted` is rejected after policy merge/resolution with a clear error.
 - derived publish-aware entity (e.g. social-post from blog post) is gated by the derived type's policy, not the source type's.
 
 ## Closed decisions
@@ -192,6 +220,6 @@ When the derivation pipeline runs as automation, it executes under the system id
 The original "Open decisions" section is resolved:
 
 1. **`EntityTypeConfig.publish` shape:** `{ publishStatuses: string[] }`. `statusField` dropped — `"status"` is the universal convention; revisit if a future entity diverges.
-2. **Update + publish together:** enforce `publish ≥ update` as a validated invariant at config parse. For boundary-crossing or within-publish-state updates, check only `publish` — the invariant guarantees this covers `update`.
-3. **Internal queue management vs publication commitment:** queueing is the commitment (the human authorized it). Automation timing (scheduler firing, retry loops) is not a new commitment. Status updates triggered by completed automation (`publish:report:*`) are not commitments either.
-4. **First entity slice:** social-post. It has the richest workflow (`failed` retries, deferred execution, derived-from-source semantics), so getting it right validates the design for blog post and newsletter, which follow the same shape.
+2. **Update + publish together:** enforce `publish ≥ update` as a validated invariant after full policy merge/resolution. For boundary-crossing or within-publish-state updates, check only `publish` — the invariant guarantees this covers `update`.
+3. **Internal queue management vs publication commitment:** queueing is the commitment (the human authorized it). Automation timing (scheduler firing, scheduled execution, retry loops) is not a new commitment. Status updates triggered by completed automation (`publish:report:*`) are not commitments either.
+4. **First entity slice:** social-post. Wire it end-to-end before generalizing. It has the richest workflow (`failed` retries, deferred execution, derived-from-source semantics), so getting it right validates the design for blog post and newsletter, which follow the same shape.
