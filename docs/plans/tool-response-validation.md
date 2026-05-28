@@ -2,7 +2,7 @@
 
 ## Status
 
-Not started. Revised after code review: the validation seam is the set of registered tool handlers consumed by agent-service, not MCP protocol dispatch. The previous draft also referenced stale downstream code (`isFailedToolOutput`) that no longer exists.
+Implemented in `feat/tool-response-validation`. The slice validates registered tool handler results, tightens `toolResponseSchema`, and validates MCP protocol/message-bus tool response envelopes separately from raw `ToolResponse` payloads. The previous draft also referenced stale downstream code (`isFailedToolOutput`) that no longer exists.
 
 ## Problem
 
@@ -37,7 +37,7 @@ The agent should continue its tool loop with a well-formed error instead of rece
 
 - No changes to the tool authoring API.
 - No validation for resource handlers (`{ contents: ... }`) or prompt handlers (`{ messages: ... }`).
-- No first-slice change to MCP protocol/message-bus response envelopes. External MCP tool calls go through `mcp-registration.ts` → message bus → `BasePlugin.setupMessageHandlers`, where the tool result is nested inside a `MessageResponse`; that is a different contract.
+- No generic validation for all message-bus responses. External MCP tool calls go through `mcp-registration.ts` → message bus → `BasePlugin.setupMessageHandlers`, where the tool result is nested inside a `MessageResponse`; that envelope is validated only on the tool execution path.
 - No broad plugin migration unless schema tightening reveals real production handlers returning non-compliant shapes.
 
 ## Current execution paths
@@ -54,7 +54,7 @@ Agent-visible tool execution uses registered `Tool.handler` functions from `IMCP
 
 3. **MCP protocol tool calls**
    - `shell/mcp-service/src/mcp-registration.ts`
-   - Does not call `Tool.handler`; it sends a plugin message-bus request and serializes the message response. Keep this path out of the first validation slice.
+   - Does not call `Tool.handler`; it sends a plugin message-bus request and serializes the message response. This path validates the message envelope separately, then validates/coerces the nested `ToolResponse` payload.
 
 ## Desired model
 
@@ -100,12 +100,7 @@ Relevant file:
 shell/mcp-service/src/types.ts
 ```
 
-Two viable options:
-
-- **Option A — validate against current schema only.** Lowest risk, but missing success `data` and extra keys may still parse.
-- **Option B — tighten `toolResponseSchema` to match the documented contract.** Prefer this if the intent is true enforcement. Make success `data` actually required and reject unknown keys on response objects. Update tests that use stale shapes such as `{ success: true, formatted: "ok" }`.
-
-Recommendation: use **Option B** if an extended audit shows no real handlers depend on the permissive behavior. The earlier audit only checked response shape compliance (`success`/`error`/etc.) — Option B requires extending it to also check (a) handlers that pass extra keys silently stripped today and (b) handlers that return undefined `data` on success. Otherwise land Option A and create a follow-up schema-tightening plan.
+Implemented with schema tightening: success responses must include an own `data` key, response objects are strict, and missing `data` / extra keys are coerced to synthetic tool errors at runtime.
 
 ### 2. Add the registered-handler validation wrapper
 

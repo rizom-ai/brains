@@ -25,6 +25,7 @@ import type {
   ResourceTemplate,
   Tool,
 } from "./types";
+import { wrapToolWithResponseValidation } from "./tool-response-validation";
 
 /**
  * MCP Service for managing tool and resource registration
@@ -122,23 +123,32 @@ export class MCPService implements IMCPService {
    * Register a tool with the MCP server
    */
   public registerTool(pluginId: string, tool: Tool): void {
+    const validatedTool = wrapToolWithResponseValidation(
+      pluginId,
+      tool,
+      this.logger,
+    );
+
     // Always store in the internal registry. The agent reads from here via
     // listToolsForPermissionLevel() which filters per-call. Without this,
     // setPermissionLevel("public") called by an interface before system tools
     // are registered would silently drop anchor tools from the registry.
-    this.registeredTools.set(tool.name, { pluginId, tool });
+    this.registeredTools.set(validatedTool.name, {
+      pluginId,
+      tool: validatedTool,
+    });
 
     // Only expose on the MCP protocol server if transport permission allows.
-    if (canExposeTool(this.permissionLevel, tool)) {
+    if (canExposeTool(this.permissionLevel, validatedTool)) {
       this.registerToolOnServer(
         this.mcpServer,
         pluginId,
-        tool,
+        validatedTool,
         this.permissionLevel,
       );
     }
 
-    this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
+    this.logger.debug(`Registered tool ${validatedTool.name} from ${pluginId}`);
   }
 
   /**

@@ -9,6 +9,7 @@ import type {
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { ToolContextRoutingSchema } from "./interfaces";
+import { normalizeToolResponse } from "@brains/mcp-service";
 import {
   getErrorMessage,
   Logger,
@@ -147,7 +148,11 @@ export abstract class BasePlugin<
           const result = await tool.handler(args, toolContext);
           return {
             success: true,
-            data: result,
+            data: normalizeToolResponse(result, {
+              pluginId: this.id,
+              toolName,
+              logger: this.logger,
+            }),
           };
         } catch (error) {
           if (error instanceof z.ZodError) {

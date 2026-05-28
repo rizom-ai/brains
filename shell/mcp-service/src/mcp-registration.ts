@@ -6,6 +6,7 @@ import {
   ResourceTemplate as MCPResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Prompt, Resource, ResourceTemplate, Tool } from "./types";
+import { normalizeToolExecutionMessageResponse } from "./tool-response-validation";
 
 const MCP_SERVER_INFO = {
   name: "brain-mcp",
@@ -142,12 +143,20 @@ export function registerToolOnServer(
           },
           sender: "MCPService",
         });
+        const normalizedResponse = normalizeToolExecutionMessageResponse(
+          response,
+          {
+            pluginId,
+            toolName: tool.name,
+            logger,
+          },
+        );
 
         return {
           content: [
             {
               type: "text" as const,
-              text: serializeMessageResponse(response),
+              text: serializeMessageResponse(normalizedResponse),
             },
           ],
         };

@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
-import type { IMCPService, Tool } from "@brains/mcp-service";
+import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -46,12 +46,15 @@ const createMockCharacterService = (): IBrainCharacterService => ({
 });
 
 // Mock ConversationService
-const createMockConversationService = (): Partial<IConversationService> => ({
+const createMockConversationService = (): IConversationService => ({
   startConversation: mock(() => Promise.resolve("test-conversation-id")),
   addMessage: mock(() => Promise.resolve()),
   getMessages: mock(() => Promise.resolve([])),
+  countMessages: mock(() => Promise.resolve(0)),
   getConversation: mock(() => Promise.resolve(null)),
+  listConversations: mock(() => Promise.resolve([])),
   searchConversations: mock(() => Promise.resolve([])),
+  close: mock(() => {}),
 });
 
 describe("AgentService", () => {
@@ -59,7 +62,7 @@ describe("AgentService", () => {
   let mockMCPService: IMCPService;
   let mockCharacterService: IBrainCharacterService;
   let mockProfileService: IAnchorProfileService;
-  let mockConversationService: Partial<IConversationService>;
+  let mockConversationService: IConversationService;
 
   beforeEach(() => {
     AgentService.resetInstance();
@@ -850,6 +853,50 @@ describe("AgentService", () => {
           role: "assistant",
           content: response.text,
         }),
+      );
+    });
+
+    it("coerces non-compliant confirmed action results from registered tools", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const unsubscribeFn = mock(() => {});
+      const realMCPService = MCPService.createFresh(
+        {
+          send: mock(async () => ({ success: true as const })),
+          subscribe: mock(() => unsubscribeFn),
+          unsubscribe: mock(() => {}),
+        },
+        logger,
+      );
+      const deleteHandler = mock(async () => JSON.parse('{"success":false}'));
+      realMCPService.registerTool("test", {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      });
+
+      const service = AgentService.createFresh(
+        realMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "trusted",
+      });
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+      );
+
+      expect(response.text).toContain('"success": false');
+      expect(response.text).toContain(
+        "Tool delete_note returned an invalid response shape",
       );
     });
 
