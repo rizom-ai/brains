@@ -35,6 +35,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
 - [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
+- [Queued entity stubs](./queued-entity-stubs.md) — proposed; persist entity stubs on prompt-based `system_create` so multi-turn follow-ups have an id to reference
 
 ### Auth, users, CMS, and HTTP
 
