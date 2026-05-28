@@ -6,7 +6,7 @@ In progress. First slices implemented: `AgentResponse` now carries shared struct
 
 Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat approval submission now uses native AI SDK `approval-responded` parts through `/api/chat`; the legacy `/api/chat/confirm` side-channel and `data-confirmation` fallback have been removed.
 
-Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs, including multiple pending approval cards in the same conversation. Chat-repl now consumes the same card contract for terminal yes/no prompts. Neither interface needs AI SDK stream chunks.
+Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs, including multiple pending approval cards in the same conversation. Chat-repl now consumes the same card contract for terminal prompts, including indexed `yes 1` / `no 1` responses when multiple approvals are pending. Neither interface needs AI SDK stream chunks.
 
 ## Layered summary
 
@@ -276,6 +276,7 @@ Implemented behavior:
 
 - render approval cards as terminal yes/no prompts
 - bind response to explicit approval/action id
+- support multiple pending approvals with indexed `yes 1` / `no 1` responses
 - show structured success/failure output
 
 ### 7. Tests
