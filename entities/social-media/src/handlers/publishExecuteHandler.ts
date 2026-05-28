@@ -6,18 +6,25 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type {
-  IEntityService,
   MessageSender,
   BaseEntity,
+  EntityPluginContext,
+  ToolContext,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { SocialPost } from "../schemas/social-post";
+import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 
 export interface PublishExecutePayload {
   entityType: string;
   entityId: string;
+  authContext?: {
+    interfaceType?: ToolContext["interfaceType"];
+    userId?: ToolContext["userId"];
+    userPermissionLevel?: ToolContext["userPermissionLevel"];
+    authorization?: "user" | "system";
+  };
 }
 
 export interface AttachmentResolveRequest {
@@ -30,11 +37,24 @@ export type ResolveAttachmentFn = (
   request: AttachmentResolveRequest,
 ) => Promise<PublishMediaData | undefined>;
 
+export interface PublishExecuteEntityService {
+  getEntity(request: {
+    entityType: "social-post";
+    id: string;
+  }): Promise<SocialPost | null>;
+  getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+  updateEntity(request: { entity: BaseEntity }): Promise<unknown>;
+}
+
 export interface PublishExecuteHandlerConfig {
   sendMessage: MessageSender;
   logger: Logger;
-  entityService: IEntityService;
+  entityService: PublishExecuteEntityService;
   providers: Map<string, PublishProvider>;
+  permissions: EntityPluginContext["permissions"];
   /**
    * Optional attachment resolver. When set, posts with `sourceEntityType` /
    * `sourceEntityId` but no explicit `documents[]` will ask the registry for
@@ -50,8 +70,9 @@ export interface PublishExecuteHandlerConfig {
 export class PublishExecuteHandler {
   private sendMessage: MessageSender;
   private logger: Logger;
-  private entityService: IEntityService;
+  private entityService: PublishExecuteEntityService;
   private providers: Map<string, PublishProvider>;
+  private permissions: EntityPluginContext["permissions"];
   private resolveAttachment: ResolveAttachmentFn | undefined;
 
   constructor(config: PublishExecuteHandlerConfig) {
@@ -59,6 +80,7 @@ export class PublishExecuteHandler {
     this.logger = config.logger;
     this.entityService = config.entityService;
     this.providers = config.providers;
+    this.permissions = config.permissions;
     this.resolveAttachment = config.resolveAttachment;
   }
 
@@ -73,16 +95,22 @@ export class PublishExecuteHandler {
       return;
     }
 
+    this.permissions.assertEntityActionAllowed(
+      entityType,
+      "publish",
+      payload.authContext ?? { userPermissionLevel: "anchor" },
+    );
+
     this.logger.debug("Handling publish:execute", { entityId });
 
     try {
       // Fetch the entity
-      const post = await this.entityService.getEntity<SocialPost>({
+      const entity = await this.entityService.getEntity({
         entityType: "social-post",
         id: entityId,
       });
 
-      if (!post) {
+      if (!entity) {
         await this.reportFailure(
           entityType,
           entityId,
@@ -90,6 +118,8 @@ export class PublishExecuteHandler {
         );
         return;
       }
+
+      const post = entity;
 
       // Skip if already published
       if (post.metadata.status === "published") {
@@ -165,9 +195,9 @@ export class PublishExecuteHandler {
         // Update entity as published
         const publishedAt = new Date().toISOString();
         const platformPostId = result.id || undefined;
-        const updatedFrontmatter = {
+        const updatedFrontmatter: SocialPostFrontmatter = {
           ...parsed.metadata,
-          status: "published" as const,
+          status: "published",
           publishedAt,
           ...(platformPostId && { platformPostId }),
         };
@@ -203,9 +233,9 @@ export class PublishExecuteHandler {
             : String(publishError);
 
         // Update entity with error status (retry tracking is handled by RetryTracker)
-        const updatedFrontmatter = {
+        const updatedFrontmatter: SocialPostFrontmatter = {
           ...parsed.metadata,
-          status: "failed" as const,
+          status: "failed",
         };
         const updatedContent = socialPostAdapter.createPostContent(
           updatedFrontmatter,
@@ -326,7 +356,7 @@ export class PublishExecuteHandler {
     documentId: string,
   ): Promise<PublishMediaData | undefined> {
     try {
-      const document = await this.entityService.getEntity<BaseEntity>({
+      const document = await this.entityService.getEntity({
         entityType: "document",
         id: documentId,
       });
@@ -368,7 +398,7 @@ export class PublishExecuteHandler {
     imageId: string,
   ): Promise<PublishImageData | undefined> {
     try {
-      const image = await this.entityService.getEntity<BaseEntity>({
+      const image = await this.entityService.getEntity({
         entityType: "image",
         id: imageId,
       });

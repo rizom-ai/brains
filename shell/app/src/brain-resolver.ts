@@ -2,6 +2,7 @@ import type { Plugin } from "@brains/plugins";
 import {
   entityActionPolicyConfigSchema,
   type EntityActionPolicyConfig,
+  type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
 import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
@@ -39,6 +40,7 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
     update: "anchor",
     delete: "anchor",
     extract: "anchor",
+    publish: "anchor",
   },
 };
 
@@ -529,6 +531,7 @@ function buildPermissions(
     definitionPerms?.entityActions,
     yamlPerms?.entityActions,
   );
+  validatePublishPolicy(entityActions);
 
   return {
     permissions: {
@@ -581,6 +584,37 @@ function mergeEntityActions(
   }
 
   return merged;
+}
+
+const ENTITY_ACTION_RESTRICTIVENESS: Record<EntityActionRequiredLevel, number> =
+  {
+    public: 0,
+    trusted: 1,
+    anchor: 2,
+    never: 3,
+  };
+
+function validatePublishPolicy(
+  policy: EntityActionPolicyConfig | undefined,
+): void {
+  if (!policy) return;
+
+  for (const entityType of Object.keys(policy)) {
+    const resolved = {
+      ...(policy["*"] ?? {}),
+      ...(policy[entityType] ?? {}),
+    };
+    if (!resolved.update || !resolved.publish) continue;
+
+    if (
+      ENTITY_ACTION_RESTRICTIVENESS[resolved.publish] <
+      ENTITY_ACTION_RESTRICTIVENESS[resolved.update]
+    ) {
+      throw new Error(
+        `Invalid entity action policy for "${entityType}": publish must be at least as restrictive as update`,
+      );
+    }
+  }
 }
 
 /** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */

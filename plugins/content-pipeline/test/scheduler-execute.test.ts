@@ -68,7 +68,12 @@ describe("ContentScheduler - Execute Message Mode", () => {
 
   describe("message-driven publishing", () => {
     it("should send publish:execute message when processing queue", async () => {
-      await queueManager.add("social-post", "post-1");
+      await queueManager.add("social-post", "post-1", {
+        interfaceType: "test",
+        userId: "anchor-user",
+        userPermissionLevel: "anchor",
+        authorization: "user",
+      });
       await scheduler.start();
 
       // Trigger the interval (processes unscheduled types)
@@ -82,6 +87,12 @@ describe("ContentScheduler - Execute Message Mode", () => {
       expect(executeMessages[0]?.payload).toMatchObject({
         entityType: "social-post",
         entityId: "post-1",
+        authContext: {
+          interfaceType: "test",
+          userId: "anchor-user",
+          userPermissionLevel: "anchor",
+          authorization: "user",
+        },
       });
     });
 

@@ -1,6 +1,7 @@
 import type {
   BasePluginContext,
   IConversationsNamespace,
+  IPermissionsNamespace as IBasePermissionsNamespace,
 } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -28,7 +29,7 @@ import type { ToolInfo } from "@brains/mcp-service";
  * Permissions namespace for InterfacePluginContext
  * Provides permission checking for users
  */
-export interface IPermissionsNamespace {
+export interface IPermissionsNamespace extends IBasePermissionsNamespace {
   /** Get permission level for a user on an interface */
   getUserLevel: (
     interfaceType: string,
@@ -202,6 +203,7 @@ export function createInterfacePluginContext(
     agent,
 
     permissions: {
+      ...baseContext.permissions,
       getUserLevel: (
         interfaceType: string,
         userId: string,

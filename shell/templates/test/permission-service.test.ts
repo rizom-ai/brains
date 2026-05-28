@@ -419,6 +419,7 @@ describe("PermissionService", () => {
               update: "trusted",
               delete: "anchor",
               extract: "anchor",
+              publish: "anchor",
             },
             summary: { create: "anchor", update: "anchor" },
           },
@@ -436,12 +437,20 @@ describe("PermissionService", () => {
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "extract"),
         ).toBe("anchor");
+        expect(
+          permissionService.getRequiredEntityActionLevel("summary", "publish"),
+        ).toBe("anchor");
       });
 
       it("should allow entity actions only when the caller meets the required level", () => {
         permissionService = new PermissionService({
           entityActions: {
-            "*": { create: "trusted", delete: "anchor", extract: "anchor" },
+            "*": {
+              create: "trusted",
+              delete: "anchor",
+              extract: "anchor",
+              publish: "anchor",
+            },
             summary: { update: "anchor" },
           },
         });
@@ -464,6 +473,13 @@ describe("PermissionService", () => {
             "trusted",
             "summary",
             "update",
+          ),
+        ).toBe(false);
+        expect(
+          permissionService.canPerformEntityAction(
+            "trusted",
+            "summary",
+            "publish",
           ),
         ).toBe(false);
         expect(
@@ -655,6 +671,7 @@ describe("PermissionService", () => {
             update: "trusted",
             delete: "anchor",
             extract: "anchor",
+            publish: "anchor",
           },
           summary: { create: "anchor" },
         },
@@ -665,12 +682,14 @@ describe("PermissionService", () => {
         update: "trusted",
         delete: "anchor",
         extract: "anchor",
+        publish: "anchor",
       });
       expect(service.getResolvedEntityActionPolicy("summary")).toEqual({
         create: "anchor",
         update: "trusted",
         delete: "anchor",
         extract: "anchor",
+        publish: "anchor",
       });
     });
 
@@ -682,6 +701,7 @@ describe("PermissionService", () => {
             update: "trusted",
             delete: "anchor",
             extract: "anchor",
+            publish: "anchor",
           },
         },
       });
@@ -695,12 +715,15 @@ describe("PermissionService", () => {
       expect(() =>
         service.assertEntityActionAllowed("base", "extract", "anchor"),
       ).not.toThrow();
+      expect(() =>
+        service.assertEntityActionAllowed("base", "publish", "anchor"),
+      ).not.toThrow();
     });
 
     it("throws a denial message with action, type, caller, and required level", () => {
       const service = new PermissionService({
         entityActions: {
-          summary: { update: "anchor", extract: "anchor" },
+          summary: { update: "anchor", extract: "anchor", publish: "anchor" },
         },
       });
 
@@ -713,6 +736,11 @@ describe("PermissionService", () => {
         service.assertEntityActionAllowed("summary", "extract", "trusted"),
       ).toThrow(
         "Extracting `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      );
+      expect(() =>
+        service.assertEntityActionAllowed("summary", "publish", "trusted"),
+      ).toThrow(
+        "Publishing `summary` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
       );
     });
   });

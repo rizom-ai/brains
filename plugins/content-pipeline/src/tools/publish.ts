@@ -74,8 +74,14 @@ export function createPublishTool(
     "publish",
     "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
     publishInputSchema,
-    async (input): Promise<ToolResult> => {
+    async (input, toolContext): Promise<ToolResult> => {
       const { entityType, id, slug } = input;
+
+      context.permissions.assertEntityActionAllowed(
+        entityType,
+        "publish",
+        toolContext,
+      );
 
       // Validate that at least one identifier is provided
       if (!id && !slug) {

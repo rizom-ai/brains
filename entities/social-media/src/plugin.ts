@@ -3,6 +3,7 @@ import type {
   JobHandler,
   DataSource,
   Template,
+  EntityTypeConfig,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
@@ -57,6 +58,12 @@ export class SocialMediaPlugin extends EntityPlugin<
     return [
       new SocialPostDataSource(this.logger.child("SocialPostDataSource")),
     ];
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig {
+    return {
+      publish: { publishStatuses: ["queued", "published", "failed"] },
+    };
   }
 
   protected override async onRegister(

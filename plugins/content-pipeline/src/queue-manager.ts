@@ -1,3 +1,8 @@
+import {
+  SYSTEM_PUBLISH_AUTH_CONTEXT,
+  type PublishAuthContext,
+} from "./types/messages";
+
 /**
  * QueueManager - Manages publish queues per entity type
  *
@@ -10,6 +15,7 @@ export interface QueueEntry {
   entityType: string;
   position: number;
   queuedAt: string;
+  authContext: PublishAuthContext;
 }
 
 export class QueueManager {
@@ -52,6 +58,7 @@ export class QueueManager {
   public async add(
     entityType: string,
     entityId: string,
+    authContext: PublishAuthContext = SYSTEM_PUBLISH_AUTH_CONTEXT,
   ): Promise<{ position: number }> {
     const queue = this.getOrCreateQueue(entityType);
 
@@ -67,6 +74,7 @@ export class QueueManager {
       entityType,
       position,
       queuedAt: new Date().toISOString(),
+      authContext: { ...authContext },
     };
 
     queue.push(entry);

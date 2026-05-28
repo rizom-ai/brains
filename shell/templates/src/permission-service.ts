@@ -13,12 +13,12 @@ export const UserPermissionLevelSchema = z.enum([
 export type UserPermissionLevel = z.infer<typeof UserPermissionLevelSchema>;
 
 // Add new actions only when a concrete mutating tool needs them.
-// `publish` is the next candidate — see docs/plans/publish-action-policy.md.
 export const EntityActionSchema = z.enum([
   "create",
   "update",
   "delete",
   "extract",
+  "publish",
 ]);
 export type EntityAction = z.infer<typeof EntityActionSchema>;
 
@@ -43,6 +43,7 @@ export const entityActionPolicyRuleSchema = z
     update: EntityActionRequiredLevelSchema.optional(),
     delete: EntityActionRequiredLevelSchema.optional(),
     extract: EntityActionRequiredLevelSchema.optional(),
+    publish: EntityActionRequiredLevelSchema.optional(),
   })
   .strict();
 
@@ -65,6 +66,7 @@ const ACTION_LABELS: Record<EntityAction, string> = {
   update: "Updating",
   delete: "Deleting",
   extract: "Extracting",
+  publish: "Publishing",
 };
 
 const LEVEL_LABELS: Record<UserPermissionLevel, string> = {

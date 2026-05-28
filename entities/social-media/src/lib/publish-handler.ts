@@ -46,6 +46,7 @@ export function subscribeToPublishExecute(
     logger: logger.child("PublishExecuteHandler"),
     entityService: context.entityService,
     providers,
+    permissions: context.permissions,
     resolveAttachment: context.attachments.resolve,
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { PublishProvider } from "@brains/contracts";
+import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -58,6 +59,55 @@ describe("ContentPipelinePlugin", () => {
       expect(queue[0]?.entityId).toBe("post-1");
     });
 
+    it("requires publish permission when adding via message bus", async () => {
+      const localHarness = createPluginHarness({
+        dataDir: "/tmp/test-datadir-permissions",
+      });
+      localHarness.setPermissionService(
+        new PermissionService({
+          entityActions: { "social-post": { publish: "anchor" } },
+        }),
+      );
+      const localPlugin = new ContentPipelinePlugin({});
+      await localHarness.installPlugin(localPlugin);
+
+      await localHarness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
+        entityType: "social-post",
+        entityId: "post-1",
+        authContext: {
+          interfaceType: "test",
+          userId: "trusted-user",
+          userPermissionLevel: "trusted",
+          authorization: "user",
+        },
+      });
+
+      const queue = await localPlugin.getQueueManager().list("social-post");
+      expect(queue.length).toBe(0);
+      await localPlugin.shutdown?.();
+    });
+
+    it("stores queue add authorization context", async () => {
+      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
+        entityType: "social-post",
+        entityId: "post-1",
+        authContext: {
+          interfaceType: "test",
+          userId: "anchor-user",
+          userPermissionLevel: "anchor",
+          authorization: "user",
+        },
+      });
+
+      const queue = await plugin.getQueueManager().list("social-post");
+      expect(queue[0]?.authContext).toEqual({
+        interfaceType: "test",
+        userId: "anchor-user",
+        userPermissionLevel: "anchor",
+        authorization: "user",
+      });
+    });
+
     it("should remove entity from queue", async () => {
       await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
@@ -91,6 +141,70 @@ describe("ContentPipelinePlugin", () => {
 
       const queue = await plugin.getQueueManager().list("blog-post");
       expect(queue[0]?.entityId).toBe("post-2");
+    });
+
+    it("forwards direct publish authorization context", async () => {
+      const executePayloads: unknown[] = [];
+      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+        executePayloads.push(msg.payload);
+        return { success: true };
+      });
+
+      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
+        entityType: "social-post",
+        entityId: "post-1",
+        authContext: {
+          interfaceType: "test",
+          userId: "anchor-user",
+          userPermissionLevel: "anchor",
+          authorization: "user",
+        },
+      });
+
+      expect(executePayloads).toEqual([
+        {
+          entityType: "social-post",
+          entityId: "post-1",
+          authContext: {
+            interfaceType: "test",
+            userId: "anchor-user",
+            userPermissionLevel: "anchor",
+            authorization: "user",
+          },
+        },
+      ]);
+    });
+
+    it("requires publish permission for direct publish messages", async () => {
+      const localHarness = createPluginHarness({
+        dataDir: "/tmp/test-datadir-direct-permissions",
+      });
+      localHarness.setPermissionService(
+        new PermissionService({
+          entityActions: { "social-post": { publish: "anchor" } },
+        }),
+      );
+      const localPlugin = new ContentPipelinePlugin({});
+      await localHarness.installPlugin(localPlugin);
+      const executePayloads: unknown[] = [];
+      localHarness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+        executePayloads.push(msg.payload);
+        return { success: true };
+      });
+
+      await localHarness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
+        entityType: "social-post",
+        entityId: "post-1",
+        authContext: {
+          interfaceType: "test",
+          userId: "trusted-user",
+          userPermissionLevel: "trusted",
+          authorization: "user",
+        },
+      });
+
+      expect(executePayloads).toEqual([]);
+      await localPlugin.shutdown?.();
     });
   });
 
