@@ -1,9 +1,17 @@
-export { AtprotoPlugin, atprotoPlugin } from "./plugin";
+export {
+  AtprotoPlugin,
+  atprotoPlugin,
+  type AtprotoPdsClientLike,
+  type AtprotoPluginDeps,
+  type PublishBrainCardOptions,
+  type PublishBrainCardResult,
+} from "./plugin";
 export {
   atprotoConfigSchema,
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
+export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
   buildDidWebDocument,
   didWebToHostname,
