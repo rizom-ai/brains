@@ -1598,20 +1598,21 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const conversationId = parsed.data.id ?? this.createId("web");
-    const approvalResponse = this.extractLastApprovalResponse(parsed.data);
     const message = this.extractLastUserText(parsed.data);
-    if (!message && !approvalResponse) {
+    const approvalResponses = message
+      ? []
+      : this.extractLatestApprovalResponses(parsed.data);
+    if (!message && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
     }
 
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
-        if (approvalResponse) {
-          await this.handleStreamedConfirmation({
+        if (approvalResponses.length > 0) {
+          await this.handleStreamedConfirmations({
             writer,
             conversationId,
-            approvalId: approvalResponse.id,
-            confirmed: approvalResponse.approved,
+            approvalResponses,
           });
           return;
         }
@@ -1731,39 +1732,40 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           data: toolResult,
         });
       }
-      const approvalCards = (response.cards ?? []).filter(
-        (card) => card.kind === "tool-approval",
-      );
-      this.writeApprovalCards(input.writer, approvalCards);
+      this.writeApprovalCards(input.writer, response.cards ?? []);
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
     }
   }
 
-  private async handleStreamedConfirmation(input: {
+  private async handleStreamedConfirmations(input: {
     writer: UIMessageStreamWriter<UIMessage>;
     conversationId: string;
-    approvalId: string;
-    confirmed: boolean;
+    approvalResponses: ApprovalResponse[];
   }): Promise<void> {
     this.activeStreams.set(input.conversationId, { writer: input.writer });
     this.startProcessingInput(input.conversationId);
+    const allApproved = input.approvalResponses.every(
+      (approvalResponse) => approvalResponse.approved,
+    );
     input.writer.write({
       type: "data-status",
       id: this.createId("status"),
-      data: { status: input.confirmed ? "approving" : "declining" },
+      data: { status: allApproved ? "approving" : "resolving approvals" },
       transient: true,
     });
 
     try {
-      const response = await this.getContext().agent.confirmPendingAction(
-        input.conversationId,
-        input.confirmed,
-        input.approvalId,
-      );
-      this.writeText(input.writer, response.text, "text");
-      this.writeApprovalCards(input.writer, response.cards ?? []);
+      for (const approvalResponse of input.approvalResponses) {
+        const response = await this.getContext().agent.confirmPendingAction(
+          input.conversationId,
+          approvalResponse.approved,
+          approvalResponse.id,
+        );
+        this.writeText(input.writer, response.text, "text");
+        this.writeApprovalCards(input.writer, response.cards ?? []);
+      }
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
@@ -1775,7 +1777,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     cards: StructuredChatCard[],
   ): void {
     for (const card of cards) {
-      if (card.kind !== "tool-approval") continue;
       const toolCallId = card.toolCallId ?? card.id;
       const input = card.input ?? {};
       writer.write({
@@ -1861,22 +1862,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       .join("\n");
   }
 
-  private extractLastApprovalResponse(
+  private extractLatestApprovalResponses(
     request: ChatRequest,
-  ): ApprovalResponse | undefined {
-    for (
-      let messageIndex = request.messages.length - 1;
-      messageIndex >= 0;
-      messageIndex -= 1
-    ) {
-      const message = request.messages[messageIndex];
-      const parts = message?.parts ?? [];
-      for (let partIndex = parts.length - 1; partIndex >= 0; partIndex -= 1) {
-        const parsed = approvalResponsePartSchema.safeParse(parts[partIndex]);
-        if (parsed.success) return parsed.data.approval;
-      }
-    }
-    return undefined;
+  ): ApprovalResponse[] {
+    const lastMessage = request.messages.at(-1);
+    if (!lastMessage || lastMessage.role === "user") return [];
+
+    return (lastMessage.parts ?? [])
+      .map((part) => approvalResponsePartSchema.safeParse(part))
+      .filter((result) => result.success)
+      .map((result) => result.data.approval);
   }
 
   private findLastUserMessage(

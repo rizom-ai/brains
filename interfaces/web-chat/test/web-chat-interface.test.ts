@@ -392,6 +392,126 @@ describe("WebChatInterface", () => {
     expect(body).toContain("call-1");
   });
 
+  it("handles multiple AI SDK approval responses through one chat request", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Completed approval.",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-1", approved: true },
+                },
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-2",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-2", approved: false },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+      {
+        conversationId: "test-conversation",
+        confirmed: false,
+        approvalId: "approval:call-2",
+      },
+    ]);
+    expect(body).toContain("tool-output-available");
+  });
+
+  it("routes new user messages instead of replaying old approval responses", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  approval: { id: "approval:call-1", approved: true },
+                },
+              ],
+            },
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What happened next?" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.confirmCalls).toHaveLength(0);
+    expect(agent.chatCalls).toEqual([
+      {
+        message: "What happened next?",
+        conversationId: "test-conversation",
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      },
+    ]);
+  });
+
   it("passes anchor permission level when caller has an operator session", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
