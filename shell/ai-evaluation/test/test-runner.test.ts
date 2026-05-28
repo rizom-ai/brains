@@ -70,12 +70,15 @@ describe("TestRunner", () => {
         Promise.resolve(
           createMockResponse({
             text: "Confirmation required.",
-            pendingConfirmation: {
-              id: "approval:system_update",
-              toolName: "system_update",
-              summary: "Update agent?",
-              args: { entityType: "agent", id: "old-agent.io" },
-            },
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:system_update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                state: "approval-requested",
+              },
+            ],
           }),
         ),
       );

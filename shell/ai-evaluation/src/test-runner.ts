@@ -1,4 +1,8 @@
-import type { IAgentService, ChatContext } from "@brains/ai-service";
+import type {
+  IAgentService,
+  ChatContext,
+  AgentResponse,
+} from "@brains/ai-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
@@ -141,10 +145,13 @@ export class TestRunner implements ITestRunner {
     return pendingApprovalIds[0];
   }
 
-  private extractPendingApprovalIds(response: {
-    pendingConfirmation?: { id: string };
-    pendingConfirmations?: Array<{ id: string }>;
-  }): string[] {
+  private extractPendingApprovalIds(response: AgentResponse): string[] {
+    const approvalCards =
+      response.cards?.filter((card) => card.state === "approval-requested") ??
+      [];
+    if (approvalCards.length > 0) {
+      return approvalCards.map((card) => card.id);
+    }
     if (
       response.pendingConfirmations &&
       response.pendingConfirmations.length > 0
@@ -153,9 +160,7 @@ export class TestRunner implements ITestRunner {
         (confirmation) => confirmation.id,
       );
     }
-    return response.pendingConfirmation
-      ? [response.pendingConfirmation.id]
-      : [];
+    return [];
   }
 
   private buildChatContext(testCase: AgentTestCase): ChatContext {

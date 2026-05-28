@@ -529,11 +529,6 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
             ),
           ),
         );
-      } else if (response.pendingConfirmation) {
-        this.pendingConfirmations.set(
-          conversationId,
-          new Set([response.pendingConfirmation.id]),
-        );
       }
 
       const messageId = await this.sendMessageWithId({

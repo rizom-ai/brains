@@ -702,12 +702,15 @@ describe("DiscordInterface", () => {
       // First message triggers pending confirmation
       mockAgentService.chat.mockResolvedValueOnce({
         text: "Are you sure?",
-        pendingConfirmation: {
-          id: "approval:dangerous-tool",
-          toolName: "dangerous_tool",
-          summary: "Delete all",
-          args: {},
-        },
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:dangerous-tool",
+            toolName: "dangerous_tool",
+            summary: "Delete all",
+            state: "approval-requested",
+          },
+        ],
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       });
 

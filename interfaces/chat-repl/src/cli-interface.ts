@@ -214,8 +214,6 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         this.pendingConfirmationIds = response.pendingConfirmations.map(
           (confirmation) => confirmation.id,
         );
-      } else if (response.pendingConfirmation) {
-        this.pendingConfirmationIds = [response.pendingConfirmation.id];
       }
 
       // Build response with tool results
