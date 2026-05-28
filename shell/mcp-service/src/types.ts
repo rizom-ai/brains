@@ -47,32 +47,47 @@ export const ToolContextRoutingSchema = z.object({
 /**
  * Success response schema
  */
-export const toolSuccessSchema = z.object({
-  success: z.literal(true),
-  data: z.unknown(),
-  message: z.string().optional(),
-});
+export const toolSuccessSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.unknown(),
+    message: z.string().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!Object.prototype.hasOwnProperty.call(value, "data")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["data"],
+        message: "Required",
+      });
+    }
+  });
 
 /**
  * Error response schema
  */
-export const toolErrorSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-  code: z.string().optional(),
-});
+export const toolErrorSchema = z
+  .object({
+    success: z.literal(false),
+    error: z.string(),
+    code: z.string().optional(),
+  })
+  .strict();
 
 /**
  * Confirmation response schema
  * Tools return this when a destructive operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
-export const toolConfirmationSchema = z.object({
-  needsConfirmation: z.literal(true),
-  toolName: z.string(),
-  description: z.string(),
-  args: z.unknown(),
-});
+export const toolConfirmationSchema = z
+  .object({
+    needsConfirmation: z.literal(true),
+    toolName: z.string(),
+    description: z.string(),
+    args: z.unknown(),
+  })
+  .strict();
 
 export type ToolConfirmation = z.infer<typeof toolConfirmationSchema>;
 

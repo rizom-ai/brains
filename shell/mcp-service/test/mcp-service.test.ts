@@ -254,36 +254,44 @@ describe("MCPService", () => {
     it("should coerce non-compliant registered tool responses to tool errors", async () => {
       const logger = createMockLogger();
       mcpService = MCPService.createFresh(mockMessageBus, logger);
-      const invalidHandler = mock(async () => JSON.parse('{"success":false}'));
-      const tool: Tool = {
-        name: "invalid_tool",
-        description: "Invalid tool",
-        inputSchema: {},
-        handler: invalidHandler,
-      };
+      const invalidResponses = [
+        JSON.parse('{"success":false}'),
+        JSON.parse('{"success":true}'),
+        { success: true, data: "ok", formatted: "extra" },
+      ];
 
-      mcpService.registerTool("invalid-plugin", tool);
+      for (const [index, invalidResponse] of invalidResponses.entries()) {
+        const tool: Tool = {
+          name: `invalid_tool_${index}`,
+          description: "Invalid tool",
+          inputSchema: {},
+          handler: async () => invalidResponse,
+        };
 
-      const registeredTool = mcpService.listTools()[0]?.tool;
-      expect(registeredTool).toBeDefined();
-      if (!registeredTool) {
-        throw new Error("Expected registered tool");
+        mcpService.registerTool("invalid-plugin", tool);
+        const registeredTool = mcpService.listTools()[index]?.tool;
+        expect(registeredTool).toBeDefined();
+        if (!registeredTool) {
+          throw new Error("Expected registered tool");
+        }
+
+        expect(
+          await registeredTool.handler(
+            {},
+            { interfaceType: "test", userId: "user-1" },
+          ),
+        ).toEqual({
+          success: false,
+          error: `Tool invalid_tool_${index} returned an invalid response shape`,
+        });
       }
 
-      expect(
-        await registeredTool.handler(
-          {},
-          { interfaceType: "test", userId: "user-1" },
-        ),
-      ).toEqual({
-        success: false,
-        error: "Tool invalid_tool returned an invalid response shape",
-      });
+      expect(logger.error).toHaveBeenCalledTimes(invalidResponses.length);
       expect(logger.error).toHaveBeenCalledWith(
         "Tool returned non-compliant response",
         expect.objectContaining({
           pluginId: "invalid-plugin",
-          toolName: "invalid_tool",
+          toolName: "invalid_tool_0",
           issues: expect.any(Array),
         }),
       );
