@@ -2,6 +2,7 @@ import type {
   AgentResponse as RuntimeAgentResponse,
   ChatContext as RuntimeChatContext,
   IAgentService as RuntimeAgentService,
+  PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
 import type {
   AgentNamespace,
@@ -15,6 +16,9 @@ import type {
 export function toPublicAgentResponse(
   response: RuntimeAgentResponse,
 ): AgentResponse {
+  const pendingConfirmation =
+    response.pendingConfirmation ?? response.pendingConfirmations?.[0];
+
   return {
     text: response.text,
     ...(response.toolResults && {
@@ -43,10 +47,8 @@ export function toPublicAgentResponse(
         }),
       ),
     }),
-    ...(response.pendingConfirmation && {
-      pendingConfirmation: toPublicPendingConfirmation(
-        response.pendingConfirmation,
-      ),
+    ...(pendingConfirmation && {
+      pendingConfirmation: toPublicPendingConfirmation(pendingConfirmation),
     }),
     ...(response.pendingConfirmations && {
       pendingConfirmations: response.pendingConfirmations.map((confirmation) =>
@@ -58,7 +60,7 @@ export function toPublicAgentResponse(
 }
 
 function toPublicPendingConfirmation(
-  confirmation: NonNullable<RuntimeAgentResponse["pendingConfirmation"]>,
+  confirmation: RuntimePendingConfirmation,
 ): PendingConfirmation {
   return {
     id: confirmation.id,

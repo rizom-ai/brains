@@ -75,6 +75,13 @@ function parseAgentResponse(json: unknown): AgentResponse {
     );
   }
 
+  if (!response.pendingConfirmation) {
+    const firstPendingConfirmation = response.pendingConfirmations?.[0];
+    if (firstPendingConfirmation) {
+      response.pendingConfirmation = firstPendingConfirmation;
+    }
+  }
+
   return response;
 }
 

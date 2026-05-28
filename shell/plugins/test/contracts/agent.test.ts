@@ -131,4 +131,39 @@ describe("public agent contracts", () => {
       },
     });
   });
+
+  it("keeps singular pendingConfirmation as compatibility-only first pending approval", () => {
+    const response = toPublicAgentResponse({
+      text: "Confirmation required.",
+      pendingConfirmations: [
+        {
+          id: "approval:first",
+          toolName: "delete",
+          summary: "Delete first item",
+          args: { id: "first" },
+        },
+        {
+          id: "approval:second",
+          toolName: "delete",
+          summary: "Delete second item",
+          args: { id: "second" },
+        },
+      ],
+      usage: {
+        promptTokens: 1,
+        completionTokens: 2,
+        totalTokens: 3,
+      },
+    });
+
+    expect(response.pendingConfirmation).toEqual({
+      id: "approval:first",
+      toolName: "delete",
+      summary: "Delete first item",
+      args: { id: "first" },
+    });
+    expect(
+      response.pendingConfirmations?.map((confirmation) => confirmation.id),
+    ).toEqual(["approval:first", "approval:second"]);
+  });
 });

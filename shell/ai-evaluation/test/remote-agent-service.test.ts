@@ -80,6 +80,7 @@ describe("RemoteAgentService", () => {
     expect(
       response.pendingConfirmations?.map((confirmation) => confirmation.id),
     ).toEqual(["approval:update", "approval:delete"]);
+    expect(response.pendingConfirmation?.id).toBe("approval:update");
     expect(response.cards?.[0]?.id).toBe("approval:update");
   });
 });

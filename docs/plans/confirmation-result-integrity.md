@@ -78,8 +78,8 @@ interfaces/web-chat
 In `AgentService.processMessage`:
 
 1. Call the model.
-2. Extract tool results and pending confirmation from the result steps.
-3. If `pendingConfirmation` exists, do **not** treat `result.text` as final
+2. Extract tool results and pending confirmations / approval cards from the result steps.
+3. If any pending confirmation exists, do **not** treat `result.text` as final
    assistant completion text.
 4. Save/return a neutral message instead, for example:
 
