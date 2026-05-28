@@ -1,5 +1,5 @@
 import type { MessageResponse } from "@brains/messaging-service";
-import type { Logger } from "@brains/utils";
+import { z, type Logger } from "@brains/utils";
 import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
 
 interface ToolResponseValidationContext {
@@ -24,9 +24,26 @@ function invalidEnvelopeResponse(
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+/**
+ * Envelope shape returned by message-bus handlers for `plugin:*:tool:execute`.
+ * Success branch carries the raw tool response in `data`; error branch is the
+ * bus-level failure (e.g. tool not found, payload invalid). Anything else
+ * (missing `success`, `noop`, wrong types) is rejected by the union.
+ */
+const toolExecutionEnvelopeSchema = z.union([
+  z
+    .object({ success: z.literal(true), data: z.unknown() })
+    .superRefine((value, ctx) => {
+      if (!Object.prototype.hasOwnProperty.call(value, "data")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["data"],
+          message: "Required",
+        });
+      }
+    }),
+  z.object({ success: z.literal(false), error: z.string() }),
+]);
 
 export function normalizeToolResponse(
   raw: unknown,
@@ -51,7 +68,9 @@ export function normalizeToolExecutionMessageResponse(
   response: unknown,
   context: ToolResponseValidationContext,
 ): MessageResponse<ToolResponse> {
-  if (!isRecord(response)) {
+  const parsed = toolExecutionEnvelopeSchema.safeParse(response);
+
+  if (!parsed.success) {
     context.logger.error("Tool returned non-compliant message response", {
       pluginId: context.pluginId,
       toolName: context.toolName,
@@ -60,45 +79,13 @@ export function normalizeToolExecutionMessageResponse(
     return invalidEnvelopeResponse(context.toolName);
   }
 
-  if ("noop" in response) {
-    context.logger.error("Tool returned no message response", {
-      pluginId: context.pluginId,
-      toolName: context.toolName,
-    });
-    return invalidEnvelopeResponse(context.toolName);
-  }
-
-  if (response["success"] === false) {
-    if (typeof response["error"] === "string") {
-      return {
-        success: false,
-        error: response["error"],
-      };
-    }
-
-    context.logger.error("Tool returned non-compliant message response", {
-      pluginId: context.pluginId,
-      toolName: context.toolName,
-      response,
-    });
-    return invalidEnvelopeResponse(context.toolName);
-  }
-
-  if (
-    response["success"] !== true ||
-    !Object.prototype.hasOwnProperty.call(response, "data")
-  ) {
-    context.logger.error("Tool returned non-compliant message response", {
-      pluginId: context.pluginId,
-      toolName: context.toolName,
-      response,
-    });
-    return invalidEnvelopeResponse(context.toolName);
+  if (!parsed.data.success) {
+    return { success: false, error: parsed.data.error };
   }
 
   return {
     success: true,
-    data: normalizeToolResponse(response["data"], context),
+    data: normalizeToolResponse(parsed.data.data, context),
   };
 }
 

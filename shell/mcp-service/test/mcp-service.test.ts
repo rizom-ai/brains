@@ -136,7 +136,7 @@ describe("MCPService", () => {
           input: z.string(),
         },
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Test success" }),
+        handler: async () => ({ success: true, data: "Test success" }),
       };
 
       mcpService.setPermissionLevel("anchor");
@@ -161,7 +161,7 @@ describe("MCPService", () => {
         description: "Admin tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Admin success" }),
+        handler: async () => ({ success: true, data: "Admin success" }),
       };
 
       mcpService.setPermissionLevel("public");
@@ -302,14 +302,14 @@ describe("MCPService", () => {
         name: "plugin1_tool",
         description: "Plugin 1 tool",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Plugin 1 success" }),
+        handler: async () => ({ success: true, data: "Plugin 1 success" }),
       };
 
       const tool2: Tool = {
         name: "plugin2_tool",
         description: "Plugin 2 tool",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Plugin 2 success" }),
+        handler: async () => ({ success: true, data: "Plugin 2 success" }),
       };
 
       mcpService.setPermissionLevel("anchor");
@@ -434,7 +434,7 @@ describe("MCPService", () => {
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "Public success" }),
+        handler: async () => ({ success: true, data: "Public success" }),
       };
 
       const trustedTool: Tool = {
@@ -442,7 +442,7 @@ describe("MCPService", () => {
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Trusted success" }),
+        handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
       const anchorTool: Tool = {
@@ -450,7 +450,7 @@ describe("MCPService", () => {
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Anchor success" }),
+        handler: async () => ({ success: true, data: "Anchor success" }),
       };
 
       // Even with public permission, all tools are in the internal registry
@@ -578,7 +578,7 @@ describe("MCPService", () => {
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "Public success" }),
+        handler: async () => ({ success: true, data: "Public success" }),
       };
 
       const trustedTool: Tool = {
@@ -586,7 +586,7 @@ describe("MCPService", () => {
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
-        handler: async () => ({ success: true, formatted: "Trusted success" }),
+        handler: async () => ({ success: true, data: "Trusted success" }),
       };
 
       const anchorTool: Tool = {
@@ -594,7 +594,7 @@ describe("MCPService", () => {
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "Anchor success" }),
+        handler: async () => ({ success: true, data: "Anchor success" }),
       };
 
       // Tool with default visibility (should be anchor)
@@ -602,7 +602,7 @@ describe("MCPService", () => {
         name: "default_tool",
         description: "Tool with default visibility",
         inputSchema: {},
-        handler: async () => ({ success: true, formatted: "Default success" }),
+        handler: async () => ({ success: true, data: "Default success" }),
       };
 
       mcpService.registerTool("plugin", publicTool);
@@ -1118,7 +1118,7 @@ describe("MCPService", () => {
         description: "Search",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true, formatted: "ok" }),
+        handler: async () => ({ success: true, data: "ok" }),
       };
 
       const anchorTool: Tool = {
@@ -1126,7 +1126,7 @@ describe("MCPService", () => {
         description: "Create entity",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true, formatted: "ok" }),
+        handler: async () => ({ success: true, data: "ok" }),
       };
 
       // Simulate: tools registered at anchor level during plugin init

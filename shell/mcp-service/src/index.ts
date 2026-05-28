@@ -26,9 +26,4 @@ export {
   toolResultSchema,
   type ToolResult,
 } from "./tool-helpers";
-export {
-  normalizeToolResponse,
-  normalizeToolExecutionMessageResponse,
-  wrapToolWithResponseValidation,
-} from "./tool-response-validation";
 export { mapArgsToInput } from "./schema-map";
