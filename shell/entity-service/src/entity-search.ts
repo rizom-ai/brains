@@ -43,6 +43,7 @@ const searchOptionsSchema = z.object({
   excludeTypes: z.array(z.string()).optional().default([]),
   weight: z.record(z.string(), z.number()).optional(),
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
+  includeUngenerated: z.boolean().optional().default(false),
 });
 
 /**
@@ -75,8 +76,15 @@ export class EntitySearch {
     options?: SearchOptions,
   ): Promise<SearchResult<T>[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
-    const { limit, offset, types, excludeTypes, weight, visibilityScope } =
-      validatedOptions;
+    const {
+      limit,
+      offset,
+      types,
+      excludeTypes,
+      weight,
+      visibilityScope,
+      includeUngenerated,
+    } = validatedOptions;
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
@@ -119,7 +127,11 @@ export class EntitySearch {
     return this.searchWithAttachedDb<T>(
       embeddingArray,
       weightMultiplier,
-      [...typeConditions, ...this.buildVisibilityConditions(visibilityScope)],
+      [
+        ...typeConditions,
+        ...this.buildVisibilityConditions(visibilityScope),
+        ...this.buildGenerationStatusConditions(includeUngenerated),
+      ],
       limit,
       offset,
       preparedQuery,
@@ -135,6 +147,13 @@ export class EntitySearch {
       return [];
     }
     return [inArray(entities.visibility, getVisibleContentVisibilities(scope))];
+  }
+
+  private buildGenerationStatusConditions(includeUngenerated: boolean): SQL[] {
+    if (includeUngenerated) return [];
+    return [
+      sql`(json_extract(${entities.metadata}, '$.status') IS NULL OR json_extract(${entities.metadata}, '$.status') NOT IN ('generating', 'failed'))`,
+    ];
   }
 
   /**

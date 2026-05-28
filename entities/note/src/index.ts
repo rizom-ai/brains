@@ -10,6 +10,7 @@ export {
   type Note,
   type NoteFrontmatter,
   type NoteMetadata,
+  type NoteStatus,
   type NoteWithData,
 } from "./schemas/note";
 

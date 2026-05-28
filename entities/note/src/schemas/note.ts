@@ -5,8 +5,13 @@ import { baseEntitySchema } from "@brains/plugins";
  * Note frontmatter schema (optional in markdown)
  * Title is optional - falls back to H1 heading or filename
  */
+export const noteStatusSchema = z.enum(["generating", "failed"]);
+export type NoteStatus = z.infer<typeof noteStatusSchema>;
+
 export const noteFrontmatterSchema = z.object({
   title: z.string().optional(),
+  status: noteStatusSchema.optional(),
+  error: z.string().optional(),
 });
 
 export type NoteFrontmatter = z.infer<typeof noteFrontmatterSchema>;
@@ -17,8 +22,8 @@ export type NoteFrontmatter = z.infer<typeof noteFrontmatterSchema>;
  * Using .required() ensures all picked fields are non-optional
  */
 export const noteMetadataSchema = noteFrontmatterSchema
-  .pick({ title: true })
-  .required();
+  .pick({ title: true, status: true, error: true })
+  .extend({ title: z.string() });
 
 export type NoteMetadata = z.infer<typeof noteMetadataSchema>;
 

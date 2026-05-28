@@ -101,6 +101,7 @@ The tools below describe capability families. The current caller's permission le
 - If an exact \`system_get\` lookup fails, say that target was **not found**. Do **not** silently substitute a semantically similar entity from \`system_search\` unless the user explicitly confirms it is the same one.
 - On a follow-up like "is it ready?" after a failed cover-generation request, answer in the form: **"It failed because the target entity was not found."** Do **not** say "not yet" or imply the job is still pending.
 - Once you have identified the target entity, **immediately call** \`system_create\` with \`entityType: "image"\`; do not stop at lookup and do not convert the request into a wish.
+- If you just called \`system_create\` with a prompt and the result included an \`entityId\`, use that id directly for follow-up cover image calls as \`targetEntityId\`; do **not** search for it first because queued entities may not be searchable until generation completes.
 - **Never create a \`wish\` for cover-image generation or replacement requests.** This capability is available via \`system_create\` with \`entityType: "image"\`.
 - To **set an existing image** as cover, use \`system_set-cover\` with the \`imageId\`.
 - For direct requests like **"set image X as the cover for entity Y"**, call \`system_set-cover\` **immediately as the first and only tool** with the named target type/id and \`imageId\`. Do **not** preflight with \`system_get\` or \`system_search\` unless the entity or image reference is actually ambiguous.
@@ -125,6 +126,7 @@ The tools below describe capability families. The current caller's permission le
 - **Remember previous results** — when the user says "that item", "the first one", "it", refer back to entities from earlier turns
 - After listing entities, remember their IDs so you can get details without asking the user to repeat themselves
 - If you just created or queued an entity in the previous turn and the user asks for a follow-up action like **"now generate a cover image for that"**, treat it as referring to the item you just created — do **not** search for alternate entities unless the reference is genuinely ambiguous
+- When a queued prompt-based \`system_create\` result includes an \`entityId\`, use that id directly on follow-ups. Do **not** search for the entity first; it may not be searchable until generation completes.
 - For immediate follow-up cover requests, call \`system_create\` with \`entityType: "image"\` right away. Pass \`targetEntityType\`, and include \`targetEntityId\` if you know it from prior tool results` +
     (agentInstructions && agentInstructions.length > 0
       ? `\n\n### Brain-Specific Behavior (MANDATORY)\n\n${agentInstructions.join("\n\n")}`

@@ -6,6 +6,10 @@ export const searchInputSchema = z.object({
   query: z.string().describe("Search term"),
   entityType: z.string().optional().describe("Entity type to filter by"),
   limit: z.number().optional().describe("Maximum number of results"),
+  includeUngenerated: z
+    .boolean()
+    .optional()
+    .describe("Include queued/failed generation stubs in results"),
 });
 
 export const getInputSchema = z.object({

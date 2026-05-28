@@ -28,7 +28,13 @@ describe("Social Post Schemas", () => {
 
   describe("socialPostStatusSchema", () => {
     it("should accept valid statuses", () => {
-      const validStatuses = ["draft", "queued", "published", "failed"];
+      const validStatuses = [
+        "generating",
+        "draft",
+        "queued",
+        "published",
+        "failed",
+      ];
       validStatuses.forEach((status) => {
         const result = socialPostStatusSchema.safeParse(status);
         expect(result.success).toBe(true);

@@ -338,6 +338,17 @@ describe("system_create tool", () => {
   });
 
   it("should continue with rewritten input for generation jobs", async () => {
+    services.addEntities([
+      {
+        id: "existing-base",
+        entityType: "base",
+        content: "Existing base",
+        metadata: { title: "Existing Base" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-base",
+      },
+    ]);
     services.entityRegistry.registerCreateInterceptor(
       "base",
       async (input) => ({
@@ -359,6 +370,7 @@ describe("system_create tool", () => {
     if (!enqueuedJob) throw new Error("No job was enqueued");
     expect(enqueuedJob.type).toBe("base:generation");
     expect(enqueuedJob.data).toEqual({
+      entityId: "rewritten-title",
       prompt: "Rewritten prompt",
       title: "Rewritten Title",
     });
@@ -488,6 +500,18 @@ status: draft
   });
 
   it("should queue generation job when prompt provided", async () => {
+    services.addEntities([
+      {
+        id: "existing-base",
+        entityType: "base",
+        content: "Existing base",
+        metadata: { title: "Existing Base" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-base",
+      },
+    ]);
+
     const result = await exec({
       entityType: "base",
       prompt: "Write about TypeScript.",
@@ -496,7 +520,13 @@ status: draft
     expect(result).toHaveProperty("success", true);
     const data = createOutputSchema.parse((result as { data: unknown }).data);
     expect(data.status).toBe("generating");
+    expect(data.entityId).toBe("write-about-typescript");
     expect(data.jobId).toBeDefined();
+    const stub = await services.entityService.getEntity({
+      entityType: "base",
+      id: "write-about-typescript",
+    });
+    expect(stub?.metadata["status"]).toBe("generating");
   });
 
   it("should require content, prompt, or url", async () => {
@@ -900,6 +930,7 @@ A saved research link.`;
     if (!enqueuedJob) throw new Error("No job was enqueued");
     const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
     expect(rawJobData).not.toHaveProperty("options");
+    expect(rawJobData).not.toHaveProperty("entityId");
     const jobData = enqueuedCreateJobSchema.parse(rawJobData);
     expect(jobData.targetEntityType).toBe("post");
   });

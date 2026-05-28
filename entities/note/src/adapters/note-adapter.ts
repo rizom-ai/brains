@@ -38,18 +38,28 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
   }
 
   public fromMarkdown(markdown: string): Partial<Note> {
-    const title = this.extractTitle(markdown) ?? "Untitled";
+    const frontmatter = this.parseMarkdownFrontmatter(markdown);
+    const title =
+      frontmatter.title ?? this.extractTitle(markdown) ?? "Untitled";
     return {
       content: markdown,
       entityType: "base",
-      metadata: { title },
+      metadata: {
+        title,
+        ...(frontmatter.status && { status: frontmatter.status }),
+        ...(frontmatter.error && { error: frontmatter.error }),
+      },
     };
   }
 
   /** Parse note frontmatter from entity content */
   public parseNoteFrontmatter(entity: Note): NoteFrontmatter {
+    return this.parseMarkdownFrontmatter(entity.content);
+  }
+
+  private parseMarkdownFrontmatter(markdown: string): NoteFrontmatter {
     try {
-      return this.parseFrontMatter(entity.content, noteFrontmatterSchema);
+      return this.parseFrontMatter(markdown, noteFrontmatterSchema);
     } catch {
       return {};
     }

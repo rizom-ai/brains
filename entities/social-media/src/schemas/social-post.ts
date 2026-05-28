@@ -15,6 +15,7 @@ export type Platform = z.infer<typeof platformSchema>;
  * - failed: Publish error after max retries
  */
 export const socialPostStatusSchema = z.enum([
+  "generating",
   "draft",
   "queued",
   "published",
@@ -89,6 +90,7 @@ export const socialPostMetadataSchema = socialPostFrontmatterSchema
   })
   .extend({
     slug: z.string().describe("URL-friendly identifier: {platform}-{title}"),
+    error: z.string().optional(),
   });
 
 export type SocialPostMetadata = z.infer<typeof socialPostMetadataSchema>;

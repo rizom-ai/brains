@@ -373,6 +373,8 @@ export interface SearchOptions {
   /** Score multipliers per entity type - applied after initial search */
   weight?: Record<string, number>;
   visibilityScope?: ContentVisibility;
+  /** Include queued/failed generation stubs in search results (default: false) */
+  includeUngenerated?: boolean;
 }
 
 /**

@@ -1,4 +1,5 @@
 import type {
+  BaseEntity,
   CreateCoverImageInput,
   CreateExecutionContext,
   CreateInput,
@@ -6,6 +7,7 @@ import type {
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
+  generateMarkdownWithFrontmatter,
   hasVisibilityFrontmatter,
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
@@ -43,6 +45,57 @@ function buildCoverImagePrompt(
   title: string,
 ): string {
   return coverImage.prompt ?? `Editorial cover image for: ${title}. `;
+}
+
+function buildGenerationStubEntity(
+  services: SystemServices,
+  input: Pick<CreateInput, "entityType" | "title" | "prompt"> & {
+    id: string;
+  },
+): BaseEntity | undefined {
+  const frontmatterSchema =
+    services.entityRegistry.getEffectiveFrontmatterSchema(input.entityType);
+  const adapter = services.entityRegistry.getAdapter(input.entityType);
+  const title = input.title ?? input.id;
+  const now = new Date().toISOString();
+
+  if (!frontmatterSchema) {
+    return undefined;
+  }
+
+  const shape = frontmatterSchema.shape;
+  const frontmatter: Record<string, unknown> = {};
+  if ("title" in shape) frontmatter["title"] = title;
+  if ("subject" in shape) frontmatter["subject"] = title;
+  if ("status" in shape) frontmatter["status"] = "generating";
+  if ("platform" in shape) frontmatter["platform"] = "linkedin";
+  if ("excerpt" in shape) frontmatter["excerpt"] = "";
+  if ("author" in shape) frontmatter["author"] = "AI";
+  if ("description" in shape) frontmatter["description"] = "";
+  if ("year" in shape) frontmatter["year"] = new Date().getUTCFullYear();
+
+  const parsed = frontmatterSchema.safeParse(frontmatter);
+  if (!parsed.success) {
+    return undefined;
+  }
+
+  const content = generateMarkdownWithFrontmatter("", parsed.data);
+  const parsedEntity = adapter.fromMarkdown(content);
+
+  return {
+    id: input.id,
+    entityType: input.entityType,
+    content,
+    metadata: {
+      title,
+      ...(parsedEntity.metadata ?? {}),
+      status: "generating",
+    },
+    visibility: "public",
+    created: now,
+    updated: now,
+    contentHash: "",
+  };
 }
 
 async function enqueueCoverImageGeneration(
@@ -218,10 +271,25 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       }
 
       if (createInput.prompt) {
+        const entityId =
+          slugify(createInput.title ?? createInput.prompt).slice(0, 100) ||
+          `${createInput.entityType}-${Date.now()}`;
+        const stub = buildGenerationStubEntity(services, {
+          entityType: createInput.entityType,
+          id: entityId,
+          prompt: createInput.prompt,
+          ...(createInput.title && { title: createInput.title }),
+        });
+        const jobEntityId = stub ? entityId : undefined;
+
         try {
+          if (stub) {
+            await entityService.createEntity({ entity: stub });
+          }
           const jobId = await jobs.enqueue({
             type: `${createInput.entityType}:generation`,
             data: {
+              ...(jobEntityId && { entityId: jobEntityId }),
               prompt: createInput.prompt,
               ...(createInput.title && { title: createInput.title }),
               ...(createInput.content && { content: createInput.content }),
@@ -235,7 +303,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             },
             toolContext,
           });
-          return { success: true, data: { status: "generating", jobId } };
+          return {
+            success: true,
+            data: {
+              ...(jobEntityId && { entityId: jobEntityId }),
+              status: "generating",
+              jobId,
+            },
+          };
         } catch (error) {
           return {
             success: false,
