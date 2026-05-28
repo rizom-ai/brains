@@ -7,8 +7,7 @@ import type {
   JobHandler,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
-import { resolveEntityOrError } from "@brains/entity-service";
+import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";

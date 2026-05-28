@@ -6,14 +6,12 @@ import {
   type EntityPluginContext,
   type Message,
   type SearchResult,
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  conversationMessageActorSchema,
-  conversationMessageSourceSchema,
-} from "@brains/conversation-service";
 import type {
   ActionItemEntity,
   DecisionEntity,

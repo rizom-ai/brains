@@ -1,5 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,

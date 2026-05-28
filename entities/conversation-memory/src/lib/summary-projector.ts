@@ -1,8 +1,9 @@
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
-} from "@brains/conversation-service";
-import { type EntityPluginContext, type Message } from "@brains/plugins";
+  type EntityPluginContext,
+  type Message,
+} from "@brains/plugins";
 import { pLimit, truncateText, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import {

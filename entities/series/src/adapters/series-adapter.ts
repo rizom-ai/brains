@@ -1,4 +1,4 @@
-import { BaseEntityAdapter } from "@brains/entity-service";
+import { BaseEntityAdapter } from "@brains/plugins";
 import {
   seriesSchema,
   seriesFrontmatterSchema,

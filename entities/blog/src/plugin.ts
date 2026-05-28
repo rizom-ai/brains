@@ -32,7 +32,10 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { weight: 2.0 };
+    return {
+      weight: 2.0,
+      publish: { publishStatuses: ["queued", "published"] },
+    };
   }
 
   protected override createGenerationHandler(

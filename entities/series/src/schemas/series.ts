@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Series frontmatter schema (stored in content as YAML frontmatter)
