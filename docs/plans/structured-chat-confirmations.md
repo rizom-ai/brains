@@ -6,19 +6,19 @@ In progress. First slices implemented: `AgentResponse` now carries shared struct
 
 Web-chat now translates Brain `ToolApprovalCard` objects to AI SDK UI's native tool stream chunks instead of the temporary custom `data-approval-card` protocol. AI SDK v6 has `tool-input-available`, `tool-approval-request`, `tool-output-available`, `tool-output-error`, and `tool-output-denied` chunks that produce `dynamic-tool` / `tool-*` UI parts with approval state. Web-chat approval submission now uses native AI SDK `approval-responded` parts through `/api/chat`, including multiple approval responses in one request; the legacy `/api/chat/confirm` side-channel and `data-confirmation` fallback have been removed.
 
-Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs, including multiple pending approval cards in the same conversation. Chat-repl now consumes the same card contract for terminal prompts, including indexed `yes 1` / `no 1` responses when multiple approvals are pending. Evaluation runners also preserve and submit approval IDs, including remote MCP HTTP confirmations. These downstream paths no longer rely on singular `pendingConfirmation` as a renderer signal. Singular `pendingConfirmation` is retained only as a public compatibility field, synthesized from the first pending approval when needed. Neither interface needs AI SDK stream chunks.
+Discord now consumes the Brain `ToolApprovalCard` contract directly for embeds/buttons and explicit approval IDs, including multiple pending approval cards in the same conversation. Chat-repl now consumes the same card contract for terminal prompts, including indexed `yes 1` / `no 1` responses when multiple approvals are pending. Evaluation runners also preserve and submit approval IDs, including remote MCP HTTP confirmations. These downstream paths no longer rely on singular `pendingConfirmation` as a renderer signal. Runtime responses use `pendingConfirmations[]`; singular `pendingConfirmation` is retained only as a public compatibility field, synthesized from the first pending approval at the plugin/API boundary. Neither interface needs AI SDK stream chunks.
 
 ## Layered summary
 
 What changes per layer, and where each layer is today:
 
-| Layer                 | Today                                                                                        | Bridge state | Final state                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
-| Brain agent emits     | `cards: ToolApprovalCard[]` + `pendingConfirmations[]` + compatibility `pendingConfirmation` | same         | same (Brain stays interface-agnostic)                                   |
-| Web-chat wire format  | AI SDK native `tool-*` chunks                                                                | same         | `tool-input-available` + `tool-approval-request` + `tool-output-*` only |
-| Web-chat submission   | AI SDK `approval-responded` dynamic-tool part through `/api/chat`                            | same         | `/api/chat` only; no side-channel POST                                  |
-| Discord wire format   | `response.cards` rendered as embeds/buttons, text fallback                                   | same         | `response.cards` is the primary signal                                  |
-| Chat-repl wire format | `response.cards` for approval id, text fallback                                              | same         | `response.cards` is the primary signal                                  |
+| Layer                 | Today                                                             | Bridge state | Final state                                                             |
+| --------------------- | ----------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| Brain agent emits     | `cards: ToolApprovalCard[]` + `pendingConfirmations[]`            | same         | same (Brain stays interface-agnostic)                                   |
+| Web-chat wire format  | AI SDK native `tool-*` chunks                                     | same         | `tool-input-available` + `tool-approval-request` + `tool-output-*` only |
+| Web-chat submission   | AI SDK `approval-responded` dynamic-tool part through `/api/chat` | same         | `/api/chat` only; no side-channel POST                                  |
+| Discord wire format   | `response.cards` rendered as embeds/buttons, text fallback        | same         | `response.cards` is the primary signal                                  |
+| Chat-repl wire format | `response.cards` for approval id, text fallback                   | same         | `response.cards` is the primary signal                                  |
 
 Translation between Brain cards and AI SDK chunks lives in **web-chat**, not in the agent. The agent keeps emitting Brain `ToolApprovalCard` so Discord and chat-repl never have to learn the SDK wire format. If translation later moves into the agent, Brain becomes SDK-coupled — currently rejected.
 
@@ -147,7 +147,7 @@ Custom `data-approval-card` should not be the final web-chat protocol.
 
 ### 1. Define the shared confirmation/card contract
 
-First slice implemented. Shared runtime/public types now define `StructuredChatCard` / `ToolApprovalCard`, and `AgentResponse.cards` carries approval card state alongside `pendingConfirmations[]`. The singular `pendingConfirmation` field remains compatibility-only for existing public consumers.
+First slice implemented. Shared runtime/public types now define `StructuredChatCard` / `ToolApprovalCard`, and runtime `AgentResponse.cards` carries approval card state alongside `pendingConfirmations[]`. The singular `pendingConfirmation` field remains compatibility-only for existing public consumers at the plugin/API boundary.
 
 Touched areas:
 

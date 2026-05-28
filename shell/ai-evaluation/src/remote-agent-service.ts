@@ -43,21 +43,6 @@ function parseAgentResponse(json: unknown): AgentResponse {
     }));
   }
 
-  if (parsed.pendingConfirmation) {
-    response.pendingConfirmation = {
-      id: parsed.pendingConfirmation.id,
-      ...(parsed.pendingConfirmation.toolCallId !== undefined
-        ? { toolCallId: parsed.pendingConfirmation.toolCallId }
-        : {}),
-      toolName: parsed.pendingConfirmation.toolName,
-      summary: parsed.pendingConfirmation.summary,
-      ...(parsed.pendingConfirmation.preview !== undefined
-        ? { preview: parsed.pendingConfirmation.preview }
-        : {}),
-      args: parsed.pendingConfirmation.args,
-    };
-  }
-
   if (parsed.pendingConfirmations) {
     response.pendingConfirmations = parsed.pendingConfirmations.map(
       (confirmation) => ({
@@ -73,13 +58,21 @@ function parseAgentResponse(json: unknown): AgentResponse {
         args: confirmation.args,
       }),
     );
-  }
-
-  if (!response.pendingConfirmation) {
-    const firstPendingConfirmation = response.pendingConfirmations?.[0];
-    if (firstPendingConfirmation) {
-      response.pendingConfirmation = firstPendingConfirmation;
-    }
+  } else if (parsed.pendingConfirmation) {
+    response.pendingConfirmations = [
+      {
+        id: parsed.pendingConfirmation.id,
+        ...(parsed.pendingConfirmation.toolCallId !== undefined
+          ? { toolCallId: parsed.pendingConfirmation.toolCallId }
+          : {}),
+        toolName: parsed.pendingConfirmation.toolName,
+        summary: parsed.pendingConfirmation.summary,
+        ...(parsed.pendingConfirmation.preview !== undefined
+          ? { preview: parsed.pendingConfirmation.preview }
+          : {}),
+        args: parsed.pendingConfirmation.args,
+      },
+    ];
   }
 
   return response;

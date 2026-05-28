@@ -64,13 +64,6 @@ describe("public agent contracts", () => {
           state: "approval-requested",
         },
       ],
-      pendingConfirmation: {
-        id: "approval:call-1",
-        toolCallId: "call-1",
-        toolName: "delete",
-        summary: "Delete item",
-        args: { id: "item-1" },
-      },
       pendingConfirmations: [
         {
           id: "approval:call-1",

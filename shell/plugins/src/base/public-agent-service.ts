@@ -16,8 +16,7 @@ import type {
 export function toPublicAgentResponse(
   response: RuntimeAgentResponse,
 ): AgentResponse {
-  const pendingConfirmation =
-    response.pendingConfirmation ?? response.pendingConfirmations?.[0];
+  const pendingConfirmation = response.pendingConfirmations?.[0];
 
   return {
     text: response.text,

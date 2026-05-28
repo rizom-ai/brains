@@ -376,17 +376,11 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    const {
-      toolResults,
-      pendingConfirmation,
-      pendingConfirmations,
-      cards,
-      totalToolCalls,
-    } = extractToolResults(result.steps);
+    const { toolResults, pendingConfirmations, cards, totalToolCalls } =
+      extractToolResults(result.steps);
 
-    const responseText = pendingConfirmation
-      ? "Confirmation required."
-      : result.text;
+    const responseText =
+      pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -420,9 +414,6 @@ export class AgentService implements IAgentService {
       usage: toTokenUsage(result.usage),
     };
 
-    if (pendingConfirmation) {
-      response.pendingConfirmation = pendingConfirmation;
-    }
     if (pendingConfirmations.length > 0) {
       response.pendingConfirmations = pendingConfirmations;
     }

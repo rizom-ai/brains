@@ -89,8 +89,7 @@ function firstPending(
 function getPendingConfirmations(
   response: AgentResponse,
 ): PendingConfirmation[] {
-  if (response.pendingConfirmations) return response.pendingConfirmations;
-  return response.pendingConfirmation ? [response.pendingConfirmation] : [];
+  return response.pendingConfirmations ?? [];
 }
 
 function findPendingConfirmation(

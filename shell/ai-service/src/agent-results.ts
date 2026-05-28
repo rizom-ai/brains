@@ -16,7 +16,6 @@ const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 
 export interface ExtractedResults {
   toolResults: ToolResultData[];
-  pendingConfirmation: PendingConfirmation | null;
   pendingConfirmations: PendingConfirmation[];
   cards: StructuredChatCard[];
   totalToolCalls: number;
@@ -28,7 +27,6 @@ export function extractToolResults(
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
   const pendingConfirmations: PendingConfirmation[] = [];
-  let pendingConfirmation: PendingConfirmation | null = null;
   let totalToolCalls = 0;
 
   for (const step of steps) {
@@ -64,7 +62,6 @@ export function extractToolResults(
             : {}),
           args: confirmationParsed.data.args,
         };
-        pendingConfirmation ??= confirmation;
         pendingConfirmations.push(confirmation);
 
         toolResults.push({
@@ -116,7 +113,6 @@ export function extractToolResults(
 
   return {
     toolResults,
-    pendingConfirmation,
     pendingConfirmations,
     cards,
     totalToolCalls,
