@@ -3,9 +3,8 @@
 ## Status
 
 MVP shipped — the code is the source of truth for what works today. This plan
-now tracks open follow-ups only. Structured confirmations live in
-[structured-chat-confirmations.md](./structured-chat-confirmations.md);
-multi-platform adapter consolidation is parked in
+now tracks open follow-ups only. Structured confirmations shipped with the chat
+surface; multi-platform adapter consolidation is parked in
 [chat-interface-sdk.md](./chat-interface-sdk.md).
 
 ## Why this shape (load-bearing decisions)
@@ -212,9 +211,5 @@ Do not preemptively fork a full mini-chat implementation.
 
 ## Related plans
 
-- [structured-chat-confirmations.md](./structured-chat-confirmations.md) —
-  unblocked now that AI Elements has landed; aligns confirmation UX across
-  web-chat, Discord, and chat-repl behind a shared structured tool/approval
-  contract. The biggest outstanding cross-interface workstream.
 - [chat-interface-sdk.md](./chat-interface-sdk.md) — parked multi-platform
   Chat SDK adapter consolidation. Revisit only when Slack/Teams/Matrix lands.

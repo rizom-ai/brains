@@ -56,7 +56,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### New interfaces, renderers, and runtimes
 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
-- [Structured chat confirmations](./structured-chat-confirmations.md) — implemented; pending retirement after durable protocol notes move into permanent docs
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — parked
