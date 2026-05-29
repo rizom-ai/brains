@@ -51,6 +51,7 @@ export function createMockSystemServices(
 
   const defaultFrontmatterSchema = z.object({
     title: z.string().optional(),
+    status: z.string().optional(),
   });
 
   const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
@@ -140,6 +141,10 @@ export function createMockSystemServices(
     },
     hasEntityType: (type: string) => entityTypes.has(type),
     getAllEntityTypes: () => Array.from(entityTypes),
+    getEntityTypeConfig: (type: string) =>
+      type === "social-post"
+        ? { publish: { publishStatuses: ["queued", "published", "failed"] } }
+        : {},
     getEffectiveFrontmatterSchema: (type: string) =>
       entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
     registerCreateInterceptor: (

@@ -1,0 +1,36 @@
+id: rover-permission-anchor-can-queue-publish-draft
+name: Anchor owner can queue a Rover publishing draft
+description: >-
+  Verifies the owner side of the publish-action split: anchor-level callers may
+  make publish commitments such as adding a social post draft to the publish
+  queue.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - rover
+  - permissions
+  - publish-action-policy
+  - anchor
+
+turns:
+  - userMessage: >-
+      Queue the draft LinkedIn post titled "Publish Policy Draft" for publishing.
+
+successCriteria:
+  expectedTools:
+    - toolName: content-pipeline_queue
+      shouldBeCalled: true
+      argsContain:
+        action: add
+        entityType: social-post
+  responseNotContains:
+    - "permission denied"
+    - "cannot queue"
+    - "not allowed"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 20000

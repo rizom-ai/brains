@@ -1,8 +1,8 @@
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
-} from "@brains/conversation-service";
-import type { Message } from "@brains/plugins";
+  type Message,
+} from "@brains/plugins";
 import type { SummaryConfig } from "../schemas/summary";
 
 export interface SummaryPromptInput {

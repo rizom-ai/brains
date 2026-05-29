@@ -1,4 +1,4 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/entity-service";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { type z as zType } from "@brains/utils";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";

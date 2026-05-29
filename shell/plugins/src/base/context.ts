@@ -18,7 +18,7 @@ import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
-import type { UserPermissionLevel } from "@brains/templates";
+import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
@@ -32,6 +32,7 @@ import {
   createInteractionsNamespace,
   createJobsNamespace,
   createMessagingNamespace,
+  createPermissionsNamespace,
 } from "./namespaces";
 
 /**
@@ -137,6 +138,15 @@ export interface IInsightsNamespace {
   register: (type: string, handler: InsightHandler) => void;
 }
 
+export interface IPermissionsNamespace {
+  /** Assert that the caller can perform an entity action. */
+  assertEntityActionAllowed(
+    entityType: string,
+    action: EntityAction,
+    context: { userPermissionLevel?: UserPermissionLevel | undefined },
+  ): void;
+}
+
 /**
  * Base plugin context — shared by all plugin types (Entity, Service, Interface).
  *
@@ -180,6 +190,9 @@ export interface BasePluginContext {
 
   /** Shared conversation spaces for this brain/team */
   readonly spaces: string[];
+
+  /** Entity action policy assertions for plugin-owned tools and handlers. */
+  readonly permissions: IPermissionsNamespace;
 
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
@@ -337,6 +350,8 @@ export function createBasePluginContext(
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),
+
+    permissions: createPermissionsNamespace(shell),
 
     messaging: createMessagingNamespace(shell, pluginId, logger),
 

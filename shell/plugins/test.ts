@@ -23,11 +23,13 @@ export type {
   InterfacePluginContext,
   ToolContext,
   IEntityService,
+  IMessageBus,
   ConversationDigestPayload,
   BatchOperation,
 } from "./src/index";
 // Logger comes from @brains/utils
 export type { Logger } from "@brains/utils";
+export { createMockMessageBus } from "@brains/messaging-service/test";
 export {
   baseEntitySchema,
   BaseEntityAdapter,

@@ -15,6 +15,7 @@ import {
   getEntityDisplayLabel,
   normalizeUpdateInput,
 } from "./tool-helpers";
+import { getPublishBoundaryState } from "./entity-publish-policy";
 
 function currentFieldValue(entity: BaseEntity, key: string): unknown {
   return key === "visibility" ? entity.visibility : entity.metadata[key];
@@ -35,6 +36,32 @@ function applyFieldUpdates(
     visibility: nextVisibility,
     metadata: { ...entity.metadata, ...metadataFields },
   };
+}
+
+function getUpdatedStatus(
+  entity: BaseEntity,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  entityRegistry: SystemServices["entityRegistry"],
+): unknown {
+  if (normalizedInput.fields && "status" in normalizedInput.fields) {
+    return normalizedInput.fields["status"];
+  }
+
+  if (normalizedInput.content !== undefined) {
+    const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
+      entity.entityType,
+    );
+    if (!frontmatterSchema) return entity.metadata["status"];
+    try {
+      return entityRegistry
+        .getAdapter(entity.entityType)
+        .parseFrontMatter(normalizedInput.content, frontmatterSchema)["status"];
+    } catch {
+      return entity.metadata["status"];
+    }
+  }
+
+  return entity.metadata["status"];
 }
 
 function buildUpdateDiff(
@@ -70,14 +97,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     "Update an entity's fields or content. Requires confirmation.",
     updateInputSchema,
     async (input, context) => {
-      const policyError = assertEntityActionAllowed(
-        services,
-        input.entityType,
-        "update",
-        context,
-      );
-      if (policyError) return policyError;
-
       const visibilityScope = permissionToVisibilityScope(
         context.userPermissionLevel,
       );
@@ -125,6 +144,28 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
+
+      const oldStatus = entity.metadata["status"];
+      const newStatus = getUpdatedStatus(
+        entity,
+        normalizedInput,
+        entityRegistry,
+      );
+      const publishBoundary = getPublishBoundaryState(
+        entity.entityType,
+        oldStatus,
+        newStatus,
+        entityRegistry,
+      );
+      const requiredAction =
+        publishBoundary === "non-publish" ? "update" : "publish";
+      const policyError = assertEntityActionAllowed(
+        services,
+        input.entityType,
+        requiredAction,
+        context,
+      );
+      if (policyError) return policyError;
 
       if (input.confirmed) {
         if (input.contentHash && entity.contentHash !== input.contentHash) {

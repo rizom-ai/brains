@@ -3,8 +3,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import { createMockMessageBus } from "@brains/messaging-service/test";
-import type { IMessageBus } from "@brains/plugins";
+import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import { ServerManager } from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {

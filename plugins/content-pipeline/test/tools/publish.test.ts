@@ -5,6 +5,7 @@ import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
 import type { PublishResult } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
+import { PermissionService } from "@brains/templates";
 import {
   createMockShell,
   type MockShell,
@@ -68,6 +69,28 @@ describe("Publish Pipeline - Publish Tool", () => {
     it("should have description explaining direct publishing", () => {
       const tool = createPublishTool(context, pluginId, providerRegistry);
       expect(tool.description.toLowerCase()).toContain("publish");
+    });
+  });
+
+  describe("publish policy", () => {
+    it("requires publish permission before direct publish", async () => {
+      mockShell.getPermissionService = () =>
+        new PermissionService({
+          entityActions: { "social-post": { publish: "anchor" } },
+        });
+      context = createServicePluginContext(mockShell, pluginId);
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+
+      const result = await tool.handler(
+        { entityType: "social-post", id: "post-123" },
+        { ...createMockToolContext(), userPermissionLevel: "trusted" },
+      );
+
+      expect(result).toEqual({
+        success: false,
+        error:
+          "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+      });
     });
   });
 

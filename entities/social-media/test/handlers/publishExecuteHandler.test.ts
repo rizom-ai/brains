@@ -1,20 +1,58 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import type { PublishProvider } from "@brains/contracts";
+import type { PublishMediaData, PublishProvider } from "@brains/contracts";
 import {
   PublishExecuteHandler,
+  type PublishExecuteEntityService,
   type PublishExecuteHandlerConfig,
 } from "../../src/handlers/publishExecuteHandler";
+import type { BaseEntity } from "@brains/plugins";
 import type { SocialPost } from "../../src/schemas/social-post";
 import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
 
-function createMockEntityService(): {
-  getEntity: ReturnType<typeof mock>;
-  updateEntity: ReturnType<typeof mock>;
-} {
-  return {
-    getEntity: mock(() => Promise.resolve(null)),
-    updateEntity: mock(() => Promise.resolve()),
-  };
+class TestEntityService implements PublishExecuteEntityService {
+  public readonly getEntityCalls: Array<{ entityType: string; id: string }> =
+    [];
+  private getEntityHandler: (request: {
+    entityType: string;
+    id: string;
+  }) => Promise<BaseEntity | null> = async () => null;
+
+  public readonly updateEntity = mock(
+    async (_request: { entity: BaseEntity }): Promise<void> => {},
+  );
+
+  public setGetEntityResult(entity: BaseEntity | null): void {
+    this.getEntityHandler = async () => entity;
+  }
+
+  public setGetEntityHandler(
+    handler: (request: {
+      entityType: string;
+      id: string;
+    }) => Promise<BaseEntity | null>,
+  ): void {
+    this.getEntityHandler = handler;
+  }
+
+  public async getEntity(request: {
+    entityType: "social-post";
+    id: string;
+  }): Promise<SocialPost | null>;
+  public async getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+  public async getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null> {
+    this.getEntityCalls.push(request);
+    return this.getEntityHandler(request);
+  }
+}
+
+function createMockEntityService(): TestEntityService {
+  return new TestEntityService();
 }
 
 const TINY_PNG_BASE64 =
@@ -87,9 +125,10 @@ This is a post with a PDF carousel.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
-const sampleImage = {
+const sampleImage: BaseEntity = {
   id: "image-123",
   entityType: "image",
+  visibility: "public",
   content: `data:image/png;base64,${TINY_PNG_BASE64}`,
   metadata: {
     title: "Test Image",
@@ -126,9 +165,10 @@ Carousel from source deck.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
-const sampleDocument = {
+const sampleDocument: BaseEntity = {
   id: "carousel-pdf",
   entityType: "document",
+  visibility: "public",
   content: `data:application/pdf;base64,${TINY_PDF_BASE64}`,
   metadata: {
     mimeType: "application/pdf",
@@ -146,6 +186,7 @@ describe("PublishExecuteHandler", () => {
   let entityService: ReturnType<typeof createMockEntityService>;
   let providers: Map<string, PublishProvider>;
   let linkedinProvider: PublishProvider;
+  let permissions: PublishExecuteHandlerConfig["permissions"];
 
   beforeEach(() => {
     messageSender = createMockMessageSender();
@@ -158,35 +199,65 @@ describe("PublishExecuteHandler", () => {
       validateCredentials: mock(() => Promise.resolve(true)),
     };
     providers = new Map([["linkedin", linkedinProvider]]);
+    permissions = {
+      assertEntityActionAllowed: mock(() => undefined),
+    };
 
     const config: PublishExecuteHandlerConfig = {
-      sendMessage: messageSender.sendMessage as never,
+      sendMessage: (request) => messageSender.sendMessage(request),
       logger,
-      entityService: entityService as never,
+      entityService,
       providers,
+      permissions,
     };
 
     handler = new PublishExecuteHandler(config);
   });
 
   describe("handle", () => {
+    it("requires publish permission before executing", async () => {
+      permissions.assertEntityActionAllowed = mock(() => {
+        throw new Error("publish denied");
+      });
+      entityService.setGetEntityResult(samplePost);
+
+      let caughtError: unknown;
+      try {
+        await handler.handle({
+          entityType: "social-post",
+          entityId: "post-1",
+          authContext: { userPermissionLevel: "trusted" },
+        });
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(caughtError).toBeInstanceOf(Error);
+      expect(caughtError instanceof Error ? caughtError.message : "").toBe(
+        "publish denied",
+      );
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+    });
+
     it("should fetch entity and call provider", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
 
       await handler.handle({
         entityType: "social-post",
         entityId: "post-1",
       });
 
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "social-post",
-        id: "post-1",
-      });
+      expect(entityService.getEntityCalls).toEqual([
+        {
+          entityType: "social-post",
+          id: "post-1",
+        },
+      ]);
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
     it("should send report:success on successful publish", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
 
       await handler.handle({
         entityType: "social-post",
@@ -204,7 +275,7 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should update entity status to published", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
 
       await handler.handle({
         entityType: "social-post",
@@ -222,7 +293,7 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should send report:failure when entity not found", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(null));
+      entityService.setGetEntityResult(null);
 
       await handler.handle({
         entityType: "social-post",
@@ -242,11 +313,9 @@ describe("PublishExecuteHandler", () => {
     it("should send report:failure when provider not found", async () => {
       const postWithUnknownPlatform = {
         ...samplePost,
-        metadata: { ...samplePost.metadata, platform: "unknown" as const },
+        metadata: { ...samplePost.metadata, platform: "unknown" },
       };
-      entityService.getEntity = mock(() =>
-        Promise.resolve(postWithUnknownPlatform),
-      );
+      entityService.setGetEntityResult(postWithUnknownPlatform);
 
       await handler.handle({
         entityType: "social-post",
@@ -264,7 +333,7 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should send report:failure when provider throws", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
       linkedinProvider.publish = mock(() =>
         Promise.reject(new Error("API rate limit exceeded")),
       );
@@ -285,7 +354,7 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should update entity status to failed after provider error", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
       linkedinProvider.publish = mock(() =>
         Promise.reject(new Error("API error")),
       );
@@ -308,9 +377,9 @@ describe("PublishExecuteHandler", () => {
     it("should skip already published posts", async () => {
       const publishedPost = {
         ...samplePost,
-        metadata: { ...samplePost.metadata, status: "published" as const },
+        metadata: { ...samplePost.metadata, status: "published" },
       };
-      entityService.getEntity = mock(() => Promise.resolve(publishedPost));
+      entityService.setGetEntityResult(publishedPost);
 
       await handler.handle({
         entityType: "social-post",
@@ -322,17 +391,15 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should fetch and pass image data when coverImageId is present", async () => {
-      entityService.getEntity = mock(
-        (request: { entityType: string; id: string }) => {
-          if (request.entityType === "social-post") {
-            return Promise.resolve(samplePostWithImage);
-          }
-          if (request.entityType === "image" && request.id === "image-123") {
-            return Promise.resolve(sampleImage);
-          }
-          return Promise.resolve(null);
-        },
-      );
+      entityService.setGetEntityHandler(async (request) => {
+        if (request.entityType === "social-post") {
+          return samplePostWithImage;
+        }
+        if (request.entityType === "image" && request.id === "image-123") {
+          return sampleImage;
+        }
+        return null;
+      });
 
       await handler.handle({
         entityType: "social-post",
@@ -350,20 +417,18 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should fetch and pass document data when documents are present", async () => {
-      entityService.getEntity = mock(
-        (request: { entityType: string; id: string }) => {
-          if (request.entityType === "social-post") {
-            return Promise.resolve(samplePostWithDocument);
-          }
-          if (
-            request.entityType === "document" &&
-            request.id === "carousel-pdf"
-          ) {
-            return Promise.resolve(sampleDocument);
-          }
-          return Promise.resolve(null);
-        },
-      );
+      entityService.setGetEntityHandler(async (request) => {
+        if (request.entityType === "social-post") {
+          return samplePostWithDocument;
+        }
+        if (
+          request.entityType === "document" &&
+          request.id === "carousel-pdf"
+        ) {
+          return sampleDocument;
+        }
+        return null;
+      });
 
       await handler.handle({
         entityType: "social-post",
@@ -386,14 +451,12 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should publish without image if image entity not found", async () => {
-      entityService.getEntity = mock(
-        (request: { entityType: string; id: string }) => {
-          if (request.entityType === "social-post") {
-            return Promise.resolve(samplePostWithImage);
-          }
-          return Promise.resolve(null);
-        },
-      );
+      entityService.setGetEntityHandler(async (request) => {
+        if (request.entityType === "social-post") {
+          return samplePostWithImage;
+        }
+        return null;
+      });
 
       await handler.handle({
         entityType: "social-post",
@@ -409,22 +472,21 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should resolve source-derived carousel attachment when no documents are set", async () => {
-      entityService.getEntity = mock(() =>
-        Promise.resolve(samplePostWithSource),
-      );
-      const carouselPdf = {
-        type: "document" as const,
+      entityService.setGetEntityResult(samplePostWithSource);
+      const carouselPdf: PublishMediaData = {
+        type: "document",
         data: Buffer.from("%PDF-carousel"),
-        mimeType: "application/pdf" as const,
+        mimeType: "application/pdf",
         filename: "deck-carousel.pdf",
       };
       const resolveAttachment = mock(() => Promise.resolve(carouselPdf));
 
       const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: messageSender.sendMessage as never,
+        sendMessage: (request) => messageSender.sendMessage(request),
         logger,
-        entityService: entityService as never,
+        entityService,
         providers,
+        permissions,
         resolveAttachment,
       });
 
@@ -447,16 +509,15 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should publish text-only when source fields are set but no provider resolves an attachment", async () => {
-      entityService.getEntity = mock(() =>
-        Promise.resolve(samplePostWithSource),
-      );
+      entityService.setGetEntityResult(samplePostWithSource);
       const resolveAttachment = mock(() => Promise.resolve(undefined));
 
       const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: messageSender.sendMessage as never,
+        sendMessage: (request) => messageSender.sendMessage(request),
         logger,
-        entityService: entityService as never,
+        entityService,
         providers,
+        permissions,
         resolveAttachment,
       });
 
@@ -488,27 +549,26 @@ documents:
 ---
 Post with both explicit doc and source.`,
       };
-      entityService.getEntity = mock(
-        (request: { entityType: string; id: string }) => {
-          if (request.entityType === "social-post") {
-            return Promise.resolve(postWithBoth);
-          }
-          if (
-            request.entityType === "document" &&
-            request.id === "carousel-pdf"
-          ) {
-            return Promise.resolve(sampleDocument);
-          }
-          return Promise.resolve(null);
-        },
-      );
+      entityService.setGetEntityHandler(async (request) => {
+        if (request.entityType === "social-post") {
+          return postWithBoth;
+        }
+        if (
+          request.entityType === "document" &&
+          request.id === "carousel-pdf"
+        ) {
+          return sampleDocument;
+        }
+        return null;
+      });
       const resolveAttachment = mock(() => Promise.resolve(undefined));
 
       const handlerWithAttachments = new PublishExecuteHandler({
-        sendMessage: messageSender.sendMessage as never,
+        sendMessage: (request) => messageSender.sendMessage(request),
         logger,
-        entityService: entityService as never,
+        entityService,
         providers,
+        permissions,
         resolveAttachment,
       });
 
@@ -532,7 +592,7 @@ Post with both explicit doc and source.`,
     });
 
     it("should publish without image if coverImageId not present", async () => {
-      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+      entityService.setGetEntityResult(samplePost);
 
       await handler.handle({
         entityType: "social-post",

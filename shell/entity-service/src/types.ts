@@ -387,6 +387,12 @@ export interface EntityTypeConfig {
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
+  /** Publish semantics for status-bearing entity types. Statuses listed here
+   *  represent publication commitment/execution states and require the
+   *  `publish` entity action when entered or modified. */
+  publish?: {
+    publishStatuses: string[];
+  };
 }
 
 /**

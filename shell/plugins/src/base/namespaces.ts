@@ -26,6 +26,7 @@ import type {
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IPermissionsNamespace,
   TypedMessageHandler,
 } from "./context";
 
@@ -103,6 +104,21 @@ export function createJobsNamespace(
     enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
     enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
     registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
+  };
+}
+
+export function createPermissionsNamespace(
+  shell: IShell,
+): IPermissionsNamespace {
+  const permissionService = shell.getPermissionService();
+  return {
+    assertEntityActionAllowed: (entityType, action, context): void => {
+      permissionService.assertEntityActionAllowed(
+        entityType,
+        action,
+        context.userPermissionLevel,
+      );
+    },
   };
 }
 

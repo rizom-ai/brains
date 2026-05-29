@@ -1,4 +1,4 @@
-import type { IEntityService, BaseEntity } from "@brains/entity-service";
+import type { IEntityService, BaseEntity } from "@brains/plugins";
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { slugify } from "@brains/utils";

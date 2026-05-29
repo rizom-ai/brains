@@ -1,16 +1,14 @@
 import {
   EntityPlugin,
   hasPersistedTargets,
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
   type EntityChangePayload,
   type EntityPluginContext,
   type DataSource,
   type DerivedEntityProjection,
   type Template,
 } from "@brains/plugins";
-import {
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_SOURCE_KIND,
-} from "@brains/conversation-service";
 import { z } from "@brains/utils";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import {

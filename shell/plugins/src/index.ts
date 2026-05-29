@@ -145,6 +145,8 @@ export {
   isVisibleWithinScope,
   permissionToVisibilityScope,
   scopedDerivedId,
+  findEntityByIdentifier,
+  resolveEntityOrError,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
@@ -260,7 +262,15 @@ export type {
   GetMessagesOptions,
   IConversationService,
 } from "@brains/conversation-service";
-export { conversationDigestPayloadSchema } from "@brains/conversation-service";
+export {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
+  conversationDigestPayloadSchema,
+  conversationMessageActorSchema,
+  conversationMessageMetadataSchema,
+  conversationMessageSourceSchema,
+} from "@brains/conversation-service";
+export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
 

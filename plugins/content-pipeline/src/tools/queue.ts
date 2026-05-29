@@ -1,4 +1,9 @@
-import type { Tool, ServicePluginContext, ToolResult } from "@brains/plugins";
+import type {
+  Tool,
+  ToolContext,
+  ServicePluginContext,
+  ToolResult,
+} from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
@@ -75,7 +80,7 @@ export type QueueOutput = z.infer<typeof queueOutputSchema>;
  * This is a unified queue tool that manages publish queues for all entity types.
  */
 export function createQueueTool(
-  _context: ServicePluginContext,
+  context: ServicePluginContext,
   pluginId: string,
   queueManager: QueueManager,
 ): Tool<QueueOutput> {
@@ -84,18 +89,37 @@ export function createQueueTool(
     "queue",
     "Manage the publish queue for all entity types (list, add, remove, reorder)",
     queueInputSchema,
-    async (input): Promise<ToolResult> => {
+    async (input, toolContext): Promise<ToolResult> => {
       const { action, entityType, entityId, position } = input;
 
       switch (action) {
         case "list":
           return handleList(queueManager, entityType);
         case "add":
-          return handleAdd(queueManager, entityType, entityId);
+          return handleAdd(
+            context,
+            queueManager,
+            entityType,
+            entityId,
+            toolContext,
+          );
         case "remove":
-          return handleRemove(queueManager, entityType, entityId);
+          return handleRemove(
+            context,
+            queueManager,
+            entityType,
+            entityId,
+            toolContext,
+          );
         case "reorder":
-          return handleReorder(queueManager, entityType, entityId, position);
+          return handleReorder(
+            context,
+            queueManager,
+            entityType,
+            entityId,
+            position,
+            toolContext,
+          );
         default:
           return {
             success: false,
@@ -162,14 +186,25 @@ async function handleList(
  * Add an entity to the queue
  */
 async function handleAdd(
+  context: ServicePluginContext,
   queueManager: QueueManager,
   entityType?: string,
   entityId?: string,
+  toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
 ): Promise<ToolResult> {
   const target = requireQueueTarget("add", entityType, entityId);
   if (!target.success) return target.error;
 
-  const result = await queueManager.add(target.entityType, target.entityId);
+  context.permissions.assertEntityActionAllowed(
+    target.entityType,
+    "publish",
+    toolContext ?? {},
+  );
+
+  const result = await queueManager.add(target.entityType, target.entityId, {
+    ...toolContext,
+    authorization: "user",
+  });
 
   return {
     success: true as const,
@@ -186,12 +221,20 @@ async function handleAdd(
  * Remove an entity from the queue
  */
 async function handleRemove(
+  context: ServicePluginContext,
   queueManager: QueueManager,
   entityType?: string,
   entityId?: string,
+  toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
 ): Promise<ToolResult> {
   const target = requireQueueTarget("remove", entityType, entityId);
   if (!target.success) return target.error;
+
+  context.permissions.assertEntityActionAllowed(
+    target.entityType,
+    "update",
+    toolContext ?? {},
+  );
 
   await queueManager.remove(target.entityType, target.entityId);
 
@@ -206,16 +249,24 @@ async function handleRemove(
  * Reorder an entity in the queue
  */
 async function handleReorder(
+  context: ServicePluginContext,
   queueManager: QueueManager,
   entityType?: string,
   entityId?: string,
   position?: number,
+  toolContext?: { userPermissionLevel?: ToolContext["userPermissionLevel"] },
 ): Promise<ToolResult> {
   const target = requireQueueTarget("reorder", entityType, entityId);
   if (!target.success) return target.error;
 
   const nextPosition = requirePosition(position);
   if (!nextPosition.success) return nextPosition.error;
+
+  context.permissions.assertEntityActionAllowed(
+    target.entityType,
+    "update",
+    toolContext ?? {},
+  );
 
   await queueManager.reorder(
     target.entityType,

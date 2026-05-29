@@ -220,7 +220,7 @@ Top-level shorthand for elevated-access identities.
 
 Permission overrides.
 
-`anchors`, `trusted`, and `rules` control the caller permission level. `entityActions` controls which permission level is required to mutate each entity type through central system tools.
+`anchors`, `trusted`, and `rules` control the caller permission level. `entityActions` controls which permission level is required to mutate each entity type through central system tools and publish pipeline commitments.
 
 ```yaml
 permissions:
@@ -229,10 +229,14 @@ permissions:
       create: trusted
       update: trusted
       delete: anchor
-    topic:
-      create: anchor
-      update: anchor
-      delete: anchor
+      extract: trusted
+      publish: anchor
+    post:
+      update: trusted # collaborators may edit drafts
+      publish: anchor # only owners may publish/queue/schedule
+    social-post:
+      update: trusted
+      publish: anchor
     summary:
       create: anchor
       update: anchor
@@ -241,15 +245,17 @@ permissions:
 
 Rules:
 
-- supported actions are `create`, `update`, and `delete`;
+- supported actions are `create`, `update`, `delete`, `extract`, and `publish`;
 - supported levels are `public`, `trusted`, `anchor`, and `never`;
+- `publish` gates publication commitments: publish-aware status transitions, direct publish calls, queue adds, scheduled execution, and send/publish handlers;
+- `publish` must be at least as restrictive as `update` for the same entity type after wildcard inheritance and entity-specific overrides are merged;
 - `never` forbids the action through system tools for every caller — useful for singleton identity/config entities that should not be deletable via the agent; internal plugin code can still mutate them directly;
 - `"*"` is the default for entity types without an explicit entry;
 - entity-specific entries override `"*"` per action;
 - omitted actions inherit from `"*"`;
 - if no `entityActions` policy is configured by the brain model or instance, existing mutation-tool behavior is preserved.
 
-This policy is enforced by `system_create`, `system_update`, and `system_delete`. It does not control read/search/list visibility; use entity visibility for read access.
+This policy is enforced by `system_create`, `system_update`, `system_delete`, topic extraction, and publish pipeline tools/handlers. It does not control read/search/list visibility; use entity visibility for read access.
 
 ### `plugins`
 

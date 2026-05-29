@@ -80,6 +80,27 @@ describe("system_update tool", () => {
         created: new Date("2026-03-14T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-14T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "linkedin-update",
+        entityType: "social-post",
+        content:
+          "---\ntitle: LinkedIn Update\nstatus: draft\n---\n\nPost body.",
+        contentHash: "hash-social-draft",
+        visibility: "public",
+        metadata: { title: "LinkedIn Update", status: "draft" },
+        created: new Date("2026-03-15T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T10:00:00.000Z").toISOString(),
+      },
+      {
+        id: "workflow-card",
+        entityType: "workflow-card",
+        content: "---\ntitle: Workflow Card\nstatus: draft\n---\n\nTask body.",
+        contentHash: "hash-workflow-draft",
+        visibility: "public",
+        metadata: { title: "Workflow Card", status: "draft" },
+        created: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -391,6 +412,135 @@ describe("system_update tool", () => {
 
     const unchanged = services.getEntities().get("old-agent.io");
     expect(unchanged?.metadata["status"]).toBe("active");
+  });
+
+  it("requires publish permission when a publish-aware status enters the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("requires publish permission when a publish-aware status stays in the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+    const existing = services.getEntities().get("linkedin-update");
+    if (existing) {
+      services.getEntities().set("linkedin-update", {
+        ...existing,
+        metadata: { ...existing.metadata, status: "queued" },
+      });
+    }
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "failed" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("requires publish permission for manual failed retry", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+    const existing = services.getEntities().get("linkedin-update");
+    if (existing) {
+      services.getEntities().set("linkedin-update", {
+        ...existing,
+        metadata: { ...existing.metadata, status: "failed" },
+      });
+    }
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("does not require publish permission for matching status names on non-publish-aware entity types", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "workflow-card": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "workflow-card",
+        id: "workflow-card",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_update",
+    });
+  });
+
+  it("requires publish permission for full content replacements entering the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        content:
+          "---\ntitle: LinkedIn Update\nstatus: queued\n---\n\nPost body.",
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
   });
 
   it("rejects trusted deletes when entity action policy requires anchor", async () => {
