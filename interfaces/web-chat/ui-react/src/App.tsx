@@ -12,6 +12,7 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import {
+  AttachmentPart,
   ConfirmationPart,
   GenericDataPart,
   NativeToolPart,
@@ -115,6 +116,7 @@ type RenderedPart =
   | { kind: "tools"; tools: unknown[] }
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
+  | { kind: "attachment"; data: unknown }
   | { kind: "generic"; type: string; data: unknown };
 
 function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
@@ -126,21 +128,36 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
     toolRun = [];
   };
   for (const part of parts) {
-    if (part.type === "data-tool-result") {
-      toolRun.push(getPartData(part));
-      continue;
-    }
-    flush();
-    if (part.type === "dynamic-tool") {
-      if (part.state === "approval-requested") {
-        out.push({ kind: "confirmation", data: part });
-      } else {
-        out.push({ kind: "native-tool", data: part });
-      }
-    } else if (part.type === "text") {
-      out.push({ kind: "text", text: part.text });
-    } else if (part.type.startsWith("data-")) {
-      out.push({ kind: "generic", type: part.type, data: getPartData(part) });
+    switch (part.type) {
+      case "data-tool-result":
+        toolRun.push(getPartData(part));
+        continue;
+      case "dynamic-tool":
+        flush();
+        out.push(
+          part.state === "approval-requested"
+            ? { kind: "confirmation", data: part }
+            : { kind: "native-tool", data: part },
+        );
+        break;
+      case "text":
+        flush();
+        out.push({ kind: "text", text: part.text });
+        break;
+      case "data-attachment":
+        flush();
+        out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      default:
+        flush();
+        if (part.type.startsWith("data-")) {
+          out.push({
+            kind: "generic",
+            type: part.type,
+            data: getPartData(part),
+          });
+        }
+        break;
     }
   }
   flush();
@@ -1016,6 +1033,9 @@ export function App(): React.ReactElement {
                       }
                       if (group.kind === "native-tool") {
                         return <NativeToolPart key={index} data={group.data} />;
+                      }
+                      if (group.kind === "attachment") {
+                        return <AttachmentPart key={index} data={group.data} />;
                       }
                       return (
                         <GenericDataPart

@@ -1192,6 +1192,100 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   color: var(--chat-accent);
 }
 
+.web-chat-attachment-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  margin: 1rem 0 0;
+  border: 1px solid var(--chat-border);
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-accent) r g b / 0.08) 0%,
+    rgb(from var(--chat-secondary) r g b / 0.04) 100%);
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+.web-chat-attachment-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--chat-accent), var(--chat-secondary));
+}
+.web-chat-attachment-preview {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--chat-border-soft);
+  background: var(--chat-surface-inset);
+}
+.web-chat-attachment-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem 1rem 1.15rem;
+}
+.web-chat-attachment-kicker,
+.web-chat-attachment-meta {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-text-light);
+}
+.web-chat-attachment-kicker { color: var(--chat-accent); }
+.web-chat-attachment-card[data-status="pending"] .web-chat-attachment-kicker,
+.web-chat-attachment-card[data-status="processing"] .web-chat-attachment-kicker {
+  color: var(--chat-secondary);
+}
+.web-chat-attachment-card[data-status="failed"] .web-chat-attachment-kicker {
+  color: var(--chat-error);
+}
+.web-chat-attachment-body h4 {
+  margin: 0;
+  font-family: var(--chat-font-body);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--chat-text);
+}
+.web-chat-attachment-body p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  line-height: 1.5;
+}
+.web-chat-attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+.web-chat-attachment-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  color: var(--chat-text);
+  background: var(--chat-surface-soft);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.web-chat-attachment-actions a:hover {
+  border-color: rgb(from var(--chat-accent) r g b / 0.48);
+  color: var(--chat-accent);
+}
+.web-chat-attachment-actions a[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* ─── Confirmations — instrument card. This is an action affordance,
    not a debug toggle, so it keeps the card chrome to grab attention. ─── */
 .web-chat-confirmation {
@@ -1797,6 +1891,36 @@ interface ActiveStream {
 
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
 
+function parsePdfDataUrl(
+  dataUrl: string,
+): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
+  const match = dataUrl.match(/^data:(application\/pdf);base64,(.+)$/i);
+  if (!match?.[1] || !match[2]) return null;
+  const buffer = Buffer.from(match[2], "base64");
+  const data = buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  );
+  return {
+    mimeType: "application/pdf",
+    data,
+  };
+}
+
+function getDocumentFilename(
+  metadata: Record<string, unknown> | null | undefined,
+  documentId: string,
+): string {
+  const filename = metadata?.["filename"];
+  return typeof filename === "string" && filename.length > 0
+    ? filename
+    : `${documentId}.pdf`;
+}
+
+function escapeHeaderValue(value: string): string {
+  return value.replace(/["\\\r\n]/g, "_");
+}
+
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
   resolveOperatorSession?: OperatorSessionResolver;
@@ -1893,6 +2017,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (request): Promise<Response> =>
           this.handleMessagesRequest(request),
+      },
+      {
+        path: "/api/chat/attachments/document",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleDocumentAttachmentRequest(request),
+      },
+      {
+        path: "/api/chat/jobs/status",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleJobStatusRequest(request),
       },
       {
         path: uiAssetPath,
@@ -2140,6 +2278,66 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       : undefined;
   }
 
+  private async handleDocumentAttachmentRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const documentId = url.searchParams.get("id")?.trim();
+    if (!documentId) {
+      return new Response("Missing document id", { status: 400 });
+    }
+
+    const document = await this.getContext().entityService.getEntity({
+      entityType: "document",
+      id: documentId,
+    });
+    if (!document) {
+      return new Response("Document not found", { status: 404 });
+    }
+
+    const parsed = parsePdfDataUrl(document.content);
+    if (!parsed) {
+      return new Response("Document content is not a PDF", { status: 415 });
+    }
+
+    const filename = getDocumentFilename(document.metadata, documentId);
+    const headers = new Headers({
+      "Content-Type": parsed.mimeType,
+      "Content-Length": String(parsed.data.byteLength),
+      "Content-Disposition": `${
+        url.searchParams.has("download") ? "attachment" : "inline"
+      }; filename="${escapeHeaderValue(filename)}"`,
+    });
+    return new Response(parsed.data, { headers });
+  }
+
+  private async handleJobStatusRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const jobId = url.searchParams.get("id")?.trim();
+    if (!jobId) {
+      return new Response("Missing job id", { status: 400 });
+    }
+
+    const job = await this.getContext().jobs.getStatus(jobId);
+    if (!job) {
+      return new Response("Job not found", { status: 404 });
+    }
+
+    return Response.json({
+      id: job.id,
+      status: job.status,
+      message: job.lastError ?? undefined,
+    });
+  }
+
   private async handleMessagesRequest(request: Request): Promise<Response> {
     const permissionLevel = await this.resolvePermissionLevel(request);
     if (permissionLevel !== "anchor") {
@@ -2206,7 +2404,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           data: toolResult,
         });
       }
-      this.writeApprovalCards(input.writer, response.cards ?? []);
+      this.writeStructuredCards(input.writer, response.cards ?? []);
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
@@ -2238,7 +2436,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           approvalResponse.id,
         );
         this.writeText(input.writer, response.text, "text");
-        this.writeApprovalCards(input.writer, response.cards ?? []);
+        this.writeStructuredCards(input.writer, response.cards ?? []);
       }
     } finally {
       this.endProcessingInput();
@@ -2246,11 +2444,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
   }
 
-  private writeApprovalCards(
+  private writeStructuredCards(
     writer: UIMessageStreamWriter<UIMessage>,
     cards: StructuredChatCard[],
   ): void {
     for (const card of cards) {
+      if (card.kind === "attachment") {
+        writer.write({
+          type: "data-attachment",
+          id: card.id,
+          data: card,
+        });
+        continue;
+      }
+
       const toolCallId = card.toolCallId ?? card.id;
       const input = card.input ?? {};
       writer.write({

@@ -50,7 +50,37 @@ export const ToolApprovalCardSchema = z.object({
 
 export type ToolApprovalCard = z.infer<typeof ToolApprovalCardSchema>;
 
-export const StructuredChatCardSchema = ToolApprovalCardSchema;
+export const AttachmentCardSourceSchema = z.object({
+  entityType: z.string().optional(),
+  entityId: z.string().optional(),
+  attachmentType: z.string().optional(),
+});
+
+export const AttachmentCardDataSchema = z.object({
+  mediaType: z.string().min(1),
+  url: z.string().min(1),
+  downloadUrl: z.string().min(1).optional(),
+  previewUrl: z.string().min(1).optional(),
+  filename: z.string().min(1).optional(),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: AttachmentCardSourceSchema.optional(),
+});
+
+export const AttachmentCardSchema = z.object({
+  kind: z.literal("attachment"),
+  id: z.string(),
+  jobId: z.string().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  attachment: AttachmentCardDataSchema,
+});
+
+export type AttachmentCard = z.infer<typeof AttachmentCardSchema>;
+
+export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
+  ToolApprovalCardSchema,
+  AttachmentCardSchema,
+]);
 
 export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
 

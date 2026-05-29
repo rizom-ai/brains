@@ -114,7 +114,32 @@ export interface ToolApprovalCard {
   error?: string;
 }
 
-export type StructuredChatCard = ToolApprovalCard;
+export interface AttachmentCardSource {
+  entityType?: string;
+  entityId?: string;
+  attachmentType?: string;
+}
+
+export interface AttachmentCardData {
+  mediaType: string;
+  url: string;
+  downloadUrl?: string;
+  previewUrl?: string;
+  filename?: string;
+  sizeBytes?: number;
+  source?: AttachmentCardSource;
+}
+
+export interface AttachmentCard {
+  kind: "attachment";
+  id: string;
+  jobId?: string;
+  title: string;
+  description?: string;
+  attachment: AttachmentCardData;
+}
+
+export type StructuredChatCard = ToolApprovalCard | AttachmentCard;
 
 /**
  * Tool result data for tracking

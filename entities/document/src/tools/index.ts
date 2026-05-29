@@ -4,6 +4,7 @@ import type { z } from "@brains/utils";
 import {
   documentGenerationJobSchema,
   documentGenerationJobSchemaBase,
+  getDocumentId,
 } from "../handlers/documentGenerationHandler";
 
 export type DocumentGenerateInput = z.infer<
@@ -29,7 +30,23 @@ export function createDocumentTools(
           return toolError(result.error.message);
         }
         const jobId = await enqueueDocumentGeneration(result.data, context);
-        return toolSuccess({ jobId });
+        const documentId = getDocumentId(result.data, jobId);
+        const filename = result.data.filename ?? `${documentId}.pdf`;
+        return toolSuccess({
+          jobId,
+          documentId,
+          attachment: {
+            mediaType: "application/pdf",
+            url: `/api/chat/attachments/document?id=${encodeURIComponent(documentId)}`,
+            downloadUrl: `/api/chat/attachments/document?id=${encodeURIComponent(documentId)}&download=1`,
+            filename,
+            source: {
+              entityType: "document",
+              entityId: documentId,
+              attachmentType: result.data.attachmentType,
+            },
+          },
+        });
       },
       {
         cli: { name: "document-generate" },

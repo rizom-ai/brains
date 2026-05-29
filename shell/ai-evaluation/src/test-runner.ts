@@ -156,8 +156,10 @@ export class TestRunner implements ITestRunner {
 
   private extractPendingApprovalIds(response: AgentResponse): string[] {
     const approvalCards =
-      response.cards?.filter((card) => card.state === "approval-requested") ??
-      [];
+      response.cards?.filter(
+        (card) =>
+          card.kind === "tool-approval" && card.state === "approval-requested",
+      ) ?? [];
     if (approvalCards.length > 0) {
       return approvalCards.map((card) => card.id);
     }
