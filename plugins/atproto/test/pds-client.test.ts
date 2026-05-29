@@ -96,6 +96,60 @@ describe("AtprotoPdsClient", () => {
     );
   });
 
+  it("puts records with an authenticated session", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: FetchLike = (input, init) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith("com.atproto.server.createSession")) {
+        return Promise.resolve(
+          jsonResponse({
+            did: "did:plc:repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          }),
+        );
+      }
+      return Promise.resolve(
+        jsonResponse({ uri: "at://repo/card/self", cid: "cid" }),
+      );
+    };
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    const result = await client.putRecord({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.card",
+      rkey: "self",
+      validate: false,
+      record: { name: "Brain", createdAt: "2026-05-28T00:00:00.000Z" },
+    });
+
+    expect(result.uri).toBe("at://repo/card/self");
+    expect(calls[1]?.url).toBe(
+      "https://pds.example.com/xrpc/com.atproto.repo.putRecord",
+    );
+    expect(calls[1]?.init?.headers).toEqual({
+      Authorization: "Bearer access-token",
+      "Content-Type": "application/json",
+    });
+    expect(calls[1]?.init?.body).toBe(
+      JSON.stringify({
+        repo: "did:plc:repo",
+        collection: "ai.rizom.brain.card",
+        record: { name: "Brain", createdAt: "2026-05-28T00:00:00.000Z" },
+        rkey: "self",
+        validate: false,
+      }),
+    );
+  });
+
   it("uploads blobs with an authenticated session", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: FetchLike = (input, init) => {

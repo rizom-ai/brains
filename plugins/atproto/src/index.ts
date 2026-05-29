@@ -1,6 +1,7 @@
 export {
   AtprotoPlugin,
   atprotoPlugin,
+  atprotoPlugin as plugin,
   type AtprotoPdsClientLike,
   type AtprotoPluginDeps,
   type PublishBrainCardOptions,
@@ -40,6 +41,8 @@ export {
   type AtprotoSession,
   type CreateRecordInput,
   type CreateRecordResult,
+  type PutRecordInput,
+  type PutRecordResult,
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";

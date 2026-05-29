@@ -23,7 +23,7 @@ atprotoPlugin({
   repoDid: "did:plc:...",
   brainDid: "did:web:example.com",
   anchorDid: "did:plc:...",
-  appPasswordEnv: "ATPROTO_APP_PASSWORD",
+  appPassword: "${ATPROTO_APP_PASSWORD}",
 });
 ```
 
@@ -37,7 +37,7 @@ plugins:
     repoDid: did:plc:...
     brainDid: did:web:example.com
     anchorDid: did:plc:...
-    appPasswordEnv: ATPROTO_APP_PASSWORD
+    appPassword: ${ATPROTO_APP_PASSWORD}
 ```
 
 And the secret goes in the instance environment:
@@ -55,8 +55,8 @@ Secrets should be supplied through environment variables or app secret configura
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
 - `brainDid`: optional public brain DID. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
 - `anchorDid`: optional human/operator DID included in custom records.
-- `appPassword`: direct app password for local development only.
-- `appPasswordEnv`: environment variable containing the app password. Prefer this over `appPassword`.
+- `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
+- `appPasswordEnv`: legacy/alternate environment variable indirection. Prefer `appPassword: ${ATPROTO_APP_PASSWORD}` for normal brain instance config.
 
 ## Tools
 
@@ -72,7 +72,7 @@ Input:
 
 ### `atproto_publish_card`
 
-Publishes this brain's capability card to the configured PDS as `ai.rizom.brain.card`.
+Upserts this brain's capability card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
 
 Input:
 
@@ -107,7 +107,7 @@ Notes:
 
 Use a test PDS/Bluesky account and an app password.
 
-1. Configure `identifier`, `repoDid` or handle, `brainDid`, and `appPasswordEnv`.
+1. Configure `identifier`, `repoDid` or handle, `brainDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
 2. Start a brain with the atproto plugin enabled.
 3. Confirm DID document if using `did:web`:
    - `GET https://<brain-domain>/.well-known/did.json`
@@ -128,7 +128,8 @@ Use a test PDS/Bluesky account and an app password.
 
 ## Current limitations
 
-- OAuth is deferred; the prototype uses app-password authentication.
-- Lexicon TypeScript generation is not wired into the workspace yet. Until then, lexicon JSON is checked by tests, and record mapper tests validate the important projections against existing entity schemas.
+- Outbound ATProto OAuth is deferred; the prototype uses app-password authentication. This is separate from the brain's existing inbound OAuth server for clients calling the brain.
+- Lexicon TypeScript generation is intentionally not wired into the workspace yet. For now, lexicon JSON is checked by tests, and record mapper tests validate the important projections against existing entity schemas.
+- Custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons; standard records such as `app.bsky.feed.post` remain validated.
 - Post cover images are uploaded as AT Protocol blobs and included in `ai.rizom.brain.post` records.
-- Bluesky cross-posts currently support text, length truncation, and external embeds; facets and image embeds are still future work.
+- Bluesky cross-posts currently support text, length truncation, topic hashtag facets, external embeds, and cover image embeds with alt text/aspect ratio metadata.

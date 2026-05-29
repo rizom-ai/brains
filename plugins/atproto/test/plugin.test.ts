@@ -3,10 +3,15 @@ import { createMockShell } from "@brains/test-utils";
 import {
   AtprotoPlugin,
   atprotoPlugin,
+  plugin,
   type AtprotoPdsClientLike,
 } from "../src";
 
 describe("atproto plugin", () => {
+  it("exports a conventional external plugin factory", () => {
+    expect(plugin).toBe(atprotoPlugin);
+  });
+
   it("validates configuration", () => {
     expect(() => atprotoPlugin({ pdsEndpoint: "not-a-url" })).toThrowError();
   });

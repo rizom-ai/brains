@@ -207,7 +207,7 @@ describe("AT Protocol post publishing", () => {
     expect(createRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.rizom.brain.post",
-      validate: true,
+      validate: false,
       record: result.record,
     });
   });
@@ -294,8 +294,60 @@ describe("AT Protocol post publishing", () => {
     expect(createRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.rizom.brain.post",
-      validate: true,
+      validate: false,
       record: result.record,
+    });
+  });
+
+  it("cross-posts uploaded cover images to Bluesky image embeds", async () => {
+    const createSession = mock(async () => ({
+      did: "did:plc:session-repo",
+      handle: "brain.example.com",
+      accessJwt: "access-token",
+      refreshJwt: "refresh-token",
+    }));
+    const uploadBlob = mock(async () => ({
+      blob: {
+        ref: { $link: "blob-cid" },
+        mimeType: "image/png",
+        size: 5,
+      },
+    }));
+    const createRecord = mock(async (input: { collection: string }) => ({
+      uri: `at://repo/${input.collection}`,
+      cid: `${input.collection}-cid`,
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession,
+          uploadBlob,
+          createRecord,
+        }),
+      },
+    );
+
+    const result = await plugin.publishPost(
+      createContext(createBlogPost({ coverImageId: "image-123" }), [
+        createImageEntity(),
+      ]),
+      { entityId: "post-123", crossPostToBluesky: true },
+    );
+
+    expect(result.bluesky?.record.embed).toEqual({
+      $type: "app.bsky.embed.images",
+      images: [
+        {
+          image: { ref: { $link: "blob-cid" }, mimeType: "image/png", size: 5 },
+          alt: "Diagram of distributed brains",
+          aspectRatio: { width: 1200, height: 630 },
+        },
+      ],
     });
   });
 

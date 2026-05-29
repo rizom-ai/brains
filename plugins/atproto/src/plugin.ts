@@ -15,6 +15,7 @@ import {
   AtprotoPdsClient,
   type AtprotoSession,
   type CreateRecordResult,
+  type PutRecordResult,
   type UploadBlobResult,
 } from "./pds-client";
 import {
@@ -46,6 +47,13 @@ export interface AtprotoPdsClientLike {
     rkey?: string;
     validate?: boolean;
   }): Promise<CreateRecordResult>;
+  putRecord?(input: {
+    repo: string;
+    collection: string;
+    record: Record<string, unknown>;
+    rkey: string;
+    validate?: boolean;
+  }): Promise<PutRecordResult>;
   uploadBlob?(input: {
     data: Buffer;
     mimeType: string;
@@ -145,11 +153,14 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     const client = this.createPdsClient(appPassword);
     const session = await client.createSession();
     const targetRepo = repo ?? session.did;
-    const result = await client.createRecord({
+    if (!client.putRecord) {
+      throw new Error("AT Protocol PDS client does not support record upserts");
+    }
+    const result = await client.putRecord({
       repo: targetRepo,
       collection: "ai.rizom.brain.card",
       rkey: "self",
-      validate: true,
+      validate: false,
       record,
     });
 
@@ -197,16 +208,18 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       ...(options.topics && { topics: options.topics }),
     });
     const repo = this.config.repoDid;
-    const blueskyRecord = options.crossPostToBluesky
-      ? buildBlueskyPostRecord(record)
-      : undefined;
 
     if (options.dryRun) {
+      const dryRunBlueskyRecord = options.crossPostToBluesky
+        ? buildBlueskyPostRecord(record)
+        : undefined;
       return {
         record,
         dryRun: true,
         ...(repo && { repo }),
-        ...(blueskyRecord && { bluesky: { record: blueskyRecord } }),
+        ...(dryRunBlueskyRecord && {
+          bluesky: { record: dryRunBlueskyRecord },
+        }),
       };
     }
 
@@ -224,10 +237,13 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     if (coverImage) {
       record.coverImage = coverImage;
     }
+    const blueskyRecord = options.crossPostToBluesky
+      ? buildBlueskyPostRecord(record)
+      : undefined;
     const result = await client.createRecord({
       repo: targetRepo,
       collection: "ai.rizom.brain.post",
-      validate: true,
+      validate: false,
       record,
     });
 

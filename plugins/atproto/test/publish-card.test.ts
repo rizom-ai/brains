@@ -79,7 +79,7 @@ describe("AT Protocol brain card publishing", () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
-  it("publishes the brain card to the configured PDS repo", async () => {
+  it("upserts the brain card to the configured PDS repo", async () => {
     const createSession = mock(async () => ({
       did: "did:plc:session-repo",
       handle: "brain.example.com",
@@ -88,6 +88,10 @@ describe("AT Protocol brain card publishing", () => {
     }));
     const createRecord = mock(async () => ({
       uri: "at://repo/card",
+      cid: "cid",
+    }));
+    const putRecord = mock(async () => ({
+      uri: "at://repo/card/self",
       cid: "cid",
     }));
     const plugin = new AtprotoPlugin(
@@ -101,6 +105,7 @@ describe("AT Protocol brain card publishing", () => {
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession,
           createRecord,
+          putRecord,
         }),
       },
     );
@@ -109,14 +114,15 @@ describe("AT Protocol brain card publishing", () => {
 
     expect(result.dryRun).toBe(false);
     expect(result.repo).toBe("did:plc:session-repo");
-    expect(result.uri).toBe("at://repo/card");
+    expect(result.uri).toBe("at://repo/card/self");
     expect(result.cid).toBe("cid");
     expect(createSession).toHaveBeenCalledTimes(1);
-    expect(createRecord).toHaveBeenCalledWith({
+    expect(createRecord).not.toHaveBeenCalled();
+    expect(putRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.rizom.brain.card",
       rkey: "self",
-      validate: true,
+      validate: false,
       record: result.record,
     });
   });

@@ -27,6 +27,13 @@ export interface CreateRecordResult {
   cid: string;
 }
 
+export interface PutRecordInput extends CreateRecordInput {
+  rkey: string;
+  swapRecord?: string;
+}
+
+export type PutRecordResult = CreateRecordResult;
+
 export interface AtprotoBlobRef {
   $type?: "blob";
   ref: { $link: string };
@@ -118,6 +125,32 @@ export class AtprotoPdsClient {
     );
 
     return parseJsonResponse<CreateRecordResult>(response);
+  }
+
+  async putRecord(input: PutRecordInput): Promise<PutRecordResult> {
+    const session = await this.getSession();
+    const response = await this.fetchFn(
+      `${this.pdsEndpoint}/xrpc/com.atproto.repo.putRecord`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.accessJwt}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          repo: input.repo,
+          collection: input.collection,
+          record: input.record,
+          rkey: input.rkey,
+          ...(input.validate !== undefined && { validate: input.validate }),
+          ...(input.swapRecord !== undefined && {
+            swapRecord: input.swapRecord,
+          }),
+        }),
+      },
+    );
+
+    return parseJsonResponse<PutRecordResult>(response);
   }
 
   async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
