@@ -1490,6 +1490,7 @@ describe("AgentService", () => {
         {
           kind: "attachment",
           id: "attachment:deck-carousel",
+          jobId: "job-1",
           title: "deck-carousel.pdf",
           description:
             "PDF generation has been queued. This artifact will open once the job completes.",

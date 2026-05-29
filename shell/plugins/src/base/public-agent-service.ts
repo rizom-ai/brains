@@ -53,6 +53,7 @@ function toPublicStructuredChatCard(
     return {
       kind: "attachment",
       id: card.id,
+      ...(card.jobId !== undefined && { jobId: card.jobId }),
       title: card.title,
       ...(card.description !== undefined && {
         description: card.description,

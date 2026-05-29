@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Tool,
   ToolContent,
@@ -263,6 +263,7 @@ export function formatNativeToolDisplay(
 }
 
 export interface AttachmentDisplay {
+  jobId?: string;
   title: string;
   description?: string;
   mediaType?: string;
@@ -299,6 +300,7 @@ export function formatAttachmentDisplay(
   const attachment = getRecordValue(data, "attachment");
   if (!isRecord(attachment)) return null;
 
+  const jobId = getStringValue(data, "jobId");
   const description = getStringValue(data, "description");
   const mediaType = getStringValue(attachment, "mediaType");
   const filename = getStringValue(attachment, "filename");
@@ -308,6 +310,7 @@ export function formatAttachmentDisplay(
   const previewUrl = getStringValue(attachment, "previewUrl");
 
   return {
+    ...(jobId !== undefined ? { jobId } : {}),
     title: getStringValue(data, "title") ?? "Generated artifact",
     ...(description !== undefined ? { description } : {}),
     ...(mediaType !== undefined ? { mediaType } : {}),
@@ -319,23 +322,121 @@ export function formatAttachmentDisplay(
   };
 }
 
+type AttachmentJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "unknown";
+
+function useAttachmentJobStatus(
+  jobId: string | undefined,
+): AttachmentJobStatus | null {
+  const [status, setStatus] = useState<AttachmentJobStatus | null>(
+    jobId ? "pending" : null,
+  );
+
+  useEffect(() => {
+    if (!jobId) {
+      setStatus(null);
+      return;
+    }
+
+    const pollingJobId = jobId;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function poll(): Promise<void> {
+      try {
+        const response = await fetch(
+          `/api/chat/jobs/status?id=${encodeURIComponent(pollingJobId)}`,
+          { credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          if (!cancelled) setStatus("unknown");
+          return;
+        }
+        const body = (await response.json()) as { status?: string };
+        const nextStatus = narrowAttachmentJobStatus(body.status);
+        if (!cancelled) setStatus(nextStatus);
+        if (nextStatus !== "completed" && nextStatus !== "failed") {
+          timer = setTimeout(() => void poll(), 2000);
+        }
+      } catch {
+        if (!cancelled) setStatus("unknown");
+      }
+    }
+
+    void poll();
+    const cleanup = (): void => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    return cleanup;
+  }, [jobId]);
+
+  return status;
+}
+
+function narrowAttachmentJobStatus(
+  status: string | undefined,
+): AttachmentJobStatus {
+  switch (status) {
+    case "pending":
+    case "processing":
+    case "completed":
+    case "failed":
+      return status;
+    default:
+      return "unknown";
+  }
+}
+
+function attachmentStatusLabel(status: AttachmentJobStatus | null): string {
+  switch (status) {
+    case "pending":
+      return "queued";
+    case "processing":
+      return "growing";
+    case "completed":
+      return "ready";
+    case "failed":
+      return "failed";
+    case "unknown":
+      return "status unknown";
+    default:
+      return "artifact";
+  }
+}
+
 export function AttachmentPart({
   data,
 }: {
   data: unknown;
 }): React.ReactElement {
   const display = formatAttachmentDisplay(data);
+  const jobStatus = useAttachmentJobStatus(display?.jobId);
   if (!display) return <GenericDataPart type="data-attachment" data={data} />;
   const href = display.downloadUrl ?? display.url;
   const previewUrl = display.previewUrl ?? display.url;
   const isImage = display.mediaType?.startsWith("image/") ?? false;
-  const meta = [display.filename, display.mediaType, display.sizeLabel]
+  const isPending = jobStatus === "pending" || jobStatus === "processing";
+  const meta = [
+    display.filename,
+    display.mediaType,
+    display.sizeLabel,
+    jobStatus ? attachmentStatusLabel(jobStatus) : undefined,
+  ]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <section className="web-chat-attachment-card" aria-label={display.title}>
-      {isImage && previewUrl ? (
+    <section
+      className="web-chat-attachment-card"
+      data-status={jobStatus ?? "ready"}
+      aria-label={display.title}
+    >
+      {isImage && previewUrl && !isPending ? (
         <img
           className="web-chat-attachment-preview"
           src={previewUrl}
@@ -344,14 +445,27 @@ export function AttachmentPart({
         />
       ) : null}
       <div className="web-chat-attachment-body">
-        <span className="web-chat-attachment-kicker">artifact</span>
+        <span className="web-chat-attachment-kicker">
+          {attachmentStatusLabel(jobStatus)}
+        </span>
         <h4>{display.title}</h4>
         {display.description ? <p>{display.description}</p> : null}
         {meta ? <span className="web-chat-attachment-meta">{meta}</span> : null}
         {href ? (
           <div className="web-chat-attachment-actions">
-            {display.url ? <a href={display.url}>Open</a> : null}
-            <a href={href} download={display.filename ?? undefined}>
+            {display.url ? (
+              <a
+                aria-disabled={isPending}
+                href={isPending ? undefined : display.url}
+              >
+                Open
+              </a>
+            ) : null}
+            <a
+              aria-disabled={isPending}
+              href={isPending ? undefined : href}
+              download={display.filename ?? undefined}
+            >
               Download
             </a>
           </div>

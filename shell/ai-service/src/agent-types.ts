@@ -133,6 +133,7 @@ export interface AttachmentCardData {
 export interface AttachmentCard {
   kind: "attachment";
   id: string;
+  jobId?: string;
   title: string;
   description?: string;
   attachment: AttachmentCardData;

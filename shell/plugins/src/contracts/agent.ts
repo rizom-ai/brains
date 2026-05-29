@@ -69,6 +69,7 @@ export const AttachmentCardDataSchema = z.object({
 export const AttachmentCardSchema = z.object({
   kind: z.literal("attachment"),
   id: z.string(),
+  jobId: z.string().optional(),
   title: z.string(),
   description: z.string().optional(),
   attachment: AttachmentCardDataSchema,

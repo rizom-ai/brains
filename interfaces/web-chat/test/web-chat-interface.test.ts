@@ -166,7 +166,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(9);
+    expect(routes).toHaveLength(10);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -208,6 +208,11 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[8]).toMatchObject({
+      path: "/api/chat/jobs/status",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[9]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -267,7 +272,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[8];
+    const route = plugin.getWebRoutes()[9];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -461,6 +466,52 @@ describe("WebChatInterface", () => {
       new Request(
         "http://brain/api/chat/attachments/document?id=deck-carousel",
       ),
+    );
+
+    expect(response?.status).toBe(401);
+  });
+
+  it("reports queued artifact job status to operators", async () => {
+    const plugin = operatorPlugin();
+    const shell = harness.getMockShell() as unknown as {
+      jobs: {
+        getStatus: (jobId: string) => Promise<{
+          id: string;
+          status: "pending" | "processing" | "completed" | "failed";
+          lastError: string | null;
+        } | null>;
+      };
+    };
+    shell.jobs.getStatus = async (
+      jobId: string,
+    ): Promise<{
+      id: string;
+      status: "pending" | "processing" | "completed" | "failed";
+      lastError: string | null;
+    }> => ({
+      id: jobId,
+      status: "processing",
+      lastError: null,
+    });
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[8];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/jobs/status?id=job-1"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({ id: "job-1", status: "processing" });
+  });
+
+  it("rejects artifact job status requests from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[8];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/jobs/status?id=job-1"),
     );
 
     expect(response?.status).toBe(401);

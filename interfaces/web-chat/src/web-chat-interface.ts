@@ -1233,6 +1233,13 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   color: var(--chat-text-light);
 }
 .web-chat-attachment-kicker { color: var(--chat-accent); }
+.web-chat-attachment-card[data-status="pending"] .web-chat-attachment-kicker,
+.web-chat-attachment-card[data-status="processing"] .web-chat-attachment-kicker {
+  color: var(--chat-secondary);
+}
+.web-chat-attachment-card[data-status="failed"] .web-chat-attachment-kicker {
+  color: var(--chat-error);
+}
 .web-chat-attachment-body h4 {
   margin: 0;
   font-family: var(--chat-font-body);
@@ -1271,6 +1278,11 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
 .web-chat-attachment-actions a:hover {
   border-color: rgb(from var(--chat-accent) r g b / 0.48);
   color: var(--chat-accent);
+}
+.web-chat-attachment-actions a[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* ─── Confirmations — instrument card. This is an action affordance,
@@ -2013,6 +2025,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleDocumentAttachmentRequest(request),
       },
       {
+        path: "/api/chat/jobs/status",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleJobStatusRequest(request),
+      },
+      {
         path: uiAssetPath,
         method: "GET",
         public: true,
@@ -2319,6 +2338,29 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       }; filename="${escapeHeaderValue(filename)}"`,
     });
     return new Response(parsed.data, { headers });
+  }
+
+  private async handleJobStatusRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const jobId = url.searchParams.get("id")?.trim();
+    if (!jobId) {
+      return new Response("Missing job id", { status: 400 });
+    }
+
+    const job = await this.getContext().jobs.getStatus(jobId);
+    if (!job) {
+      return new Response("Job not found", { status: 404 });
+    }
+
+    return Response.json({
+      id: job.id,
+      status: job.status,
+      message: job.lastError ?? undefined,
+    });
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {

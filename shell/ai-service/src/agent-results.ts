@@ -135,6 +135,7 @@ export function extractToolResults(
           cards.push({
             kind: "attachment",
             id: `attachment:${attachmentParsed.data.documentId}`,
+            ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
             title: attachment.filename ?? "Generated PDF document",
             description:
               "PDF generation has been queued. This artifact will open once the job completes.",

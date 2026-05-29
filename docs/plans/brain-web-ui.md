@@ -132,6 +132,7 @@ cards on native AI SDK tool parts while giving brain-owned artifacts a stable
 contract:
 
 - `id`: stable card id
+- optional `jobId`: queued generation job to poll for readiness
 - `title` / optional `description`: display copy
 - `attachment.mediaType`: MIME type
 - `attachment.url`: view/resolve URL
@@ -142,11 +143,8 @@ Existing PDF document generation now returns predicted attachment metadata for
 chat surfaces, and web-chat serves generated document entities through the
 operator-only `/api/chat/attachments/document?id=...` route. The React island
 renders `data-attachment` parts as previews / download links / generic file
-cards.
-
-Remaining follow-up: document links are available immediately but only resolve
-after the asynchronous generation job stores the document entity. A later polish
-pass can add explicit pending/completed state updates for those queued artifacts.
+cards, and polls `/api/chat/jobs/status?id=...` for queued artifacts so links
+stay disabled until the generation job is ready.
 
 ### 3. Default landing route
 
