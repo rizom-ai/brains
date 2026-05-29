@@ -1,5 +1,10 @@
-import { describe, expect, it } from "bun:test";
-import { atprotoPlugin } from "../src";
+import { describe, expect, it, mock } from "bun:test";
+import { createMockShell } from "@brains/test-utils";
+import {
+  AtprotoPlugin,
+  atprotoPlugin,
+  type AtprotoPdsClientLike,
+} from "../src";
 
 describe("atproto plugin", () => {
   it("validates configuration", () => {
@@ -46,5 +51,90 @@ describe("atproto plugin", () => {
     });
 
     expect(plugin.getWebRoutes()).toEqual([]);
+  });
+
+  it("provides publishing instructions", async () => {
+    const plugin = atprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      brainDid: "did:web:brain.example.com",
+    });
+
+    const capabilities = await plugin.register(createMockShell());
+
+    expect(capabilities.instructions).toContain("atproto_publish_card");
+    expect(capabilities.instructions).toContain("atproto_publish_post");
+    expect(capabilities.instructions).toContain("dryRun");
+  });
+
+  it("reports invalid credentials without throwing", async () => {
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "bad-secret",
+      },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => {
+            throw new Error("Invalid identifier or password");
+          }),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+        }),
+      },
+    );
+
+    const capabilities = await plugin.register(createMockShell());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_validate_credentials",
+    );
+
+    expect(tool).toBeDefined();
+    const response = await tool?.handler(
+      {},
+      { interfaceType: "test", userId: "test" },
+    );
+    expect(response).toEqual({ success: true, data: { valid: false } });
+  });
+
+  it("exposes a credential validation tool", async () => {
+    const createSession = mock(async () => ({
+      did: "did:plc:repo",
+      handle: "brain.example.com",
+      accessJwt: "access-token",
+      refreshJwt: "refresh-token",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession,
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+        }),
+      },
+    );
+
+    const capabilities = await plugin.register(createMockShell());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_validate_credentials",
+    );
+
+    expect(tool).toBeDefined();
+    const response = await tool?.handler(
+      {},
+      { interfaceType: "test", userId: "test" },
+    );
+    expect(response).toEqual({ success: true, data: { valid: true } });
+    expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

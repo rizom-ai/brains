@@ -1,10 +1,11 @@
 import type {
+  BaseEntity,
   ServicePluginContext,
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils";
+import { parseMarkdownWithFrontmatter, ServicePlugin } from "@brains/plugins";
+import { getErrorMessage, z } from "@brains/utils";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
@@ -14,16 +15,27 @@ import {
   AtprotoPdsClient,
   type AtprotoSession,
   type CreateRecordResult,
+  type UploadBlobResult,
 } from "./pds-client";
 import {
   buildBlueskyPostRecord,
   type BlueskyFeedPostRecord,
 } from "./bluesky-post";
 import { buildDidWebDocument } from "./did";
-import { buildPostRecord, type BrainPostRecord } from "./post-record";
+import {
+  buildPostRecord,
+  type BrainPostCoverImage,
+  type BrainPostRecord,
+} from "./post-record";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
+
+const postCoverImageFrontmatterSchema = z
+  .object({
+    coverImageId: z.string().optional(),
+  })
+  .passthrough();
 
 export interface AtprotoPdsClientLike {
   createSession(): Promise<AtprotoSession>;
@@ -34,6 +46,10 @@ export interface AtprotoPdsClientLike {
     rkey?: string;
     validate?: boolean;
   }): Promise<CreateRecordResult>;
+  uploadBlob?(input: {
+    data: Buffer;
+    mimeType: string;
+  }): Promise<UploadBlobResult>;
 }
 
 export interface AtprotoPluginDeps {
@@ -57,7 +73,8 @@ export interface PublishBrainCardResult {
 }
 
 export interface PublishPostOptions {
-  entityId: string;
+  entityId?: string;
+  slug?: string;
   dryRun?: boolean;
   topics?: string[];
   crossPostToBluesky?: boolean;
@@ -149,16 +166,29 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     context: ServicePluginContext,
     options: PublishPostOptions,
   ): Promise<PublishPostResult> {
-    const entity = await context.entityService.getEntity({
-      entityType: "post",
-      id: options.entityId,
-    });
+    const entity = options.entityId
+      ? await context.entityService.getEntity({
+          entityType: "post",
+          id: options.entityId,
+        })
+      : options.slug
+        ? (
+            await context.entityService.listEntities({
+              entityType: "post",
+              options: { filter: { metadata: { slug: options.slug } } },
+            })
+          )[0]
+        : null;
 
+    const identifier = options.entityId ?? options.slug;
+    if (!identifier) {
+      throw new Error("Post publish requires entityId or slug");
+    }
     if (!entity) {
-      throw new Error(`Post not found: ${options.entityId}`);
+      throw new Error(`Post not found: ${identifier}`);
     }
     if (entity.visibility !== "public") {
-      throw new Error(`Cannot publish non-public post: ${options.entityId}`);
+      throw new Error(`Cannot publish non-public post: ${identifier}`);
     }
 
     const record = buildPostRecord(entity, {
@@ -190,6 +220,10 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     const client = this.createPdsClient(appPassword);
     const session = await client.createSession();
     const targetRepo = repo ?? session.did;
+    const coverImage = await this.uploadPostCoverImage(context, entity, client);
+    if (coverImage) {
+      record.coverImage = coverImage;
+    }
     const result = await client.createRecord({
       repo: targetRepo,
       collection: "ai.rizom.brain.post",
@@ -242,6 +276,72 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   protected override async getTools(): Promise<Tool[]> {
     if (!this.config.enabled) return [];
     return createAtprotoTools(this.id, this, this.getContext());
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    if (!this.config.enabled) return undefined;
+    return `## AT Protocol publishing
+- Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
+- Use \`atproto_publish_card\` to publish or dry-run this brain's public capability card.
+- Use \`atproto_publish_post\` to publish a public blog post by \`entityId\` or \`slug\`.
+- Prefer \`dryRun: true\` first when publishing new AT Protocol records.
+- Only public posts and public cover images can be published.`;
+  }
+
+  private async uploadPostCoverImage(
+    context: ServicePluginContext,
+    entity: BaseEntity,
+    client: AtprotoPdsClientLike,
+  ): Promise<BrainPostCoverImage | undefined> {
+    const frontmatter = parseMarkdownWithFrontmatter(
+      entity.content,
+      postCoverImageFrontmatterSchema,
+    ).metadata;
+    if (!frontmatter.coverImageId) return undefined;
+    if (!client.uploadBlob) {
+      throw new Error("AT Protocol PDS client does not support blob uploads");
+    }
+
+    const image = await context.entityService.getEntity({
+      entityType: "image",
+      id: frontmatter.coverImageId,
+    });
+    if (!image) return undefined;
+    if (image.visibility !== "public") {
+      throw new Error(`Cannot publish non-public cover image: ${image.id}`);
+    }
+
+    const uploadInput = this.dataUrlToUploadInput(image.content);
+    const uploaded = await client.uploadBlob(uploadInput);
+    const metadata = image.metadata;
+    const alt =
+      typeof metadata["alt"] === "string" ? metadata["alt"] : undefined;
+    const width =
+      typeof metadata["width"] === "number" ? metadata["width"] : undefined;
+    const height =
+      typeof metadata["height"] === "number" ? metadata["height"] : undefined;
+
+    return {
+      blob: uploaded.blob,
+      ...(alt && { alt }),
+      ...(width !== undefined && { width }),
+      ...(height !== undefined && { height }),
+    };
+  }
+
+  private dataUrlToUploadInput(dataUrl: string): {
+    data: Buffer;
+    mimeType: string;
+  } {
+    const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
+    if (!match?.[1] || !match[2]) {
+      throw new Error("Cover image must be a base64 data URL");
+    }
+
+    return {
+      data: Buffer.from(match[2], "base64"),
+      mimeType: match[1],
+    };
   }
 
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {

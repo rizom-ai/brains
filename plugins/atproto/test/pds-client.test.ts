@@ -112,7 +112,13 @@ describe("AtprotoPdsClient", () => {
         );
       }
       return Promise.resolve(
-        jsonResponse({ blob: { ref: { $link: "blob-cid" } } }),
+        jsonResponse({
+          blob: {
+            ref: { $link: "blob-cid" },
+            mimeType: "text/plain",
+            size: 5,
+          },
+        }),
       );
     };
 
@@ -124,11 +130,15 @@ describe("AtprotoPdsClient", () => {
     });
 
     const result = await client.uploadBlob({
-      data: "hello",
+      data: Buffer.from("hello"),
       mimeType: "text/plain",
     });
 
-    expect(result.blob).toEqual({ ref: { $link: "blob-cid" } });
+    expect(result.blob).toEqual({
+      ref: { $link: "blob-cid" },
+      mimeType: "text/plain",
+      size: 5,
+    });
     expect(calls[1]?.url).toBe(
       "https://pds.example.com/xrpc/com.atproto.repo.uploadBlob",
     );

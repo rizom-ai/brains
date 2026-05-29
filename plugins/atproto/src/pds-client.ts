@@ -27,13 +27,20 @@ export interface CreateRecordResult {
   cid: string;
 }
 
+export interface AtprotoBlobRef {
+  $type?: "blob";
+  ref: { $link: string };
+  mimeType: string;
+  size: number;
+}
+
 export interface UploadBlobInput {
-  data: BlobPart;
+  data: Buffer;
   mimeType: string;
 }
 
 export interface UploadBlobResult {
-  blob: unknown;
+  blob: AtprotoBlobRef;
 }
 
 function trimEndpoint(endpoint: string): string {
@@ -123,7 +130,9 @@ export class AtprotoPdsClient {
           Authorization: `Bearer ${session.accessJwt}`,
           "Content-Type": input.mimeType,
         },
-        body: new Blob([input.data], { type: input.mimeType }),
+        body: new Blob([new Uint8Array(input.data)], {
+          type: input.mimeType,
+        }),
       },
     );
 

@@ -20,6 +20,7 @@ export {
 } from "./bluesky-post";
 export {
   buildPostRecord,
+  type BrainPostCoverImage,
   type BrainPostRecord,
   type BuildPostRecordOptions,
 } from "./post-record";
@@ -34,6 +35,7 @@ export {
 } from "./did";
 export {
   AtprotoPdsClient,
+  type AtprotoBlobRef,
   type AtprotoPdsClientConfig,
   type AtprotoSession,
   type CreateRecordInput,

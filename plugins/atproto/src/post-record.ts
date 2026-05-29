@@ -1,3 +1,4 @@
+import type { AtprotoBlobRef } from "./pds-client";
 import type { BaseEntity } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -18,6 +19,14 @@ export interface BuildPostRecordOptions {
   brainDid?: string;
   anchorDid?: string;
   topics?: string[];
+  coverImage?: BrainPostCoverImage;
+}
+
+export interface BrainPostCoverImage {
+  blob: AtprotoBlobRef;
+  alt?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface BrainPostRecord {
@@ -31,6 +40,7 @@ export interface BrainPostRecord {
   anchorDid?: string;
   canonicalUrl?: string;
   topics?: string[];
+  coverImage?: BrainPostCoverImage;
   series?: string;
   seriesIndex?: number;
   sourceEntityType: "post";
@@ -64,6 +74,7 @@ export function buildPostRecord(
     ...(frontmatter.canonicalUrl && { canonicalUrl: frontmatter.canonicalUrl }),
     ...(options.topics &&
       options.topics.length > 0 && { topics: options.topics }),
+    ...(options.coverImage && { coverImage: options.coverImage }),
     ...(frontmatter.seriesName && { series: frontmatter.seriesName }),
     ...(frontmatter.seriesIndex !== undefined && {
       seriesIndex: frontmatter.seriesIndex,

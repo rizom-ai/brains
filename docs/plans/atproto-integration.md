@@ -164,14 +164,25 @@ First product promise: **"Publish from your brain to Bluesky/ATProto, with porta
 
 ### Phase 1: Plugin skeleton + identity
 
+Status: core implementation complete for local/dev prototype; production hardening remains.
+
+Done:
+
 1. Create `plugins/atproto/` as a `ServicePlugin`
 2. Define lexicon JSON files for `ai.rizom.brain.card` and `ai.rizom.brain.post`
-3. Generate TypeScript types from lexicons (`@atproto/lex-cli`) or add checked generated types if lex generation is not yet wired into the workspace
-4. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and auth secret references
-5. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
-6. Authenticate to PDS with app password for the local prototype; keep OAuth as a follow-up once the first slice works
-7. Add a small PDS client wrapper so tests can mock repo writes without network access
-8. Tests: DID document route, config validation, mocked PDS authentication/client calls
+3. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and auth secret references
+4. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
+5. Authenticate to PDS with app password for the local prototype; keep OAuth as a follow-up once the first slice works
+6. Add a small PDS client wrapper so tests can mock repo writes without network access
+7. Tests: DID document route, config validation, mocked PDS authentication/client calls
+8. Document config, tools, and manual smoke checklist in `plugins/atproto/README.md`
+
+Still needed before production:
+
+1. Generate TypeScript types from lexicons (`@atproto/lex-cli`) or keep an explicit decision to use tested hand-written projection types
+2. Decide which Rover/Relay presets should include atproto and keep it opt-in until credentials are configured
+3. Run and record a real PDS smoke test
+4. Add OAuth once app-password prototype behavior is settled
 
 ### Phase 2: Content distribution (outbound)
 
@@ -179,8 +190,8 @@ First product promise: **"Publish from your brain to Bluesky/ATProto, with porta
 2. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful
 3. Do not initially replace existing content-pipeline providers for entity types such as `post`; the current registry is one provider per entity type and internal publish status semantics are separate from distribution targets
 4. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
-5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images
-6. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata
+5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
+6. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata — text length and external embeds are implemented; facets/image embeds remain
 7. Add remaining lexicons (`note`, `link`, `deck`, `socialPost`) only after `post` and `card` are stable
 8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers
 

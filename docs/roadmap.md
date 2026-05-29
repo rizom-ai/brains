@@ -199,7 +199,7 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
-- [atproto-integration.md](./plans/atproto-integration.md) — parked distribution/discovery layer.
+- [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; Phase 1 foundation and first outbound publishing slice are implemented.
 - [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
 
 ### 6. Keep the framework sustainable

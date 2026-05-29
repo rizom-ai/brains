@@ -58,6 +58,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Structured chat confirmations](./structured-chat-confirmations.md) — ready / unblocked; align web-chat, Discord, and chat-repl behind a shared structured tool/approval contract
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — parked
+- [AT Protocol integration](./atproto-integration.md) — active prototype; Phase 1 foundation and first outbound publishing slice are implemented
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

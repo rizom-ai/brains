@@ -9,8 +9,14 @@ const publishCardInputSchema = {
     .describe("Build and return the card record without writing to the PDS"),
 };
 
+const validateCredentialsInputSchema = {};
+
 const publishPostInputSchema = {
-  entityId: z.string().describe("Local blog post entity ID to publish"),
+  entityId: z
+    .string()
+    .optional()
+    .describe("Local blog post entity ID to publish"),
+  slug: z.string().optional().describe("Local blog post slug to publish"),
   dryRun: z
     .boolean()
     .default(false)
@@ -31,9 +37,26 @@ export function createAtprotoTools(
   context: ServicePluginContext,
 ): Tool[] {
   return [
+    createValidateCredentialsTool(pluginId, plugin),
     createPublishCardTool(pluginId, plugin, context),
     createPublishPostTool(pluginId, plugin, context),
   ];
+}
+
+function createValidateCredentialsTool(
+  pluginId: string,
+  plugin: AtprotoPlugin,
+): Tool {
+  return {
+    name: `${pluginId}_validate_credentials`,
+    description:
+      "Validate AT Protocol PDS credentials without publishing records.",
+    inputSchema: validateCredentialsInputSchema,
+    handler: async (): Promise<ToolResponse> => {
+      const valid = await plugin.validatePdsCredentials();
+      return { success: true, data: { valid } };
+    },
+  };
 }
 
 function createPublishCardTool(
@@ -90,8 +113,16 @@ function createPublishPostTool(
       }
 
       try {
+        if (!parsed.data.entityId && !parsed.data.slug) {
+          return {
+            success: false,
+            error: "Invalid input: entityId or slug is required",
+          };
+        }
+
         const result = await plugin.publishPost(context, {
-          entityId: parsed.data.entityId,
+          ...(parsed.data.entityId && { entityId: parsed.data.entityId }),
+          ...(parsed.data.slug && { slug: parsed.data.slug }),
           dryRun: parsed.data.dryRun,
           crossPostToBluesky: parsed.data.crossPostToBluesky,
           ...(parsed.data.topics && { topics: parsed.data.topics }),
