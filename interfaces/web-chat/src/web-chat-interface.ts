@@ -632,7 +632,7 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 100%;
   border: 0;
   background: transparent;
-  padding: 0.75rem 4.85rem 0.75rem 0.85rem;
+  padding: 0.75rem 6.6rem 0.75rem 0.85rem;
   cursor: pointer;
   text-align: left;
   color: inherit;
@@ -731,6 +731,7 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-session[data-active="true"] .web-chat-session-time { color: var(--chat-accent); }
 .web-chat-session-rename,
+.web-chat-session-archive,
 .web-chat-session-delete {
   position: absolute;
   top: 50%;
@@ -748,13 +749,17 @@ button, textarea, input { font: inherit; color: inherit; }
   transform: translateY(-50%) scale(1);
   transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
-.web-chat-session-rename { right: 2.65rem; }
+.web-chat-session-rename { right: 4.45rem; }
+.web-chat-session-archive { right: 2.65rem; }
 .web-chat-session-delete { right: 0.85rem; }
 .web-chat-session-item:hover .web-chat-session-rename,
+.web-chat-session-item:hover .web-chat-session-archive,
 .web-chat-session-item:hover .web-chat-session-delete,
 .web-chat-session-rename:focus-visible,
+.web-chat-session-archive:focus-visible,
 .web-chat-session-delete:focus-visible,
 .web-chat-session-rename:disabled,
+.web-chat-session-archive:disabled,
 .web-chat-session-delete:disabled {
   opacity: 1;
   transform: translateY(-50%) scale(1);
@@ -764,17 +769,24 @@ button, textarea, input { font: inherit; color: inherit; }
   background: rgb(from var(--chat-accent) r g b / 0.1);
   color: var(--chat-accent);
 }
+.web-chat-session-archive:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-secondary) r g b / 0.34);
+  background: rgb(from var(--chat-secondary) r g b / 0.1);
+  color: var(--chat-secondary);
+}
 .web-chat-session-delete:hover:not(:disabled) {
   border-color: rgb(from var(--chat-error) r g b / 0.34);
   background: rgb(from var(--chat-error) r g b / 0.1);
   color: var(--chat-error);
 }
 .web-chat-session-rename:disabled,
+.web-chat-session-archive:disabled,
 .web-chat-session-delete:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
 .web-chat-session-rename svg,
+.web-chat-session-archive svg,
 .web-chat-session-delete svg { width: 13px; height: 13px; }
 
 .web-chat-sessions-footer {
@@ -1676,6 +1688,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-mobile-trigger svg { width: 18px; height: 18px; }
 
   .web-chat-session-rename,
+  .web-chat-session-archive,
   .web-chat-session-delete {
     opacity: 1;
     transform: translateY(-50%) scale(1);
@@ -1867,6 +1880,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleRenameSessionRequest(request),
       },
       {
+        path: "/api/chat/sessions/archive",
+        method: "PUT",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleArchiveSessionRequest(request),
+      },
+      {
         path: "/api/chat/messages",
         method: "GET",
         public: true,
@@ -1994,8 +2014,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       interfaceType: webChatInterfaceType,
       limit: webChatSessionLimit,
     });
+    const activeConversations = conversations.filter(
+      (conversation) => !this.isArchivedMetadata(conversation.metadata),
+    );
     const sessions = await Promise.all(
-      conversations.map(async (conversation) => ({
+      activeConversations.map(async (conversation) => ({
         id: conversation.id,
         title: await this.getConversationTitle(conversation.id),
         lastActiveAt: conversation.lastActiveAt,
@@ -2046,6 +2069,25 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return Response.json({ renamed, title: parsed.data.title });
   }
 
+  private async handleArchiveSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const archived = await this.getContext().conversations.updateMetadata({
+      conversationId: conversation.id,
+      metadata: { archivedAt: new Date().toISOString() },
+    });
+
+    return Response.json({ archived });
+  }
+
   private async resolveWebChatSession(
     request: Request,
   ): Promise<WebChatConversation | Response> {
@@ -2082,6 +2124,25 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       firstUserMessage.content.trim().split(/\r?\n/, 1)[0] ?? "";
     if (firstLine.length <= webChatTitleMaxLength) return firstLine;
     return `${firstLine.slice(0, webChatTitleMaxLength - 1).trimEnd()}…`;
+  }
+
+  private isArchivedMetadata(metadata: unknown): boolean {
+    if (typeof metadata === "object" && metadata !== null) {
+      return (
+        typeof (metadata as Record<string, unknown>)["archivedAt"] === "string"
+      );
+    }
+    if (typeof metadata !== "string") return false;
+    try {
+      const parsed: unknown = JSON.parse(metadata);
+      return (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        typeof (parsed as Record<string, unknown>)["archivedAt"] === "string"
+      );
+    } catch {
+      return false;
+    }
   }
 
   private getMetadataTitle(metadata: unknown): string | undefined {

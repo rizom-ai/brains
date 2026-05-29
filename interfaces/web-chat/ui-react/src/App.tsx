@@ -37,6 +37,7 @@ type ThemeMode = "light" | "dark";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
 type SessionDialog =
   | { kind: "rename"; session: WebChatSession }
+  | { kind: "archive"; session: WebChatSession }
   | { kind: "delete"; session: WebChatSession }
   | null;
 
@@ -211,6 +212,9 @@ export function App(): React.ReactElement {
     string | null
   >(null);
   const [deletingConversationId, setDeletingConversationId] = useState<
+    string | null
+  >(null);
+  const [archivingConversationId, setArchivingConversationId] = useState<
     string | null
   >(null);
   const [renamingConversationId, setRenamingConversationId] = useState<
@@ -403,6 +407,11 @@ export function App(): React.ReactElement {
     setSessionDialog({ kind: "rename", session });
   }
 
+  function openArchiveDialog(session: WebChatSession): void {
+    closeDrawer();
+    setSessionDialog({ kind: "archive", session });
+  }
+
   function openDeleteDialog(session: WebChatSession): void {
     closeDrawer();
     setSessionDialog({ kind: "delete", session });
@@ -462,6 +471,40 @@ export function App(): React.ReactElement {
       );
     } finally {
       setRenamingConversationId(null);
+    }
+  }
+
+  async function archiveConversation(session: WebChatSession): Promise<void> {
+    if (isBusyStatus(status) || archivingConversationId) return;
+
+    setHistoryError(null);
+    setArchivingConversationId(session.id);
+    try {
+      const response = await fetch(
+        `/api/chat/sessions/archive?id=${encodeURIComponent(session.id)}`,
+        { method: "PUT", credentials: "include" },
+      );
+      if (!response.ok) {
+        throw new Error(
+          describeFetchFailure(response, "Could not archive that session."),
+        );
+      }
+      setSessions((current) =>
+        current.filter((candidate) => candidate.id !== session.id),
+      );
+      if (session.id === conversationId) {
+        resetToNewConversation();
+      }
+      closeSessionDialog();
+      focusPromptTextarea(promptInputRef.current);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not archive that session.",
+      );
+    } finally {
+      setArchivingConversationId(null);
     }
   }
 
@@ -555,11 +598,13 @@ export function App(): React.ReactElement {
           {sessions.map((session) => {
             const isLoading = session.id === loadingConversationId;
             const isDeleting = session.id === deletingConversationId;
+            const isArchiving = session.id === archivingConversationId;
             const isRenaming = session.id === renamingConversationId;
             const actionsDisabled =
               isBusyStatus(status) ||
               loadingConversationId !== null ||
               deletingConversationId !== null ||
+              archivingConversationId !== null ||
               renamingConversationId !== null;
             return (
               <li key={session.id} className="web-chat-session-item">
@@ -568,7 +613,9 @@ export function App(): React.ReactElement {
                   type="button"
                   role="option"
                   aria-selected={session.id === conversationId}
-                  aria-busy={isLoading || isDeleting || isRenaming}
+                  aria-busy={
+                    isLoading || isDeleting || isArchiving || isRenaming
+                  }
                   disabled={actionsDisabled}
                   data-active={session.id === conversationId ? "true" : "false"}
                   data-loading={isLoading ? "true" : "false"}
@@ -579,13 +626,15 @@ export function App(): React.ReactElement {
                   </span>
                   <div className="web-chat-session-body">
                     <h3 className="web-chat-session-title">{session.title}</h3>
-                    {isLoading || isDeleting || isRenaming ? (
+                    {isLoading || isDeleting || isArchiving || isRenaming ? (
                       <span className="web-chat-session-subtitle">
                         {isRenaming
                           ? "renaming…"
-                          : isDeleting
-                            ? "deleting…"
-                            : "reopening…"}
+                          : isArchiving
+                            ? "archiving…"
+                            : isDeleting
+                              ? "deleting…"
+                              : "reopening…"}
                       </span>
                     ) : null}
                   </div>
@@ -607,6 +656,28 @@ export function App(): React.ReactElement {
                     <path d="M9.8 3.2 12.8 6.2" strokeLinecap="round" />
                     <path
                       d="M3.5 12.5 4.2 9.4 10.9 2.7a1.4 1.4 0 0 1 2 2L6.2 11.4l-2.7 1.1Z"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  className="web-chat-session-archive"
+                  type="button"
+                  aria-label={`Archive ${session.title}`}
+                  disabled={actionsDisabled}
+                  onClick={() => openArchiveDialog(session)}
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 5.2h10M4 5.2v7h8v-7" strokeLinejoin="round" />
+                    <path d="M6.5 8h3" strokeLinecap="round" />
+                    <path
+                      d="M4.2 3.2h7.6L13 5.2H3l1.2-2Z"
                       strokeLinejoin="round"
                     />
                   </svg>
@@ -682,12 +753,16 @@ export function App(): React.ReactElement {
             <span className="web-chat-session-dialog-kicker">
               {sessionDialog.kind === "rename"
                 ? "Retitle trace"
-                : "Prune trace"}
+                : sessionDialog.kind === "archive"
+                  ? "Store trace"
+                  : "Prune trace"}
             </span>
             <h2 id="web-chat-session-dialog-title">
               {sessionDialog.kind === "rename"
                 ? "Rename this thread"
-                : "Delete this thread?"}
+                : sessionDialog.kind === "archive"
+                  ? "Archive this thread?"
+                  : "Delete this thread?"}
             </h2>
             {sessionDialog.kind === "rename" ? (
               <form
@@ -721,6 +796,28 @@ export function App(): React.ReactElement {
                   </button>
                 </div>
               </form>
+            ) : sessionDialog.kind === "archive" ? (
+              <>
+                <p>
+                  This stores <strong>{sessionDialog.session.title}</strong> out
+                  of the active rail without deleting its saved messages.
+                </p>
+                <div className="web-chat-session-dialog-actions">
+                  <button type="button" onClick={closeSessionDialog}>
+                    Keep active
+                  </button>
+                  <button
+                    type="button"
+                    data-primary="true"
+                    disabled={archivingConversationId !== null}
+                    onClick={() =>
+                      void archiveConversation(sessionDialog.session)
+                    }
+                  >
+                    Archive
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <p>

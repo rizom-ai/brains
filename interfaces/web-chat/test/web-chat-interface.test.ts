@@ -166,7 +166,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(7);
+    expect(routes).toHaveLength(8);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -193,11 +193,16 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[5]).toMatchObject({
+      path: "/api/chat/sessions/archive",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[6]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[6]).toMatchObject({
+    expect(routes[7]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -257,7 +262,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[6];
+    const route = plugin.getWebRoutes()[7];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -669,6 +674,44 @@ describe("WebChatInterface", () => {
     expect(body.sessions[0].title).toBe("Renamed thread");
   });
 
+  it("does not list archived web chat sessions", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("active-session", "web-chat"),
+          makeConversation("archived-session", "web-chat", {
+            metadata: JSON.stringify({
+              channelName: "Web Chat",
+              archivedAt: "2026-05-24T00:02:00.000Z",
+            }),
+          }),
+        ],
+        messagesByConversation: {
+          "active-session": [
+            makeMessage("message-1", "active-session", "user", "Active"),
+          ],
+          "archived-session": [
+            makeMessage("message-2", "archived-session", "user", "Archived"),
+          ],
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[2];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
+      "active-session",
+    ]);
+  });
+
   it("rejects session deletes from non-operators", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
@@ -869,6 +912,88 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(400);
   });
 
+  it("rejects session archives from non-operators", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+      }),
+    );
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=web-session", {
+        method: "PUT",
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("archives web chat sessions for an operator", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: Array<{
+      conversationId: string;
+      metadata: Record<string, unknown>;
+    }> = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=web-session", {
+        method: "PUT",
+      }),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({ archived: true });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.conversationId).toBe("web-session");
+    expect(typeof updateCalls[0]?.metadata["archivedAt"]).toBe("string");
+  });
+
+  it("does not archive sessions owned by other interfaces", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: unknown[] = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("discord-session", "discord")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=discord-session", {
+        method: "PUT",
+      }),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(updateCalls).toEqual([]);
+  });
+
   it("refuses to load session messages for non-operators", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
@@ -883,7 +1008,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = plugin.getWebRoutes()[6];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -906,7 +1031,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = plugin.getWebRoutes()[6];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),

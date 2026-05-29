@@ -98,6 +98,7 @@ describe("React containment", () => {
     expect(appSource).toContain("finally(() => loadSessions({ quiet: true }))");
     expect(appSource).toContain("web-chat-sessions-state");
     expect(appSource).toContain("renameConversation");
+    expect(appSource).toContain("archiveConversation");
     expect(appSource).toContain("deleteConversation");
     expect(appSource).toContain("web-chat-session-dialog");
     expect(appSource).not.toContain("window.prompt");

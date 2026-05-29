@@ -118,10 +118,7 @@ aligned, and `dist` is included in package `files`.
 
 Basic explicit sessions are implemented: list recent conversations, switch,
 create new, remember last selected in browser storage. Loading/empty/error
-states, rename, and explicit delete are in place. Product-ready chat still
-needs:
-
-- archive
+states, rename, archive, and explicit delete are in place.
 
 ### 2. Outbound attachments / artifacts
 
