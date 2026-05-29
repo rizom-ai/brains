@@ -54,6 +54,8 @@ const createMockConversationService = (): IConversationService => ({
   getConversation: mock(() => Promise.resolve(null)),
   listConversations: mock(() => Promise.resolve([])),
   searchConversations: mock(() => Promise.resolve([])),
+  updateConversationMetadata: mock(() => Promise.resolve(false)),
+  deleteConversation: mock(() => Promise.resolve(false)),
   close: mock(() => {}),
 });
 

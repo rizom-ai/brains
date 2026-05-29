@@ -9,6 +9,7 @@ export type {
   GetMessagesOptions,
   StartConversationRequest,
   AddConversationMessageRequest,
+  UpdateConversationMetadataRequest,
   ListConversationsOptions,
   ConversationDigestPayload,
   ConversationMessageActor,

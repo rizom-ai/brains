@@ -115,6 +115,8 @@ function createDefaultMockConversationService(): IConversationService {
     getConversation: async () => null,
     listConversations: async () => [],
     searchConversations: async () => [],
+    updateConversationMetadata: async () => false,
+    deleteConversation: async () => false,
     close: (): void => {},
   };
 }

@@ -10,6 +10,7 @@ import type {
   ConversationDigestPayload,
   StartConversationRequest,
   AddConversationMessageRequest,
+  UpdateConversationMetadataRequest,
 } from "./types";
 import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
@@ -341,6 +342,60 @@ export class ConversationService implements IConversationService {
       .from(messages)
       .where(eq(messages.conversationId, conversationId));
     return Number(result?.count ?? 0);
+  }
+
+  async updateConversationMetadata(
+    request: UpdateConversationMetadataRequest,
+  ): Promise<boolean> {
+    const existing = await this.getConversation(request.conversationId);
+    if (!existing) return false;
+
+    const now = new Date().toISOString();
+    const metadata = {
+      ...this.parseConversationMetadata(existing.metadata),
+      ...request.metadata,
+    };
+
+    await this.db
+      .update(conversations)
+      .set({ metadata: JSON.stringify(metadata), updated: now })
+      .where(eq(conversations.id, request.conversationId));
+
+    this.logger.debug("Updated conversation metadata", {
+      conversationId: request.conversationId,
+    });
+    return true;
+  }
+
+  async deleteConversation(conversationId: string): Promise<boolean> {
+    const existing = await this.getConversation(conversationId);
+    if (!existing) return false;
+
+    await this.db
+      .delete(conversations)
+      .where(eq(conversations.id, conversationId));
+
+    this.logger.debug("Deleted conversation", { conversationId });
+    return true;
+  }
+
+  private parseConversationMetadata(
+    metadataJson: string | null,
+  ): Record<string, unknown> {
+    if (!metadataJson) return {};
+    try {
+      const parsed: unknown = JSON.parse(metadataJson);
+      if (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      this.logger.debug("Could not parse conversation metadata JSON");
+    }
+    return {};
   }
 
   /**

@@ -19,6 +19,7 @@ import { createPublicAgentNamespace } from "../base/public-agent-service";
 import type {
   StartConversationRequest,
   AddConversationMessageRequest,
+  UpdateConversationMetadataRequest,
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
@@ -87,6 +88,14 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
 
   /** Add a message to a conversation */
   addMessage: (request: AddConversationMessageRequest) => Promise<void>;
+
+  /** Update conversation metadata */
+  updateMetadata: (
+    request: UpdateConversationMetadataRequest,
+  ) => Promise<boolean>;
+
+  /** Delete a conversation and its messages */
+  delete: (conversationId: string) => Promise<boolean>;
 }
 
 /**
@@ -239,6 +248,16 @@ export function createInterfacePluginContext(
       ): Promise<void> => {
         const conversationService = shell.getConversationService();
         await conversationService.addMessage(request);
+      },
+      updateMetadata: async (
+        request: UpdateConversationMetadataRequest,
+      ): Promise<boolean> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.updateConversationMetadata(request);
+      },
+      delete: async (conversationId: string): Promise<boolean> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.deleteConversation(conversationId);
       },
     },
 

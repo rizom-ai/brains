@@ -373,6 +373,97 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("updateConversationMetadata", () => {
+    it("should merge conversation metadata without removing existing fields", async () => {
+      const conversationId = "conv-rename";
+      await service.startConversation({
+        sessionId: conversationId,
+        interfaceType: "web-chat",
+        channelId: "web-channel",
+        metadata: {
+          channelName: "Web Chat",
+          interfaceType: "web-chat",
+          channelId: "web-channel",
+        },
+      });
+
+      const updated = await (
+        service as unknown as {
+          updateConversationMetadata: (request: {
+            conversationId: string;
+            metadata: Record<string, unknown>;
+          }) => Promise<boolean>;
+        }
+      ).updateConversationMetadata({
+        conversationId,
+        metadata: { title: "Renamed thread" },
+      });
+
+      const conversation = await service.getConversation(conversationId);
+      const metadata = JSON.parse(conversation?.metadata ?? "{}");
+
+      expect(updated).toBe(true);
+      expect(metadata).toEqual({
+        channelName: "Web Chat",
+        interfaceType: "web-chat",
+        channelId: "web-channel",
+        title: "Renamed thread",
+      });
+    });
+
+    it("should report false when updating metadata for a missing conversation", async () => {
+      const updated = await (
+        service as unknown as {
+          updateConversationMetadata: (request: {
+            conversationId: string;
+            metadata: Record<string, unknown>;
+          }) => Promise<boolean>;
+        }
+      ).updateConversationMetadata({
+        conversationId: "missing-conversation",
+        metadata: { title: "Missing" },
+      });
+
+      expect(updated).toBe(false);
+    });
+  });
+
+  describe("deleteConversation", () => {
+    it("should delete a conversation and cascade related rows", async () => {
+      const conversationId = "conv-delete";
+      await service.startConversation({
+        sessionId: conversationId,
+        interfaceType: "web-chat",
+        channelId: "web-channel",
+        metadata: testMetadata,
+      });
+      await service.addMessage({
+        conversationId,
+        role: "user",
+        content: "Delete this thread",
+      });
+
+      const deleted = await service.deleteConversation(conversationId);
+
+      expect(deleted).toBe(true);
+      expect(await service.getConversation(conversationId)).toBeNull();
+      expect(await service.getMessages(conversationId)).toEqual([]);
+      expect(await service.countMessages(conversationId)).toBe(0);
+
+      const tracking = await client.execute({
+        sql: "SELECT * FROM summary_tracking WHERE conversation_id = ?",
+        args: [conversationId],
+      });
+      expect(tracking.rows).toHaveLength(0);
+    });
+
+    it("should report false when deleting a missing conversation", async () => {
+      const deleted = await service.deleteConversation("missing-conversation");
+
+      expect(deleted).toBe(false);
+    });
+  });
+
   describe("getMessages with range", () => {
     it("should retrieve messages in specified range", async () => {
       const conversationId = "conv-range";

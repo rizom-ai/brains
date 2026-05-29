@@ -105,6 +105,11 @@ function makeMessage(
 function makeFixedConversationService(input: {
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
+  updateConversationMetadata?: (request: {
+    conversationId: string;
+    metadata: Record<string, unknown>;
+  }) => Promise<boolean>;
+  deleteConversation?: (conversationId: string) => Promise<boolean>;
 }): IConversationService {
   return {
     startConversation: async () => "web-session",
@@ -122,6 +127,10 @@ function makeFixedConversationService(input: {
       input.messagesByConversation[conversationId] ?? [],
     countMessages: async (conversationId: string) =>
       (input.messagesByConversation[conversationId] ?? []).length,
+    updateConversationMetadata:
+      input.updateConversationMetadata ?? (async (): Promise<boolean> => true),
+    deleteConversation:
+      input.deleteConversation ?? (async (): Promise<boolean> => true),
     close: (): void => {},
   };
 }
@@ -157,7 +166,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(5);
+    expect(routes).toHaveLength(8);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -174,11 +183,26 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[3]).toMatchObject({
+      path: "/api/chat/sessions",
+      method: "DELETE",
+      public: true,
+    });
+    expect(routes[4]).toMatchObject({
+      path: "/api/chat/sessions",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[5]).toMatchObject({
+      path: "/api/chat/sessions/archive",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[6]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[4]).toMatchObject({
+    expect(routes[7]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -213,6 +237,13 @@ describe("WebChatInterface", () => {
     expect(html).toContain("--chat-bg:");
     expect(html).toContain("--chat-accent:");
     expect(html).toContain('[data-theme="light"]');
+    expect(html).toContain(".web-chat-session-dialog-backdrop");
+    expect(html).toContain(
+      ".web-chat-session-dialog-actions { flex-direction: column-reverse; }",
+    );
+    expect(html).toContain(".web-chat-session-rename,");
+    expect(html).toContain(".web-chat-session-delete {");
+    expect(html).toContain("opacity: 1;");
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
@@ -231,7 +262,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = plugin.getWebRoutes()[7];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -611,6 +642,358 @@ describe("WebChatInterface", () => {
     });
   });
 
+  it("uses renamed session titles from conversation metadata", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("web-session", "web-chat", {
+            metadata: JSON.stringify({
+              channelName: "Web Chat",
+              title: "Renamed thread",
+            }),
+          }),
+        ],
+        messagesByConversation: {
+          "web-session": [
+            makeMessage("message-1", "web-session", "user", "Original title"),
+          ],
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[2];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body.sessions[0].title).toBe("Renamed thread");
+  });
+
+  it("does not list archived web chat sessions", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("active-session", "web-chat"),
+          makeConversation("archived-session", "web-chat", {
+            metadata: JSON.stringify({
+              channelName: "Web Chat",
+              archivedAt: "2026-05-24T00:02:00.000Z",
+            }),
+          }),
+        ],
+        messagesByConversation: {
+          "active-session": [
+            makeMessage("message-1", "active-session", "user", "Active"),
+          ],
+          "archived-session": [
+            makeMessage("message-2", "archived-session", "user", "Archived"),
+          ],
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[2];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
+      "active-session",
+    ]);
+  });
+
+  it("rejects session deletes from non-operators", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+      }),
+    );
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[3];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=web-session", {
+        method: "DELETE",
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("deletes web chat sessions for an operator", async () => {
+    const shell = harness.getMockShell();
+    const deleteCalls: string[] = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+        deleteConversation: async (conversationId): Promise<boolean> => {
+          deleteCalls.push(conversationId);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[3];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=web-session", {
+        method: "DELETE",
+      }),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({ deleted: true });
+    expect(deleteCalls).toEqual(["web-session"]);
+  });
+
+  it("does not delete sessions owned by other interfaces", async () => {
+    const shell = harness.getMockShell();
+    const deleteCalls: string[] = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("discord-session", "discord")],
+        messagesByConversation: {},
+        deleteConversation: async (conversationId): Promise<boolean> => {
+          deleteCalls.push(conversationId);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[3];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=discord-session", {
+        method: "DELETE",
+      }),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(deleteCalls).toEqual([]);
+  });
+
+  it("rejects session deletes without an id", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[3];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions", { method: "DELETE" }),
+    );
+
+    expect(response?.status).toBe(400);
+  });
+
+  it("rejects session renames from non-operators", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+      }),
+    );
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[4];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=web-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Renamed thread" }),
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("renames web chat sessions for an operator", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: Array<{
+      conversationId: string;
+      metadata: Record<string, unknown>;
+    }> = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[4];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=web-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Renamed thread" }),
+      }),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({ renamed: true, title: "Renamed thread" });
+    expect(updateCalls).toEqual([
+      { conversationId: "web-session", metadata: { title: "Renamed thread" } },
+    ]);
+  });
+
+  it("does not rename sessions owned by other interfaces", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: unknown[] = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("discord-session", "discord")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[4];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=discord-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Renamed thread" }),
+      }),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(updateCalls).toEqual([]);
+  });
+
+  it("rejects invalid session rename requests", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[4];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions?id=web-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "" }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+  });
+
+  it("rejects session archives from non-operators", async () => {
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+      }),
+    );
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=web-session", {
+        method: "PUT",
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("archives web chat sessions for an operator", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: Array<{
+      conversationId: string;
+      metadata: Record<string, unknown>;
+    }> = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=web-session", {
+        method: "PUT",
+      }),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({ archived: true });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.conversationId).toBe("web-session");
+    expect(typeof updateCalls[0]?.metadata["archivedAt"]).toBe("string");
+  });
+
+  it("does not archive sessions owned by other interfaces", async () => {
+    const shell = harness.getMockShell();
+    const updateCalls: unknown[] = [];
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("discord-session", "discord")],
+        messagesByConversation: {},
+        updateConversationMetadata: async (request): Promise<boolean> => {
+          updateCalls.push(request);
+          return true;
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[5];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/sessions/archive?id=discord-session", {
+        method: "PUT",
+      }),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(updateCalls).toEqual([]);
+  });
+
   it("refuses to load session messages for non-operators", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
@@ -625,7 +1008,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[6];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -648,7 +1031,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = plugin.getWebRoutes()[6];
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
