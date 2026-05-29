@@ -4,13 +4,14 @@ import type {
   IAgentService as RuntimeAgentService,
   PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
-import type {
-  AgentNamespace,
-  AgentResponse,
-  ChatContext,
-  PendingConfirmation,
-  StructuredChatCard,
-  ToolResultData,
+import {
+  toPublicAttachmentCard,
+  type AgentNamespace,
+  type AgentResponse,
+  type ChatContext,
+  type PendingConfirmation,
+  type StructuredChatCard,
+  type ToolResultData,
 } from "../contracts/agent";
 
 export function toPublicAgentResponse(
@@ -44,34 +45,7 @@ function toPublicStructuredChatCard(
   card: NonNullable<RuntimeAgentResponse["cards"]>[number],
 ): StructuredChatCard {
   if (card.kind === "attachment") {
-    return {
-      kind: "attachment",
-      id: card.id,
-      ...(card.jobId !== undefined && { jobId: card.jobId }),
-      title: card.title,
-      ...(card.description !== undefined && {
-        description: card.description,
-      }),
-      attachment: {
-        mediaType: card.attachment.mediaType,
-        url: card.attachment.url,
-        ...(card.attachment.downloadUrl !== undefined && {
-          downloadUrl: card.attachment.downloadUrl,
-        }),
-        ...(card.attachment.previewUrl !== undefined && {
-          previewUrl: card.attachment.previewUrl,
-        }),
-        ...(card.attachment.filename !== undefined && {
-          filename: card.attachment.filename,
-        }),
-        ...(card.attachment.sizeBytes !== undefined && {
-          sizeBytes: card.attachment.sizeBytes,
-        }),
-        ...(card.attachment.source !== undefined && {
-          source: card.attachment.source,
-        }),
-      },
-    };
+    return toPublicAttachmentCard(card);
   }
 
   return {

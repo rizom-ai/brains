@@ -114,28 +114,31 @@ export interface ToolApprovalCard {
   error?: string;
 }
 
+// Optionals mirror the zod schema in @brains/plugins (`.optional()` widens to
+// `| undefined`) so the two card mirrors stay structurally interchangeable
+// under exactOptionalPropertyTypes.
 export interface AttachmentCardSource {
-  entityType?: string;
-  entityId?: string;
-  attachmentType?: string;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  attachmentType?: string | undefined;
 }
 
 export interface AttachmentCardData {
   mediaType: string;
   url: string;
-  downloadUrl?: string;
-  previewUrl?: string;
-  filename?: string;
-  sizeBytes?: number;
-  source?: AttachmentCardSource;
+  downloadUrl?: string | undefined;
+  previewUrl?: string | undefined;
+  filename?: string | undefined;
+  sizeBytes?: number | undefined;
+  source?: AttachmentCardSource | undefined;
 }
 
 export interface AttachmentCard {
   kind: "attachment";
   id: string;
-  jobId?: string;
+  jobId?: string | undefined;
   title: string;
-  description?: string;
+  description?: string | undefined;
   attachment: AttachmentCardData;
 }
 

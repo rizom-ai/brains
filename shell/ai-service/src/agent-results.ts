@@ -32,6 +32,15 @@ const attachmentToolDataSchema = z.object({
   }),
 });
 
+/** Human-readable noun for an attachment's media type, for card copy. */
+function describeAttachmentMedia(mediaType: string): string {
+  if (mediaType === "application/pdf") return "PDF";
+  const [type, subtype] = mediaType.split("/");
+  if (type === "image") return "image";
+  if (subtype) return subtype.toUpperCase();
+  return "artifact";
+}
+
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmations: PendingConfirmation[];
@@ -129,13 +138,19 @@ export function extractToolResults(
         if (attachmentParsed.success) {
           const attachment = attachmentParsed.data.attachment;
           const source = attachment.source;
+          const mediaLabel = describeAttachmentMedia(attachment.mediaType);
           cards.push({
             kind: "attachment",
             id: `attachment:${attachmentParsed.data.documentId}`,
             ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
-            title: attachment.filename ?? "Generated PDF document",
-            description:
-              "PDF generation has been queued. This artifact will open once the job completes.",
+            title: attachment.filename ?? `Generated ${mediaLabel}`,
+            // Only describe the work as queued when there is a job backing it;
+            // an already-materialized attachment arrives without a jobId.
+            ...(jobIdParsed.success
+              ? {
+                  description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
+                }
+              : {}),
             attachment: {
               mediaType: attachment.mediaType,
               url: attachment.url,

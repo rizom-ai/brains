@@ -345,6 +345,25 @@ function useAttachmentJobStatus(
     const pollingJobId = jobId;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // The job row can lag behind the card (enqueue → row visible), and the
+    // status endpoint can blip, so transient failures retry with backoff
+    // rather than stranding the card at "unknown" forever.
+    let transientFailures = 0;
+    const MAX_TRANSIENT_FAILURES = 5;
+
+    const scheduleNextPoll = (delayMs: number): void => {
+      if (cancelled) return;
+      timer = setTimeout(() => void poll(), delayMs);
+    };
+
+    const handleTransientFailure = (): void => {
+      transientFailures += 1;
+      if (transientFailures >= MAX_TRANSIENT_FAILURES) {
+        if (!cancelled) setStatus("unknown");
+        return;
+      }
+      scheduleNextPoll(Math.min(2000 * transientFailures, 8000));
+    };
 
     async function poll(): Promise<void> {
       try {
@@ -353,17 +372,18 @@ function useAttachmentJobStatus(
           { credentials: "same-origin" },
         );
         if (!response.ok) {
-          if (!cancelled) setStatus("unknown");
+          handleTransientFailure();
           return;
         }
+        transientFailures = 0;
         const body = (await response.json()) as { status?: string };
         const nextStatus = narrowAttachmentJobStatus(body.status);
         if (!cancelled) setStatus(nextStatus);
         if (nextStatus !== "completed" && nextStatus !== "failed") {
-          timer = setTimeout(() => void poll(), 2000);
+          scheduleNextPoll(2000);
         }
       } catch {
-        if (!cancelled) setStatus("unknown");
+        handleTransientFailure();
       }
     }
 

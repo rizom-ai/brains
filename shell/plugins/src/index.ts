@@ -228,6 +228,7 @@ export {
   ToolApprovalCardSchema,
   ToolApprovalCardStateSchema,
   ToolResultDataSchema,
+  toPublicAttachmentCard,
   type AgentResponse,
   type ChatContext,
   type AgentNamespace,

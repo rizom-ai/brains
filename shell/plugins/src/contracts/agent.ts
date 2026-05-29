@@ -84,6 +84,51 @@ export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
 
 export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
 
+/**
+ * Project an attachment card to its public shape, dropping undefined optional
+ * fields. Shared by every boundary that re-maps a card (public agent service,
+ * remote agent service) so the nested optional-stripping lives in one place.
+ * Accepts any structurally-compatible attachment card (runtime or parsed).
+ */
+export function toPublicAttachmentCard(card: AttachmentCard): AttachmentCard {
+  const { attachment } = card;
+  const { source } = attachment;
+  return {
+    kind: "attachment",
+    id: card.id,
+    ...(card.jobId !== undefined && { jobId: card.jobId }),
+    title: card.title,
+    ...(card.description !== undefined && { description: card.description }),
+    attachment: {
+      mediaType: attachment.mediaType,
+      url: attachment.url,
+      ...(attachment.downloadUrl !== undefined && {
+        downloadUrl: attachment.downloadUrl,
+      }),
+      ...(attachment.previewUrl !== undefined && {
+        previewUrl: attachment.previewUrl,
+      }),
+      ...(attachment.filename !== undefined && {
+        filename: attachment.filename,
+      }),
+      ...(attachment.sizeBytes !== undefined && {
+        sizeBytes: attachment.sizeBytes,
+      }),
+      ...(source !== undefined && {
+        source: {
+          ...(source.entityType !== undefined && {
+            entityType: source.entityType,
+          }),
+          ...(source.entityId !== undefined && { entityId: source.entityId }),
+          ...(source.attachmentType !== undefined && {
+            attachmentType: source.attachmentType,
+          }),
+        },
+      }),
+    },
+  };
+}
+
 export const ToolResultDataSchema = z.object({
   toolName: z.string(),
   args: z.record(z.unknown()).optional(),

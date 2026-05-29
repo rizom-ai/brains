@@ -3,7 +3,7 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
-import { AgentResponseSchema } from "@brains/plugins";
+import { AgentResponseSchema, toPublicAttachmentCard } from "@brains/plugins";
 
 function parseAgentResponse(json: unknown): AgentResponse {
   const result = AgentResponseSchema.safeParse(json);
@@ -31,47 +31,7 @@ function parseAgentResponse(json: unknown): AgentResponse {
   if (parsed.cards) {
     response.cards = parsed.cards.map((card) => {
       if (card.kind === "attachment") {
-        const source = card.attachment.source;
-        return {
-          kind: "attachment",
-          id: card.id,
-          ...(card.jobId !== undefined ? { jobId: card.jobId } : {}),
-          title: card.title,
-          ...(card.description !== undefined
-            ? { description: card.description }
-            : {}),
-          attachment: {
-            mediaType: card.attachment.mediaType,
-            url: card.attachment.url,
-            ...(card.attachment.downloadUrl !== undefined
-              ? { downloadUrl: card.attachment.downloadUrl }
-              : {}),
-            ...(card.attachment.previewUrl !== undefined
-              ? { previewUrl: card.attachment.previewUrl }
-              : {}),
-            ...(card.attachment.filename !== undefined
-              ? { filename: card.attachment.filename }
-              : {}),
-            ...(card.attachment.sizeBytes !== undefined
-              ? { sizeBytes: card.attachment.sizeBytes }
-              : {}),
-            ...(source !== undefined
-              ? {
-                  source: {
-                    ...(source.entityType !== undefined
-                      ? { entityType: source.entityType }
-                      : {}),
-                    ...(source.entityId !== undefined
-                      ? { entityId: source.entityId }
-                      : {}),
-                    ...(source.attachmentType !== undefined
-                      ? { attachmentType: source.attachmentType }
-                      : {}),
-                  },
-                }
-              : {}),
-          },
-        };
+        return toPublicAttachmentCard(card);
       }
 
       return {

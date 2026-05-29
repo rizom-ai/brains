@@ -159,7 +159,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         message: "Storing PDF document",
       });
 
-      const documentId = getDocumentId(data, jobId);
+      const documentId = getDocumentId(data);
       const filename =
         data.filename ??
         (data.renderUrl === undefined
@@ -234,7 +234,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
           ...(data.format !== undefined && { format: data.format }),
         }),
         mimeType: "application/pdf",
-        filename: data.filename ?? `${getDocumentId(data, "document")}.pdf`,
+        filename: data.filename ?? `${getDocumentId(data)}.pdf`,
       };
     }
 
@@ -307,14 +307,14 @@ function getDedupKey(data: DocumentGenerationJobData): string {
   );
 }
 
-export function getDocumentId(
-  data: DocumentGenerationJobData,
-  jobId: string,
-): string {
+export function getDocumentId(data: DocumentGenerationJobData): string {
+  // Fall back to the dedup key (not the jobId) so a generation that reuses an
+  // existing document resolves to the same id the caller computed up front —
+  // otherwise the attachment URL would point at an id that was never created.
   const base =
     data.documentId ??
     data.filename?.replace(/\.pdf$/i, "") ??
-    `${data.attachmentType}-${data.sourceEntityType}-${data.sourceEntityId}-${jobId}`;
+    getDedupKey(data);
   return slugify(base);
 }
 

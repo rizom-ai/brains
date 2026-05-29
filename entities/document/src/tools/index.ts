@@ -30,7 +30,7 @@ export function createDocumentTools(
           return toolError(result.error.message);
         }
         const jobId = await enqueueDocumentGeneration(result.data, context);
-        const documentId = getDocumentId(result.data, jobId);
+        const documentId = getDocumentId(result.data);
         const filename = result.data.filename ?? `${documentId}.pdf`;
         return toolSuccess({
           jobId,
