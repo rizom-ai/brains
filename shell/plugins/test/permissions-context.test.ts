@@ -7,9 +7,9 @@ import { createEntityPluginContext } from "../src/entity/context";
 import { createServicePluginContext } from "../src/service/context";
 import { createMockShell } from "../src/test/mock-shell";
 
-function createShellWithPublishPolicy() {
+function createShellWithPublishPolicy(): ReturnType<typeof createMockShell> {
   const shell = createMockShell();
-  shell.getPermissionService = () =>
+  shell.getPermissionService = (): PermissionService =>
     new PermissionService({
       entityActions: { "social-post": { publish: "anchor" } },
     });

@@ -1,6 +1,7 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  coerceConversationMetadata,
   type EditMessageRequest,
   type InterfacePluginContext,
   type SendMessageToChannelRequest,
@@ -2127,42 +2128,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private isArchivedMetadata(metadata: unknown): boolean {
-    if (typeof metadata === "object" && metadata !== null) {
-      return (
-        typeof (metadata as Record<string, unknown>)["archivedAt"] === "string"
-      );
-    }
-    if (typeof metadata !== "string") return false;
-    try {
-      const parsed: unknown = JSON.parse(metadata);
-      return (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        typeof (parsed as Record<string, unknown>)["archivedAt"] === "string"
-      );
-    } catch {
-      return false;
-    }
+    return (
+      typeof coerceConversationMetadata(metadata)["archivedAt"] === "string"
+    );
   }
 
   private getMetadataTitle(metadata: unknown): string | undefined {
-    if (typeof metadata === "object" && metadata !== null) {
-      const title = (metadata as Record<string, unknown>)["title"];
-      if (typeof title === "string" && title.trim().length > 0) {
-        return title;
-      }
-    }
-    if (typeof metadata !== "string") return undefined;
-    try {
-      const parsed: unknown = JSON.parse(metadata);
-      if (typeof parsed !== "object" || parsed === null) return undefined;
-      const title = (parsed as Record<string, unknown>)["title"];
-      return typeof title === "string" && title.trim().length > 0
-        ? title
-        : undefined;
-    } catch {
-      return undefined;
-    }
+    const title = coerceConversationMetadata(metadata)["title"];
+    return typeof title === "string" && title.trim().length > 0
+      ? title
+      : undefined;
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {

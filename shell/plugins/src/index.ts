@@ -265,6 +265,7 @@ export type {
 export {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
+  coerceConversationMetadata,
   conversationDigestPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,

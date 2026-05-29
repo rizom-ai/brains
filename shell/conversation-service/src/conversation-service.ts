@@ -1,5 +1,6 @@
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
+import { coerceConversationMetadata } from "./metadata";
 import type { Client } from "@libsql/client";
 import type {
   IConversationService,
@@ -352,7 +353,7 @@ export class ConversationService implements IConversationService {
 
     const now = new Date().toISOString();
     const metadata = {
-      ...this.parseConversationMetadata(existing.metadata),
+      ...coerceConversationMetadata(existing.metadata),
       ...request.metadata,
     };
 
@@ -377,25 +378,6 @@ export class ConversationService implements IConversationService {
 
     this.logger.debug("Deleted conversation", { conversationId });
     return true;
-  }
-
-  private parseConversationMetadata(
-    metadataJson: string | null,
-  ): Record<string, unknown> {
-    if (!metadataJson) return {};
-    try {
-      const parsed: unknown = JSON.parse(metadataJson);
-      if (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        !Array.isArray(parsed)
-      ) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      this.logger.debug("Could not parse conversation metadata JSON");
-    }
-    return {};
   }
 
   /**
