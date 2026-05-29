@@ -717,7 +717,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   ): ToolApprovalCard[] {
     return (
       cards?.filter(
-        (card): card is ToolApprovalCard => card.state === "approval-requested",
+        (card): card is ToolApprovalCard =>
+          card.kind === "tool-approval" && card.state === "approval-requested",
       ) ?? []
     );
   }
@@ -727,9 +728,10 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   ): ToolApprovalCard | undefined {
     return cards?.find(
       (card): card is ToolApprovalCard =>
-        card.state === "output-available" ||
-        card.state === "output-error" ||
-        card.state === "output-denied",
+        card.kind === "tool-approval" &&
+        (card.state === "output-available" ||
+          card.state === "output-error" ||
+          card.state === "output-denied"),
     );
   }
 

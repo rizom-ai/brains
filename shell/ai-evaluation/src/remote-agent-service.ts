@@ -29,18 +29,65 @@ function parseAgentResponse(json: unknown): AgentResponse {
   }
 
   if (parsed.cards) {
-    response.cards = parsed.cards.map((card) => ({
-      kind: card.kind,
-      id: card.id,
-      ...(card.toolCallId !== undefined ? { toolCallId: card.toolCallId } : {}),
-      toolName: card.toolName,
-      ...(card.input !== undefined ? { input: card.input } : {}),
-      summary: card.summary,
-      ...(card.preview !== undefined ? { preview: card.preview } : {}),
-      state: card.state,
-      ...(card.output !== undefined ? { output: card.output } : {}),
-      ...(card.error !== undefined ? { error: card.error } : {}),
-    }));
+    response.cards = parsed.cards.map((card) => {
+      if (card.kind === "attachment") {
+        const source = card.attachment.source;
+        return {
+          kind: "attachment",
+          id: card.id,
+          title: card.title,
+          ...(card.description !== undefined
+            ? { description: card.description }
+            : {}),
+          attachment: {
+            mediaType: card.attachment.mediaType,
+            url: card.attachment.url,
+            ...(card.attachment.downloadUrl !== undefined
+              ? { downloadUrl: card.attachment.downloadUrl }
+              : {}),
+            ...(card.attachment.previewUrl !== undefined
+              ? { previewUrl: card.attachment.previewUrl }
+              : {}),
+            ...(card.attachment.filename !== undefined
+              ? { filename: card.attachment.filename }
+              : {}),
+            ...(card.attachment.sizeBytes !== undefined
+              ? { sizeBytes: card.attachment.sizeBytes }
+              : {}),
+            ...(source !== undefined
+              ? {
+                  source: {
+                    ...(source.entityType !== undefined
+                      ? { entityType: source.entityType }
+                      : {}),
+                    ...(source.entityId !== undefined
+                      ? { entityId: source.entityId }
+                      : {}),
+                    ...(source.attachmentType !== undefined
+                      ? { attachmentType: source.attachmentType }
+                      : {}),
+                  },
+                }
+              : {}),
+          },
+        };
+      }
+
+      return {
+        kind: card.kind,
+        id: card.id,
+        ...(card.toolCallId !== undefined
+          ? { toolCallId: card.toolCallId }
+          : {}),
+        toolName: card.toolName,
+        ...(card.input !== undefined ? { input: card.input } : {}),
+        summary: card.summary,
+        ...(card.preview !== undefined ? { preview: card.preview } : {}),
+        state: card.state,
+        ...(card.output !== undefined ? { output: card.output } : {}),
+        ...(card.error !== undefined ? { error: card.error } : {}),
+      };
+    });
   }
 
   if (parsed.pendingConfirmation) {

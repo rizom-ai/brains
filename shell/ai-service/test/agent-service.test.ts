@@ -941,8 +941,12 @@ describe("AgentService", () => {
       );
       expect(response.text).not.toContain("Sensitive content");
       const resolvedCard = response.cards?.[0];
-      expect(resolvedCard?.summary).toBe("Delete note 'Meeting Notes'?");
-      expect(resolvedCard?.preview).toBeUndefined();
+      expect(resolvedCard?.kind).toBe("tool-approval");
+      if (resolvedCard?.kind !== "tool-approval") {
+        throw new Error("Expected tool approval card");
+      }
+      expect(resolvedCard.summary).toBe("Delete note 'Meeting Notes'?");
+      expect(resolvedCard.preview).toBeUndefined();
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {

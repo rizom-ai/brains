@@ -262,6 +262,105 @@ export function formatNativeToolDisplay(
   );
 }
 
+export interface AttachmentDisplay {
+  title: string;
+  description?: string;
+  mediaType?: string;
+  filename?: string;
+  sizeLabel?: string;
+  url?: string;
+  downloadUrl?: string;
+  previewUrl?: string;
+}
+
+function formatByteSize(sizeBytes: number | undefined): string | undefined {
+  if (sizeBytes === undefined) return undefined;
+  if (!Number.isFinite(sizeBytes) || sizeBytes < 0) return undefined;
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  const units = ["KB", "MB", "GB"] as const;
+  let value = sizeBytes / 1024;
+  for (const unit of units) {
+    if (value < 1024 || unit === "GB") {
+      return `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`;
+    }
+    value /= 1024;
+  }
+  return undefined;
+}
+
+function getNumberValue(data: unknown, key: string): number | undefined {
+  const value = getRecordValue(data, key);
+  return typeof value === "number" ? value : undefined;
+}
+
+export function formatAttachmentDisplay(
+  data: unknown,
+): AttachmentDisplay | null {
+  const attachment = getRecordValue(data, "attachment");
+  if (!isRecord(attachment)) return null;
+
+  const description = getStringValue(data, "description");
+  const mediaType = getStringValue(attachment, "mediaType");
+  const filename = getStringValue(attachment, "filename");
+  const sizeLabel = formatByteSize(getNumberValue(attachment, "sizeBytes"));
+  const url = getStringValue(attachment, "url");
+  const downloadUrl = getStringValue(attachment, "downloadUrl");
+  const previewUrl = getStringValue(attachment, "previewUrl");
+
+  return {
+    title: getStringValue(data, "title") ?? "Generated artifact",
+    ...(description !== undefined ? { description } : {}),
+    ...(mediaType !== undefined ? { mediaType } : {}),
+    ...(filename !== undefined ? { filename } : {}),
+    ...(sizeLabel !== undefined ? { sizeLabel } : {}),
+    ...(url !== undefined ? { url } : {}),
+    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
+    ...(previewUrl !== undefined ? { previewUrl } : {}),
+  };
+}
+
+export function AttachmentPart({
+  data,
+}: {
+  data: unknown;
+}): React.ReactElement {
+  const display = formatAttachmentDisplay(data);
+  if (!display) return <GenericDataPart type="data-attachment" data={data} />;
+  const href = display.downloadUrl ?? display.url;
+  const previewUrl = display.previewUrl ?? display.url;
+  const isImage = display.mediaType?.startsWith("image/") ?? false;
+  const meta = [display.filename, display.mediaType, display.sizeLabel]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <section className="web-chat-attachment-card" aria-label={display.title}>
+      {isImage && previewUrl ? (
+        <img
+          className="web-chat-attachment-preview"
+          src={previewUrl}
+          alt=""
+          loading="lazy"
+        />
+      ) : null}
+      <div className="web-chat-attachment-body">
+        <span className="web-chat-attachment-kicker">artifact</span>
+        <h4>{display.title}</h4>
+        {display.description ? <p>{display.description}</p> : null}
+        {meta ? <span className="web-chat-attachment-meta">{meta}</span> : null}
+        {href ? (
+          <div className="web-chat-attachment-actions">
+            {display.url ? <a href={display.url}>Open</a> : null}
+            <a href={href} download={display.filename ?? undefined}>
+              Download
+            </a>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function NativeToolPart({
   data,
 }: {

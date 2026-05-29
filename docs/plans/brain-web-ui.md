@@ -125,17 +125,26 @@ states, rename, archive, and explicit delete are in place.
 Next attachment priority is brain/tool → user artifacts: generated images,
 PDFs, exports, previews, and other downloadable results.
 
-Two open decisions before implementation:
+Protocol shape is now explicit: attachment-bearing agent output uses a
+Brain-specific structured card with `kind: "attachment"`, translated by
+`WebChatInterface` into an AI SDK UI `data-attachment` part. This keeps approval
+cards on native AI SDK tool parts while giving brain-owned artifacts a stable
+contract:
 
-- **Protocol shape.** Do generated artifacts map cleanly to existing AI
-  Elements `artifact`/`tool`/`data` patterns, or do we need a small
-  Brain-specific `data-attachment` contract? Resolve before building renderers.
+- `id`: stable card id
+- `title` / optional `description`: display copy
+- `attachment.mediaType`: MIME type
+- `attachment.url`: view/resolve URL
+- optional `attachment.downloadUrl`, `previewUrl`, `filename`, `sizeBytes`
+- optional `attachment.source`: `{ entityType, entityId, attachmentType }`
+
+Remaining decision before renderer work:
+
 - **Blob serving.** Prefer existing attachment/media provider contracts for
   resolution and download routes rather than a new web-chat-only path.
 
-Once decided: `WebChatInterface` translates attachment-bearing message-interface
-events into AI SDK UI data parts; the React island renders previews / download
-links / generic file cards.
+Next implementation step: the React island renders `data-attachment` parts as
+previews / download links / generic file cards.
 
 ### 3. Default landing route
 

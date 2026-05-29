@@ -32,20 +32,7 @@ export function toPublicAgentResponse(
       ),
     }),
     ...(response.cards && {
-      cards: response.cards.map(
-        (card): StructuredChatCard => ({
-          kind: card.kind,
-          id: card.id,
-          ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
-          toolName: card.toolName,
-          ...(card.input !== undefined && { input: card.input }),
-          summary: card.summary,
-          ...(card.preview !== undefined && { preview: card.preview }),
-          state: card.state,
-          ...(card.output !== undefined && { output: card.output }),
-          ...(card.error !== undefined && { error: card.error }),
-        }),
-      ),
+      cards: response.cards.map(toPublicStructuredChatCard),
     }),
     ...(pendingConfirmation && {
       pendingConfirmation: toPublicPendingConfirmation(pendingConfirmation),
@@ -56,6 +43,53 @@ export function toPublicAgentResponse(
       ),
     }),
     usage: response.usage,
+  };
+}
+
+function toPublicStructuredChatCard(
+  card: NonNullable<RuntimeAgentResponse["cards"]>[number],
+): StructuredChatCard {
+  if (card.kind === "attachment") {
+    return {
+      kind: "attachment",
+      id: card.id,
+      title: card.title,
+      ...(card.description !== undefined && {
+        description: card.description,
+      }),
+      attachment: {
+        mediaType: card.attachment.mediaType,
+        url: card.attachment.url,
+        ...(card.attachment.downloadUrl !== undefined && {
+          downloadUrl: card.attachment.downloadUrl,
+        }),
+        ...(card.attachment.previewUrl !== undefined && {
+          previewUrl: card.attachment.previewUrl,
+        }),
+        ...(card.attachment.filename !== undefined && {
+          filename: card.attachment.filename,
+        }),
+        ...(card.attachment.sizeBytes !== undefined && {
+          sizeBytes: card.attachment.sizeBytes,
+        }),
+        ...(card.attachment.source !== undefined && {
+          source: card.attachment.source,
+        }),
+      },
+    };
+  }
+
+  return {
+    kind: card.kind,
+    id: card.id,
+    ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
+    toolName: card.toolName,
+    ...(card.input !== undefined && { input: card.input }),
+    summary: card.summary,
+    ...(card.preview !== undefined && { preview: card.preview }),
+    state: card.state,
+    ...(card.output !== undefined && { output: card.output }),
+    ...(card.error !== undefined && { error: card.error }),
   };
 }
 
