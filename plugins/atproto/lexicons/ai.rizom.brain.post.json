@@ -46,6 +46,16 @@
             "type": "string",
             "maxLength": 200
           },
+          "seriesIndex": {
+            "type": "integer"
+          },
+          "sourceEntityType": {
+            "type": "string",
+            "knownValues": ["post"]
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string",
             "format": "datetime"

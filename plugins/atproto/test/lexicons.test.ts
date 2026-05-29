@@ -47,5 +47,9 @@ describe("AT Protocol lexicons", () => {
     ]);
     expect(lexicon.defs.main.record.properties["canonicalUrl"]).toBeDefined();
     expect(lexicon.defs.main.record.properties["topics"]).toBeDefined();
+    expect(
+      lexicon.defs.main.record.properties["sourceEntityType"],
+    ).toBeDefined();
+    expect(lexicon.defs.main.record.properties["sourceEntityId"]).toBeDefined();
   });
 });

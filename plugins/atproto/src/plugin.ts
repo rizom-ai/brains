@@ -15,7 +15,12 @@ import {
   type AtprotoSession,
   type CreateRecordResult,
 } from "./pds-client";
+import {
+  buildBlueskyPostRecord,
+  type BlueskyFeedPostRecord,
+} from "./bluesky-post";
 import { buildDidWebDocument } from "./did";
+import { buildPostRecord, type BrainPostRecord } from "./post-record";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
@@ -49,6 +54,26 @@ export interface PublishBrainCardResult {
   uri?: string;
   cid?: string;
   dryRun: boolean;
+}
+
+export interface PublishPostOptions {
+  entityId: string;
+  dryRun?: boolean;
+  topics?: string[];
+  crossPostToBluesky?: boolean;
+}
+
+export interface PublishPostResult {
+  record: BrainPostRecord;
+  repo?: string;
+  uri?: string;
+  cid?: string;
+  dryRun: boolean;
+  bluesky?: {
+    record: BlueskyFeedPostRecord;
+    uri?: string;
+    cid?: string;
+  };
 }
 
 export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
@@ -117,6 +142,85 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       uri: result.uri,
       cid: result.cid,
       dryRun: false,
+    };
+  }
+
+  async publishPost(
+    context: ServicePluginContext,
+    options: PublishPostOptions,
+  ): Promise<PublishPostResult> {
+    const entity = await context.entityService.getEntity({
+      entityType: "post",
+      id: options.entityId,
+    });
+
+    if (!entity) {
+      throw new Error(`Post not found: ${options.entityId}`);
+    }
+    if (entity.visibility !== "public") {
+      throw new Error(`Cannot publish non-public post: ${options.entityId}`);
+    }
+
+    const record = buildPostRecord(entity, {
+      ...(this.config.brainDid && { brainDid: this.config.brainDid }),
+      ...(this.config.anchorDid && { anchorDid: this.config.anchorDid }),
+      ...(options.topics && { topics: options.topics }),
+    });
+    const repo = this.config.repoDid;
+    const blueskyRecord = options.crossPostToBluesky
+      ? buildBlueskyPostRecord(record)
+      : undefined;
+
+    if (options.dryRun) {
+      return {
+        record,
+        dryRun: true,
+        ...(repo && { repo }),
+        ...(blueskyRecord && { bluesky: { record: blueskyRecord } }),
+      };
+    }
+
+    const appPassword = this.resolveAppPassword();
+    if (!this.config.identifier || !appPassword) {
+      throw new Error(
+        "AT Protocol publishing requires identifier and app password configuration",
+      );
+    }
+
+    const client = this.createPdsClient(appPassword);
+    const session = await client.createSession();
+    const targetRepo = repo ?? session.did;
+    const result = await client.createRecord({
+      repo: targetRepo,
+      collection: "ai.rizom.brain.post",
+      validate: true,
+      record,
+    });
+
+    const blueskyResult = blueskyRecord
+      ? await client.createRecord({
+          repo: targetRepo,
+          collection: "app.bsky.feed.post",
+          validate: true,
+          record: blueskyRecord,
+        })
+      : undefined;
+
+    return {
+      record,
+      repo: targetRepo,
+      uri: result.uri,
+      cid: result.cid,
+      dryRun: false,
+      ...(blueskyRecord && {
+        bluesky: {
+          record: blueskyRecord,
+          ...(blueskyResult && {
+            uri: blueskyResult.uri,
+            cid: blueskyResult.cid,
+          }),
+        },
+      }),
     };
   }
 

@@ -5,12 +5,24 @@ export {
   type AtprotoPluginDeps,
   type PublishBrainCardOptions,
   type PublishBrainCardResult,
+  type PublishPostOptions,
+  type PublishPostResult,
 } from "./plugin";
 export {
   atprotoConfigSchema,
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
+export {
+  buildBlueskyPostRecord,
+  type BlueskyExternalEmbed,
+  type BlueskyFeedPostRecord,
+} from "./bluesky-post";
+export {
+  buildPostRecord,
+  type BrainPostRecord,
+  type BuildPostRecordOptions,
+} from "./post-record";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
   buildDidWebDocument,
