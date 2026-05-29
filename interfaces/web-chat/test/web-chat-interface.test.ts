@@ -166,7 +166,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(8);
+    expect(routes).toHaveLength(9);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -203,6 +203,11 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[7]).toMatchObject({
+      path: "/api/chat/attachments/document",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[8]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
@@ -262,7 +267,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[7];
+    const route = plugin.getWebRoutes()[8];
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -412,6 +417,53 @@ describe("WebChatInterface", () => {
     expect(body).toContain("Weekly export");
     expect(body).toContain("/media/documents/report-1");
     expect(body).not.toContain("tool-input-available");
+  });
+
+  it("serves generated PDF document attachments to operators", async () => {
+    const plugin = operatorPlugin();
+    harness.addEntities([
+      {
+        id: "deck-carousel",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        metadata: {
+          filename: "deck-carousel.pdf",
+          mimeType: "application/pdf",
+        },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[7];
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/document?id=deck-carousel&download=1",
+      ),
+    );
+    const body = await response?.arrayBuffer();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("application/pdf");
+    expect(response?.headers.get("content-disposition")).toBe(
+      'attachment; filename="deck-carousel.pdf"',
+    );
+    expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("utf8")).toBe(
+      "%PDF-1.7",
+    );
+  });
+
+  it("rejects document attachment requests from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[7];
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/document?id=deck-carousel",
+      ),
+    );
+
+    expect(response?.status).toBe(401);
   });
 
   it("handles AI SDK approval responses through the chat endpoint", async () => {

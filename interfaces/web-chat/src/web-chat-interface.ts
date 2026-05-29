@@ -1878,6 +1878,36 @@ interface ActiveStream {
 
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
 
+function parsePdfDataUrl(
+  dataUrl: string,
+): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
+  const match = dataUrl.match(/^data:(application\/pdf);base64,(.+)$/i);
+  if (!match?.[1] || !match[2]) return null;
+  const buffer = Buffer.from(match[2], "base64");
+  const data = buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  );
+  return {
+    mimeType: "application/pdf",
+    data,
+  };
+}
+
+function getDocumentFilename(
+  metadata: Record<string, unknown> | null | undefined,
+  documentId: string,
+): string {
+  const filename = metadata?.["filename"];
+  return typeof filename === "string" && filename.length > 0
+    ? filename
+    : `${documentId}.pdf`;
+}
+
+function escapeHeaderValue(value: string): string {
+  return value.replace(/["\\\r\n]/g, "_");
+}
+
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
   resolveOperatorSession?: OperatorSessionResolver;
@@ -1974,6 +2004,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (request): Promise<Response> =>
           this.handleMessagesRequest(request),
+      },
+      {
+        path: "/api/chat/attachments/document",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleDocumentAttachmentRequest(request),
       },
       {
         path: uiAssetPath,
@@ -2245,6 +2282,43 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     } catch {
       return undefined;
     }
+  }
+
+  private async handleDocumentAttachmentRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const documentId = url.searchParams.get("id")?.trim();
+    if (!documentId) {
+      return new Response("Missing document id", { status: 400 });
+    }
+
+    const document = await this.getContext().entityService.getEntity({
+      entityType: "document",
+      id: documentId,
+    });
+    if (!document) {
+      return new Response("Document not found", { status: 404 });
+    }
+
+    const parsed = parsePdfDataUrl(document.content);
+    if (!parsed) {
+      return new Response("Document content is not a PDF", { status: 415 });
+    }
+
+    const filename = getDocumentFilename(document.metadata, documentId);
+    const headers = new Headers({
+      "Content-Type": parsed.mimeType,
+      "Content-Length": String(parsed.data.byteLength),
+      "Content-Disposition": `${
+        url.searchParams.has("download") ? "attachment" : "inline"
+      }; filename="${escapeHeaderValue(filename)}"`,
+    });
+    return new Response(parsed.data, { headers });
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {

@@ -138,13 +138,15 @@ contract:
 - optional `attachment.downloadUrl`, `previewUrl`, `filename`, `sizeBytes`
 - optional `attachment.source`: `{ entityType, entityId, attachmentType }`
 
-Remaining decision before renderer work:
+Existing PDF document generation now returns predicted attachment metadata for
+chat surfaces, and web-chat serves generated document entities through the
+operator-only `/api/chat/attachments/document?id=...` route. The React island
+renders `data-attachment` parts as previews / download links / generic file
+cards.
 
-- **Blob serving.** Prefer existing attachment/media provider contracts for
-  resolution and download routes rather than a new web-chat-only path.
-
-Next implementation step: the React island renders `data-attachment` parts as
-previews / download links / generic file cards.
+Remaining follow-up: document links are available immediately but only resolve
+after the asynchronous generation job stores the document entity. A later polish
+pass can add explicit pending/completed state updates for those queued artifacts.
 
 ### 3. Default landing route
 

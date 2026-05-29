@@ -1426,6 +1426,89 @@ describe("AgentService", () => {
       });
     });
 
+    it("should include attachment cards for document generation results", async () => {
+      mockAgentGenerateResult = {
+        text: "Queued PDF generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "document_generate",
+                toolCallId: "call1",
+                input: {
+                  sourceEntityType: "deck",
+                  sourceEntityId: "deck-1",
+                  attachmentType: "carousel",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "document_generate",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    jobId: "job-1",
+                    documentId: "deck-carousel",
+                    attachment: {
+                      mediaType: "application/pdf",
+                      url: "/api/chat/attachments/document?id=deck-carousel",
+                      downloadUrl:
+                        "/api/chat/attachments/document?id=deck-carousel&download=1",
+                      filename: "deck-carousel.pdf",
+                      source: {
+                        entityType: "document",
+                        entityId: "deck-carousel",
+                        attachmentType: "carousel",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 20, totalTokens: 70 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Generate a carousel PDF",
+        "test-conversation",
+      );
+
+      expect(response.cards).toEqual([
+        {
+          kind: "attachment",
+          id: "attachment:deck-carousel",
+          title: "deck-carousel.pdf",
+          description:
+            "PDF generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-carousel",
+            downloadUrl:
+              "/api/chat/attachments/document?id=deck-carousel&download=1",
+            filename: "deck-carousel.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-carousel",
+              attachmentType: "carousel",
+            },
+          },
+        },
+      ]);
+    });
+
     it("should return empty toolResults array when no tools are called", async () => {
       mockAgentGenerateResult = {
         text: "Hello! How can I help you?",

@@ -307,7 +307,10 @@ function getDedupKey(data: DocumentGenerationJobData): string {
   );
 }
 
-function getDocumentId(data: DocumentGenerationJobData, jobId: string): string {
+export function getDocumentId(
+  data: DocumentGenerationJobData,
+  jobId: string,
+): string {
   const base =
     data.documentId ??
     data.filename?.replace(/\.pdf$/i, "") ??
