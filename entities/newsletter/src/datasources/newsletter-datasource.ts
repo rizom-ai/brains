@@ -15,7 +15,9 @@ import {
 } from "../schemas/newsletter";
 
 const newsletterQuerySchema = baseQuerySchema.extend({
-  status: z.enum(["draft", "queued", "published", "failed"]).optional(),
+  status: z
+    .enum(["generating", "draft", "queued", "published", "failed"])
+    .optional(),
 });
 
 const newsletterInputSchema = baseInputSchema.extend({

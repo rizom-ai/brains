@@ -4,7 +4,13 @@ import { baseEntitySchema } from "@brains/plugins";
 /**
  * Deck status
  */
-export const deckStatusSchema = z.enum(["draft", "queued", "published"]);
+export const deckStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
 export type DeckStatus = z.infer<typeof deckStatusSchema>;
 
 export const publishedAtRequiredMessage =
@@ -58,6 +64,7 @@ export const deckMetadataSchema = deckFrontmatterSchema
   })
   .extend({
     slug: z.string(), // Required in metadata (auto-generated from title)
+    error: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (!isMissingPublishedAt(data)) return;

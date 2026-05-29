@@ -1,6 +1,11 @@
 import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { getErrorMessage, type z } from "@brains/utils";
+import {
+  getErrorMessage,
+  parseMarkdown,
+  updateFrontmatterField,
+  type z,
+} from "@brains/utils";
 import {
   PROGRESS_STEPS,
   JobResult,
@@ -34,6 +39,16 @@ export interface GenericCoverImageRequest {
 interface NormalizedGenericCoverImageRequest {
   generate: true;
   prompt?: string;
+}
+
+function getPreallocatedEntityId(data: unknown): string | undefined {
+  if (typeof data !== "object" || data === null || !("entityId" in data)) {
+    return undefined;
+  }
+  const entityId = data.entityId;
+  return typeof entityId === "string" && entityId.trim().length > 0
+    ? entityId.trim()
+    : undefined;
 }
 
 function normalizeGenericCoverImageRequest(
@@ -70,6 +85,32 @@ export interface GeneratedContent {
   resultExtras?: Record<string, unknown>;
   /** Options passed to createEntity */
   createOptions?: { deduplicateId?: boolean };
+}
+
+function preserveExistingReferenceFrontmatter(
+  existingContent: string,
+  generatedContent: string,
+): string {
+  let content = generatedContent;
+  try {
+    const existingFrontmatter = parseMarkdown(existingContent).frontmatter;
+    const generatedFrontmatter = parseMarkdown(generatedContent).frontmatter;
+    for (const field of ["coverImageId", "documents"]) {
+      if (
+        existingFrontmatter[field] !== undefined &&
+        generatedFrontmatter[field] === undefined
+      ) {
+        content = updateFrontmatterField(
+          content,
+          field,
+          existingFrontmatter[field],
+        );
+      }
+    }
+  } catch {
+    // If either side is not frontmatter markdown, keep generated content as-is.
+  }
+  return content;
 }
 
 /**
@@ -187,14 +228,20 @@ export abstract class BaseGenerationJobHandler<
     if (!parsed) return null;
 
     const coverImage = normalizeGenericCoverImageRequest(data);
-    if (!coverImage || typeof parsed !== "object") {
+    if (typeof parsed !== "object") {
       return parsed;
     }
 
-    return {
-      ...(parsed as Record<string, unknown>),
-      coverImage,
-    } as TInput;
+    const entityId = getPreallocatedEntityId(data);
+    if (!coverImage && !entityId) {
+      return parsed;
+    }
+
+    Object.assign(parsed, {
+      ...(coverImage && { coverImage }),
+      ...(entityId && { entityId }),
+    });
+    return parsed;
   }
 
   async process(
@@ -210,6 +257,10 @@ export abstract class BaseGenerationJobHandler<
 
       // Step 1: Generate content (subclass logic)
       const generated = await this.generate(data, progressReporter);
+      const preallocatedEntityId = getPreallocatedEntityId(data);
+      const generatedForSave = preallocatedEntityId
+        ? this.applyPreallocatedEntityId(preallocatedEntityId, generated)
+        : generated;
 
       // Step 2: Create entity
       await this.reportProgress(progressReporter, {
@@ -217,43 +268,49 @@ export abstract class BaseGenerationJobHandler<
         message: `Saving ${this.entityType} to database`,
       });
 
-      const result = await this.context.entityService.createEntity({
-        entity: {
-          id: generated.id,
-          entityType: this.entityType,
-          content: generated.content,
-          metadata: generated.metadata,
-        },
-        options: generated.createOptions,
-      });
+      const result = preallocatedEntityId
+        ? await this.updatePreallocatedStub(
+            preallocatedEntityId,
+            generatedForSave,
+          )
+        : await this.context.entityService.createEntity({
+            entity: {
+              id: generatedForSave.id,
+              entityType: this.entityType,
+              content: generatedForSave.content,
+              metadata: generatedForSave.metadata,
+            },
+            options: generatedForSave.createOptions,
+          });
 
       // Step 3: Post-creation hook
       await this.afterCreate(
         data,
         result.entityId,
         progressReporter,
-        generated,
+        generatedForSave,
       );
       await this.enqueueGenericCoverImageIfRequested(
         data,
         result.entityId,
         progressReporter,
-        generated,
+        generatedForSave,
       );
 
       // Step 4: Done
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.COMPLETE,
-        message: `${generated.title ?? this.entityType} created successfully`,
+        message: `${generatedForSave.title ?? this.entityType} created successfully`,
       });
 
       return {
         success: true,
         entityId: result.entityId,
-        ...generated.resultExtras,
+        ...generatedForSave.resultExtras,
       } as TResult;
     } catch (error) {
       if (error instanceof GenerationFailure) {
+        await this.markPreallocatedStubFailed(data, error.message);
         await this.onGenerationFailure(data, error.message);
         return { success: false, error: error.message } as TResult;
       }
@@ -265,8 +322,111 @@ export abstract class BaseGenerationJobHandler<
         data: this.summarizeDataForLog(data),
       });
 
+      await this.markPreallocatedStubFailed(data, errorMessage);
       await this.onGenerationFailure(data, errorMessage);
       return JobResult.failure(error) as TResult;
+    }
+  }
+
+  private applyPreallocatedEntityId(
+    entityId: string,
+    generated: GeneratedContent,
+  ): GeneratedContent {
+    const metadata = { ...generated.metadata };
+    let content = generated.content;
+    let resultExtras = generated.resultExtras;
+
+    if (typeof metadata["slug"] === "string") {
+      metadata["slug"] = entityId;
+      content = updateFrontmatterField(content, "slug", entityId);
+      resultExtras = { ...resultExtras, slug: entityId };
+    }
+
+    return {
+      ...generated,
+      id: entityId,
+      content,
+      metadata,
+      ...(resultExtras && { resultExtras }),
+    };
+  }
+
+  private async updatePreallocatedStub(
+    entityId: string,
+    generated: GeneratedContent,
+  ): Promise<{ entityId: string; jobId: string; skipped?: boolean }> {
+    const existing = await this.context.entityService.getEntity({
+      entityType: this.entityType,
+      id: entityId,
+      visibilityScope: "restricted",
+    });
+    if (!existing) {
+      throw new Error(
+        `Pre-allocated entity stub not found: ${this.entityType}/${entityId}`,
+      );
+    }
+
+    const content = preserveExistingReferenceFrontmatter(
+      existing.content,
+      generated.content,
+    );
+
+    const {
+      status: _existingStatus,
+      error: _existingError,
+      ...existingMetadata
+    } = existing.metadata;
+
+    return this.context.entityService.updateEntity({
+      entity: {
+        ...existing,
+        id: entityId,
+        entityType: this.entityType,
+        content,
+        metadata: {
+          ...existingMetadata,
+          ...generated.metadata,
+        },
+      },
+    });
+  }
+
+  private async markPreallocatedStubFailed(
+    data: TInput,
+    error: string,
+  ): Promise<void> {
+    const entityId = getPreallocatedEntityId(data);
+    if (!entityId) return;
+
+    try {
+      const existing = await this.context.entityService.getEntity({
+        entityType: this.entityType,
+        id: entityId,
+        visibilityScope: "restricted",
+      });
+      if (!existing) return;
+
+      await this.context.entityService.updateEntity({
+        entity: {
+          ...existing,
+          content: updateFrontmatterField(
+            updateFrontmatterField(existing.content, "status", "failed"),
+            "error",
+            error,
+          ),
+          metadata: {
+            ...existing.metadata,
+            status: "failed",
+            error,
+          },
+        },
+      });
+    } catch (failure) {
+      this.logger.warn("Failed to mark generation stub as failed", {
+        error: failure,
+        entityId,
+        entityType: this.entityType,
+      });
     }
   }
 

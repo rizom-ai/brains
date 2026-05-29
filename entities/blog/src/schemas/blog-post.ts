@@ -4,7 +4,13 @@ import { baseEntitySchema } from "@brains/plugins";
 /**
  * Blog post status
  */
-export const blogPostStatusSchema = z.enum(["draft", "queued", "published"]);
+export const blogPostStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
 export type BlogPostStatus = z.infer<typeof blogPostStatusSchema>;
 
 /**
@@ -46,6 +52,7 @@ export const blogPostMetadataSchema = blogPostFrontmatterSchema
   .extend({
     // slug is required in metadata (auto-generated from title if not in frontmatter)
     slug: z.string(),
+    error: z.string().optional(),
   });
 
 export type BlogPostMetadata = z.infer<typeof blogPostMetadataSchema>;

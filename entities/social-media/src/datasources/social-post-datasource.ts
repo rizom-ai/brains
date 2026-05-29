@@ -19,7 +19,9 @@ import {
 
 const socialPostQuerySchema = baseQuerySchema.extend({
   platform: z.enum(["linkedin"]).optional(),
-  status: z.enum(["draft", "queued", "published", "failed"]).optional(),
+  status: z
+    .enum(["generating", "draft", "queued", "published", "failed"])
+    .optional(),
   sortByQueue: z.boolean().optional(),
   nextInQueue: z.boolean().optional(),
 });
