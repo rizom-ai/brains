@@ -42,10 +42,10 @@ describe("publish_queue tool", () => {
       entityType,
       action,
       userPermissionLevel,
-    ) => {
+    ): void => {
       permissionChecks.push({ entityType, action, userPermissionLevel });
     };
-    shell.getPermissionService = () => permissionService;
+    shell.getPermissionService = (): PermissionService => permissionService;
     const context = createServicePluginContext(shell, "publish-pipeline");
     tool = createQueueTool(context, "publish-pipeline", queueManager);
   });

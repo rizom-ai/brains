@@ -74,7 +74,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
   describe("publish policy", () => {
     it("requires publish permission before direct publish", async () => {
-      mockShell.getPermissionService = () =>
+      mockShell.getPermissionService = (): PermissionService =>
         new PermissionService({
           entityActions: { "social-post": { publish: "anchor" } },
         });
