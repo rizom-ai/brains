@@ -121,20 +121,18 @@ states, rename, archive, and explicit delete are in place.
 
 ### 2. Outbound attachments / artifacts
 
-Next attachment priority is brain/tool → user artifacts: generated images,
-PDFs, exports, previews, and other downloadable results.
+Document attachments are shipped end to end: `AgentService` carries attachment
+metadata on results, `WebChatInterface` translates attachment-bearing
+message-interface events into AI SDK UI data parts, and the React island
+renders document previews / download links through `ai-elements/data-parts.tsx`.
 
-Two open decisions before implementation:
+Remaining:
 
-- **Protocol shape.** Do generated artifacts map cleanly to existing AI
-  Elements `artifact`/`tool`/`data` patterns, or do we need a small
-  Brain-specific `data-attachment` contract? Resolve before building renderers.
-- **Blob serving.** Prefer existing attachment/media provider contracts for
-  resolution and download routes rather than a new web-chat-only path.
-
-Once decided: `WebChatInterface` translates attachment-bearing message-interface
-events into AI SDK UI data parts; the React island renders previews / download
-links / generic file cards.
+- extend the same attachment-data-part path to generated images and other
+  durable artifact kinds (PDF non-document outputs, exports, previews) instead
+  of treating each artifact kind as a one-off renderer;
+- confirm download routes for new artifact kinds reuse the existing
+  attachment/media provider contracts rather than a web-chat-only blob path.
 
 ### 3. Default landing route
 

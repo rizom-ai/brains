@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>Last updated: 2026-05-24 — story arc: Rover stays standalone with a bundled web chat UI; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
+      <p>Last updated: 2026-05-29 — story arc: Rover stays standalone with a bundled web chat UI; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
     </div>
 
     <div class="legend">
@@ -548,6 +548,34 @@
           name: "PDF carousel + LinkedIn documents",
           status: "completed",
           desc: "Deck carousel rendering produces LinkedIn-safe PDFs; durable document entities attach to social-post.documents[] and publish through LinkedIn document APIs.",
+          date: "2026-05",
+        },
+        {
+          id: "queued_entity_stubs",
+          name: "Queued entity stubs",
+          status: "completed",
+          desc: "Prompt-based system_create persists an addressable stub with status: generating and returns its id immediately, so multi-turn follow-ups (e.g. 'now generate a cover image for that post') can reference the entity before the generation job completes. Stubs are excluded from semantic search by default; the base handler updates the stub in place on completion or marks it failed on error.",
+          date: "2026-05",
+        },
+        {
+          id: "publish_action_policy",
+          name: "Publish action policy",
+          status: "completed",
+          desc: "Entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows.",
+          date: "2026-05",
+        },
+        {
+          id: "structured_confirmations",
+          name: "Structured chat confirmations",
+          status: "completed",
+          desc: "Pending actions carry explicit approval ids and structured summary/preview cards; web-chat, chat-repl, and Discord render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path.",
+          date: "2026-05",
+        },
+        {
+          id: "web_chat_sessions",
+          name: "Web chat session management + attachments",
+          status: "completed",
+          desc: "The bundled /chat surface supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation. Document attachments stream through the chat transport as AI SDK UI data parts so saved PDF/document artifacts render inline with download affordances.",
           date: "2026-05",
         },
 

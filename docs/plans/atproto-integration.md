@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for Phase 1 planning. No AT Protocol package exists yet. The distribution/discovery direction has been revalidated against the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+In progress on `feat/atproto`. `plugins/atproto` exists on the feature branch with the plugin foundation, brain-card publishing, blog post records, and the first round of outbound-publishing hardening committed; nothing has merged to `main` yet. Phase 3+ (inbound ingestion, discovery, feeds, federation) remains future work. The distribution/discovery direction is still aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 

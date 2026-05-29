@@ -29,12 +29,13 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Unify build pipeline](./unify-build-pipeline.md) — proposed
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
+- [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
+- [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
 
 ### Content, sync, and generation
 
 - [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
 - [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
-- [Queued entity stubs](./queued-entity-stubs.md) — proposed; persist entity stubs on prompt-based `system_create` so multi-turn follow-ups have an id to reference
 
 ### Auth, users, CMS, and HTTP
 
@@ -57,6 +58,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — parked
+- [AT Protocol integration](./atproto-integration.md) — Phase 1–2 in progress on `feat/atproto`: plugin foundation, brain card publish, and blog post records landed on the feature branch
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
