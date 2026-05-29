@@ -87,15 +87,24 @@ export interface GeneratedContent {
   createOptions?: { deduplicateId?: boolean };
 }
 
+/**
+ * Copy reference-attachment fields the user wired into the stub during the
+ * "generating" window into the generated content, since the generator
+ * wasn't aware of them. Which fields qualify is declared by the entity
+ * adapter (`EntityAdapter.stubPreservedFields`) — the list lives next to
+ * the schema that defines those fields rather than here.
+ */
 function preserveExistingReferenceFrontmatter(
   existingContent: string,
   generatedContent: string,
+  preservedFields: readonly string[],
 ): string {
+  if (preservedFields.length === 0) return generatedContent;
   let content = generatedContent;
   try {
     const existingFrontmatter = parseMarkdown(existingContent).frontmatter;
     const generatedFrontmatter = parseMarkdown(generatedContent).frontmatter;
-    for (const field of ["coverImageId", "documents"]) {
+    for (const field of preservedFields) {
       if (
         existingFrontmatter[field] !== undefined &&
         generatedFrontmatter[field] === undefined
@@ -366,9 +375,13 @@ export abstract class BaseGenerationJobHandler<
       );
     }
 
+    const preservedFields =
+      this.context.entities.getAdapter(this.entityType)?.stubPreservedFields ??
+      [];
     const content = preserveExistingReferenceFrontmatter(
       existing.content,
       generated.content,
+      preservedFields,
     );
 
     const {

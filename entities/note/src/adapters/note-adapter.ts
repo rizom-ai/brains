@@ -39,8 +39,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
 
   public fromMarkdown(markdown: string): Partial<Note> {
     const frontmatter = this.parseMarkdownFrontmatter(markdown);
-    const title =
-      frontmatter.title ?? this.extractTitle(markdown) ?? "Untitled";
+    const title = frontmatter.title ?? this.extractH1(markdown) ?? "Untitled";
     return {
       content: markdown,
       entityType: "base",
@@ -63,6 +62,23 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
     } catch {
       return {};
     }
+  }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: NoteMetadata;
+  } {
+    const frontmatter: NoteFrontmatter = {
+      title: input.title,
+      status: "generating",
+    };
+    return {
+      content: this.buildMarkdown("", frontmatter),
+      metadata: {
+        title: input.title,
+        status: "generating",
+      },
+    };
   }
 
   /** Create note content, preserving existing structure.
@@ -88,22 +104,9 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
     }
   }
 
-  /**
-   * Extract title from markdown content
-   * Priority: frontmatter title > H1 heading > null
-   */
-  private extractTitle(markdown: string): string | null {
-    try {
-      const fm = this.parseFrontMatter(markdown, noteFrontmatterSchema);
-      if (fm.title) return fm.title;
-    } catch {
-      // No valid frontmatter
-    }
-
+  private extractH1(markdown: string): string | null {
     const h1Match = markdown.match(/^#\s+(.+)$/m);
-    if (h1Match?.[1]) return h1Match[1].trim();
-
-    return null;
+    return h1Match?.[1]?.trim() ?? null;
   }
 }
 

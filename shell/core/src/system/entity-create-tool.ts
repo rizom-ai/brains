@@ -7,7 +7,6 @@ import type {
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
-  generateMarkdownWithFrontmatter,
   hasVisibilityFrontmatter,
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
@@ -49,48 +48,18 @@ function buildCoverImagePrompt(
 
 function buildGenerationStubEntity(
   services: SystemServices,
-  input: Pick<CreateInput, "entityType" | "title" | "prompt"> & {
-    id: string;
-  },
+  input: { entityType: string; id: string; title: string },
 ): BaseEntity | undefined {
-  const frontmatterSchema =
-    services.entityRegistry.getEffectiveFrontmatterSchema(input.entityType);
   const adapter = services.entityRegistry.getAdapter(input.entityType);
-  const title = input.title ?? input.id;
+  if (!adapter.buildStub) return undefined;
+
+  const stub = adapter.buildStub({ id: input.id, title: input.title });
   const now = new Date().toISOString();
-
-  if (!frontmatterSchema) {
-    return undefined;
-  }
-
-  const shape = frontmatterSchema.shape;
-  const frontmatter: Record<string, unknown> = {};
-  if ("title" in shape) frontmatter["title"] = title;
-  if ("subject" in shape) frontmatter["subject"] = title;
-  if ("status" in shape) frontmatter["status"] = "generating";
-  if ("platform" in shape) frontmatter["platform"] = "linkedin";
-  if ("excerpt" in shape) frontmatter["excerpt"] = "";
-  if ("author" in shape) frontmatter["author"] = "AI";
-  if ("description" in shape) frontmatter["description"] = "";
-  if ("year" in shape) frontmatter["year"] = new Date().getUTCFullYear();
-
-  const parsed = frontmatterSchema.safeParse(frontmatter);
-  if (!parsed.success) {
-    return undefined;
-  }
-
-  const content = generateMarkdownWithFrontmatter("", parsed.data);
-  const parsedEntity = adapter.fromMarkdown(content);
-
   return {
     id: input.id,
     entityType: input.entityType,
-    content,
-    metadata: {
-      title,
-      ...(parsedEntity.metadata ?? {}),
-      status: "generating",
-    },
+    content: stub.content,
+    metadata: stub.metadata as Record<string, unknown>,
     visibility: "public",
     created: now,
     updated: now,
@@ -271,25 +240,51 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       }
 
       if (createInput.prompt) {
-        const entityId =
-          slugify(createInput.title ?? createInput.prompt).slice(0, 100) ||
-          `${createInput.entityType}-${Date.now()}`;
+        const proposedId = slugify(
+          createInput.title ?? createInput.prompt,
+        ).slice(0, 100);
+        if (!proposedId) {
+          return {
+            success: false,
+            error:
+              "Could not derive a slug from the provided title/prompt. Provide a 'title' with at least one URL-safe character.",
+          };
+        }
+        const stubTitle = createInput.title ?? proposedId;
         const stub = buildGenerationStubEntity(services, {
           entityType: createInput.entityType,
-          id: entityId,
-          prompt: createInput.prompt,
-          ...(createInput.title && { title: createInput.title }),
+          id: proposedId,
+          title: stubTitle,
         });
-        const jobEntityId = stub ? entityId : undefined;
+        if (!stub) {
+          return {
+            success: false,
+            error: `Entity type '${createInput.entityType}' does not support queued (prompt-based) creation. Provide 'content' instead.`,
+          };
+        }
+
+        let resolvedEntityId: string;
+        try {
+          const result = await entityService.createEntity({
+            entity: stub,
+            options: { deduplicateId: true },
+          });
+          resolvedEntityId = result.entityId;
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to persist generation stub",
+          };
+        }
 
         try {
-          if (stub) {
-            await entityService.createEntity({ entity: stub });
-          }
           const jobId = await jobs.enqueue({
             type: `${createInput.entityType}:generation`,
             data: {
-              ...(jobEntityId && { entityId: jobEntityId }),
+              entityId: resolvedEntityId,
               prompt: createInput.prompt,
               ...(createInput.title && { title: createInput.title }),
               ...(createInput.content && { content: createInput.content }),
@@ -306,7 +301,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           return {
             success: true,
             data: {
-              ...(jobEntityId && { entityId: jobEntityId }),
+              entityId: resolvedEntityId,
               status: "generating",
               jobId,
             },

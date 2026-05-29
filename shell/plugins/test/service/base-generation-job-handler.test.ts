@@ -4,7 +4,11 @@ import {
   createMockEntityPluginContext,
   createMockEntityService,
 } from "@brains/test-utils";
-import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityAdapter,
+  EntityMutationResult,
+} from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
 import { ProgressReporter } from "@brains/utils";
 import type { EntityPluginContext } from "../../src/entity/context";
@@ -12,6 +16,35 @@ import {
   BaseGenerationJobHandler,
   type GeneratedContent,
 } from "../../src/service/base-generation-job-handler";
+
+const baseTestSchema = z.object({
+  id: z.string(),
+  entityType: z.string(),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  visibility: z.enum(["public", "shared", "restricted"]),
+  metadata: z.record(z.string(), z.unknown()),
+  contentHash: z.string(),
+});
+
+function createTestAdapter(
+  stubPreservedFields: readonly string[],
+): EntityAdapter<BaseEntity> {
+  return {
+    entityType: "base",
+    schema: baseTestSchema,
+    stubPreservedFields,
+    toMarkdown: (entity) => entity.content,
+    fromMarkdown: () => ({}),
+    extractMetadata: (entity) => entity.metadata,
+    parseFrontMatter: (): never => {
+      throw new Error("not used in this test");
+    },
+    generateFrontMatter: () => "",
+    getBodyTemplate: () => "",
+  };
+}
 
 const testJobSchema = z.object({
   entityId: z.string().optional(),
@@ -81,8 +114,12 @@ function createTrackingContext(stub: BaseEntity): {
     return { entityId: request.entity.id, jobId: "job-id", skipped: false };
   };
 
+  const context = createMockEntityPluginContext({ entityService });
+  const adapter = createTestAdapter(["coverImageId"]);
+  context.entities.getAdapter = mock(() => adapter);
+
   return {
-    context: createMockEntityPluginContext({ entityService }),
+    context,
     getCreatedEntity: () => createdEntity,
     getUpdatedEntity: () => updatedEntity,
   };

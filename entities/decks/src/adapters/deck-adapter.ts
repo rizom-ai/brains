@@ -18,6 +18,8 @@ export class DeckAdapter extends BaseEntityAdapter<
   DeckMetadata,
   DeckFrontmatter
 > {
+  public readonly stubPreservedFields = ["coverImageId"] as const;
+
   constructor() {
     super({
       entityType: "deck",
@@ -114,6 +116,27 @@ export class DeckAdapter extends BaseEntityAdapter<
    */
   public override generateFrontMatter(entity: DeckEntity): string {
     return this.toMarkdown(entity);
+  }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: DeckMetadata;
+  } {
+    const frontmatter: DeckFrontmatter = {
+      title: input.title,
+      slug: input.id,
+      status: "generating",
+    };
+    return {
+      // Body needs at least one slide separator to satisfy validateSlideStructure
+      // when the stub is later re-serialized by toMarkdown.
+      content: this.buildMarkdown("---\n", frontmatter),
+      metadata: {
+        title: input.title,
+        slug: input.id,
+        status: "generating",
+      },
+    };
   }
 }
 

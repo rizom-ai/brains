@@ -328,6 +328,27 @@ export interface EntityAdapter<
 
   /** Optional: Extract coverImageId from entity content/frontmatter */
   getCoverImageId?(entity: TEntity): string | undefined;
+
+  /**
+   * Optional: build the markdown content and metadata for a queued-generation stub.
+   * When undefined, this entity type does not support prompt-based queued creation
+   * via system_create; the tool will reject the call rather than silently degrade.
+   * The returned metadata must satisfy this entity's metadata schema (with
+   * status set to "generating"); central code only stamps id/timestamps/visibility.
+   */
+  buildStub?(input: { id: string; title: string }): {
+    content: string;
+    metadata: TMetadata;
+  };
+
+  /**
+   * Optional: frontmatter fields that may be attached to the stub during the
+   * "generating" window (cover images, document attachments — references to
+   * other entities). These fields are preserved when the generation job
+   * overwrites the stub with final content, since the generator wasn't aware
+   * of attachments added after the stub was created.
+   */
+  stubPreservedFields?: readonly string[];
 }
 
 /**
@@ -511,10 +532,15 @@ export interface IEntitiesNamespace {
     config?: EntityTypeConfig,
   ): void;
 
-  /** Get the adapter for an entity type */
-  getAdapter<TEntity extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<TEntity> | undefined;
+  /**
+   * Get the adapter for an entity type.
+   *
+   * Returns the structural `EntityAdapter<BaseEntity>` view — namespace
+   * consumers don't narrow by entity type. For typed access tied to a
+   * specific `TEntity`, use the underlying `EntityRegistry.getAdapter<T>`
+   * directly (see `entity-serializer.ts`).
+   */
+  getAdapter(entityType: string): EntityAdapter<BaseEntity> | undefined;
 
   /** Extend an adapter's frontmatterSchema with additional fields */
   extendFrontmatterSchema(

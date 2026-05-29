@@ -35,6 +35,20 @@ export class NewsletterAdapter extends BaseEntityAdapter<
       metadata,
     };
   }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: NewsletterMetadata;
+  } {
+    const metadata: NewsletterMetadata = {
+      subject: input.title,
+      status: "generating",
+    };
+    return {
+      content: this.buildMarkdown("", metadata),
+      metadata,
+    };
+  }
 }
 
 export const newsletterAdapter = new NewsletterAdapter();

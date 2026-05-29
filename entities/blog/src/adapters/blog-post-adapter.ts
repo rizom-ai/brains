@@ -16,6 +16,8 @@ export class BlogPostAdapter extends BaseEntityAdapter<
   BlogPost,
   BlogPostMetadata
 > {
+  public readonly stubPreservedFields = ["coverImageId"] as const;
+
   constructor() {
     super({
       entityType: "post",
@@ -86,6 +88,27 @@ export class BlogPostAdapter extends BaseEntityAdapter<
     body: string,
   ): string {
     return this.buildMarkdown(body, frontmatter);
+  }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: BlogPostMetadata;
+  } {
+    const frontmatter: BlogPostFrontmatter = {
+      title: input.title,
+      slug: input.id,
+      status: "generating",
+      excerpt: "",
+      author: "AI",
+    };
+    return {
+      content: this.buildMarkdown("", frontmatter),
+      metadata: {
+        title: input.title,
+        slug: input.id,
+        status: "generating",
+      },
+    };
   }
 }
 

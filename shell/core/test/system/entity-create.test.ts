@@ -930,7 +930,6 @@ A saved research link.`;
     if (!enqueuedJob) throw new Error("No job was enqueued");
     const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
     expect(rawJobData).not.toHaveProperty("options");
-    expect(rawJobData).not.toHaveProperty("entityId");
     const jobData = enqueuedCreateJobSchema.parse(rawJobData);
     expect(jobData.targetEntityType).toBe("post");
   });

@@ -18,6 +18,8 @@ export class SocialPostAdapter extends BaseEntityAdapter<
   SocialPostMetadata,
   SocialPostFrontmatter
 > {
+  public readonly stubPreservedFields = ["coverImageId", "documents"] as const;
+
   constructor() {
     super({
       entityType: "social-post",
@@ -104,6 +106,27 @@ export class SocialPostAdapter extends BaseEntityAdapter<
     body: string,
   ): string {
     return this.buildMarkdown(body, frontmatter);
+  }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: SocialPostMetadata;
+  } {
+    const platform = "linkedin" as const;
+    const frontmatter: SocialPostFrontmatter = {
+      title: input.title,
+      platform,
+      status: "generating",
+    };
+    return {
+      content: this.buildMarkdown("", frontmatter),
+      metadata: {
+        title: input.title,
+        slug: `${platform}-${slugify(input.title)}`,
+        platform,
+        status: "generating",
+      },
+    };
   }
 }
 

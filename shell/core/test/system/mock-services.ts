@@ -57,6 +57,14 @@ export function createMockSystemServices(
   const parseFrontMatter = <T>(markdown: string, schema: z.ZodSchema<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
 
+  const buildStub = (input: {
+    id: string;
+    title: string;
+  }): { content: string; metadata: Record<string, unknown> } => ({
+    content: `---\ntitle: ${input.title}\nstatus: generating\n---\n`,
+    metadata: { title: input.title, status: "generating" },
+  });
+
   const entityRegistry = {
     getAdapter: (
       type: string,
@@ -66,6 +74,10 @@ export function createMockSystemServices(
       isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
       parseFrontMatter: <T>(markdown: string, schema: z.ZodSchema<T>) => T;
+      buildStub: (input: { id: string; title: string }) => {
+        content: string;
+        metadata: Record<string, unknown>;
+      };
     } => {
       const coverImageEntityTypes = new Set([
         "deck",
@@ -86,6 +98,7 @@ export function createMockSystemServices(
           hasBody: true,
           isSingleton: false,
           parseFrontMatter,
+          buildStub,
           fromMarkdown: (markdown: string): unknown => {
             const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
             if (!match) {
@@ -136,6 +149,7 @@ export function createMockSystemServices(
         hasBody: true,
         isSingleton: singletonEntityTypes.has(type),
         parseFrontMatter,
+        buildStub,
         fromMarkdown: (): unknown => ({}),
       };
     },

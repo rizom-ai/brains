@@ -29,11 +29,9 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     ): void => {
       entityRegistry.registerEntityType(entityType, schema, adapter, config);
     },
-    getAdapter: <T extends BaseEntity>(
-      entityType: string,
-    ): EntityAdapter<T> | undefined => {
+    getAdapter: (entityType: string): EntityAdapter<BaseEntity> | undefined => {
       try {
-        return entityRegistry.getAdapter<T>(entityType);
+        return entityRegistry.getAdapter(entityType);
       } catch {
         return undefined;
       }
