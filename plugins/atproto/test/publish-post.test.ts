@@ -6,6 +6,7 @@ import type { BlogPost } from "@brains/blog";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import {
   AtprotoPlugin,
+  AtprotoProjectionRegistry,
   atprotoPlugin,
   type AtprotoPdsClientLike,
 } from "../src";
@@ -256,6 +257,65 @@ describe("AT Protocol post publishing", () => {
         "Cannot publish non-public cover image",
       );
     }
+  });
+
+  it("publishes using the registered ATProto projection for the entity type", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const buildRecord = mock(async () => ({
+      $type: "ai.example.customPost",
+      title: "Custom projection",
+      body: "Custom body",
+      createdAt: "2026-05-28T10:00:00.000Z",
+      sourceEntityType: "post",
+      sourceEntityId: "post-123",
+    }));
+    registry.register({
+      entityType: "post",
+      collection: "ai.example.customPost",
+      validate: false,
+      buildRecord,
+    });
+    const createRecord = mock(async () => ({
+      uri: "at://repo/custom-post",
+      cid: "cid",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:session-repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord,
+        }),
+      },
+    );
+
+    const result = await plugin.publishPost(createContext(), {
+      entityId: "post-123",
+    });
+
+    expect(result.uri).toBe("at://repo/custom-post");
+    expect(buildRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: expect.objectContaining({ id: "post-123" }),
+        config: expect.objectContaining({ identifier: "brain.example.com" }),
+      }),
+    );
+    expect(createRecord).toHaveBeenCalledWith({
+      repo: "did:plc:session-repo",
+      collection: "ai.example.customPost",
+      validate: false,
+      record: result.record,
+    });
   });
 
   it("publishes a post record to the configured PDS repo", async () => {

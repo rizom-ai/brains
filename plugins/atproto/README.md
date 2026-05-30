@@ -11,6 +11,7 @@ This package currently covers the Phase 1 foundation plus the first outbound pub
 - brain card publishing as `ai.rizom.brain.card`
 - blog `post` entity projection to `ai.rizom.brain.post`
 - optional Bluesky summary cross-post as `app.bsky.feed.post`
+- projection registry so entity plugins can register ATProto mappers without centralizing every entity lexicon here
 
 ## Configuration
 
@@ -102,6 +103,29 @@ Notes:
 - The local `post` entity remains the source of truth.
 - Private posts are refused.
 - `crossPostToBluesky` also writes an `app.bsky.feed.post` summary with an external embed.
+
+## Projection registration
+
+Entity plugins should own their own ATProto projection definitions and register them with the shared registry:
+
+```ts
+import { AtprotoProjectionRegistry } from "@brains/atproto";
+
+AtprotoProjectionRegistry.getInstance().register({
+  entityType: "note",
+  collection: "ai.rizom.brain.note",
+  validate: false,
+  buildRecord: async ({ entity }) => ({
+    $type: "ai.rizom.brain.note",
+    body: entity.content,
+    sourceEntityType: entity.entityType,
+    sourceEntityId: entity.id,
+    createdAt: entity.created,
+  }),
+});
+```
+
+The built-in blog `post` projection remains prototype glue in this package until it moves to the blog entity package.
 
 ## Manual smoke checklist
 

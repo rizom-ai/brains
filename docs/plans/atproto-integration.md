@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented for the explicit blog-post path, including custom post records, Bluesky cross-posts, topic facets, external embeds, and cover-image embeds. The remaining Phase 1 production hardening item is outbound ATProto OAuth. The next Phase 2 architecture cleanup is replacing prototype-centralized blog post projection with an ATProto projection registration contract owned by entity plugins. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented for the explicit blog-post path, including custom post records, Bluesky cross-posts, topic facets, external embeds, and cover-image embeds. The remaining Phase 1 production hardening item is outbound ATProto OAuth. The Phase 2 projection registry contract exists so entity plugins can register ATProto mappers; the next cleanup is moving the prototype blog post projection out of the ATProto plugin and into the blog entity package. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -212,7 +212,7 @@ Still needed before production:
 4. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
 5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
 6. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata — text length, topic hashtag facets, external embeds, and cover-image embeds are implemented
-7. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize remaining entity lexicons (`note`, `link`, `deck`, `socialPost`) inside the ATProto plugin
+7. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize remaining entity lexicons (`note`, `link`, `deck`, `socialPost`) inside the ATProto plugin — registry contract implemented; moving `post` registration to the blog entity package remains
 8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers — mapper/blob/cross-post tests are implemented; provider override regression should be added with the projection registration/content-pipeline cleanup
 
 ### Phase 3: Inbound ingestion

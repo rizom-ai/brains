@@ -25,6 +25,12 @@ export {
   type BrainPostRecord,
   type BuildPostRecordOptions,
 } from "./post-record";
+export { createPostProjection } from "./post-projection";
+export {
+  AtprotoProjectionRegistry,
+  type AtprotoProjection,
+  type AtprotoProjectionBuildInput,
+} from "./projection-registry";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
   buildDidWebDocument,

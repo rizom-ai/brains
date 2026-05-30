@@ -1,11 +1,10 @@
 import type {
-  BaseEntity,
   ServicePluginContext,
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter, ServicePlugin } from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { ServicePlugin } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
@@ -23,20 +22,12 @@ import {
   type BlueskyFeedPostRecord,
 } from "./bluesky-post";
 import { buildDidWebDocument } from "./did";
-import {
-  buildPostRecord,
-  type BrainPostCoverImage,
-  type BrainPostRecord,
-} from "./post-record";
+import { type BrainPostRecord } from "./post-record";
+import { createPostProjection } from "./post-projection";
+import { AtprotoProjectionRegistry } from "./projection-registry";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
-
-const postCoverImageFrontmatterSchema = z
-  .object({
-    coverImageId: z.string().optional(),
-  })
-  .passthrough();
 
 export interface AtprotoPdsClientLike {
   createSession(): Promise<AtprotoSession>;
@@ -66,6 +57,7 @@ export interface AtprotoPluginDeps {
     identifier: string;
     appPassword: string;
   }) => AtprotoPdsClientLike;
+  projectionRegistry?: AtprotoProjectionRegistry;
 }
 
 export interface PublishBrainCardOptions {
@@ -103,10 +95,16 @@ export interface PublishPostResult {
 
 export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   private readonly deps: AtprotoPluginDeps;
+  private readonly projectionRegistry: AtprotoProjectionRegistry;
 
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
     this.deps = deps;
+    this.projectionRegistry =
+      deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
+    if (!this.projectionRegistry.has("post")) {
+      this.projectionRegistry.register(createPostProjection());
+    }
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -202,14 +200,19 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       throw new Error(`Cannot publish non-public post: ${identifier}`);
     }
 
-    const record = buildPostRecord(entity, {
-      ...(this.config.brainDid && { brainDid: this.config.brainDid }),
-      ...(this.config.anchorDid && { anchorDid: this.config.anchorDid }),
-      ...(options.topics && { topics: options.topics }),
-    });
+    const projection = this.projectionRegistry.get("post");
+    if (!projection) {
+      throw new Error("No AT Protocol projection registered for post");
+    }
     const repo = this.config.repoDid;
 
     if (options.dryRun) {
+      const record = (await projection.buildRecord({
+        entity,
+        context,
+        config: this.config,
+        ...(options.topics && { topics: options.topics }),
+      })) as BrainPostRecord;
       const dryRunBlueskyRecord = options.crossPostToBluesky
         ? buildBlueskyPostRecord(record)
         : undefined;
@@ -233,17 +236,22 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     const client = this.createPdsClient(appPassword);
     const session = await client.createSession();
     const targetRepo = repo ?? session.did;
-    const coverImage = await this.uploadPostCoverImage(context, entity, client);
-    if (coverImage) {
-      record.coverImage = coverImage;
-    }
+    const record = (await projection.buildRecord({
+      entity,
+      context,
+      config: this.config,
+      client,
+      ...(options.topics && { topics: options.topics }),
+    })) as BrainPostRecord;
     const blueskyRecord = options.crossPostToBluesky
       ? buildBlueskyPostRecord(record)
       : undefined;
     const result = await client.createRecord({
       repo: targetRepo,
-      collection: "ai.rizom.brain.post",
-      validate: false,
+      collection: projection.collection,
+      ...(projection.validate !== undefined && {
+        validate: projection.validate,
+      }),
       record,
     });
 
@@ -302,62 +310,6 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
 - Use \`atproto_publish_post\` to publish a public blog post by \`entityId\` or \`slug\`.
 - Prefer \`dryRun: true\` first when publishing new AT Protocol records.
 - Only public posts and public cover images can be published.`;
-  }
-
-  private async uploadPostCoverImage(
-    context: ServicePluginContext,
-    entity: BaseEntity,
-    client: AtprotoPdsClientLike,
-  ): Promise<BrainPostCoverImage | undefined> {
-    const frontmatter = parseMarkdownWithFrontmatter(
-      entity.content,
-      postCoverImageFrontmatterSchema,
-    ).metadata;
-    if (!frontmatter.coverImageId) return undefined;
-    if (!client.uploadBlob) {
-      throw new Error("AT Protocol PDS client does not support blob uploads");
-    }
-
-    const image = await context.entityService.getEntity({
-      entityType: "image",
-      id: frontmatter.coverImageId,
-    });
-    if (!image) return undefined;
-    if (image.visibility !== "public") {
-      throw new Error(`Cannot publish non-public cover image: ${image.id}`);
-    }
-
-    const uploadInput = this.dataUrlToUploadInput(image.content);
-    const uploaded = await client.uploadBlob(uploadInput);
-    const metadata = image.metadata;
-    const alt =
-      typeof metadata["alt"] === "string" ? metadata["alt"] : undefined;
-    const width =
-      typeof metadata["width"] === "number" ? metadata["width"] : undefined;
-    const height =
-      typeof metadata["height"] === "number" ? metadata["height"] : undefined;
-
-    return {
-      blob: uploaded.blob,
-      ...(alt && { alt }),
-      ...(width !== undefined && { width }),
-      ...(height !== undefined && { height }),
-    };
-  }
-
-  private dataUrlToUploadInput(dataUrl: string): {
-    data: Buffer;
-    mimeType: string;
-  } {
-    const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
-    if (!match?.[1] || !match[2]) {
-      throw new Error("Cover image must be a base64 data URL");
-    }
-
-    return {
-      data: Buffer.from(match[2], "base64"),
-      mimeType: match[1],
-    };
   }
 
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {
