@@ -70,6 +70,29 @@ class BodyOnlyGenerationHandler extends BaseGenerationJobHandler<
   }
 }
 
+class ConflictGenerationHandler extends BaseGenerationJobHandler<
+  TestJobData,
+  GenerationResult
+> {
+  constructor(context: EntityPluginContext) {
+    super(context.logger, context, {
+      schema: testJobSchema,
+      jobTypeName: "conflict-generation",
+      entityType: "base",
+    });
+  }
+
+  protected async generate(): Promise<GeneratedContent> {
+    return {
+      id: "generated-id",
+      content:
+        "---\ncategory: generated-category\nstatus: draft\n---\nGenerated body",
+      metadata: { title: "Generated", status: "draft" },
+      title: "Generated",
+    };
+  }
+}
+
 function createProgressReporter(): ProgressReporter {
   const reporter = ProgressReporter.from(mock(() => Promise.resolve()));
   if (!reporter) throw new Error("Expected progress reporter");
@@ -206,6 +229,58 @@ describe("BaseGenerationJobHandler", () => {
     expect(updatedEntity?.content).toContain("customAttached: custom-1");
     expect(updatedEntity?.content).not.toContain("status:");
     expect(updatedEntity?.content).toContain("Generated body");
+  });
+
+  it("lets generated content frontmatter win over stub frontmatter on conflict", async () => {
+    const stub = createStub({
+      content:
+        "---\ntitle: Stub\nstatus: generating\ncategory: stub-category\n---\n",
+      metadata: {
+        title: "Stub",
+        status: "generating",
+        category: "stub-category",
+      },
+    });
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    const handler = new ConflictGenerationHandler(context);
+
+    await handler.process(
+      { entityId: "stub-id" },
+      "job-1",
+      createProgressReporter(),
+    );
+
+    const updatedEntity = getUpdatedEntity();
+    expect(updatedEntity?.content).toContain("category: generated-category");
+    expect(updatedEntity?.content).not.toContain("category: stub-category");
+  });
+
+  it("rejects the merge when a required frontmatter field is missing", async () => {
+    const stub = createStub();
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    // Effective schema requires `status`; the body-only generator emits none,
+    // and the stub's `status` is stripped as a lifecycle field — so the merge
+    // must fail validation rather than silently saving an invalid entity.
+    const requiredStatusSchema = z.object({
+      title: z.string(),
+      status: z.string(),
+    });
+    context.entities.getEffectiveFrontmatterSchema = mock(
+      () => requiredStatusSchema,
+    );
+    const handler = new BodyOnlyGenerationHandler(context);
+
+    const result = await handler.process(
+      { entityId: "stub-id" },
+      "job-1",
+      createProgressReporter(),
+    );
+
+    expect(result.success).toBe(false);
+    // The guard fired before the draft save: the stub was marked failed, not
+    // flipped to draft.
+    const updatedEntity = getUpdatedEntity();
+    expect(updatedEntity?.metadata["status"]).toBe("failed");
   });
 
   it("marks a pre-allocated stub failed on controlled generation failure", async () => {

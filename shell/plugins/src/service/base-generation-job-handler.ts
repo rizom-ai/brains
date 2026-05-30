@@ -393,6 +393,10 @@ export abstract class BaseGenerationJobHandler<
     });
     const frontmatterSchema =
       this.context.entities.getEffectiveFrontmatterSchema(this.entityType);
+    // Validate only — do NOT serialize the parsed result. A default z.object
+    // strips unknown keys, which would drop the preserved attachment fields
+    // (coverImageId, documents, future user-attached fields) that this merge
+    // exists to keep. Serialize the un-parsed mergedFrontmatter below.
     frontmatterSchema?.parse(mergedFrontmatter);
 
     return {
