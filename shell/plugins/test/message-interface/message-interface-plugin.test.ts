@@ -80,6 +80,14 @@ class TestMessageInterface extends MessageInterfacePlugin<{
   ): string {
     return this.formatFileUploadMessage(filename, content);
   }
+
+  public testGetMaxFileUploadBytes(): number {
+    return this.getMaxFileUploadBytes();
+  }
+
+  public testIsLikelyTextContent(bytes: Uint8Array): boolean {
+    return this.isLikelyTextContent(bytes);
+  }
 }
 
 function createProgressEvent(
@@ -600,6 +608,41 @@ describe("MessageInterfacePlugin - file upload utilities", () => {
         "content",
       );
       expect(result).toContain("my-doc.txt");
+    });
+  });
+
+  describe("getMaxFileUploadBytes", () => {
+    it("should expose the shared 100KB upload limit", () => {
+      expect(plugin.testGetMaxFileUploadBytes()).toBe(100_000);
+    });
+  });
+
+  describe("isLikelyTextContent", () => {
+    it("should accept UTF-8 text", () => {
+      expect(
+        plugin.testIsLikelyTextContent(
+          new TextEncoder().encode("# Notes\n\nplain text — émojis ✅"),
+        ),
+      ).toBe(true);
+    });
+
+    it("should accept an empty buffer", () => {
+      expect(plugin.testIsLikelyTextContent(new Uint8Array())).toBe(true);
+    });
+
+    it("should reject content containing NUL bytes", () => {
+      expect(
+        plugin.testIsLikelyTextContent(
+          new Uint8Array([0x68, 0x69, 0x00, 0x21]),
+        ),
+      ).toBe(false);
+    });
+
+    it("should reject invalid UTF-8 byte sequences", () => {
+      // 0xff is never a valid UTF-8 lead byte
+      expect(
+        plugin.testIsLikelyTextContent(new Uint8Array([0xff, 0xfe, 0xfd])),
+      ).toBe(false);
     });
   });
 });
