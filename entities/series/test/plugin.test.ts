@@ -193,6 +193,50 @@ describe("SeriesPlugin", () => {
       });
       expect(series).toBeNull();
     });
+
+    it("should ensure new series and orphan-clean the previous one on a move", async () => {
+      const { handlers } = useMockJobQueue();
+      const plugin = new SeriesPlugin();
+      await harness.installPlugin(plugin);
+
+      // The post now lives in "New Series"; "Old Series" has no members left.
+      harness.addEntities([
+        {
+          id: "post-1",
+          entityType: "post",
+          content: "# Post 1",
+          metadata: { title: "Post 1", seriesName: "New Series" },
+        },
+        {
+          id: "old-series",
+          entityType: "series",
+          content: "# Old Series",
+          metadata: { title: "Old Series", slug: "old-series" },
+        },
+      ]);
+
+      const handler = handlers.get("series:project");
+      if (!handler) throw new Error("series projection handler not registered");
+      await processSeriesProjection(handler, {
+        mode: "source",
+        entityId: "post-1",
+        entityType: "post",
+        seriesName: "New Series",
+        previousSeriesName: "Old Series",
+      });
+
+      const entityService = harness.getEntityService();
+      const newSeries = await entityService.getEntity({
+        entityType: "series",
+        id: "new-series",
+      });
+      const oldSeries = await entityService.getEntity({
+        entityType: "series",
+        id: "old-series",
+      });
+      expect(newSeries).not.toBeNull();
+      expect(oldSeries).toBeNull();
+    });
   });
 
   describe("event subscriptions", () => {
@@ -344,6 +388,79 @@ describe("SeriesPlugin", () => {
         },
         options: expect.objectContaining({
           deduplicationKey: "series-source:post:post-removed",
+        }),
+      });
+    });
+
+    it("should carry previousSeriesName when an update moves between series", async () => {
+      const { enqueue } = useMockJobQueue();
+      const plugin = new SeriesPlugin();
+      await harness.installPlugin(plugin);
+      await harness.sendMessage("sync:initial:completed", { success: true });
+      enqueue.mockClear();
+
+      await harness.sendMessage("entity:updated", {
+        entityType: "post",
+        entityId: "post-moved",
+        entity: {
+          id: "post-moved",
+          entityType: "post",
+          content: "# Post",
+          contentHash: "new",
+          metadata: { title: "Moved", seriesName: "New Series" },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        },
+        previousMetadata: { title: "Moved", seriesName: "Old Series" },
+      });
+
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: {
+          mode: "source",
+          entityId: "post-moved",
+          entityType: "post",
+          seriesName: "New Series",
+          previousSeriesName: "Old Series",
+        },
+        options: expect.objectContaining({
+          deduplicationKey: "series-source:post:post-moved",
+        }),
+      });
+    });
+
+    it("should queue cleanup-only when an update clears seriesName", async () => {
+      const { enqueue } = useMockJobQueue();
+      const plugin = new SeriesPlugin();
+      await harness.installPlugin(plugin);
+      await harness.sendMessage("sync:initial:completed", { success: true });
+      enqueue.mockClear();
+
+      await harness.sendMessage("entity:updated", {
+        entityType: "post",
+        entityId: "post-cleared",
+        entity: {
+          id: "post-cleared",
+          entityType: "post",
+          content: "# Post",
+          contentHash: "new",
+          metadata: { title: "Cleared" },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        },
+        previousMetadata: { title: "Cleared", seriesName: "Abandoned" },
+      });
+
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: {
+          mode: "source",
+          entityId: "post-cleared",
+          entityType: "post",
+          previousSeriesName: "Abandoned",
+        },
+        options: expect.objectContaining({
+          deduplicationKey: "series-source:post:post-cleared",
         }),
       });
     });

@@ -281,6 +281,10 @@ export class EntityMutations {
       validatedEntity.entityType,
       validatedEntity.id,
       validatedEntity,
+      // Prior metadata lets projections (e.g. series) reconcile a moved value
+      // such as a changed `seriesName` without a full resync. Already loaded
+      // above for the no-op check, so this adds no extra read.
+      existingEntity?.metadata,
     );
 
     return this.enqueueEmbeddingJob({
@@ -433,6 +437,7 @@ export class EntityMutations {
     entityType: string,
     entityId: string,
     entity?: BaseEntity,
+    previousMetadata?: BaseEntity["metadata"],
   ): Promise<void> {
     if (!this.messageBus) {
       return;
@@ -443,6 +448,9 @@ export class EntityMutations {
     const payload: Record<string, unknown> = { entityType, entityId };
     if (entity) {
       payload["entity"] = entity;
+    }
+    if (previousMetadata) {
+      payload["previousMetadata"] = previousMetadata;
     }
 
     await this.messageBus.send({
