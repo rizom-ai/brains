@@ -46,39 +46,41 @@ export async function buildConversationMemoryAgentContext(
   }
 
   const retriever = new ConversationMemoryRetriever(context);
-  const [matched, recent] = await Promise.all([
-    retriever.retrieve({
-      query: request.message,
-      conversationId: request.conversationId,
-      interfaceType: request.interfaceType,
-      channelId: request.channelId,
-      limit: DEFAULT_AGENT_CONTEXT_LIMIT,
-      visibilityScope,
-    }),
-    retriever.retrieve({
-      conversationId: request.conversationId,
-      interfaceType: request.interfaceType,
-      channelId: request.channelId,
-      limit: RECENT_AGENT_CONTEXT_LIMIT,
-      visibilityScope,
-    }),
-  ]);
-  const merged = mergeMemoryResults(matched.results, recent.results);
+  const matched = await retriever.retrieve({
+    query: request.message,
+    conversationId: request.conversationId,
+    interfaceType: request.interfaceType,
+    channelId: request.channelId,
+    limit: DEFAULT_AGENT_CONTEXT_LIMIT,
+    visibilityScope,
+  });
+
+  // Fall back to recent same-space memory only when the query matched nothing,
+  // so a relevant turn still gets grounding without doubling retrieval work or
+  // injecting unrelated recent memory alongside good matches on every turn.
+  const recent =
+    matched.results.length === 0
+      ? await retriever.retrieve({
+          conversationId: request.conversationId,
+          interfaceType: request.interfaceType,
+          channelId: request.channelId,
+          limit: RECENT_AGENT_CONTEXT_LIMIT,
+          visibilityScope,
+        })
+      : undefined;
+
+  const fromQueryMatch = matched.results.length > 0;
+  const results = fromQueryMatch ? matched.results : (recent?.results ?? []);
 
   logAgentContextAudit(context, request, {
     visibilityScope,
-    spaceId: matched.spaceId ?? recent.spaceId,
-    reason: merged.length > 0 ? "memory-injected" : "no-same-space-memory",
-    items: merged.map((memory) =>
-      toAuditItem(
-        memory,
-        matched.results.some((item) => item.id === memory.id),
-      ),
-    ),
+    spaceId: matched.spaceId ?? recent?.spaceId,
+    reason: results.length > 0 ? "memory-injected" : "no-same-space-memory",
+    items: results.map((memory) => toAuditItem(memory, fromQueryMatch)),
   });
 
   return {
-    items: merged.map(toAgentContextItem),
+    items: results.map(toAgentContextItem),
   };
 }
 
@@ -131,22 +133,6 @@ function toAuditItem(
       ? "same-space-query-match"
       : "recent-same-space-memory",
   };
-}
-
-function mergeMemoryResults(
-  matched: RetrievedConversationMemory[],
-  recent: RetrievedConversationMemory[],
-): RetrievedConversationMemory[] {
-  const seen = new Set<string>();
-  const merged: RetrievedConversationMemory[] = [];
-
-  for (const memory of [...matched, ...recent]) {
-    if (seen.has(memory.id)) continue;
-    seen.add(memory.id);
-    merged.push(memory);
-  }
-
-  return merged;
 }
 
 function toAgentContextItem(

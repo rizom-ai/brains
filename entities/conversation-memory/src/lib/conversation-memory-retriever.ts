@@ -21,6 +21,8 @@ const MEMORY_ENTITY_TYPES = [
   ACTION_ITEM_ENTITY_TYPE,
 ];
 const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
+const MAX_SUMMARY_CONTEXT_ENTRIES = 3;
+const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
 const summaryAdapter = new SummaryAdapter();
 
 type ConversationMemorySearchEntity =
@@ -95,6 +97,7 @@ export class ConversationMemoryRetriever {
       })
       .filter((candidate) => this.matchesIdentity(candidate.entity, input));
 
+    const seen = new Set<string>();
     const ranked = scopedCandidates
       .sort((left, right) => {
         const leftSameSpace = spaceId
@@ -108,6 +111,11 @@ export class ConversationMemoryRetriever {
         return (
           Date.parse(right.entity.updated) - Date.parse(left.entity.updated)
         );
+      })
+      .filter((candidate) => {
+        if (seen.has(candidate.entity.id)) return false;
+        seen.add(candidate.entity.id);
+        return true;
       })
       .slice(0, limit)
       .map((candidate) => this.toMemory(candidate));
@@ -257,12 +265,14 @@ export class ConversationMemoryRetriever {
 
     const entries = summaryAdapter.parseBody(entity.content).entries;
     const content = entries
-      .slice(0, 3)
+      .slice(0, MAX_SUMMARY_CONTEXT_ENTRIES)
       .map((entry) => {
         const lines = [entry.title, entry.summary.trim()];
         if (entry.keyPoints.length > 0) {
           lines.push(
-            ...entry.keyPoints.slice(0, 5).map((point) => `- ${point}`),
+            ...entry.keyPoints
+              .slice(0, MAX_SUMMARY_CONTEXT_KEY_POINTS)
+              .map((point) => `- ${point}`),
           );
         }
         return lines.join("\n");
@@ -276,7 +286,12 @@ export class ConversationMemoryRetriever {
 
   private truncateContent(content: string): string {
     if (content.length <= MAX_AGENT_CONTEXT_CONTENT_LENGTH) return content;
-    return `${content.slice(0, MAX_AGENT_CONTEXT_CONTENT_LENGTH - 1).trimEnd()}…`;
+    const slice = content.slice(0, MAX_AGENT_CONTEXT_CONTENT_LENGTH - 1);
+    // Break at the last whitespace so we never cut a word mid-token; fall back
+    // to a hard cut only when a single token exceeds the limit.
+    const lastBreak = slice.search(/\s\S*$/);
+    const truncated = lastBreak > 0 ? slice.slice(0, lastBreak) : slice;
+    return `${truncated.trimEnd()}…`;
   }
 
   private isSummaryEntity(
