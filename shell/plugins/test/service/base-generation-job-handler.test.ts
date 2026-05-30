@@ -4,11 +4,7 @@ import {
   createMockEntityPluginContext,
   createMockEntityService,
 } from "@brains/test-utils";
-import type {
-  BaseEntity,
-  EntityAdapter,
-  EntityMutationResult,
-} from "@brains/entity-service";
+import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
 import { ProgressReporter } from "@brains/utils";
 import type { EntityPluginContext } from "../../src/entity/context";
@@ -16,35 +12,6 @@ import {
   BaseGenerationJobHandler,
   type GeneratedContent,
 } from "../../src/service/base-generation-job-handler";
-
-const baseTestSchema = z.object({
-  id: z.string(),
-  entityType: z.string(),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: z.enum(["public", "shared", "restricted"]),
-  metadata: z.record(z.string(), z.unknown()),
-  contentHash: z.string(),
-});
-
-function createTestAdapter(
-  stubPreservedFields: readonly string[],
-): EntityAdapter<BaseEntity> {
-  return {
-    entityType: "base",
-    schema: baseTestSchema,
-    stubPreservedFields,
-    toMarkdown: (entity) => entity.content,
-    fromMarkdown: () => ({}),
-    extractMetadata: (entity) => entity.metadata,
-    parseFrontMatter: (): never => {
-      throw new Error("not used in this test");
-    },
-    generateFrontMatter: () => "",
-    getBodyTemplate: () => "",
-  };
-}
 
 const testJobSchema = z.object({
   entityId: z.string().optional(),
@@ -77,6 +44,28 @@ class TestGenerationHandler extends BaseGenerationJobHandler<
       metadata: { title: "Generated", slug: "generated-id", status: "draft" },
       title: "Generated",
       resultExtras: { slug: "generated-id" },
+    };
+  }
+}
+
+class BodyOnlyGenerationHandler extends BaseGenerationJobHandler<
+  TestJobData,
+  GenerationResult
+> {
+  constructor(context: EntityPluginContext) {
+    super(context.logger, context, {
+      schema: testJobSchema,
+      jobTypeName: "body-only-generation",
+      entityType: "base",
+    });
+  }
+
+  protected async generate(): Promise<GeneratedContent> {
+    return {
+      id: "generated-id",
+      content: "Generated body",
+      metadata: { title: "Generated Body Only" },
+      title: "Generated Body Only",
     };
   }
 }
@@ -115,8 +104,6 @@ function createTrackingContext(stub: BaseEntity): {
   };
 
   const context = createMockEntityPluginContext({ entityService });
-  const adapter = createTestAdapter(["coverImageId"]);
-  context.entities.getAdapter = mock(() => adapter);
 
   return {
     context,
@@ -131,12 +118,16 @@ function createStub(overrides: Partial<BaseEntity> = {}): BaseEntity {
     id: "stub-id",
     entityType: "base",
     content:
-      "---\ntitle: Stub\nstatus: generating\ncoverImageId: cover-1\n---\n",
+      "---\ntitle: Stub\nstatus: generating\ncoverImageId: cover-1\ncustomAttached: custom-1\n---\n",
     contentHash: "stub-hash",
     visibility: "public",
     created: now,
     updated: now,
-    metadata: { title: "Stub", status: "generating" },
+    metadata: {
+      title: "Stub",
+      status: "generating",
+      customAttached: "custom-1",
+    },
     ...overrides,
   };
 }
@@ -164,8 +155,57 @@ describe("BaseGenerationJobHandler", () => {
     expect(updatedEntity?.id).toBe("stub-id");
     expect(updatedEntity?.metadata["status"]).toBe("draft");
     expect(updatedEntity?.metadata["slug"]).toBe("stub-id");
+    expect(updatedEntity?.metadata["customAttached"]).toBe("custom-1");
     expect(updatedEntity?.content).toContain("slug: stub-id");
     expect(updatedEntity?.content).toContain("coverImageId: cover-1");
+    expect(updatedEntity?.content).toContain("customAttached: custom-1");
+  });
+
+  it("clears failed-stub lifecycle fields after successful generation", async () => {
+    const stub = createStub({
+      content:
+        "---\ntitle: Stub\nstatus: failed\nerror: Previous failure\ncoverImageId: cover-1\n---\n",
+      metadata: {
+        title: "Stub",
+        status: "failed",
+        error: "Previous failure",
+      },
+    });
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    const handler = new TestGenerationHandler(context);
+
+    await handler.process(
+      { entityId: "stub-id" },
+      "job-1",
+      createProgressReporter(),
+    );
+
+    const updatedEntity = getUpdatedEntity();
+    expect(updatedEntity?.metadata["status"]).toBe("draft");
+    expect(updatedEntity?.metadata["error"]).toBeUndefined();
+    expect(updatedEntity?.content).toContain("status: draft");
+    expect(updatedEntity?.content).not.toContain("error:");
+  });
+
+  it("applies metadata to frontmatter when generated content has no frontmatter", async () => {
+    const stub = createStub();
+    const { context, getUpdatedEntity } = createTrackingContext(stub);
+    const handler = new BodyOnlyGenerationHandler(context);
+
+    await handler.process(
+      { entityId: "stub-id" },
+      "job-1",
+      createProgressReporter(),
+    );
+
+    const updatedEntity = getUpdatedEntity();
+    expect(updatedEntity?.metadata["title"]).toBe("Generated Body Only");
+    expect(updatedEntity?.metadata["status"]).toBeUndefined();
+    expect(updatedEntity?.content).toContain("title: Generated Body Only");
+    expect(updatedEntity?.content).toContain("coverImageId: cover-1");
+    expect(updatedEntity?.content).toContain("customAttached: custom-1");
+    expect(updatedEntity?.content).not.toContain("status:");
+    expect(updatedEntity?.content).toContain("Generated body");
   });
 
   it("marks a pre-allocated stub failed on controlled generation failure", async () => {

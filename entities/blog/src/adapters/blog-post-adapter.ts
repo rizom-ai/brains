@@ -16,8 +16,6 @@ export class BlogPostAdapter extends BaseEntityAdapter<
   BlogPost,
   BlogPostMetadata
 > {
-  public readonly stubPreservedFields = ["coverImageId"] as const;
-
   constructor() {
     super({
       entityType: "post",

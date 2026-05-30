@@ -340,15 +340,6 @@ export interface EntityAdapter<
     content: string;
     metadata: TMetadata;
   };
-
-  /**
-   * Optional: frontmatter fields that may be attached to the stub during the
-   * "generating" window (cover images, document attachments — references to
-   * other entities). These fields are preserved when the generation job
-   * overwrites the stub with final content, since the generator wasn't aware
-   * of attachments added after the stub was created.
-   */
-  stubPreservedFields?: readonly string[];
 }
 
 /**

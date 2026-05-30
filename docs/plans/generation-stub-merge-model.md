@@ -40,16 +40,20 @@ Replace overwrite-minus-exceptions with a partial-update model: the generation h
 The stub completion path becomes a structural merge between the existing stub and the generator's output:
 
 - **Body**: the generator's body wins (it's why generation ran).
-- **Frontmatter / metadata**: union of stub's existing fields and generator's emitted fields, with the generator winning on conflict.
+- **Frontmatter**: start with the existing stub frontmatter, patch in the generator's `metadata`, then patch in frontmatter parsed from the generator's `content`; later sources win on conflict.
+- **Metadata**: start with the existing stub metadata, then patch in the generator's `metadata`; the generator wins on conflict.
 
-The generator declares which fields it owns by emitting them. Fields the generator doesn't emit are preserved. Reference attachments (cover image, documents) and any future user-attached fields fall through automatically. The status flip from `"generating"` to `"draft"` (or the entity-specific final state) happens because the generator's metadata includes a status; not because the central handler drops the stub's status. The `error` field clears on success because the generator emits no `error` and the stub's existing `error` is, by symmetry, also dropped — meaning the merge rule needs one explicit nuance: **fields that exist only because the stub is in a failed/transient state should not survive a successful regeneration.**
+The explicit `metadata` patch is applied to frontmatter so handlers that emit body-only markdown (notably notes) still keep stored markdown in sync with the final metadata. If the generator's content also includes frontmatter, that content frontmatter remains the most specific source and wins.
 
-That nuance is the one thing the "drop list" was solving. Two options for handling it:
+The generator declares which durable fields it owns by emitting them. Fields the generator doesn't emit are preserved. Reference attachments (cover image, documents) and any future user-attached fields fall through automatically.
 
-1. **Sentinel field**: the generator emits `status` and `error: null` (or `undefined`) explicitly when it wants to clear them. The merge respects that. Cost: every successful handler has to remember to clear `error`. Forgettable.
-2. **Lifecycle-aware merge**: the base handler always treats `status` and `error` as generator-owned (cleared if not emitted, replaced if emitted). The drop list is reduced to two field names with a clear semantic justification ("lifecycle fields"), and that fact lives in one place. Cost: a tiny vestige of the old model survives, but with a sharp boundary.
+There is one explicit lifecycle rule: **`status` and `error` are generator-owned transient lifecycle fields in both metadata and frontmatter.** Existing stub values for those fields are removed before the merge; generated values are added back only if the generator emits them. That means:
 
-Recommended: **option 2**. The remaining drop list is just the two lifecycle fields the entity-stub model owns — `status` and `error` — and that's a real architectural fact, not a hand-curated exception. Document it next to the merge.
+- a successful handler that emits `status: "draft"` flips the stub to draft;
+- a successful handler that emits no `status` (for entity types with no steady-state status, such as notes) clears `status: "generating"`;
+- `error` from a previous failed attempt is cleared on success unless the generator emits a new `error`.
+
+This keeps the lifecycle exception central and semantic, without preserving adapter-specific reference fields by hand.
 
 ### Generation handler contract
 
@@ -58,7 +62,7 @@ No structural change to `GeneratedContent`. Handlers continue to return:
 ```ts
 {
   id: string;
-  content: string;            // full markdown with frontmatter + body
+  content: string;            // markdown body, optionally with frontmatter
   metadata: Partial<TMetadata>;
   title?: string;
   ...
@@ -69,10 +73,11 @@ The base handler interprets the result as a patch:
 
 - Parse `content`'s frontmatter (call it `generatedFrontmatter`).
 - Parse the existing stub's content frontmatter (`existingFrontmatter`).
-- Merge: `mergedFrontmatter = { ...existingFrontmatter, ...generatedFrontmatter }`.
+- Remove lifecycle fields (`status`, `error`) from `existingFrontmatter` and `existing.metadata`.
+- Merge frontmatter: `mergedFrontmatter = { ...existingFrontmatterWithoutLifecycle, ...generated.metadata, ...generatedFrontmatter }`.
 - Body: extract body from generated content.
 - Rebuild content: serialize `mergedFrontmatter` + body.
-- Merge metadata: `mergedMetadata = { ...existing.metadata, ...generated.metadata }`, then apply the lifecycle rule: `mergedMetadata.status = generated.metadata.status ?? existing.metadata.status`, `mergedMetadata.error = generated.metadata.error` (drop the stub's, accept the generator's — which is normally absent on success).
+- Merge metadata: `mergedMetadata = { ...existingMetadataWithoutLifecycle, ...generated.metadata }`.
 
 ### What gets deleted
 
@@ -84,42 +89,43 @@ The base handler interprets the result as a patch:
 
 ### What replaces them
 
-A single `mergeStubWithGenerated(existing, generated)` helper in `base-generation-job-handler.ts` that does the parse-merge-write, with the lifecycle exception as a named line inside the helper.
+A single `mergeStubWithGenerated(existing, generated)` helper in `base-generation-job-handler.ts` that does the parse-merge-write, with the lifecycle exception as a named line inside the helper. It should be a private method (or accept the effective frontmatter schema) so it can validate the merged frontmatter via `context.entities.getEffectiveFrontmatterSchema(entityType)` before saving.
 
 ## Risks
 
 - **Generator produces frontmatter that wasn't on the stub but should not survive**: e.g., a transient flag the generator sets and then wants cleared. Not currently a real case — generators today produce a steady-state final entity. If it shows up, the generator owns clearing the field itself. Document the convention.
-- **Schema validation after merge**: the merged frontmatter must satisfy the entity's frontmatterSchema. Since the stub already satisfied it (or schema validation rejected stub creation upstream) and the generator's frontmatter is also valid, the merge satisfies it too. Add a schema-validation assertion at the merge site as a guard.
-- **Handler that emits no frontmatter in content but populates `metadata`**: today's destructure-and-spread is metadata-only on that path. New merge path needs to handle "generator content has no parseable frontmatter" — fall back to stub's frontmatter + metadata patch, body from generated content. Verify against current handlers.
+- **Schema validation after merge**: the merged frontmatter must satisfy the entity's effective frontmatter schema. Since the stub already satisfied it (or schema validation rejected stub creation upstream) and the generator's frontmatter is also valid, the merge should satisfy it too. Add a schema-validation assertion at the merge site as a guard; skip only when no effective schema is registered.
+- **Handler that emits no frontmatter in content but populates `metadata`**: today's destructure-and-spread is metadata-only on that path. New merge path must handle "generator content has no parseable frontmatter" by applying `generated.metadata` to the merged frontmatter and using the generated body. This is required for note generation and similar body-only handlers.
 - **Schema-level rename of a reference field**: e.g., renaming `coverImageId` → `headerImageId` in the blog schema. Old stubs in flight may still carry the old field name. The merge preserves it (unknown to the new schema), schema validation rejects it. This is the same hazard the preserve-list approach had; the merge model doesn't make it worse.
 
 ## Test-infrastructure cleanup (folded into this work)
 
-The current test mocks for entity-registry / entity-adapter (notably `shell/core/test/system/mock-services.ts` and the `getAdapter` mocks in `@brains/test-utils`) are hand-curated structural lookalikes of `EntityAdapter`. Every new field the tool/handler touches has to be added by hand to the mock, which is the same hand-curated-list rot this plan is replacing. As part of this work, replace these mocks with a small Map-backed test registry and a `createTestAdapter(config)` helper that satisfies `EntityAdapter<BaseEntity>` with no-op defaults. This unblocks future adapter-interface changes from cascading into mock edits and lets tests register only the entity types they actually exercise.
+The current test mocks for entity-registry / entity-adapter (notably `shell/core/test/system/mock-services.ts` and the `getAdapter` mocks in `@brains/test-utils`) are hand-curated structural lookalikes of `EntityAdapter`. Every new field the tool/handler touches has to be added by hand to the mock, which is the same hand-curated-list rot this plan is replacing. Keep this cleanup scoped: remove `stubPreservedFields` from mocks as part of this work, and only replace the broader mocks with a small Map-backed test registry / `createTestAdapter(config)` helper if typecheck or implementation pressure makes it necessary.
 
 ## Implementation steps
 
 1. Write a `mergeStubWithGenerated(existing, generated)` helper in `base-generation-job-handler.ts`:
    - Parse both sides' frontmatter.
    - Compose merged frontmatter, body, and metadata.
-   - Apply the lifecycle rule for `status` and `error`.
-   - Validate the result against the entity's frontmatter schema (assertion, not best-effort).
+   - Apply the lifecycle rule for `status` and `error` to both frontmatter and metadata.
+   - Apply `generated.metadata` to frontmatter before generated content frontmatter so body-only handlers still sync markdown.
+   - Validate the result against the entity's effective frontmatter schema when registered (assertion, not best-effort).
 2. Rewrite `updatePreallocatedStub` to call the helper and `updateEntity`. Remove the existing destructure and the `preserveExistingReferenceFrontmatter` call.
 3. Delete `preserveExistingReferenceFrontmatter` and `STUB_PRESERVED_REFERENCE_FIELDS`.
 4. Delete `EntityAdapter.stubPreservedFields` from the interface and from `BlogPostAdapter`, `SocialPostAdapter`, `ProjectAdapter`, `DeckAdapter`.
 5. Tests:
    - Existing "cover image survives generation" test stays — now passes via the merge model.
    - New test: a stub-attached field that's _not_ on any current preserve list survives generation (use a synthetic adapter or a real adapter with a new field added in the test).
-   - New test: `status` always flips to the generator's final state, not the stub's `"generating"`.
+   - New test: generated `status` wins when emitted, and stub `status: "generating"` clears when the generator emits no status.
    - New test: `error` on the stub (e.g., from a previous failed attempt that left `error` set) is cleared after successful regeneration.
-   - Regression test: generator that doesn't emit frontmatter still produces a valid final entity (stub's frontmatter survives, generator's metadata patch applies).
+   - Regression test: generator that doesn't emit frontmatter still produces a valid final entity (stub's durable frontmatter survives, lifecycle fields clear, generator's metadata patch applies to both metadata and markdown frontmatter).
 6. Audit each generation handler's `generate()` to confirm the `metadata` returned is genuinely the patch the handler wants applied (no implicit "and overwrite everything else"). Adjust handlers that today rely on overwrite semantics.
 
 ## Validation matrix
 
 - Cover image attached to a stub during the generating window is still present after generation completes.
 - A blog-post field added today (e.g., `seriesName`) set by the user on the stub via a hypothetical attach API survives generation without touching the central handler.
-- A successful regeneration of a previously failed stub clears `error` and updates `status`.
+- A successful regeneration of a previously failed stub clears `error` and either updates `status` from the generator or clears the stub lifecycle status when no final status is emitted.
 - A stub whose generation produces frontmatter that overlaps with stub fields (e.g., the generator picks its own slug) wins on those fields.
 - Adapters that don't support cover images or attachments are unaffected.
 - The full suite of generation handler tests (note, blog, deck, portfolio, newsletter, social-media) passes without changes to handler-level test expectations.
@@ -127,6 +133,6 @@ The current test mocks for entity-registry / entity-adapter (notably `shell/core
 ## Closed decisions
 
 1. **Generator emits patch vs. full entity?** Patch. The fact that today's generators emit a "full" `content` markdown is incidental — the base handler is free to interpret it as a patch, and the result is identical for fields the generator does set.
-2. **Where does the lifecycle exception live?** In the merge helper, as a named, justified pair (`status`, `error`). Not on the adapter, not in a constant.
+2. **Where does the lifecycle exception live?** In the merge helper, as a named, justified pair (`status`, `error`) applied to both metadata and frontmatter. Not on the adapter, not in a general preserve/drop list.
 3. **Adapter-owned preserve list (the previously shipped intermediate fix)?** Removed. The merge model makes it dead code; leaving it would be two parallel mechanisms.
 4. **Change to `GeneratedContent` shape?** No. The base class re-interprets the existing shape; handlers stay as-is. This minimizes blast radius and lets the change land without touching every handler.

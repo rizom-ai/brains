@@ -20,8 +20,6 @@ export class ProjectAdapter extends BaseEntityAdapter<
   Project,
   ProjectMetadata
 > {
-  public readonly stubPreservedFields = ["coverImageId"] as const;
-
   constructor() {
     super({
       entityType: "project",
