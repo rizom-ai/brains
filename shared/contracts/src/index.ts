@@ -15,6 +15,7 @@ export {
   type GenerationResult,
 } from "./generation-result";
 export { JobResult } from "./job-result";
+export { messageRoleSchema, type MessageRole } from "./message-role";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export type {
   PublishResult,

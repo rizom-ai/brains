@@ -3,23 +3,11 @@ import type { Message } from "@brains/conversation-service";
 import type { ModelMessage } from "ai";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
-  return messages.map((msg) => {
-    if (msg.role === "user") {
-      return { role: "user", content: msg.content };
-    }
-    return {
-      role: "assistant",
-      content: [
-        {
-          type: "text",
-          text:
-            msg.role === "system"
-              ? `[Prior system note]\n${msg.content}`
-              : msg.content,
-        },
-      ],
-    };
-  });
+  return messages.map((msg) =>
+    msg.role === "user"
+      ? { role: "user", content: msg.content }
+      : { role: "assistant", content: [{ type: "text", text: msg.content }] },
+  );
 }
 
 export function buildModelMessages(

@@ -101,7 +101,6 @@ export async function buildSummaryCoverageData(params: {
     const eligibility = evaluateSummaryEligibility({
       conversation: source.conversation,
       spaces: context.spaces,
-      messages: source.messages,
     });
     if (!eligibility.eligible) continue;
 

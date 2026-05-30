@@ -9,6 +9,7 @@ import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
 } from "@brains/plugins";
+import { messageRoleSchema } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -25,7 +26,7 @@ import { buildFallbackExcerpt } from "./excerpt";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 
 const evalMessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
+  role: messageRoleSchema,
   content: z.string(),
   timestamp: z.string().datetime().optional(),
   actor: conversationMessageActorSchema.optional(),

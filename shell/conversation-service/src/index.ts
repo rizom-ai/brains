@@ -6,7 +6,6 @@ export type {
   IConversationService,
   ConversationServiceConfig,
   ConversationMetadata,
-  MessageRole,
   GetMessagesOptions,
   StartConversationRequest,
   AddConversationMessageRequest,

@@ -40,7 +40,7 @@ export const messages = sqliteTable(
     conversationId: text("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
-    role: text("role").notNull(), // 'user' | 'assistant' | 'system'
+    role: text("role").notNull(), // 'user' | 'assistant'
     content: text("content").notNull(),
     timestamp: text("timestamp").notNull(),
     metadata: text("metadata"), // JSON string for command used, entity refs, etc.

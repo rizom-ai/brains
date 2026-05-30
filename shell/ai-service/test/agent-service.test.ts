@@ -265,46 +265,6 @@ describe("AgentService", () => {
       );
     });
 
-    it("does not pass stored system messages through the AI SDK messages array", async () => {
-      mockConversationService.getMessages = mock(() =>
-        Promise.resolve([
-          {
-            id: "sys1",
-            conversationId: "test-conversation",
-            role: "system",
-            content: "Internal routing note from a prior turn.",
-            timestamp: new Date().toISOString(),
-            metadata: null,
-          },
-        ]),
-      );
-      const service = AgentService.createFresh(
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockCharacterService,
-        mockProfileService,
-        logger,
-        { agentFactory: mockAgentFactory },
-      );
-
-      await service.chat("Continue", "test-conversation");
-
-      const generateInput = mockGenerate.mock.calls[0]?.[0];
-      const messages = generateInput?.messages ?? [];
-      expectNoSystemMessages(messages);
-      expect(messages[0]).toEqual(
-        expect.objectContaining({
-          role: "assistant",
-          content: [
-            {
-              type: "text",
-              text: "[Prior system note]\nInternal routing note from a prior turn.",
-            },
-          ],
-        }),
-      );
-    });
-
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
