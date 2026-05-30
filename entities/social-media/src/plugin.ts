@@ -5,6 +5,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
@@ -24,6 +25,7 @@ import {
   subscribeToAutoGenerate,
   subscribeToGenerateExecute,
 } from "./lib/auto-generate";
+import { createSocialPostAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
@@ -75,6 +77,9 @@ export class SocialMediaPlugin extends EntityPlugin<
 
     subscribeToGenerateExecute(context, this.logger);
     registerEvalHandlers(context);
+    AtprotoProjectionRegistry.getInstance().register(
+      createSocialPostAtprotoProjection(),
+    );
 
     this.logger.info("Social media plugin registered successfully");
   }

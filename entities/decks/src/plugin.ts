@@ -7,6 +7,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
 import { getErrorMessage, z } from "@brains/utils";
 import { deckAdapter } from "./adapters/deck-adapter";
@@ -22,6 +23,7 @@ import {
   DeckCarouselAttachmentProvider,
   type DeckCarouselAttachmentProviderDeps,
 } from "./attachments/carousel-provider";
+import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
@@ -69,6 +71,9 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerEvalHandlers(context);
+    AtprotoProjectionRegistry.getInstance().register(
+      createDeckAtprotoProjection(),
+    );
 
     this.logger.info("Decks plugin registered");
   }

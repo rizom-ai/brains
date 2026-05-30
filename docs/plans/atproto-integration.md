@@ -54,7 +54,6 @@ ai.rizom.brain.socialPost — semantic social-post entities (not Bluesky feed po
 ai.rizom.brain.series     — derived public series/grouping entities
 ai.rizom.brain.project    — public portfolio/project entries
 ai.rizom.brain.topic      — public topic/knowledge tags
-ai.rizom.brain.agent      — reviewable agent/brain directory entries
 ai.rizom.brain.card       — brain capability card (name, role, skills, endpoints)
 ```
 
@@ -62,7 +61,7 @@ Records are JSON with markdown in string fields (same pattern as WhiteWind). Ent
 
 Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, and the brain card. Shared ATProto projection contracts live in `@brains/atproto-contracts`, not in the service plugin package. Entity packages own their own ATProto lexicons, projection definitions, and mappers, then register the complete contract with ATProto publishing. The projection registry entry includes the entity type, collection NSID, lexicon JSON, mapper, and optional publish hook; registration rejects collection/lexicon mismatches. The blog `post` projection now lives in `entities/blog`; broader entity projections should likewise be registered from their entity plugins instead of centralized in the ATProto plugin.
 
-Projection selection rule: durable, user-meaningful public entities should generally get quiet semantic ATProto projections. Public visibility is required but not sufficient: each entity package must define an explicit safe projection. Derived entities are not excluded automatically: `series` is derived from source entities with `seriesName`, but it is still a first-class durable grouping entity and should be projected. Ephemeral, operational, or evidence/support entities should not be published just because they exist. For example, `agent` is a durable network/discovery entity and should be projected; `skill` is currently derived/ephemeral support data and should not be projected in Phase 2.
+Projection selection rule: durable, user-meaningful public entities should generally get quiet semantic ATProto projections. Public visibility is required but not sufficient: each entity package must define an explicit safe projection. Derived entities are not excluded automatically: `series` is derived from source entities with `seriesName`, but it is still a first-class durable grouping entity and should be projected. Ephemeral, operational, evidence/support, or relationship/directory entities should not be published just because they exist. `agent` is excluded from Phase 2 because publishing discovered peer-agent directory entries implies a product/approval semantics decision; `skill` is currently derived/ephemeral support data and should not be projected in Phase 2.
 
 Current decision: keep hand-written projection types and explicit tests for now. Lexicon JSON lives with the owning package: the ATProto service plugin owns only service-level records such as `ai.rizom.brain.card`, while entity packages own entity lexicons such as `ai.rizom.brain.post`, `ai.rizom.brain.note`, and `ai.rizom.brain.link`. Lexicon JSON is validated by package-local tests, and record mapper tests verify projections against existing entity schemas. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
 
@@ -109,7 +108,7 @@ Users can publish public brain content to AT Protocol through explicit entity-ow
 
 - Public brain entities with registered projections become signed atproto records.
 - Blog posts publish as `ai.rizom.brain.post` records.
-- Durable public entities such as notes, links, decks, semantic social posts, series, projects, topics, and agents should get entity-owned projections.
+- Durable public entities such as notes, links, decks, semantic social posts, series, projects, and topics should get entity-owned projections.
 - Derived/ephemeral/internal support entities such as skills should not be projected in Phase 2 unless their product semantics change.
 - No entity type is published blindly or automatically; projection registration is the explicit safety boundary.
 - Bluesky `app.bsky.feed.post` publishing should be implemented through `social-post`, not as a side effect of semantic entity publishing.
@@ -217,7 +216,7 @@ Still needed before production:
 2. Add an ATProto projection registration contract so entity plugins can register their own lexicon + mapper as one contract; do not centralize entity lexicons/mappers inside the ATProto plugin — implemented
 3. Add a generic projection-backed publish path for any public entity with a registered ATProto projection, while keeping entity-specific convenience paths where useful — implemented as `atproto_publish_entity`, with `atproto_publish_post` as the blog convenience path
 4. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful — implemented in `entities/blog`; successful publishes write the custom article URI back to blog frontmatter as `atprotoUri`
-5. Add entity-owned projections for durable public entity types beyond blog posts: `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`, and `agent`. `series` is derived but durable and user-facing, so it belongs in Phase 2. Do not add Phase 2 projections for ephemeral/support entities such as `skill` unless their product semantics change. Public visibility is required but not sufficient: an entity type must define an explicit safe projection before it can be published.
+5. Add entity-owned projections for durable public entity types beyond blog posts: `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. `series` is derived but durable and user-facing, so it belongs in Phase 2. Do not add Phase 2 projections for relationship/directory or ephemeral/support entities such as `agent` or `skill` unless their product semantics change. Public visibility is required but not sufficient: an entity type must define an explicit safe projection before it can be published.
 6. Do not initially replace existing content-pipeline providers for entity types such as `post`; internal publish status semantics are separate from external ATProto distribution targets — protected by provider override regression tests
 7. Evaluate a content-pipeline multi-provider/distribution-target extension after explicit publishing behavior is settled
 8. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records

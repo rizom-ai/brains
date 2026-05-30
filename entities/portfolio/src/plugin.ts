@@ -14,6 +14,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage, z } from "@brains/utils";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
@@ -40,6 +41,7 @@ import {
   ProjectGenerationJobHandler,
 } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
+import { createProjectAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const projectListSchema = z.object({
@@ -158,6 +160,9 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
     this.registerEvalHandlers(context);
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
+    AtprotoProjectionRegistry.getInstance().register(
+      createProjectAtprotoProjection(),
+    );
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {

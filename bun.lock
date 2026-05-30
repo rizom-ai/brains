@@ -230,6 +230,7 @@
       "name": "@brains/decks",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
@@ -365,6 +366,7 @@
       "name": "@brains/portfolio",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -475,6 +477,7 @@
       "name": "@brains/social-media",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -492,6 +495,7 @@
       "name": "@brains/topics",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
