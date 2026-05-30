@@ -186,8 +186,6 @@ The newsletter should:
       ...(sourceEntityType && { sourceEntityType }),
     };
 
-    const markdownContent = generateMarkdownWithFrontmatter(content, metadata);
-
     const finalSubject = await ensureUniqueTitle({
       entityType: "newsletter",
       title: subject,
@@ -200,6 +198,8 @@ The newsletter should:
     if (finalSubject !== subject) {
       metadata.subject = finalSubject;
     }
+
+    const markdownContent = generateMarkdownWithFrontmatter(content, metadata);
 
     return {
       id: slugify(finalSubject),

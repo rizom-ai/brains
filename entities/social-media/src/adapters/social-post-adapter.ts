@@ -18,8 +18,6 @@ export class SocialPostAdapter extends BaseEntityAdapter<
   SocialPostMetadata,
   SocialPostFrontmatter
 > {
-  public readonly stubPreservedFields = ["coverImageId", "documents"] as const;
-
   constructor() {
     super({
       entityType: "social-post",
