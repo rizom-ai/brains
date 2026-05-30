@@ -187,22 +187,37 @@ emits the corresponding structured part or a concrete product surface needs it.
 ### 6. Structured progress / job events
 
 Legacy job/progress notifications can still surface as raw text such as
-`✅ batch processing: ... completed`. Long term, `/chat` should not render those
-emoji-prefixed backend strings directly. Job lifecycle should cross the
-interface boundary as structured data parts/cards (`job-started`,
-`job-progress`, `job-completed`, `job-failed`) with semantic status fields;
-React chooses icons/labels. Job messages must also be scoped by
-interface/channel so background batch jobs without an active web-chat channel do
-not appear in the chat transcript.
+`✅ batch processing: ... completed`. That is a text-transport concern, not the
+browser chat protocol. `/chat` should not parse, strip, or beautify those strings
+for new events.
 
-Current first slice: the web-chat stream wraps progress/completion notices in
-`data-progress` parts so raw progress text is not emitted as normal assistant
-text. React renders those as a small status card and strips legacy emoji/markdown
-prefixes from the visible label.
+Target protocol: job lifecycle crosses the interface boundary as AI SDK custom
+data parts, with semantic fields instead of formatted display text:
 
-Compatibility rule: existing/raw status strings may be parsed for old messages,
-but new backend paths should emit structured progress/job parts instead of
-persisted or streamed checkmark/error-prefix text.
+```ts
+{
+  type: "data-progress",
+  id: "progress:job-123",
+  data: {
+    status: "processing" | "completed" | "failed",
+    operationType: "batch_processing",
+    operationTarget: "/brain-data",
+    message: "Finished indexing 24 files",
+    progress: { current: 24, total: 24, percentage: 100 }
+  }
+}
+```
+
+React renders labels/icons/colors from `status` and plain fields; it should not
+regex emoji, markdown, or human-formatted backend strings. Existing historical
+messages may remain plain text, but new live `/chat` progress must bypass legacy
+`formatProgressMessage()` / `formatCompletionMessage()` display strings.
+
+Routing rule: emit a progress part only when the event is explicitly scoped to
+`interfaceType: "web-chat"` and the `channelId` matches an active web-chat
+stream. Background/batch jobs without an active web-chat channel stay silent in
+the transcript. Async artifacts should use attachment/job polling rather than
+injecting late raw completion messages.
 
 ### 7. Deeper streaming
 
