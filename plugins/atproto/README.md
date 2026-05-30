@@ -5,12 +5,11 @@ AT Protocol integration for Rizom brains.
 This package currently covers the Phase 1 foundation plus the first outbound publishing slice:
 
 - `ServicePlugin` package skeleton
-- initial `ai.rizom.brain.card` and `ai.rizom.brain.post` lexicons
+- `ai.rizom.brain.card` lexicon owned by the ATProto service plugin
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record creation, and blob upload tests
 - brain card publishing as `ai.rizom.brain.card`
-- registered blog `post` entity projection to `ai.rizom.brain.post`
-- projection registry so entity plugins can register ATProto mappers without centralizing every entity lexicon here
+- projection registry so entity plugins can register ATProto lexicons and mappers without centralizing entity records here
 
 ## Configuration
 
@@ -125,11 +124,16 @@ Notes:
 Entity plugins should own their own ATProto projection definitions and register them with the shared registry:
 
 ```ts
-import { AtprotoProjectionRegistry } from "@brains/atproto";
+import {
+  AtprotoProjectionRegistry,
+  parseAtprotoLexicon,
+} from "@brains/atproto";
+import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 
 AtprotoProjectionRegistry.getInstance().register({
   entityType: "note",
   collection: "ai.rizom.brain.note",
+  lexicon: parseAtprotoLexicon(noteLexicon),
   validate: false,
   buildRecord: async ({ entity }) => ({
     $type: "ai.rizom.brain.note",
@@ -141,7 +145,7 @@ AtprotoProjectionRegistry.getInstance().register({
 });
 ```
 
-The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
+The registry rejects collection/lexicon mismatches. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
 
 ## Manual smoke checklist
 

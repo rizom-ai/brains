@@ -9,6 +9,7 @@ import type {
   DerivedEntityProjection,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto";
 import { z } from "@brains/utils";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
@@ -17,6 +18,7 @@ import { SeriesDataSource } from "./datasources/series-datasource";
 import { SeriesGenerationHandler } from "./handlers/seriesGenerationHandler";
 import { getTemplates } from "./lib/register-templates";
 import { seriesDescriptionTemplate } from "./templates/description-template";
+import { createSeriesAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
@@ -139,6 +141,9 @@ export class SeriesPlugin extends EntityPlugin<Series> {
     this.manager = new SeriesManager(
       context.entityService,
       this.logger.child("SeriesManager"),
+    );
+    AtprotoProjectionRegistry.getInstance().register(
+      createSeriesAtprotoProjection(),
     );
   }
 

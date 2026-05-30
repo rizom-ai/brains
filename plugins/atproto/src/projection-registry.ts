@@ -1,6 +1,54 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import { z } from "@brains/utils";
 import type { AtprotoConfig } from "./config";
 import type { AtprotoPdsClientLike } from "./plugin";
+
+export interface AtprotoLexiconProperty {
+  type: string;
+  [key: string]: unknown;
+}
+
+export interface AtprotoLexiconRecordDef {
+  type: "record";
+  key: string;
+  record: {
+    type: "object";
+    required?: string[] | undefined;
+    properties: Record<string, AtprotoLexiconProperty>;
+  };
+}
+
+export interface AtprotoLexicon {
+  lexicon: 1;
+  id: string;
+  defs: {
+    main: AtprotoLexiconRecordDef;
+  };
+}
+
+const atprotoLexiconPropertySchema = z
+  .object({ type: z.string() })
+  .catchall(z.unknown());
+
+const atprotoLexiconSchema = z.object({
+  lexicon: z.literal(1),
+  id: z.string(),
+  defs: z.object({
+    main: z.object({
+      type: z.literal("record"),
+      key: z.string().min(1),
+      record: z.object({
+        type: z.literal("object"),
+        required: z.array(z.string()).optional(),
+        properties: z.record(atprotoLexiconPropertySchema),
+      }),
+    }),
+  }),
+});
+
+export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
+  return atprotoLexiconSchema.parse(input);
+}
 
 export interface AtprotoProjectionBuildInput {
   entity: BaseEntity;
@@ -33,6 +81,7 @@ export interface AtprotoProjection<
 > {
   entityType: string;
   collection: string;
+  lexicon: AtprotoLexicon;
   validate?: boolean;
   buildRecord(input: AtprotoProjectionBuildInput): Promise<TRecord>;
   onPublished?(input: AtprotoProjectionPublishedInput<TRecord>): Promise<void>;
@@ -58,6 +107,7 @@ export class AtprotoProjectionRegistry {
   register<TRecord extends Record<string, unknown>>(
     projection: AtprotoProjection<TRecord>,
   ): () => void {
+    this.validateProjection(projection);
     this.projections.set(projection.entityType, projection);
     return () => {
       if (this.projections.get(projection.entityType) === projection) {
@@ -80,5 +130,22 @@ export class AtprotoProjectionRegistry {
 
   list(): AtprotoProjection[] {
     return Array.from(this.projections.values());
+  }
+
+  listLexicons(): AtprotoLexicon[] {
+    return this.list().map((projection) => projection.lexicon);
+  }
+
+  private validateProjection(projection: AtprotoProjection): void {
+    if (projection.collection !== projection.lexicon.id) {
+      throw new Error(
+        `AT Protocol projection collection must match lexicon id: ${projection.collection} !== ${projection.lexicon.id}`,
+      );
+    }
+    if (!projection.lexicon.defs.main.key) {
+      throw new Error(
+        `AT Protocol projection lexicon must define a record key: ${projection.collection}`,
+      );
+    }
   }
 }

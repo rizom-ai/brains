@@ -18,10 +18,14 @@ export {
 } from "./config";
 export {
   AtprotoProjectionRegistry,
+  parseAtprotoLexicon,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
   type AtprotoProjectionBuildInput,
   type AtprotoProjectionPublishedInput,
+  type AtprotoLexicon,
+  type AtprotoLexiconRecordDef,
+  type AtprotoLexiconProperty,
 } from "./projection-registry";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {

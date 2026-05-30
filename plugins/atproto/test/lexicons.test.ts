@@ -1,10 +1,5 @@
 import { describe, expect, it } from "bun:test";
 
-type LexiconProperty =
-  | LexiconPrimitiveProperty
-  | LexiconArrayProperty
-  | LexiconObjectProperty;
-
 interface LexiconPrimitiveProperty {
   type: "string" | "integer" | "boolean" | "bytes" | "blob";
   format?: string;
@@ -14,14 +9,20 @@ interface LexiconPrimitiveProperty {
 
 interface LexiconArrayProperty {
   type: "array";
-  items: LexiconProperty;
+  items:
+    | LexiconPrimitiveProperty
+    | LexiconArrayProperty
+    | LexiconObjectProperty;
   maxLength?: number;
 }
 
 interface LexiconObjectProperty {
   type: "object";
   required?: string[];
-  properties: Record<string, LexiconProperty>;
+  properties: Record<
+    string,
+    LexiconPrimitiveProperty | LexiconArrayProperty | LexiconObjectProperty
+  >;
 }
 
 interface LexiconFile {
@@ -42,16 +43,8 @@ async function readLexicon(filename: string): Promise<LexiconFile> {
 
 function recordProperties(
   lexicon: LexiconFile,
-): Record<string, LexiconProperty> {
+): LexiconObjectProperty["properties"] {
   return lexicon.defs.main.record.properties;
-}
-
-function expectObjectProperty(
-  property: LexiconProperty | undefined,
-): LexiconObjectProperty {
-  expect(property).toBeDefined();
-  expect(property?.type).toBe("object");
-  return property as LexiconObjectProperty;
 }
 
 describe("AT Protocol lexicons", () => {
@@ -66,38 +59,5 @@ describe("AT Protocol lexicons", () => {
     expect(lexicon.defs.main.record.required).toEqual(["name", "createdAt"]);
     expect(properties["brainDid"]).toBeDefined();
     expect(properties["a2aEndpoint"]).toBeDefined();
-  });
-
-  it("defines the brain post record", async () => {
-    const lexicon = await readLexicon("ai.rizom.brain.post.json");
-    const properties = recordProperties(lexicon);
-
-    expect(lexicon.lexicon).toBe(1);
-    expect(lexicon.id).toBe("ai.rizom.brain.post");
-    expect(lexicon.defs.main.type).toBe("record");
-    expect(lexicon.defs.main.key).toBe("tid");
-    expect(lexicon.defs.main.record.required).toEqual([
-      "title",
-      "body",
-      "createdAt",
-    ]);
-    expect(properties["canonicalUrl"]).toBeDefined();
-    expect(properties["topics"]).toBeDefined();
-    expect(properties["coverImage"]).toBeDefined();
-    expect(properties["sourceEntityType"]).toBeDefined();
-    expect(properties["sourceEntityId"]).toBeDefined();
-  });
-
-  it("defines cover image as a structured post property", async () => {
-    const lexicon = await readLexicon("ai.rizom.brain.post.json");
-    const coverImage = expectObjectProperty(
-      recordProperties(lexicon)["coverImage"],
-    );
-
-    expect(coverImage.required).toEqual(["blob"]);
-    expect(coverImage.properties["blob"]?.type).toBe("blob");
-    expect(coverImage.properties["alt"]?.type).toBe("string");
-    expect(coverImage.properties["width"]?.type).toBe("integer");
-    expect(coverImage.properties["height"]?.type).toBe("integer");
   });
 });

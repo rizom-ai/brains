@@ -1,0 +1,53 @@
+import { parseAtprotoLexicon } from "@brains/atproto";
+import type {
+  AtprotoProjection,
+  AtprotoProjectionBuildInput,
+} from "@brains/atproto";
+import { seriesAdapter } from "./adapters/series-adapter";
+import { seriesSchema } from "./schemas/series";
+import seriesLexicon from "../lexicons/ai.rizom.brain.series.json";
+
+export interface SeriesAtprotoRecord {
+  [key: string]: unknown;
+  $type: "ai.rizom.brain.series";
+  title: string;
+  slug: string;
+  description?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType: "series";
+  sourceEntityId: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export async function buildSeriesAtprotoRecord({
+  entity,
+  config,
+}: AtprotoProjectionBuildInput): Promise<SeriesAtprotoRecord> {
+  const series = seriesSchema.parse(entity);
+  const body = seriesAdapter.parseBody(series.content);
+
+  return {
+    $type: "ai.rizom.brain.series",
+    title: series.metadata.title,
+    slug: series.metadata.slug,
+    ...(body.description && { description: body.description }),
+    ...(config.brainDid && { brainDid: config.brainDid }),
+    ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    sourceEntityType: "series",
+    sourceEntityId: series.id,
+    createdAt: series.created,
+    ...(series.updated && { updatedAt: series.updated }),
+  };
+}
+
+export function createSeriesAtprotoProjection(): AtprotoProjection<SeriesAtprotoRecord> {
+  return {
+    entityType: "series",
+    collection: "ai.rizom.brain.series",
+    lexicon: parseAtprotoLexicon(seriesLexicon),
+    validate: false,
+    buildRecord: buildSeriesAtprotoRecord,
+  };
+}

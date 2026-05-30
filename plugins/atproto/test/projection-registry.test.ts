@@ -1,8 +1,30 @@
 import { describe, expect, it } from "bun:test";
 import {
   AtprotoProjectionRegistry,
+  type AtprotoLexicon,
   type AtprotoProjectedPostRecord,
 } from "../src";
+
+function createLexicon(id: string): AtprotoLexicon {
+  return {
+    lexicon: 1,
+    id,
+    defs: {
+      main: {
+        type: "record",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["title", "createdAt"],
+          properties: {
+            title: { type: "string" },
+            createdAt: { type: "string", format: "datetime" },
+          },
+        },
+      },
+    },
+  };
+}
 
 function createPostRecord(
   input: Partial<AtprotoProjectedPostRecord> = {},
@@ -22,6 +44,7 @@ describe("AtprotoProjectionRegistry", () => {
     const projection = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
       validate: false,
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
         Promise.resolve(createPostRecord()),
@@ -34,17 +57,47 @@ describe("AtprotoProjectionRegistry", () => {
     expect(registry.list()).toEqual([projection]);
   });
 
+  it("lists registered lexicons", () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const lexicon = createLexicon("ai.rizom.brain.post");
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon,
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
+    });
+
+    expect(registry.listLexicons()).toEqual([lexicon]);
+  });
+
+  it("rejects collection and lexicon id mismatches", () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+
+    expect(() =>
+      registry.register({
+        entityType: "post",
+        collection: "ai.rizom.brain.post",
+        lexicon: createLexicon("ai.rizom.brain.note"),
+        buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+          Promise.resolve(createPostRecord()),
+      }),
+    ).toThrow("collection must match lexicon id");
+  });
+
   it("replaces registrations for the same entity type", () => {
     const registry = AtprotoProjectionRegistry.createFresh();
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
         Promise.resolve(createPostRecord({ version: 1 })),
     };
     const second = {
       entityType: "post",
       collection: "ai.rizom.brain.post.v2",
+      lexicon: createLexicon("ai.rizom.brain.post.v2"),
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
         Promise.resolve(createPostRecord({ version: 2 })),
     };
@@ -61,6 +114,7 @@ describe("AtprotoProjectionRegistry", () => {
     const unregister = registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
       buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
         Promise.resolve(createPostRecord()),
     });

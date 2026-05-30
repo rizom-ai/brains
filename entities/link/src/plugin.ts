@@ -11,6 +11,7 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto";
 import { z, slugify } from "@brains/utils";
 import {
   linkConfigSchema,
@@ -29,6 +30,7 @@ import { LinksDataSource } from "./datasources/links-datasource";
 import { UrlFetcher } from "./lib/url-fetcher";
 import { UrlUtils } from "./lib/url-utils";
 import { LinkCaptureJobHandler } from "./handlers/capture-handler";
+import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
@@ -237,6 +239,10 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    AtprotoProjectionRegistry.getInstance().register(
+      createLinkAtprotoProjection(),
+    );
+
     context.eval.registerHandler("extractContent", async (input: unknown) => {
       const { url } = z.object({ url: z.string().url() }).parse(input);
       const urlFetcher = new UrlFetcher(

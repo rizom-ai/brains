@@ -5,6 +5,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto";
 import { z } from "@brains/utils";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter } from "./adapters/note-adapter";
@@ -12,6 +13,7 @@ import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
 import { NoteGenerationJobHandler } from "./handlers/noteGenerationJobHandler";
+import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
@@ -46,6 +48,10 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
         templateName: "note:generation",
       });
     });
+
+    AtprotoProjectionRegistry.getInstance().register(
+      createNoteAtprotoProjection(),
+    );
   }
 }
 

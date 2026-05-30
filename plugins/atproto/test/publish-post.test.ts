@@ -6,6 +6,7 @@ import {
   AtprotoPlugin,
   AtprotoProjectionRegistry,
   atprotoPlugin,
+  type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
 
@@ -29,10 +30,31 @@ function createPost(
   };
 }
 
+function createLexicon(id: string): AtprotoLexicon {
+  return {
+    lexicon: 1,
+    id,
+    defs: {
+      main: {
+        type: "record",
+        key: "tid",
+        record: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            createdAt: { type: "string", format: "datetime" },
+          },
+        },
+      },
+    },
+  };
+}
+
 function registerTestPostProjection(): void {
   AtprotoProjectionRegistry.getInstance().register({
     entityType: "post",
     collection: "ai.rizom.brain.post",
+    lexicon: createLexicon("ai.rizom.brain.post"),
     validate: false,
     buildRecord: async ({ entity, config, topics }) => ({
       $type: "ai.rizom.brain.post",
@@ -160,6 +182,7 @@ describe("AT Protocol post publishing", () => {
     registry.register({
       entityType: "link",
       collection: "ai.rizom.brain.link",
+      lexicon: createLexicon("ai.rizom.brain.link"),
       validate: false,
       buildRecord,
     });
@@ -233,6 +256,7 @@ describe("AT Protocol post publishing", () => {
     registry.register({
       entityType: "post",
       collection: "ai.example.customPost",
+      lexicon: createLexicon("ai.example.customPost"),
       validate: false,
       buildRecord,
       onPublished,

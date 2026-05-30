@@ -60,11 +60,11 @@ ai.rizom.brain.card       — brain capability card (name, role, skills, endpoin
 
 Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. Lexicons are distribution projections of existing brain entities, not replacement entity models. For example, `ai.rizom.brain.post` is the ATProto projection of the existing blog `post` entity (`entities/blog`, entityType `post`). The local entity remains the source of truth. Do not introduce parallel ATProto-only entity models.
 
-Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, and the brain card. Entity packages own their own ATProto projection definitions and mappers, then register them with ATProto publishing. The blog `post` projection now lives in `entities/blog`; broader entity projections should likewise be registered from their entity plugins instead of centralized in the ATProto plugin.
+Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, and the brain card. Entity packages own their own ATProto lexicons, projection definitions, and mappers, then register the complete contract with ATProto publishing. The projection registry entry includes the entity type, collection NSID, lexicon JSON, mapper, and optional publish hook; registration rejects collection/lexicon mismatches. The blog `post` projection now lives in `entities/blog`; broader entity projections should likewise be registered from their entity plugins instead of centralized in the ATProto plugin.
 
 Projection selection rule: durable, user-meaningful public entities should generally get quiet semantic ATProto projections. Public visibility is required but not sufficient: each entity package must define an explicit safe projection. Derived entities are not excluded automatically: `series` is derived from source entities with `seriesName`, but it is still a first-class durable grouping entity and should be projected. Ephemeral, operational, or evidence/support entities should not be published just because they exist. For example, `agent` is a durable network/discovery entity and should be projected; `skill` is currently derived/ephemeral support data and should not be projected in Phase 2.
 
-Current decision: keep hand-written projection types and explicit tests for now. Lexicon JSON is validated by tests, and record mapper tests verify the important projections against existing entity schemas. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
+Current decision: keep hand-written projection types and explicit tests for now. Lexicon JSON lives with the owning package: the ATProto service plugin owns only service-level records such as `ai.rizom.brain.card`, while entity packages own entity lexicons such as `ai.rizom.brain.post`, `ai.rizom.brain.note`, and `ai.rizom.brain.link`. Lexicon JSON is validated by package-local tests, and record mapper tests verify projections against existing entity schemas. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
 
 ## Identity Model
 
@@ -180,7 +180,7 @@ Status: core implementation complete for local/dev prototype; production hardeni
 Done:
 
 1. Create `plugins/atproto/` as a `ServicePlugin`
-2. Define lexicon JSON files for `ai.rizom.brain.card` and `ai.rizom.brain.post`
+2. Define the service-owned lexicon JSON for `ai.rizom.brain.card`; entity lexicons such as `ai.rizom.brain.post` live with their owning entity packages
 3. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and standard `${ENV_VAR}`-interpolated auth secret references
 4. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
 5. Authenticate to PDS with app password for the local prototype; keep outbound ATProto OAuth as a follow-up once the first slice works
@@ -214,7 +214,7 @@ Still needed before production:
 ### Phase 2: Content distribution (outbound)
 
 1. Implement explicit outbound publishing in the atproto plugin: entity → custom record via `com.atproto.repo.createRecord` / `putRecord`; custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know private Rizom lexicons — implemented
-2. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize entity lexicons/mappers inside the ATProto plugin — implemented
+2. Add an ATProto projection registration contract so entity plugins can register their own lexicon + mapper as one contract; do not centralize entity lexicons/mappers inside the ATProto plugin — implemented
 3. Add a generic projection-backed publish path for any public entity with a registered ATProto projection, while keeping entity-specific convenience paths where useful — implemented as `atproto_publish_entity`, with `atproto_publish_post` as the blog convenience path
 4. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful — implemented in `entities/blog`; successful publishes write the custom article URI back to blog frontmatter as `atprotoUri`
 5. Add entity-owned projections for durable public entity types beyond blog posts: `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, `topic`, and `agent`. `series` is derived but durable and user-facing, so it belongs in Phase 2. Do not add Phase 2 projections for ephemeral/support entities such as `skill` unless their product semantics change. Public visibility is required but not sufficient: an entity type must define an explicit safe projection before it can be published.

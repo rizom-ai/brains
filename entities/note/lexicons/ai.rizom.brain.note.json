@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "ai.rizom.brain.note",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Public knowledge note from a Rizom brain.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "body", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 300 },
+          "body": { "type": "string", "maxLength": 100000 },
+          "format": { "type": "string", "knownValues": ["text/markdown"] },
+          "brainDid": { "type": "string" },
+          "anchorDid": { "type": "string" },
+          "sourceEntityType": { "type": "string" },
+          "sourceEntityId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

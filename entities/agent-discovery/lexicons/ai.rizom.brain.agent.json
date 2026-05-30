@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "ai.rizom.brain.agent",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Reviewable peer agent/brain directory entry from a Rizom brain.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["name", "brainName", "url", "status", "createdAt"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 300 },
+          "brainName": { "type": "string", "maxLength": 300 },
+          "url": { "type": "string", "format": "uri" },
+          "did": { "type": "string" },
+          "kind": { "type": "string" },
+          "organization": { "type": "string" },
+          "status": { "type": "string" },
+          "discoveredAt": { "type": "string", "format": "datetime" },
+          "about": { "type": "string", "maxLength": 100000 },
+          "brainDid": { "type": "string" },
+          "anchorDid": { "type": "string" },
+          "sourceEntityType": { "type": "string" },
+          "sourceEntityId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}
