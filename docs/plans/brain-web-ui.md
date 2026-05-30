@@ -176,13 +176,16 @@ client validation, handoff success, and server-side upload validation failures.
 Initial durable upload protocol slice exists: operator-only
 `POST /api/chat/uploads` accepts multipart text uploads, validates the same text
 file policy, stores content plus metadata under the web-chat data directory, and
-returns a `web-chat-upload` ref. The active prompt still uses inline AI SDK file
-parts for now.
+returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
+`data-upload` parts carrying those refs, resolves the stored text, and passes it
+to the agent using the existing text-upload prompt format. The active prompt
+still uses inline AI SDK file parts for now.
 
-Remaining upload work: route chat sends through those upload refs, add durable
-storage/registry integration beyond the web-chat data directory, define
-binary/media type policies, and change the `AgentService.chat()` request path to
-pass attachment refs instead of inlining text.
+Remaining upload work: switch the React prompt to upload first and send
+`data-upload` refs, add durable storage/registry integration beyond the web-chat
+data directory, define binary/media type policies, and change the
+`AgentService.chat()` request path to receive attachment refs natively instead
+of inlining text.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

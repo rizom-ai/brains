@@ -18,7 +18,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
@@ -64,6 +64,20 @@ const webChatTitleMaxLength = 48;
 const webChatDefaultUploadFilename = "upload.txt";
 const webChatUploadFormField = "file";
 const webChatUploadRefKind = "web-chat-upload";
+const webChatUploadIdPattern =
+  /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const uploadRefSchema = z.object({
+  kind: z.literal(webChatUploadRefKind),
+  id: z.string().regex(webChatUploadIdPattern),
+});
+
+const uploadRefPartSchema = z.object({
+  type: z.literal("data-upload"),
+  data: z.object({
+    ref: uploadRefSchema,
+  }),
+});
 
 const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
@@ -92,6 +106,15 @@ interface WebChatUploadRecord {
   sizeBytes: number;
   createdAt: string;
 }
+
+const webChatUploadRecordSchema: z.ZodType<WebChatUploadRecord> = z.object({
+  id: z.string().regex(webChatUploadIdPattern),
+  ref: uploadRefSchema,
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  sizeBytes: z.number().nonnegative(),
+  createdAt: z.string().datetime(),
+});
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -2388,7 +2411,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const conversationId = parsed.data.id ?? this.createId("web");
-    const userInput = this.extractLastUserInput(parsed.data);
+    const userInput = await this.extractLastUserInput(parsed.data);
     if (userInput instanceof Response) return userInput;
     const message = userInput;
     const approvalResponses = message
@@ -2807,54 +2830,141 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  private extractLastUserInput(request: ChatRequest): string | Response {
+  private async extractLastUserInput(
+    request: ChatRequest,
+  ): Promise<string | Response> {
     const lastUserMessage = this.findLastUserMessage(request);
     if (!lastUserMessage) return "";
     if (lastUserMessage.content) return lastUserMessage.content;
 
-    const textParts: string[] = [];
-    const fileParts: string[] = [];
+    const messageParts: string[] = [];
     for (const part of lastUserMessage.parts ?? []) {
       const parsedText = textPartSchema.safeParse(part);
       if (parsedText.success) {
-        textParts.push(parsedText.data.text);
+        if (parsedText.data.text.length > 0) {
+          messageParts.push(parsedText.data.text);
+        }
         continue;
       }
 
       const parsedFile = filePartSchema.safeParse(part);
-      if (!parsedFile.success) continue;
-
-      const filename = parsedFile.data.filename ?? webChatDefaultUploadFilename;
-      const mediaType = parsedFile.data.mediaType;
-      if (!this.isUploadableTextFile(filename, mediaType)) {
-        return new Response(`Unsupported file upload type: ${filename}`, {
-          status: 400,
-        });
+      if (parsedFile.success) {
+        const formatted = this.formatInlineUploadPart(parsedFile.data);
+        if (formatted instanceof Response) return formatted;
+        messageParts.push(formatted);
+        continue;
       }
 
-      const decoded = this.decodeUploadedDataUrl(parsedFile.data.url);
-      if (!decoded) {
-        return new Response(`Unsupported file upload URL: ${filename}`, {
-          status: 400,
-        });
-      }
-      if (!this.isFileSizeAllowed(decoded.byteLength)) {
-        return new Response(`File upload too large: ${filename}`, {
-          status: 400,
-        });
+      const parsedUploadRef = uploadRefPartSchema.safeParse(part);
+      if (parsedUploadRef.success) {
+        const formatted = await this.formatReferencedUpload(
+          parsedUploadRef.data.data.ref.id,
+        );
+        if (formatted instanceof Response) return formatted;
+        messageParts.push(formatted);
+        continue;
       }
 
-      fileParts.push(
-        this.formatFileUploadMessage(
-          filename,
-          decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
-        ),
-      );
+      if (this.getPartType(part) === "data-upload") {
+        return new Response("Invalid upload ref", { status: 400 });
+      }
     }
 
-    return [...textParts.filter((part) => part.length > 0), ...fileParts].join(
-      "\n\n",
+    return messageParts.join("\n\n");
+  }
+
+  private getPartType(part: unknown): string | undefined {
+    if (typeof part !== "object" || part === null || !("type" in part)) {
+      return undefined;
+    }
+    const type = part.type;
+    return typeof type === "string" ? type : undefined;
+  }
+
+  private formatInlineUploadPart(
+    file: z.infer<typeof filePartSchema>,
+  ): string | Response {
+    const filename = file.filename ?? webChatDefaultUploadFilename;
+    const mediaType = file.mediaType;
+    if (!this.isUploadableTextFile(filename, mediaType)) {
+      return new Response(`Unsupported file upload type: ${filename}`, {
+        status: 400,
+      });
+    }
+
+    const decoded = this.decodeUploadedDataUrl(file.url);
+    if (!decoded) {
+      return new Response(`Unsupported file upload URL: ${filename}`, {
+        status: 400,
+      });
+    }
+    if (!this.isFileSizeAllowed(decoded.byteLength)) {
+      return new Response(`File upload too large: ${filename}`, {
+        status: 400,
+      });
+    }
+
+    return this.formatFileUploadMessage(
+      filename,
+      decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
     );
+  }
+
+  private async formatReferencedUpload(
+    uploadId: string,
+  ): Promise<string | Response> {
+    const record = await this.readUploadRecord(uploadId);
+    if (record instanceof Response) return record;
+
+    let content: Buffer;
+    try {
+      content = await readFile(join(this.getUploadDir(uploadId), "content"));
+    } catch {
+      return new Response("Upload not found", { status: 404 });
+    }
+
+    if (!this.isFileSizeAllowed(content.byteLength)) {
+      return new Response(`File upload too large: ${record.filename}`, {
+        status: 400,
+      });
+    }
+
+    return this.formatFileUploadMessage(
+      record.filename,
+      content.toString("utf8").replace(/^\uFEFF/, ""),
+    );
+  }
+
+  private async readUploadRecord(
+    uploadId: string,
+  ): Promise<WebChatUploadRecord | Response> {
+    if (!webChatUploadIdPattern.test(uploadId)) {
+      return new Response("Invalid upload ref", { status: 400 });
+    }
+
+    try {
+      const raw = await readFile(
+        join(this.getUploadDir(uploadId), "metadata.json"),
+        "utf8",
+      );
+      const parsed = webChatUploadRecordSchema.safeParse(JSON.parse(raw));
+      if (!parsed.success || parsed.data.id !== uploadId) {
+        return new Response("Invalid upload metadata", { status: 500 });
+      }
+      if (
+        !this.isUploadableTextFile(parsed.data.filename, parsed.data.mediaType)
+      ) {
+        return new Response(
+          `Unsupported file upload type: ${parsed.data.filename}`,
+          {
+            status: 400,
+          },
+        );
+      }
+      return parsed.data;
+    } catch {
+      return new Response("Upload not found", { status: 404 });
+    }
   }
 
   private getUploadDir(uploadId: string): string {

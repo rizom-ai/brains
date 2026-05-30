@@ -747,6 +747,88 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toContain("File upload too large");
   });
 
+  it("passes durable upload refs to the agent as uploaded text", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = plugin.getWebRoutes()[10];
+    const chatRoute = plugin.getWebRoutes()[1];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Durable Notes"], "durable-notes.md", {
+        type: "text/markdown",
+      }),
+    );
+    const uploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Summarize this" },
+                { type: "data-upload", data: { ref: upload.ref } },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.message).toBe(
+      'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+    );
+  });
+
+  it("rejects invalid durable upload refs", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                {
+                  type: "data-upload",
+                  data: { ref: { kind: "web-chat-upload", id: "../bad" } },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Invalid upload ref");
+    expect(agent.chatCalls).toHaveLength(0);
+  });
+
   it("handles AI SDK approval responses through the chat endpoint", async () => {
     const agent = createSpyAgentService(undefined, {
       text: "Completed: Delete note?",
