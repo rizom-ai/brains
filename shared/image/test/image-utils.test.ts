@@ -36,6 +36,14 @@ describe("parseDataUrl", () => {
     expect(result.base64).toBe("abc123");
   });
 
+  it("should parse a data URL with a trailing newline (filesystem round-trip)", () => {
+    // Image entities store the bare data URL as content; writing it to disk
+    // appends a trailing newline that must not break re-parsing.
+    const result = parseDataUrl(`${TINY_PNG_DATA_URL}\n`);
+    expect(result.format).toBe("png");
+    expect(result.base64).toBe(TINY_PNG_BASE64);
+  });
+
   it("should throw for invalid data URL", () => {
     expect(() => parseDataUrl("https://example.com/image.png")).toThrow();
     expect(() => parseDataUrl("not-a-data-url")).toThrow();
