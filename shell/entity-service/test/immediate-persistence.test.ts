@@ -163,6 +163,43 @@ describe("Immediate Entity Persistence", () => {
       expect(updated?.title).toBe("Updated Title");
       expect(updated?.content).toContain("Updated content");
     });
+
+    test("metadata-only updates persist when serialized markdown is unchanged", async () => {
+      const noteData = createNoteInput({
+        title: "Series Note",
+        content: "Body",
+        tags: [],
+      });
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
+
+      const original = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      expect(original).not.toBeNull();
+      if (!original) throw new Error("Entity should exist");
+
+      await ctx.entityService.updateEntity({
+        entity: {
+          ...original,
+          metadata: {
+            ...original.metadata,
+            seriesName: "New Institutions",
+            seriesIndex: 2,
+          },
+        },
+      });
+
+      const updated = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      expect(updated?.contentHash).toBe(original.contentHash);
+      expect(updated?.metadata["seriesName"]).toBe("New Institutions");
+      expect(updated?.metadata["seriesIndex"]).toBe(2);
+    });
   });
 
   describe("search behavior with embeddings table", () => {
