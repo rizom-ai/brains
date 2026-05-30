@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import { slugify } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Series, SeriesFrontmatter } from "../schemas/series";
+import { getSeriesName } from "../lib/series-metadata";
 
 /**
  * Manages series entities derived from ANY entity type with seriesName metadata.
@@ -27,7 +28,6 @@ export class SeriesManager {
 
     const existingSeries = await this.entityService.listEntities<Series>({
       entityType: "series",
-      options: { limit: 1000 },
     });
     const existingMap = new Map(existingSeries.map((s) => [s.id, s]));
 
@@ -78,7 +78,7 @@ export class SeriesManager {
     entity: BaseEntity,
     oldSeriesName?: string,
   ): Promise<void> {
-    const seriesName = this.getSeriesName(entity);
+    const seriesName = getSeriesName(entity);
 
     if (seriesName) {
       await this.ensureSeriesExists(seriesName);
@@ -94,15 +94,6 @@ export class SeriesManager {
    */
   async handleEntityDeleted(): Promise<void> {
     await this.syncAllSeries();
-  }
-
-  /**
-   * Extract seriesName from any entity's metadata.
-   */
-  getSeriesName(entity: BaseEntity): string | undefined {
-    const metadata = entity.metadata as Record<string, unknown>;
-    const name = metadata["seriesName"];
-    return typeof name === "string" ? name : undefined;
   }
 
   private async ensureSeriesExists(seriesName: string): Promise<void> {
@@ -175,12 +166,9 @@ export class SeriesManager {
       if (type === "series") continue;
       const entities = await this.entityService.listEntities({
         entityType: type,
-        options: {
-          limit: 1000,
-        },
       });
       for (const entity of entities) {
-        const name = this.getSeriesName(entity);
+        const name = getSeriesName(entity);
         if (name) names.add(name);
       }
     }

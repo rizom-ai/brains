@@ -1,0 +1,48 @@
+id: relay-agent-context-conflicting-memory
+name: Relay ignores superseded conflicting conversation memory
+description: >-
+  Exercises full agent behavior when same-space injected memory contains an
+  older conflicting summary and a newer superseding summary. The agent should
+  use the current memory and not repeat superseded details.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - conflict
+
+turns:
+  - userMessage: >-
+      Our injected Relay conversation memory may include conflicting conflict
+      protocol notes mentioning Orion/blue in an older draft and Mira/green in
+      a newer update. Using only the memory already available in this turn, who
+      currently owns escalation and what is the rollout color? Do not call
+      tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "Mira"
+    - "green"
+  responseNotContains:
+    - "Orion currently owns"
+    - "rollout color is blue"
+    - "I don't have access"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

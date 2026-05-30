@@ -1,4 +1,5 @@
-import { type Logger } from "@brains/utils";
+import type { AgentContextItem } from "@brains/contracts";
+import { type Logger, getErrorMessage } from "@brains/utils";
 import { type IMCPService, type ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
@@ -27,8 +28,11 @@ import {
   type ExecuteActionInput,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
-import { buildModelMessages } from "./conversation-messages";
-import { extractToolResults } from "./agent-results";
+import {
+  buildAgentContextInstructions,
+  buildModelMessages,
+} from "./conversation-messages";
+import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
 
@@ -69,6 +73,7 @@ export class AgentService implements IAgentService {
   private agentInstructions: AgentConfig["agentInstructions"];
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
+  private agentContextProvider: AgentConfig["agentContextProvider"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -161,6 +166,7 @@ export class AgentService implements IAgentService {
     this.agentInstructions = config.agentInstructions;
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
+    this.agentContextProvider = config.agentContextProvider;
   }
 
   /**
@@ -337,7 +343,18 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
+    const contextItems = await this.fetchAgentContext({
+      conversationId,
+      message,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    });
+
     const messages = buildModelMessages(historyMessages, message);
+    const agentContextInstructions =
+      buildAgentContextInstructions(contextItems);
 
     // Log available tools
     const tools = this.mcpService
@@ -363,6 +380,7 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
+      ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 
     const result = await this.getAgent().generate({
@@ -379,11 +397,18 @@ export class AgentService implements IAgentService {
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
+    //
+    // Append a memory note of entities this turn created/updated so their IDs
+    // stay addressable next turn (history is text-only and otherwise drops the
+    // tool results). The note is stored only — the returned text is unchanged.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
-        content: responseText,
+        content:
+          pendingConfirmations.length > 0
+            ? responseText
+            : responseText + buildEntityMemoryNote(toolResults),
         ...this.withMessageMetadata(
           this.buildMessageMetadata(
             this.getAssistantActor(),
@@ -413,6 +438,34 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async fetchAgentContext(params: {
+    conversationId: string;
+    message: string;
+    interfaceType: string;
+    channelId: string;
+    channelName: string;
+    userPermissionLevel: ChatContext["userPermissionLevel"];
+  }): Promise<AgentContextItem[] | undefined> {
+    if (!this.agentContextProvider) return undefined;
+
+    try {
+      return await this.agentContextProvider({
+        conversationId: params.conversationId,
+        message: params.message,
+        interfaceType: params.interfaceType,
+        channelId: params.channelId,
+        channelName: params.channelName,
+        userPermissionLevel: params.userPermissionLevel ?? "public",
+      });
+    } catch (error) {
+      this.logger.warn("Agent context provider failed", {
+        conversationId: params.conversationId,
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
   }
 
   private async executeConfirmedAction(

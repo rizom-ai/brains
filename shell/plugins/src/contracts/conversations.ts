@@ -1,5 +1,11 @@
 import { z } from "zod";
+import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import { ExtensionMetadataSchema } from "./metadata";
+
+// The canonical message-role contract lives in @brains/contracts; surface it
+// here alongside the Conversation/Message contracts it belongs with.
+export { messageRoleSchema };
+export type { MessageRole };
 
 export const ConversationSchema = z.object({
   id: z.string(),
@@ -15,10 +21,6 @@ export const ConversationSchema = z.object({
 });
 
 export type Conversation = z.infer<typeof ConversationSchema>;
-
-export const messageRoleSchema = z.enum(["user", "assistant", "system"]);
-
-export type MessageRole = z.infer<typeof messageRoleSchema>;
 
 export const MessageSchema = z.object({
   id: z.string(),

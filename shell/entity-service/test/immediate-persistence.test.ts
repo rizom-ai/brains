@@ -14,6 +14,7 @@ import type { EntityEventBus } from "../src/types";
 interface CapturedEntityPayload extends Record<string, unknown> {
   entityId?: unknown;
   entity?: unknown;
+  previousMetadata?: Record<string, unknown>;
 }
 
 interface CapturedEntityEvent {
@@ -163,6 +164,43 @@ describe("Immediate Entity Persistence", () => {
       expect(updated?.title).toBe("Updated Title");
       expect(updated?.content).toContain("Updated content");
     });
+
+    test("metadata-only updates persist when serialized markdown is unchanged", async () => {
+      const noteData = createNoteInput({
+        title: "Series Note",
+        content: "Body",
+        tags: [],
+      });
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
+
+      const original = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      expect(original).not.toBeNull();
+      if (!original) throw new Error("Entity should exist");
+
+      await ctx.entityService.updateEntity({
+        entity: {
+          ...original,
+          metadata: {
+            ...original.metadata,
+            seriesName: "New Institutions",
+            seriesIndex: 2,
+          },
+        },
+      });
+
+      const updated = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
+      expect(updated?.contentHash).toBe(original.contentHash);
+      expect(updated?.metadata["seriesName"]).toBe("New Institutions");
+      expect(updated?.metadata["seriesIndex"]).toBe(2);
+    });
   });
 
   describe("search behavior with embeddings table", () => {
@@ -246,6 +284,50 @@ describe("Immediate Entity Persistence", () => {
         expect(entity?.id).toBe(entityId);
         expect(entity?.title).toBe("Tagged Note");
         expect(entity?.metadata["seriesName"]).toBe("My Series");
+      } finally {
+        await eventCtx.cleanup();
+      }
+    });
+  });
+
+  describe("updateEntity - prior metadata in event payload", () => {
+    test("entity:updated event carries previousMetadata so subscribers can reconcile a moved value", async () => {
+      const { eventBus, events } = createCapturingEventBus();
+      const eventCtx = await setupEntityService(
+        [{ name: "note", schema: noteSchema, adapter: noteAdapter }],
+        { messageBus: eventBus },
+      );
+
+      try {
+        const noteInput = createNoteInput({
+          title: "Series Note",
+          content: "Body",
+          tags: [],
+        });
+        const { entityId } = await eventCtx.entityService.createEntity({
+          entity: { ...noteInput, metadata: { seriesName: "Old Series" } },
+        });
+
+        const original = await eventCtx.entityService.getEntity<Note>({
+          entityType: "note",
+          id: entityId,
+        });
+        if (!original) throw new Error("Entity should exist");
+
+        await eventCtx.entityService.updateEntity({
+          entity: {
+            ...original,
+            metadata: { ...original.metadata, seriesName: "New Series" },
+          },
+        });
+
+        const updatedEvents = events.filter(
+          (event) => event.type === "entity:updated",
+        );
+        expect(updatedEvents).toHaveLength(1);
+        const payload = updatedEvents[0]?.payload;
+        expect(payload?.entityId).toBe(entityId);
+        expect(payload?.previousMetadata?.["seriesName"]).toBe("Old Series");
       } finally {
         await eventCtx.cleanup();
       }

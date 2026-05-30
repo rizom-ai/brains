@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
+- [Conversation memory](./summary-conversation-memory.md) — Phases 1–4 shipped; active hardening: full-agent evals, operator visibility, memory dashboard
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
@@ -36,7 +36,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
 - [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
-- [Generation stub merge model](./generation-stub-merge-model.md) — proposed follow-up to the shipped queued-entity-stubs work; replace the overwrite-minus-preserve-list with a structural merge so reference attachments and lifecycle fields stop being hand-curated lists
 
 ### Auth, users, CMS, and HTTP
 

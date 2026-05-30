@@ -456,4 +456,64 @@ describe("ConversationMemoryRetriever", () => {
       }),
     ]);
   });
+
+  it("dedupes results that resolve to the same entity id", async () => {
+    const context = createMockEntityPluginContext();
+    const summary = createSummary({ id: "summary-team", channelId: "team" });
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: summary, score: 0.9, excerpt: "First copy" },
+        { entity: summary, score: 0.4, excerpt: "Duplicate copy" },
+      ]),
+    );
+
+    const retriever = new ConversationMemoryRetriever(context);
+    const result = await retriever.retrieve({
+      query: "memory",
+      interfaceType: "mcp",
+      channelId: "team",
+    });
+
+    expect(result.results.map((item) => item.id)).toEqual(["summary-team"]);
+    expect(result.results[0]?.score).toBe(0.9);
+  });
+
+  it("truncates expanded summary content at a word boundary", async () => {
+    const context = createMockEntityPluginContext();
+    const longBody = Array.from({ length: 400 }, () => "lorem").join(" ");
+    const summary = createSummary({
+      id: "summary-long",
+      channelId: "team",
+      content: [
+        "# Conversation Summary",
+        "",
+        "## Long entry",
+        "",
+        "Time: 2026-01-01T00:00:00.000Z → 2026-01-01T00:05:00.000Z",
+        "Messages summarized: 4",
+        "",
+        longBody,
+      ].join("\n"),
+    });
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([{ entity: summary, score: 0.7, excerpt: "Long entry" }]),
+    );
+
+    const retriever = new ConversationMemoryRetriever(context);
+    const result = await retriever.retrieve({
+      query: "memory",
+      interfaceType: "mcp",
+      channelId: "team",
+    });
+
+    const content = result.results[0]?.content ?? "";
+    expect(content.length).toBeLessThanOrEqual(1600);
+    expect(content.endsWith("…")).toBe(true);
+    // No token is cut mid-word: every body token is a whole "lorem" (or a
+    // title word), never a partial "lore"/"lor".
+    const tokens = content.slice(0, -1).trim().split(/\s+/);
+    expect(
+      tokens.every((token) => ["Long", "entry", "lorem"].includes(token)),
+    ).toBe(true);
+  });
 });

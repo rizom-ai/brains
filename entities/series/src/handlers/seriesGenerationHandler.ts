@@ -18,6 +18,12 @@ const seriesGenerationJobSchema = z.object({
   seriesId: z.string().optional(),
 });
 
+/** Member fields used to build the description prompt. */
+const memberSummarySchema = z.object({
+  title: z.string().optional(),
+  excerpt: z.string().optional(),
+});
+
 type SeriesGenerationJobData = z.infer<typeof seriesGenerationJobSchema>;
 
 /**
@@ -118,15 +124,15 @@ export class SeriesGenerationHandler implements JobHandler<
         entityType: type,
         options: {
           filter: { metadata: { seriesName } },
+          // Deliberate cap: these summaries feed an AI prompt, so bound the
+          // context size rather than walk every member of a huge series.
           limit: 100,
         },
       });
       for (const entity of entities) {
-        const title =
-          (entity.metadata as Record<string, unknown>)["title"] ?? entity.id;
-        const excerpt =
-          (entity.metadata as Record<string, unknown>)["excerpt"] ?? "";
-        summaries.push(`- "${title}": ${excerpt}`);
+        const parsed = memberSummarySchema.safeParse(entity.metadata);
+        const { title, excerpt } = parsed.success ? parsed.data : {};
+        summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
       }
     }
 

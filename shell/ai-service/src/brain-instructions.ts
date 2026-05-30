@@ -7,6 +7,7 @@ export function buildInstructions(
   pluginInstructions?: string[],
   profile?: AnchorProfile,
   agentInstructions?: string[],
+  agentContextInstructions?: string,
 ): string {
   let userContext = "";
   if (userPermissionLevel === "anchor") {
@@ -133,6 +134,9 @@ The tools below describe capability families. The current caller's permission le
       : "") +
     (pluginInstructions && pluginInstructions.length > 0
       ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`
+      : "") +
+    (agentContextInstructions
+      ? `\n\n### Retrieved Conversation Memory (CONTEXT)\n\n${agentContextInstructions}`
       : "") +
     `
 

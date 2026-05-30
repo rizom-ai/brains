@@ -35,6 +35,10 @@ const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
 
+function expectNoSystemMessages(messages: ModelMessage[]): void {
+  expect(messages.some((message) => message.role === "system")).toBe(false);
+}
+
 // Mock BrainCharacterService
 const createMockCharacterService = (): IBrainCharacterService => ({
   getCharacter: mock(() => ({
@@ -632,6 +636,86 @@ describe("AgentService", () => {
             userPermissionLevel: "public",
           }),
         }),
+      );
+    });
+  });
+
+  describe("agent context retrieval", () => {
+    it("passes retrieved context through agent instructions with provenance", async () => {
+      const agentContextProvider = mock(async () => [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "summary from #relay-team",
+          content: "The team decided to use explicit memory retrieval.",
+          provenance: {
+            entityType: "summary",
+            conversationId: "relay-conv",
+            spaceId: "mcp:relay-team",
+          },
+        },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What did we decide?", "relay-conv", {
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      expect(agentContextProvider).toHaveBeenCalledWith({
+        conversationId: "relay-conv",
+        message: "What did we decide?",
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "The team decided to use explicit memory retrieval.",
+      );
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "conversationId=relay-conv",
+      );
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "spaceId=mcp:relay-team",
+      );
+    });
+
+    it("tells the agent when the context provider returns no relevant memory", async () => {
+      const agentContextProvider = mock(async () => []);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What memory is available?", "empty-context", {
+        interfaceType: "mcp",
+        channelId: "empty-space",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "No relevant conversation memory was retrieved for this turn.",
       );
     });
   });

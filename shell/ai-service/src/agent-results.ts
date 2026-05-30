@@ -197,3 +197,37 @@ export function extractToolResults(
     totalToolCalls,
   };
 }
+
+const entityRefDataSchema = z.object({
+  entityId: z.string().min(1),
+  status: z.string().optional(),
+});
+const entityRefArgsSchema = z.object({ entityType: z.string().optional() });
+
+/**
+ * Build a compact memory note listing the entities a turn created or updated.
+ *
+ * Conversation history is text-only, so tool results (and the entity IDs they
+ * return) are otherwise lost after a turn — a follow-up like "add a cover image
+ * to that post" then has no ID to reference and is forced to search. Appending
+ * this note to the stored assistant message keeps those IDs addressable on the
+ * next turn. Returns "" when no tool produced an addressable entity.
+ */
+export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
+  const seen = new Set<string>();
+  const refs: string[] = [];
+  for (const tr of toolResults) {
+    const data = entityRefDataSchema.safeParse(tr.data);
+    if (!data.success) continue;
+    const { entityId, status } = data.data;
+    if (seen.has(entityId)) continue;
+    seen.add(entityId);
+
+    const args = entityRefArgsSchema.safeParse(tr.args ?? {});
+    const entityType = args.success ? args.data.entityType : undefined;
+    const label = entityType ? `${entityType} "${entityId}"` : `"${entityId}"`;
+    refs.push(status ? `${label} (${status})` : label);
+  }
+  if (refs.length === 0) return "";
+  return `\n\n[Entities affected this turn: ${refs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.]`;
+}

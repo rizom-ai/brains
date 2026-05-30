@@ -88,7 +88,6 @@ export class SummaryProjector {
     const eligibility = evaluateSummaryEligibility({
       conversation: source.conversation,
       spaces: this.context.spaces,
-      messages: source.messages,
     });
     if (!eligibility.eligible) {
       this.logger.info("Skipping conversation memory projection", {

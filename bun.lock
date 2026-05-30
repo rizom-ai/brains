@@ -206,6 +206,7 @@
       "version": "0.2.0-alpha.91",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -1367,6 +1368,7 @@
         "@ai-sdk/anthropic": "^3.0.44",
         "@ai-sdk/google": "^3.0.29",
         "@ai-sdk/openai": "^3.0.29",
+        "@brains/contracts": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/identity-service": "workspace:*",
@@ -1583,6 +1585,7 @@
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/conversation-service": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",

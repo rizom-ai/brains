@@ -1,6 +1,8 @@
 import { BaseJobHandler } from "@brains/job-queue";
+import type { BaseEntity } from "@brains/entity-service";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
+  generateMarkdown,
   getErrorMessage,
   parseMarkdown,
   updateFrontmatterField,
@@ -75,7 +77,7 @@ function normalizeGenericCoverImageRequest(
 export interface GeneratedContent {
   /** Entity ID (often derived from title) */
   id: string;
-  /** Full markdown content (with frontmatter) */
+  /** Markdown body, optionally with frontmatter */
   content: string;
   /** Entity metadata */
   metadata: Record<string, unknown>;
@@ -87,39 +89,23 @@ export interface GeneratedContent {
   createOptions?: { deduplicateId?: boolean };
 }
 
-/**
- * Copy reference-attachment fields the user wired into the stub during the
- * "generating" window into the generated content, since the generator
- * wasn't aware of them. Which fields qualify is declared by the entity
- * adapter (`EntityAdapter.stubPreservedFields`) — the list lives next to
- * the schema that defines those fields rather than here.
- */
-function preserveExistingReferenceFrontmatter(
-  existingContent: string,
-  generatedContent: string,
-  preservedFields: readonly string[],
-): string {
-  if (preservedFields.length === 0) return generatedContent;
-  let content = generatedContent;
-  try {
-    const existingFrontmatter = parseMarkdown(existingContent).frontmatter;
-    const generatedFrontmatter = parseMarkdown(generatedContent).frontmatter;
-    for (const field of preservedFields) {
-      if (
-        existingFrontmatter[field] !== undefined &&
-        generatedFrontmatter[field] === undefined
-      ) {
-        content = updateFrontmatterField(
-          content,
-          field,
-          existingFrontmatter[field],
-        );
-      }
-    }
-  } catch {
-    // If either side is not frontmatter markdown, keep generated content as-is.
-  }
-  return content;
+function withoutUndefined(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
+}
+
+function withoutStubLifecycleFields(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...input };
+  // Stub lifecycle fields are owned by the generation lifecycle, not by
+  // durable user edits made while the stub is generating.
+  delete result["status"];
+  delete result["error"];
+  return withoutUndefined(result);
 }
 
 /**
@@ -375,33 +361,51 @@ export abstract class BaseGenerationJobHandler<
       );
     }
 
-    const preservedFields =
-      this.context.entities.getAdapter(this.entityType)?.stubPreservedFields ??
-      [];
-    const content = preserveExistingReferenceFrontmatter(
-      existing.content,
-      generated.content,
-      preservedFields,
-    );
-
-    const {
-      status: _existingStatus,
-      error: _existingError,
-      ...existingMetadata
-    } = existing.metadata;
+    const merged = this.mergeStubWithGenerated(existing, generated);
 
     return this.context.entityService.updateEntity({
       entity: {
         ...existing,
         id: entityId,
         entityType: this.entityType,
-        content,
-        metadata: {
-          ...existingMetadata,
-          ...generated.metadata,
-        },
+        content: merged.content,
+        metadata: merged.metadata,
       },
     });
+  }
+
+  private mergeStubWithGenerated(
+    existing: BaseEntity,
+    generated: GeneratedContent,
+  ): Pick<BaseEntity, "content" | "metadata"> {
+    const existingFrontmatter = withoutStubLifecycleFields(
+      parseMarkdown(existing.content).frontmatter,
+    );
+    const existingMetadata = withoutStubLifecycleFields(existing.metadata);
+    const generatedMetadata = withoutUndefined(generated.metadata);
+    const generatedParsed = parseMarkdown(generated.content);
+    const generatedFrontmatter = withoutUndefined(generatedParsed.frontmatter);
+
+    const mergedFrontmatter = withoutUndefined({
+      ...existingFrontmatter,
+      ...generatedMetadata,
+      ...generatedFrontmatter,
+    });
+    const frontmatterSchema =
+      this.context.entities.getEffectiveFrontmatterSchema(this.entityType);
+    // Validate only — do NOT serialize the parsed result. A default z.object
+    // strips unknown keys, which would drop the preserved attachment fields
+    // (coverImageId, documents, future user-attached fields) that this merge
+    // exists to keep. Serialize the un-parsed mergedFrontmatter below.
+    frontmatterSchema?.parse(mergedFrontmatter);
+
+    return {
+      content: generateMarkdown(mergedFrontmatter, generatedParsed.content),
+      metadata: {
+        ...existingMetadata,
+        ...generatedMetadata,
+      },
+    };
   }
 
   private async markPreallocatedStubFailed(

@@ -17,6 +17,7 @@ import { SeriesDataSource } from "./datasources/series-datasource";
 import { SeriesGenerationHandler } from "./handlers/seriesGenerationHandler";
 import { getTemplates } from "./lib/register-templates";
 import { seriesDescriptionTemplate } from "./templates/description-template";
+import { getSeriesName, parseSeriesFields } from "./lib/series-metadata";
 import packageJson from "../package.json";
 
 const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
@@ -28,17 +29,16 @@ const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
     mode: z.literal("source"),
     entityId: z.string(),
     entityType: z.string(),
-    seriesName: z.string(),
+    // The source's current series, if it still has one. Absent when an update
+    // cleared `seriesName` entirely (the source remains but joined no series).
+    seriesName: z.string().optional(),
+    // The series the source previously belonged to, when an update moved it to
+    // a different series (or cleared it). Drives orphan cleanup of the old one.
+    previousSeriesName: z.string().optional(),
   }),
 ]);
 
 type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
-
-interface SeriesSourceMetadata extends Record<string, unknown> {
-  seriesName: string;
-}
-
-type SeriesSourceEntity = BaseEntity<SeriesSourceMetadata>;
 
 /**
  * Series EntityPlugin — auto-derives series from entities with seriesName metadata.
@@ -106,16 +106,26 @@ export class SeriesPlugin extends EntityPlugin<Series> {
             if (payload.entityType === "series") return null;
             // Both create/update and (since entity-mutations.deleteEntity now
             // attaches the prior entity) delete events carry payload.entity.
-            // No seriesName → not relevant to this projection, skip.
-            if (!payload.entity || !this.hasSeriesName(payload.entity)) {
-              return null;
-            }
-            const seriesName = payload.entity.metadata.seriesName;
+            if (!payload.entity) return null;
+
+            const seriesName = getSeriesName(payload.entity);
+            // entity:updated carries the prior metadata so a move between
+            // series (or a cleared seriesName) can orphan-clean the old one.
+            const previousSeriesName = parseSeriesFields(
+              payload.previousMetadata,
+            ).seriesName;
+
+            // Irrelevant unless the source is, or just was, in a series.
+            if (!seriesName && !previousSeriesName) return null;
+
             return {
               mode: "source",
               entityId: payload.entity.id,
               entityType: payload.entity.entityType,
-              seriesName,
+              ...(seriesName ? { seriesName } : {}),
+              ...(previousSeriesName && previousSeriesName !== seriesName
+                ? { previousSeriesName }
+                : {}),
             };
           },
           jobOptions: (
@@ -123,9 +133,9 @@ export class SeriesPlugin extends EntityPlugin<Series> {
           ):
             | ReturnType<SeriesPlugin["getSourceProjectionJobOptions"]>
             | undefined => {
-            if (!payload.entity || !this.hasSeriesName(payload.entity)) {
-              return undefined;
-            }
+            // Dedup key is per-source (type + id), so it applies to any
+            // relevant change regardless of whether a series remains.
+            if (!payload.entity) return undefined;
             return this.getSourceProjectionJobOptions(payload.entity);
           },
         },
@@ -158,11 +168,17 @@ export class SeriesPlugin extends EntityPlugin<Series> {
           id: parsed.entityId,
         });
         if (source) {
-          await this.projectSource(source);
+          // Ensure the current series exists and, if the source moved away
+          // from a previous series, orphan-clean the one it left.
+          await this.projectSource(source, parsed.previousSeriesName);
         } else {
           // Source no longer exists — this was a delete event. Targeted
-          // cleanup of just this series is much cheaper than a full resync.
-          await this.requireManager().cleanupOrphanedSeries(parsed.seriesName);
+          // cleanup of just the affected series is much cheaper than a full
+          // resync. Clean both the last-known series and any previous one.
+          const manager = this.requireManager();
+          for (const name of [parsed.seriesName, parsed.previousSeriesName]) {
+            if (name) await manager.cleanupOrphanedSeries(name);
+          }
         }
         return { success: true };
       },
@@ -176,10 +192,6 @@ export class SeriesPlugin extends EntityPlugin<Series> {
   private requireManager(): SeriesManager {
     if (!this.manager) throw new Error("SeriesPlugin not registered");
     return this.manager;
-  }
-
-  private hasSeriesName(entity: BaseEntity): entity is SeriesSourceEntity {
-    return typeof entity.metadata["seriesName"] === "string";
   }
 
   private getSyncProjectionJobOptions(reason: string): {
@@ -202,7 +214,7 @@ export class SeriesPlugin extends EntityPlugin<Series> {
     };
   }
 
-  private getSourceProjectionJobOptions(entity: SeriesSourceEntity): {
+  private getSourceProjectionJobOptions(entity: BaseEntity): {
     source: string;
     deduplication: "coalesce";
     deduplicationKey: string;
@@ -223,10 +235,14 @@ export class SeriesPlugin extends EntityPlugin<Series> {
   }
 
   /**
-   * Project series from one source entity.
+   * Project series from one source entity, optionally cleaning up the series
+   * it previously belonged to (for moves/renames captured on update).
    */
-  private async projectSource(source: BaseEntity): Promise<void> {
-    await this.requireManager().handleEntityChange(source);
+  private async projectSource(
+    source: BaseEntity,
+    previousSeriesName?: string,
+  ): Promise<void> {
+    await this.requireManager().handleEntityChange(source, previousSeriesName);
   }
 
   private async projectAll(context: EntityPluginContext): Promise<void> {
@@ -239,7 +255,6 @@ export class SeriesPlugin extends EntityPlugin<Series> {
     );
     const allSeries = await context.entityService.listEntities<Series>({
       entityType: "series",
-      options: { limit: 1000 },
     });
     for (const series of allSeries) {
       try {

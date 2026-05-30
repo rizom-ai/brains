@@ -18,8 +18,6 @@ export class DeckAdapter extends BaseEntityAdapter<
   DeckMetadata,
   DeckFrontmatter
 > {
-  public readonly stubPreservedFields = ["coverImageId"] as const;
-
   constructor() {
     super({
       entityType: "deck",

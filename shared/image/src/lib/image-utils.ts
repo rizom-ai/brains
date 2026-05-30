@@ -14,7 +14,10 @@ export interface ParsedDataUrl {
  * @throws Error if not a valid image data URL
  */
 export function parseDataUrl(dataUrl: string): ParsedDataUrl {
-  const match = dataUrl.match(/^data:image\/([a-z+]+);base64,(.+)$/i);
+  // Trim surrounding whitespace: image entities store the bare data URL as
+  // their content, so a filesystem round-trip (toMarkdown -> disk -> read)
+  // appends a trailing newline that would otherwise fail the match.
+  const match = dataUrl.trim().match(/^data:image\/([a-z+]+);base64,(.+)$/i);
   if (!match?.[1] || !match[2]) {
     throw new Error("Invalid image data URL");
   }

@@ -11,6 +11,12 @@ export interface EntityChangePayload<TEntity extends BaseEntity = BaseEntity> {
   entityType: string;
   entityId?: string;
   entity?: TEntity;
+  /**
+   * Metadata of the entity as it was before an `entity:updated` change.
+   * Present only on update events; lets projections detect a moved value
+   * (e.g. a changed `seriesName`) and reconcile the prior state.
+   */
+  previousMetadata?: TEntity["metadata"];
 }
 
 export interface ProjectionJobConfig {

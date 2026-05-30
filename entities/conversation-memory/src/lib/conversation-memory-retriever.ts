@@ -1,9 +1,10 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../schemas/conversation-memory";
 import type { SummaryEntity } from "../schemas/summary";
+import { SummaryAdapter } from "../adapters/summary-adapter";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
@@ -19,6 +20,10 @@ const MEMORY_ENTITY_TYPES = [
   DECISION_ENTITY_TYPE,
   ACTION_ITEM_ENTITY_TYPE,
 ];
+const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
+const MAX_SUMMARY_CONTEXT_ENTRIES = 3;
+const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
+const summaryAdapter = new SummaryAdapter();
 
 type ConversationMemorySearchEntity =
   | SummaryEntity
@@ -36,6 +41,8 @@ export interface RetrieveConversationMemoryInput {
   actorId?: string | undefined;
   /** Explicit canonical identity filter; does not cross spaces unless includeOtherSpaces is true. */
   canonicalId?: string | undefined;
+  /** Caller visibility scope; undefined fails closed in the entity service to public-only. */
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export interface RetrievedConversationMemory {
@@ -47,8 +54,10 @@ export interface RetrievedConversationMemory {
   channelName?: string;
   interfaceType: string;
   updated: string;
+  visibility: ContentVisibility;
   score: number;
   excerpt: string;
+  content: string;
   messageCount?: number;
   entryCount?: number;
   status?: string;
@@ -75,7 +84,11 @@ export class ConversationMemoryRetriever {
     const query = input.query?.trim() ?? "";
     const limit = Math.max(1, input.limit ?? DEFAULT_MEMORY_LIMIT);
     const spaceId = await this.resolveSpaceId(input);
-    const candidates = await this.loadCandidates(query, limit);
+    const candidates = await this.loadCandidates(
+      query,
+      limit,
+      input.visibilityScope,
+    );
 
     const scopedCandidates = candidates
       .filter((candidate) => {
@@ -84,6 +97,7 @@ export class ConversationMemoryRetriever {
       })
       .filter((candidate) => this.matchesIdentity(candidate.entity, input));
 
+    const seen = new Set<string>();
     const ranked = scopedCandidates
       .sort((left, right) => {
         const leftSameSpace = spaceId
@@ -97,6 +111,11 @@ export class ConversationMemoryRetriever {
         return (
           Date.parse(right.entity.updated) - Date.parse(left.entity.updated)
         );
+      })
+      .filter((candidate) => {
+        if (seen.has(candidate.entity.id)) return false;
+        seen.add(candidate.entity.id);
+        return true;
       })
       .slice(0, limit)
       .map((candidate) => this.toMemory(candidate));
@@ -129,6 +148,7 @@ export class ConversationMemoryRetriever {
   private async loadCandidates(
     query: string,
     limit: number,
+    visibilityScope: ContentVisibility | undefined,
   ): Promise<MemoryCandidate[]> {
     const candidateLimit = limit * CANDIDATE_MULTIPLIER;
 
@@ -140,6 +160,7 @@ export class ConversationMemoryRetriever {
             options: {
               types: MEMORY_ENTITY_TYPES,
               limit: candidateLimit,
+              ...(visibilityScope ? { visibilityScope } : {}),
             },
           },
         );
@@ -158,6 +179,7 @@ export class ConversationMemoryRetriever {
             options: {
               limit: candidateLimit,
               sortFields: [{ field: "updated", direction: "desc" }],
+              ...(visibilityScope ? { filter: { visibilityScope } } : {}),
             },
           },
         ),
@@ -174,6 +196,7 @@ export class ConversationMemoryRetriever {
   private toMemory(candidate: MemoryCandidate): RetrievedConversationMemory {
     const { entity } = candidate;
     const metadata = entity.metadata;
+    const excerpt = candidate.excerpt || buildFallbackExcerpt(entity);
     return {
       id: entity.id,
       entityType: entity.entityType,
@@ -183,8 +206,10 @@ export class ConversationMemoryRetriever {
       ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
       interfaceType: metadata.interfaceType,
       updated: entity.updated,
+      visibility: entity.visibility,
       score: candidate.score,
-      excerpt: candidate.excerpt || buildFallbackExcerpt(entity),
+      excerpt,
+      content: this.buildContextContent(entity, excerpt),
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
@@ -230,6 +255,43 @@ export class ConversationMemoryRetriever {
       ...(entity.metadata.assignedTo ?? []),
       ...(entity.metadata.requestedBy ?? []),
     ];
+  }
+
+  private buildContextContent(
+    entity: ConversationMemorySearchEntity,
+    excerpt: string,
+  ): string {
+    if (!this.isSummaryEntity(entity)) return excerpt;
+
+    const entries = summaryAdapter.parseBody(entity.content).entries;
+    const content = entries
+      .slice(0, MAX_SUMMARY_CONTEXT_ENTRIES)
+      .map((entry) => {
+        const lines = [entry.title, entry.summary.trim()];
+        if (entry.keyPoints.length > 0) {
+          lines.push(
+            ...entry.keyPoints
+              .slice(0, MAX_SUMMARY_CONTEXT_KEY_POINTS)
+              .map((point) => `- ${point}`),
+          );
+        }
+        return lines.join("\n");
+      })
+      .join("\n\n");
+
+    return this.truncateContent(
+      content || excerpt || buildFallbackExcerpt(entity),
+    );
+  }
+
+  private truncateContent(content: string): string {
+    if (content.length <= MAX_AGENT_CONTEXT_CONTENT_LENGTH) return content;
+    const slice = content.slice(0, MAX_AGENT_CONTEXT_CONTENT_LENGTH - 1);
+    // Break at the last whitespace so we never cut a word mid-token; fall back
+    // to a hard cut only when a single token exceeds the limit.
+    const lastBreak = slice.search(/\s\S*$/);
+    const truncated = lastBreak > 0 ? slice.slice(0, lastBreak) : slice;
+    return `${truncated.trimEnd()}…`;
   }
 
   private isSummaryEntity(

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",

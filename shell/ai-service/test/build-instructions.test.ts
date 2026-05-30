@@ -118,6 +118,27 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should append retrieved conversation memory as context, not mandatory behavior", () => {
+    const instructions = buildInstructions(
+      identity,
+      "anchor",
+      undefined,
+      undefined,
+      undefined,
+      "Relevant conversation memory retrieved for this turn.",
+    );
+
+    expect(instructions).toContain(
+      "### Retrieved Conversation Memory (CONTEXT)",
+    );
+    expect(instructions).toContain(
+      "Relevant conversation memory retrieved for this turn.",
+    );
+    expect(instructions).not.toContain(
+      "### Brain-Specific Behavior (MANDATORY)\n\nRelevant conversation memory",
+    );
+  });
+
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
