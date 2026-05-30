@@ -272,7 +272,7 @@ export const PromptInputProvider = ({
       ...incoming.map((file) => ({
         filename: file.name,
         id: nanoid(),
-        mediaType: file.type,
+        mediaType: file.type || "application/octet-stream",
         type: "file" as const,
         url: URL.createObjectURL(file),
       })),
@@ -564,6 +564,9 @@ export const PromptInput = ({
         .filter(Boolean);
 
       return patterns.some((pattern) => {
+        if (pattern.startsWith(".")) {
+          return f.name.toLowerCase().endsWith(pattern.toLowerCase());
+        }
         if (pattern.endsWith("/*")) {
           // e.g: image/* -> image/
           const prefix = pattern.slice(0, -1);
@@ -615,7 +618,7 @@ export const PromptInput = ({
           next.push({
             filename: file.name,
             id: nanoid(),
-            mediaType: file.type,
+            mediaType: file.type || "application/octet-stream",
             type: "file",
             url: URL.createObjectURL(file),
           });

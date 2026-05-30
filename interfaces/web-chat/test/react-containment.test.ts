@@ -95,7 +95,14 @@ describe("React containment", () => {
     expect(appSource).toContain("switchConversation");
     expect(appSource).toContain("deriveSessionTitle");
     expect(appSource).toContain("upsertPendingSession");
-    expect(appSource).toContain("finally(() => loadSessions({ quiet: true }))");
+    expect(appSource).toContain("void loadSessions({ quiet: true })");
+    expect(appSource).toContain("uploadAccept");
+    expect(appSource).toContain("PromptAttachmentButton");
+    expect(appSource).toContain("UploadedFilePart");
+    expect(appSource).toContain("ProgressPart");
+    expect(appSource).toContain("uploadNotice");
+    expect(appSource).toContain('case "data-progress"');
+    expect(appSource).toContain('case "file"');
     expect(appSource).toContain("web-chat-sessions-state");
     expect(appSource).toContain("renameConversation");
     expect(appSource).toContain("archiveConversation");

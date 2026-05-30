@@ -25,6 +25,13 @@ const textPartSchema = z.object({
   text: z.string(),
 });
 
+const filePartSchema = z.object({
+  type: z.literal("file"),
+  mediaType: z.string().optional(),
+  filename: z.string().optional(),
+  url: z.string(),
+});
+
 const approvalResponsePartSchema = z
   .object({
     state: z.literal("approval-responded"),
@@ -51,6 +58,7 @@ const webChatInterfaceType = "web-chat";
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
+const webChatDefaultUploadFilename = "upload.txt";
 
 const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
@@ -985,6 +993,54 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-message-bubble ul,
 .web-chat-message-bubble ol { margin: 0 0 0.75rem; padding-left: 1.25rem; }
 .web-chat-message-bubble li { margin-bottom: 0.35rem; }
+.web-chat-uploaded-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(100%, 20rem);
+  margin-top: 0.65rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.35);
+  border-radius: 999px;
+  background: rgb(from var(--chat-accent) r g b / 0.12);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.web-chat-uploaded-file-kicker { color: var(--chat-text-light); }
+.web-chat-uploaded-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--chat-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-progress-part {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
+  border-radius: 12px;
+  background: rgb(from var(--chat-accent) r g b / 0.08);
+  color: var(--chat-text);
+  font-size: 0.92rem;
+}
+.web-chat-progress-part span {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-progress-part[data-tone="error"] {
+  border-color: rgb(214 82 82 / 0.35);
+  background: rgb(214 82 82 / 0.08);
+}
+.web-chat-progress-part[data-tone="error"] span { color: #d65252; }
 
 /* user — amber notched panel */
 .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--chat-accent); }
@@ -1578,6 +1634,82 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   line-height: 1.55;
 }
 .web-chat-prompt-textarea::placeholder { color: var(--chat-text-light); }
+.web-chat-upload-notice {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.26);
+  border-radius: 14px;
+  background: rgb(from var(--chat-accent) r g b / 0.08);
+  color: var(--chat-text-muted);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.web-chat-upload-notice[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.42);
+  background: rgb(from var(--chat-error) r g b / 0.1);
+  color: var(--chat-error);
+}
+.web-chat-prompt-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.web-chat-prompt-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(100%, 18rem);
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
+  border-radius: 999px;
+  background: rgb(from var(--chat-accent) r g b / 0.1);
+  color: var(--chat-text);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.web-chat-prompt-attachment span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-prompt-attachment button,
+.web-chat-prompt-attach {
+  border: 1px solid var(--chat-border);
+  background: var(--chat-surface);
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  font-family: var(--chat-font-label);
+}
+.web-chat-prompt-attachment button {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+}
+.web-chat-prompt-attach {
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-prompt-attachment button:hover,
+.web-chat-prompt-attach:hover {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
+}
 .web-chat-prompt-footer {
   display: flex; align-items: center; justify-content: space-between;
   gap: 0.75rem;
@@ -2046,7 +2178,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): void {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return;
-    this.writeText(stream.writer, request.message, "progress");
+    this.writeProgress(stream.writer, request.message);
   }
 
   protected override async sendMessageWithId(
@@ -2054,7 +2186,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<string | undefined> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return undefined;
-    return this.writeText(stream.writer, request.message, "progress");
+    return this.writeProgress(stream.writer, request.message);
   }
 
   protected override async editMessage(
@@ -2062,12 +2194,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<boolean> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return false;
-    stream.writer.write({
-      type: "data-progress",
-      id: request.messageId,
-      data: { message: request.newMessage },
-      transient: true,
-    });
+    this.writeProgress(stream.writer, request.newMessage, request.messageId);
     return true;
   }
 
@@ -2112,7 +2239,9 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const conversationId = parsed.data.id ?? this.createId("web");
-    const message = this.extractLastUserText(parsed.data);
+    const userInput = this.extractLastUserInput(parsed.data);
+    if (userInput instanceof Response) return userInput;
+    const message = userInput;
     const approvalResponses = message
       ? []
       : this.extractLatestApprovalResponses(parsed.data);
@@ -2529,18 +2658,74 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  private extractLastUserText(request: ChatRequest): string {
+  private extractLastUserInput(request: ChatRequest): string | Response {
     const lastUserMessage = this.findLastUserMessage(request);
     if (!lastUserMessage) return "";
     if (lastUserMessage.content) return lastUserMessage.content;
 
-    return (lastUserMessage.parts ?? [])
-      .map((part) => {
-        const parsed = textPartSchema.safeParse(part);
-        return parsed.success ? parsed.data.text : "";
-      })
-      .filter((part) => part.length > 0)
-      .join("\n");
+    const textParts: string[] = [];
+    const fileParts: string[] = [];
+    for (const part of lastUserMessage.parts ?? []) {
+      const parsedText = textPartSchema.safeParse(part);
+      if (parsedText.success) {
+        textParts.push(parsedText.data.text);
+        continue;
+      }
+
+      const parsedFile = filePartSchema.safeParse(part);
+      if (!parsedFile.success) continue;
+
+      const filename = parsedFile.data.filename ?? webChatDefaultUploadFilename;
+      const mediaType = parsedFile.data.mediaType;
+      if (!this.isUploadableTextFile(filename, mediaType)) {
+        return new Response(`Unsupported file upload type: ${filename}`, {
+          status: 400,
+        });
+      }
+
+      const decoded = this.decodeUploadedDataUrl(parsedFile.data.url);
+      if (!decoded) {
+        return new Response(`Unsupported file upload URL: ${filename}`, {
+          status: 400,
+        });
+      }
+      if (!this.isFileSizeAllowed(decoded.byteLength)) {
+        return new Response(`File upload too large: ${filename}`, {
+          status: 400,
+        });
+      }
+
+      fileParts.push(
+        this.formatFileUploadMessage(
+          filename,
+          decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
+        ),
+      );
+    }
+
+    return [...textParts.filter((part) => part.length > 0), ...fileParts].join(
+      "\n\n",
+    );
+  }
+
+  private decodeUploadedDataUrl(
+    url: string,
+  ): { buffer: Buffer; byteLength: number } | null {
+    const match = /^data:[^,]*,(.*)$/s.exec(url);
+    if (!match) return null;
+
+    const metadata = url.slice(5, url.indexOf(","));
+    const isBase64 = metadata
+      .split(";")
+      .some((part) => part.toLowerCase() === "base64");
+    try {
+      const buffer = isBase64
+        ? Buffer.from(match[1] ?? "", "base64")
+        : Buffer.from(decodeURIComponent(match[1] ?? ""), "utf8");
+      return { buffer, byteLength: buffer.byteLength };
+    } catch {
+      return null;
+    }
   }
 
   private extractLatestApprovalResponses(
@@ -2578,6 +2763,19 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     writer.write({ type: "text-start", id });
     writer.write({ type: "text-delta", id, delta: text });
     writer.write({ type: "text-end", id });
+    return id;
+  }
+
+  private writeProgress(
+    writer: UIMessageStreamWriter<UIMessage>,
+    message: string,
+    id: string = this.createId("progress"),
+  ): string {
+    writer.write({
+      type: "data-progress",
+      id,
+      data: { message },
+    });
     return id;
   }
 

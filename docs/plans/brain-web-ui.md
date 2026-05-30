@@ -162,11 +162,21 @@ chat, the dashboard, or a small chooser remains a product call.
 
 ### 4. Inbound uploads
 
-User → brain file uploads are separate from outbound artifacts. They require
-multipart upload routes, auth/size/type checks, storage/registry integration,
-and request schema changes to pass attachment refs into `AgentService.chat()`.
-Defer until outbound artifact rendering is stable or a concrete use case forces
-it earlier.
+User → brain text-file uploads now use AI SDK UI `file` parts from the prompt
+input. Web-chat accepts `.md`, `.txt`, and `.markdown` files up to the shared
+message-interface text-upload size limit, decodes data URLs server-side, and
+passes the content to `AgentService.chat()` using the same `User uploaded a file
+"..."` text format as Discord and other message interfaces.
+
+The active chat transcript shows attached filenames on submitted user messages,
+so upload validation/submission success is visible even if the later agent
+response times out.
+
+Remaining upload work: add a clearer transient status for server-side upload
+validation failures/success. Longer term, add multipart upload routes, durable
+storage/registry integration, binary/media type policies, and request schema
+changes for passing attachment refs into `AgentService.chat()` instead of
+inlining text.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
@@ -174,12 +184,32 @@ Do not add `reasoning`, `sources`, `actions`, `suggestions`, or artifact UI as
 standalone component work. Install the registry component only when the backend
 emits the corresponding structured part or a concrete product surface needs it.
 
-### 6. Deeper streaming
+### 6. Structured progress / job events
+
+Legacy job/progress notifications can still surface as raw text such as
+`✅ batch processing: ... completed`. Long term, `/chat` should not render those
+emoji-prefixed backend strings directly. Job lifecycle should cross the
+interface boundary as structured data parts/cards (`job-started`,
+`job-progress`, `job-completed`, `job-failed`) with semantic status fields;
+React chooses icons/labels. Job messages must also be scoped by
+interface/channel so background batch jobs without an active web-chat channel do
+not appear in the chat transcript.
+
+Current first slice: the web-chat stream wraps progress/completion notices in
+`data-progress` parts so raw progress text is not emitted as normal assistant
+text. React renders those as a small status card and strips legacy emoji/markdown
+prefixes from the visible label.
+
+Compatibility rule: existing/raw status strings may be parsed for old messages,
+but new backend paths should emit structured progress/job parts instead of
+persisted or streamed checkmark/error-prefix text.
+
+### 7. Deeper streaming
 
 Token-by-token model streaming remains a later `AgentService` capability;
 current progress/status/final-response streaming is enough for the MVP.
 
-### 7. Per-release polish pass
+### 8. Per-release polish pass
 
 Whenever the bundled web chat UI changes, run:
 

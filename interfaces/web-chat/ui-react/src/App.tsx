@@ -4,6 +4,8 @@ import { Chat, useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
+  type ChatStatus,
+  type FileUIPart,
   type UIMessage,
 } from "ai";
 import {
@@ -27,12 +29,18 @@ import {
 import {
   PromptInput,
   PromptInputFooter,
+  PromptInputHeader,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
+  usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
+const uploadAccept =
+  ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown";
+const uploadMaxFileSize = 100_000;
 
 type ThemeMode = "light" | "dark";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
@@ -41,6 +49,7 @@ type SessionDialog =
   | { kind: "archive"; session: WebChatSession }
   | { kind: "delete"; session: WebChatSession }
   | null;
+type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
 function getInitialTheme(): ThemeMode {
   if (typeof document === "undefined") return "dark";
@@ -56,6 +65,61 @@ function applyTheme(theme: ThemeMode): void {
     /* localStorage unavailable — fall back to in-memory only */
   }
 }
+
+function PromptAttachmentButton(): React.ReactElement {
+  const attachments = usePromptInputAttachments();
+  return (
+    <button
+      type="button"
+      className="web-chat-prompt-attach"
+      onClick={() => attachments.openFileDialog()}
+    >
+      Attach text
+    </button>
+  );
+}
+
+function PromptAttachmentList(): React.ReactElement | null {
+  const attachments = usePromptInputAttachments();
+  if (attachments.files.length === 0) return null;
+
+  return (
+    <div className="web-chat-prompt-attachments" aria-label="Attached files">
+      {attachments.files.map((file) => (
+        <span className="web-chat-prompt-attachment" key={file.id}>
+          <span>{file.filename ?? "upload.txt"}</span>
+          <button
+            type="button"
+            aria-label={`Remove ${file.filename ?? "uploaded file"}`}
+            onClick={() => attachments.remove(file.id)}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PromptSubmitControl({
+  input,
+  onStop,
+  status,
+}: {
+  input: string;
+  onStop: () => void;
+  status: ChatStatus;
+}): React.ReactElement {
+  const attachments = usePromptInputAttachments();
+  return (
+    <PromptInputSubmit
+      status={status}
+      onStop={onStop}
+      disabled={!input.trim() && attachments.files.length === 0}
+    />
+  );
+}
+
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
@@ -117,6 +181,8 @@ type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
+  | { kind: "progress"; data: unknown }
+  | { kind: "file"; filename: string; mediaType: string }
   | { kind: "generic"; type: string; data: unknown };
 
 function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
@@ -147,6 +213,18 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      case "data-progress":
+        flush();
+        out.push({ kind: "progress", data: getPartData(part) });
+        break;
+      case "file":
+        flush();
+        out.push({
+          kind: "file",
+          filename: part.filename ?? "upload.txt",
+          mediaType: part.mediaType,
+        });
         break;
       default:
         flush();
@@ -209,6 +287,46 @@ function statusPhrase(status: string): string {
   return "";
 }
 
+function UploadedFilePart({
+  filename,
+  mediaType,
+}: {
+  filename: string;
+  mediaType: string;
+}): React.ReactElement {
+  return (
+    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+      <span className="web-chat-uploaded-file-kicker">attached</span>
+      <span className="web-chat-uploaded-file-name">{filename}</span>
+    </span>
+  );
+}
+
+function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
+  if (typeof data !== "object" || data === null || !("message" in data)) {
+    return null;
+  }
+  const rawMessage = data.message;
+  if (typeof rawMessage !== "string" || rawMessage.trim().length === 0) {
+    return null;
+  }
+  const normalized = rawMessage.trim();
+  const tone = normalized.startsWith("❌")
+    ? "error"
+    : normalized.startsWith("✅")
+      ? "success"
+      : "neutral";
+  const label =
+    tone === "error" ? "failed" : tone === "success" ? "completed" : "updated";
+  const message = normalized.replace(/^[✅❌🔄]\s*/u, "").replaceAll("**", "");
+  return (
+    <p className="web-chat-progress-part" data-tone={tone}>
+      <span>{label}</span>
+      {message}
+    </p>
+  );
+}
+
 function describeFetchFailure(response: Response, fallback: string): string {
   if (response.status === 401 || response.status === 403) {
     return "Your operator session may have expired. Refresh or sign in again.";
@@ -242,6 +360,7 @@ export function App(): React.ReactElement {
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
 
   function closeDrawer(): void {
     setDrawerOpen(false);
@@ -388,14 +507,45 @@ export function App(): React.ReactElement {
     }
   }
 
-  function submitMessage(textOverride?: string): void {
+  function submitMessage(
+    textOverride?: string,
+    files: FileUIPart[] = [],
+  ): void {
     const text = (textOverride ?? input).trim();
-    if (!text || isBusyStatus(status)) return;
+    if ((!text && files.length === 0) || isBusyStatus(status)) return;
     setHistoryError(null);
-    upsertPendingSession(text);
+    if (files.length > 0) {
+      setUploadNotice({
+        tone: "success",
+        message: `Sent ${files.length === 1 ? "attachment" : "attachments"}: ${files
+          .map((file) => file.filename ?? "upload.txt")
+          .join(", ")}`,
+      });
+    } else {
+      setUploadNotice(null);
+    }
+    upsertPendingSession(
+      text ? text : (files.at(0)?.filename ?? "Uploaded file"),
+    );
     setInput("");
-    void sendMessage({ text }).finally(() => loadSessions({ quiet: true }));
-    focusPromptTextarea(promptInputRef.current);
+    const payload = text
+      ? { text, ...(files.length > 0 ? { files } : {}) }
+      : { files };
+    void sendMessage(payload)
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not send that message.";
+        if (/file upload|unsupported file/i.test(message)) {
+          setUploadNotice({ tone: "error", message });
+        }
+        setHistoryError(message);
+      })
+      .finally(() => {
+        void loadSessions({ quiet: true });
+        focusPromptTextarea(promptInputRef.current);
+      });
   }
 
   function resetToNewConversation(): void {
@@ -1037,6 +1187,18 @@ export function App(): React.ReactElement {
                       if (group.kind === "attachment") {
                         return <AttachmentPart key={index} data={group.data} />;
                       }
+                      if (group.kind === "progress") {
+                        return <ProgressPart key={index} data={group.data} />;
+                      }
+                      if (group.kind === "file") {
+                        return (
+                          <UploadedFilePart
+                            key={index}
+                            filename={group.filename}
+                            mediaType={group.mediaType}
+                          />
+                        );
+                      }
                       return (
                         <GenericDataPart
                           key={index}
@@ -1072,8 +1234,25 @@ export function App(): React.ReactElement {
           </div>
         ) : null}
 
-        <PromptInput onSubmit={(message) => submitMessage(message.text)}>
+        {uploadNotice ? (
+          <p className="web-chat-upload-notice" data-tone={uploadNotice.tone}>
+            {uploadNotice.message}
+          </p>
+        ) : null}
+
+        <PromptInput
+          accept={uploadAccept}
+          maxFileSize={uploadMaxFileSize}
+          multiple
+          onError={(uploadError) =>
+            setUploadNotice({ tone: "error", message: uploadError.message })
+          }
+          onSubmit={(message) => submitMessage(message.text, message.files)}
+        >
           <label htmlFor="web-chat-input">Message</label>
+          <PromptInputHeader>
+            <PromptAttachmentList />
+          </PromptInputHeader>
           <PromptInputTextarea
             id="web-chat-input"
             ref={promptInputRef}
@@ -1082,15 +1261,14 @@ export function App(): React.ReactElement {
             onInput={(event) => setInput(event.currentTarget.value)}
           />
           <PromptInputFooter>
+            <PromptInputTools>
+              <PromptAttachmentButton />
+            </PromptInputTools>
             <span className="web-chat-prompt-hint">
               <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
               newline
             </span>
-            <PromptInputSubmit
-              status={status}
-              onStop={stop}
-              disabled={!input.trim()}
-            />
+            <PromptSubmitControl input={input} status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>
       </main>
