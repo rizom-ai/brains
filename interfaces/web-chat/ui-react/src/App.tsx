@@ -42,7 +42,7 @@ import {
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 import { groupMessageParts } from "./message-parts";
-import { prepareUploadSubmission } from "./uploads";
+import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
@@ -508,11 +508,10 @@ export function App(): React.ReactElement {
     try {
       submission = await prepareUploadSubmission(text, files);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not upload attachment.";
-      setUploadNotice({ tone: "error", message });
-      setHistoryError(message);
-      throw error;
+      const effect = classifySubmitError(error, "upload");
+      if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
+      setHistoryError(effect.historyError);
+      return;
     }
 
     if (submission.uploadNoticeMessage) {
@@ -529,14 +528,9 @@ export function App(): React.ReactElement {
     const { payload } = submission;
     void sendMessage(payload)
       .catch((error: unknown) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Could not send that message.";
-        if (/file upload|unsupported file|upload/i.test(message)) {
-          setUploadNotice({ tone: "error", message });
-        }
-        setHistoryError(message);
+        const effect = classifySubmitError(error, "send");
+        if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
+        setHistoryError(effect.historyError);
       })
       .finally(() => {
         void loadSessions({ quiet: true });

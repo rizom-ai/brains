@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { FileUIPart } from "ai";
 import { preparePromptSubmitFiles } from "../ui-react/src/prompt-files";
 import {
+  classifySubmitError,
   createUploadMessageParts,
   createUploadPart,
   defaultUploadFilename,
@@ -240,5 +241,59 @@ describe("web chat upload protocol", () => {
     expect(thrown instanceof Error ? thrown.message : "").toBe(
       "Invalid upload response",
     );
+  });
+});
+
+describe("classifySubmitError", () => {
+  it("surfaces upload-phase errors as an upload notice and history error", () => {
+    const effect = classifySubmitError(
+      new Error("File upload too large: notes.txt"),
+      "upload",
+    );
+
+    expect(effect).toEqual({
+      uploadNotice: {
+        tone: "error",
+        message: "File upload too large: notes.txt",
+      },
+      historyError: "File upload too large: notes.txt",
+    });
+  });
+
+  it("falls back to a generic upload message for non-Error throwables", () => {
+    const effect = classifySubmitError("boom", "upload");
+
+    expect(effect.uploadNotice).toEqual({
+      tone: "error",
+      message: "Could not upload attachment.",
+    });
+    expect(effect.historyError).toBe("Could not upload attachment.");
+  });
+
+  it("flags send-phase errors as upload notices only when upload-related", () => {
+    const effect = classifySubmitError(
+      new Error("Unsupported file upload type: notes.bin"),
+      "send",
+    );
+
+    expect(effect.uploadNotice).toEqual({
+      tone: "error",
+      message: "Unsupported file upload type: notes.bin",
+    });
+    expect(effect.historyError).toBe("Unsupported file upload type: notes.bin");
+  });
+
+  it("leaves the upload notice untouched for unrelated send errors", () => {
+    const effect = classifySubmitError(new Error("Network down"), "send");
+
+    expect(effect.uploadNotice).toBeNull();
+    expect(effect.historyError).toBe("Network down");
+  });
+
+  it("falls back to a generic send message for non-Error throwables", () => {
+    const effect = classifySubmitError(undefined, "send");
+
+    expect(effect.uploadNotice).toBeNull();
+    expect(effect.historyError).toBe("Could not send that message.");
   });
 });

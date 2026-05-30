@@ -12,7 +12,9 @@ import {
   extractCaptureableUrls,
   formatFileUploadMessage,
   isFileSizeAllowed,
+  isLikelyTextContent,
   isUploadableTextFile,
+  maxFileUploadBytes,
   urlCaptureConfigSchema,
 } from "./message-content-utils";
 
@@ -98,6 +100,20 @@ export abstract class MessageInterfacePlugin<
    */
   protected formatFileUploadMessage(filename: string, content: string): string {
     return formatFileUploadMessage(filename, content);
+  }
+
+  /**
+   * Maximum size (in bytes) allowed for an uploaded text file
+   */
+  protected getMaxFileUploadBytes(): number {
+    return maxFileUploadBytes;
+  }
+
+  /**
+   * Check that uploaded bytes are decodable text rather than binary content
+   */
+  protected isLikelyTextContent(bytes: Uint8Array): boolean {
+    return isLikelyTextContent(bytes);
   }
 
   // ── URL capture ──

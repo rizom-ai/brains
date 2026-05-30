@@ -45,6 +45,37 @@ export function getFileUploadName(file: FileUIPart): string {
   return file.filename ?? defaultUploadFilename;
 }
 
+export type SubmitErrorPhase = "upload" | "send";
+
+export interface SubmitErrorEffect {
+  /** Error notice for the prompt area, or null to leave the current one. */
+  uploadNotice: { tone: "error"; message: string } | null;
+  historyError: string;
+}
+
+const uploadErrorPattern = /file upload|unsupported file|upload/i;
+
+/**
+ * Map a thrown submit error to its UI effects. Upload-phase failures always
+ * surface as an upload notice; send-phase failures only do so when the message
+ * looks upload-related, otherwise the existing notice is left untouched.
+ */
+export function classifySubmitError(
+  error: unknown,
+  phase: SubmitErrorPhase,
+): SubmitErrorEffect {
+  const fallback =
+    phase === "upload"
+      ? "Could not upload attachment."
+      : "Could not send that message.";
+  const message = error instanceof Error ? error.message : fallback;
+  const isUploadError = phase === "upload" || uploadErrorPattern.test(message);
+  return {
+    uploadNotice: isUploadError ? { tone: "error", message } : null,
+    historyError: message,
+  };
+}
+
 export function parseUploadPartData(
   data: unknown,
 ): WebChatUploadResponse | null {

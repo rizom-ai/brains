@@ -18,7 +18,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
@@ -64,6 +64,13 @@ const webChatTitleMaxLength = 48;
 const webChatDefaultUploadFilename = "upload.txt";
 const webChatUploadFormField = "file";
 const webChatUploadRefKind = "web-chat-upload";
+/* Extra slack over the text-file size limit to cover the multipart envelope
+   (boundary, headers) when guarding on Content-Length before buffering. */
+const webChatUploadEnvelopeSlackBytes = 16_384;
+/* Uploads are consumed when their referencing message is sent, so stored
+   content past these bounds is safe to drop on the next upload. */
+const webChatUploadRetentionMs = 24 * 60 * 60 * 1000;
+const webChatUploadMaxCount = 200;
 const webChatUploadIdPattern =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -2349,6 +2356,18 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Forbidden", { status: 403 });
     }
 
+    // Reject obviously oversized bodies before buffering the whole upload into
+    // memory. Best-effort: Content-Length may be absent, so the post-decode
+    // size check below remains authoritative.
+    const declaredSize = Number(request.headers.get("content-length"));
+    if (
+      Number.isFinite(declaredSize) &&
+      declaredSize >
+        this.getMaxFileUploadBytes() + webChatUploadEnvelopeSlackBytes
+    ) {
+      return new Response("File upload too large", { status: 400 });
+    }
+
     let formData: FormData;
     try {
       formData = await request.formData();
@@ -2375,6 +2394,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         status: 400,
       });
     }
+    if (!this.isLikelyTextContent(buffer)) {
+      return new Response(`Unsupported file upload type: ${filename}`, {
+        status: 400,
+      });
+    }
 
     const uploadId = this.createId("upload");
     const record: WebChatUploadRecord = {
@@ -2394,8 +2418,48 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       `${JSON.stringify(record, null, 2)}\n`,
       "utf8",
     );
+    await this.pruneUploads();
 
     return Response.json(record, { status: 201 });
+  }
+
+  /**
+   * Best-effort retention sweep for stored uploads. Uploads are consumed when
+   * their referencing message is sent, so anything past the age or count cap is
+   * safe to drop. Failures here must never block an upload.
+   */
+  private async pruneUploads(): Promise<void> {
+    const root = join(this.getContext().dataDir, "web-chat", "uploads");
+    try {
+      const entries = await readdir(root);
+      const stats = await Promise.all(
+        entries.map(async (entry) => {
+          try {
+            const info = await stat(join(root, entry));
+            return info.isDirectory() ? { entry, mtimeMs: info.mtimeMs } : null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const dirs = stats
+        .filter(
+          (value): value is { entry: string; mtimeMs: number } =>
+            value !== null,
+        )
+        .sort((a, b) => b.mtimeMs - a.mtimeMs);
+      const cutoff = Date.now() - webChatUploadRetentionMs;
+      const stale = dirs.filter(
+        (dir, index) => index >= webChatUploadMaxCount || dir.mtimeMs < cutoff,
+      );
+      await Promise.all(
+        stale.map((dir) =>
+          rm(join(root, dir.entry), { recursive: true, force: true }),
+        ),
+      );
+    } catch {
+      /* uploads dir missing or unreadable — nothing to prune */
+    }
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
@@ -2900,6 +2964,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
     if (!this.isFileSizeAllowed(decoded.byteLength)) {
       return new Response(`File upload too large: ${filename}`, {
+        status: 400,
+      });
+    }
+    if (!this.isLikelyTextContent(decoded.buffer)) {
+      return new Response(`Unsupported file upload type: ${filename}`, {
         status: 400,
       });
     }

@@ -10,6 +10,7 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { join } from "path";
+import { mkdir, utimes, writeFile } from "fs/promises";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -782,6 +783,92 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toContain("File upload too large");
   });
 
+  it("rejects oversized uploads via Content-Length before buffering", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+    const form = new FormData();
+    form.set("file", new File(["small"], "notes.txt", { type: "text/plain" }));
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        // Declared length far exceeds the 100KB limit + envelope slack, so the
+        // guard rejects before the multipart body is buffered. No filename is
+        // known yet, so the message carries no filename suffix.
+        headers: { "content-length": "5000000" },
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe("File upload too large");
+  });
+
+  it("rejects binary content uploaded under a text filename", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+    const form = new FormData();
+    form.set(
+      "file",
+      new File([new Uint8Array([0x68, 0x69, 0x00, 0xff])], "notes.txt", {
+        type: "text/plain",
+      }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Unsupported file upload type");
+  });
+
+  it("prunes stale stored uploads when a new upload arrives", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+
+    const uploadsRoot = join(
+      "/tmp/mock-shell-test-data",
+      "web-chat",
+      "uploads",
+    );
+    // Seed a stale upload dir (>24h old) that should be swept.
+    const staleDir = join(
+      uploadsRoot,
+      "upload-00000000-0000-4000-8000-000000000000",
+    );
+    await mkdir(staleDir, { recursive: true });
+    await writeFile(join(staleDir, "content"), "old");
+    const staleAge = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    await utimes(staleDir, staleAge, staleAge);
+
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Fresh"], "fresh.md", { type: "text/markdown" }),
+    );
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const body = (await response?.json()) as { id: string };
+
+    expect(response?.status).toBe(201);
+    // Stale dir removed, fresh upload retained.
+    expect(await Bun.file(join(staleDir, "content")).exists()).toBe(false);
+    expect(await Bun.file(join(uploadsRoot, body.id, "content")).exists()).toBe(
+      true,
+    );
+  });
+
   it("passes durable upload refs to the agent as uploaded text", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -1139,6 +1226,46 @@ describe("WebChatInterface", () => {
                   mediaType: "image/png",
                   filename: "diagram.png",
                   url: "data:image/png;base64,iVBORw0KGgo=",
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Unsupported file upload type");
+    expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("rejects binary content in an inline text file part", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const binaryDataUrl = `data:text/plain;base64,${Buffer.from(
+      new Uint8Array([0x68, 0x69, 0x00, 0xff]),
+    ).toString("base64")}`;
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Read this" },
+                {
+                  type: "file",
+                  mediaType: "text/plain",
+                  filename: "notes.txt",
+                  url: binaryDataUrl,
                 },
               ],
             },

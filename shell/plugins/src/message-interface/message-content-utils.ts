@@ -1,6 +1,7 @@
 import { z } from "@brains/utils";
 
-const MAX_FILE_UPLOAD_SIZE = 100_000;
+/** Maximum size (in bytes) for an uploaded text file. */
+export const maxFileUploadBytes = 100_000;
 const TEXT_FILE_EXTENSIONS = [".md", ".txt", ".markdown"];
 const TEXT_MIME_TYPES = ["text/plain", "text/markdown", "text/x-markdown"];
 const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/gi;
@@ -49,7 +50,22 @@ export function isUploadableTextFile(
 
 /** Validate file size for upload. */
 export function isFileSizeAllowed(size: number): boolean {
-  return size <= MAX_FILE_UPLOAD_SIZE;
+  return size <= maxFileUploadBytes;
+}
+
+/**
+ * Heuristic check that a byte buffer is decodable UTF-8 text rather than
+ * binary content. Guards against clients that upload binary payloads under a
+ * text filename or spoofed text MIME type.
+ */
+export function isLikelyTextContent(bytes: Uint8Array): boolean {
+  if (bytes.includes(0)) return false;
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Format uploaded file content as an agent message. */
