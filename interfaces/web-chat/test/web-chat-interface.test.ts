@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import type { IAgentService, IConversationService } from "@brains/plugins";
+import type {
+  IAgentService,
+  IConversationService,
+  WebRouteDefinition,
+  WebRouteMethod,
+} from "@brains/plugins";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -175,6 +180,22 @@ function textDataUrl(content: string): string {
   return `data:text/plain;base64,${Buffer.from(content, "utf8").toString("base64")}`;
 }
 
+function getRoute(
+  plugin: WebChatInterface,
+  path: string,
+  method: WebRouteMethod,
+): WebRouteDefinition | undefined {
+  const route = plugin
+    .getWebRoutes()
+    .find(
+      (candidate) => candidate.path === path && candidate.method === method,
+    );
+  if (!route) {
+    throw new Error(`Missing ${method} ${path} route`);
+  }
+  return route;
+}
+
 describe("WebChatInterface", () => {
   let harness: PluginTestHarness<WebChatInterface>;
 
@@ -263,7 +284,7 @@ describe("WebChatInterface", () => {
   it("requires operator auth for the chat page", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[0];
+    const route = getRoute(plugin, "/chat", "GET");
 
     const response = await route?.handler(new Request("http://brain/chat"));
     const text = await response?.text();
@@ -275,7 +296,7 @@ describe("WebChatInterface", () => {
   it("serves the chat page for operators", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[0];
+    const route = getRoute(plugin, "/chat", "GET");
 
     const response = await route?.handler(new Request("http://brain/chat"));
     const html = await response?.text();
@@ -300,7 +321,7 @@ describe("WebChatInterface", () => {
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[0];
+    const route = getRoute(plugin, "/chat", "GET");
 
     const response = await route?.handler(new Request("http://brain/chat"));
     const html = await response?.text();
@@ -313,7 +334,7 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[9];
+    const route = getRoute(plugin, "/chat/assets/app.js", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -334,7 +355,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -384,7 +405,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -440,7 +461,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -498,7 +519,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -550,7 +571,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -591,7 +612,7 @@ describe("WebChatInterface", () => {
       },
     ]);
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[7];
+    const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
     const response = await route?.handler(
       new Request(
@@ -613,7 +634,7 @@ describe("WebChatInterface", () => {
   it("rejects document attachment requests from non-operators", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[7];
+    const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
     const response = await route?.handler(
       new Request(
@@ -630,7 +651,7 @@ describe("WebChatInterface", () => {
     shell.jobs.getStatus = async (jobId: string): Promise<JobStatus> =>
       makeJobStatus(jobId, "processing");
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[8];
+    const route = getRoute(plugin, "/api/chat/jobs/status", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/jobs/status?id=job-1"),
@@ -644,7 +665,7 @@ describe("WebChatInterface", () => {
   it("rejects artifact job status requests from non-operators", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[8];
+    const route = getRoute(plugin, "/api/chat/jobs/status", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/jobs/status?id=job-1"),
@@ -656,7 +677,7 @@ describe("WebChatInterface", () => {
   it("accepts multipart text uploads and returns a durable upload ref", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[10];
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
     form.set(
       "file",
@@ -705,7 +726,7 @@ describe("WebChatInterface", () => {
   it("rejects multipart uploads from non-operators", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[10];
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
     form.set("file", new File(["hello"], "notes.txt", { type: "text/plain" }));
 
@@ -722,7 +743,7 @@ describe("WebChatInterface", () => {
   it("rejects unsupported multipart upload types", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[10];
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
     form.set(
       "file",
@@ -743,7 +764,7 @@ describe("WebChatInterface", () => {
   it("rejects oversized multipart text uploads", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[10];
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
     form.set(
       "file",
@@ -766,8 +787,8 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const uploadRoute = plugin.getWebRoutes()[10];
-    const chatRoute = plugin.getWebRoutes()[1];
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
     const form = new FormData();
     form.set(
       "file",
@@ -815,7 +836,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -863,7 +884,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -929,7 +950,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -987,7 +1008,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1034,7 +1055,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1062,7 +1083,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1100,7 +1121,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1136,7 +1157,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1180,7 +1201,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
+    const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -1216,7 +1237,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
+    const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -1256,7 +1277,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
+    const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -1292,7 +1313,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[2];
+    const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions"),
@@ -1315,7 +1336,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=web-session", {
@@ -1341,7 +1362,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=web-session", {
@@ -1370,7 +1391,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=discord-session", {
@@ -1385,7 +1406,7 @@ describe("WebChatInterface", () => {
   it("rejects session deletes without an id", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[3];
+    const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions", { method: "DELETE" }),
@@ -1404,7 +1425,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=web-session", {
@@ -1435,7 +1456,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=web-session", {
@@ -1468,7 +1489,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=discord-session", {
@@ -1492,7 +1513,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[4];
+    const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions?id=web-session", {
@@ -1515,7 +1536,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions/archive?id=web-session", {
@@ -1544,7 +1565,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions/archive?id=web-session", {
@@ -1575,7 +1596,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[5];
+    const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/sessions/archive?id=discord-session", {
@@ -1601,7 +1622,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[6];
+    const route = getRoute(plugin, "/api/chat/messages", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -1624,7 +1645,7 @@ describe("WebChatInterface", () => {
     );
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[6];
+    const route = getRoute(plugin, "/api/chat/messages", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat/messages?id=web-session"),
@@ -1640,7 +1661,7 @@ describe("WebChatInterface", () => {
   it("rejects malformed chat POSTs", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const response = await route?.handler(
       new Request("http://brain/api/chat", {
@@ -1656,7 +1677,7 @@ describe("WebChatInterface", () => {
   it("generates unique conversation ids across many calls", async () => {
     const plugin = operatorPlugin();
     await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
+    const route = getRoute(plugin, "/api/chat", "POST");
 
     const ids = new Set<string>();
     for (let i = 0; i < 1000; i += 1) {
