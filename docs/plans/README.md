@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
+- [Conversation memory](./summary-conversation-memory.md) — Phases 1–4 shipped; active hardening: full-agent evals, operator visibility, memory dashboard
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
