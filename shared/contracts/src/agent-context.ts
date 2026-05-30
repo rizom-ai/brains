@@ -34,3 +34,20 @@ export const agentContextResponseSchema = z.object({
 });
 
 export type AgentContextResponse = z.infer<typeof agentContextResponseSchema>;
+
+/**
+ * Parse a context-provider response leniently: drop individual items that fail
+ * validation instead of throwing the whole batch. A single malformed item (e.g.
+ * an empty excerpt failing `content.min(1)`) must not discard every other piece
+ * of retrieved memory for the turn.
+ */
+export function parseAgentContextItems(data: unknown): AgentContextItem[] {
+  const envelope = z.object({ items: z.array(z.unknown()).default([]) });
+  const parsed = envelope.safeParse(data);
+  if (!parsed.success) return [];
+
+  return parsed.data.items.flatMap((item) => {
+    const result = agentContextItemSchema.safeParse(item);
+    return result.success ? [result.data] : [];
+  });
+}

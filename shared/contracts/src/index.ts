@@ -4,6 +4,7 @@ export {
   agentContextRequestSchema,
   agentContextItemSchema,
   agentContextResponseSchema,
+  parseAgentContextItems,
   type AgentContextRequest,
   type AgentContextItem,
   type AgentContextResponse,

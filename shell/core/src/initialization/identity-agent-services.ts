@@ -7,7 +7,7 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
-  agentContextResponseSchema,
+  parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
@@ -142,7 +142,7 @@ export function initializeIdentityAndAgentServices(
           payload: request,
         });
         if ("noop" in response || !response.success) return [];
-        return agentContextResponseSchema.parse(response.data).items;
+        return parseAgentContextItems(response.data);
       },
       ...(assistantActorId ? { assistantActorId } : {}),
       ...(config.agentInstructions && {
