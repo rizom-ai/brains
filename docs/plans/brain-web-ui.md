@@ -170,13 +170,12 @@ passes the content to `AgentService.chat()` using the same `User uploaded a file
 
 The active chat transcript shows attached filenames on submitted user messages,
 so upload validation/submission success is visible even if the later agent
-response times out.
+response times out. The prompt area also shows transient upload notices for
+client validation, handoff success, and server-side upload validation failures.
 
-Remaining upload work: add a clearer transient status for server-side upload
-validation failures/success. Longer term, add multipart upload routes, durable
-storage/registry integration, binary/media type policies, and request schema
-changes for passing attachment refs into `AgentService.chat()` instead of
-inlining text.
+Remaining upload work: add multipart upload routes, durable storage/registry
+integration, binary/media type policies, and request schema changes for passing
+attachment refs into `AgentService.chat()` instead of inlining text.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
@@ -191,8 +190,9 @@ Legacy job/progress notifications can still surface as raw text such as
 browser chat protocol. `/chat` should not parse, strip, or beautify those strings
 for new events.
 
-Target protocol: job lifecycle crosses the interface boundary as AI SDK custom
-data parts, with semantic fields instead of formatted display text:
+Implemented first slice: live web-chat progress events bypass the legacy text
+formatters and cross the interface boundary as AI SDK custom data parts with
+semantic fields instead of formatted display text:
 
 ```ts
 {
@@ -218,6 +218,11 @@ Routing rule: emit a progress part only when the event is explicitly scoped to
 stream. Background/batch jobs without an active web-chat channel stay silent in
 the transcript. Async artifacts should use attachment/job polling rather than
 injecting late raw completion messages.
+
+Remaining progress work: decide whether completed progress parts should be
+persisted as transcript history or remain live-only. For artifact readiness,
+keep using attachment `jobId` polling unless a broader durable notification
+model is introduced.
 
 ### 7. Deeper streaming
 
