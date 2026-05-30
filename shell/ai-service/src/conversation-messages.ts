@@ -56,7 +56,7 @@ function formatAgentContext(contextItems: AgentContextItem[]): string {
 
   return [
     "Relevant conversation memory retrieved for this turn.",
-    "Use it only when it helps answer the user. Preserve source/provenance when referencing memory. Ignore unrelated memory; when memory conflicts, prefer the most specific or newest source and mention uncertainty if the conflict remains unresolved.",
+    'Use it only when it helps answer the user. If the user asks what conversation memory says, explicitly ground the answer in the retrieved memory (for example, "According to conversation memory...") rather than general background knowledge. Preserve source/provenance when referencing memory. Ignore unrelated memory; when memory conflicts, prefer the most specific or newest source and mention uncertainty if the conflict remains unresolved.',
     "",
     formattedItems,
   ].join("\n");

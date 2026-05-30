@@ -57,9 +57,10 @@ regressions in the injection prompt, ranking, and visibility scoping together.
 
 ### 2. Per-turn memory auditability
 
-Before adding operator UI or controls, make injected memory observable in
-structured logs. For each agent turn, log whether conversation memory was
-considered, what was injected, and why each item was eligible.
+Initial structured logs now make injected memory observable per agent turn.
+Keep this logs-only unless real operator workflows require UI. For each agent
+turn, log whether conversation memory was considered, what was injected, and why
+each item was eligible.
 
 Include:
 

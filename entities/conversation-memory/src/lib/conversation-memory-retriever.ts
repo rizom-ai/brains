@@ -52,6 +52,7 @@ export interface RetrievedConversationMemory {
   channelName?: string;
   interfaceType: string;
   updated: string;
+  visibility: ContentVisibility;
   score: number;
   excerpt: string;
   content: string;
@@ -197,6 +198,7 @@ export class ConversationMemoryRetriever {
       ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
       interfaceType: metadata.interfaceType,
       updated: entity.updated,
+      visibility: entity.visibility,
       score: candidate.score,
       excerpt,
       content: this.buildContextContent(entity, excerpt),

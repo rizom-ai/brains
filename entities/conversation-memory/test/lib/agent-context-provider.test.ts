@@ -67,6 +67,70 @@ describe("buildConversationMemoryAgentContext", () => {
         channelId: "relay-team",
       },
     });
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        conversationId: "conv-current",
+        channelId: "relay-team",
+        userPermissionLevel: "trusted",
+        visibilityScope: "shared",
+        spaceId: "mcp:relay-team",
+        reason: "memory-injected",
+        itemCount: 1,
+        items: [
+          expect.objectContaining({
+            id: "summary-team",
+            entityType: "summary",
+            conversationId: "conv-team",
+            spaceId: "mcp:relay-team",
+            visibility: "restricted",
+            eligibilityReason: "same-space-query-match",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("audits when channel context is missing", async () => {
+    const context = createContextWithSearchResults([]);
+    const response = await buildConversationMemoryAgentContext(context, {
+      conversationId: "conv-current",
+      message: "What memory is relevant?",
+      interfaceType: "mcp",
+      userPermissionLevel: "trusted" as const,
+    });
+
+    expect(response.items).toEqual([]);
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        conversationId: "conv-current",
+        visibilityScope: "shared",
+        reason: "no-channel-context",
+        itemCount: 0,
+        items: [],
+      }),
+    );
+  });
+
+  it("audits when no same-space memory is available", async () => {
+    const context = createContextWithSearchResults([]);
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items).toEqual([]);
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        channelId: "relay-team",
+        spaceId: "mcp:relay-team",
+        reason: "no-same-space-memory",
+        itemCount: 0,
+        items: [],
+      }),
+    );
   });
 
   it("falls back to recent same-space memory when search has no matches", async () => {
