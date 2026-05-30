@@ -3,6 +3,7 @@ import { slugify } from "@brains/utils";
 import {
   socialPostSchema,
   socialPostFrontmatterSchema,
+  socialPostCreateFrontmatterSchema,
   type SocialPost,
   type SocialPostFrontmatter,
   type SocialPostMetadata,
@@ -68,11 +69,15 @@ export class SocialPostAdapter extends BaseEntityAdapter<
    * Auto-generates slug from platform + title
    */
   public fromMarkdown(markdown: string): Partial<SocialPost> {
+    // Use the lenient creation schema so a direct "save this post" with only
+    // a title doesn't fail on missing platform/status — fall back here.
     const frontmatter = this.parseFrontMatter(
       markdown,
-      socialPostFrontmatterSchema,
+      socialPostCreateFrontmatterSchema,
     );
-    const slug = `${frontmatter.platform}-${slugify(frontmatter.title)}`;
+    const platform = frontmatter.platform ?? "linkedin";
+    const status = frontmatter.status ?? "draft";
+    const slug = `${platform}-${slugify(frontmatter.title)}`;
 
     return {
       content: markdown,
@@ -80,8 +85,8 @@ export class SocialPostAdapter extends BaseEntityAdapter<
       metadata: {
         title: frontmatter.title,
         slug,
-        platform: frontmatter.platform,
-        status: frontmatter.status,
+        platform,
+        status,
         publishedAt: frontmatter.publishedAt,
         platformPostId: frontmatter.platformPostId,
       },
