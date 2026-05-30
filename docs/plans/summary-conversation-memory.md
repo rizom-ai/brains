@@ -3,12 +3,12 @@
 ## Status
 
 Phases 1–4 shipped: scoped projection from stored conversations; `summary` /
-`decision` / `action-item` derived entities with provenance; dashboard widgets;
-a `ConversationMemoryRetriever` with same-space ranking; and same-space
+`decision` / `action-item` derived entities with provenance; a
+`ConversationMemoryRetriever` with same-space ranking; and same-space
 agent-context injection with provenance and fail-closed visibility.
 
 Remaining work is product hardening — making injected memory **observable and
-trustworthy** — without expanding the data model. Three active workstreams below.
+trustworthy** — without expanding the data model. Two active workstreams below.
 
 ## Operating rules (settled, implemented)
 
@@ -19,8 +19,7 @@ The rules the shipped system runs on; kept as context for the remaining work.
   `brain.yaml`, alongside `anchors` and `trusted`. Entries are canonical
   selectors (`discord:123`, `discord:project-*`).
 - Missing/empty `spaces` disables automatic summaries — never guess, never fall
-  back to all conversations. Surface that no spaces are configured (logs now,
-  dashboard via workstream 3).
+  back to all conversations. Surface that no spaces are configured in logs.
 - Relay v1 does not summarize conversations outside `spaces`, even on an
   in-conversation request. Operators opt a space in via `brain.yaml`.
 - Summary triggering: a 90-second delayed coalesced projection that rereads
@@ -42,7 +41,9 @@ The rules the shipped system runs on; kept as context for the remaining work.
 
 Retrieval is currently covered only by the deterministic `buildAgentContext`
 eval handler — it proves the retriever returns the right items, not that the
-agent _uses_ them well. Add evals that exercise the full agent turn:
+agent _uses_ them well. Initial Relay full-agent regression coverage now
+exercises same-space use, relevance, conflict handling, provenance, and
+cross-space isolation. Keep expanding evals that exercise the full agent turn:
 
 - a later conversation retrieves and uses relevant same-space summary context;
 - unrelated or old summary is not injected or relied on;
@@ -54,29 +55,24 @@ agent _uses_ them well. Add evals that exercise the full agent turn:
 Run these against real agent behavior, not just the retriever, so they catch
 regressions in the injection prompt, ranking, and visibility scoping together.
 
-### 2. Operator-facing controls and visibility
+### 2. Per-turn memory auditability
 
-Operators configure `spaces` and read logs; they cannot see the memory boundary
-or audit what was injected. Add, scoped to surfacing existing state and the
-existing `spaces`/visibility model (no new policy):
+Initial structured logs now make injected memory observable per agent turn.
+Keep this logs-only unless real operator workflows require UI. For each agent
+turn, log whether conversation memory was considered, what was injected, and why
+each item was eligible.
 
-- visibility into which `spaces` have memory enabled and their coverage state;
-- per-turn auditability of what memory was injected and why it was eligible;
-- operator controls to enable/disable memory per space without editing raw
-  config, where it fits the existing config surface.
+Include:
 
-### 3. Dashboard explanation for skipped/stale conversations
+- conversation id, interface, channel, and resolved same-space id;
+- caller permission level and visibility scope;
+- injected item ids, entity types, source conversations, scores, and updated
+  timestamps;
+- no-memory reasons where possible, such as no channel context, no same-space
+  memory, or visibility-filtered memory.
 
-Rebuild the placeholder `ListWidget` into a real **Conversation Memory** view:
-
-- coverage: summarized vs unsummarized eligible conversations;
-- stale summaries: conversations with new messages not yet summarized;
-- recent summarized conversations and active spaces with memory;
-- skipped/excluded conversations with the eligibility reason
-  (`no-spaces-configured`, `space-not-configured`, `system-only`, `ai-skip`).
-
-The eligibility result is already computed for observability; this surfaces it.
-This absorbs the previously logs-only "skipped-conversation visibility" deferral.
+This should answer “what memory did Relay use in this response?” without
+expanding policy or adding UI.
 
 ## Explicitly deferred (do not bundle in)
 

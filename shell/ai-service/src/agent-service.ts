@@ -434,8 +434,8 @@ export class AgentService implements IAgentService {
     channelId: string;
     channelName: string;
     userPermissionLevel: ChatContext["userPermissionLevel"];
-  }): Promise<AgentContextItem[]> {
-    if (!this.agentContextProvider) return [];
+  }): Promise<AgentContextItem[] | undefined> {
+    if (!this.agentContextProvider) return undefined;
 
     try {
       return await this.agentContextProvider({
@@ -451,7 +451,7 @@ export class AgentService implements IAgentService {
         conversationId: params.conversationId,
         error: getErrorMessage(error),
       });
-      return [];
+      return undefined;
     }
   }
 

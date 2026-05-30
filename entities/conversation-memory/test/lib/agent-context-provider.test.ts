@@ -67,6 +67,139 @@ describe("buildConversationMemoryAgentContext", () => {
         channelId: "relay-team",
       },
     });
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        conversationId: "conv-current",
+        channelId: "relay-team",
+        userPermissionLevel: "trusted",
+        visibilityScope: "shared",
+        spaceId: "mcp:relay-team",
+        reason: "memory-injected",
+        itemCount: 1,
+        items: [
+          expect.objectContaining({
+            id: "summary-team",
+            entityType: "summary",
+            conversationId: "conv-team",
+            spaceId: "mcp:relay-team",
+            visibility: "restricted",
+            eligibilityReason: "same-space-query-match",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("audits when channel context is missing", async () => {
+    const context = createContextWithSearchResults([]);
+    const response = await buildConversationMemoryAgentContext(context, {
+      conversationId: "conv-current",
+      message: "What memory is relevant?",
+      interfaceType: "mcp",
+      userPermissionLevel: "trusted" as const,
+    });
+
+    expect(response.items).toEqual([]);
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        conversationId: "conv-current",
+        visibilityScope: "shared",
+        reason: "no-channel-context",
+        itemCount: 0,
+        items: [],
+      }),
+    );
+  });
+
+  it("audits when no same-space memory is available", async () => {
+    const context = createContextWithSearchResults([]);
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items).toEqual([]);
+    expect(context.logger.info).toHaveBeenCalledWith(
+      "Conversation memory agent context audit",
+      expect.objectContaining({
+        channelId: "relay-team",
+        spaceId: "mcp:relay-team",
+        reason: "no-same-space-memory",
+        itemCount: 0,
+        items: [],
+      }),
+    );
+  });
+
+  it("falls back to recent same-space memory when search has no matches", async () => {
+    const summary = createSummary({
+      id: "summary-recent",
+      conversationId: "conv-recent",
+      channelId: "relay-team",
+      channelName: "Relay Team",
+      content: "# Conversation Summary\n\nRecent same-space memory.",
+    });
+    const context = createMockEntityPluginContext({
+      returns: {
+        entityService: {
+          search: [],
+          listEntities: [summary],
+        },
+      },
+    });
+
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items).toEqual([
+      expect.objectContaining({
+        id: "summary-recent",
+        content: "Recent same-space memory.",
+      }),
+    ]);
+  });
+
+  it("expands structured summary entries for agent context", async () => {
+    const summary = createSummary({
+      id: "summary-team",
+      conversationId: "conv-team",
+      channelId: "relay-team",
+      channelName: "Relay Team",
+      content: [
+        "# Conversation Summary",
+        "",
+        "## Relay preset direction",
+        "",
+        "Time: 2026-01-01T00:00:00.000Z → 2026-01-01T00:05:00.000Z",
+        "Messages summarized: 3",
+        "",
+        "Core validates private team memory, default adds a minimal public site, and full adds docs/decks.",
+        "",
+        "### Key Points",
+        "",
+        "- Keep publishing plugins out for now.",
+      ].join("\n"),
+    });
+    const context = createContextWithSearchResults([
+      { entity: summary, score: 0.7, excerpt: "Relay preset direction" },
+    ]);
+
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items[0]?.content).toContain("Relay preset direction");
+    expect(response.items[0]?.content).toContain(
+      "Core validates private team memory",
+    );
+    expect(response.items[0]?.content).toContain(
+      "Keep publishing plugins out for now.",
+    );
   });
 
   it("preserves summary, decision, and action item provenance", async () => {

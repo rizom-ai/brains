@@ -20,7 +20,7 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
 export function buildModelMessages(
   historyMessages: Message[],
   userMessage: string,
-  contextItems: AgentContextItem[] = [],
+  contextItems?: AgentContextItem[],
 ): ModelMessage[] {
   return [
     ...toModelMessages(historyMessages),
@@ -30,16 +30,23 @@ export function buildModelMessages(
 }
 
 function buildAgentContextMessages(
-  contextItems: AgentContextItem[],
+  contextItems: AgentContextItem[] | undefined,
 ): ModelMessage[] {
-  if (contextItems.length === 0) return [];
+  if (contextItems === undefined) return [];
 
   return [
     {
       role: "system",
-      content: formatAgentContext(contextItems),
+      content:
+        contextItems.length === 0
+          ? formatNoAgentContext()
+          : formatAgentContext(contextItems),
     },
   ];
+}
+
+function formatNoAgentContext(): string {
+  return "No relevant conversation memory was retrieved for this turn. If the user asks about conversation memory available in this turn, say none was retrieved rather than inferring from general instructions or other background knowledge.";
 }
 
 function formatAgentContext(contextItems: AgentContextItem[]): string {
@@ -49,7 +56,7 @@ function formatAgentContext(contextItems: AgentContextItem[]): string {
 
   return [
     "Relevant conversation memory retrieved for this turn.",
-    "Use it only when it helps answer the user. Preserve source/provenance when referencing memory, and ignore unrelated or conflicting memory.",
+    'Use it only when it helps answer the user. If the user asks what conversation memory says, explicitly ground the answer in the retrieved memory (for example, "According to conversation memory...") rather than general background knowledge. Preserve source/provenance when referencing memory. Ignore unrelated memory; when memory conflicts, prefer the most specific or newest source and mention uncertainty if the conflict remains unresolved.',
     "",
     formattedItems,
   ].join("\n");

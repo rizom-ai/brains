@@ -700,6 +700,37 @@ describe("AgentService", () => {
         "spaceId=mcp:relay-team",
       );
     });
+
+    it("tells the agent when the context provider returns no relevant memory", async () => {
+      const agentContextProvider = mock(async () => []);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What memory is available?", "empty-context", {
+        interfaceType: "mcp",
+        channelId: "empty-space",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expect(messages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "system",
+            content: expect.stringContaining(
+              "No relevant conversation memory was retrieved for this turn.",
+            ),
+          }),
+        ]),
+      );
+    });
   });
 
   describe("error handling", () => {
