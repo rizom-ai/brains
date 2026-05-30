@@ -636,6 +636,72 @@ describe("AgentService", () => {
     });
   });
 
+  describe("agent context retrieval", () => {
+    it("injects retrieved context into the model messages with provenance", async () => {
+      const agentContextProvider = mock(async () => [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "summary from #relay-team",
+          content: "The team decided to use explicit memory retrieval.",
+          provenance: {
+            entityType: "summary",
+            conversationId: "relay-conv",
+            spaceId: "mcp:relay-team",
+          },
+        },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What did we decide?", "relay-conv", {
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      expect(agentContextProvider).toHaveBeenCalledWith({
+        conversationId: "relay-conv",
+        message: "What did we decide?",
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expect(messages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "system",
+            content: expect.stringContaining(
+              "The team decided to use explicit memory retrieval.",
+            ),
+          }),
+        ]),
+      );
+      const contextMessage = messages.find(
+        (message) =>
+          message.role === "system" &&
+          String(message.content).includes("Relevant conversation memory"),
+      );
+      expect(String(contextMessage?.content)).toContain(
+        "conversationId=relay-conv",
+      );
+      expect(String(contextMessage?.content)).toContain(
+        "spaceId=mcp:relay-team",
+      );
+    });
+  });
+
   describe("error handling", () => {
     it("should handle agent errors gracefully", async () => {
       mockGenerate.mockImplementationOnce(() =>

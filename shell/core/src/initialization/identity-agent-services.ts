@@ -5,6 +5,11 @@ import {
   type IAgentService,
   type IAIService,
 } from "@brains/ai-service";
+import {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextResponseSchema,
+  type AgentContextRequest,
+} from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import {
@@ -130,6 +135,15 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      agentContextProvider: async (request: AgentContextRequest) => {
+        const response = await messageBus.send({
+          type: AGENT_CONTEXT_REQUEST_CHANNEL,
+          sender: "shell:agent-service",
+          payload: request,
+        });
+        if ("noop" in response || !response.success) return [];
+        return agentContextResponseSchema.parse(response.data).items;
+      },
       ...(assistantActorId ? { assistantActorId } : {}),
       ...(config.agentInstructions && {
         agentInstructions: config.agentInstructions,

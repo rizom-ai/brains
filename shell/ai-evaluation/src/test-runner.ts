@@ -180,7 +180,13 @@ export class TestRunner implements ITestRunner {
 
     return {
       userPermissionLevel,
-      interfaceType: "evaluation",
+      interfaceType: testCase.setup?.interfaceType ?? "evaluation",
+      ...(testCase.setup?.channelId
+        ? { channelId: testCase.setup.channelId }
+        : {}),
+      ...(testCase.setup?.channelName
+        ? { channelName: testCase.setup.channelName }
+        : {}),
     };
   }
 

@@ -2,7 +2,9 @@
 
 ## Status
 
-Partial. `@brains/conversation-memory` now has scoped projection from stored conversations, summary/decision/action-item entities, dashboard widgets, and `ConversationMemoryRetriever`. Remaining work: tighten broader future-use evals and settle the open policy questions below.
+Partial. `@brains/conversation-memory` now has scoped projection from stored conversations, summary/decision/action-item entities (one summary per conversation/session), dashboard widgets, a `ConversationMemoryRetriever`, and an agent-context provider that injects relevant same-space memory into agent turns with provenance.
+
+Remaining work is mostly product hardening: broader behavior evals, operator UX, rolling space-level memory, and skipped-conversation visibility.
 
 ## Settled decisions
 
@@ -269,10 +271,28 @@ Current evals test summary generation. Add memory-behavior evals:
 
 ## Remaining implementation
 
-Phases 1–3 (policy/observability, dashboard widget, decision/action entities) have shipped. Phase 4 retrieval contract and ranking landed; broader future-use evals are still needed before enabling automatic prompt injection.
+Phases 1–4 are now connected: scoped projection, dashboard widgets, decision/action entities, retrieval ranking, and same-space agent-context injection have shipped.
 
-## Open questions
+## Next pickup
 
-1. Should space-level rolling memory be a new entity type or another `summary` scope?
-2. Should skipped conversations be logs only at first, or dashboard-computed state?
-3. Should summaries be private/system memory only, or visible as normal site/content entities by default?
+The next concrete step should harden product behavior and operator UX without expanding the data model.
+
+**Add:**
+
+1. Broader future-use evals against full agent behavior, beyond the deterministic `buildAgentContext` eval handler.
+2. Operator-facing controls/visibility for where memory is enabled and what was injected.
+3. Better dashboard explanation for skipped or stale conversations once the Conversation Memory dashboard is rebuilt.
+
+**Explicitly deferred (do not bundle into the next pickup):**
+
+- **Rolling space-level memory** — memory spanning multiple conversations in a space. Decision: when built, it is a **new `space-memory` entity type**, not another `summary` scope (keeps `summary` from becoming a kitchen sink, consistent with the earlier `decision`/`action-item` split). Not the next step.
+- **Skipped-conversation visibility** — decision: **logs only for now** (emit the eligibility/skip reason); promote to a dashboard panel later when the Conversation Memory dashboard is rebuilt. No skip-state UI in this pickup.
+
+## Resolved: default memory visibility
+
+Decision: **never `public` by default; the right default is per-model.** Visibility levels are `public` / `shared` / `restricted`, where `shared` = visible to trusted collaborators (the team), not the public.
+
+- **Relay (shared team brain): `shared`.** The audience _is_ the team. Teammates in configured `spaces` must be able to see the team's own summaries/decisions/action items — that is the entire point of a shared team brain. `restricted` would lock the team out; `public` would leak internal discussion to the site.
+- **Rover / personal: `restricted`.** One person's memory; internal/system context with no team to share with.
+
+Concrete change: the plugin's `memoryVisibility` config drives the visibility of all projected entities (`conversation-memory-plugin.ts`), and it currently resolves to `public` because `contentVisibilitySchema` defaults to `public` when unset and neither `relay` nor `rover` overrides it. Set it per preset instead — `relay` → `shared`, personal/`rover` → `restricted` — and keep the unconfigured fallback fail-closed (`restricted`), not `public`. Operators can still opt specific spaces/types **up** (e.g. a public decisions log) when they explicitly want that.

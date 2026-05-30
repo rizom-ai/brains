@@ -1,4 +1,5 @@
-import { type Logger } from "@brains/utils";
+import type { AgentContextItem } from "@brains/contracts";
+import { type Logger, getErrorMessage } from "@brains/utils";
 import { type IMCPService, type ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
@@ -69,6 +70,7 @@ export class AgentService implements IAgentService {
   private agentInstructions: AgentConfig["agentInstructions"];
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
+  private agentContextProvider: AgentConfig["agentContextProvider"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -161,6 +163,7 @@ export class AgentService implements IAgentService {
     this.agentInstructions = config.agentInstructions;
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
+    this.agentContextProvider = config.agentContextProvider;
   }
 
   /**
@@ -337,7 +340,16 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
-    const messages = buildModelMessages(historyMessages, message);
+    const contextItems = await this.fetchAgentContext({
+      conversationId,
+      message,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    });
+
+    const messages = buildModelMessages(historyMessages, message, contextItems);
 
     // Log available tools
     const tools = this.mcpService
@@ -413,6 +425,34 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async fetchAgentContext(params: {
+    conversationId: string;
+    message: string;
+    interfaceType: string;
+    channelId: string;
+    channelName: string;
+    userPermissionLevel: ChatContext["userPermissionLevel"];
+  }): Promise<AgentContextItem[]> {
+    if (!this.agentContextProvider) return [];
+
+    try {
+      return await this.agentContextProvider({
+        conversationId: params.conversationId,
+        message: params.message,
+        interfaceType: params.interfaceType,
+        channelId: params.channelId,
+        channelName: params.channelName,
+        userPermissionLevel: params.userPermissionLevel ?? "public",
+      });
+    } catch (error) {
+      this.logger.warn("Agent context provider failed", {
+        conversationId: params.conversationId,
+        error: getErrorMessage(error),
+      });
+      return [];
+    }
   }
 
   private async executeConfirmedAction(

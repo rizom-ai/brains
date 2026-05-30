@@ -1,0 +1,44 @@
+id: relay-permission-trusted-shared-agent-context
+name: Trusted Relay teammate can use shared conversation memory as context
+description: >-
+  Verifies Relay's shared conversation memory visibility is readable by a
+  trusted teammate through automatic agent-context injection.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - permissions
+  - trusted
+  - shared
+  - conversation-memory
+
+turns:
+  - userMessage: >-
+      As a trusted teammate in this channel, summarize the saved Relay POC
+      context about team memory and peer-brain coordination. Use the memory
+      already available in this turn; do not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+  responseContains:
+    - "summaries"
+    - "core"
+  responseNotContains:
+    - "I don't have access"
+    - "permission"
+    - "unauthorized"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

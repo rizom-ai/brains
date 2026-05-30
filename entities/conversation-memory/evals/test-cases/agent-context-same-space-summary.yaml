@@ -1,0 +1,43 @@
+id: conversation-memory-agent-context-same-space-summary
+name: Agent context injects relevant same-space summary
+description: A later conversation receives relevant same-space summary memory as agent context.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - agent-context
+plugin: conversation-memory
+handler: buildAgentContext
+
+input:
+  conversationId: current-relay-conv
+  message: What did we decide about memory retrieval?
+  interfaceType: mcp
+  channelId: relay-team
+  channelName: Relay Team
+  userPermissionLevel: trusted
+  memory:
+    - id: summary-same
+      entityType: summary
+      conversationId: earlier-relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      channelName: Relay Team
+      visibility: shared
+      content: "# Conversation Summary\n\nThe team decided same-space conversation memory should be retrieved before agent responses."
+      excerpt: The team decided same-space conversation memory should be retrieved before agent responses.
+      score: 0.8
+      updated: "2026-05-04T11:00:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: items[0].id
+      equals: summary-same
+    - path: items[0].source
+      equals: conversation-memory
+    - path: items[0].content
+      contains: same-space conversation memory
+    - path: items[0].provenance.spaceId
+      equals: mcp:relay-team
+    - path: items[0].provenance.conversationId
+      equals: earlier-relay-conv

@@ -1,0 +1,41 @@
+id: relay-agent-context-excludes-other-space
+name: Relay agent context excludes other-space memory
+description: >-
+  Verifies Relay does not inject unrelated conversation memory from another
+  channel, even when that memory contains tempting publishing-specific details.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - spaces
+
+turns:
+  - userMessage: >-
+      In this channel, what did our Relay POC memory say to avoid? Use only the
+      memory already available in this turn; do not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "docs"
+  responseNotContains:
+    - "publishing calendar"
+    - "blog posts"
+    - "newsletters"
+    - "social-media distribution"
+    - "other project"
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

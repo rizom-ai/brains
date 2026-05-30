@@ -98,6 +98,9 @@ export type Turn = z.infer<typeof turnSchema>;
  */
 export const testSetupSchema = z.object({
   permissionLevel: UserPermissionLevelSchema.default("anchor"),
+  interfaceType: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
 });
 
 export type TestSetup = z.infer<typeof testSetupSchema>;
