@@ -82,9 +82,26 @@ Input:
 
 Use `dryRun: true` to inspect the record without writing to the PDS.
 
+### `atproto_publish_entity`
+
+Publishes any public local entity that has registered an ATProto projection.
+
+Input:
+
+```json
+{
+  "entityType": "post",
+  "entityId": "post-123",
+  "dryRun": true,
+  "topics": ["protocols"]
+}
+```
+
+Use this for generic projection-backed publishing. The entity plugin owns the record mapper and collection name.
+
 ### `atproto_publish_post`
 
-Publishes an existing local blog `post` entity as `ai.rizom.brain.post`.
+Convenience wrapper that publishes an existing local blog `post` entity as `ai.rizom.brain.post`.
 
 Input:
 
@@ -142,9 +159,11 @@ Use a test PDS/Bluesky account and an app password.
    - `atproto_publish_card { "dryRun": false }`
 7. Dry-run a public blog post:
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": true }`
-8. Publish the post record:
+8. Optionally dry-run the same projection through the generic entity path:
+   - `atproto_publish_entity { "entityType": "post", "entityId": "<post-id>", "dryRun": true }`
+9. Publish the post record:
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": false }`
-9. Verify records in the PDS repo.
+10. Verify records in the PDS repo.
 
 ## Current limitations
 

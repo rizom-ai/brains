@@ -11,6 +11,22 @@ const publishCardInputSchema = {
 
 const validateCredentialsInputSchema = {};
 
+const publishEntityInputSchema = {
+  entityType: z
+    .string()
+    .describe("Local entity type with a registered AT Protocol projection"),
+  entityId: z.string().optional().describe("Local entity ID to publish"),
+  slug: z.string().optional().describe("Local entity slug to publish"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Build and return the record without writing to the PDS"),
+  topics: z
+    .array(z.string())
+    .optional()
+    .describe("Optional topic labels to include in the AT Protocol record"),
+};
+
 const publishPostInputSchema = {
   entityId: z
     .string()
@@ -35,6 +51,7 @@ export function createAtprotoTools(
   return [
     createValidateCredentialsTool(pluginId, plugin),
     createPublishCardTool(pluginId, plugin, context),
+    createPublishEntityTool(pluginId, plugin, context),
     createPublishPostTool(pluginId, plugin, context),
   ];
 }
@@ -77,6 +94,51 @@ function createPublishCardTool(
       try {
         const result = await plugin.publishBrainCard(context, {
           dryRun: parsed.data.dryRun,
+        });
+        return { success: true, data: result };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Publish failed",
+        };
+      }
+    },
+  };
+}
+
+function createPublishEntityTool(
+  pluginId: string,
+  plugin: AtprotoPlugin,
+  context: ServicePluginContext,
+): Tool {
+  return {
+    name: `${pluginId}_publish_entity`,
+    description:
+      "Publish any public local entity with a registered AT Protocol projection, or dry-run the record payload.",
+    inputSchema: publishEntityInputSchema,
+    handler: async (input): Promise<ToolResponse> => {
+      const parsed = z.object(publishEntityInputSchema).safeParse(input);
+      if (!parsed.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parsed.error.message}`,
+        };
+      }
+
+      try {
+        if (!parsed.data.entityId && !parsed.data.slug) {
+          return {
+            success: false,
+            error: "Invalid input: entityId or slug is required",
+          };
+        }
+
+        const result = await plugin.publishEntity(context, {
+          entityType: parsed.data.entityType,
+          ...(parsed.data.entityId && { entityId: parsed.data.entityId }),
+          ...(parsed.data.slug && { slug: parsed.data.slug }),
+          dryRun: parsed.data.dryRun,
+          ...(parsed.data.topics && { topics: parsed.data.topics }),
         });
         return { success: true, data: result };
       } catch (error) {

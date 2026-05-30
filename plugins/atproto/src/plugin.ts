@@ -1,4 +1,5 @@
 import type {
+  BaseEntity,
   ServicePluginContext,
   Tool,
   WebRouteDefinition,
@@ -21,6 +22,7 @@ import { buildDidWebDocument } from "./did";
 import {
   AtprotoProjectionRegistry,
   type AtprotoProjectedPostRecord,
+  type AtprotoProjection,
 } from "./projection-registry";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
@@ -69,6 +71,14 @@ export interface PublishBrainCardResult {
   dryRun: boolean;
 }
 
+export interface PublishEntityOptions {
+  entityType: string;
+  entityId?: string;
+  slug?: string;
+  dryRun?: boolean;
+  topics?: string[];
+}
+
 export interface PublishPostOptions {
   entityId?: string;
   slug?: string;
@@ -76,13 +86,17 @@ export interface PublishPostOptions {
   topics?: string[];
 }
 
-export interface PublishPostResult {
-  record: AtprotoProjectedPostRecord;
+export interface PublishEntityResult<
+  TRecord extends Record<string, unknown> = Record<string, unknown>,
+> {
+  record: TRecord;
   repo?: string;
   uri?: string;
   cid?: string;
   dryRun: boolean;
 }
+
+export type PublishPostResult = PublishEntityResult<AtprotoProjectedPostRecord>;
 
 export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   private readonly deps: AtprotoPluginDeps;
@@ -159,39 +173,88 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     };
   }
 
+  async publishEntity(
+    context: ServicePluginContext,
+    options: PublishEntityOptions,
+  ): Promise<PublishEntityResult> {
+    const projection = this.projectionRegistry.get(options.entityType);
+    if (!projection) {
+      throw new Error(
+        `No AT Protocol projection registered for ${options.entityType}`,
+      );
+    }
+
+    return this.publishProjectedEntity(context, options, projection);
+  }
+
   async publishPost(
     context: ServicePluginContext,
     options: PublishPostOptions,
   ): Promise<PublishPostResult> {
-    const entity = options.entityId
-      ? await context.entityService.getEntity({
-          entityType: "post",
-          id: options.entityId,
-        })
-      : options.slug
-        ? (
-            await context.entityService.listEntities({
-              entityType: "post",
-              options: { filter: { metadata: { slug: options.slug } } },
-            })
-          )[0]
-        : null;
-
-    const identifier = options.entityId ?? options.slug;
-    if (!identifier) {
-      throw new Error("Post publish requires entityId or slug");
-    }
-    if (!entity) {
-      throw new Error(`Post not found: ${identifier}`);
-    }
-    if (entity.visibility !== "public") {
-      throw new Error(`Cannot publish non-public post: ${identifier}`);
-    }
-
     const projection = this.projectionRegistry.get("post");
     if (!projection) {
       throw new Error("No AT Protocol projection registered for post");
     }
+
+    return this.publishProjectedEntity(
+      context,
+      { entityType: "post", ...options },
+      projection,
+    );
+  }
+
+  async validatePdsCredentials(): Promise<boolean> {
+    const appPassword = this.resolveAppPassword();
+    if (!this.config.identifier || !appPassword) return false;
+
+    try {
+      await this.createPdsClient(appPassword).createSession();
+      return true;
+    } catch (error) {
+      this.logger.warn("AT Protocol PDS authentication failed", {
+        error: getErrorMessage(error),
+      });
+      return false;
+    }
+  }
+
+  protected override async getTools(): Promise<Tool[]> {
+    if (!this.config.enabled) return [];
+    return createAtprotoTools(this.id, this, this.getContext());
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    if (!this.config.enabled) return undefined;
+    return `## AT Protocol publishing
+- Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
+- Use \`atproto_publish_card\` to publish or dry-run this brain's public capability card.
+- Use \`atproto_publish_entity\` to publish any public entity with a registered AT Protocol projection.
+- Use \`atproto_publish_post\` for the blog-post convenience path by \`entityId\` or \`slug\`.
+- Prefer \`dryRun: true\` first when publishing new AT Protocol records.
+- Only public posts and public cover images can be published.`;
+  }
+
+  private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
+    context: ServicePluginContext,
+    options: PublishEntityOptions,
+    projection: AtprotoProjection<TRecord>,
+  ): Promise<PublishEntityResult<TRecord>> {
+    const entity = await this.findPublishEntity(context, options);
+    const identifier = options.entityId ?? options.slug;
+    if (!identifier) {
+      throw new Error(
+        `${options.entityType} publish requires entityId or slug`,
+      );
+    }
+    if (!entity) {
+      throw new Error(`${options.entityType} not found: ${identifier}`);
+    }
+    if (entity.visibility !== "public") {
+      throw new Error(
+        `Cannot publish non-public ${options.entityType}: ${identifier}`,
+      );
+    }
+
     const repo = this.config.repoDid;
 
     if (options.dryRun) {
@@ -250,34 +313,29 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     };
   }
 
-  async validatePdsCredentials(): Promise<boolean> {
-    const appPassword = this.resolveAppPassword();
-    if (!this.config.identifier || !appPassword) return false;
-
-    try {
-      await this.createPdsClient(appPassword).createSession();
-      return true;
-    } catch (error) {
-      this.logger.warn("AT Protocol PDS authentication failed", {
-        error: getErrorMessage(error),
+  private async findPublishEntity(
+    context: ServicePluginContext,
+    options: PublishEntityOptions,
+  ): Promise<BaseEntity | null> {
+    if (options.entityId) {
+      return context.entityService.getEntity({
+        entityType: options.entityType,
+        id: options.entityId,
       });
-      return false;
     }
-  }
 
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.config.enabled) return [];
-    return createAtprotoTools(this.id, this, this.getContext());
-  }
+    if (options.slug) {
+      return (
+        (
+          await context.entityService.listEntities({
+            entityType: options.entityType,
+            options: { filter: { metadata: { slug: options.slug } } },
+          })
+        )[0] ?? null
+      );
+    }
 
-  protected override async getInstructions(): Promise<string | undefined> {
-    if (!this.config.enabled) return undefined;
-    return `## AT Protocol publishing
-- Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
-- Use \`atproto_publish_card\` to publish or dry-run this brain's public capability card.
-- Use \`atproto_publish_post\` to publish a public blog post by \`entityId\` or \`slug\`.
-- Prefer \`dryRun: true\` first when publishing new AT Protocol records.
-- Only public posts and public cover images can be published.`;
+    return null;
   }
 
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {

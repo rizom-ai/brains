@@ -6,6 +6,8 @@ export {
   type AtprotoPluginDeps,
   type PublishBrainCardOptions,
   type PublishBrainCardResult,
+  type PublishEntityOptions,
+  type PublishEntityResult,
   type PublishPostOptions,
   type PublishPostResult,
 } from "./plugin";

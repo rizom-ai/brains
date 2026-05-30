@@ -147,6 +147,78 @@ describe("AT Protocol post publishing", () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  it("publishes any public entity with a registered ATProto projection", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
+      $type: "ai.rizom.brain.link",
+      title: "Example Link",
+      url: "https://example.com",
+      createdAt: entity.created,
+      sourceEntityType: "link",
+      sourceEntityId: entity.id,
+    }));
+    registry.register({
+      entityType: "link",
+      collection: "ai.rizom.brain.link",
+      validate: false,
+      buildRecord,
+    });
+    const createRecord = mock(async () => ({
+      uri: "at://repo/link",
+      cid: "cid",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:session-repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord,
+        }),
+      },
+    );
+    const link: BaseEntity = {
+      id: "link-123",
+      entityType: "link",
+      content: "A useful link",
+      created: "2026-05-28T10:00:00.000Z",
+      updated: "2026-05-28T10:00:00.000Z",
+      visibility: "public",
+      contentHash: "hash",
+      metadata: { title: "Example Link" },
+    };
+
+    const result = await plugin.publishEntity(
+      createContext(createPost(), [link]),
+      {
+        entityType: "link",
+        entityId: "link-123",
+      },
+    );
+
+    expect(result.uri).toBe("at://repo/link");
+    expect(buildRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: expect.objectContaining({ id: "link-123" }),
+      }),
+    );
+    expect(createRecord).toHaveBeenCalledWith({
+      repo: "did:plc:session-repo",
+      collection: "ai.rizom.brain.link",
+      validate: false,
+      record: result.record,
+    });
+  });
+
   it("publishes using the registered ATProto projection for the entity type", async () => {
     const registry = AtprotoProjectionRegistry.createFresh();
     const buildRecord = mock(async () => ({
@@ -279,6 +351,33 @@ describe("AT Protocol post publishing", () => {
         "Cannot publish non-public post",
       );
     }
+  });
+
+  it("exposes a publish-entity tool that can dry-run a registered projection", async () => {
+    const shell = createMockShell({ domain: "brain.example.com" });
+    shell.addEntities([createPost()]);
+    const plugin = atprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      brainDid: "did:web:brain.example.com",
+    });
+    const capabilities = await plugin.register(shell);
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_publish_entity",
+    );
+
+    expect(tool).toBeDefined();
+    const response = await tool?.handler(
+      { entityType: "post", entityId: "post-123", dryRun: true },
+      { interfaceType: "test", userId: "test" },
+    );
+    expect(response).toMatchObject({
+      success: true,
+      data: {
+        dryRun: true,
+        record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
+      },
+    });
   });
 
   it("exposes a publish-post tool that can dry-run by slug", async () => {

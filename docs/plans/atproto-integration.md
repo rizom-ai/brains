@@ -211,7 +211,8 @@ Still needed before production:
 5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
 6. Do not cross-post blog articles directly as `app.bsky.feed.post`; Bluesky/social posting should be added later as an ATProto provider/projection for the existing `social-post` workflow
 7. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize remaining entity lexicons (`note`, `link`, `deck`, `socialPost`) inside the ATProto plugin — registry contract implemented and blog `post` registration moved to the blog entity package
-8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, no accidental override of internal publish providers — mapper/blob tests are implemented; provider override regression remains
+8. Add a generic projection-backed publish path for any public entity with a registered ATProto projection, while keeping `atproto_publish_post` as the blog convenience path
+9. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, generic projection publishing, no accidental override of internal publish providers — implemented
 
 ### Phase 3: Inbound ingestion
 
