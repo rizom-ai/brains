@@ -11,7 +11,7 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z, slugify } from "@brains/utils";
 import {
   linkConfigSchema,

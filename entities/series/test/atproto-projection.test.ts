@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createSeriesAtprotoProjection } from "../src/atproto-projection";
 import { SeriesPlugin } from "../src/plugin";
 import { seriesAdapter } from "../src/adapters/series-adapter";

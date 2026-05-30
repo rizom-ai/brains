@@ -127,7 +127,7 @@ Entity plugins should own their own ATProto projection definitions and register 
 import {
   AtprotoProjectionRegistry,
   parseAtprotoLexicon,
-} from "@brains/atproto";
+} from "@brains/atproto-contracts";
 import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 
 AtprotoProjectionRegistry.getInstance().register({

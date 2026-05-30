@@ -1,11 +1,11 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { parseAtprotoLexicon } from "@brains/atproto";
+import { parseAtprotoLexicon } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto";
+} from "@brains/atproto-contracts";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 import postLexicon from "../lexicons/ai.rizom.brain.post.json";

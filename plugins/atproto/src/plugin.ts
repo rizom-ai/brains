@@ -11,44 +11,17 @@ import {
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
-import {
-  AtprotoPdsClient,
-  type AtprotoSession,
-  type CreateRecordResult,
-  type PutRecordResult,
-  type UploadBlobResult,
-} from "./pds-client";
+import { AtprotoPdsClient } from "./pds-client";
 import { buildDidWebDocument } from "./did";
 import {
   AtprotoProjectionRegistry,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
-} from "./projection-registry";
+  type AtprotoPdsClientLike,
+} from "@brains/atproto-contracts";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
-
-export interface AtprotoPdsClientLike {
-  createSession(): Promise<AtprotoSession>;
-  createRecord(input: {
-    repo: string;
-    collection: string;
-    record: Record<string, unknown>;
-    rkey?: string;
-    validate?: boolean;
-  }): Promise<CreateRecordResult>;
-  putRecord?(input: {
-    repo: string;
-    collection: string;
-    record: Record<string, unknown>;
-    rkey: string;
-    validate?: boolean;
-  }): Promise<PutRecordResult>;
-  uploadBlob?(input: {
-    data: Buffer;
-    mimeType: string;
-  }): Promise<UploadBlobResult>;
-}
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {

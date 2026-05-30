@@ -9,7 +9,7 @@ import type {
   DerivedEntityProjection,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";

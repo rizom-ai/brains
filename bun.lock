@@ -189,7 +189,7 @@
       "name": "@brains/blog",
       "version": "0.2.0-alpha.94",
       "dependencies": {
-        "@brains/atproto": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -305,7 +305,7 @@
       "name": "@brains/link",
       "version": "0.2.0-alpha.94",
       "dependencies": {
-        "@brains/atproto": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -346,7 +346,7 @@
       "name": "@brains/note",
       "version": "0.2.0-alpha.94",
       "dependencies": {
-        "@brains/atproto": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -434,7 +434,7 @@
       "name": "@brains/series",
       "version": "0.2.0-alpha.94",
       "dependencies": {
-        "@brains/atproto": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
@@ -736,6 +736,7 @@
       "name": "@brains/atproto",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1006,6 +1007,22 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/atproto-contracts": {
+      "name": "@brains/atproto-contracts",
+      "version": "0.2.0-alpha.94",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
@@ -1775,6 +1792,8 @@
     "@brains/assessment": ["@brains/assessment@workspace:entities/assessment"],
 
     "@brains/atproto": ["@brains/atproto@workspace:plugins/atproto"],
+
+    "@brains/atproto-contracts": ["@brains/atproto-contracts@workspace:shared/atproto-contracts"],
 
     "@brains/auth-service": ["@brains/auth-service@workspace:shell/auth-service"],
 

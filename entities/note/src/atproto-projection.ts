@@ -1,8 +1,8 @@
-import { parseAtprotoLexicon } from "@brains/atproto";
+import { parseAtprotoLexicon } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto";
+} from "@brains/atproto-contracts";
 import { noteSchema } from "./schemas/note";
 import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 

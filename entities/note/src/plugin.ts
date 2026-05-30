@@ -5,7 +5,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter } from "./adapters/note-adapter";

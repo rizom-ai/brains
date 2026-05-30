@@ -1,8 +1,8 @@
-import { parseAtprotoLexicon } from "@brains/atproto";
+import { parseAtprotoLexicon } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto";
+} from "@brains/atproto-contracts";
 import { linkAdapter } from "./adapters/link-adapter";
 import { linkSchema, type LinkSource } from "./schemas/link";
 import linkLexicon from "../lexicons/ai.rizom.brain.link.json";

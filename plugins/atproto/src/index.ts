@@ -2,7 +2,6 @@ export {
   AtprotoPlugin,
   atprotoPlugin,
   atprotoPlugin as plugin,
-  type AtprotoPdsClientLike,
   type AtprotoPluginDeps,
   type PublishBrainCardOptions,
   type PublishBrainCardResult,
@@ -26,7 +25,9 @@ export {
   type AtprotoLexicon,
   type AtprotoLexiconRecordDef,
   type AtprotoLexiconProperty,
-} from "./projection-registry";
+  type AtprotoPdsClientLike,
+  type AtprotoBlobRef,
+} from "@brains/atproto-contracts";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
   buildDidWebDocument,
@@ -38,7 +39,6 @@ export {
 } from "./did";
 export {
   AtprotoPdsClient,
-  type AtprotoBlobRef,
   type AtprotoPdsClientConfig,
   type AtprotoSession,
   type CreateRecordInput,

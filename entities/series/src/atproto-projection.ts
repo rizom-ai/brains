@@ -1,8 +1,8 @@
-import { parseAtprotoLexicon } from "@brains/atproto";
+import { parseAtprotoLexicon } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto";
+} from "@brains/atproto-contracts";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { seriesSchema } from "./schemas/series";
 import seriesLexicon from "../lexicons/ai.rizom.brain.series.json";
