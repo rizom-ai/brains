@@ -1017,31 +1017,6 @@ button, textarea, input { font: inherit; color: inherit; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.web-chat-progress-part {
-  display: grid;
-  gap: 0.2rem;
-  margin: 0.75rem 0;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
-  border-radius: 12px;
-  background: rgb(from var(--chat-accent) r g b / 0.08);
-  color: var(--chat-text);
-  font-size: 0.92rem;
-}
-.web-chat-progress-part span {
-  font-family: var(--chat-font-label);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--chat-accent);
-}
-.web-chat-progress-part[data-tone="error"] {
-  border-color: rgb(214 82 82 / 0.35);
-  background: rgb(214 82 82 / 0.08);
-}
-.web-chat-progress-part[data-tone="error"] span { color: #d65252; }
-
 /* user — amber notched panel */
 .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--chat-accent); }
 .web-chat-message[data-role="user"] .web-chat-message-bubble {
@@ -2178,7 +2153,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): void {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return;
-    this.writeProgress(stream.writer, request.message);
+    this.writeText(stream.writer, request.message, "progress");
   }
 
   protected override async sendMessageWithId(
@@ -2186,7 +2161,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<string | undefined> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return undefined;
-    return this.writeProgress(stream.writer, request.message);
+    return this.writeText(stream.writer, request.message, "progress");
   }
 
   protected override async editMessage(
@@ -2194,7 +2169,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<boolean> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return false;
-    this.writeProgress(stream.writer, request.newMessage, request.messageId);
+    stream.writer.write({
+      type: "data-progress",
+      id: request.messageId,
+      data: { message: request.newMessage },
+      transient: true,
+    });
     return true;
   }
 
@@ -2763,19 +2743,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     writer.write({ type: "text-start", id });
     writer.write({ type: "text-delta", id, delta: text });
     writer.write({ type: "text-end", id });
-    return id;
-  }
-
-  private writeProgress(
-    writer: UIMessageStreamWriter<UIMessage>,
-    message: string,
-    id: string = this.createId("progress"),
-  ): string {
-    writer.write({
-      type: "data-progress",
-      id,
-      data: { message },
-    });
     return id;
   }
 

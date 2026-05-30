@@ -99,9 +99,7 @@ describe("React containment", () => {
     expect(appSource).toContain("uploadAccept");
     expect(appSource).toContain("PromptAttachmentButton");
     expect(appSource).toContain("UploadedFilePart");
-    expect(appSource).toContain("ProgressPart");
     expect(appSource).toContain("uploadNotice");
-    expect(appSource).toContain('case "data-progress"');
     expect(appSource).toContain('case "file"');
     expect(appSource).toContain("web-chat-sessions-state");
     expect(appSource).toContain("renameConversation");

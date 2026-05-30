@@ -373,61 +373,6 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("data-approval-card");
   });
 
-  it("streams progress notifications as structured data parts", async () => {
-    const agent: IAgentService = {
-      chat: async (_message, conversationId) => {
-        await harness.sendMessage("job-progress", {
-          id: "batch-1",
-          type: "batch",
-          status: "completed",
-          metadata: {
-            rootJobId: "batch-1",
-            operationType: "batch_processing",
-            operationTarget: "/tmp/brain-data",
-            interfaceType: "web-chat",
-            channelId: conversationId,
-          },
-        });
-        return {
-          text: "Batch finished.",
-          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-        };
-      },
-      confirmPendingAction: async () => ({
-        text: "Action confirmed.",
-        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
-      }),
-      invalidateAgent: (): void => {},
-    };
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const route = plugin.getWebRoutes()[1];
-
-    const response = await route?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              parts: [{ type: "text", text: "Run batch" }],
-            },
-          ],
-        }),
-      }),
-    );
-    const body = await response?.text();
-
-    expect(response?.status).toBe(200);
-    expect(body).toContain("data-progress");
-    expect(body).toContain("batch processing");
-    expect(body).not.toContain("text-delta.*✅");
-    expect(body).not.toContain("text-start.*progress");
-  });
-
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",

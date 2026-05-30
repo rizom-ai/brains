@@ -181,7 +181,6 @@ type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
-  | { kind: "progress"; data: unknown }
   | { kind: "file"; filename: string; mediaType: string }
   | { kind: "generic"; type: string; data: unknown };
 
@@ -213,10 +212,6 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
-        break;
-      case "data-progress":
-        flush();
-        out.push({ kind: "progress", data: getPartData(part) });
         break;
       case "file":
         flush();
@@ -299,31 +294,6 @@ function UploadedFilePart({
       <span className="web-chat-uploaded-file-kicker">attached</span>
       <span className="web-chat-uploaded-file-name">{filename}</span>
     </span>
-  );
-}
-
-function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
-  if (typeof data !== "object" || data === null || !("message" in data)) {
-    return null;
-  }
-  const rawMessage = data.message;
-  if (typeof rawMessage !== "string" || rawMessage.trim().length === 0) {
-    return null;
-  }
-  const normalized = rawMessage.trim();
-  const tone = normalized.startsWith("❌")
-    ? "error"
-    : normalized.startsWith("✅")
-      ? "success"
-      : "neutral";
-  const label =
-    tone === "error" ? "failed" : tone === "success" ? "completed" : "updated";
-  const message = normalized.replace(/^[✅❌🔄]\s*/u, "").replaceAll("**", "");
-  return (
-    <p className="web-chat-progress-part" data-tone={tone}>
-      <span>{label}</span>
-      {message}
-    </p>
   );
 }
 
@@ -1186,9 +1156,6 @@ export function App(): React.ReactElement {
                       }
                       if (group.kind === "attachment") {
                         return <AttachmentPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "progress") {
-                        return <ProgressPart key={index} data={group.data} />;
                       }
                       if (group.kind === "file") {
                         return (
