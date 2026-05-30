@@ -29,7 +29,7 @@ import {
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
 import { buildModelMessages } from "./conversation-messages";
-import { extractToolResults } from "./agent-results";
+import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
 
@@ -391,11 +391,18 @@ export class AgentService implements IAgentService {
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
+    //
+    // Append a memory note of entities this turn created/updated so their IDs
+    // stay addressable next turn (history is text-only and otherwise drops the
+    // tool results). The note is stored only — the returned text is unchanged.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
-        content: responseText,
+        content:
+          pendingConfirmations.length > 0
+            ? responseText
+            : responseText + buildEntityMemoryNote(toolResults),
         ...this.withMessageMetadata(
           this.buildMessageMetadata(
             this.getAssistantActor(),
