@@ -178,12 +178,12 @@ Initial durable upload protocol slice exists: operator-only
 file policy, stores content plus metadata under the web-chat data directory, and
 returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
 `data-upload` parts carrying those refs, resolves the stored text, and passes it
-to the agent using the existing text-upload prompt format. The active prompt
-still uses inline AI SDK file parts for now.
+to the agent using the existing text-upload prompt format. The React prompt now
+uploads selected text files first, then sends `data-upload` refs through the AI
+SDK message parts protocol.
 
-Remaining upload work: switch the React prompt to upload first and send
-`data-upload` refs, add durable storage/registry integration beyond the web-chat
-data directory, define binary/media type policies, and change the
+Remaining upload work: add durable storage/registry integration beyond the
+web-chat data directory, define binary/media type policies, and change the
 `AgentService.chat()` request path to receive attachment refs natively instead
 of inlining text.
 

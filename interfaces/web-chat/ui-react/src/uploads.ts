@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { FileUIPart } from "ai";
+import type { FileUIPart, UIMessage } from "ai";
 
 export const uploadEndpoint = "/api/chat/uploads";
 export const defaultUploadFilename = "upload.txt";
@@ -49,6 +49,20 @@ export function createUploadPart(
     type: uploadPartType,
     data: upload,
   };
+}
+
+export function createUploadMessageParts(
+  text: string,
+  uploads: WebChatUploadResponse[],
+): UIMessage["parts"] {
+  const parts: UIMessage["parts"] = [];
+  if (text.length > 0) {
+    parts.push({ type: "text", text });
+  }
+  for (const upload of uploads) {
+    parts.push(createUploadPart(upload));
+  }
+  return parts;
 }
 
 export async function uploadFilePart(

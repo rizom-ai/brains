@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { FileUIPart } from "ai";
 import {
+  createUploadMessageParts,
   createUploadPart,
   defaultUploadFilename,
   getFileUploadName,
@@ -52,6 +53,19 @@ describe("web chat upload protocol", () => {
       type: "data-upload",
       data: upload,
     });
+  });
+
+  it("builds chat message parts from text and upload refs", () => {
+    const upload = parseUploadPartData(makeUploadResponse());
+    if (!upload) throw new Error("expected valid upload");
+
+    expect(createUploadMessageParts("Summarize", [upload])).toEqual([
+      { type: "text", text: "Summarize" },
+      { type: "data-upload", data: upload },
+    ]);
+    expect(createUploadMessageParts("", [upload])).toEqual([
+      { type: "data-upload", data: upload },
+    ]);
   });
 
   it("derives a safe display name for file upload parts", () => {

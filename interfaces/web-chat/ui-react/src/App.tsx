@@ -41,6 +41,11 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
+import {
+  createUploadMessageParts,
+  parseUploadPartData,
+  uploadFilePart,
+} from "./uploads";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
@@ -224,6 +229,18 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
         flush();
         out.push({ kind: "progress", data: getPartData(part) });
         break;
+      case "data-upload": {
+        flush();
+        const upload = parseUploadPartData(getPartData(part));
+        if (upload) {
+          out.push({
+            kind: "file",
+            filename: upload.filename,
+            mediaType: upload.mediaType,
+          });
+        }
+        break;
+      }
       case "file":
         flush();
         out.push({
@@ -562,37 +579,61 @@ export function App(): React.ReactElement {
     }
   }
 
-  function submitMessage(
+  async function submitMessage(
     textOverride?: string,
     files: FileUIPart[] = [],
-  ): void {
+  ): Promise<void> {
     const text = (textOverride ?? input).trim();
     if ((!text && files.length === 0) || isBusyStatus(status)) return;
     setHistoryError(null);
+
+    let uploadedFiles: Awaited<ReturnType<typeof uploadFilePart>>[] = [];
     if (files.length > 0) {
       setUploadNotice({
         tone: "success",
-        message: `Sent ${files.length === 1 ? "attachment" : "attachments"}: ${files
-          .map((file) => file.filename ?? "upload.txt")
+        message: `Uploading ${files.length === 1 ? "attachment" : "attachments"}…`,
+      });
+      try {
+        uploadedFiles = await Promise.all(
+          files.map((file) => uploadFilePart(file)),
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not upload attachment.";
+        setUploadNotice({ tone: "error", message });
+        setHistoryError(message);
+        throw error;
+      }
+    }
+
+    if (uploadedFiles.length > 0) {
+      setUploadNotice({
+        tone: "success",
+        message: `Sent ${uploadedFiles.length === 1 ? "attachment" : "attachments"}: ${uploadedFiles
+          .map((file) => file.filename)
           .join(", ")}`,
       });
     } else {
       setUploadNotice(null);
     }
+
     upsertPendingSession(
-      text ? text : (files.at(0)?.filename ?? "Uploaded file"),
+      text ? text : (uploadedFiles.at(0)?.filename ?? "Uploaded file"),
     );
     setInput("");
-    const payload = text
-      ? { text, ...(files.length > 0 ? { files } : {}) }
-      : { files };
+    const payload =
+      uploadedFiles.length > 0
+        ? { parts: createUploadMessageParts(text, uploadedFiles) }
+        : { text };
     void sendMessage(payload)
       .catch((error: unknown) => {
         const message =
           error instanceof Error
             ? error.message
             : "Could not send that message.";
-        if (/file upload|unsupported file/i.test(message)) {
+        if (/file upload|unsupported file|upload/i.test(message)) {
           setUploadNotice({ tone: "error", message });
         }
         setHistoryError(message);
