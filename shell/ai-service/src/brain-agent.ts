@@ -28,6 +28,7 @@ export const brainCallOptionsSchema = z.object({
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
+  agentContextInstructions: z.string().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -120,6 +121,7 @@ export function createBrainAgentFactory(
             config.pluginInstructions,
             config.profile,
             config.agentInstructions,
+            callOptions.agentContextInstructions,
           ),
           tools: toolsWithContext,
           activeTools: allowedToolNames,

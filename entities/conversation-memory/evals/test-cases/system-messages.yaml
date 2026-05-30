@@ -1,6 +1,6 @@
-id: summary-system-messages
-name: Handles system messages
-description: Preserves relevant system constraints without treating them as user decisions.
+id: summary-prior-system-notes
+name: Handles prior system notes
+description: Preserves relevant prior system constraints without treating them as user decisions.
 type: plugin
 tags:
   - summary
@@ -11,8 +11,8 @@ handler: summarizeMessages
 input:
   conversationId: eval-system
   messages:
-    - role: system
-      content: "Constraint: do not preserve backward compatibility for the summary schema."
+    - role: assistant
+      content: "Prior system note: Constraint: do not preserve backward compatibility for the summary schema."
       timestamp: "2026-05-04T19:00:00Z"
     - role: user
       content: Rebuild the package with healthy abstractions.

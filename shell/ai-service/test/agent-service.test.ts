@@ -35,6 +35,10 @@ const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
 
+function expectNoSystemMessages(messages: ModelMessage[]): void {
+  expect(messages.some((message) => message.role === "system")).toBe(false);
+}
+
 // Mock BrainCharacterService
 const createMockCharacterService = (): IBrainCharacterService => ({
   getCharacter: mock(() => ({
@@ -258,6 +262,46 @@ describe("AgentService", () => {
       );
       expect(messages[2]).toEqual(
         expect.objectContaining({ content: "New message" }),
+      );
+    });
+
+    it("does not pass stored system messages through the AI SDK messages array", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "sys1",
+            conversationId: "test-conversation",
+            role: "system",
+            content: "Internal routing note from a prior turn.",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Continue", "test-conversation");
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expectNoSystemMessages(messages);
+      expect(messages[0]).toEqual(
+        expect.objectContaining({
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: "[Prior system note]\nInternal routing note from a prior turn.",
+            },
+          ],
+        }),
       );
     });
 
@@ -637,7 +681,7 @@ describe("AgentService", () => {
   });
 
   describe("agent context retrieval", () => {
-    it("injects retrieved context into the model messages with provenance", async () => {
+    it("passes retrieved context through agent instructions with provenance", async () => {
       const agentContextProvider = mock(async () => [
         {
           id: "summary-1",
@@ -678,25 +722,14 @@ describe("AgentService", () => {
 
       const generateInput = mockGenerate.mock.calls[0]?.[0];
       const messages = generateInput?.messages ?? [];
-      expect(messages).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            role: "system",
-            content: expect.stringContaining(
-              "The team decided to use explicit memory retrieval.",
-            ),
-          }),
-        ]),
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "The team decided to use explicit memory retrieval.",
       );
-      const contextMessage = messages.find(
-        (message) =>
-          message.role === "system" &&
-          String(message.content).includes("Relevant conversation memory"),
-      );
-      expect(String(contextMessage?.content)).toContain(
+      expect(generateInput?.options.agentContextInstructions).toContain(
         "conversationId=relay-conv",
       );
-      expect(String(contextMessage?.content)).toContain(
+      expect(generateInput?.options.agentContextInstructions).toContain(
         "spaceId=mcp:relay-team",
       );
     });
@@ -720,15 +753,9 @@ describe("AgentService", () => {
 
       const generateInput = mockGenerate.mock.calls[0]?.[0];
       const messages = generateInput?.messages ?? [];
-      expect(messages).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            role: "system",
-            content: expect.stringContaining(
-              "No relevant conversation memory was retrieved for this turn.",
-            ),
-          }),
-        ]),
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "No relevant conversation memory was retrieved for this turn.",
       );
     });
   });

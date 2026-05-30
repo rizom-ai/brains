@@ -7,42 +7,38 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
     if (msg.role === "user") {
       return { role: "user", content: msg.content };
     }
-    if (msg.role === "assistant") {
-      return {
-        role: "assistant",
-        content: [{ type: "text", text: msg.content }],
-      };
-    }
-    return { role: "system", content: msg.content };
+    return {
+      role: "assistant",
+      content: [
+        {
+          type: "text",
+          text:
+            msg.role === "system"
+              ? `[Prior system note]\n${msg.content}`
+              : msg.content,
+        },
+      ],
+    };
   });
 }
 
 export function buildModelMessages(
   historyMessages: Message[],
   userMessage: string,
-  contextItems?: AgentContextItem[],
 ): ModelMessage[] {
   return [
     ...toModelMessages(historyMessages),
-    ...buildAgentContextMessages(contextItems),
     { role: "user", content: userMessage },
   ];
 }
 
-function buildAgentContextMessages(
+export function buildAgentContextInstructions(
   contextItems: AgentContextItem[] | undefined,
-): ModelMessage[] {
-  if (contextItems === undefined) return [];
-
-  return [
-    {
-      role: "system",
-      content:
-        contextItems.length === 0
-          ? formatNoAgentContext()
-          : formatAgentContext(contextItems),
-    },
-  ];
+): string | undefined {
+  if (contextItems === undefined) return undefined;
+  return contextItems.length === 0
+    ? formatNoAgentContext()
+    : formatAgentContext(contextItems);
 }
 
 function formatNoAgentContext(): string {

@@ -28,7 +28,10 @@ import {
   type ExecuteActionInput,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
-import { buildModelMessages } from "./conversation-messages";
+import {
+  buildAgentContextInstructions,
+  buildModelMessages,
+} from "./conversation-messages";
 import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
@@ -349,7 +352,9 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    const messages = buildModelMessages(historyMessages, message, contextItems);
+    const messages = buildModelMessages(historyMessages, message);
+    const agentContextInstructions =
+      buildAgentContextInstructions(contextItems);
 
     // Log available tools
     const tools = this.mcpService
@@ -375,6 +380,7 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
+      ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 
     const result = await this.getAgent().generate({
