@@ -65,6 +65,8 @@ Projection selection rule: durable, user-meaningful public entities should gener
 
 Current decision: keep hand-written projection types and explicit tests for now. Lexicon JSON lives with the owning package: the ATProto service plugin owns only service-level records such as `ai.rizom.brain.card`, while entity packages own entity lexicons such as `ai.rizom.brain.post`, `ai.rizom.brain.note`, and `ai.rizom.brain.link`. Lexicon JSON is validated by package-local tests, and record mapper tests verify projections against existing entity schemas. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
 
+PDS-side validation is not the authoritative contract for Rizom custom records. Public PDS instances may reject unknown `ai.rizom.brain.*` lexicons when `validate: true`, so outbound custom record writes use `validate: false` at the PDS boundary. The safety contract is local: before publishing, Rizom should validate projected records against the registered lexicon and entity-owned mapper contract, then use the PDS as the signed repository/storage layer. Public lexicon publication is required before network interoperability work depends on other producers or consumers understanding Rizom records.
+
 ## Identity Model
 
 Separate AT Protocol repo identity from public brain identity:
@@ -116,6 +118,18 @@ Users can publish public brain content to AT Protocol through explicit entity-ow
 User-facing result: **"My brain can publish my work to ATProto with portable identity and signed records."**
 
 This is the first visibly valuable milestone.
+
+### Phase 2.5: Public lexicon publication and local validation
+
+Before Phase 3/4 network interoperability depends on custom records from multiple brains, Rizom lexicons should become public, canonical contracts.
+
+- Serve machine-readable `ai.rizom.brain.*` lexicon JSON from a stable public location under a Rizom-controlled domain.
+- Document the canonical NSIDs, source package ownership, and compatibility/change policy.
+- Add local lexicon-backed validation in the ATProto publish path before calling `com.atproto.repo.createRecord` / `putRecord`; keep PDS writes compatible with public PDS instances that do not know Rizom lexicons.
+- Add tests that registered package-owned lexicons match the published canonical copies, or that canonical publication is generated from package-owned sources without drift.
+- Revisit PDS `validate: true` only where the target PDS can resolve the relevant Rizom lexicons; do not make PDS-side validation the only correctness check.
+
+User-facing result: **"Other tools and brains can understand Rizom ATProto records from a stable public contract."**
 
 ### Phase 3: Inbound ingestion
 
@@ -223,10 +237,19 @@ Still needed before production:
 9. Do not cross-post semantic entity records directly as `app.bsky.feed.post`; Bluesky/social posting should be added later as an ATProto provider/projection for the existing `social-post` workflow
 10. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, generic projection publishing, no accidental override of internal publish providers — implemented
 
+### Phase 2.5: Public lexicon publication and local validation
+
+1. Publish canonical machine-readable lexicon JSON for `ai.rizom.brain.*` under a stable Rizom-controlled public URL.
+2. Define the compatibility policy: additive fields, required-field changes, deprecation, and when a new NSID/version is required.
+3. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons.
+4. Add drift tests so package-owned lexicons and public canonical lexicons cannot diverge silently.
+5. Document how other brains/tools should fetch and interpret Rizom lexicons.
+6. Tests: malformed local projected record is rejected before PDS write; canonical lexicon publication includes every registered Rizom custom record; package-owned and canonical lexicons stay in sync.
+
 ### Phase 3: Inbound ingestion
 
 1. Subscribe to user's atproto repo (or Jetstream for lightweight JSON events)
-2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains)
+2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains). Do not rely on private repo-local lexicon JSON here; consume records against the public canonical Rizom lexicons from Phase 2.5.
 3. Convert atproto records to brain entities (markdown with frontmatter)
 4. Ingest via entity service (`createEntity`)
 5. Run entity pipeline on ingested content (topic extraction, series association)
@@ -258,7 +281,7 @@ Shares the `agent` entity type with the broader agent-directory work. Firehose-d
 
 ### Phase 6: Ambient federation
 
-1. Subscribe to Jetstream filtered for `ai.rizom.brain.*` records from approved or explicitly followed brain DIDs
+1. Subscribe to Jetstream filtered for `ai.rizom.brain.*` records from approved or explicitly followed brain DIDs, interpreting custom records against the public canonical Rizom lexicons from Phase 2.5
 2. On new record from a peer brain: create a local reference entity (link or note)
 3. Enable derive() reactions — e.g., Ranger auto-curates posts from network brains into a feed
 4. Publish `ai.rizom.brain.reaction` records (brain acknowledged/curated another brain's content)
