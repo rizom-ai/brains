@@ -25,6 +25,16 @@ export type UploadFetch = (
   input: RequestInfo | URL,
   init?: RequestInit,
 ) => Promise<Response>;
+export type UploadFilePart = (
+  file: FileUIPart,
+) => Promise<WebChatUploadResponse>;
+
+export interface PreparedUploadSubmission {
+  uploadedFiles: WebChatUploadResponse[];
+  payload: { text: string } | { parts: UIMessage["parts"] };
+  title: string;
+  uploadNoticeMessage: string | null;
+}
 
 export interface WebChatUploadPart {
   type: typeof uploadPartType;
@@ -63,6 +73,29 @@ export function createUploadMessageParts(
     parts.push(createUploadPart(upload));
   }
   return parts;
+}
+
+export async function prepareUploadSubmission(
+  text: string,
+  files: FileUIPart[],
+  upload: UploadFilePart = uploadFilePart,
+): Promise<PreparedUploadSubmission> {
+  const uploadedFiles = await Promise.all(files.map((file) => upload(file)));
+  const payload =
+    uploadedFiles.length > 0
+      ? { parts: createUploadMessageParts(text, uploadedFiles) }
+      : { text };
+  return {
+    uploadedFiles,
+    payload,
+    title: text ? text : (uploadedFiles.at(0)?.filename ?? "Uploaded file"),
+    uploadNoticeMessage:
+      uploadedFiles.length > 0
+        ? `Sent ${uploadedFiles.length === 1 ? "attachment" : "attachments"}: ${uploadedFiles
+            .map((file) => file.filename)
+            .join(", ")}`
+        : null,
+  };
 }
 
 export async function uploadFilePart(

@@ -6,6 +6,7 @@ import {
   defaultUploadFilename,
   getFileUploadName,
   parseUploadPartData,
+  prepareUploadSubmission,
   uploadEndpoint,
   uploadFilePart,
   type UploadFetch,
@@ -66,6 +67,73 @@ describe("web chat upload protocol", () => {
     expect(createUploadMessageParts("", [upload])).toEqual([
       { type: "data-upload", data: upload },
     ]);
+  });
+
+  it("prepares text-only submissions without uploading", async () => {
+    const submission = await prepareUploadSubmission("Hello", [], async () => {
+      throw new Error("should not upload without files");
+    });
+
+    expect(submission).toEqual({
+      uploadedFiles: [],
+      payload: { text: "Hello" },
+      title: "Hello",
+      uploadNoticeMessage: null,
+    });
+  });
+
+  it("uploads prompt files and prepares durable upload-ref message parts", async () => {
+    const file: FileUIPart = {
+      type: "file",
+      filename: "notes.md",
+      mediaType: "text/markdown",
+      url: "blob:notes",
+    };
+    const upload = makeUploadResponse();
+    const uploadedFilenames: string[] = [];
+
+    const submission = await prepareUploadSubmission(
+      "Summarize",
+      [file],
+      async (nextFile) => {
+        uploadedFilenames.push(nextFile.filename ?? "");
+        return upload;
+      },
+    );
+
+    expect(uploadedFilenames).toEqual(["notes.md"]);
+    expect(submission).toEqual({
+      uploadedFiles: [upload],
+      payload: {
+        parts: [
+          { type: "text", text: "Summarize" },
+          { type: "data-upload", data: upload },
+        ],
+      },
+      title: "Summarize",
+      uploadNoticeMessage: "Sent attachment: notes.md",
+    });
+  });
+
+  it("uses the uploaded filename as the pending title for attachment-only submissions", async () => {
+    const file: FileUIPart = {
+      type: "file",
+      filename: "notes.md",
+      mediaType: "text/markdown",
+      url: "blob:notes",
+    };
+    const upload = makeUploadResponse();
+
+    const submission = await prepareUploadSubmission(
+      "",
+      [file],
+      async () => upload,
+    );
+
+    expect(submission.title).toBe("notes.md");
+    expect(submission.payload).toEqual({
+      parts: [{ type: "data-upload", data: upload }],
+    });
   });
 
   it("derives a safe display name for file upload parts", () => {

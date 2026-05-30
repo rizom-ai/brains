@@ -41,11 +41,7 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
-import {
-  createUploadMessageParts,
-  parseUploadPartData,
-  uploadFilePart,
-} from "./uploads";
+import { parseUploadPartData, prepareUploadSubmission } from "./uploads";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
@@ -587,46 +583,36 @@ export function App(): React.ReactElement {
     if ((!text && files.length === 0) || isBusyStatus(status)) return;
     setHistoryError(null);
 
-    let uploadedFiles: Awaited<ReturnType<typeof uploadFilePart>>[] = [];
     if (files.length > 0) {
       setUploadNotice({
         tone: "success",
         message: `Uploading ${files.length === 1 ? "attachment" : "attachments"}…`,
       });
-      try {
-        uploadedFiles = await Promise.all(
-          files.map((file) => uploadFilePart(file)),
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Could not upload attachment.";
-        setUploadNotice({ tone: "error", message });
-        setHistoryError(message);
-        throw error;
-      }
     }
 
-    if (uploadedFiles.length > 0) {
+    let submission: Awaited<ReturnType<typeof prepareUploadSubmission>>;
+    try {
+      submission = await prepareUploadSubmission(text, files);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not upload attachment.";
+      setUploadNotice({ tone: "error", message });
+      setHistoryError(message);
+      throw error;
+    }
+
+    if (submission.uploadNoticeMessage) {
       setUploadNotice({
         tone: "success",
-        message: `Sent ${uploadedFiles.length === 1 ? "attachment" : "attachments"}: ${uploadedFiles
-          .map((file) => file.filename)
-          .join(", ")}`,
+        message: submission.uploadNoticeMessage,
       });
     } else {
       setUploadNotice(null);
     }
 
-    upsertPendingSession(
-      text ? text : (uploadedFiles.at(0)?.filename ?? "Uploaded file"),
-    );
+    upsertPendingSession(submission.title);
     setInput("");
-    const payload =
-      uploadedFiles.length > 0
-        ? { parts: createUploadMessageParts(text, uploadedFiles) }
-        : { text };
+    const { payload } = submission;
     void sendMessage(payload)
       .catch((error: unknown) => {
         const message =
