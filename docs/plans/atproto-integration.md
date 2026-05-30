@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` is the first implemented projection and publishes semantic `ai.rizom.brain.post` records with cover-image blobs. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` is the first implemented projection and publishes semantic `ai.rizom.brain.post` records with cover-image blobs. A pre-merge review of `feat/atproto` flagged remaining work: local record validation and lexicon drift tests are folded into Phase 2.5, and the rest (registry uniqueness guard, dry-run cover-image parity, shared frontmatter parsing for notes, minor cleanups) are in "Phase 2 hardening" below. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -236,6 +236,20 @@ Still needed before production:
 8. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
 9. Do not cross-post semantic entity records directly as `app.bsky.feed.post`; Bluesky/social posting should be added later as an ATProto provider/projection for the existing `social-post` workflow
 10. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, generic projection publishing, no accidental override of internal publish providers — implemented
+
+### Phase 2 hardening (pre-merge review findings)
+
+Outbound publishing works end to end, but a `feat/atproto` review surfaced gaps before this branch merges. Local record validation and lexicon drift tests are owned by Phase 2.5; the remaining items:
+
+1. **Registry has no uniqueness guard.** `AtprotoProjectionRegistry.register` silently overwrites an existing entry for the same `entityType`. Throw on a conflicting registration. (Note: `note` legitimately registers under entityType `base` because notes are the base entity type — the guard must allow re-registering the same projection but reject a different one.)
+2. **Dry-run record differs from live for cover images.** `publishProjectedEntity` builds the dry-run record without a PDS client, so blog posts with a cover image omit `coverImage` in dry-run while the live publish includes it. Thread a `dryRun` flag so the projection emits the real `coverImage` shape without uploading a blob.
+3. **`note` projection uses a hand-rolled frontmatter regex** (`stripFrontmatter`) instead of the shared `parseMarkdownWithFrontmatter` every other entity uses; fragile on CRLF and non-standard delimiters. Switch to the shared parser.
+4. **Cleanups:** entity plugins discard the `register` unregister handle (no shutdown cleanup — `decks` shows the correct pattern); blog `post.body` has no `maxLength` while the other seven cap body at 100000; `topics` registers its projection from `src/index.ts` while the other seven register from `src/plugin.ts`.
+
+Deliberately deferred (consistent with this plan, not blockers):
+
+- **JWT/session refresh** in `AtprotoPdsClient` — covered by the outbound ATProto OAuth follow-up; the app-password client does one-shot publishes today.
+- **`did:web` `verificationMethod`** — the identity model treats `brainDid` as a non-signing reference DID (the repo `did:plc` signs records), so the served DID document intentionally carries only the PDS service endpoint. Revisit if a brain owns its own signing key.
 
 ### Phase 2.5: Public lexicon publication and local validation
 
