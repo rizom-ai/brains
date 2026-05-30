@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { FileUIPart } from "ai";
+import { preparePromptSubmitFiles } from "../ui-react/src/prompt-files";
 import {
   createUploadMessageParts,
   createUploadPart,
@@ -152,6 +153,27 @@ describe("web chat upload protocol", () => {
         url: "blob:1",
       }),
     ).toBe("notes.txt");
+  });
+
+  it("prepares prompt files without converting blob URLs to inline data URLs", () => {
+    const files = preparePromptSubmitFiles([
+      {
+        id: "file-1",
+        type: "file",
+        filename: "notes.md",
+        mediaType: "text/markdown",
+        url: "blob:notes",
+      },
+    ]);
+
+    expect(files).toEqual([
+      {
+        type: "file",
+        filename: "notes.md",
+        mediaType: "text/markdown",
+        url: "blob:notes",
+      },
+    ]);
   });
 
   it("uploads file parts through the multipart endpoint", async () => {
