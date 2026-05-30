@@ -4,13 +4,14 @@ import type {
   IAgentService as RuntimeAgentService,
   PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
-import type {
-  AgentNamespace,
-  AgentResponse,
-  ChatContext,
-  PendingConfirmation,
-  StructuredChatCard,
-  ToolResultData,
+import {
+  toPublicAttachmentCard,
+  type AgentNamespace,
+  type AgentResponse,
+  type ChatContext,
+  type PendingConfirmation,
+  type StructuredChatCard,
+  type ToolResultData,
 } from "../contracts/agent";
 
 export function toPublicAgentResponse(
@@ -29,20 +30,7 @@ export function toPublicAgentResponse(
       ),
     }),
     ...(response.cards && {
-      cards: response.cards.map(
-        (card): StructuredChatCard => ({
-          kind: card.kind,
-          id: card.id,
-          ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
-          toolName: card.toolName,
-          ...(card.input !== undefined && { input: card.input }),
-          summary: card.summary,
-          ...(card.preview !== undefined && { preview: card.preview }),
-          state: card.state,
-          ...(card.output !== undefined && { output: card.output }),
-          ...(card.error !== undefined && { error: card.error }),
-        }),
-      ),
+      cards: response.cards.map(toPublicStructuredChatCard),
     }),
     ...(response.pendingConfirmations && {
       pendingConfirmations: response.pendingConfirmations.map((confirmation) =>
@@ -50,6 +38,27 @@ export function toPublicAgentResponse(
       ),
     }),
     usage: response.usage,
+  };
+}
+
+function toPublicStructuredChatCard(
+  card: NonNullable<RuntimeAgentResponse["cards"]>[number],
+): StructuredChatCard {
+  if (card.kind === "attachment") {
+    return toPublicAttachmentCard(card);
+  }
+
+  return {
+    kind: card.kind,
+    id: card.id,
+    ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
+    toolName: card.toolName,
+    ...(card.input !== undefined && { input: card.input }),
+    summary: card.summary,
+    ...(card.preview !== undefined && { preview: card.preview }),
+    state: card.state,
+    ...(card.output !== undefined && { output: card.output }),
+    ...(card.error !== undefined && { error: card.error }),
   };
 }
 

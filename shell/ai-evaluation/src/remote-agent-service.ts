@@ -3,7 +3,7 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
-import { AgentResponseSchema } from "@brains/plugins";
+import { AgentResponseSchema, toPublicAttachmentCard } from "@brains/plugins";
 
 function parseAgentResponse(json: unknown): AgentResponse {
   const result = AgentResponseSchema.safeParse(json);
@@ -29,18 +29,26 @@ function parseAgentResponse(json: unknown): AgentResponse {
   }
 
   if (parsed.cards) {
-    response.cards = parsed.cards.map((card) => ({
-      kind: card.kind,
-      id: card.id,
-      ...(card.toolCallId !== undefined ? { toolCallId: card.toolCallId } : {}),
-      toolName: card.toolName,
-      ...(card.input !== undefined ? { input: card.input } : {}),
-      summary: card.summary,
-      ...(card.preview !== undefined ? { preview: card.preview } : {}),
-      state: card.state,
-      ...(card.output !== undefined ? { output: card.output } : {}),
-      ...(card.error !== undefined ? { error: card.error } : {}),
-    }));
+    response.cards = parsed.cards.map((card) => {
+      if (card.kind === "attachment") {
+        return toPublicAttachmentCard(card);
+      }
+
+      return {
+        kind: card.kind,
+        id: card.id,
+        ...(card.toolCallId !== undefined
+          ? { toolCallId: card.toolCallId }
+          : {}),
+        toolName: card.toolName,
+        ...(card.input !== undefined ? { input: card.input } : {}),
+        summary: card.summary,
+        ...(card.preview !== undefined ? { preview: card.preview } : {}),
+        state: card.state,
+        ...(card.output !== undefined ? { output: card.output } : {}),
+        ...(card.error !== undefined ? { error: card.error } : {}),
+      };
+    });
   }
 
   if (parsed.pendingConfirmations) {

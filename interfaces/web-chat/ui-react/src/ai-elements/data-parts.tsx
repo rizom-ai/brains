@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Tool,
   ToolContent,
@@ -259,6 +259,239 @@ export function formatNativeToolDisplay(
       ],
     },
     null,
+  );
+}
+
+export interface AttachmentDisplay {
+  jobId?: string;
+  title: string;
+  description?: string;
+  mediaType?: string;
+  filename?: string;
+  sizeLabel?: string;
+  url?: string;
+  downloadUrl?: string;
+  previewUrl?: string;
+}
+
+function formatByteSize(sizeBytes: number | undefined): string | undefined {
+  if (sizeBytes === undefined) return undefined;
+  if (!Number.isFinite(sizeBytes) || sizeBytes < 0) return undefined;
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  const units = ["KB", "MB", "GB"] as const;
+  let value = sizeBytes / 1024;
+  for (const unit of units) {
+    if (value < 1024 || unit === "GB") {
+      return `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`;
+    }
+    value /= 1024;
+  }
+  return undefined;
+}
+
+function getNumberValue(data: unknown, key: string): number | undefined {
+  const value = getRecordValue(data, key);
+  return typeof value === "number" ? value : undefined;
+}
+
+export function formatAttachmentDisplay(
+  data: unknown,
+): AttachmentDisplay | null {
+  const attachment = getRecordValue(data, "attachment");
+  if (!isRecord(attachment)) return null;
+
+  const jobId = getStringValue(data, "jobId");
+  const description = getStringValue(data, "description");
+  const mediaType = getStringValue(attachment, "mediaType");
+  const filename = getStringValue(attachment, "filename");
+  const sizeLabel = formatByteSize(getNumberValue(attachment, "sizeBytes"));
+  const url = getStringValue(attachment, "url");
+  const downloadUrl = getStringValue(attachment, "downloadUrl");
+  const previewUrl = getStringValue(attachment, "previewUrl");
+
+  return {
+    ...(jobId !== undefined ? { jobId } : {}),
+    title: getStringValue(data, "title") ?? "Generated artifact",
+    ...(description !== undefined ? { description } : {}),
+    ...(mediaType !== undefined ? { mediaType } : {}),
+    ...(filename !== undefined ? { filename } : {}),
+    ...(sizeLabel !== undefined ? { sizeLabel } : {}),
+    ...(url !== undefined ? { url } : {}),
+    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
+    ...(previewUrl !== undefined ? { previewUrl } : {}),
+  };
+}
+
+type AttachmentJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "unknown";
+
+function useAttachmentJobStatus(
+  jobId: string | undefined,
+): AttachmentJobStatus | null {
+  const [status, setStatus] = useState<AttachmentJobStatus | null>(
+    jobId ? "pending" : null,
+  );
+
+  useEffect(() => {
+    if (!jobId) {
+      setStatus(null);
+      return;
+    }
+
+    const pollingJobId = jobId;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The job row can lag behind the card (enqueue → row visible), and the
+    // status endpoint can blip, so transient failures retry with backoff
+    // rather than stranding the card at "unknown" forever.
+    let transientFailures = 0;
+    const MAX_TRANSIENT_FAILURES = 5;
+
+    const scheduleNextPoll = (delayMs: number): void => {
+      if (cancelled) return;
+      timer = setTimeout(() => void poll(), delayMs);
+    };
+
+    const handleTransientFailure = (): void => {
+      transientFailures += 1;
+      if (transientFailures >= MAX_TRANSIENT_FAILURES) {
+        if (!cancelled) setStatus("unknown");
+        return;
+      }
+      scheduleNextPoll(Math.min(2000 * transientFailures, 8000));
+    };
+
+    async function poll(): Promise<void> {
+      try {
+        const response = await fetch(
+          `/api/chat/jobs/status?id=${encodeURIComponent(pollingJobId)}`,
+          { credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          handleTransientFailure();
+          return;
+        }
+        transientFailures = 0;
+        const body = (await response.json()) as { status?: string };
+        const nextStatus = narrowAttachmentJobStatus(body.status);
+        if (!cancelled) setStatus(nextStatus);
+        if (nextStatus !== "completed" && nextStatus !== "failed") {
+          scheduleNextPoll(2000);
+        }
+      } catch {
+        handleTransientFailure();
+      }
+    }
+
+    void poll();
+    const cleanup = (): void => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    return cleanup;
+  }, [jobId]);
+
+  return status;
+}
+
+function narrowAttachmentJobStatus(
+  status: string | undefined,
+): AttachmentJobStatus {
+  switch (status) {
+    case "pending":
+    case "processing":
+    case "completed":
+    case "failed":
+      return status;
+    default:
+      return "unknown";
+  }
+}
+
+function attachmentStatusLabel(status: AttachmentJobStatus | null): string {
+  switch (status) {
+    case "pending":
+      return "queued";
+    case "processing":
+      return "growing";
+    case "completed":
+      return "ready";
+    case "failed":
+      return "failed";
+    case "unknown":
+      return "status unknown";
+    default:
+      return "artifact";
+  }
+}
+
+export function AttachmentPart({
+  data,
+}: {
+  data: unknown;
+}): React.ReactElement {
+  const display = formatAttachmentDisplay(data);
+  const jobStatus = useAttachmentJobStatus(display?.jobId);
+  if (!display) return <GenericDataPart type="data-attachment" data={data} />;
+  const href = display.downloadUrl ?? display.url;
+  const previewUrl = display.previewUrl ?? display.url;
+  const isImage = display.mediaType?.startsWith("image/") ?? false;
+  const isPending = jobStatus === "pending" || jobStatus === "processing";
+  const meta = [
+    display.filename,
+    display.mediaType,
+    display.sizeLabel,
+    jobStatus ? attachmentStatusLabel(jobStatus) : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <section
+      className="web-chat-attachment-card"
+      data-status={jobStatus ?? "ready"}
+      aria-label={display.title}
+    >
+      {isImage && previewUrl && !isPending ? (
+        <img
+          className="web-chat-attachment-preview"
+          src={previewUrl}
+          alt=""
+          loading="lazy"
+        />
+      ) : null}
+      <div className="web-chat-attachment-body">
+        <span className="web-chat-attachment-kicker">
+          {attachmentStatusLabel(jobStatus)}
+        </span>
+        <h4>{display.title}</h4>
+        {display.description ? <p>{display.description}</p> : null}
+        {meta ? <span className="web-chat-attachment-meta">{meta}</span> : null}
+        {href ? (
+          <div className="web-chat-attachment-actions">
+            {display.url ? (
+              <a
+                aria-disabled={isPending}
+                href={isPending ? undefined : display.url}
+              >
+                Open
+              </a>
+            ) : null}
+            <a
+              aria-disabled={isPending}
+              href={isPending ? undefined : href}
+              download={display.filename ?? undefined}
+            >
+              Download
+            </a>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

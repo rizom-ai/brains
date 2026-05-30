@@ -13,6 +13,33 @@ import type {
 
 const toolCallArgsSchema = z.record(z.unknown());
 const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
+const attachmentToolDataSchema = z.object({
+  documentId: z.string().min(1),
+  attachment: z.object({
+    mediaType: z.string().min(1),
+    url: z.string().min(1),
+    downloadUrl: z.string().min(1).optional(),
+    previewUrl: z.string().min(1).optional(),
+    filename: z.string().min(1).optional(),
+    sizeBytes: z.number().nonnegative().optional(),
+    source: z
+      .object({
+        entityType: z.string().optional(),
+        entityId: z.string().optional(),
+        attachmentType: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+
+/** Human-readable noun for an attachment's media type, for card copy. */
+function describeAttachmentMedia(mediaType: string): string {
+  if (mediaType === "application/pdf") return "PDF";
+  const [type, subtype] = mediaType.split("/");
+  if (type === "image") return "image";
+  if (subtype) return subtype.toUpperCase();
+  return "artifact";
+}
 
 export interface ExtractedResults {
   toolResults: ToolResultData[];
@@ -104,6 +131,58 @@ export function extractToolResults(
         const jobIdParsed = jobIdSchema.safeParse(successParsed.data.data);
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
+        }
+        const attachmentParsed = attachmentToolDataSchema.safeParse(
+          successParsed.data.data,
+        );
+        if (attachmentParsed.success) {
+          const attachment = attachmentParsed.data.attachment;
+          const source = attachment.source;
+          const mediaLabel = describeAttachmentMedia(attachment.mediaType);
+          cards.push({
+            kind: "attachment",
+            id: `attachment:${attachmentParsed.data.documentId}`,
+            ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
+            title: attachment.filename ?? `Generated ${mediaLabel}`,
+            // Only describe the work as queued when there is a job backing it;
+            // an already-materialized attachment arrives without a jobId.
+            ...(jobIdParsed.success
+              ? {
+                  description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
+                }
+              : {}),
+            attachment: {
+              mediaType: attachment.mediaType,
+              url: attachment.url,
+              ...(attachment.downloadUrl !== undefined
+                ? { downloadUrl: attachment.downloadUrl }
+                : {}),
+              ...(attachment.previewUrl !== undefined
+                ? { previewUrl: attachment.previewUrl }
+                : {}),
+              ...(attachment.filename !== undefined
+                ? { filename: attachment.filename }
+                : {}),
+              ...(attachment.sizeBytes !== undefined
+                ? { sizeBytes: attachment.sizeBytes }
+                : {}),
+              ...(source !== undefined
+                ? {
+                    source: {
+                      ...(source.entityType !== undefined
+                        ? { entityType: source.entityType }
+                        : {}),
+                      ...(source.entityId !== undefined
+                        ? { entityId: source.entityId }
+                        : {}),
+                      ...(source.attachmentType !== undefined
+                        ? { attachmentType: source.attachmentType }
+                        : {}),
+                    },
+                  }
+                : {}),
+            },
+          });
         }
       }
 

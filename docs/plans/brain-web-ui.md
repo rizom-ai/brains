@@ -126,6 +126,27 @@ metadata on results, `WebChatInterface` translates attachment-bearing
 message-interface events into AI SDK UI data parts, and the React island
 renders document previews / download links through `ai-elements/data-parts.tsx`.
 
+Protocol shape is now explicit: attachment-bearing agent output uses a
+Brain-specific structured card with `kind: "attachment"`, translated by
+`WebChatInterface` into an AI SDK UI `data-attachment` part. This keeps approval
+cards on native AI SDK tool parts while giving brain-owned artifacts a stable
+contract:
+
+- `id`: stable card id
+- optional `jobId`: queued generation job to poll for readiness
+- `title` / optional `description`: display copy
+- `attachment.mediaType`: MIME type
+- `attachment.url`: view/resolve URL
+- optional `attachment.downloadUrl`, `previewUrl`, `filename`, `sizeBytes`
+- optional `attachment.source`: `{ entityType, entityId, attachmentType }`
+
+Existing PDF document generation now returns predicted attachment metadata for
+chat surfaces, and web-chat serves generated document entities through the
+operator-only `/api/chat/attachments/document?id=...` route. The React island
+renders `data-attachment` parts as previews / download links / generic file
+cards, and polls `/api/chat/jobs/status?id=...` for queued artifacts so links
+stay disabled until the generation job is ready.
+
 Remaining:
 
 - extend the same attachment-data-part path to generated images and other
