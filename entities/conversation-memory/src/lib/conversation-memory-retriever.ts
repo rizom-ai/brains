@@ -4,6 +4,7 @@ import type {
   DecisionEntity,
 } from "../schemas/conversation-memory";
 import type { SummaryEntity } from "../schemas/summary";
+import { SummaryAdapter } from "../adapters/summary-adapter";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
@@ -19,6 +20,8 @@ const MEMORY_ENTITY_TYPES = [
   DECISION_ENTITY_TYPE,
   ACTION_ITEM_ENTITY_TYPE,
 ];
+const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
+const summaryAdapter = new SummaryAdapter();
 
 type ConversationMemorySearchEntity =
   | SummaryEntity
@@ -51,6 +54,7 @@ export interface RetrievedConversationMemory {
   updated: string;
   score: number;
   excerpt: string;
+  content: string;
   messageCount?: number;
   entryCount?: number;
   status?: string;
@@ -183,6 +187,7 @@ export class ConversationMemoryRetriever {
   private toMemory(candidate: MemoryCandidate): RetrievedConversationMemory {
     const { entity } = candidate;
     const metadata = entity.metadata;
+    const excerpt = candidate.excerpt || buildFallbackExcerpt(entity);
     return {
       id: entity.id,
       entityType: entity.entityType,
@@ -193,7 +198,8 @@ export class ConversationMemoryRetriever {
       interfaceType: metadata.interfaceType,
       updated: entity.updated,
       score: candidate.score,
-      excerpt: candidate.excerpt || buildFallbackExcerpt(entity),
+      excerpt,
+      content: this.buildContextContent(entity, excerpt),
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
@@ -239,6 +245,36 @@ export class ConversationMemoryRetriever {
       ...(entity.metadata.assignedTo ?? []),
       ...(entity.metadata.requestedBy ?? []),
     ];
+  }
+
+  private buildContextContent(
+    entity: ConversationMemorySearchEntity,
+    excerpt: string,
+  ): string {
+    if (!this.isSummaryEntity(entity)) return excerpt;
+
+    const entries = summaryAdapter.parseBody(entity.content).entries;
+    const content = entries
+      .slice(0, 3)
+      .map((entry) => {
+        const lines = [entry.title, entry.summary.trim()];
+        if (entry.keyPoints.length > 0) {
+          lines.push(
+            ...entry.keyPoints.slice(0, 5).map((point) => `- ${point}`),
+          );
+        }
+        return lines.join("\n");
+      })
+      .join("\n\n");
+
+    return this.truncateContent(
+      content || excerpt || buildFallbackExcerpt(entity),
+    );
+  }
+
+  private truncateContent(content: string): string {
+    if (content.length <= MAX_AGENT_CONTEXT_CONTENT_LENGTH) return content;
+    return `${content.slice(0, MAX_AGENT_CONTEXT_CONTENT_LENGTH - 1).trimEnd()}…`;
   }
 
   private isSummaryEntity(

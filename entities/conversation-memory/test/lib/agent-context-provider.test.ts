@@ -69,6 +69,75 @@ describe("buildConversationMemoryAgentContext", () => {
     });
   });
 
+  it("falls back to recent same-space memory when search has no matches", async () => {
+    const summary = createSummary({
+      id: "summary-recent",
+      conversationId: "conv-recent",
+      channelId: "relay-team",
+      channelName: "Relay Team",
+      content: "# Conversation Summary\n\nRecent same-space memory.",
+    });
+    const context = createMockEntityPluginContext({
+      returns: {
+        entityService: {
+          search: [],
+          listEntities: [summary],
+        },
+      },
+    });
+
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items).toEqual([
+      expect.objectContaining({
+        id: "summary-recent",
+        content: "Recent same-space memory.",
+      }),
+    ]);
+  });
+
+  it("expands structured summary entries for agent context", async () => {
+    const summary = createSummary({
+      id: "summary-team",
+      conversationId: "conv-team",
+      channelId: "relay-team",
+      channelName: "Relay Team",
+      content: [
+        "# Conversation Summary",
+        "",
+        "## Relay preset direction",
+        "",
+        "Time: 2026-01-01T00:00:00.000Z → 2026-01-01T00:05:00.000Z",
+        "Messages summarized: 3",
+        "",
+        "Core validates private team memory, default adds a minimal public site, and full adds docs/decks.",
+        "",
+        "### Key Points",
+        "",
+        "- Keep publishing plugins out for now.",
+      ].join("\n"),
+    });
+    const context = createContextWithSearchResults([
+      { entity: summary, score: 0.7, excerpt: "Relay preset direction" },
+    ]);
+
+    const response = await buildConversationMemoryAgentContext(
+      context,
+      createRequest("relay-team"),
+    );
+
+    expect(response.items[0]?.content).toContain("Relay preset direction");
+    expect(response.items[0]?.content).toContain(
+      "Core validates private team memory",
+    );
+    expect(response.items[0]?.content).toContain(
+      "Keep publishing plugins out for now.",
+    );
+  });
+
   it("preserves summary, decision, and action item provenance", async () => {
     const summary = createSummary({
       id: "summary-team",

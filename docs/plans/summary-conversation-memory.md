@@ -42,7 +42,9 @@ The rules the shipped system runs on; kept as context for the remaining work.
 
 Retrieval is currently covered only by the deterministic `buildAgentContext`
 eval handler — it proves the retriever returns the right items, not that the
-agent _uses_ them well. Add evals that exercise the full agent turn:
+agent _uses_ them well. Initial Relay full-agent regression coverage now
+exercises same-space use, relevance, conflict handling, provenance, and
+cross-space isolation. Keep expanding evals that exercise the full agent turn:
 
 - a later conversation retrieves and uses relevant same-space summary context;
 - unrelated or old summary is not injected or relied on;

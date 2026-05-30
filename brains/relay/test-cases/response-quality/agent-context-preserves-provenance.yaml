@@ -1,0 +1,44 @@
+id: relay-agent-context-preserves-provenance
+name: Relay references provenance from injected conversation memory
+description: >-
+  Verifies full agent behavior preserves the injected memory provenance when the
+  user asks for source details, not just the memory content.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - provenance
+
+turns:
+  - userMessage: >-
+      Using the conversation memory already available in this turn, cite the
+      source channel and conversation id for the Relay preset direction memory,
+      then summarize it in one sentence. Do not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "relay-poc"
+    - "relay-poc-sync"
+  responseNotContains:
+    - "I don't have access"
+    - "I don't have"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

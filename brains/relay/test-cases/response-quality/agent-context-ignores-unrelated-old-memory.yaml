@@ -1,0 +1,48 @@
+id: relay-agent-context-ignores-unrelated-old-memory
+name: Relay does not rely on unrelated old conversation memory
+description: >-
+  Exercises full agent behavior with an unrelated older same-space summary in
+  the fixture set. The response should answer from relevant Relay memory and not
+  surface unrelated stale markers.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - relevance
+
+turns:
+  - userMessage: >-
+      Using only the conversation memory already available in this turn, remind
+      me what Relay's preset direction says about core, default, and full. Do
+      not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "core"
+    - "default"
+    - "full"
+  responseNotContains:
+    - "Neptune waiver"
+    - "tangerine kiosk"
+    - "facilities"
+    - "I don't have access"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

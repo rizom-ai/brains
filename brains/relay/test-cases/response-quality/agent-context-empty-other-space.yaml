@@ -1,0 +1,47 @@
+id: relay-agent-context-empty-other-space
+name: Relay does not leak same-space memory into an unrelated channel
+description: >-
+  Verifies cross-space isolation from the other side: a channel without relevant
+  same-space conversation memory should not receive Relay POC summary details
+  from relay-poc.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: empty-space
+  channelName: empty-space
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - spaces
+
+turns:
+  - userMessage: >-
+      In this channel, what does the available conversation memory say about
+      Relay's core/default/full preset direction? Use only memory already
+      available in this turn and do not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "No conversation memory"
+  responseNotContains:
+    - "Core should validate private team memory"
+    - "default should add a minimal public site"
+    - "full should only add existing team-knowledge surfaces"
+    - "blog posts"
+    - "newsletters"
+  minHelpfulnessScore: 3
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

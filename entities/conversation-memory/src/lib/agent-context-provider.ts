@@ -13,6 +13,7 @@ import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import type { RetrievedConversationMemory } from "./conversation-memory-retriever";
 
 const DEFAULT_AGENT_CONTEXT_LIMIT = 5;
+const RECENT_AGENT_CONTEXT_LIMIT = 3;
 
 export function registerConversationMemoryAgentContext(
   context: EntityPluginContext,
@@ -36,18 +37,48 @@ export async function buildConversationMemoryAgentContext(
   }
 
   const retriever = new ConversationMemoryRetriever(context);
-  const result = await retriever.retrieve({
-    query: request.message,
-    conversationId: request.conversationId,
-    interfaceType: request.interfaceType,
-    channelId: request.channelId,
-    limit: DEFAULT_AGENT_CONTEXT_LIMIT,
-    visibilityScope: permissionToVisibilityScope(request.userPermissionLevel),
-  });
+  const visibilityScope = permissionToVisibilityScope(
+    request.userPermissionLevel,
+  );
+  const [matched, recent] = await Promise.all([
+    retriever.retrieve({
+      query: request.message,
+      conversationId: request.conversationId,
+      interfaceType: request.interfaceType,
+      channelId: request.channelId,
+      limit: DEFAULT_AGENT_CONTEXT_LIMIT,
+      visibilityScope,
+    }),
+    retriever.retrieve({
+      conversationId: request.conversationId,
+      interfaceType: request.interfaceType,
+      channelId: request.channelId,
+      limit: RECENT_AGENT_CONTEXT_LIMIT,
+      visibilityScope,
+    }),
+  ]);
 
   return {
-    items: result.results.map(toAgentContextItem),
+    items: mergeMemoryResults(matched.results, recent.results).map(
+      toAgentContextItem,
+    ),
   };
+}
+
+function mergeMemoryResults(
+  matched: RetrievedConversationMemory[],
+  recent: RetrievedConversationMemory[],
+): RetrievedConversationMemory[] {
+  const seen = new Set<string>();
+  const merged: RetrievedConversationMemory[] = [];
+
+  for (const memory of [...matched, ...recent]) {
+    if (seen.has(memory.id)) continue;
+    seen.add(memory.id);
+    merged.push(memory);
+  }
+
+  return merged;
 }
 
 function toAgentContextItem(
@@ -58,7 +89,7 @@ function toAgentContextItem(
     id: memory.id,
     source: "conversation-memory",
     title: `${memory.entityType} from ${channelLabel}`,
-    content: memory.excerpt,
+    content: memory.content,
     provenance: {
       entityType: memory.entityType,
       entityId: memory.id,
