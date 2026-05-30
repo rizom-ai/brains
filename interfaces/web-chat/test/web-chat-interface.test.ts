@@ -4,6 +4,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { join } from "path";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -139,6 +140,10 @@ function operatorPlugin(): WebChatInterface {
   return new WebChatInterface({}, { resolveOperatorSession: async () => true });
 }
 
+function textDataUrl(content: string): string {
+  return `data:text/plain;base64,${Buffer.from(content, "utf8").toString("base64")}`;
+}
+
 describe("WebChatInterface", () => {
   let harness: PluginTestHarness<WebChatInterface>;
 
@@ -166,7 +171,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(10);
+    expect(routes).toHaveLength(11);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -215,6 +220,11 @@ describe("WebChatInterface", () => {
     expect(routes[9]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
+      public: true,
+    });
+    expect(routes[10]).toMatchObject({
+      path: "/api/chat/uploads",
+      method: "POST",
       public: true,
     });
   });
@@ -369,6 +379,118 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("data-approval-card");
   });
 
+  it("streams progress notifications as structured data parts", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("job-progress", {
+          id: "batch-1",
+          type: "batch",
+          status: "completed",
+          message: "Finished indexing 24 files",
+          metadata: {
+            rootJobId: "batch-1",
+            operationType: "batch_processing",
+            operationTarget: "/tmp/brain-data",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        return {
+          text: "Batch finished.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Run batch" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-progress");
+    expect(body).toContain('"status":"completed"');
+    expect(body).toContain('"operationType":"batch_processing"');
+    expect(body).toContain('"operationTarget":"/tmp/brain-data"');
+    expect(body).toContain("Finished indexing 24 files");
+    expect(body).not.toContain("✅");
+    expect(body).not.toContain("**batch processing");
+  });
+
+  it("ignores progress notifications outside the active web-chat channel", async () => {
+    const agent: IAgentService = {
+      chat: async () => {
+        await harness.sendMessage("job-progress", {
+          id: "batch-2",
+          type: "batch",
+          status: "completed",
+          metadata: {
+            rootJobId: "batch-2",
+            operationType: "batch_processing",
+            operationTarget: "/tmp/background",
+            interfaceType: "web-chat",
+            channelId: "other-conversation",
+          },
+        });
+        return {
+          text: "No visible progress.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Run batch" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).not.toContain("data-progress");
+    expect(body).not.toContain("/tmp/background");
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",
@@ -515,6 +637,196 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(401);
+  });
+
+  it("accepts multipart text uploads and returns a durable upload ref", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Notes\n\nShip durable uploads"], "../notes.md", {
+        type: "text/markdown",
+      }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const body = (await response?.json()) as {
+      id: string;
+      ref: { kind: string; id: string };
+      filename: string;
+      mediaType: string;
+      sizeBytes: number;
+      createdAt: string;
+    };
+
+    expect(response?.status).toBe(201);
+    expect(body.id).toStartWith("upload-");
+    expect(body.ref).toEqual({ kind: "web-chat-upload", id: body.id });
+    expect(body.filename).toBe("notes.md");
+    expect(body.mediaType).toBe("text/markdown");
+    expect(body.sizeBytes).toBe(29);
+    expect(Date.parse(body.createdAt)).not.toBeNaN();
+
+    const uploadDir = join(
+      "/tmp/mock-shell-test-data",
+      "web-chat",
+      "uploads",
+      body.id,
+    );
+    expect(await Bun.file(join(uploadDir, "content")).text()).toBe(
+      "# Notes\n\nShip durable uploads",
+    );
+    expect(await Bun.file(join(uploadDir, "metadata.json")).json()).toEqual(
+      body,
+    );
+  });
+
+  it("rejects multipart uploads from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set("file", new File(["hello"], "notes.txt", { type: "text/plain" }));
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("rejects unsupported multipart upload types", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["not text"], "image.png", { type: "image/png" }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Unsupported file upload type");
+  });
+
+  it("rejects oversized multipart text uploads", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["x".repeat(100_001)], "large.txt", { type: "text/plain" }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("File upload too large");
+  });
+
+  it("passes durable upload refs to the agent as uploaded text", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = plugin.getWebRoutes()[10];
+    const chatRoute = plugin.getWebRoutes()[1];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Durable Notes"], "durable-notes.md", {
+        type: "text/markdown",
+      }),
+    );
+    const uploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Summarize this" },
+                { type: "data-upload", data: { ref: upload.ref } },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.message).toBe(
+      'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+    );
+  });
+
+  it("rejects invalid durable upload refs", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                {
+                  type: "data-upload",
+                  data: { ref: { kind: "web-chat-upload", id: "../bad" } },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Invalid upload ref");
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("handles AI SDK approval responses through the chat endpoint", async () => {
@@ -729,6 +1041,115 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
     expect(agent.chatCalls[0]?.context?.userPermissionLevel).toBe("anchor");
+  });
+
+  it("passes uploaded text file content to the agent", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Summarize this" },
+                {
+                  type: "file",
+                  mediaType: "text/markdown",
+                  filename: "meeting-notes.md",
+                  url: textDataUrl("# Notes\n\n- Ship uploads"),
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(1);
+    expect(agent.chatCalls[0]?.message).toBe(
+      'Summarize this\n\nUser uploaded a file "meeting-notes.md":\n\n# Notes\n\n- Ship uploads',
+    );
+  });
+
+  it("rejects unsupported uploaded file types", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Read this" },
+                {
+                  type: "file",
+                  mediaType: "image/png",
+                  filename: "diagram.png",
+                  url: "data:image/png;base64,iVBORw0KGgo=",
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Unsupported file upload type");
+    expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("rejects oversized uploaded text files", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                {
+                  type: "file",
+                  mediaType: "text/plain",
+                  filename: "large.txt",
+                  url: textDataUrl("x".repeat(100_001)),
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("File upload too large");
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("rejects sessions list requests from non-operators", async () => {

@@ -162,11 +162,32 @@ chat, the dashboard, or a small chooser remains a product call.
 
 ### 4. Inbound uploads
 
-User → brain file uploads are separate from outbound artifacts. They require
-multipart upload routes, auth/size/type checks, storage/registry integration,
-and request schema changes to pass attachment refs into `AgentService.chat()`.
-Defer until outbound artifact rendering is stable or a concrete use case forces
-it earlier.
+User → brain text-file uploads are now routed through durable web-chat upload
+refs. The prompt accepts `.md`, `.txt`, and `.markdown` files up to the shared
+message-interface text-upload size limit, posts them to `/api/chat/uploads`, and
+then sends AI SDK `data-upload` parts into `/api/chat`. The server resolves
+those refs and currently passes the content to `AgentService.chat()` using the
+same `User uploaded a file "..."` text format as Discord and other message
+interfaces.
+
+The active chat transcript shows attached filenames on submitted user messages,
+so upload validation/submission success is visible even if the later agent
+response times out. The prompt area also shows transient upload notices for
+client validation, handoff success, and server-side upload validation failures.
+
+Initial durable upload protocol slice exists: operator-only
+`POST /api/chat/uploads` accepts multipart text uploads, validates the same text
+file policy, stores content plus metadata under the web-chat data directory, and
+returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
+`data-upload` parts carrying those refs, resolves the stored text, and passes it
+to the agent using the existing text-upload prompt format. The React prompt now
+uploads selected text files first, then sends `data-upload` refs through the AI
+SDK message parts protocol.
+
+Remaining upload work: add durable storage/registry integration beyond the
+web-chat data directory, define binary/media type policies, and change the
+`AgentService.chat()` request path to receive attachment refs natively instead
+of inlining text.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
@@ -174,12 +195,53 @@ Do not add `reasoning`, `sources`, `actions`, `suggestions`, or artifact UI as
 standalone component work. Install the registry component only when the backend
 emits the corresponding structured part or a concrete product surface needs it.
 
-### 6. Deeper streaming
+### 6. Structured progress / job events
+
+Legacy job/progress notifications can still surface as raw text such as
+`✅ batch processing: ... completed`. That is a text-transport concern, not the
+browser chat protocol. `/chat` should not parse, strip, or beautify those strings
+for new events.
+
+Implemented first slice: live web-chat progress events bypass the legacy text
+formatters and cross the interface boundary as AI SDK custom data parts with
+semantic fields instead of formatted display text:
+
+```ts
+{
+  type: "data-progress",
+  id: "progress:job-123",
+  data: {
+    status: "processing" | "completed" | "failed",
+    operationType: "batch_processing",
+    operationTarget: "/brain-data",
+    message: "Finished indexing 24 files",
+    progress: { current: 24, total: 24, percentage: 100 }
+  }
+}
+```
+
+React renders labels/icons/colors from `status` and plain fields; it should not
+regex emoji, markdown, or human-formatted backend strings. Existing historical
+messages may remain plain text, but new live `/chat` progress must bypass legacy
+`formatProgressMessage()` / `formatCompletionMessage()` display strings.
+
+Routing rule: emit a progress part only when the event is explicitly scoped to
+`interfaceType: "web-chat"` and the `channelId` matches an active web-chat
+stream. Background/batch jobs without an active web-chat channel stay silent in
+the transcript. Async artifacts should use attachment/job polling rather than
+injecting late raw completion messages.
+
+Remaining progress work: decide whether completed progress parts should be
+persisted as transcript history or remain live-only. For artifact readiness,
+keep using attachment `jobId` polling unless a broader durable notification
+model is introduced.
+
+### 7. Deeper streaming
 
 Token-by-token model streaming remains a later `AgentService` capability;
 current progress/status/final-response streaming is enough for the MVP.
 
-### 7. Per-release polish pass
+### 8. Per-release polish pass
 
 Whenever the bundled web chat UI changes, run:
 

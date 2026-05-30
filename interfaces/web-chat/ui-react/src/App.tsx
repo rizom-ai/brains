@@ -1,9 +1,17 @@
 /** @jsxImportSource react */
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Chat, useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
+  type ChatStatus,
+  type FileUIPart,
   type UIMessage,
 } from "ai";
 import {
@@ -27,12 +35,19 @@ import {
 import {
   PromptInput,
   PromptInputFooter,
+  PromptInputHeader,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
+  usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
+import { parseUploadPartData, prepareUploadSubmission } from "./uploads";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
+const uploadAccept =
+  ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown";
+const uploadMaxFileSize = 100_000;
 
 type ThemeMode = "light" | "dark";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
@@ -41,6 +56,7 @@ type SessionDialog =
   | { kind: "archive"; session: WebChatSession }
   | { kind: "delete"; session: WebChatSession }
   | null;
+type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
 function getInitialTheme(): ThemeMode {
   if (typeof document === "undefined") return "dark";
@@ -56,6 +72,61 @@ function applyTheme(theme: ThemeMode): void {
     /* localStorage unavailable — fall back to in-memory only */
   }
 }
+
+function PromptAttachmentButton(): React.ReactElement {
+  const attachments = usePromptInputAttachments();
+  return (
+    <button
+      type="button"
+      className="web-chat-prompt-attach"
+      onClick={() => attachments.openFileDialog()}
+    >
+      Attach text
+    </button>
+  );
+}
+
+function PromptAttachmentList(): React.ReactElement | null {
+  const attachments = usePromptInputAttachments();
+  if (attachments.files.length === 0) return null;
+
+  return (
+    <div className="web-chat-prompt-attachments" aria-label="Attached files">
+      {attachments.files.map((file) => (
+        <span className="web-chat-prompt-attachment" key={file.id}>
+          <span>{file.filename ?? "upload.txt"}</span>
+          <button
+            type="button"
+            aria-label={`Remove ${file.filename ?? "uploaded file"}`}
+            onClick={() => attachments.remove(file.id)}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PromptSubmitControl({
+  input,
+  onStop,
+  status,
+}: {
+  input: string;
+  onStop: () => void;
+  status: ChatStatus;
+}): React.ReactElement {
+  const attachments = usePromptInputAttachments();
+  return (
+    <PromptInputSubmit
+      status={status}
+      onStop={onStop}
+      disabled={!input.trim() && attachments.files.length === 0}
+    />
+  );
+}
+
 const dayMs = 24 * 60 * 60 * 1000;
 const sessionTitleMaxLength = 48;
 
@@ -117,6 +188,8 @@ type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
+  | { kind: "progress"; data: unknown }
+  | { kind: "file"; filename: string; mediaType: string }
   | { kind: "generic"; type: string; data: unknown };
 
 function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
@@ -147,6 +220,30 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      case "data-progress":
+        flush();
+        out.push({ kind: "progress", data: getPartData(part) });
+        break;
+      case "data-upload": {
+        flush();
+        const upload = parseUploadPartData(getPartData(part));
+        if (upload) {
+          out.push({
+            kind: "file",
+            filename: upload.filename,
+            mediaType: upload.mediaType,
+          });
+        }
+        break;
+      }
+      case "file":
+        flush();
+        out.push({
+          kind: "file",
+          filename: part.filename ?? "upload.txt",
+          mediaType: part.mediaType,
+        });
         break;
       default:
         flush();
@@ -209,6 +306,95 @@ function statusPhrase(status: string): string {
   return "";
 }
 
+function UploadedFilePart({
+  filename,
+  mediaType,
+}: {
+  filename: string;
+  mediaType: string;
+}): React.ReactElement {
+  return (
+    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+      <span className="web-chat-uploaded-file-kicker">attached</span>
+      <span className="web-chat-uploaded-file-name">{filename}</span>
+    </span>
+  );
+}
+
+interface ProgressData {
+  status: "pending" | "processing" | "completed" | "failed";
+  operationType: string;
+  operationTarget?: string;
+  message?: string;
+  progress?: { current: number; total: number; percentage: number };
+}
+
+function isProgressData(data: unknown): data is ProgressData {
+  if (typeof data !== "object" || data === null) return false;
+  const record = data as Record<string, unknown>;
+  return (
+    typeof record["status"] === "string" &&
+    ["pending", "processing", "completed", "failed"].includes(
+      record["status"],
+    ) &&
+    typeof record["operationType"] === "string"
+  );
+}
+
+function formatOperationType(operationType: string): string {
+  return operationType
+    .split("_")
+    .filter((part) => part.length > 0)
+    .join(" ");
+}
+
+function progressLabel(status: ProgressData["status"]): string {
+  switch (status) {
+    case "completed":
+      return "completed";
+    case "failed":
+      return "failed";
+    case "pending":
+      return "queued";
+    case "processing":
+      return "processing";
+  }
+}
+
+function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
+  if (!isProgressData(data)) return null;
+  const operation = formatOperationType(data.operationType);
+  const title = data.operationTarget
+    ? `${operation}: ${data.operationTarget}`
+    : operation;
+  const progress = data.progress;
+  return (
+    <section className="web-chat-progress-part" data-status={data.status}>
+      <div className="web-chat-progress-kicker">
+        {progressLabel(data.status)}
+      </div>
+      <div className="web-chat-progress-title">{title}</div>
+      {data.message ? (
+        <div className="web-chat-progress-message">{data.message}</div>
+      ) : null}
+      {progress ? (
+        <div
+          className="web-chat-progress-meter"
+          aria-label={`${progress.percentage}% complete`}
+        >
+          <span
+            style={
+              {
+                "--web-chat-progress-value": `${Math.max(0, Math.min(100, progress.percentage))}%`,
+              } as CSSProperties
+            }
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function describeFetchFailure(response: Response, fallback: string): string {
   if (response.status === 401 || response.status === 403) {
     return "Your operator session may have expired. Refresh or sign in again.";
@@ -242,6 +428,7 @@ export function App(): React.ReactElement {
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
 
   function closeDrawer(): void {
     setDrawerOpen(false);
@@ -388,14 +575,59 @@ export function App(): React.ReactElement {
     }
   }
 
-  function submitMessage(textOverride?: string): void {
+  async function submitMessage(
+    textOverride?: string,
+    files: FileUIPart[] = [],
+  ): Promise<void> {
     const text = (textOverride ?? input).trim();
-    if (!text || isBusyStatus(status)) return;
+    if ((!text && files.length === 0) || isBusyStatus(status)) return;
     setHistoryError(null);
-    upsertPendingSession(text);
+
+    if (files.length > 0) {
+      setUploadNotice({
+        tone: "success",
+        message: `Uploading ${files.length === 1 ? "attachment" : "attachments"}…`,
+      });
+    }
+
+    let submission: Awaited<ReturnType<typeof prepareUploadSubmission>>;
+    try {
+      submission = await prepareUploadSubmission(text, files);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not upload attachment.";
+      setUploadNotice({ tone: "error", message });
+      setHistoryError(message);
+      throw error;
+    }
+
+    if (submission.uploadNoticeMessage) {
+      setUploadNotice({
+        tone: "success",
+        message: submission.uploadNoticeMessage,
+      });
+    } else {
+      setUploadNotice(null);
+    }
+
+    upsertPendingSession(submission.title);
     setInput("");
-    void sendMessage({ text }).finally(() => loadSessions({ quiet: true }));
-    focusPromptTextarea(promptInputRef.current);
+    const { payload } = submission;
+    void sendMessage(payload)
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not send that message.";
+        if (/file upload|unsupported file|upload/i.test(message)) {
+          setUploadNotice({ tone: "error", message });
+        }
+        setHistoryError(message);
+      })
+      .finally(() => {
+        void loadSessions({ quiet: true });
+        focusPromptTextarea(promptInputRef.current);
+      });
   }
 
   function resetToNewConversation(): void {
@@ -1037,6 +1269,18 @@ export function App(): React.ReactElement {
                       if (group.kind === "attachment") {
                         return <AttachmentPart key={index} data={group.data} />;
                       }
+                      if (group.kind === "progress") {
+                        return <ProgressPart key={index} data={group.data} />;
+                      }
+                      if (group.kind === "file") {
+                        return (
+                          <UploadedFilePart
+                            key={index}
+                            filename={group.filename}
+                            mediaType={group.mediaType}
+                          />
+                        );
+                      }
                       return (
                         <GenericDataPart
                           key={index}
@@ -1072,8 +1316,25 @@ export function App(): React.ReactElement {
           </div>
         ) : null}
 
-        <PromptInput onSubmit={(message) => submitMessage(message.text)}>
+        {uploadNotice ? (
+          <p className="web-chat-upload-notice" data-tone={uploadNotice.tone}>
+            {uploadNotice.message}
+          </p>
+        ) : null}
+
+        <PromptInput
+          accept={uploadAccept}
+          maxFileSize={uploadMaxFileSize}
+          multiple
+          onError={(uploadError) =>
+            setUploadNotice({ tone: "error", message: uploadError.message })
+          }
+          onSubmit={(message) => submitMessage(message.text, message.files)}
+        >
           <label htmlFor="web-chat-input">Message</label>
+          <PromptInputHeader>
+            <PromptAttachmentList />
+          </PromptInputHeader>
           <PromptInputTextarea
             id="web-chat-input"
             ref={promptInputRef}
@@ -1082,15 +1343,14 @@ export function App(): React.ReactElement {
             onInput={(event) => setInput(event.currentTarget.value)}
           />
           <PromptInputFooter>
+            <PromptInputTools>
+              <PromptAttachmentButton />
+            </PromptInputTools>
             <span className="web-chat-prompt-hint">
               <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
               newline
             </span>
-            <PromptInputSubmit
-              status={status}
-              onStop={stop}
-              disabled={!input.trim()}
-            />
+            <PromptSubmitControl input={input} status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>
       </main>
