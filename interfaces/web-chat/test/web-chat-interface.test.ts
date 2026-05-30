@@ -373,6 +373,118 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("data-approval-card");
   });
 
+  it("streams progress notifications as structured data parts", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("job-progress", {
+          id: "batch-1",
+          type: "batch",
+          status: "completed",
+          message: "Finished indexing 24 files",
+          metadata: {
+            rootJobId: "batch-1",
+            operationType: "batch_processing",
+            operationTarget: "/tmp/brain-data",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        return {
+          text: "Batch finished.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Run batch" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-progress");
+    expect(body).toContain('"status":"completed"');
+    expect(body).toContain('"operationType":"batch_processing"');
+    expect(body).toContain('"operationTarget":"/tmp/brain-data"');
+    expect(body).toContain("Finished indexing 24 files");
+    expect(body).not.toContain("✅");
+    expect(body).not.toContain("**batch processing");
+  });
+
+  it("ignores progress notifications outside the active web-chat channel", async () => {
+    const agent: IAgentService = {
+      chat: async () => {
+        await harness.sendMessage("job-progress", {
+          id: "batch-2",
+          type: "batch",
+          status: "completed",
+          metadata: {
+            rootJobId: "batch-2",
+            operationType: "batch_processing",
+            operationTarget: "/tmp/background",
+            interfaceType: "web-chat",
+            channelId: "other-conversation",
+          },
+        });
+        return {
+          text: "No visible progress.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[1];
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Run batch" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).not.toContain("data-progress");
+    expect(body).not.toContain("/tmp/background");
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",

@@ -4,6 +4,8 @@ import {
   coerceConversationMetadata,
   type EditMessageRequest,
   type InterfacePluginContext,
+  type JobContext,
+  type JobProgressEvent,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   type StructuredChatCard,
@@ -69,6 +71,15 @@ type ApprovalResponse = z.infer<typeof approvalResponsePartSchema>["approval"];
 type WebChatConversation = NonNullable<
   Awaited<ReturnType<InterfacePluginContext["conversations"]["get"]>>
 >;
+
+interface WebChatProgressData {
+  type: JobProgressEvent["type"];
+  status: JobProgressEvent["status"];
+  operationType: JobContext["operationType"];
+  operationTarget?: string;
+  message?: string;
+  progress?: JobProgressEvent["progress"];
+}
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -1016,6 +1027,50 @@ button, textarea, input { font: inherit; color: inherit; }
   color: var(--chat-accent);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.web-chat-progress-part {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
+  border-radius: 12px;
+  background: rgb(from var(--chat-accent) r g b / 0.08);
+  color: var(--chat-text);
+  font-size: 0.92rem;
+}
+.web-chat-progress-part[data-status="completed"] {
+  border-color: rgb(from var(--chat-success) r g b / 0.35);
+  background: rgb(from var(--chat-success) r g b / 0.08);
+}
+.web-chat-progress-part[data-status="failed"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.38);
+  background: rgb(from var(--chat-error) r g b / 0.08);
+}
+.web-chat-progress-kicker {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-progress-part[data-status="completed"] .web-chat-progress-kicker { color: var(--chat-success); }
+.web-chat-progress-part[data-status="failed"] .web-chat-progress-kicker { color: var(--chat-error); }
+.web-chat-progress-title { font-weight: 700; }
+.web-chat-progress-message { color: var(--chat-text-muted); }
+.web-chat-progress-meter {
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--chat-surface);
+}
+.web-chat-progress-meter span {
+  display: block;
+  height: 100%;
+  width: var(--web-chat-progress-value, 0%);
+  border-radius: inherit;
+  background: currentColor;
 }
 /* user — amber notched panel */
 .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--chat-accent); }
@@ -2180,6 +2235,47 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   protected override supportsMessageEditing(): boolean {
     return true;
+  }
+
+  protected override async handleProgressEvent(
+    event: JobProgressEvent,
+    _context: JobContext,
+  ): Promise<void> {
+    const channelId = event.metadata.channelId;
+    if (
+      event.metadata.interfaceType !== webChatInterfaceType ||
+      typeof channelId !== "string"
+    ) {
+      return;
+    }
+
+    const stream = this.getActiveStream(channelId);
+    if (!stream) return;
+
+    stream.writer.write({
+      type: "data-progress",
+      id: `progress:${event.id}`,
+      data: this.toProgressData(event),
+      transient: event.status === "processing" || event.status === "pending",
+    });
+  }
+
+  private toProgressData(event: JobProgressEvent): WebChatProgressData {
+    const data: WebChatProgressData = {
+      type: event.type,
+      status: event.status,
+      operationType: event.metadata.operationType,
+    };
+    if (event.metadata.operationTarget) {
+      data.operationTarget = event.metadata.operationTarget;
+    }
+    if (event.message) {
+      data.message = event.message;
+    }
+    if (event.progress) {
+      data.progress = event.progress;
+    }
+    return data;
   }
 
   private async handleChatPage(request: Request): Promise<Response> {

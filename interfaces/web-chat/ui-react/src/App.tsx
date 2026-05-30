@@ -1,5 +1,11 @@
 /** @jsxImportSource react */
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Chat, useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -181,6 +187,7 @@ type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
+  | { kind: "progress"; data: unknown }
   | { kind: "file"; filename: string; mediaType: string }
   | { kind: "generic"; type: string; data: unknown };
 
@@ -212,6 +219,10 @@ function groupMessageParts(parts: readonly MessagePart[]): RenderedPart[] {
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      case "data-progress":
+        flush();
+        out.push({ kind: "progress", data: getPartData(part) });
         break;
       case "file":
         flush();
@@ -294,6 +305,80 @@ function UploadedFilePart({
       <span className="web-chat-uploaded-file-kicker">attached</span>
       <span className="web-chat-uploaded-file-name">{filename}</span>
     </span>
+  );
+}
+
+interface ProgressData {
+  status: "pending" | "processing" | "completed" | "failed";
+  operationType: string;
+  operationTarget?: string;
+  message?: string;
+  progress?: { current: number; total: number; percentage: number };
+}
+
+function isProgressData(data: unknown): data is ProgressData {
+  if (typeof data !== "object" || data === null) return false;
+  const record = data as Record<string, unknown>;
+  return (
+    typeof record["status"] === "string" &&
+    ["pending", "processing", "completed", "failed"].includes(
+      record["status"],
+    ) &&
+    typeof record["operationType"] === "string"
+  );
+}
+
+function formatOperationType(operationType: string): string {
+  return operationType
+    .split("_")
+    .filter((part) => part.length > 0)
+    .join(" ");
+}
+
+function progressLabel(status: ProgressData["status"]): string {
+  switch (status) {
+    case "completed":
+      return "completed";
+    case "failed":
+      return "failed";
+    case "pending":
+      return "queued";
+    case "processing":
+      return "processing";
+  }
+}
+
+function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
+  if (!isProgressData(data)) return null;
+  const operation = formatOperationType(data.operationType);
+  const title = data.operationTarget
+    ? `${operation}: ${data.operationTarget}`
+    : operation;
+  const progress = data.progress;
+  return (
+    <section className="web-chat-progress-part" data-status={data.status}>
+      <div className="web-chat-progress-kicker">
+        {progressLabel(data.status)}
+      </div>
+      <div className="web-chat-progress-title">{title}</div>
+      {data.message ? (
+        <div className="web-chat-progress-message">{data.message}</div>
+      ) : null}
+      {progress ? (
+        <div
+          className="web-chat-progress-meter"
+          aria-label={`${progress.percentage}% complete`}
+        >
+          <span
+            style={
+              {
+                "--web-chat-progress-value": `${Math.max(0, Math.min(100, progress.percentage))}%`,
+              } as CSSProperties
+            }
+          />
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -1156,6 +1241,9 @@ export function App(): React.ReactElement {
                       }
                       if (group.kind === "attachment") {
                         return <AttachmentPart key={index} data={group.data} />;
+                      }
+                      if (group.kind === "progress") {
+                        return <ProgressPart key={index} data={group.data} />;
                       }
                       if (group.kind === "file") {
                         return (
