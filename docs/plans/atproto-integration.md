@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented for the explicit blog-post path, including custom post records, Bluesky cross-posts, topic facets, external embeds, and cover-image embeds. The remaining Phase 1 production hardening item is outbound ATProto OAuth. The Phase 2 projection registry contract exists so entity plugins can register ATProto mappers; the next cleanup is moving the prototype blog post projection out of the ATProto plugin and into the blog entity package. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound article publishing is implemented for the explicit blog-post path: public blog posts can publish semantic `ai.rizom.brain.post` records with cover-image blobs. The remaining Phase 1 production hardening item is outbound ATProto OAuth. The Phase 2 projection registry contract exists, and the blog `post` projection is now owned/registered by the blog entity package. Bluesky feed posting is intentionally not part of blog article publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -56,7 +56,7 @@ ai.rizom.brain.card       — brain capability card (name, role, skills, endpoin
 
 Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. Lexicons are distribution projections of existing brain entities, not replacement entity models. For example, `ai.rizom.brain.post` is the ATProto projection of the existing blog `post` entity (`entities/blog`, entityType `post`). The local entity remains the source of truth. Do not introduce parallel ATProto-only entity models.
 
-Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, and the brain card. Entity packages should own their own ATProto projection definitions and mappers, then register them with ATProto publishing. The current blog `post` mapper in `plugins/atproto` is prototype glue for the first publishing slice; broader entity projections such as `note`, `link`, `deck`, and `socialPost` should be registered from their entity plugins instead of centralized in the ATProto plugin.
+Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, and the brain card. Entity packages own their own ATProto projection definitions and mappers, then register them with ATProto publishing. The blog `post` projection now lives in `entities/blog`; broader entity projections such as `note`, `link`, `deck`, and `socialPost` should likewise be registered from their entity plugins instead of centralized in the ATProto plugin.
 
 Current decision: keep hand-written projection types and explicit tests for now. Lexicon JSON is validated by tests, and record mapper tests verify the important projections against existing entity schemas. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
 
@@ -99,13 +99,13 @@ User-facing result: **"My brain can exist on AT Protocol."**
 
 ### Phase 2: Outbound publishing
 
-Users can publish brain content to AT Protocol and Bluesky.
+Users can publish brain content to AT Protocol. Blog article publishing creates semantic custom ATProto records; Bluesky/social feed posts are a separate social-post workflow to design later.
 
 - Brain entities become signed atproto records.
-- Summaries can cross-post to Bluesky.
-- Bluesky users can follow, reply, quote, and click through to full content on the brain's site.
+- Blog posts publish as `ai.rizom.brain.post` records.
+- Bluesky `app.bsky.feed.post` publishing should be implemented through `social-post`, not as a side effect of blog article publishing.
 
-User-facing result: **"My brain can broadcast my work to Bluesky/ATProto."**
+User-facing result: **"My brain can publish my work to ATProto with portable identity and signed records."**
 
 This is the first visibly valuable milestone.
 
@@ -155,12 +155,12 @@ User-facing result: **"My brain participates in a living knowledge network."**
 
 Recommended product order:
 
-1. Phase 1 + Phase 2: public ATProto/Bluesky publishing.
+1. Phase 1 + Phase 2: public ATProto article publishing.
 2. Phase 4: decentralized brain discovery.
 3. Phase 3: ingest external/social knowledge.
 4. Phase 5 + Phase 6: curation and federation.
 
-First product promise: **"Publish from your brain to Bluesky/ATProto, with portable identity and signed records."**
+First product promise: **"Publish from your brain to ATProto, with portable identity and signed records."**
 
 ## Phases
 
@@ -194,11 +194,9 @@ Live PDS smoke result:
 - Follow-up verification via `com.atproto.repo.getRecord` returned the same card URI and `$type: ai.rizom.brain.card`.
 - `atproto_publish_post` dry-run and live custom post write succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmywyqjukc2h`, CID `bafyreidcjytze5rg3tmbpsff3big4i4ilqn7arczeamodxwwieaxhhu3u4`.
 - Follow-up verification via `com.atproto.repo.getRecord` returned the same post URI/CID and `$type: ai.rizom.brain.post`.
-- `atproto_publish_post` with `crossPostToBluesky: true` succeeded: custom post `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyxfwn7232f`, CID `bafyreib6qbter7sgabqibctsgeajenu3pm67pcpbfozcfx43fjetrjukra`; Bluesky post `at://did:plc:mut7oy7nctoevokkshes2wpq/app.bsky.feed.post/3mmyxfxyjxm22`, CID `bafyreidsz4onabypocpjdeocad3375lagkqagd37x62zbdd6mphsb4dkja`.
-- Follow-up verification via `com.atproto.repo.getRecord` returned both cross-post records with expected `$type` values.
-- Cover-image cross-post smoke succeeded: custom post `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`; Bluesky image post `at://did:plc:mut7oy7nctoevokkshes2wpq/app.bsky.feed.post/3mmyy53zjht2y`, CID `bafyreidfeezvqtjalatrmki2umthu5okyzimy7udrn7efoqx35xrsvakua`.
-- Follow-up verification returned the custom post with `coverImage`, and the Bluesky post with `app.bsky.embed.images` plus two facets.
-- Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false` while standard `app.bsky.*` records keep validation enabled.
+- Cover-image custom post smoke succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`.
+- Follow-up verification returned the custom post with `coverImage`.
+- Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false`.
 
 Still needed before production:
 
@@ -207,13 +205,13 @@ Still needed before production:
 ### Phase 2: Content distribution (outbound)
 
 1. Implement explicit outbound publishing in the atproto plugin: entity → custom record via `com.atproto.repo.createRecord` / `putRecord`; custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know private Rizom lexicons
-2. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful — implemented as prototype glue in the ATProto plugin and should move behind an entity-plugin projection registration contract
+2. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful — implemented in `entities/blog` and registered through the ATProto projection registry; successful publishes write the custom article URI back to blog frontmatter as `atprotoUri`
 3. Do not initially replace existing content-pipeline providers for entity types such as `post`; the current registry is one provider per entity type and internal publish status semantics are separate from distribution targets
 4. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
 5. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
-6. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata — text length, topic hashtag facets, external embeds, and cover-image embeds are implemented
-7. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize remaining entity lexicons (`note`, `link`, `deck`, `socialPost`) inside the ATProto plugin — registry contract implemented; moving `post` registration to the blog entity package remains
-8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers — mapper/blob/cross-post tests are implemented; provider override regression should be added with the projection registration/content-pipeline cleanup
+6. Do not cross-post blog articles directly as `app.bsky.feed.post`; Bluesky/social posting should be added later as an ATProto provider/projection for the existing `social-post` workflow
+7. Add an ATProto projection registration contract so entity plugins can register their own lexicons/mappers; do not centralize remaining entity lexicons (`note`, `link`, `deck`, `socialPost`) inside the ATProto plugin — registry contract implemented and blog `post` registration moved to the blog entity package
+8. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, no accidental override of internal publish providers — mapper/blob tests are implemented; provider override regression remains
 
 ### Phase 3: Inbound ingestion
 
@@ -268,20 +266,20 @@ No dependency on `@atproto/pds` — we connect to an external PDS, we don't run 
 
 ## Files affected (estimated)
 
-| Phase | Files | Nature                                                             |
-| ----- | ----- | ------------------------------------------------------------------ |
-| 1     | ~10   | New plugin, lexicons, DID config, webserver route                  |
-| 2     | ~5    | Explicit outbound publisher, record mappers, Bluesky cross-posting |
-| 3     | ~5    | Firehose subscriber, record-to-entity converter                    |
-| 4     | ~5    | Card publishing, Jetstream subscription, agent index               |
-| 5     | ~5    | Feed generator endpoint, topic/series filtering                    |
-| 6     | ~5    | Peer subscription, reaction records, derive() integration          |
+| Phase | Files | Nature                                                    |
+| ----- | ----- | --------------------------------------------------------- |
+| 1     | ~10   | New plugin, lexicons, DID config, webserver route         |
+| 2     | ~5    | Explicit outbound publisher, entity-owned record mappers  |
+| 3     | ~5    | Firehose subscriber, record-to-entity converter           |
+| 4     | ~5    | Card publishing, Jetstream subscription, agent index      |
+| 5     | ~5    | Feed generator endpoint, topic/series filtering           |
+| 6     | ~5    | Peer subscription, reaction records, derive() integration |
 
 ## Verification
 
 1. Configured `did:web` brain identities resolve at `/.well-known/did.json`
 2. Published entities appear as signed records in the configured PDS repo
-3. Cross-posted content is visible on Bluesky with valid facets/embeds
+3. Published blog posts appear as semantic custom records in the configured PDS repo
 4. Bluesky/atproto content can be ingested as brain entities with topic extraction
 5. Brain cards are discoverable by peer brains via Jetstream
 6. Firehose-discovered brains enter the agent directory as reviewable `discovered` agents and are not callable until approved

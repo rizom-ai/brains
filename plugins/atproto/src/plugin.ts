@@ -17,14 +17,11 @@ import {
   type PutRecordResult,
   type UploadBlobResult,
 } from "./pds-client";
-import {
-  buildBlueskyPostRecord,
-  type BlueskyFeedPostRecord,
-} from "./bluesky-post";
 import { buildDidWebDocument } from "./did";
-import { type BrainPostRecord } from "./post-record";
-import { createPostProjection } from "./post-projection";
-import { AtprotoProjectionRegistry } from "./projection-registry";
+import {
+  AtprotoProjectionRegistry,
+  type AtprotoProjectedPostRecord,
+} from "./projection-registry";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
 import packageJson from "../package.json";
@@ -77,20 +74,14 @@ export interface PublishPostOptions {
   slug?: string;
   dryRun?: boolean;
   topics?: string[];
-  crossPostToBluesky?: boolean;
 }
 
 export interface PublishPostResult {
-  record: BrainPostRecord;
+  record: AtprotoProjectedPostRecord;
   repo?: string;
   uri?: string;
   cid?: string;
   dryRun: boolean;
-  bluesky?: {
-    record: BlueskyFeedPostRecord;
-    uri?: string;
-    cid?: string;
-  };
 }
 
 export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
@@ -102,9 +93,6 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     this.deps = deps;
     this.projectionRegistry =
       deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
-    if (!this.projectionRegistry.has("post")) {
-      this.projectionRegistry.register(createPostProjection());
-    }
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -207,22 +195,16 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     const repo = this.config.repoDid;
 
     if (options.dryRun) {
-      const record = (await projection.buildRecord({
+      const record = await projection.buildRecord({
         entity,
         context,
         config: this.config,
         ...(options.topics && { topics: options.topics }),
-      })) as BrainPostRecord;
-      const dryRunBlueskyRecord = options.crossPostToBluesky
-        ? buildBlueskyPostRecord(record)
-        : undefined;
+      });
       return {
         record,
         dryRun: true,
         ...(repo && { repo }),
-        ...(dryRunBlueskyRecord && {
-          bluesky: { record: dryRunBlueskyRecord },
-        }),
       };
     }
 
@@ -236,16 +218,13 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     const client = this.createPdsClient(appPassword);
     const session = await client.createSession();
     const targetRepo = repo ?? session.did;
-    const record = (await projection.buildRecord({
+    const record = await projection.buildRecord({
       entity,
       context,
       config: this.config,
       client,
       ...(options.topics && { topics: options.topics }),
-    })) as BrainPostRecord;
-    const blueskyRecord = options.crossPostToBluesky
-      ? buildBlueskyPostRecord(record)
-      : undefined;
+    });
     const result = await client.createRecord({
       repo: targetRepo,
       collection: projection.collection,
@@ -254,15 +233,13 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       }),
       record,
     });
-
-    const blueskyResult = blueskyRecord
-      ? await client.createRecord({
-          repo: targetRepo,
-          collection: "app.bsky.feed.post",
-          validate: true,
-          record: blueskyRecord,
-        })
-      : undefined;
+    await projection.onPublished?.({
+      entity,
+      context,
+      record,
+      uri: result.uri,
+      cid: result.cid,
+    });
 
     return {
       record,
@@ -270,15 +247,6 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       uri: result.uri,
       cid: result.cid,
       dryRun: false,
-      ...(blueskyRecord && {
-        bluesky: {
-          record: blueskyRecord,
-          ...(blueskyResult && {
-            uri: blueskyResult.uri,
-            cid: blueskyResult.cid,
-          }),
-        },
-      }),
     };
   }
 

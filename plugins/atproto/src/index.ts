@@ -15,21 +15,11 @@ export {
   type AtprotoConfigInput,
 } from "./config";
 export {
-  buildBlueskyPostRecord,
-  type BlueskyExternalEmbed,
-  type BlueskyFeedPostRecord,
-} from "./bluesky-post";
-export {
-  buildPostRecord,
-  type BrainPostCoverImage,
-  type BrainPostRecord,
-  type BuildPostRecordOptions,
-} from "./post-record";
-export { createPostProjection } from "./post-projection";
-export {
   AtprotoProjectionRegistry,
+  type AtprotoProjectedPostRecord,
   type AtprotoProjection,
   type AtprotoProjectionBuildInput,
+  type AtprotoProjectionPublishedInput,
 } from "./projection-registry";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {

@@ -1,5 +1,20 @@
 import { describe, expect, it } from "bun:test";
-import { AtprotoProjectionRegistry } from "../src";
+import {
+  AtprotoProjectionRegistry,
+  type AtprotoProjectedPostRecord,
+} from "../src";
+
+function createPostRecord(
+  input: Partial<AtprotoProjectedPostRecord> = {},
+): AtprotoProjectedPostRecord {
+  return {
+    title: "Post",
+    sourceEntityType: "post",
+    sourceEntityId: "post-1",
+    createdAt: "2026-05-28T10:00:00.000Z",
+    ...input,
+  };
+}
 
 describe("AtprotoProjectionRegistry", () => {
   it("registers and returns projections by entity type", () => {
@@ -8,11 +23,8 @@ describe("AtprotoProjectionRegistry", () => {
       entityType: "post",
       collection: "ai.rizom.brain.post",
       validate: false,
-      buildRecord: (): Promise<Record<string, unknown>> =>
-        Promise.resolve({
-          $type: "ai.rizom.brain.post",
-          title: "Post",
-        }),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
     };
 
     registry.register(projection);
@@ -27,14 +39,14 @@ describe("AtprotoProjectionRegistry", () => {
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
-      buildRecord: (): Promise<Record<string, unknown>> =>
-        Promise.resolve({ version: 1 }),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord({ version: 1 })),
     };
     const second = {
       entityType: "post",
       collection: "ai.rizom.brain.post.v2",
-      buildRecord: (): Promise<Record<string, unknown>> =>
-        Promise.resolve({ version: 2 }),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord({ version: 2 })),
     };
 
     registry.register(first);
@@ -49,7 +61,8 @@ describe("AtprotoProjectionRegistry", () => {
     const unregister = registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
-      buildRecord: (): Promise<Record<string, unknown>> => Promise.resolve({}),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
     });
 
     unregister();

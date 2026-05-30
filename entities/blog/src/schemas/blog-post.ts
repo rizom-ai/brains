@@ -26,6 +26,7 @@ export const blogPostFrontmatterSchema = z.object({
   ogDescription: z.string().optional(),
   twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
   canonicalUrl: z.string().url().optional(),
+  atprotoUri: z.string().optional(),
 });
 
 export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;

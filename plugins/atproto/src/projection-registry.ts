@@ -10,13 +10,32 @@ export interface AtprotoProjectionBuildInput {
   topics?: string[];
 }
 
-export interface AtprotoProjection {
+export interface AtprotoProjectedPostRecord extends Record<string, unknown> {
+  title: string;
+  sourceEntityType: string;
+  sourceEntityId: string;
+  createdAt: string;
+  coverImage?: unknown;
+}
+
+export interface AtprotoProjectionPublishedInput<
+  TRecord extends Record<string, unknown>,
+> {
+  entity: BaseEntity;
+  context: ServicePluginContext;
+  record: TRecord;
+  uri: string;
+  cid: string;
+}
+
+export interface AtprotoProjection<
+  TRecord extends Record<string, unknown> = Record<string, unknown>,
+> {
   entityType: string;
   collection: string;
   validate?: boolean;
-  buildRecord(
-    input: AtprotoProjectionBuildInput,
-  ): Promise<Record<string, unknown>>;
+  buildRecord(input: AtprotoProjectionBuildInput): Promise<TRecord>;
+  onPublished?(input: AtprotoProjectionPublishedInput<TRecord>): Promise<void>;
 }
 
 export class AtprotoProjectionRegistry {
@@ -36,7 +55,9 @@ export class AtprotoProjectionRegistry {
     this.instance = undefined;
   }
 
-  register(projection: AtprotoProjection): () => void {
+  register<TRecord extends Record<string, unknown>>(
+    projection: AtprotoProjection<TRecord>,
+  ): () => void {
     this.projections.set(projection.entityType, projection);
     return () => {
       if (this.projections.get(projection.entityType) === projection) {
@@ -45,6 +66,10 @@ export class AtprotoProjectionRegistry {
     };
   }
 
+  get(
+    entityType: "post",
+  ): AtprotoProjection<AtprotoProjectedPostRecord> | undefined;
+  get(entityType: string): AtprotoProjection | undefined;
   get(entityType: string): AtprotoProjection | undefined {
     return this.projections.get(entityType);
   }

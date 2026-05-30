@@ -25,10 +25,6 @@ const publishPostInputSchema = {
     .array(z.string())
     .optional()
     .describe("Optional topic labels to include in the AT Protocol record"),
-  crossPostToBluesky: z
-    .boolean()
-    .default(false)
-    .describe("Also publish a summary as app.bsky.feed.post"),
 };
 
 export function createAtprotoTools(
@@ -124,7 +120,6 @@ function createPublishPostTool(
           ...(parsed.data.entityId && { entityId: parsed.data.entityId }),
           ...(parsed.data.slug && { slug: parsed.data.slug }),
           dryRun: parsed.data.dryRun,
-          crossPostToBluesky: parsed.data.crossPostToBluesky,
           ...(parsed.data.topics && { topics: parsed.data.topics }),
         });
         return { success: true, data: result };

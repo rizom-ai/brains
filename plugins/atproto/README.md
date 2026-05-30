@@ -9,8 +9,7 @@ This package currently covers the Phase 1 foundation plus the first outbound pub
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record creation, and blob upload tests
 - brain card publishing as `ai.rizom.brain.card`
-- blog `post` entity projection to `ai.rizom.brain.post`
-- optional Bluesky summary cross-post as `app.bsky.feed.post`
+- registered blog `post` entity projection to `ai.rizom.brain.post`
 - projection registry so entity plugins can register ATProto mappers without centralizing every entity lexicon here
 
 ## Configuration
@@ -93,8 +92,7 @@ Input:
 {
   "entityId": "post-123",
   "dryRun": true,
-  "topics": ["protocols"],
-  "crossPostToBluesky": true
+  "topics": ["protocols"]
 }
 ```
 
@@ -102,7 +100,8 @@ Notes:
 
 - The local `post` entity remains the source of truth.
 - Private posts are refused.
-- `crossPostToBluesky` also writes an `app.bsky.feed.post` summary with an external embed.
+- Successful publishes store the custom ATProto article URI in the blog post frontmatter as `atprotoUri`.
+- This tool publishes the semantic article record only. Bluesky feed posts should be handled later through the `social-post` workflow.
 
 ## Projection registration
 
@@ -125,7 +124,7 @@ AtprotoProjectionRegistry.getInstance().register({
 });
 ```
 
-The built-in blog `post` projection remains prototype glue in this package until it moves to the blog entity package.
+The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
 
 ## Manual smoke checklist
 
@@ -145,15 +144,12 @@ Use a test PDS/Bluesky account and an app password.
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": true }`
 8. Publish the post record:
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": false }`
-9. Optionally cross-post to Bluesky:
-   - `atproto_publish_post { "entityId": "<post-id>", "crossPostToBluesky": true }`
-10. Verify records in the PDS repo.
-11. Verify the Bluesky post appears when cross-posting is enabled.
+9. Verify records in the PDS repo.
 
 ## Current limitations
 
 - Outbound ATProto OAuth is deferred; the prototype uses app-password authentication. This is separate from the brain's existing inbound OAuth server for clients calling the brain.
 - Lexicon TypeScript generation is intentionally not wired into the workspace yet. For now, lexicon JSON is checked by tests, and record mapper tests validate the important projections against existing entity schemas.
-- Custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons; standard records such as `app.bsky.feed.post` remain validated.
+- Custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons.
 - Post cover images are uploaded as AT Protocol blobs and included in `ai.rizom.brain.post` records.
-- Bluesky cross-posts currently support text, length truncation, topic hashtag facets, external embeds, and cover image embeds with alt text/aspect ratio metadata.
+- Bluesky `app.bsky.feed.post` publishing is intentionally not part of `atproto_publish_post`; it should be added later through the `social-post` workflow.

@@ -45,9 +45,22 @@ export class ProviderRegistry {
   private constructor() {}
 
   /**
-   * Register a provider for an entity type
+   * Register a provider for an entity type.
+   *
+   * Internal providers are local fallback handlers. They must not override an
+   * explicit external provider that is already registered for the same entity
+   * type, but any explicit provider may replace an internal fallback.
    */
   public register(entityType: string, provider: PublishProvider): void {
+    const existingProvider = this.providers.get(entityType);
+    if (
+      existingProvider &&
+      existingProvider.name !== "internal" &&
+      provider.name === "internal"
+    ) {
+      return;
+    }
+
     this.providers.set(entityType, provider);
   }
 

@@ -18,7 +18,6 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/blog": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
