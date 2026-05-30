@@ -13,6 +13,9 @@ type Conversation = NonNullable<
   Awaited<ReturnType<IConversationService["getConversation"]>>
 >;
 type Message = Awaited<ReturnType<IConversationService["getMessages"]>>[number];
+type JobStatus = Awaited<
+  ReturnType<ReturnType<PluginTestHarness["getMockShell"]>["jobs"]["getStatus"]>
+>;
 
 interface AgentChatCall {
   message: string;
@@ -24,6 +27,34 @@ interface AgentConfirmCall {
   conversationId: string;
   confirmed: boolean;
   approvalId: string | undefined;
+}
+
+function makeJobStatus(
+  jobId: string,
+  status: "pending" | "processing" | "completed" | "failed",
+  lastError: string | null = null,
+): NonNullable<JobStatus> {
+  return {
+    id: jobId,
+    type: "document_generate",
+    data: "{}",
+    status,
+    source: "test",
+    priority: 0,
+    retryCount: 0,
+    maxRetries: 3,
+    lastError,
+    createdAt: Date.now(),
+    scheduledFor: Date.now(),
+    startedAt: status === "pending" ? null : Date.now(),
+    completedAt:
+      status === "completed" || status === "failed" ? Date.now() : null,
+    metadata: {
+      operationType: "content_operations",
+      rootJobId: jobId,
+    },
+    result: null,
+  };
 }
 
 function createSpyAgentService(
@@ -595,26 +626,9 @@ describe("WebChatInterface", () => {
 
   it("reports queued artifact job status to operators", async () => {
     const plugin = operatorPlugin();
-    const shell = harness.getMockShell() as unknown as {
-      jobs: {
-        getStatus: (jobId: string) => Promise<{
-          id: string;
-          status: "pending" | "processing" | "completed" | "failed";
-          lastError: string | null;
-        } | null>;
-      };
-    };
-    shell.jobs.getStatus = async (
-      jobId: string,
-    ): Promise<{
-      id: string;
-      status: "pending" | "processing" | "completed" | "failed";
-      lastError: string | null;
-    }> => ({
-      id: jobId,
-      status: "processing",
-      lastError: null,
-    });
+    const shell = harness.getMockShell();
+    shell.jobs.getStatus = async (jobId: string): Promise<JobStatus> =>
+      makeJobStatus(jobId, "processing");
     await harness.installPlugin(plugin);
     const route = plugin.getWebRoutes()[8];
 
