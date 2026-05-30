@@ -1,4 +1,8 @@
-import type { SummaryEntity, SummaryMetadata } from "../../src/schemas/summary";
+import {
+  summaryConfigSchema,
+  type SummaryEntity,
+  type SummaryMetadata,
+} from "../../src/schemas/summary";
 import { createTestEntity } from "@brains/test-utils";
 
 export const defaultSummaryMetadata: SummaryMetadata = {
@@ -25,8 +29,7 @@ export function createMockSummaryEntity(
     created: overrides.created ?? "2026-01-01T00:00:00.000Z",
     updated: overrides.updated ?? "2026-01-01T00:10:00.000Z",
     metadata: overrides.metadata ?? defaultSummaryMetadata,
-    ...(overrides.visibility !== undefined
-      ? { visibility: overrides.visibility }
-      : {}),
+    visibility:
+      overrides.visibility ?? summaryConfigSchema.parse({}).memoryVisibility,
   });
 }

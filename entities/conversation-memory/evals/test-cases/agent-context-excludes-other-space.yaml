@@ -1,0 +1,51 @@
+id: conversation-memory-agent-context-excludes-other-space
+name: Agent context excludes unrelated other-space memory
+description: Higher-scoring memory from another space is not injected by default.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - agent-context
+  - spaces
+plugin: conversation-memory
+handler: buildAgentContext
+
+input:
+  conversationId: current-relay-conv
+  message: What did we decide about memory retrieval?
+  interfaceType: mcp
+  channelId: relay-team
+  channelName: Relay Team
+  userPermissionLevel: trusted
+  memory:
+    - id: summary-other
+      entityType: summary
+      conversationId: other-team-conv
+      interfaceType: mcp
+      channelId: other-team
+      channelName: Other Team
+      visibility: shared
+      content: "# Conversation Summary\n\nOther team chose a higher-scoring but unrelated memory policy."
+      excerpt: Other team chose a higher-scoring but unrelated memory policy.
+      score: 0.99
+      updated: "2026-05-04T11:01:00Z"
+    - id: summary-same
+      entityType: summary
+      conversationId: relay-team-conv
+      interfaceType: mcp
+      channelId: relay-team
+      channelName: Relay Team
+      visibility: shared
+      content: "# Conversation Summary\n\nRelay team chose explicit same-space memory retrieval."
+      excerpt: Relay team chose explicit same-space memory retrieval.
+      score: 0.5
+      updated: "2026-05-04T11:00:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: items[0].id
+      equals: summary-same
+    - path: items[0].provenance.spaceId
+      equals: mcp:relay-team
+    - path: items[1]
+      exists: false

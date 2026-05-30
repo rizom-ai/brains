@@ -12,6 +12,7 @@ describe("Relay entity action policy", () => {
       update: "anchor",
       delete: "anchor",
       extract: "anchor",
+      publish: "anchor",
     });
 
     for (const entityType of [

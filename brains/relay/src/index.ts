@@ -146,7 +146,11 @@ export default defineBrain({
         extractableStatuses: ["published", "draft"],
       },
     ],
-    ["conversation-memory", conversationMemoryPlugin, {}],
+    [
+      "conversation-memory",
+      conversationMemoryPlugin,
+      { memoryVisibility: "shared" },
+    ],
     ["docs", docsPlugin, undefined],
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],

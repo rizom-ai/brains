@@ -10,6 +10,7 @@ messageCount: 8
 entryCount: 1
 sourceHash: relay-poc-sync-v1
 projectionVersion: 1
+visibility: shared
 ---
 
 # Conversation Summary

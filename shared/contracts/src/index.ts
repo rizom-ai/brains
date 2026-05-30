@@ -1,3 +1,13 @@
+export {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextPermissionLevelSchema,
+  agentContextRequestSchema,
+  agentContextItemSchema,
+  agentContextResponseSchema,
+  type AgentContextRequest,
+  type AgentContextItem,
+  type AgentContextResponse,
+} from "./agent-context";
 export { dbConfigSchema, type DbConfig } from "./db-config";
 export {
   generationResultSchema,

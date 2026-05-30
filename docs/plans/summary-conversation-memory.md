@@ -2,9 +2,9 @@
 
 ## Status
 
-Partial. `@brains/conversation-memory` now has scoped projection from stored conversations, summary/decision/action-item entities (one summary per conversation/session), dashboard widgets, and a `ConversationMemoryRetriever`.
+Partial. `@brains/conversation-memory` now has scoped projection from stored conversations, summary/decision/action-item entities (one summary per conversation/session), dashboard widgets, a `ConversationMemoryRetriever`, and an agent-context provider that injects relevant same-space memory into agent turns with provenance.
 
-The concrete remaining gap: the retriever is built and tested but **not wired into the agent's context/prompt path** — today it is only called from `lib/eval-handlers.ts`. So memory is stored and searchable, but the brain does not yet pull relevant same-space memory into its answers. Closing that is the next pickup; see [Next pickup](#next-pickup).
+Remaining work is mostly product hardening: broader behavior evals, operator UX, rolling space-level memory, and skipped-conversation visibility.
 
 ## Settled decisions
 
@@ -271,20 +271,17 @@ Current evals test summary generation. Add memory-behavior evals:
 
 ## Remaining implementation
 
-Phases 1–3 (policy/observability, dashboard widget, decision/action entities) have shipped. Phase 4 retrieval contract and ranking landed as a standalone `ConversationMemoryRetriever`, but it is not yet connected to the agent.
+Phases 1–4 are now connected: scoped projection, dashboard widgets, decision/action entities, retrieval ranking, and same-space agent-context injection have shipped.
 
 ## Next pickup
 
-The next concrete step does **not** add anything to the data model. It connects what exists and proves it is safe to rely on.
+The next concrete step should harden product behavior and operator UX without expanding the data model.
 
 **Add:**
 
-1. **Wire `ConversationMemoryRetriever` into the agent context-fetch step** so relevant same-space memory (summary/decision/action-item) is injected when the brain responds, with provenance attached. Today the retriever is only reachable from evals.
-2. **Write the future-use evals** that gate that injection:
-   - a later conversation retrieves the relevant same-space summary as context;
-   - an unrelated old summary is **not** injected;
-   - summary/decision/action-item provenance is preserved when used as context.
-3. Enable automatic retrieval/injection only once those evals are green.
+1. Broader future-use evals against full agent behavior, beyond the deterministic `buildAgentContext` eval handler.
+2. Operator-facing controls/visibility for where memory is enabled and what was injected.
+3. Better dashboard explanation for skipped or stale conversations once the Conversation Memory dashboard is rebuilt.
 
 **Explicitly deferred (do not bundle into the next pickup):**
 

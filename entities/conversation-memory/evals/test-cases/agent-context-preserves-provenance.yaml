@@ -1,0 +1,74 @@
+id: conversation-memory-agent-context-preserves-provenance
+name: Agent context preserves summary decision and action provenance
+description: Summary, decision, and action-item context include source entity and conversation-space provenance.
+type: plugin
+tags:
+  - conversation-memory
+  - retrieval
+  - agent-context
+  - provenance
+plugin: conversation-memory
+handler: buildAgentContext
+
+input:
+  conversationId: current-relay-conv
+  message: What memory should I use for the follow-up?
+  interfaceType: mcp
+  channelId: relay-team
+  channelName: Relay Team
+  userPermissionLevel: trusted
+  memory:
+    - id: summary-1
+      entityType: summary
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      channelName: Relay Team
+      visibility: shared
+      content: "# Conversation Summary\n\nThe team discussed safe agent memory injection."
+      excerpt: The team discussed safe agent memory injection.
+      score: 0.8
+      updated: "2026-05-04T11:00:00Z"
+    - id: decision-1
+      entityType: decision
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      channelName: Relay Team
+      visibility: shared
+      content: "# Decision\n\nInject same-space memory with provenance."
+      excerpt: Inject same-space memory with provenance.
+      score: 0.7
+      status: active
+      updated: "2026-05-04T11:01:00Z"
+    - id: action-1
+      entityType: action-item
+      conversationId: relay-conv
+      interfaceType: mcp
+      channelId: relay-team
+      channelName: Relay Team
+      visibility: shared
+      content: "# Action item\n\nAdd future-use evals before enabling broad prompt injection."
+      excerpt: Add future-use evals before enabling broad prompt injection.
+      score: 0.6
+      status: open
+      updated: "2026-05-04T11:02:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: items[0].provenance.entityType
+      equals: summary
+    - path: items[0].provenance.conversationId
+      equals: relay-conv
+    - path: items[0].provenance.spaceId
+      equals: mcp:relay-team
+    - path: items[0].provenance.messageCount
+      equals: 3
+    - path: items[1].provenance.entityType
+      equals: decision
+    - path: items[1].provenance.status
+      equals: active
+    - path: items[2].provenance.entityType
+      equals: action-item
+    - path: items[2].provenance.status
+      equals: open

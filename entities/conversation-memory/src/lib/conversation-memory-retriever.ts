@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type {
   ActionItemEntity,
   DecisionEntity,
@@ -36,6 +36,8 @@ export interface RetrieveConversationMemoryInput {
   actorId?: string | undefined;
   /** Explicit canonical identity filter; does not cross spaces unless includeOtherSpaces is true. */
   canonicalId?: string | undefined;
+  /** Caller visibility scope; undefined fails closed in the entity service to public-only. */
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export interface RetrievedConversationMemory {
@@ -75,7 +77,11 @@ export class ConversationMemoryRetriever {
     const query = input.query?.trim() ?? "";
     const limit = Math.max(1, input.limit ?? DEFAULT_MEMORY_LIMIT);
     const spaceId = await this.resolveSpaceId(input);
-    const candidates = await this.loadCandidates(query, limit);
+    const candidates = await this.loadCandidates(
+      query,
+      limit,
+      input.visibilityScope,
+    );
 
     const scopedCandidates = candidates
       .filter((candidate) => {
@@ -129,6 +135,7 @@ export class ConversationMemoryRetriever {
   private async loadCandidates(
     query: string,
     limit: number,
+    visibilityScope: ContentVisibility | undefined,
   ): Promise<MemoryCandidate[]> {
     const candidateLimit = limit * CANDIDATE_MULTIPLIER;
 
@@ -140,6 +147,7 @@ export class ConversationMemoryRetriever {
             options: {
               types: MEMORY_ENTITY_TYPES,
               limit: candidateLimit,
+              ...(visibilityScope ? { visibilityScope } : {}),
             },
           },
         );
@@ -158,6 +166,7 @@ export class ConversationMemoryRetriever {
             options: {
               limit: candidateLimit,
               sortFields: [{ field: "updated", direction: "desc" }],
+              ...(visibilityScope ? { filter: { visibilityScope } } : {}),
             },
           },
         ),

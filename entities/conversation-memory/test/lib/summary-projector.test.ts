@@ -176,6 +176,14 @@ function makeMessages(count: number): Message[] {
 }
 
 describe("SummaryProjector", () => {
+  it("defaults projected memory visibility to restricted", () => {
+    expect(summaryConfigSchema.parse({}).memoryVisibility).toBe("restricted");
+    expect(
+      summaryConfigSchema.parse({ memoryVisibility: "private" })
+        .memoryVisibility,
+    ).toBe("restricted");
+  });
+
   it("projects a conversation summary from stored messages", async () => {
     const context = createMockEntityPluginContext({
       spaces: ["cli:cli-terminal"],

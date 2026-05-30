@@ -1,3 +1,4 @@
+import type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -67,6 +68,10 @@ export interface AgentConfig {
   assistantActorId?: string;
   /** Optional explicit actor -> canonical identity resolver */
   canonicalIdentityResolver?: CanonicalIdentityResolver;
+  /** Optional provider for same-turn retrieved context, e.g. durable memory. */
+  agentContextProvider?: (
+    request: AgentContextRequest,
+  ) => Promise<AgentContextItem[]>;
 }
 
 /**

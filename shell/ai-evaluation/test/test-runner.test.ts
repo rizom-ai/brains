@@ -65,6 +65,34 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should pass configured interface and channel context to chat", async () => {
+      const testCase: TestCase = {
+        id: "test-channel-context",
+        name: "Channel Context Test",
+        type: "response_quality",
+        setup: {
+          permissionLevel: "trusted",
+          interfaceType: "discord",
+          channelId: "relay-poc",
+          channelName: "Relay POC",
+        },
+        turns: [{ userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "trusted",
+        interfaceType: "discord",
+        channelId: "relay-poc",
+        channelName: "Relay POC",
+      });
+    });
+
     it("should resolve pending confirmations when a turn requests confirmation", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(

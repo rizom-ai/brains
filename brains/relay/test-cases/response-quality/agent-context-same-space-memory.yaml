@@ -1,0 +1,48 @@
+id: relay-agent-context-same-space-memory
+name: Relay uses same-space conversation memory without a tool call
+description: >-
+  Verifies Relay's installed conversation-memory provider injects same-space
+  summary context into the agent turn, so a trusted teammate can ask a natural
+  follow-up in the same channel.
+type: response_quality
+setup:
+  permissionLevel: trusted
+  interfaceType: discord
+  channelId: relay-poc
+  channelName: relay-poc
+tags:
+  - relay
+  - conversation-memory
+  - agent-context
+  - same-space
+
+turns:
+  - userMessage: >-
+      In this channel, the in-turn memory includes a Relay preset direction
+      summary. Remind me what it says about core, default, and full. Use the
+      conversation memory already available in this turn; do not call tools.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_list
+      shouldBeCalled: false
+  responseContains:
+    - "core"
+    - "default"
+    - "full"
+  responseNotContains:
+    - "I don't have access"
+    - "I don't have"
+    - "blog"
+    - "newsletter"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 30000

@@ -34,6 +34,7 @@ import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
 import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
 import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
+import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
@@ -220,6 +221,8 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       pluginId: this.id,
       config: this.config,
     });
+
+    registerConversationMemoryAgentContext(context);
 
     registerSummaryEvalHandlers({
       context,

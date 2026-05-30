@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { baseEntitySchema, contentVisibilitySchema } from "@brains/plugins";
+import { baseEntitySchema, type ContentVisibility } from "@brains/plugins";
 
 export const summaryTimeRangeSchema = z.object({
   start: z.string().datetime(),
@@ -56,6 +56,14 @@ export const summarySchema = baseEntitySchema.extend({
 
 export type SummaryEntity = z.infer<typeof summarySchema>;
 
+export const summaryMemoryVisibilitySchema = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value): ContentVisibility => {
+    if (value === undefined || value === "private") return "restricted";
+    return value;
+  });
+
 export const summaryConfigSchema = z.object({
   enableProjection: z
     .boolean()
@@ -93,7 +101,7 @@ export const summaryConfigSchema = z.object({
     .describe("Target maximum length of each generated summary entry"),
   includeKeyPoints: z.boolean().default(true),
   projectionVersion: z.number().int().min(1).default(1),
-  memoryVisibility: contentVisibilitySchema.describe(
+  memoryVisibility: summaryMemoryVisibilitySchema.describe(
     "Visibility applied to projected summaries, decisions, and action items",
   ),
 });
