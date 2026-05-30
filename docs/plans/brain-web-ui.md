@@ -162,11 +162,13 @@ chat, the dashboard, or a small chooser remains a product call.
 
 ### 4. Inbound uploads
 
-User → brain text-file uploads now use AI SDK UI `file` parts from the prompt
-input. Web-chat accepts `.md`, `.txt`, and `.markdown` files up to the shared
-message-interface text-upload size limit, decodes data URLs server-side, and
-passes the content to `AgentService.chat()` using the same `User uploaded a file
-"..."` text format as Discord and other message interfaces.
+User → brain text-file uploads are now routed through durable web-chat upload
+refs. The prompt accepts `.md`, `.txt`, and `.markdown` files up to the shared
+message-interface text-upload size limit, posts them to `/api/chat/uploads`, and
+then sends AI SDK `data-upload` parts into `/api/chat`. The server resolves
+those refs and currently passes the content to `AgentService.chat()` using the
+same `User uploaded a file "..."` text format as Discord and other message
+interfaces.
 
 The active chat transcript shows attached filenames on submitted user messages,
 so upload validation/submission success is visible even if the later agent
