@@ -173,9 +173,16 @@ so upload validation/submission success is visible even if the later agent
 response times out. The prompt area also shows transient upload notices for
 client validation, handoff success, and server-side upload validation failures.
 
-Remaining upload work: add multipart upload routes, durable storage/registry
-integration, binary/media type policies, and request schema changes for passing
-attachment refs into `AgentService.chat()` instead of inlining text.
+Initial durable upload protocol slice exists: operator-only
+`POST /api/chat/uploads` accepts multipart text uploads, validates the same text
+file policy, stores content plus metadata under the web-chat data directory, and
+returns a `web-chat-upload` ref. The active prompt still uses inline AI SDK file
+parts for now.
+
+Remaining upload work: route chat sends through those upload refs, add durable
+storage/registry integration beyond the web-chat data directory, define
+binary/media type policies, and change the `AgentService.chat()` request path to
+pass attachment refs instead of inlining text.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

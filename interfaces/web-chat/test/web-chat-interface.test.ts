@@ -4,6 +4,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { join } from "path";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -170,7 +171,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(10);
+    expect(routes).toHaveLength(11);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -219,6 +220,11 @@ describe("WebChatInterface", () => {
     expect(routes[9]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
+      public: true,
+    });
+    expect(routes[10]).toMatchObject({
+      path: "/api/chat/uploads",
+      method: "POST",
       public: true,
     });
   });
@@ -631,6 +637,114 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(401);
+  });
+
+  it("accepts multipart text uploads and returns a durable upload ref", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Notes\n\nShip durable uploads"], "../notes.md", {
+        type: "text/markdown",
+      }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const body = (await response?.json()) as {
+      id: string;
+      ref: { kind: string; id: string };
+      filename: string;
+      mediaType: string;
+      sizeBytes: number;
+      createdAt: string;
+    };
+
+    expect(response?.status).toBe(201);
+    expect(body.id).toStartWith("upload-");
+    expect(body.ref).toEqual({ kind: "web-chat-upload", id: body.id });
+    expect(body.filename).toBe("notes.md");
+    expect(body.mediaType).toBe("text/markdown");
+    expect(body.sizeBytes).toBe(29);
+    expect(Date.parse(body.createdAt)).not.toBeNaN();
+
+    const uploadDir = join(
+      "/tmp/mock-shell-test-data",
+      "web-chat",
+      "uploads",
+      body.id,
+    );
+    expect(await Bun.file(join(uploadDir, "content")).text()).toBe(
+      "# Notes\n\nShip durable uploads",
+    );
+    expect(await Bun.file(join(uploadDir, "metadata.json")).json()).toEqual(
+      body,
+    );
+  });
+
+  it("rejects multipart uploads from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set("file", new File(["hello"], "notes.txt", { type: "text/plain" }));
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("rejects unsupported multipart upload types", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["not text"], "image.png", { type: "image/png" }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("Unsupported file upload type");
+  });
+
+  it("rejects oversized multipart text uploads", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin.getWebRoutes()[10];
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["x".repeat(100_001)], "large.txt", { type: "text/plain" }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toContain("File upload too large");
   });
 
   it("handles AI SDK approval responses through the chat endpoint", async () => {

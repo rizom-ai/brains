@@ -18,6 +18,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
+import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
@@ -61,6 +62,8 @@ const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 const webChatDefaultUploadFilename = "upload.txt";
+const webChatUploadFormField = "file";
+const webChatUploadRefKind = "web-chat-upload";
 
 const renameSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(webChatTitleMaxLength),
@@ -79,6 +82,15 @@ interface WebChatProgressData {
   operationTarget?: string;
   message?: string;
   progress?: JobProgressEvent["progress"];
+}
+
+interface WebChatUploadRecord {
+  id: string;
+  ref: { kind: typeof webChatUploadRefKind; id: string };
+  filename: string;
+  mediaType: string;
+  sizeBytes: number;
+  createdAt: string;
 }
 
 const uiAssetPath = "/chat/assets/app.js";
@@ -2200,6 +2212,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (): Promise<Response> => this.handleUiAssetRequest(),
       },
+      {
+        path: "/api/chat/uploads",
+        method: "POST",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleUploadRequest(request),
+      },
     ];
   }
 
@@ -2300,6 +2319,60 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         "Cache-Control": "no-cache",
       },
     });
+  }
+
+  private async handleUploadRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return new Response("Invalid multipart upload", { status: 400 });
+    }
+
+    const file = formData.get(webChatUploadFormField);
+    if (!(file instanceof File)) {
+      return new Response("Missing upload file", { status: 400 });
+    }
+
+    const filename = this.sanitizeUploadFilename(file.name);
+    const mediaType = this.normalizeUploadMediaType(filename, file.type);
+    if (!this.isUploadableTextFile(filename, mediaType)) {
+      return new Response(`Unsupported file upload type: ${filename}`, {
+        status: 400,
+      });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    if (!this.isFileSizeAllowed(buffer.byteLength)) {
+      return new Response(`File upload too large: ${filename}`, {
+        status: 400,
+      });
+    }
+
+    const uploadId = this.createId("upload");
+    const record: WebChatUploadRecord = {
+      id: uploadId,
+      ref: { kind: webChatUploadRefKind, id: uploadId },
+      filename,
+      mediaType,
+      sizeBytes: buffer.byteLength,
+      createdAt: new Date().toISOString(),
+    };
+
+    const uploadDir = this.getUploadDir(record.id);
+    await mkdir(uploadDir, { recursive: true });
+    await writeFile(join(uploadDir, "content"), buffer);
+    await writeFile(
+      join(uploadDir, "metadata.json"),
+      `${JSON.stringify(record, null, 2)}\n`,
+      "utf8",
+    );
+
+    return Response.json(record, { status: 201 });
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
@@ -2782,6 +2855,38 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return [...textParts.filter((part) => part.length > 0), ...fileParts].join(
       "\n\n",
     );
+  }
+
+  private getUploadDir(uploadId: string): string {
+    return join(this.getContext().dataDir, "web-chat", "uploads", uploadId);
+  }
+
+  private sanitizeUploadFilename(filename: string): string {
+    const leaf = filename.split(/[\\/]/).at(-1)?.trim() ?? "";
+    const cleaned = Array.from(leaf)
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        return code > 31 && code !== 127;
+      })
+      .join("")
+      .slice(0, 160);
+    return cleaned.length > 0 ? cleaned : webChatDefaultUploadFilename;
+  }
+
+  private normalizeUploadMediaType(
+    filename: string,
+    mediaType: string,
+  ): string {
+    const trimmed = mediaType.trim();
+    if (trimmed.length > 0) return trimmed;
+    const lowerFilename = filename.toLowerCase();
+    if (lowerFilename.endsWith(".md") || lowerFilename.endsWith(".markdown")) {
+      return "text/markdown";
+    }
+    if (lowerFilename.endsWith(".txt")) {
+      return "text/plain";
+    }
+    return "application/octet-stream";
   }
 
   private decodeUploadedDataUrl(
