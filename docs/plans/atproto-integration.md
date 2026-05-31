@@ -257,7 +257,7 @@ Deliberately deferred (consistent with this plan, not blockers):
 2. Define the compatibility policy: additive fields, required-field changes, deprecation, and when a new NSID/version is required.
 3. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons — implemented.
 4. Add drift tests so package-owned lexicons and public canonical lexicons cannot diverge silently — implemented for the Rizom site static assets.
-5. Document how other brains/tools should fetch and interpret Rizom lexicons.
+5. Document how other brains/tools should fetch and interpret Rizom lexicons — implemented in [ATProto Lexicons](../atproto-lexicons.md).
 6. Tests: malformed local projected record is rejected before PDS write; canonical lexicon publication includes every registered Rizom custom record; package-owned and canonical lexicons stay in sync.
 
 ### Phase 3: Inbound ingestion
