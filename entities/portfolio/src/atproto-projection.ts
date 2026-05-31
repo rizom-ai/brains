@@ -1,11 +1,10 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { projectFrontmatterSchema, projectSchema } from "./schemas/project";
-import projectLexicon from "../lexicons/ai.rizom.brain.project.json";
 
 export interface ProjectAtprotoRecord {
   [key: string]: unknown;
@@ -60,7 +59,7 @@ export function createProjectAtprotoProjection(): AtprotoProjection<ProjectAtpro
   return {
     entityType: "project",
     collection: "ai.rizom.brain.project",
-    lexicon: parseAtprotoLexicon(projectLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.project"],
     validate: false,
     buildRecord: buildProjectAtprotoRecord,
   };

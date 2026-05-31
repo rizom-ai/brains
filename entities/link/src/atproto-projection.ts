@@ -1,11 +1,10 @@
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { linkAdapter } from "./adapters/link-adapter";
 import { linkSchema, type LinkSource } from "./schemas/link";
-import linkLexicon from "../lexicons/ai.rizom.brain.link.json";
 
 export interface LinkAtprotoRecord {
   [key: string]: unknown;
@@ -54,7 +53,7 @@ export function createLinkAtprotoProjection(): AtprotoProjection<LinkAtprotoReco
   return {
     entityType: "link",
     collection: "ai.rizom.brain.link",
-    lexicon: parseAtprotoLexicon(linkLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.link"],
     validate: false,
     buildRecord: buildLinkAtprotoRecord,
   };

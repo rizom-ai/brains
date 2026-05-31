@@ -1,11 +1,10 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { noteFrontmatterSchema, noteSchema } from "./schemas/note";
-import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 
 export interface NoteAtprotoRecord {
   [key: string]: unknown;
@@ -49,7 +48,7 @@ export function createNoteAtprotoProjection(): AtprotoProjection<NoteAtprotoReco
   return {
     entityType: "base",
     collection: "ai.rizom.brain.note",
-    lexicon: parseAtprotoLexicon(noteLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.note"],
     validate: false,
     buildRecord: buildNoteAtprotoRecord,
   };

@@ -1,5 +1,14 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils";
+import cardLexiconJson from "./lexicons/ai.rizom.brain.card.json";
+import deckLexiconJson from "./lexicons/ai.rizom.brain.deck.json";
+import linkLexiconJson from "./lexicons/ai.rizom.brain.link.json";
+import noteLexiconJson from "./lexicons/ai.rizom.brain.note.json";
+import postLexiconJson from "./lexicons/ai.rizom.brain.post.json";
+import projectLexiconJson from "./lexicons/ai.rizom.brain.project.json";
+import seriesLexiconJson from "./lexicons/ai.rizom.brain.series.json";
+import socialPostLexiconJson from "./lexicons/ai.rizom.brain.socialPost.json";
+import topicLexiconJson from "./lexicons/ai.rizom.brain.topic.json";
 
 export interface AtprotoLexiconProperty {
   type: string;
@@ -46,6 +55,30 @@ const atprotoLexiconSchema = z.object({
 
 export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
   return atprotoLexiconSchema.parse(input);
+}
+
+export const canonicalAtprotoLexicons = {
+  "ai.rizom.brain.card": parseAtprotoLexicon(cardLexiconJson),
+  "ai.rizom.brain.deck": parseAtprotoLexicon(deckLexiconJson),
+  "ai.rizom.brain.link": parseAtprotoLexicon(linkLexiconJson),
+  "ai.rizom.brain.note": parseAtprotoLexicon(noteLexiconJson),
+  "ai.rizom.brain.post": parseAtprotoLexicon(postLexiconJson),
+  "ai.rizom.brain.project": parseAtprotoLexicon(projectLexiconJson),
+  "ai.rizom.brain.series": parseAtprotoLexicon(seriesLexiconJson),
+  "ai.rizom.brain.socialPost": parseAtprotoLexicon(socialPostLexiconJson),
+  "ai.rizom.brain.topic": parseAtprotoLexicon(topicLexiconJson),
+} as const satisfies Record<string, AtprotoLexicon>;
+
+export type CanonicalAtprotoLexiconId = keyof typeof canonicalAtprotoLexicons;
+
+export function listCanonicalAtprotoLexicons(): AtprotoLexicon[] {
+  return Object.values(canonicalAtprotoLexicons);
+}
+
+export function getCanonicalAtprotoLexicon(
+  id: string,
+): AtprotoLexicon | undefined {
+  return canonicalAtprotoLexicons[id as CanonicalAtprotoLexiconId];
 }
 
 interface AtprotoValidationProperty extends AtprotoLexiconProperty {

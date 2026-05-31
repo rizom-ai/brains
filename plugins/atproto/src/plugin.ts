@@ -15,7 +15,7 @@ import { AtprotoPdsClient } from "./pds-client";
 import { buildDidWebDocument } from "./did";
 import {
   AtprotoProjectionRegistry,
-  parseAtprotoLexicon,
+  canonicalAtprotoLexicons,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
@@ -23,10 +23,9 @@ import {
 } from "@brains/atproto-contracts";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
-import cardLexicon from "../lexicons/ai.rizom.brain.card.json";
 import packageJson from "../package.json";
 
-const brainCardLexicon = parseAtprotoLexicon(cardLexicon);
+const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {

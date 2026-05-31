@@ -1,20 +1,12 @@
 import type { Tool, Resource, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
-import cardLexicon from "./atproto/lexicons/ai.rizom.brain.card.json";
-import deckLexicon from "./atproto/lexicons/ai.rizom.brain.deck.json";
-import linkLexicon from "./atproto/lexicons/ai.rizom.brain.link.json";
-import noteLexicon from "./atproto/lexicons/ai.rizom.brain.note.json";
-import postLexicon from "./atproto/lexicons/ai.rizom.brain.post.json";
-import projectLexicon from "./atproto/lexicons/ai.rizom.brain.project.json";
-import seriesLexicon from "./atproto/lexicons/ai.rizom.brain.series.json";
-import socialPostLexicon from "./atproto/lexicons/ai.rizom.brain.socialPost.json";
-import topicLexicon from "./atproto/lexicons/ai.rizom.brain.topic.json";
 
 export const rizomThemeProfileSchema = z.enum([
   "product",
@@ -42,26 +34,13 @@ function formatLexiconJson(lexicon: unknown): string {
   return `${JSON.stringify(lexicon, null, 2)}\n`;
 }
 
-export const rizomAtprotoLexiconStaticAssets: Record<string, string> = {
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.card.json`]:
-    formatLexiconJson(cardLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.deck.json`]:
-    formatLexiconJson(deckLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.link.json`]:
-    formatLexiconJson(linkLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.note.json`]:
-    formatLexiconJson(noteLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.post.json`]:
-    formatLexiconJson(postLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.project.json`]:
-    formatLexiconJson(projectLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.series.json`]:
-    formatLexiconJson(seriesLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.socialPost.json`]:
-    formatLexiconJson(socialPostLexicon),
-  [`${RIZOM_ATPROTO_LEXICON_BASE_PATH}/ai.rizom.brain.topic.json`]:
-    formatLexiconJson(topicLexicon),
-};
+export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
+  Object.fromEntries(
+    listCanonicalAtprotoLexicons().map((lexicon) => [
+      `${RIZOM_ATPROTO_LEXICON_BASE_PATH}/${lexicon.id}.json`,
+      formatLexiconJson(lexicon),
+    ]),
+  );
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,

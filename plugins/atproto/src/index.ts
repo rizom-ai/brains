@@ -17,6 +17,9 @@ export {
 } from "./config";
 export {
   AtprotoProjectionRegistry,
+  canonicalAtprotoLexicons,
+  getCanonicalAtprotoLexicon,
+  listCanonicalAtprotoLexicons,
   parseAtprotoLexicon,
   validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
@@ -28,6 +31,7 @@ export {
   type AtprotoLexiconProperty,
   type AtprotoPdsClientLike,
   type AtprotoBlobRef,
+  type CanonicalAtprotoLexiconId,
 } from "@brains/atproto-contracts";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {

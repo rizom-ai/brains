@@ -30,17 +30,19 @@ https://rizom.ai/atproto/lexicons/ai.rizom.brain.post.json
 
 ## Ownership
 
-Service-level lexicons, such as `ai.rizom.brain.card`, are owned by `plugins/atproto`.
+Canonical `ai.rizom.brain.*` lexicon JSON has one in-repo source of truth: `@brains/atproto-contracts`.
 
-Entity projection lexicons are owned by the entity package that owns the local entity schema and mapper. For example, `ai.rizom.brain.post` is owned by `entities/blog`.
+Entity packages own projection/mapping logic only. For example, `entities/blog` owns the mapper from local `post` entities to `ai.rizom.brain.post` records, but it imports the canonical `ai.rizom.brain.post` lexicon from `@brains/atproto-contracts` instead of defining a separate schema.
 
-The Rizom site serves public copies from package-owned sources. Drift tests ensure public lexicon assets do not silently diverge from their owning packages.
+The `@brains/atproto-registry` plugin serves those same contract-owned lexicons from the official `rizom.ai` brain/site. Runtime projection registration and public protocol publication are separate responsibilities, but both consume the same canonical contract artifacts.
+
+Brain-specific extensions must use a namespace controlled by that brain/operator. They must not redefine or mutate `ai.rizom.brain.*`.
 
 ## Validation policy
 
-PDS-side validation is not the authoritative contract for Rizom custom records. Public PDS instances may not know private/custom Rizom lexicons, so custom record writes can use `validate: false` at the PDS boundary.
+PDS-side validation is not the authoritative contract for Rizom custom records. Public PDS instances may not know custom Rizom lexicons, so custom record writes can use `validate: false` at the PDS boundary.
 
-Rizom validates projected records locally before dry-run output or PDS writes. Local validation uses the registered projection lexicon and rejects malformed records before they are stored in a PDS repo.
+Rizom validates projected records locally before dry-run output or PDS writes. Local validation uses the canonical lexicon imported from `@brains/atproto-contracts` and rejects malformed records before they are stored in a PDS repo.
 
 ## Compatibility policy
 
@@ -68,4 +70,4 @@ Consumers should identify records by NSID and fetch the matching canonical lexic
 https://rizom.ai/atproto/lexicons/<nsid>.json
 ```
 
-Consumers should not depend on repository-local source paths. Package-local lexicons are implementation ownership; the public URL is the interoperability contract.
+Consumers should not depend on repository-local source paths. `@brains/atproto-contracts` is the in-repo source of truth; the public registry route is the interoperability contract.

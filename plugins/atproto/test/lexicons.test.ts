@@ -1,56 +1,10 @@
 import { describe, expect, it } from "bun:test";
-
-interface LexiconPrimitiveProperty {
-  type: "string" | "integer" | "boolean" | "bytes" | "blob";
-  format?: string;
-  maxLength?: number;
-  knownValues?: string[];
-}
-
-interface LexiconArrayProperty {
-  type: "array";
-  items:
-    | LexiconPrimitiveProperty
-    | LexiconArrayProperty
-    | LexiconObjectProperty;
-  maxLength?: number;
-}
-
-interface LexiconObjectProperty {
-  type: "object";
-  required?: string[];
-  properties: Record<
-    string,
-    LexiconPrimitiveProperty | LexiconArrayProperty | LexiconObjectProperty
-  >;
-}
-
-interface LexiconFile {
-  lexicon: 1;
-  id: string;
-  defs: {
-    main: {
-      type: "record";
-      key: string;
-      record: LexiconObjectProperty;
-    };
-  };
-}
-
-async function readLexicon(filename: string): Promise<LexiconFile> {
-  return (await Bun.file(`lexicons/${filename}`).json()) as LexiconFile;
-}
-
-function recordProperties(
-  lexicon: LexiconFile,
-): LexiconObjectProperty["properties"] {
-  return lexicon.defs.main.record.properties;
-}
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 
 describe("AT Protocol lexicons", () => {
-  it("defines the brain card record", async () => {
-    const lexicon = await readLexicon("ai.rizom.brain.card.json");
-    const properties = recordProperties(lexicon);
+  it("uses the canonical brain card record", () => {
+    const lexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
+    const properties = lexicon.defs.main.record.properties;
 
     expect(lexicon.lexicon).toBe(1);
     expect(lexicon.id).toBe("ai.rizom.brain.card");

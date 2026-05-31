@@ -1,11 +1,10 @@
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { socialPostSchema, type Platform } from "./schemas/social-post";
-import socialPostLexicon from "../lexicons/ai.rizom.brain.socialPost.json";
 
 export interface SocialPostAtprotoRecord {
   [key: string]: unknown;
@@ -65,7 +64,7 @@ export function createSocialPostAtprotoProjection(): AtprotoProjection<SocialPos
   return {
     entityType: "social-post",
     collection: "ai.rizom.brain.socialPost",
-    lexicon: parseAtprotoLexicon(socialPostLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.socialPost"],
     validate: false,
     buildRecord: buildSocialPostAtprotoRecord,
   };

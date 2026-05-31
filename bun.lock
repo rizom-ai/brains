@@ -754,6 +754,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/atproto-registry": {
+      "name": "@brains/atproto-registry",
+      "version": "0.2.0-alpha.94",
+      "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/buttondown": {
       "name": "@brains/buttondown",
       "version": "0.2.0-alpha.94",
@@ -1724,6 +1742,7 @@
       "name": "@brains/site-rizom",
       "version": "0.2.0-alpha.94",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
@@ -1798,6 +1817,8 @@
     "@brains/atproto": ["@brains/atproto@workspace:plugins/atproto"],
 
     "@brains/atproto-contracts": ["@brains/atproto-contracts@workspace:shared/atproto-contracts"],
+
+    "@brains/atproto-registry": ["@brains/atproto-registry@workspace:plugins/atproto-registry"],
 
     "@brains/auth-service": ["@brains/auth-service@workspace:shell/auth-service"],
 

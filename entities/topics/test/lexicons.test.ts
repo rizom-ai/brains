@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 
 describe("topic ATProto lexicons", () => {
-  it("defines the ai.rizom.brain.topic record", async () => {
-    const lexicon = await Bun.file("lexicons/ai.rizom.brain.topic.json").json();
+  it("uses the canonical ai.rizom.brain.topic record", () => {
+    const lexicon = canonicalAtprotoLexicons["ai.rizom.brain.topic"];
 
     expect(lexicon).toMatchObject({
       lexicon: 1,

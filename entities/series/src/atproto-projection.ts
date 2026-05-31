@@ -1,11 +1,10 @@
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { seriesSchema } from "./schemas/series";
-import seriesLexicon from "../lexicons/ai.rizom.brain.series.json";
 
 export interface SeriesAtprotoRecord {
   [key: string]: unknown;
@@ -46,7 +45,7 @@ export function createSeriesAtprotoProjection(): AtprotoProjection<SeriesAtproto
   return {
     entityType: "series",
     collection: "ai.rizom.brain.series",
-    lexicon: parseAtprotoLexicon(seriesLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.series"],
     validate: false,
     buildRecord: buildSeriesAtprotoRecord,
   };

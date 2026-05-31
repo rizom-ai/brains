@@ -5,11 +5,11 @@ AT Protocol integration for Rizom brains.
 This package currently covers the Phase 1 foundation plus the first outbound publishing slice:
 
 - `ServicePlugin` package skeleton
-- `ai.rizom.brain.card` lexicon owned by the ATProto service plugin
+- canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record creation, and blob upload tests
 - brain card publishing as `ai.rizom.brain.card`
-- projection registry so entity plugins can register ATProto lexicons and mappers without centralizing entity records here
+- projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
 
 ## Configuration
 
@@ -96,7 +96,7 @@ Input:
 }
 ```
 
-Use this for generic projection-backed publishing. The entity plugin owns the record mapper and collection name.
+Use this for generic projection-backed publishing. The entity plugin owns the record mapper; the canonical lexicon contract comes from `@brains/atproto-contracts`.
 
 ### `atproto_publish_post`
 
@@ -126,14 +126,13 @@ Entity plugins should own their own ATProto projection definitions and register 
 ```ts
 import {
   AtprotoProjectionRegistry,
-  parseAtprotoLexicon,
+  canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 
 AtprotoProjectionRegistry.getInstance().register({
   entityType: "note",
   collection: "ai.rizom.brain.note",
-  lexicon: parseAtprotoLexicon(noteLexicon),
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.note"],
   validate: false,
   buildRecord: async ({ entity }) => ({
     $type: "ai.rizom.brain.note",
@@ -146,7 +145,7 @@ AtprotoProjectionRegistry.getInstance().register({
 });
 ```
 
-The registry rejects collection/lexicon mismatches. Before dry-run results or PDS writes are returned, the ATProto plugin validates projected records against the registered lexicon locally. PDS writes may still use `validate: false` for custom `ai.rizom.brain.*` records because public PDS instances do not necessarily know Rizom lexicons. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
+The registry rejects collection/lexicon mismatches. Before dry-run results or PDS writes are returned, the ATProto plugin validates projected records against the registered canonical lexicon locally. PDS writes may still use `validate: false` for custom `ai.rizom.brain.*` records because public PDS instances do not necessarily know Rizom lexicons. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same mapper ownership pattern.
 
 ## Manual smoke checklist
 
@@ -173,7 +172,7 @@ Use a test PDS/Bluesky account and an app password.
 ## Current limitations
 
 - Outbound ATProto OAuth is deferred; the prototype uses app-password authentication. This is separate from the brain's existing inbound OAuth server for clients calling the brain.
-- Lexicon TypeScript generation is intentionally not wired into the workspace yet. For now, lexicon JSON is checked by tests, and record mapper tests validate the important projections against existing entity schemas.
+- Lexicon TypeScript generation is intentionally not wired into the workspace yet. For now, canonical lexicon JSON lives in `@brains/atproto-contracts`, and record mapper tests validate projections against existing entity schemas.
 - Custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons.
 - Post cover images are uploaded as AT Protocol blobs and included in `ai.rizom.brain.post` records.
 - Bluesky `app.bsky.feed.post` publishing is intentionally not part of `atproto_publish_post`; it should be added later through the `social-post` workflow.

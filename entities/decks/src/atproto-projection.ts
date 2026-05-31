@@ -1,11 +1,10 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { deckFrontmatterSchema, deckSchema } from "./schemas/deck";
-import deckLexicon from "../lexicons/ai.rizom.brain.deck.json";
 
 export interface DeckAtprotoRecord {
   [key: string]: unknown;
@@ -60,7 +59,7 @@ export function createDeckAtprotoProjection(): AtprotoProjection<DeckAtprotoReco
   return {
     entityType: "deck",
     collection: "ai.rizom.brain.deck",
-    lexicon: parseAtprotoLexicon(deckLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.deck"],
     validate: false,
     buildRecord: buildDeckAtprotoRecord,
   };

@@ -1,11 +1,10 @@
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { topicEntitySchema } from "./schemas/topic";
-import topicLexicon from "../lexicons/ai.rizom.brain.topic.json";
 
 const topicAdapter = new TopicAdapter();
 
@@ -48,7 +47,7 @@ export function createTopicAtprotoProjection(): AtprotoProjection<TopicAtprotoRe
   return {
     entityType: "topic",
     collection: "ai.rizom.brain.topic",
-    lexicon: parseAtprotoLexicon(topicLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.topic"],
     validate: false,
     buildRecord: buildTopicAtprotoRecord,
   };

@@ -1,6 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { parseAtprotoLexicon } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
   AtprotoProjection,
@@ -8,7 +8,6 @@ import type {
 } from "@brains/atproto-contracts";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
-import postLexicon from "../lexicons/ai.rizom.brain.post.json";
 
 export interface BlogAtprotoPostRecord {
   [key: string]: unknown;
@@ -155,7 +154,7 @@ export function createBlogAtprotoProjection(): AtprotoProjection<BlogAtprotoPost
   return {
     entityType: "post",
     collection: "ai.rizom.brain.post",
-    lexicon: parseAtprotoLexicon(postLexicon),
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.post"],
     validate: false,
     buildRecord: buildBlogAtprotoPostRecord,
     onPublished: async ({ entity, context, uri }): Promise<void> => {
