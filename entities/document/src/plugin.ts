@@ -1,4 +1,10 @@
-import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
+import type {
+  CreateInput,
+  CreateInterceptionResult,
+  Plugin,
+  ServicePluginContext,
+  Tool,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
@@ -6,7 +12,11 @@ import {
   documentSchema,
   type DocumentEntity,
 } from "@brains/document";
-import { DocumentGenerationJobHandler } from "./handlers/documentGenerationHandler";
+import {
+  DocumentGenerationJobHandler,
+  documentGenerationJobSchema,
+  getDocumentId,
+} from "./handlers/documentGenerationHandler";
 import { createDocumentTools } from "./tools";
 import packageJson from "../package.json";
 
@@ -31,6 +41,9 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     context.entities.register(this.entityType, this.schema, this.adapter, {
       embeddable: false,
     });
+    context.entities.registerCreateInterceptor(this.entityType, (input) =>
+      this.interceptCreate(input),
+    );
     context.jobs.registerHandler(
       "generate",
       new DocumentGenerationJobHandler(
@@ -40,8 +53,49 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     );
   }
 
+  private async interceptCreate(
+    input: CreateInput,
+  ): Promise<CreateInterceptionResult> {
+    if (!input.from) {
+      return { kind: "continue", input };
+    }
+
+    const context = this.pluginContext;
+    if (!context) {
+      return {
+        kind: "handled",
+        result: { success: false, error: "Plugin context not initialized" },
+      };
+    }
+
+    const generationData = documentGenerationJobSchema.parse({
+      sourceEntityType: input.from.sourceEntityType,
+      sourceEntityId: input.from.sourceEntityId,
+      attachmentType: input.from.attachmentType,
+      ...(input.title && { title: input.title }),
+      ...(input.replace === true && { replace: true }),
+      ...(input.targetEntityType && {
+        targetEntityType: input.targetEntityType,
+      }),
+      ...(input.targetEntityId && { targetEntityId: input.targetEntityId }),
+    });
+    const documentId = getDocumentId(generationData);
+    const jobId = await context.jobs.enqueue({
+      type: "generate",
+      data: { ...generationData, documentId },
+    });
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: { entityId: documentId, jobId, status: "generating" },
+      },
+    };
+  }
+
   protected override async getInstructions(): Promise<string> {
-    return `When a user asks to generate, save, prepare, or preview a deck carousel PDF, call document_generate with sourceEntityType: "deck", sourceEntityId set to the deck ID, and attachmentType: "carousel". Do not use generic attachment types like "document" for deck carousel PDFs.`;
+    return `When a user asks to save, regenerate, or replace a deck carousel PDF as a durable document, call system_create with entityType: "document" and from: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Include targetEntityType/targetEntityId when they ask to attach it to another entity. Use replace: true when they ask to regenerate or replace a saved carousel document. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document" for deck carousel PDFs.`;
   }
 
   protected override async getTools(): Promise<Tool[]> {

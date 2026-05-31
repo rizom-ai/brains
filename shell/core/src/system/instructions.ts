@@ -9,11 +9,11 @@ export function createSystemInstructions(services: SystemServices): string {
     "Use these system tools for ALL entity operations:",
     "",
     "- **system_create**: Create or generate any entity. " +
-      "Pass `content` for direct creation, `prompt` for AI generation, or `url` for URL-first flows like saving links or remote agents. " +
+      "Pass `content` for direct creation, `prompt` for AI generation, `url` for URL-first flows like saving links or remote agents, or `from` for source-derived artifact saves. " +
       "When creating an entity with a cover image, pass `coverImage: true` or `coverImage: { generate: true, prompt }`; do not guess a future entity ID. " +
       `Available entity types: ${types.join(", ")}.`,
     "- **system_update**: Modify an entity's fields or content. " +
-      "Use `fields` for title, status, and other frontmatter/metadata changes. " +
+      "Use `fields` for title, status, coverImageId, and other frontmatter/metadata changes. " +
       "When the user explicitly asks to rename, retitle, approve, publish, archive, or otherwise change fields, call `system_update`; do not just retrieve the entity or claim it was changed. " +
       "Requires confirmation before applying changes.",
     "- **system_delete**: Remove an entity. " +

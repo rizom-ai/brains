@@ -246,6 +246,68 @@ describe("system_update tool", () => {
     expect(updated?.metadata).not.toHaveProperty("visibility");
   });
 
+  it("rejects coverImageId field updates for entity types without cover support", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { coverImageId: "hero-banner" },
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "Entity type 'agent' doesn't support cover images",
+    });
+  });
+
+  it("writes coverImageId field updates to frontmatter for entity types with cover support", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: { coverImageId: "hero-banner" },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "linkedin-update" },
+    });
+    const updated = services.getEntities().get("linkedin-update");
+    expect(updated?.content).toContain("coverImageId: hero-banner");
+    expect(updated?.metadata).not.toHaveProperty("coverImageId");
+  });
+
+  it("clears coverImageId through system_update fields", async () => {
+    services.addEntities([
+      {
+        id: "covered-post",
+        entityType: "social-post",
+        content:
+          "---\ntitle: Covered Post\nstatus: draft\ncoverImageId: hero-banner\n---\n\nPost body.",
+        contentHash: "hash-covered",
+        visibility: "public",
+        metadata: { title: "Covered Post", status: "draft" },
+        created: new Date("2026-03-15T12:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T12:00:00.000Z").toISOString(),
+      },
+    ]);
+
+    const result = await exec({
+      entityType: "social-post",
+      id: "covered-post",
+      fields: { coverImageId: null },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "covered-post" },
+    });
+    expect(services.getEntities().get("covered-post")?.content).not.toContain(
+      "coverImageId",
+    );
+  });
+
   it("re-parses visibility from frontmatter on full content replacement", async () => {
     const newMarkdown =
       "---\nname: Old Agent\nkind: professional\nurl: https://old-agent.io/a2a\nstatus: active\ndiscoveredAt: 2026-03-10T10:00:00.000Z\ndiscoveredVia: manual\nvisibility: private\n---\n";

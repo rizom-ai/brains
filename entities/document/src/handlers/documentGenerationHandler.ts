@@ -31,6 +31,7 @@ export const documentGenerationJobSchemaBase = z.object({
   title: z.string().min(1).optional(),
   filename: z.string().min(1).optional(),
   dedupKey: z.string().min(1).optional(),
+  replace: z.boolean().optional(),
   pageCount: z.number().int().min(0).optional(),
   maxPageCount: z.number().int().positive().optional(),
   maxBytes: z.number().int().positive().optional(),
@@ -96,6 +97,35 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
   }
 
+  /**
+   * Computes the dedup key for a generation job.
+   *
+   * - An explicitly-provided `dedupKey` always wins (callers/tests that pin a
+   *   stable identity).
+   * - The `renderUrl` (preview) path keys on the URL.
+   * - The attachment-derived path keys on the source entity's identity AND its
+   *   current content hash, so editing the source re-renders rather than
+   *   reusing a stale document. If the source entity (or its hash) can't be
+   *   found, we fall back to the identity-only key.
+   *
+   * The key intentionally covers only the source content; theme-mode and brand
+   * are out of scope and are not expected to change at runtime.
+   */
+  private async getDedupKey(data: DocumentGenerationJobData): Promise<string> {
+    if (data.dedupKey !== undefined) {
+      return data.dedupKey;
+    }
+    if (data.renderUrl !== undefined) {
+      return `${data.attachmentType}:${data.sourceEntityType}:${data.sourceEntityId}:${data.renderUrl}`;
+    }
+    const base = `${data.attachmentType}:${data.sourceEntityType}:${data.sourceEntityId}:resolved-attachment`;
+    const source = await this.context.entityService.getEntity({
+      entityType: data.sourceEntityType,
+      id: data.sourceEntityId,
+    });
+    return source ? `${base}:${source.contentHash}` : base;
+  }
+
   async process(
     data: DocumentGenerationJobData,
     jobId: string,
@@ -118,14 +148,25 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       );
     }
 
-    const dedupKey = getDedupKey(data);
-    const existing = await this.findDocumentByDedupKey(dedupKey);
-    if (existing) {
-      await this.reportProgress(progressReporter, {
-        progress: 100,
-        message: "Reusing existing generated document",
-      });
-      return { success: true, documentId: existing.id, reused: true };
+    const dedupKey = await this.getDedupKey(data);
+    const documentId = getDocumentId(data, dedupKey);
+    if (data.replace !== true) {
+      const existing = await this.findDocumentByDedupKey(dedupKey);
+      if (existing) {
+        if (data.targetEntityType && data.targetEntityId) {
+          await this.attachDocumentToTarget(
+            data.targetEntityType,
+            data.targetEntityId,
+            existing.id,
+            data,
+          );
+        }
+        await this.reportProgress(progressReporter, {
+          progress: 100,
+          message: "Reusing existing generated document",
+        });
+        return { success: true, documentId: existing.id, reused: true };
+      }
     }
 
     await this.reportProgress(progressReporter, {
@@ -134,10 +175,14 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     });
 
     try {
-      const attachment = await this.resolveDocumentAttachment(data, {
-        timeoutMs,
-        maxBytes,
-      });
+      const attachment = await this.resolveDocumentAttachment(
+        data,
+        documentId,
+        {
+          timeoutMs,
+          maxBytes,
+        },
+      );
       const pdf = attachment.data;
       if (pdf.byteLength > maxBytes) {
         throw new Error(
@@ -159,7 +204,6 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         message: "Storing PDF document",
       });
 
-      const documentId = getDocumentId(data);
       const filename =
         data.filename ??
         (data.renderUrl === undefined
@@ -199,6 +243,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
           data.targetEntityType,
           data.targetEntityId,
           documentId,
+          data,
         );
       }
 
@@ -219,6 +264,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 
   private async resolveDocumentAttachment(
     data: DocumentGenerationJobData,
+    documentId: string,
     limits: { timeoutMs: number; maxBytes: number },
   ): Promise<PublishMediaData> {
     if (data.renderUrl !== undefined) {
@@ -234,7 +280,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
           ...(data.format !== undefined && { format: data.format }),
         }),
         mimeType: "application/pdf",
-        filename: data.filename ?? `${getDocumentId(data)}.pdf`,
+        filename: data.filename ?? `${documentId}.pdf`,
       };
     }
 
@@ -273,6 +319,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     entityType: string,
     entityId: string,
     documentId: string,
+    data: DocumentGenerationJobData,
   ): Promise<void> {
     const target = await this.context.entityService.getEntity({
       entityType,
@@ -287,9 +334,17 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       ? frontmatter["documents"].filter(isDocumentReference)
       : [];
 
-    const documents = existingDocuments.some((item) => item.id === documentId)
-      ? existingDocuments
-      : [...existingDocuments, { id: documentId }];
+    const activeDocuments = data.replace
+      ? await this.removeReferencesForSameSourceAttachment(
+          existingDocuments,
+          documentId,
+          data,
+        )
+      : existingDocuments;
+
+    const documents = activeDocuments.some((item) => item.id === documentId)
+      ? activeDocuments
+      : [...activeDocuments, { id: documentId }];
 
     await this.context.entityService.updateEntity({
       entity: {
@@ -298,24 +353,56 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       },
     });
   }
+
+  private async removeReferencesForSameSourceAttachment(
+    references: Array<{ id: string }>,
+    documentId: string,
+    data: DocumentGenerationJobData,
+  ): Promise<Array<{ id: string }>> {
+    const filtered: Array<{ id: string }> = [];
+    for (const reference of references) {
+      if (reference.id === documentId) {
+        filtered.push(reference);
+        continue;
+      }
+
+      const document =
+        await this.context.entityService.getEntity<DocumentEntity>({
+          entityType: "document",
+          id: reference.id,
+        });
+      if (!document || !isSameSourceAttachment(document, data)) {
+        filtered.push(reference);
+      }
+    }
+    return filtered;
+  }
 }
 
-function getDedupKey(data: DocumentGenerationJobData): string {
-  return (
-    data.dedupKey ??
-    `${data.attachmentType}:${data.sourceEntityType}:${data.sourceEntityId}:${data.renderUrl ?? "resolved-attachment"}`
-  );
-}
-
-export function getDocumentId(data: DocumentGenerationJobData): string {
+export function getDocumentId(
+  data: DocumentGenerationJobData,
+  dedupKey?: string,
+): string {
   // Fall back to the dedup key (not the jobId) so a generation that reuses an
   // existing document resolves to the same id the caller computed up front —
   // otherwise the attachment URL would point at an id that was never created.
+  //
+  // Enqueue-side callers (the create interceptor and the document_generate
+  // tool) can't await the content-hashed dedup key, so they omit it; they
+  // always supply an explicit documentId/filename, falling through to the
+  // identity-only key only as a last resort. The job handler passes the real
+  // content-hashed dedup key so a reuse resolves to the same id.
+  const identityKey = `${data.attachmentType}:${data.sourceEntityType}:${data.sourceEntityId}:${data.renderUrl ?? "resolved-attachment"}`;
   const base =
     data.documentId ??
     data.filename?.replace(/\.pdf$/i, "") ??
-    getDedupKey(data);
-  return slugify(base);
+    dedupKey ??
+    identityKey;
+  const idBase =
+    data.replace === true && data.documentId === undefined
+      ? `${base}-${Date.now()}`
+      : base;
+  return slugify(idBase);
 }
 
 function isDocumentReference(value: unknown): value is { id: string } {
@@ -325,5 +412,16 @@ function isDocumentReference(value: unknown): value is { id: string } {
     "id" in value &&
     typeof value.id === "string" &&
     value.id.length > 0
+  );
+}
+
+function isSameSourceAttachment(
+  document: DocumentEntity,
+  data: DocumentGenerationJobData,
+): boolean {
+  return (
+    document.metadata.sourceEntityType === data.sourceEntityType &&
+    document.metadata.sourceEntityId === data.sourceEntityId &&
+    document.metadata.attachmentType === data.attachmentType
   );
 }

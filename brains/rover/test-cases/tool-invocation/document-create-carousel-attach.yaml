@@ -1,6 +1,6 @@
-id: tool-invocation-document-create-from-carousel
-name: Save Deck Carousel as Document Entity
-description: "Verifies system_create persists a deck carousel as a durable PDF document entity"
+id: tool-invocation-document-create-carousel-attach
+name: Save Deck Carousel and Attach to Social Post
+description: "Verifies system_create saves a deck carousel PDF and attaches it to a target social post"
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -10,10 +10,9 @@ tags:
   - carousel
   - document
   - media
-  - document-create
 
 turns:
-  - userMessage: "Save the carousel for deck 'distributed-systems-primer' as a PDF document"
+  - userMessage: "Save the carousel for deck 'distributed-systems-primer' and attach it to social post 'publish-policy-draft'"
 
 successCriteria:
   expectedTools:
@@ -24,11 +23,13 @@ successCriteria:
         from.sourceEntityType: "deck"
         from.sourceEntityId: "distributed-systems-primer"
         from.attachmentType: "carousel"
+        targetEntityType: "social-post"
+        targetEntityId: "publish-policy-draft"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
 
 efficiency:
-  maxToolCalls: 2
+  maxToolCalls: 4
   maxTokens: 25000

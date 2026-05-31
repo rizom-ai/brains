@@ -209,12 +209,20 @@ export interface CreateCoverImageInput {
   prompt?: string | undefined;
 }
 
+export interface CreateFromAttachmentInput {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+}
+
 export interface CreateInput {
   entityType: string;
   prompt?: string;
   title?: string;
   content?: string;
   url?: string;
+  from?: CreateFromAttachmentInput;
+  replace?: boolean;
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
