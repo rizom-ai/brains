@@ -196,6 +196,7 @@
     "rizom-typography-unification",
     "rizom-ui-package",
     "rizom-unified-type-and-ecosystem",
+    "rover-a2a-anchor-directory",
     "rover-agent-directory-approval",
     "rover-setup-email-scaffold",
     "runtime-node-env-production",
@@ -227,6 +228,7 @@
     "web-chat-streamdown-markdown",
     "web-chat-theme-toggle-placement",
     "web-chat-tool-styling-fix",
+    "webserver-streaming-idle-timeout",
     "wordmark-slot-and-generic-suffix"
   ]
 }
