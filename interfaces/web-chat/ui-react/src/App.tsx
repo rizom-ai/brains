@@ -42,6 +42,7 @@ import {
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
 import { groupMessageParts } from "./message-parts";
+import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
@@ -137,18 +138,8 @@ interface WebChatSession {
   lastActiveAt: string;
 }
 
-interface WebChatHistoryMessage {
-  id: string;
-  role: UIMessage["role"];
-  content: string;
-}
-
 interface WebChatSessionsResponse {
   sessions: WebChatSession[];
-}
-
-interface WebChatMessagesResponse {
-  messages: WebChatHistoryMessage[];
 }
 
 function createConversationId(): string {
@@ -165,14 +156,6 @@ function getBrowserConversationId(): string {
   } catch {
     return createConversationId();
   }
-}
-
-function toUiMessage(message: WebChatHistoryMessage): UIMessage {
-  return {
-    id: message.id,
-    role: message.role,
-    parts: [{ type: "text", text: message.content }],
-  };
 }
 
 function isBusyStatus(status: string): boolean {

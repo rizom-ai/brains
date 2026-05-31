@@ -219,8 +219,11 @@ export type { ResolutionOptions } from "@brains/content-service";
 
 export {
   AgentResponseSchema,
+  ChatAttachmentSchema,
+  ChatAttachmentSourceSchema,
   ChatContextSchema,
   PendingConfirmationSchema,
+  TextChatAttachmentSchema,
   AttachmentCardDataSchema,
   AttachmentCardSchema,
   AttachmentCardSourceSchema,
@@ -230,6 +233,7 @@ export {
   ToolResultDataSchema,
   toPublicAttachmentCard,
   type AgentResponse,
+  type ChatAttachment,
   type ChatContext,
   type AgentNamespace,
   type AttachmentCard,

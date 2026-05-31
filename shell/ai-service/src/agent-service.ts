@@ -15,6 +15,7 @@ import type {
   AgentConfig,
   AgentResponse,
   BrainAgent,
+  ChatAttachment,
   ChatContext,
   IAgentService,
   StructuredChatCard,
@@ -30,6 +31,7 @@ import {
 import { createActor, fromPromise, waitFor } from "xstate";
 import {
   buildAgentContextInstructions,
+  buildMessageWithAttachments,
   buildModelMessages,
 } from "./conversation-messages";
 import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
@@ -242,6 +244,7 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
       actor: context?.actor ?? null,
       source: context?.source ?? null,
+      attachments: context?.attachments ?? [],
     });
 
     const snapshot = await waitFor(
@@ -327,6 +330,7 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
       actor,
       source,
+      attachments,
     } = input;
 
     // Ensure conversation exists
@@ -352,7 +356,8 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    const messages = buildModelMessages(historyMessages, message);
+    const modelMessage = buildMessageWithAttachments(message, attachments);
+    const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
 
@@ -370,7 +375,9 @@ export class AgentService implements IAgentService {
       conversationId,
       role: "user",
       content: message,
-      ...this.withMessageMetadata(this.buildMessageMetadata(actor, source)),
+      ...this.withMessageMetadata(
+        this.buildMessageMetadata(actor, source, attachments),
+      ),
     });
 
     // Call agent
@@ -558,6 +565,7 @@ export class AgentService implements IAgentService {
   private buildMessageMetadata(
     actor: ConversationMessageActor | null,
     source: ConversationMessageSource | null,
+    attachments: ChatAttachment[] = [],
   ): ConversationMessageMetadata {
     const enrichedActor = actor
       ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
@@ -565,6 +573,27 @@ export class AgentService implements IAgentService {
     return {
       ...(enrichedActor ? { actor: enrichedActor } : {}),
       ...(source ? { source } : {}),
+      ...(attachments.length > 0
+        ? {
+            attachments: attachments.map((attachment) =>
+              this.toMessageAttachmentMetadata(attachment),
+            ),
+          }
+        : {}),
+    };
+  }
+
+  private toMessageAttachmentMetadata(
+    attachment: ChatAttachment,
+  ): Record<string, unknown> {
+    return {
+      kind: attachment.kind,
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      ...(attachment.sizeBytes !== undefined && {
+        sizeBytes: attachment.sizeBytes,
+      }),
+      ...(attachment.source !== undefined && { source: attachment.source }),
     };
   }
 

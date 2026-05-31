@@ -4,7 +4,11 @@ import type {
   ConversationMessageActor,
   ConversationMessageSource,
 } from "@brains/conversation-service";
-import type { AgentResponse, PendingConfirmation } from "./agent-types";
+import type {
+  AgentResponse,
+  ChatAttachment,
+  PendingConfirmation,
+} from "./agent-types";
 
 /**
  * Context for the agent state machine.
@@ -19,6 +23,7 @@ export interface AgentMachineContext {
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
+  attachments: ChatAttachment[];
   response: AgentResponse | null;
   pendingConfirmations: PendingConfirmation[];
   activeConfirmation: PendingConfirmation | null;
@@ -39,6 +44,7 @@ export type AgentMachineEvent =
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
+      attachments: ChatAttachment[];
     }
   | { type: "CONFIRM"; approvalId: string }
   | { type: "CANCEL"; approvalId: string };
@@ -55,6 +61,7 @@ export interface ProcessMessageInput {
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
+  attachments: ChatAttachment[];
 }
 
 /**
@@ -177,6 +184,7 @@ export const agentMachine = setup({
     userPermissionLevel: "public" as UserPermissionLevel,
     actor: null,
     source: null,
+    attachments: [],
     response: null,
     pendingConfirmations: [],
     activeConfirmation: null,
@@ -196,6 +204,7 @@ export const agentMachine = setup({
             userPermissionLevel: event.userPermissionLevel,
             actor: event.actor,
             source: event.source,
+            attachments: event.attachments,
             response: null,
             pendingConfirmations: [],
             activeConfirmation: null,
@@ -217,6 +226,7 @@ export const agentMachine = setup({
           userPermissionLevel: context.userPermissionLevel,
           actor: context.actor,
           source: context.source,
+          attachments: context.attachments,
         }),
         onDone: [
           {

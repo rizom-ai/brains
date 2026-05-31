@@ -129,6 +129,7 @@ function makeMessage(
   conversationId: string,
   role: Message["role"],
   content: string,
+  metadata: Message["metadata"] = null,
 ): Message {
   return {
     id,
@@ -136,7 +137,7 @@ function makeMessage(
     role,
     content,
     timestamp: "2026-05-24T00:00:30.000Z",
-    metadata: null,
+    metadata,
   };
 }
 
@@ -869,7 +870,7 @@ describe("WebChatInterface", () => {
     );
   });
 
-  it("passes durable upload refs to the agent as uploaded text", async () => {
+  it("passes durable upload refs to the agent as native text attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
@@ -913,9 +914,17 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.message).toBe(
-      'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
-    );
+    expect(agent.chatCalls[0]?.message).toBe("Summarize this");
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "text",
+        filename: "durable-notes.md",
+        mediaType: "text/markdown",
+        content: "# Durable Notes",
+        sizeBytes: 15,
+        source: { kind: "web-chat-upload", id: upload.ref.id },
+      },
+    ]);
   });
 
   it("rejects invalid durable upload refs", async () => {
@@ -1765,7 +1774,23 @@ describe("WebChatInterface", () => {
         conversations: [makeConversation("web-session", "web-chat")],
         messagesByConversation: {
           "web-session": [
-            makeMessage("message-1", "web-session", "user", "Hello"),
+            makeMessage(
+              "message-1",
+              "web-session",
+              "user",
+              "Hello",
+              JSON.stringify({
+                attachments: [
+                  {
+                    kind: "text",
+                    filename: "notes.md",
+                    mediaType: "text/markdown",
+                    sizeBytes: 7,
+                    source: { kind: "web-chat-upload", id: "upload-123" },
+                  },
+                ],
+              }),
+            ),
           ],
         },
       }),
@@ -1781,7 +1806,23 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(body).toEqual({
-      messages: [{ id: "message-1", role: "user", content: "Hello" }],
+      messages: [
+        {
+          id: "message-1",
+          role: "user",
+          content: "Hello",
+          attachments: [
+            {
+              kind: "text",
+              filename: "notes.md",
+              mediaType: "text/markdown",
+              sizeBytes: 7,
+              createdAt: "2026-05-24T00:00:30.000Z",
+              source: { kind: "web-chat-upload", id: "upload-123" },
+            },
+          ],
+        },
+      ],
     });
   });
 

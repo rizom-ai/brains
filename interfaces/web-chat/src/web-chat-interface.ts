@@ -10,6 +10,7 @@ import {
   type SendMessageWithIdRequest,
   type StructuredChatCard,
   type WebRouteDefinition,
+  type ChatAttachment,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
@@ -114,6 +115,11 @@ interface WebChatUploadRecord {
   createdAt: string;
 }
 
+interface ParsedUserInput {
+  message: string;
+  attachments: ChatAttachment[];
+}
+
 const webChatUploadRecordSchema: z.ZodType<WebChatUploadRecord> = z.object({
   id: z.string().regex(webChatUploadIdPattern),
   ref: uploadRefSchema,
@@ -122,6 +128,21 @@ const webChatUploadRecordSchema: z.ZodType<WebChatUploadRecord> = z.object({
   sizeBytes: z.number().nonnegative(),
   createdAt: z.string().datetime(),
 });
+
+const storedChatAttachmentSchema = z.object({
+  kind: z.literal("text"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: z
+    .object({
+      kind: z.string().min(1),
+      id: z.string().min(1),
+    })
+    .optional(),
+});
+
+const storedChatAttachmentsSchema = z.array(storedChatAttachmentSchema);
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -2477,11 +2498,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const conversationId = parsed.data.id ?? this.createId("web");
     const userInput = await this.extractLastUserInput(parsed.data);
     if (userInput instanceof Response) return userInput;
-    const message = userInput;
-    const approvalResponses = message
+    const { message, attachments } = userInput;
+    const hasUserInput = message.length > 0 || attachments.length > 0;
+    const approvalResponses = hasUserInput
       ? []
       : this.extractLatestApprovalResponses(parsed.data);
-    if (!message && approvalResponses.length === 0) {
+    if (!hasUserInput && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
     }
 
@@ -2501,6 +2523,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           conversationId,
           message,
           permissionLevel,
+          attachments,
         });
       },
     });
@@ -2726,12 +2749,64 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     );
 
     return Response.json({
-      messages: messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-      })),
+      messages: messages.map((message) => {
+        const attachments = this.getStoredMessageAttachments(
+          message.metadata,
+          message.timestamp,
+        );
+        return {
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          ...(attachments.length > 0 ? { attachments } : {}),
+        };
+      }),
     });
+  }
+
+  private getStoredMessageAttachments(
+    metadata: unknown,
+    createdAt: string,
+  ): Array<{
+    kind: "text";
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    createdAt: string;
+    source?: { kind: string; id: string } | undefined;
+  }> {
+    const parsedMetadata = this.parseStoredMessageMetadata(metadata);
+    const parsedAttachments = storedChatAttachmentsSchema.safeParse(
+      parsedMetadata?.["attachments"],
+    );
+    if (!parsedAttachments.success) return [];
+
+    return parsedAttachments.data.map((attachment) => ({
+      kind: attachment.kind,
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      sizeBytes: attachment.sizeBytes ?? 0,
+      createdAt,
+      ...(attachment.source !== undefined && { source: attachment.source }),
+    }));
+  }
+
+  private parseStoredMessageMetadata(
+    metadata: unknown,
+  ): Record<string, unknown> | null {
+    if (typeof metadata === "string") {
+      try {
+        const parsed = JSON.parse(metadata) as unknown;
+        return this.isRecord(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+    return this.isRecord(metadata) ? metadata : null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   private async handleStreamedChat(input: {
@@ -2739,6 +2814,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     conversationId: string;
     message: string;
     permissionLevel: "anchor" | "public";
+    attachments: ChatAttachment[];
   }): Promise<void> {
     this.activeStreams.set(input.conversationId, { writer: input.writer });
     this.startProcessingInput(input.conversationId);
@@ -2758,6 +2834,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           interfaceType: webChatInterfaceType,
           channelId: input.conversationId,
           channelName: "Web Chat",
+          attachments: input.attachments,
         },
       );
 
@@ -2896,12 +2973,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   private async extractLastUserInput(
     request: ChatRequest,
-  ): Promise<string | Response> {
+  ): Promise<ParsedUserInput | Response> {
     const lastUserMessage = this.findLastUserMessage(request);
-    if (!lastUserMessage) return "";
-    if (lastUserMessage.content) return lastUserMessage.content;
+    if (!lastUserMessage) return { message: "", attachments: [] };
+    if (lastUserMessage.content) {
+      return { message: lastUserMessage.content, attachments: [] };
+    }
 
     const messageParts: string[] = [];
+    const attachments: ChatAttachment[] = [];
     for (const part of lastUserMessage.parts ?? []) {
       const parsedText = textPartSchema.safeParse(part);
       if (parsedText.success) {
@@ -2921,11 +3001,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
       const parsedUploadRef = uploadRefPartSchema.safeParse(part);
       if (parsedUploadRef.success) {
-        const formatted = await this.formatReferencedUpload(
+        const attachment = await this.resolveReferencedUpload(
           parsedUploadRef.data.data.ref.id,
         );
-        if (formatted instanceof Response) return formatted;
-        messageParts.push(formatted);
+        if (attachment instanceof Response) return attachment;
+        attachments.push(attachment);
         continue;
       }
 
@@ -2934,7 +3014,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       }
     }
 
-    return messageParts.join("\n\n");
+    return { message: messageParts.join("\n\n"), attachments };
   }
 
   private getPartType(part: unknown): string | undefined {
@@ -2979,9 +3059,9 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     );
   }
 
-  private async formatReferencedUpload(
+  private async resolveReferencedUpload(
     uploadId: string,
-  ): Promise<string | Response> {
+  ): Promise<ChatAttachment | Response> {
     const record = await this.readUploadRecord(uploadId);
     if (record instanceof Response) return record;
 
@@ -2997,11 +3077,20 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         status: 400,
       });
     }
+    if (!this.isLikelyTextContent(content)) {
+      return new Response(`Unsupported file upload type: ${record.filename}`, {
+        status: 400,
+      });
+    }
 
-    return this.formatFileUploadMessage(
-      record.filename,
-      content.toString("utf8").replace(/^\uFEFF/, ""),
-    );
+    return {
+      kind: "text",
+      filename: record.filename,
+      mediaType: record.mediaType,
+      content: content.toString("utf8").replace(/^\uFEFF/, ""),
+      sizeBytes: content.byteLength,
+      source: { kind: webChatUploadRefKind, id: uploadId },
+    };
   }
 
   private async readUploadRecord(

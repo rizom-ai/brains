@@ -179,15 +179,20 @@ Initial durable upload protocol slice exists: operator-only
 `POST /api/chat/uploads` accepts multipart text uploads, validates the same text
 file policy, stores content plus metadata under the web-chat data directory, and
 returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
-`data-upload` parts carrying those refs, resolves the stored text, and passes it
-to the agent using the existing text-upload prompt format. The React prompt now
-uploads selected text files first, then sends `data-upload` refs through the AI
-SDK message parts protocol.
+`data-upload` parts carrying those refs and resolves the stored text into
+native `AgentService.chat()` text attachments. The agent service still projects
+text attachments into the current model turn using the existing text-upload
+prompt format for compatibility, but the stored user message remains the user's
+text instead of an upload-content blob. The React prompt now uploads selected
+text files first, then sends `data-upload` refs through the AI SDK message parts
+protocol.
+
+Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
+so transcript rendering can continue to show attachment filename pills.
 
 Remaining upload work: add durable storage/registry integration beyond the
-web-chat data directory, define binary/media type policies, and change the
-`AgentService.chat()` request path to receive attachment refs natively instead
-of inlining text.
+web-chat data directory, define binary/media type policies, and expand native
+attachment handling beyond text attachments.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

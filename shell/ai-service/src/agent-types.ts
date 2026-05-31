@@ -78,6 +78,22 @@ export interface AgentConfig {
  * Context for a chat message
  * Contains per-message information like user permission level
  */
+export interface ChatAttachmentSource {
+  kind: string;
+  id: string;
+}
+
+export interface TextChatAttachment {
+  kind: "text";
+  filename: string;
+  mediaType: string;
+  content: string;
+  sizeBytes?: number | undefined;
+  source?: ChatAttachmentSource | undefined;
+}
+
+export type ChatAttachment = TextChatAttachment;
+
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
@@ -85,6 +101,7 @@ export interface ChatContext {
   channelName?: string; // Human-readable name for the channel/room
   actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
   source?: ConversationMessageSource; // Platform-specific source provenance
+  attachments?: ChatAttachment[] | undefined; // Native same-turn attachments supplied by the interface
 }
 
 /**

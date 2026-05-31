@@ -265,6 +265,56 @@ describe("AgentService", () => {
       );
     });
 
+    it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Summarize this", "test-conversation", {
+        attachments: [
+          {
+            kind: "text",
+            filename: "durable-notes.md",
+            mediaType: "text/markdown",
+            content: "# Durable Notes",
+            sizeBytes: 16,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content:
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "Summarize this",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "text",
+                filename: "durable-notes.md",
+                mediaType: "text/markdown",
+                sizeBytes: 16,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

@@ -5,6 +5,26 @@ import {
   conversationMessageSourceSchema,
 } from "@brains/conversation-service";
 
+export const ChatAttachmentSourceSchema = z.object({
+  kind: z.string().min(1),
+  id: z.string().min(1),
+});
+
+export const TextChatAttachmentSchema = z.object({
+  kind: z.literal("text"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  content: z.string(),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: ChatAttachmentSourceSchema.optional(),
+});
+
+export const ChatAttachmentSchema = z.discriminatedUnion("kind", [
+  TextChatAttachmentSchema,
+]);
+
+export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+
 export const ChatContextSchema = z.object({
   userPermissionLevel: UserPermissionLevelSchema.optional(),
   interfaceType: z.string().optional(),
@@ -12,6 +32,7 @@ export const ChatContextSchema = z.object({
   channelName: z.string().optional(),
   actor: conversationMessageActorSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
+  attachments: z.array(ChatAttachmentSchema).optional(),
 });
 
 export type ChatContext = z.infer<typeof ChatContextSchema>;

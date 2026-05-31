@@ -1,6 +1,7 @@
 import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage } from "ai";
+import type { ChatAttachment } from "./agent-types";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -18,6 +19,21 @@ export function buildModelMessages(
     ...toModelMessages(historyMessages),
     { role: "user", content: userMessage },
   ];
+}
+
+export function buildMessageWithAttachments(
+  message: string,
+  attachments: ChatAttachment[] | undefined,
+): string {
+  const textAttachments = (attachments ?? []).map(formatTextAttachment);
+  return [message, ...textAttachments]
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+    .join("\n\n");
+}
+
+function formatTextAttachment(attachment: ChatAttachment): string {
+  return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
 export function buildAgentContextInstructions(

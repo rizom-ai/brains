@@ -3,7 +3,10 @@ import {
   AgentResponseSchema,
   ChatContextSchema,
 } from "../../src/contracts/agent";
-import { toPublicAgentResponse } from "../../src/base/public-agent-service";
+import {
+  createPublicAgentNamespace,
+  toPublicAgentResponse,
+} from "../../src/base/public-agent-service";
 
 describe("public agent contracts", () => {
   it("accepts speaker attribution in chat context", () => {
@@ -40,6 +43,78 @@ describe("public agent contracts", () => {
         metadata: { guildId: "guild-123" },
       },
     });
+  });
+
+  it("accepts native text attachments in chat context", () => {
+    expect(
+      ChatContextSchema.parse({
+        attachments: [
+          {
+            kind: "text",
+            filename: "notes.md",
+            mediaType: "text/markdown",
+            content: "# Notes",
+            sizeBytes: 7,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      }),
+    ).toEqual({
+      attachments: [
+        {
+          kind: "text",
+          filename: "notes.md",
+          mediaType: "text/markdown",
+          content: "# Notes",
+          sizeBytes: 7,
+          source: { kind: "web-chat-upload", id: "upload-123" },
+        },
+      ],
+    });
+  });
+
+  it("forwards native attachments through the public agent namespace", async () => {
+    const calls: unknown[] = [];
+    const agent = createPublicAgentNamespace({
+      chat: async (_message, _conversationId, context) => {
+        calls.push(context);
+        return {
+          text: "ok",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "ok",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      }),
+      invalidateAgent: () => {},
+    });
+
+    await agent.chat("Summarize", "conversation-1", {
+      attachments: [
+        {
+          kind: "text",
+          filename: "notes.md",
+          mediaType: "text/markdown",
+          content: "# Notes",
+          source: { kind: "web-chat-upload", id: "upload-123" },
+        },
+      ],
+    });
+
+    expect(calls).toEqual([
+      {
+        attachments: [
+          {
+            kind: "text",
+            filename: "notes.md",
+            mediaType: "text/markdown",
+            content: "# Notes",
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      },
+    ]);
   });
 
   it("maps runtime agent responses to the stable public contract", () => {

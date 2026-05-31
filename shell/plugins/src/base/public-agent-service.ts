@@ -93,6 +93,7 @@ function toRuntimeChatContext(
     ...(context.channelName && { channelName: context.channelName }),
     ...(context.actor && { actor: context.actor }),
     ...(context.source && { source: context.source }),
+    ...(context.attachments && { attachments: context.attachments }),
   };
 }
 
