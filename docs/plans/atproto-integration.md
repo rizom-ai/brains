@@ -123,7 +123,7 @@ This is the first visibly valuable milestone.
 
 Before Phase 3/4 network interoperability depends on custom records from multiple brains, Rizom lexicons should become public, canonical contracts.
 
-- Serve machine-readable `ai.rizom.brain.*` lexicon JSON from a stable public location under a Rizom-controlled domain.
+- Serve machine-readable `ai.rizom.brain.*` lexicon JSON from the canonical `https://rizom.ai/atproto/lexicons/<nsid>.json` path.
 - Document the canonical NSIDs, source package ownership, and compatibility/change policy.
 - Add local lexicon-backed validation in the ATProto publish path before calling `com.atproto.repo.createRecord` / `putRecord`; keep PDS writes compatible with public PDS instances that do not know Rizom lexicons.
 - Add tests that registered package-owned lexicons match the published canonical copies, or that canonical publication is generated from package-owned sources without drift.
@@ -253,10 +253,10 @@ Deliberately deferred (consistent with this plan, not blockers):
 
 ### Phase 2.5: Public lexicon publication and local validation
 
-1. Publish canonical machine-readable lexicon JSON for `ai.rizom.brain.*` under a stable Rizom-controlled public URL.
+1. Publish canonical machine-readable lexicon JSON for `ai.rizom.brain.*` under `https://rizom.ai/atproto/lexicons/<nsid>.json` — implemented in the Rizom site static assets.
 2. Define the compatibility policy: additive fields, required-field changes, deprecation, and when a new NSID/version is required.
-3. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons.
-4. Add drift tests so package-owned lexicons and public canonical lexicons cannot diverge silently.
+3. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons — implemented.
+4. Add drift tests so package-owned lexicons and public canonical lexicons cannot diverge silently — implemented for the Rizom site static assets.
 5. Document how other brains/tools should fetch and interpret Rizom lexicons.
 6. Tests: malformed local projected record is rejected before PDS write; canonical lexicon publication includes every registered Rizom custom record; package-owned and canonical lexicons stay in sync.
 

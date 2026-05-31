@@ -70,8 +70,8 @@ describe("AT Protocol brain card publishing", () => {
       description: "Testing purposes",
       brainDid: "did:web:brain.example.com",
       anchorDid: "did:plc:anchor",
-      siteUrl: "https://brain.example.com",
-      a2aEndpoint: "/a2a",
+      siteUrl: "https://brain.example.com/",
+      a2aEndpoint: "https://brain.example.com/a2a",
     });
     expect(result.record.capabilities).toContain("model:test-brain");
     expect(result.record.capabilities).toContain("endpoint:A2A");

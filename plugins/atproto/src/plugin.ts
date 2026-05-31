@@ -15,13 +15,18 @@ import { AtprotoPdsClient } from "./pds-client";
 import { buildDidWebDocument } from "./did";
 import {
   AtprotoProjectionRegistry,
+  parseAtprotoLexicon,
+  validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
 import { buildBrainCardRecord, type BrainCardRecord } from "./records";
 import { createAtprotoTools } from "./tools";
+import cardLexicon from "../lexicons/ai.rizom.brain.card.json";
 import packageJson from "../package.json";
+
+const brainCardLexicon = parseAtprotoLexicon(cardLexicon);
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {
@@ -106,6 +111,7 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     options: PublishBrainCardOptions = {},
   ): Promise<PublishBrainCardResult> {
     const record = await buildBrainCardRecord(context, this.config);
+    validateAtprotoRecord(brainCardLexicon, record);
     const repo = this.config.repoDid;
 
     if (options.dryRun) {
@@ -237,6 +243,7 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
         config: this.config,
         ...(options.topics && { topics: options.topics }),
       });
+      validateAtprotoRecord(projection.lexicon, record);
       return {
         record,
         dryRun: true,
@@ -261,6 +268,7 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       client,
       ...(options.topics && { topics: options.topics }),
     });
+    validateAtprotoRecord(projection.lexicon, record);
     const result = await client.createRecord({
       repo: targetRepo,
       collection: projection.collection,

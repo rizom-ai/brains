@@ -25,6 +25,18 @@ function uniqueStrings(values: Array<string | undefined>): string[] {
   );
 }
 
+function normalizePublicUrl(
+  value: string | undefined,
+  baseUrl: string | undefined,
+): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value, baseUrl).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export async function buildBrainCardRecord(
   context: ServicePluginContext,
   config: AtprotoConfig,
@@ -33,10 +45,16 @@ export async function buildBrainCardRecord(
   const identity = context.identity.get();
   const profile = context.identity.getProfile();
   const appInfo = await context.identity.getAppInfo();
-  const siteUrl = context.siteUrl ?? profile.website;
-  const a2aEndpoint = appInfo.endpoints.find(
-    (endpoint) => endpoint.url === "/a2a" || endpoint.url.endsWith("/a2a"),
-  )?.url;
+  const siteUrl = normalizePublicUrl(
+    context.siteUrl ?? profile.website,
+    undefined,
+  );
+  const a2aEndpoint = normalizePublicUrl(
+    appInfo.endpoints.find(
+      (endpoint) => endpoint.url === "/a2a" || endpoint.url.endsWith("/a2a"),
+    )?.url,
+    siteUrl,
+  );
 
   const capabilities = uniqueStrings([
     `model:${appInfo.model}`,

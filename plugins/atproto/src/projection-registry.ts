@@ -1,6 +1,7 @@
 export {
   AtprotoProjectionRegistry,
   parseAtprotoLexicon,
+  validateAtprotoRecord,
 } from "@brains/atproto-contracts";
 export type {
   AtprotoBlobRef,

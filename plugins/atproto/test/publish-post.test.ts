@@ -312,6 +312,121 @@ describe("AT Protocol post publishing", () => {
     );
   });
 
+  it("rejects locally invalid projected records during dry-runs", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: {
+        lexicon: 1,
+        id: "ai.rizom.brain.post",
+        defs: {
+          main: {
+            type: "record",
+            key: "tid",
+            record: {
+              type: "object",
+              required: ["title", "createdAt"],
+              properties: {
+                title: { type: "string" },
+                createdAt: { type: "string", format: "datetime" },
+              },
+            },
+          },
+        },
+      },
+      validate: false,
+      buildRecord: async () => ({
+        $type: "ai.rizom.brain.post",
+        title: 123,
+        createdAt: "2026-05-28T10:00:00.000Z",
+      }),
+    });
+    const plugin = new AtprotoPlugin(
+      { pdsEndpoint: "https://pds.example.com" },
+      { projectionRegistry: registry },
+    );
+
+    try {
+      await plugin.publishPost(createContext(), {
+        entityId: "post-123",
+        dryRun: true,
+      });
+      throw new Error("Expected invalid dry-run record publish to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain(
+        "Invalid AT Protocol record field title: expected string",
+      );
+    }
+  });
+
+  it("rejects locally invalid projected records before writing to the PDS", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: {
+        lexicon: 1,
+        id: "ai.rizom.brain.post",
+        defs: {
+          main: {
+            type: "record",
+            key: "tid",
+            record: {
+              type: "object",
+              required: ["title", "createdAt"],
+              properties: {
+                title: { type: "string" },
+                createdAt: { type: "string", format: "datetime" },
+              },
+            },
+          },
+        },
+      },
+      validate: false,
+      buildRecord: async () => ({
+        $type: "ai.rizom.brain.post",
+        title: 123,
+        createdAt: "2026-05-28T10:00:00.000Z",
+      }),
+    });
+    const createRecord = mock(async () => ({
+      uri: "at://repo/post",
+      cid: "cid",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:session-repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord,
+        }),
+      },
+    );
+
+    try {
+      await plugin.publishPost(createContext(), { entityId: "post-123" });
+      throw new Error("Expected invalid record publish to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain(
+        "Invalid AT Protocol record field title: expected string",
+      );
+    }
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
   it("publishes a post record to the configured PDS repo", async () => {
     const createSession = mock(async () => ({
       did: "did:plc:session-repo",

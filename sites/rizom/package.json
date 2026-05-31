@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },

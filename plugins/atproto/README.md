@@ -137,6 +137,7 @@ AtprotoProjectionRegistry.getInstance().register({
   validate: false,
   buildRecord: async ({ entity }) => ({
     $type: "ai.rizom.brain.note",
+    title: String(entity.metadata.title),
     body: entity.content,
     sourceEntityType: entity.entityType,
     sourceEntityId: entity.id,
@@ -145,7 +146,7 @@ AtprotoProjectionRegistry.getInstance().register({
 });
 ```
 
-The registry rejects collection/lexicon mismatches. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
+The registry rejects collection/lexicon mismatches. Before dry-run results or PDS writes are returned, the ATProto plugin validates projected records against the registered lexicon locally. PDS writes may still use `validate: false` for custom `ai.rizom.brain.*` records because public PDS instances do not necessarily know Rizom lexicons. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same ownership pattern.
 
 ## Manual smoke checklist
 

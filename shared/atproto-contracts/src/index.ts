@@ -48,6 +48,172 @@ export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
   return atprotoLexiconSchema.parse(input);
 }
 
+interface AtprotoValidationProperty extends AtprotoLexiconProperty {
+  required?: string[] | undefined;
+  properties?: Record<string, AtprotoValidationProperty> | undefined;
+  items?: AtprotoValidationProperty | undefined;
+  knownValues?: string[] | undefined;
+  maxLength?: number | undefined;
+  format?: string | undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateScalarFormat(
+  path: string,
+  value: string,
+  property: AtprotoValidationProperty,
+): void {
+  if (property.format === "datetime" && Number.isNaN(Date.parse(value))) {
+    throw new Error(
+      `Invalid AT Protocol record field ${path}: expected datetime`,
+    );
+  }
+  if (property.format === "uri") {
+    try {
+      new URL(value);
+    } catch {
+      throw new Error(`Invalid AT Protocol record field ${path}: expected uri`);
+    }
+  }
+}
+
+function validateKnownValues(
+  path: string,
+  value: string,
+  property: AtprotoValidationProperty,
+): void {
+  if (property.knownValues && !property.knownValues.includes(value)) {
+    throw new Error(
+      `Invalid AT Protocol record field ${path}: expected one of ${property.knownValues.join(", ")}`,
+    );
+  }
+}
+
+function validateAtprotoField(
+  path: string,
+  value: unknown,
+  property: AtprotoValidationProperty,
+): void {
+  switch (property.type) {
+    case "string": {
+      if (typeof value !== "string") {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected string`,
+        );
+      }
+      if (
+        property.maxLength !== undefined &&
+        value.length > property.maxLength
+      ) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: exceeds maxLength ${property.maxLength}`,
+        );
+      }
+      validateKnownValues(path, value, property);
+      validateScalarFormat(path, value, property);
+      return;
+    }
+    case "integer": {
+      if (!Number.isInteger(value)) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected integer`,
+        );
+      }
+      return;
+    }
+    case "boolean": {
+      if (typeof value !== "boolean") {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected boolean`,
+        );
+      }
+      return;
+    }
+    case "array": {
+      if (!Array.isArray(value)) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected array`,
+        );
+      }
+      if (
+        property.maxLength !== undefined &&
+        value.length > property.maxLength
+      ) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: exceeds maxLength ${property.maxLength}`,
+        );
+      }
+      const itemProperty = property.items;
+      if (itemProperty) {
+        value.forEach((item, index) => {
+          validateAtprotoField(`${path}.${index}`, item, itemProperty);
+        });
+      }
+      return;
+    }
+    case "object": {
+      if (!isRecord(value)) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected object`,
+        );
+      }
+      validateAtprotoObject(path, value, property);
+      return;
+    }
+    case "blob": {
+      if (!isRecord(value)) {
+        throw new Error(
+          `Invalid AT Protocol record field ${path}: expected blob`,
+        );
+      }
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+function validateAtprotoObject(
+  path: string,
+  value: Record<string, unknown>,
+  property: AtprotoValidationProperty,
+): void {
+  for (const field of property.required ?? []) {
+    if (value[field] === undefined || value[field] === null) {
+      const qualifiedPath = path ? `${path}.${field}` : field;
+      throw new Error(
+        `Missing required AT Protocol record field: ${qualifiedPath}`,
+      );
+    }
+  }
+
+  for (const [field, fieldProperty] of Object.entries(
+    property.properties ?? {},
+  )) {
+    const fieldValue = value[field];
+    if (fieldValue === undefined || fieldValue === null) continue;
+    const qualifiedPath = path ? `${path}.${field}` : field;
+    validateAtprotoField(qualifiedPath, fieldValue, fieldProperty);
+  }
+}
+
+export function validateAtprotoRecord(
+  lexicon: AtprotoLexicon,
+  record: Record<string, unknown>,
+): void {
+  const type = record["$type"];
+  if (type !== undefined && type !== lexicon.id) {
+    throw new Error(
+      `AT Protocol record $type must match lexicon id: ${String(type)} !== ${lexicon.id}`,
+    );
+  }
+
+  validateAtprotoObject("", record, lexicon.defs.main.record);
+}
+
 export interface AtprotoBlobRef {
   $type?: "blob" | undefined;
   ref: { $link: string };

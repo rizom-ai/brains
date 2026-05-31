@@ -18,6 +18,7 @@ export {
 export {
   AtprotoProjectionRegistry,
   parseAtprotoLexicon,
+  validateAtprotoRecord,
   type AtprotoProjectedPostRecord,
   type AtprotoProjection,
   type AtprotoProjectionBuildInput,
