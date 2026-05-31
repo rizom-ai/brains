@@ -7,6 +7,7 @@ import {
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
+import { setCoverImageId } from "@brains/image";
 import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -25,16 +26,52 @@ function applyFieldUpdates(
   entity: BaseEntity,
   fields: Record<string, unknown>,
 ): BaseEntity {
-  const { visibility, ...metadataFields } = fields;
+  const { visibility, coverImageId, ...metadataFields } = fields;
   const nextVisibility =
     visibility === undefined
       ? entity.visibility
       : contentVisibilitySchema.parse(visibility);
 
+  const withCoverImage = Object.hasOwn(fields, "coverImageId")
+    ? setCoverImageId(
+        entity,
+        typeof coverImageId === "string" ? coverImageId : null,
+      )
+    : entity;
+
   return {
-    ...entity,
+    ...withCoverImage,
     visibility: nextVisibility,
     metadata: { ...entity.metadata, ...metadataFields },
+  };
+}
+
+function validateCoverImageFieldUpdate(
+  entityType: string,
+  normalizedInput: { fields?: Record<string, unknown> },
+  entityRegistry: SystemServices["entityRegistry"],
+): { success: false; error: string } | undefined {
+  if (!normalizedInput.fields || !("coverImageId" in normalizedInput.fields)) {
+    return undefined;
+  }
+
+  const coverImageId = normalizedInput.fields["coverImageId"];
+  if (
+    coverImageId !== null &&
+    coverImageId !== undefined &&
+    typeof coverImageId !== "string"
+  ) {
+    return {
+      success: false,
+      error: "coverImageId must be a string or null",
+    };
+  }
+
+  const adapter = entityRegistry.getAdapter(entityType);
+  if (adapter.supportsCoverImage) return undefined;
+  return {
+    success: false,
+    error: `Entity type '${entityType}' doesn't support cover images`,
   };
 }
 
@@ -144,6 +181,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
+
+      const coverImageFieldError = validateCoverImageFieldUpdate(
+        entity.entityType,
+        normalizedInput,
+        entityRegistry,
+      );
+      if (coverImageFieldError) return coverImageFieldError;
 
       const oldStatus = entity.metadata["status"];
       const newStatus = getUpdatedStatus(

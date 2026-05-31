@@ -34,6 +34,12 @@ const coverImageInputSchema = z.union([
   }),
 ]);
 
+const createFromAttachmentInputSchema = z.object({
+  sourceEntityType: z.string().min(1).describe("Source entity type"),
+  sourceEntityId: z.string().min(1).describe("Source entity ID"),
+  attachmentType: z.string().min(1).describe("Source attachment type"),
+});
+
 export const createInputSchema = z.object({
   entityType: z.string().describe("Entity type to create"),
   title: z.string().optional().describe("Title for the entity"),
@@ -45,6 +51,15 @@ export const createInputSchema = z.object({
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
+  from: createFromAttachmentInputSchema
+    .optional()
+    .describe(
+      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+    ),
+  replace: z
+    .boolean()
+    .optional()
+    .describe("Force regeneration instead of reusing a deterministic artifact"),
   targetEntityType: z
     .string()
     .optional()
@@ -104,12 +119,6 @@ export const extractInputSchema = z.object({
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 
-export const setCoverInputSchema = z.object({
-  entityType: z.string().describe("Entity type"),
-  entityId: z.string().describe("Entity ID or slug"),
-  imageId: z.string().nullable().describe("Image ID to set, or null to remove"),
-});
-
 export const checkJobStatusInputSchema = z.object({
   batchId: z.string().optional().describe("Specific batch ID to check"),
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
@@ -151,10 +160,4 @@ export const extractOutputSchema = z.object({
   entityType: z.string(),
   source: z.string().optional(),
   mode: z.enum(["derive", "rebuild"]).optional(),
-});
-
-export const setCoverOutputSchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-  imageId: z.string().nullable(),
 });

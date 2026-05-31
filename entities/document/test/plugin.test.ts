@@ -23,6 +23,52 @@ describe("DocumentPlugin", () => {
     ]);
   });
 
+  it("registers a system_create interceptor for attachment-derived documents", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("document");
+    expect(interceptor).toBeDefined();
+  });
+
+  it("handles system_create document from a source attachment by enqueueing generation", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("document");
+    if (!interceptor) throw new Error("document interceptor not registered");
+
+    const result = await interceptor(
+      {
+        entityType: "document",
+        from: {
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+        replace: true,
+        targetEntityType: "social-post",
+        targetEntityId: "post-1",
+      },
+      { interfaceType: "test", userId: "test-user" },
+    );
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: expect.any(String),
+          jobId: expect.any(String),
+          status: "generating",
+        },
+      },
+    });
+  });
+
   it("returns a predicted PDF attachment for chat surfaces", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     await harness.installPlugin(new DocumentPlugin());

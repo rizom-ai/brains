@@ -28,7 +28,7 @@ type ImageConfig = z.infer<typeof imageConfigSchema>;
  * Zero tools. Image operations go through:
  * - system_create { entityType: "image", content: dataUrl } — upload
  * - system_create { entityType: "image", prompt: "..." } — AI generation
- * - system_set-cover — set cover image on entities (in system plugin)
+ * - system_update { fields: { coverImageId } } — set cover image references
  */
 export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   readonly entityType = imageAdapter.entityType;

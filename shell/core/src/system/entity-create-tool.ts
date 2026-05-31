@@ -110,13 +110,15 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, or a url for URL-first flows.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, or from for source attachment saves.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
       const content = normalizeOptionalString(input.content);
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
+      const from = input.from;
+      const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
       let coverImage = normalizeCoverImageInput(input.coverImage);
@@ -128,11 +130,11 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
         };
 
-      if (!content && !prompt && !url)
+      if (!content && !prompt && !url && !from)
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), or 'url' (URL-first create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), or 'from' (source attachment create), or a supported combination.",
         };
 
       if (content && hasVisibilityFrontmatter(content)) {
@@ -156,6 +158,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(title && { title }),
         ...(content && { content }),
         ...(url && { url }),
+        ...(from && { from }),
+        ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),
         ...(coverImage && { coverImage }),
@@ -235,7 +239,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
         };
       }
 

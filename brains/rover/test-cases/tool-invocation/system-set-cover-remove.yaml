@@ -1,6 +1,6 @@
-id: tool-invocation-set-cover
-name: Set Cover with Existing Image
-description: Verifies that the agent correctly uses system_update to attach an existing image to an entity
+id: tool-invocation-set-cover-remove
+name: Remove Cover Image
+description: Verifies that the agent uses system_update to remove an existing cover image reference
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -10,7 +10,7 @@ tags:
   - cover
 
 turns:
-  - userMessage: "Set the image 'hero-banner' as the cover for blog post 'resilience-in-distributed-systems'"
+  - userMessage: "Remove the cover image from blog post 'resilience-in-distributed-systems'"
 
 successCriteria:
   expectedTools:
@@ -19,7 +19,7 @@ successCriteria:
       argsContain:
         entityType: "post"
         id: "resilience-in-distributed-systems"
-        fields.coverImageId: "hero-banner"
+        fields.coverImageId: null
   responseNotContains:
     - "I cannot"
     - "I don't have access"
@@ -27,4 +27,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 40000
+  maxTokens: 25000

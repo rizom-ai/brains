@@ -22,15 +22,18 @@ export function createDocumentTools(
     createTool(
       pluginId,
       "generate",
-      "Generate a durable PDF document entity from a source attachment or render URL, with optional target documents[] attachment.",
+      'Preview or prepare a PDF document attachment from a source attachment or render URL. For save/regenerate durable document requests, prefer system_create with entityType: "document" and from.',
       documentGenerationJobSchemaBase,
       async (input, context) => {
         const result = documentGenerationJobSchema.safeParse(input);
         if (!result.success) {
           return toolError(result.error.message);
         }
-        const jobId = await enqueueDocumentGeneration(result.data, context);
         const documentId = getDocumentId(result.data);
+        const jobId = await enqueueDocumentGeneration(
+          { ...result.data, documentId },
+          context,
+        );
         const filename = result.data.filename ?? `${documentId}.pdf`;
         return toolSuccess({
           jobId,
