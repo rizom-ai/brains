@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- [`a669988`](https://github.com/rizom-ai/brains/commit/a669988d7351efb1371412e55366c329dc848489) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web chat live tool activity status in the published brain runtime. Tool invocation events now broadcast to all interface subscribers and are delivered before tool execution continues, so `/chat` can reliably show transient `Using <tool>…` status while tools run.
+
 ## 0.2.0-alpha.96
 
 ## 0.2.0-alpha.95

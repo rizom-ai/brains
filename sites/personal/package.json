@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-personal",
   "private": true,
-  "version": "0.2.0-alpha.96",
+  "version": "0.2.0-alpha.97",
   "description": "Personal site composition package",
   "type": "module",
   "exports": {
