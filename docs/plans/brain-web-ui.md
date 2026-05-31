@@ -194,11 +194,13 @@ responses and rehydrated refs include operator-only `/api/chat/uploads?id=...`
 links, and the same route can serve stored text uploads back to the browser for
 review/download. Filesystem persistence, metadata/ref validation, URL building,
 and retention pruning now live in a focused `WebChatUploadStore` helper rather
-than in the route handler.
+than in the route handler. Text upload media policy is explicit in
+`upload-policy.ts`: `.md`, `.txt`, and `.markdown` / text MIME uploads only,
+100KB max, UTF-8 text required, and binary payloads rejected even with text
+filenames or MIME types.
 
 Remaining upload work: add storage/registry integration beyond the web-chat
-upload store, define binary/media type policies, and expand native attachment
-handling beyond text attachments.
+upload store and expand native attachment handling beyond text attachments.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

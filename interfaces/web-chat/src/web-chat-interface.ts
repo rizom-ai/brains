@@ -30,6 +30,13 @@ import {
   type ResolvedWebChatUpload,
   type WebChatUploadRecord,
 } from "./upload-store";
+import {
+  defaultWebChatUploadFilename,
+  sanitizeUploadFilename,
+  validateTextUpload,
+  webChatTextUploadMaxBytes,
+  type ValidatedTextUpload,
+} from "./upload-policy";
 
 const textPartSchema = z.object({
   type: z.literal("text"),
@@ -69,7 +76,6 @@ const webChatInterfaceType = "web-chat";
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
-const webChatDefaultUploadFilename = "upload.txt";
 const webChatUploadFormField = "file";
 /* Extra slack over the text-file size limit to cover the multipart envelope
    (boundary, headers) when guarding on Content-Length before buffering. */
@@ -2373,8 +2379,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const declaredSize = Number(request.headers.get("content-length"));
     if (
       Number.isFinite(declaredSize) &&
-      declaredSize >
-        this.getMaxFileUploadBytes() + webChatUploadEnvelopeSlackBytes
+      declaredSize > webChatTextUploadMaxBytes + webChatUploadEnvelopeSlackBytes
     ) {
       return new Response("File upload too large", { status: 400 });
     }
@@ -2391,28 +2396,22 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Missing upload file", { status: 400 });
     }
 
-    const filename = this.sanitizeUploadFilename(file.name);
-    const mediaType = this.normalizeUploadMediaType(filename, file.type);
-    if (!this.isUploadableTextFile(filename, mediaType)) {
-      return new Response(`Unsupported file upload type: ${filename}`, {
-        status: 400,
-      });
-    }
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    if (!this.isFileSizeAllowed(buffer.byteLength)) {
-      return new Response(`File upload too large: ${filename}`, {
-        status: 400,
-      });
-    }
-    if (!this.isLikelyTextContent(buffer)) {
-      return new Response(`Unsupported file upload type: ${filename}`, {
-        status: 400,
-      });
+    const validated = validateTextUpload({
+      filename: file.name,
+      mediaType: file.type,
+      content: buffer,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
     }
 
     const store = this.getUploadStore();
-    const record = await store.save({ filename, mediaType, content: buffer });
+    const record = await store.save({
+      filename: validated.filename,
+      mediaType: validated.mediaType,
+      content: buffer,
+    });
 
     return Response.json(store.toResponseBody(record), { status: 201 });
   }
@@ -2433,8 +2432,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     if (resolved instanceof Response) return resolved;
     const { record, content } = resolved;
 
-    const validationError = this.validateStoredUpload(record, content);
-    if (validationError) return validationError;
+    const validated = this.validateStoredUpload(record, content);
+    if (validated instanceof Response) return validated;
 
     const disposition = new URL(request.url).searchParams.has("download")
       ? "attachment"
@@ -2999,42 +2998,31 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private resolveInlineUploadPart(
     file: z.infer<typeof filePartSchema>,
   ): ChatAttachment | Response {
-    const filename = this.sanitizeUploadFilename(
-      file.filename ?? webChatDefaultUploadFilename,
+    const filename = sanitizeUploadFilename(
+      file.filename ?? defaultWebChatUploadFilename,
     );
-    const mediaType = this.normalizeUploadMediaType(
-      filename,
-      file.mediaType ?? "",
-    );
-    if (!this.isUploadableTextFile(filename, mediaType)) {
-      return new Response(`Unsupported file upload type: ${filename}`, {
-        status: 400,
-      });
-    }
-
     const decoded = this.decodeUploadedDataUrl(file.url);
     if (!decoded) {
       return new Response(`Unsupported file upload URL: ${filename}`, {
         status: 400,
       });
     }
-    if (!this.isFileSizeAllowed(decoded.byteLength)) {
-      return new Response(`File upload too large: ${filename}`, {
-        status: 400,
-      });
-    }
-    if (!this.isLikelyTextContent(decoded.buffer)) {
-      return new Response(`Unsupported file upload type: ${filename}`, {
-        status: 400,
-      });
+
+    const validated = validateTextUpload({
+      filename,
+      mediaType: file.mediaType,
+      content: decoded.buffer,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
     }
 
     return {
       kind: "text",
-      filename,
-      mediaType,
-      content: decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
-      sizeBytes: decoded.byteLength,
+      filename: validated.filename,
+      mediaType: validated.mediaType,
+      content: validated.text,
+      sizeBytes: validated.sizeBytes,
     };
   }
 
@@ -3045,15 +3033,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     if (resolved instanceof Response) return resolved;
 
     const { record, content } = resolved;
-    const validationError = this.validateStoredUpload(record, content);
-    if (validationError) return validationError;
+    const validated = this.validateStoredUpload(record, content);
+    if (validated instanceof Response) return validated;
 
     return {
       kind: "text",
-      filename: record.filename,
-      mediaType: record.mediaType,
-      content: content.toString("utf8").replace(/^\uFEFF/, ""),
-      sizeBytes: content.byteLength,
+      filename: validated.filename,
+      mediaType: validated.mediaType,
+      content: validated.text,
+      sizeBytes: validated.sizeBytes,
       source: { kind: webChatUploadRefKind, id: uploadId },
     };
   }
@@ -3078,23 +3066,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private validateStoredUpload(
     record: WebChatUploadRecord,
     content: Buffer,
-  ): Response | null {
-    if (!this.isUploadableTextFile(record.filename, record.mediaType)) {
-      return new Response(`Unsupported file upload type: ${record.filename}`, {
-        status: 400,
-      });
+  ): ValidatedTextUpload | Response {
+    const validated = validateTextUpload({
+      filename: record.filename,
+      mediaType: record.mediaType,
+      content,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
     }
-    if (!this.isFileSizeAllowed(content.byteLength)) {
-      return new Response(`File upload too large: ${record.filename}`, {
-        status: 400,
-      });
-    }
-    if (!this.isLikelyTextContent(content)) {
-      return new Response(`Unsupported file upload type: ${record.filename}`, {
-        status: 400,
-      });
-    }
-    return null;
+    return validated;
   }
 
   private uploadStoreErrorToResponse(error: WebChatUploadStoreError): Response {
@@ -3106,34 +3087,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       case "not_found":
         return new Response("Upload not found", { status: 404 });
     }
-  }
-
-  private sanitizeUploadFilename(filename: string): string {
-    const leaf = filename.split(/[\\/]/).at(-1)?.trim() ?? "";
-    const cleaned = Array.from(leaf)
-      .filter((char) => {
-        const code = char.charCodeAt(0);
-        return code > 31 && code !== 127;
-      })
-      .join("")
-      .slice(0, 160);
-    return cleaned.length > 0 ? cleaned : webChatDefaultUploadFilename;
-  }
-
-  private normalizeUploadMediaType(
-    filename: string,
-    mediaType: string,
-  ): string {
-    const trimmed = mediaType.trim();
-    if (trimmed.length > 0) return trimmed;
-    const lowerFilename = filename.toLowerCase();
-    if (lowerFilename.endsWith(".md") || lowerFilename.endsWith(".markdown")) {
-      return "text/markdown";
-    }
-    if (lowerFilename.endsWith(".txt")) {
-      return "text/plain";
-    }
-    return "application/octet-stream";
   }
 
   private decodeUploadedDataUrl(

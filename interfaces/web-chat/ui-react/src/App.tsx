@@ -44,12 +44,13 @@ import {
 import { groupMessageParts } from "./message-parts";
 import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
+import {
+  webChatTextUploadAccept,
+  webChatTextUploadMaxBytes,
+} from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
 const themeStorageKey = "brain:theme";
-const uploadAccept =
-  ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown";
-const uploadMaxFileSize = 100_000;
 
 type ThemeMode = "light" | "dark";
 type AsyncStatus = "idle" | "loading" | "ready" | "error";
@@ -1235,8 +1236,8 @@ export function App(): React.ReactElement {
         ) : null}
 
         <PromptInput
-          accept={uploadAccept}
-          maxFileSize={uploadMaxFileSize}
+          accept={webChatTextUploadAccept}
+          maxFileSize={webChatTextUploadMaxBytes}
           multiple
           onError={(uploadError) =>
             setUploadNotice({ tone: "error", message: uploadError.message })

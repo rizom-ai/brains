@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { FileUIPart, UIMessage } from "ai";
+import { defaultWebChatUploadFilename } from "../../src/upload-policy";
 
 export const uploadEndpoint = "/api/chat/uploads";
-export const defaultUploadFilename = "upload.txt";
+export const defaultUploadFilename = defaultWebChatUploadFilename;
 export const uploadPartType = "data-upload";
 
 export const webChatUploadRefSchema = z.object({

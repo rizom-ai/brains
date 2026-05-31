@@ -1,11 +1,11 @@
 {
   "extends": "@brains/typescript-config/base.json",
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../src/upload-policy.ts"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "moduleResolution": "bundler",
-    "rootDir": "./",
+    "rootDir": "..",
     "baseUrl": "..",
     "paths": {
       "@/*": ["./*"]
