@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- [`13cbae4`](https://github.com/rizom-ai/brains/commit/13cbae42d91f6dac9f32db1d61b90f9091645d7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh Rover eval A2A directory fixtures so saved brain contacts are keyed by anchor/contact name while preserving the remote brain name separately.
+
 ## 0.2.0-alpha.94
 
 ## 0.2.0-alpha.93

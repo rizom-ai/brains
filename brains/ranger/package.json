@@ -1,6 +1,6 @@
 {
   "name": "@brains/ranger",
-  "version": "0.2.0-alpha.94",
+  "version": "0.2.0-alpha.95",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",

@@ -1,7 +1,7 @@
 {
   "name": "@brains/email-contracts",
   "private": true,
-  "version": "0.2.0-alpha.94",
+  "version": "0.2.0-alpha.95",
   "description": "Shared email delivery message contracts",
   "type": "module",
   "exports": {
