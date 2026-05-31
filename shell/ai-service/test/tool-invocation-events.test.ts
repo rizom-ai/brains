@@ -435,20 +435,63 @@ describe("tool invocation events", () => {
   });
 
   describe("message bus emitter", () => {
-    it("should ignore rejected fire-and-forget sends", async () => {
-      const send = mock(async () => {
-        throw new Error("bus unavailable");
-      });
+    it("broadcasts tool events to all interface subscribers", async () => {
+      const send = mock(async () => ({ success: true }));
       const emitter = createMessageBusEmitter({ send });
 
-      emitter.emit("tool:invoking", { toolName: "test_tool" });
-      await Promise.resolve();
+      await emitter.emit("tool:invoking", { toolName: "test_tool" });
 
       expect(send).toHaveBeenCalledWith({
         type: "tool:invoking",
         payload: { toolName: "test_tool" },
         sender: "brain-agent",
+        broadcast: true,
       });
+    });
+
+    it("should ignore rejected sends", async () => {
+      const send = mock(async () => {
+        throw new Error("bus unavailable");
+      });
+      const emitter = createMessageBusEmitter({ send });
+
+      await emitter.emit("tool:invoking", { toolName: "test_tool" });
+
+      expect(send).toHaveBeenCalledWith({
+        type: "tool:invoking",
+        payload: { toolName: "test_tool" },
+        sender: "brain-agent",
+        broadcast: true,
+      });
+    });
+
+    it("awaits invoking event delivery before executing the tool", async () => {
+      const order: string[] = [];
+      const emitter: ToolEventEmitter = {
+        emit: async (type) => {
+          await Promise.resolve();
+          order.push(`${type} delivered`);
+        },
+      };
+      const handler = mock(async () => {
+        order.push("handler executed");
+        return { success: true };
+      });
+
+      const wrapper = createToolExecuteWrapper(
+        "test_tool",
+        handler,
+        defaultContextInfo,
+        emitter,
+      );
+
+      await wrapper({});
+
+      expect(order).toEqual([
+        "tool:invoking delivered",
+        "handler executed",
+        "tool:completed delivered",
+      ]);
     });
   });
 
