@@ -19,10 +19,17 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
+import {
+  WebChatUploadStore,
+  WebChatUploadStoreError,
+  webChatUploadIdPattern,
+  webChatUploadRefKind,
+  type ResolvedWebChatUpload,
+  type WebChatUploadRecord,
+} from "./upload-store";
 
 const textPartSchema = z.object({
   type: z.literal("text"),
@@ -64,16 +71,9 @@ const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 const webChatDefaultUploadFilename = "upload.txt";
 const webChatUploadFormField = "file";
-const webChatUploadRefKind = "web-chat-upload";
 /* Extra slack over the text-file size limit to cover the multipart envelope
    (boundary, headers) when guarding on Content-Length before buffering. */
 const webChatUploadEnvelopeSlackBytes = 16_384;
-/* Uploads are consumed when their referencing message is sent, so stored
-   content past these bounds is safe to drop on the next upload. */
-const webChatUploadRetentionMs = 24 * 60 * 60 * 1000;
-const webChatUploadMaxCount = 200;
-const webChatUploadIdPattern =
-  /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const uploadRefSchema = z.object({
   kind: z.literal(webChatUploadRefKind),
@@ -106,33 +106,10 @@ interface WebChatProgressData {
   progress?: JobProgressEvent["progress"];
 }
 
-interface WebChatUploadRecord {
-  id: string;
-  ref: { kind: typeof webChatUploadRefKind; id: string };
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-}
-
-interface WebChatUploadResponseBody extends WebChatUploadRecord {
-  url: string;
-  downloadUrl: string;
-}
-
 interface ParsedUserInput {
   message: string;
   attachments: ChatAttachment[];
 }
-
-const webChatUploadRecordSchema: z.ZodType<WebChatUploadRecord> = z.object({
-  id: z.string().regex(webChatUploadIdPattern),
-  ref: uploadRefSchema,
-  filename: z.string().min(1),
-  mediaType: z.string().min(1),
-  sizeBytes: z.number().nonnegative(),
-  createdAt: z.string().datetime(),
-});
 
 const storedChatAttachmentSchema = z.object({
   kind: z.literal("text"),
@@ -2434,27 +2411,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       });
     }
 
-    const uploadId = this.createId("upload");
-    const record: WebChatUploadRecord = {
-      id: uploadId,
-      ref: { kind: webChatUploadRefKind, id: uploadId },
-      filename,
-      mediaType,
-      sizeBytes: buffer.byteLength,
-      createdAt: new Date().toISOString(),
-    };
+    const store = this.getUploadStore();
+    const record = await store.save({ filename, mediaType, content: buffer });
 
-    const uploadDir = this.getUploadDir(record.id);
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(join(uploadDir, "content"), buffer);
-    await writeFile(
-      join(uploadDir, "metadata.json"),
-      `${JSON.stringify(record, null, 2)}\n`,
-      "utf8",
-    );
-    await this.pruneUploads();
-
-    return Response.json(this.toUploadResponseBody(record), { status: 201 });
+    return Response.json(store.toResponseBody(record), { status: 201 });
   }
 
   private async handleUploadDownloadRequest(
@@ -2469,26 +2429,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Missing upload id", { status: 400 });
     }
 
-    const record = await this.readUploadRecord(uploadId);
-    if (record instanceof Response) return record;
+    const resolved = await this.readStoredUpload(uploadId);
+    if (resolved instanceof Response) return resolved;
+    const { record, content } = resolved;
 
-    let content: Buffer;
-    try {
-      content = await readFile(join(this.getUploadDir(uploadId), "content"));
-    } catch {
-      return new Response("Upload not found", { status: 404 });
-    }
-
-    if (!this.isFileSizeAllowed(content.byteLength)) {
-      return new Response(`File upload too large: ${record.filename}`, {
-        status: 400,
-      });
-    }
-    if (!this.isLikelyTextContent(content)) {
-      return new Response(`Unsupported file upload type: ${record.filename}`, {
-        status: 400,
-      });
-    }
+    const validationError = this.validateStoredUpload(record, content);
+    if (validationError) return validationError;
 
     const disposition = new URL(request.url).searchParams.has("download")
       ? "attachment"
@@ -2503,45 +2449,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         )}"`,
       },
     });
-  }
-
-  /**
-   * Best-effort retention sweep for stored uploads. Uploads are consumed when
-   * their referencing message is sent, so anything past the age or count cap is
-   * safe to drop. Failures here must never block an upload.
-   */
-  private async pruneUploads(): Promise<void> {
-    const root = join(this.getContext().dataDir, "web-chat", "uploads");
-    try {
-      const entries = await readdir(root);
-      const stats = await Promise.all(
-        entries.map(async (entry) => {
-          try {
-            const info = await stat(join(root, entry));
-            return info.isDirectory() ? { entry, mtimeMs: info.mtimeMs } : null;
-          } catch {
-            return null;
-          }
-        }),
-      );
-      const dirs = stats
-        .filter(
-          (value): value is { entry: string; mtimeMs: number } =>
-            value !== null,
-        )
-        .sort((a, b) => b.mtimeMs - a.mtimeMs);
-      const cutoff = Date.now() - webChatUploadRetentionMs;
-      const stale = dirs.filter(
-        (dir, index) => index >= webChatUploadMaxCount || dir.mtimeMs < cutoff,
-      );
-      await Promise.all(
-        stale.map((dir) =>
-          rm(join(root, dir.entry), { recursive: true, force: true }),
-        ),
-      );
-    } catch {
-      /* uploads dir missing or unreadable — nothing to prune */
-    }
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
@@ -3134,26 +3041,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private async resolveReferencedUpload(
     uploadId: string,
   ): Promise<ChatAttachment | Response> {
-    const record = await this.readUploadRecord(uploadId);
-    if (record instanceof Response) return record;
+    const resolved = await this.readStoredUpload(uploadId);
+    if (resolved instanceof Response) return resolved;
 
-    let content: Buffer;
-    try {
-      content = await readFile(join(this.getUploadDir(uploadId), "content"));
-    } catch {
-      return new Response("Upload not found", { status: 404 });
-    }
-
-    if (!this.isFileSizeAllowed(content.byteLength)) {
-      return new Response(`File upload too large: ${record.filename}`, {
-        status: 400,
-      });
-    }
-    if (!this.isLikelyTextContent(content)) {
-      return new Response(`Unsupported file upload type: ${record.filename}`, {
-        status: 400,
-      });
-    }
+    const { record, content } = resolved;
+    const validationError = this.validateStoredUpload(record, content);
+    if (validationError) return validationError;
 
     return {
       kind: "text",
@@ -3165,55 +3058,54 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     };
   }
 
-  private async readUploadRecord(
+  private getUploadStore(): WebChatUploadStore {
+    return new WebChatUploadStore({ dataDir: this.getContext().dataDir });
+  }
+
+  private async readStoredUpload(
     uploadId: string,
-  ): Promise<WebChatUploadRecord | Response> {
-    if (!webChatUploadIdPattern.test(uploadId)) {
-      return new Response("Invalid upload ref", { status: 400 });
-    }
-
+  ): Promise<ResolvedWebChatUpload | Response> {
     try {
-      const raw = await readFile(
-        join(this.getUploadDir(uploadId), "metadata.json"),
-        "utf8",
-      );
-      const parsed = webChatUploadRecordSchema.safeParse(JSON.parse(raw));
-      if (!parsed.success || parsed.data.id !== uploadId) {
-        return new Response("Invalid upload metadata", { status: 500 });
+      return await this.getUploadStore().read(uploadId);
+    } catch (error) {
+      if (error instanceof WebChatUploadStoreError) {
+        return this.uploadStoreErrorToResponse(error);
       }
-      if (
-        !this.isUploadableTextFile(parsed.data.filename, parsed.data.mediaType)
-      ) {
-        return new Response(
-          `Unsupported file upload type: ${parsed.data.filename}`,
-          {
-            status: 400,
-          },
-        );
-      }
-      return parsed.data;
-    } catch {
-      return new Response("Upload not found", { status: 404 });
+      throw error;
     }
   }
 
-  private getUploadDir(uploadId: string): string {
-    return join(this.getContext().dataDir, "web-chat", "uploads", uploadId);
-  }
-
-  private toUploadResponseBody(
+  private validateStoredUpload(
     record: WebChatUploadRecord,
-  ): WebChatUploadResponseBody {
-    return {
-      ...record,
-      url: this.getUploadUrl(record.id),
-      downloadUrl: this.getUploadUrl(record.id, true),
-    };
+    content: Buffer,
+  ): Response | null {
+    if (!this.isUploadableTextFile(record.filename, record.mediaType)) {
+      return new Response(`Unsupported file upload type: ${record.filename}`, {
+        status: 400,
+      });
+    }
+    if (!this.isFileSizeAllowed(content.byteLength)) {
+      return new Response(`File upload too large: ${record.filename}`, {
+        status: 400,
+      });
+    }
+    if (!this.isLikelyTextContent(content)) {
+      return new Response(`Unsupported file upload type: ${record.filename}`, {
+        status: 400,
+      });
+    }
+    return null;
   }
 
-  private getUploadUrl(uploadId: string, download = false): string {
-    const encodedId = encodeURIComponent(uploadId);
-    return `/api/chat/uploads?id=${encodedId}${download ? "&download=1" : ""}`;
+  private uploadStoreErrorToResponse(error: WebChatUploadStoreError): Response {
+    switch (error.code) {
+      case "invalid_ref":
+        return new Response("Invalid upload ref", { status: 400 });
+      case "invalid_metadata":
+        return new Response("Invalid upload metadata", { status: 500 });
+      case "not_found":
+        return new Response("Upload not found", { status: 404 });
+    }
   }
 
   private sanitizeUploadFilename(filename: string): string {

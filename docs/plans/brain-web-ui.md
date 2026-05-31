@@ -192,11 +192,13 @@ Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
 so transcript rendering can continue to show attachment filename pills. Upload
 responses and rehydrated refs include operator-only `/api/chat/uploads?id=...`
 links, and the same route can serve stored text uploads back to the browser for
-review/download.
+review/download. Filesystem persistence, metadata/ref validation, URL building,
+and retention pruning now live in a focused `WebChatUploadStore` helper rather
+than in the route handler.
 
-Remaining upload work: add durable storage/registry integration beyond the
-web-chat data directory, define binary/media type policies, and expand native
-attachment handling beyond text attachments.
+Remaining upload work: add storage/registry integration beyond the web-chat
+upload store, define binary/media type policies, and expand native attachment
+handling beyond text attachments.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
