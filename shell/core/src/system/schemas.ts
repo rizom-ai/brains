@@ -27,11 +27,14 @@ export const listInputSchema = z.object({
 });
 
 const coverImageInputSchema = z.union([
-  z.boolean(),
   z.object({
-    generate: z.boolean().optional().describe("Generate a cover image"),
+    generate: z
+      .literal(true)
+      .describe("Set to true when the user asks for a cover image"),
     prompt: z.string().optional().describe("Prompt for cover image generation"),
   }),
+  z.literal(true).describe("Set to true when the user asks for a cover image"),
+  z.literal(false).describe("Do not generate a cover image"),
 ]);
 
 const createFromAttachmentInputSchema = z.object({
@@ -73,7 +76,7 @@ export const createInputSchema = z.object({
   coverImage: coverImageInputSchema
     .optional()
     .describe(
-      "Generate a cover image for the created entity after the entity exists. Use true or { generate: true, prompt }.",
+      "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
     ),
 });
 
