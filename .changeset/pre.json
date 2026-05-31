@@ -228,6 +228,7 @@
     "web-chat-streamdown-markdown",
     "web-chat-theme-toggle-placement",
     "web-chat-tool-styling-fix",
+    "webserver-streaming-idle-timeout",
     "wordmark-slot-and-generic-suffix"
   ]
 }
