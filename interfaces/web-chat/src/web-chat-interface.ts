@@ -115,6 +115,11 @@ interface WebChatUploadRecord {
   createdAt: string;
 }
 
+interface WebChatUploadResponseBody extends WebChatUploadRecord {
+  url: string;
+  downloadUrl: string;
+}
+
 interface ParsedUserInput {
   message: string;
   attachments: ChatAttachment[];
@@ -1081,6 +1086,7 @@ button, textarea, input { font: inherit; color: inherit; }
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
+  text-decoration: none;
   text-transform: uppercase;
 }
 .web-chat-uploaded-file-kicker { color: var(--chat-text-light); }
@@ -2270,6 +2276,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         handler: (request): Promise<Response> =>
           this.handleUploadRequest(request),
       },
+      {
+        path: "/api/chat/uploads",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleUploadDownloadRequest(request),
+      },
     ];
   }
 
@@ -2441,7 +2454,55 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     );
     await this.pruneUploads();
 
-    return Response.json(record, { status: 201 });
+    return Response.json(this.toUploadResponseBody(record), { status: 201 });
+  }
+
+  private async handleUploadDownloadRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
+    if (!uploadId) {
+      return new Response("Missing upload id", { status: 400 });
+    }
+
+    const record = await this.readUploadRecord(uploadId);
+    if (record instanceof Response) return record;
+
+    let content: Buffer;
+    try {
+      content = await readFile(join(this.getUploadDir(uploadId), "content"));
+    } catch {
+      return new Response("Upload not found", { status: 404 });
+    }
+
+    if (!this.isFileSizeAllowed(content.byteLength)) {
+      return new Response(`File upload too large: ${record.filename}`, {
+        status: 400,
+      });
+    }
+    if (!this.isLikelyTextContent(content)) {
+      return new Response(`Unsupported file upload type: ${record.filename}`, {
+        status: 400,
+      });
+    }
+
+    const disposition = new URL(request.url).searchParams.has("download")
+      ? "attachment"
+      : "inline";
+    const body = new Uint8Array(content).buffer;
+    return new Response(body, {
+      headers: {
+        "Content-Type": record.mediaType,
+        "Content-Length": String(content.byteLength),
+        "Content-Disposition": `${disposition}; filename="${escapeHeaderValue(
+          record.filename,
+        )}"`,
+      },
+    });
   }
 
   /**
@@ -3138,6 +3199,21 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   private getUploadDir(uploadId: string): string {
     return join(this.getContext().dataDir, "web-chat", "uploads", uploadId);
+  }
+
+  private toUploadResponseBody(
+    record: WebChatUploadRecord,
+  ): WebChatUploadResponseBody {
+    return {
+      ...record,
+      url: this.getUploadUrl(record.id),
+      downloadUrl: this.getUploadUrl(record.id, true),
+    };
+  }
+
+  private getUploadUrl(uploadId: string, download = false): string {
+    const encodedId = encodeURIComponent(uploadId);
+    return `/api/chat/uploads?id=${encodedId}${download ? "&download=1" : ""}`;
   }
 
   private sanitizeUploadFilename(filename: string): string {

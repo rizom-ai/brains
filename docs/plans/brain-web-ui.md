@@ -189,7 +189,10 @@ uploads selected text files first, then sends `data-upload` refs through the AI
 SDK message parts protocol.
 
 Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
-so transcript rendering can continue to show attachment filename pills.
+so transcript rendering can continue to show attachment filename pills. Upload
+responses and rehydrated refs include operator-only `/api/chat/uploads?id=...`
+links, and the same route can serve stored text uploads back to the browser for
+review/download.
 
 Remaining upload work: add durable storage/registry integration beyond the
 web-chat data directory, define binary/media type policies, and expand native

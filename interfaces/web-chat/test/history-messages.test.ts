@@ -35,6 +35,8 @@ describe("web chat history messages", () => {
             mediaType: "text/markdown",
             sizeBytes: 7,
             createdAt,
+            url: "/api/chat/uploads?id=upload-123",
+            downloadUrl: "/api/chat/uploads?id=upload-123&download=1",
           },
         },
       ],

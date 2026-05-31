@@ -54,5 +54,12 @@ function toUploadResponse(
     mediaType: attachment.mediaType,
     sizeBytes: attachment.sizeBytes,
     createdAt: attachment.createdAt,
+    url: getUploadUrl(attachment.source.id),
+    downloadUrl: getUploadUrl(attachment.source.id, true),
   };
+}
+
+function getUploadUrl(uploadId: string, download = false): string {
+  const encodedId = encodeURIComponent(uploadId);
+  return `/api/chat/uploads?id=${encodedId}${download ? "&download=1" : ""}`;
 }

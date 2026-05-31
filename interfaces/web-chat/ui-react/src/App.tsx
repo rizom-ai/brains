@@ -206,14 +206,34 @@ function statusPhrase(status: string): string {
 function UploadedFilePart({
   filename,
   mediaType,
+  url,
 }: {
   filename: string;
   mediaType: string;
+  url?: string | undefined;
 }): React.ReactElement {
-  return (
-    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+  const content = (
+    <>
       <span className="web-chat-uploaded-file-kicker">attached</span>
       <span className="web-chat-uploaded-file-name">{filename}</span>
+    </>
+  );
+
+  if (url) {
+    return (
+      <a
+        className="web-chat-uploaded-file"
+        data-media-type={mediaType}
+        href={url}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+      {content}
     </span>
   );
 }
@@ -1169,6 +1189,7 @@ export function App(): React.ReactElement {
                             key={index}
                             filename={group.filename}
                             mediaType={group.mediaType}
+                            url={group.url}
                           />
                         );
                       }

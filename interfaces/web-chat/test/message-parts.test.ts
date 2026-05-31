@@ -13,6 +13,8 @@ function makeUploadResponse(): WebChatUploadResponse {
     mediaType: "text/markdown",
     sizeBytes: 12,
     createdAt: "2026-05-30T00:00:00.000Z",
+    url: "/api/chat/uploads?id=upload-123",
+    downloadUrl: "/api/chat/uploads?id=upload-123&download=1",
   };
 }
 
@@ -24,7 +26,13 @@ describe("web chat message part grouping", () => {
       groupMessageParts(createUploadMessageParts("Summarize", [upload])),
     ).toEqual([
       { kind: "text", text: "Summarize" },
-      { kind: "file", filename: "notes.md", mediaType: "text/markdown" },
+      {
+        kind: "file",
+        filename: "notes.md",
+        mediaType: "text/markdown",
+        url: "/api/chat/uploads?id=upload-123",
+        downloadUrl: "/api/chat/uploads?id=upload-123&download=1",
+      },
     ]);
   });
 

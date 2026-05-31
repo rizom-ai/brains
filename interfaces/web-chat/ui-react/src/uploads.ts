@@ -17,6 +17,8 @@ export const webChatUploadResponseSchema = z.object({
   mediaType: z.string().min(1),
   sizeBytes: z.number().nonnegative(),
   createdAt: z.string().datetime(),
+  url: z.string().min(1).optional(),
+  downloadUrl: z.string().min(1).optional(),
 });
 
 export type WebChatUploadRef = z.infer<typeof webChatUploadRefSchema>;

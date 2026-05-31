@@ -225,7 +225,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(11);
+    expect(routes).toHaveLength(12);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -279,6 +279,11 @@ describe("WebChatInterface", () => {
     expect(routes[10]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
+      public: true,
+    });
+    expect(routes[11]).toMatchObject({
+      path: "/api/chat/uploads",
+      method: "GET",
       public: true,
     });
   });
@@ -701,6 +706,8 @@ describe("WebChatInterface", () => {
       mediaType: string;
       sizeBytes: number;
       createdAt: string;
+      url: string;
+      downloadUrl: string;
     };
 
     expect(response?.status).toBe(201);
@@ -710,6 +717,8 @@ describe("WebChatInterface", () => {
     expect(body.mediaType).toBe("text/markdown");
     expect(body.sizeBytes).toBe(29);
     expect(Date.parse(body.createdAt)).not.toBeNaN();
+    expect(body.url).toBe(`/api/chat/uploads?id=${body.id}`);
+    expect(body.downloadUrl).toBe(`/api/chat/uploads?id=${body.id}&download=1`);
 
     const uploadDir = join(
       "/tmp/mock-shell-test-data",
@@ -720,9 +729,61 @@ describe("WebChatInterface", () => {
     expect(await Bun.file(join(uploadDir, "content")).text()).toBe(
       "# Notes\n\nShip durable uploads",
     );
-    expect(await Bun.file(join(uploadDir, "metadata.json")).json()).toEqual(
-      body,
+    expect(await Bun.file(join(uploadDir, "metadata.json")).json()).toEqual({
+      id: body.id,
+      ref: body.ref,
+      filename: body.filename,
+      mediaType: body.mediaType,
+      sizeBytes: body.sizeBytes,
+      createdAt: body.createdAt,
+    });
+  });
+
+  it("serves stored multipart text uploads to operators", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+    const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Downloadable"], "notes.md", { type: "text/markdown" }),
     );
+    const uploadResponse = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      id: string;
+      url: string;
+    };
+
+    const response = await downloadRoute?.handler(
+      new Request(`http://brain${upload.url}`),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Content-Type")).toBe("text/markdown");
+    expect(response?.headers.get("Content-Disposition")).toBe(
+      'inline; filename="notes.md"',
+    );
+    expect(await response?.text()).toBe("# Downloadable");
+  });
+
+  it("rejects stored upload downloads from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/uploads?id=upload-00000000-0000-4000-8000-000000000000",
+      ),
+    );
+
+    expect(response?.status).toBe(403);
   });
 
   it("rejects multipart uploads from non-operators", async () => {

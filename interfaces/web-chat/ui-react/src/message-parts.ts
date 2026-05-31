@@ -16,7 +16,13 @@ export type RenderedPart =
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
   | { kind: "progress"; data: unknown }
-  | { kind: "file"; filename: string; mediaType: string }
+  | {
+      kind: "file";
+      filename: string;
+      mediaType: string;
+      url?: string | undefined;
+      downloadUrl?: string | undefined;
+    }
   | { kind: "generic"; type: string; data: unknown };
 
 export function groupMessageParts(
@@ -62,6 +68,10 @@ export function groupMessageParts(
             kind: "file",
             filename: upload.filename,
             mediaType: upload.mediaType,
+            ...(upload.url !== undefined && { url: upload.url }),
+            ...(upload.downloadUrl !== undefined && {
+              downloadUrl: upload.downloadUrl,
+            }),
           });
         }
         break;
