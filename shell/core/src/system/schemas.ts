@@ -27,12 +27,21 @@ export const listInputSchema = z.object({
 });
 
 const coverImageInputSchema = z.union([
-  z.boolean(),
   z.object({
-    generate: z.boolean().optional().describe("Generate a cover image"),
+    generate: z
+      .literal(true)
+      .describe("Set to true when the user asks for a cover image"),
     prompt: z.string().optional().describe("Prompt for cover image generation"),
   }),
+  z.literal(true).describe("Set to true when the user asks for a cover image"),
+  z.literal(false).describe("Do not generate a cover image"),
 ]);
+
+const createFromAttachmentInputSchema = z.object({
+  sourceEntityType: z.string().min(1).describe("Source entity type"),
+  sourceEntityId: z.string().min(1).describe("Source entity ID"),
+  attachmentType: z.string().min(1).describe("Source attachment type"),
+});
 
 export const createInputSchema = z.object({
   entityType: z.string().describe("Entity type to create"),
@@ -45,6 +54,15 @@ export const createInputSchema = z.object({
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
+  from: createFromAttachmentInputSchema
+    .optional()
+    .describe(
+      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+    ),
+  replace: z
+    .boolean()
+    .optional()
+    .describe("Force regeneration instead of reusing a deterministic artifact"),
   targetEntityType: z
     .string()
     .optional()
@@ -58,7 +76,7 @@ export const createInputSchema = z.object({
   coverImage: coverImageInputSchema
     .optional()
     .describe(
-      "Generate a cover image for the created entity after the entity exists. Use true or { generate: true, prompt }.",
+      "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
     ),
 });
 
@@ -104,12 +122,6 @@ export const extractInputSchema = z.object({
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 
-export const setCoverInputSchema = z.object({
-  entityType: z.string().describe("Entity type"),
-  entityId: z.string().describe("Entity ID or slug"),
-  imageId: z.string().nullable().describe("Image ID to set, or null to remove"),
-});
-
 export const checkJobStatusInputSchema = z.object({
   batchId: z.string().optional().describe("Specific batch ID to check"),
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
@@ -151,10 +163,4 @@ export const extractOutputSchema = z.object({
   entityType: z.string(),
   source: z.string().optional(),
   mode: z.enum(["derive", "rebuild"]).optional(),
-});
-
-export const setCoverOutputSchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-  imageId: z.string().nullable(),
 });

@@ -529,7 +529,7 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
-  it("should require content, prompt, or url", async () => {
+  it("should require content, prompt, url, or from", async () => {
     const result = await exec({
       entityType: "base",
       title: "Nothing else",
@@ -546,7 +546,7 @@ status: draft
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "URL-only creation is supported only for entity types that explicitly handle it",
+      "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it",
     );
   });
 
@@ -782,13 +782,68 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url and coverImage, and not include options field in schema", () => {
+  it("should expose top-level url, from, replace, and coverImage, and not include options field in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
+    expect(tool.inputSchema).toHaveProperty("from");
+    expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
+  });
+
+  it("should accept from as a create source and forward replace to create interceptors", async () => {
+    let capturedInput: CreateInput | undefined;
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input: CreateInput): Promise<CreateInterceptionResult> => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: {
+              entityId: "deck-carousel",
+              status: "generating",
+              jobId: "job-document",
+            },
+          },
+        };
+      },
+    );
+
+    const result = await exec({
+      entityType: "document",
+      from: {
+        sourceEntityType: "deck",
+        sourceEntityId: "distributed-systems-primer",
+        attachmentType: "carousel",
+      },
+      replace: true,
+      targetEntityType: "social-post",
+      targetEntityId: "launch-post",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        entityId: "deck-carousel",
+        status: "generating",
+        jobId: "job-document",
+      },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "document",
+      from: {
+        sourceEntityType: "deck",
+        sourceEntityId: "distributed-systems-primer",
+        attachmentType: "carousel",
+      },
+      replace: true,
+      targetEntityType: "social-post",
+      targetEntityId: "launch-post",
+    });
   });
 
   it("should queue cover image generation after direct create with actual entity id", async () => {
