@@ -903,10 +903,8 @@ describe("WebChatInterface", () => {
           messages: [
             {
               role: "user",
-              parts: [
-                { type: "text", text: "Summarize this" },
-                { type: "data-upload", data: { ref: upload.ref } },
-              ],
+              content: "Summarize this",
+              parts: [{ type: "data-upload", data: { ref: upload.ref } }],
             },
           ],
         }),
@@ -1174,7 +1172,7 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls[0]?.context?.userPermissionLevel).toBe("anchor");
   });
 
-  it("passes uploaded text file content to the agent", async () => {
+  it("passes inline uploaded text file content to the agent as native attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
@@ -1207,9 +1205,16 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
-    expect(agent.chatCalls[0]?.message).toBe(
-      'Summarize this\n\nUser uploaded a file "meeting-notes.md":\n\n# Notes\n\n- Ship uploads',
-    );
+    expect(agent.chatCalls[0]?.message).toBe("Summarize this");
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "text",
+        filename: "meeting-notes.md",
+        mediaType: "text/markdown",
+        content: "# Notes\n\n- Ship uploads",
+        sizeBytes: 23,
+      },
+    ]);
   });
 
   it("rejects unsupported uploaded file types", async () => {

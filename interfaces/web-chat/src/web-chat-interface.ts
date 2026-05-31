@@ -2976,9 +2976,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<ParsedUserInput | Response> {
     const lastUserMessage = this.findLastUserMessage(request);
     if (!lastUserMessage) return { message: "", attachments: [] };
-    if (lastUserMessage.content) {
-      return { message: lastUserMessage.content, attachments: [] };
-    }
 
     const messageParts: string[] = [];
     const attachments: ChatAttachment[] = [];
@@ -2993,9 +2990,9 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
       const parsedFile = filePartSchema.safeParse(part);
       if (parsedFile.success) {
-        const formatted = this.formatInlineUploadPart(parsedFile.data);
-        if (formatted instanceof Response) return formatted;
-        messageParts.push(formatted);
+        const attachment = this.resolveInlineUploadPart(parsedFile.data);
+        if (attachment instanceof Response) return attachment;
+        attachments.push(attachment);
         continue;
       }
 
@@ -3014,7 +3011,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       }
     }
 
-    return { message: messageParts.join("\n\n"), attachments };
+    return {
+      message:
+        messageParts.length > 0
+          ? messageParts.join("\n\n")
+          : (lastUserMessage.content ?? ""),
+      attachments,
+    };
   }
 
   private getPartType(part: unknown): string | undefined {
@@ -3025,11 +3028,16 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return typeof type === "string" ? type : undefined;
   }
 
-  private formatInlineUploadPart(
+  private resolveInlineUploadPart(
     file: z.infer<typeof filePartSchema>,
-  ): string | Response {
-    const filename = file.filename ?? webChatDefaultUploadFilename;
-    const mediaType = file.mediaType;
+  ): ChatAttachment | Response {
+    const filename = this.sanitizeUploadFilename(
+      file.filename ?? webChatDefaultUploadFilename,
+    );
+    const mediaType = this.normalizeUploadMediaType(
+      filename,
+      file.mediaType ?? "",
+    );
     if (!this.isUploadableTextFile(filename, mediaType)) {
       return new Response(`Unsupported file upload type: ${filename}`, {
         status: 400,
@@ -3053,10 +3061,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       });
     }
 
-    return this.formatFileUploadMessage(
+    return {
+      kind: "text",
       filename,
-      decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
-    );
+      mediaType,
+      content: decoded.buffer.toString("utf8").replace(/^\uFEFF/, ""),
+      sizeBytes: decoded.byteLength,
+    };
   }
 
   private async resolveReferencedUpload(

@@ -180,12 +180,13 @@ Initial durable upload protocol slice exists: operator-only
 file policy, stores content plus metadata under the web-chat data directory, and
 returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
 `data-upload` parts carrying those refs and resolves the stored text into
-native `AgentService.chat()` text attachments. The agent service still projects
-text attachments into the current model turn using the existing text-upload
-prompt format for compatibility, but the stored user message remains the user's
-text instead of an upload-content blob. The React prompt now uploads selected
-text files first, then sends `data-upload` refs through the AI SDK message parts
-protocol.
+native `AgentService.chat()` text attachments. Legacy inline AI SDK `file`
+parts use the same native text attachment path. The agent service still
+projects text attachments into the current model turn using the existing
+text-upload prompt format for compatibility, but the stored user message
+remains the user's text instead of an upload-content blob. The React prompt now
+uploads selected text files first, then sends `data-upload` refs through the AI
+SDK message parts protocol.
 
 Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
 so transcript rendering can continue to show attachment filename pills.
