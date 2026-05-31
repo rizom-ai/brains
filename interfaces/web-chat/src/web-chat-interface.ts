@@ -11,6 +11,7 @@ import {
   type StructuredChatCard,
   type WebRouteDefinition,
   type ChatAttachment,
+  type ToolActivityEvent,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
@@ -110,6 +111,13 @@ interface WebChatProgressData {
   operationTarget?: string;
   message?: string;
   progress?: JobProgressEvent["progress"];
+}
+
+interface WebChatToolStatusData {
+  status: "tool-invoking" | "tool-completed" | "tool-failed";
+  toolName: string;
+  message: string;
+  error?: string;
 }
 
 interface ParsedUserInput {
@@ -2326,6 +2334,27 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
+  protected override async handleToolActivityEvent(
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    if (
+      event.interfaceType !== webChatInterfaceType ||
+      typeof event.channelId !== "string"
+    ) {
+      return;
+    }
+
+    const stream = this.getActiveStream(event.channelId);
+    if (!stream) return;
+
+    stream.writer.write({
+      type: "data-status",
+      id: this.createId("tool-status"),
+      data: this.toToolStatusData(event),
+      transient: true,
+    });
+  }
+
   private toProgressData(event: JobProgressEvent): WebChatProgressData {
     const data: WebChatProgressData = {
       type: event.type,
@@ -2342,6 +2371,30 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       data.progress = event.progress;
     }
     return data;
+  }
+
+  private toToolStatusData(event: ToolActivityEvent): WebChatToolStatusData {
+    switch (event.type) {
+      case "tool:invoking":
+        return {
+          status: "tool-invoking",
+          toolName: event.toolName,
+          message: `Using ${event.toolName}…`,
+        };
+      case "tool:completed":
+        return {
+          status: "tool-completed",
+          toolName: event.toolName,
+          message: `Finished ${event.toolName}.`,
+        };
+      case "tool:failed":
+        return {
+          status: "tool-failed",
+          toolName: event.toolName,
+          message: `${event.toolName} failed.`,
+          ...(event.error !== undefined && { error: event.error }),
+        };
+    }
   }
 
   private async handleChatPage(request: Request): Promise<Response> {

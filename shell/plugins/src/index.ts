@@ -299,6 +299,8 @@ export {
   parseConfirmationResponse,
   formatConfirmationPrompt,
   urlCaptureConfigSchema,
+  type ToolActivityEvent,
+  type ToolActivityEventType,
 } from "./message-interface";
 
 // ============================================================================

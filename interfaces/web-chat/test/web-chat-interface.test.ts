@@ -497,6 +497,101 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("**batch processing");
   });
 
+  it("streams active tool activity as transient status parts", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("tool:invoking", {
+          toolName: "search_notes",
+          conversationId,
+          interfaceType: "web-chat",
+          channelId: conversationId,
+        });
+        return {
+          text: "Search complete.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Search notes" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-status");
+    expect(body).toContain("tool-invoking");
+    expect(body).toContain("Using search_notes…");
+  });
+
+  it("ignores tool activity outside the active web-chat channel", async () => {
+    const agent: IAgentService = {
+      chat: async () => {
+        await harness.sendMessage("tool:invoking", {
+          toolName: "background_tool",
+          conversationId: "other-conversation",
+          interfaceType: "web-chat",
+          channelId: "other-conversation",
+        });
+        return {
+          text: "No visible tool status.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Search notes" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).not.toContain("background_tool");
+    expect(body).not.toContain("tool-invoking");
+  });
+
   it("ignores progress notifications outside the active web-chat channel", async () => {
     const agent: IAgentService = {
       chat: async () => {

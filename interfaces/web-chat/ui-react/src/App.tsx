@@ -204,6 +204,16 @@ function statusPhrase(status: string): string {
   return "";
 }
 
+function getLiveStatusMessage(part: unknown): string | null {
+  if (typeof part !== "object" || part === null) return null;
+  if (!("type" in part) || part.type !== "data-status") return null;
+  if (!("data" in part)) return null;
+  const data = part.data;
+  if (typeof data !== "object" || data === null) return null;
+  if (!("message" in data) || typeof data.message !== "string") return null;
+  return data.message;
+}
+
 function UploadedFilePart({
   filename,
   mediaType,
@@ -347,6 +357,9 @@ export function App(): React.ReactElement {
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
+  const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(
+    null,
+  );
 
   function closeDrawer(): void {
     setDrawerOpen(false);
@@ -372,6 +385,16 @@ export function App(): React.ReactElement {
         id: conversationId,
         messages: initialMessages,
         transport,
+        onData: (part): void => {
+          const message = getLiveStatusMessage(part);
+          if (message) setLiveStatusMessage(message);
+        },
+        onError: (): void => {
+          setLiveStatusMessage(null);
+        },
+        onFinish: (): void => {
+          setLiveStatusMessage(null);
+        },
         sendAutomaticallyWhen:
           lastAssistantMessageIsCompleteWithApprovalResponses,
       }),
@@ -1213,7 +1236,7 @@ export function App(): React.ReactElement {
           <p className="web-chat-status" data-status={status}>
             <span className="web-chat-status-rail" aria-hidden="true" />
             <span className="web-chat-status-phrase">
-              {statusPhrase(status)}
+              {liveStatusMessage ?? statusPhrase(status)}
             </span>
             <span className="web-chat-status-meta">{status}</span>
           </p>

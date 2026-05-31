@@ -9,6 +9,10 @@ import {
   formatProgressMessage,
 } from "./progress-handler";
 import {
+  setupToolActivityHandler,
+  type ToolActivityEvent,
+} from "./tool-event-handler";
+import {
   extractCaptureableUrls,
   formatFileUploadMessage,
   isFileSizeAllowed,
@@ -311,9 +315,29 @@ export abstract class MessageInterfacePlugin<
       },
     });
 
-    this.logger.debug("Message interface registered with progress handler", {
-      id: this.id,
+    setupToolActivityHandler(context, {
+      onToolActivity: async (event) => {
+        await this.handleToolActivityEvent(event);
+      },
+      onError: (error) => {
+        this.logger.error("Error handling tool activity event", {
+          error,
+          interfaceId: this.id,
+        });
+      },
+      onInvalidSchema: () => {
+        this.logger.warn("Invalid tool activity event schema", {
+          interfaceId: this.id,
+        });
+      },
     });
+
+    this.logger.debug(
+      "Message interface registered with progress and tool handlers",
+      {
+        id: this.id,
+      },
+    );
   }
 
   /**
@@ -565,6 +589,15 @@ export abstract class MessageInterfacePlugin<
    * Called after default handling for each progress event
    */
   protected async onProgressUpdate(_event: JobProgressEvent): Promise<void> {
+    // Default: no additional handling
+  }
+
+  /**
+   * Override point for tool activity events emitted during agent turns.
+   */
+  protected async handleToolActivityEvent(
+    _event: ToolActivityEvent,
+  ): Promise<void> {
     // Default: no additional handling
   }
 

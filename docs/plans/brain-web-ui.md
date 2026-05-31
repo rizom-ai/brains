@@ -244,14 +244,12 @@ stream. Background/batch jobs without an active web-chat channel stay silent in
 the transcript. Async artifacts should use attachment/job polling rather than
 injecting late raw completion messages.
 
-Next progress slice: surface the agent's own tool activity while a web-chat
-turn is in flight. `createToolExecuteWrapper` already emits `tool:invoking`,
-`tool:completed`, and `tool:failed` events with conversation/channel routing;
-web-chat should subscribe through the message-interface path and translate
-matching active-channel events into transient `data-status` parts such as
-`Using <toolName>…`. Prefer a base-class hook defaulting to no-op, overridden by
-web-chat, matching the existing progress-update pattern. Validate that matching
-active streams receive status parts and unrelated channels are dropped.
+Agent tool activity now surfaces while a web-chat turn is in flight.
+`MessageInterfacePlugin` subscribes to existing `tool:invoking`,
+`tool:completed`, and `tool:failed` events, exposes a no-op base hook, and
+`WebChatInterface` translates matching active-channel events into transient
+`data-status` parts such as `Using <toolName>…`. The React island uses those
+status data parts to replace the generic waiting phrase while tools run.
 
 Remaining progress work: decide whether completed progress parts should be
 persisted as transcript history or remain live-only. For artifact readiness,
