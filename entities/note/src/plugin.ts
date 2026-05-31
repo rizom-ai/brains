@@ -20,6 +20,7 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
   readonly entityType = noteAdapter.entityType;
   readonly schema = noteSchema;
   readonly adapter = noteAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: NoteConfigInput = {}) {
     super("note", packageJson, config, noteConfigSchema);
@@ -49,9 +50,15 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
       });
     });
 
-    AtprotoProjectionRegistry.getInstance().register(
-      createNoteAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createNoteAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 }
 

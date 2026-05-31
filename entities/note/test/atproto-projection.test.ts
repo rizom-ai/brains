@@ -48,6 +48,25 @@ describe("note ATProto projection", () => {
     });
   });
 
+  it("uses shared frontmatter parsing for CRLF note markdown", async () => {
+    const projection = createNoteAtprotoProjection();
+
+    const record = await projection.buildRecord({
+      entity: {
+        ...note,
+        content:
+          "---\r\ntitle: Networked Knowledge\r\n---\r\n# Networked Knowledge\r\n\r\nA note body.",
+      },
+      context: createPluginHarness().getServiceContext("note"),
+      config: {
+        enabled: true,
+        pdsEndpoint: "https://bsky.social",
+      },
+    });
+
+    expect(record.body).toBe("# Networked Knowledge\r\n\r\nA note body.");
+  });
+
   it("registers the note projection when the note plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
     await harness.installPlugin(new NotePlugin({}));

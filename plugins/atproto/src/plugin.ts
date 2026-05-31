@@ -242,6 +242,7 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
         context,
         config: this.config,
         ...(options.topics && { topics: options.topics }),
+        dryRun: true,
       });
       validateAtprotoRecord(projection.lexicon, record);
       return {

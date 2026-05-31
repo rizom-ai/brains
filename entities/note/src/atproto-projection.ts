@@ -1,9 +1,10 @@
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { parseAtprotoLexicon } from "@brains/atproto-contracts";
 import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
-import { noteSchema } from "./schemas/note";
+import { noteFrontmatterSchema, noteSchema } from "./schemas/note";
 import noteLexicon from "../lexicons/ai.rizom.brain.note.json";
 
 export interface NoteAtprotoRecord {
@@ -20,20 +21,20 @@ export interface NoteAtprotoRecord {
   updatedAt?: string;
 }
 
-function stripFrontmatter(markdown: string): string {
-  return markdown.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
-}
-
 export async function buildNoteAtprotoRecord({
   entity,
   config,
 }: AtprotoProjectionBuildInput): Promise<NoteAtprotoRecord> {
   const note = noteSchema.parse(entity);
+  const parsed = parseMarkdownWithFrontmatter(
+    note.content,
+    noteFrontmatterSchema,
+  );
 
   return {
     $type: "ai.rizom.brain.note",
     title: note.metadata.title,
-    body: stripFrontmatter(note.content),
+    body: parsed.content,
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),

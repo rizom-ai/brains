@@ -85,7 +85,51 @@ describe("AtprotoProjectionRegistry", () => {
     ).toThrow("collection must match lexicon id");
   });
 
-  it("replaces registrations for the same entity type", () => {
+  it("allows idempotent re-registration of the same projection", () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const projection = {
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
+    };
+
+    registry.register(projection);
+    registry.register(projection);
+
+    expect(registry.get("post")).toBe(projection);
+    expect(registry.list()).toEqual([projection]);
+  });
+
+  it("allows equivalent registrations from multiple plugin instances", () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const first = {
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
+    };
+    const second = {
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      buildRecord: (): Promise<AtprotoProjectedPostRecord> =>
+        Promise.resolve(createPostRecord()),
+    };
+
+    const unregisterFirst = registry.register(first);
+    const unregisterSecond = registry.register(second);
+
+    expect(registry.get("post")).toBe(first);
+    unregisterSecond();
+    expect(registry.get("post")).toBe(first);
+    unregisterFirst();
+    expect(registry.get("post")).toBeUndefined();
+  });
+
+  it("rejects conflicting registrations for the same entity type", () => {
     const registry = AtprotoProjectionRegistry.createFresh();
     const first = {
       entityType: "post",
@@ -103,10 +147,11 @@ describe("AtprotoProjectionRegistry", () => {
     };
 
     registry.register(first);
-    registry.register(second);
 
-    expect(registry.get("post")).toBe(second);
-    expect(registry.list()).toEqual([second]);
+    expect(() => registry.register(second)).toThrow(
+      "AT Protocol projection already registered for entity type post",
+    );
+    expect(registry.get("post")).toBe(first);
   });
 
   it("unregisters projections", () => {

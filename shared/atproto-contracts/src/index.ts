@@ -265,6 +265,7 @@ export interface AtprotoProjectionBuildInput {
   config: AtprotoPublishConfig;
   client?: AtprotoPdsClientLike;
   topics?: string[];
+  dryRun?: boolean;
 }
 
 export interface AtprotoProjectedPostRecord extends Record<string, unknown> {
@@ -299,6 +300,7 @@ export interface AtprotoProjection<
 export class AtprotoProjectionRegistry {
   private static instance: AtprotoProjectionRegistry | undefined;
   private readonly projections = new Map<string, AtprotoProjection>();
+  private readonly registrationCounts = new Map<string, number>();
 
   static getInstance(): AtprotoProjectionRegistry {
     this.instance ??= new AtprotoProjectionRegistry();
@@ -317,12 +319,23 @@ export class AtprotoProjectionRegistry {
     projection: AtprotoProjection<TRecord>,
   ): () => void {
     this.validateProjection(projection);
-    this.projections.set(projection.entityType, projection);
-    return () => {
-      if (this.projections.get(projection.entityType) === projection) {
-        this.projections.delete(projection.entityType);
+    const existing = this.projections.get(projection.entityType);
+    if (existing) {
+      if (!this.isEquivalentProjection(existing, projection)) {
+        throw new Error(
+          `AT Protocol projection already registered for entity type ${projection.entityType}`,
+        );
       }
-    };
+      this.registrationCounts.set(
+        projection.entityType,
+        (this.registrationCounts.get(projection.entityType) ?? 1) + 1,
+      );
+      return this.createUnregister(projection.entityType);
+    }
+
+    this.projections.set(projection.entityType, projection);
+    this.registrationCounts.set(projection.entityType, 1);
+    return this.createUnregister(projection.entityType);
   }
 
   get(
@@ -343,6 +356,33 @@ export class AtprotoProjectionRegistry {
 
   listLexicons(): AtprotoLexicon[] {
     return this.list().map((projection) => projection.lexicon);
+  }
+
+  private createUnregister(entityType: string): () => void {
+    let active = true;
+    return () => {
+      if (!active) return;
+      active = false;
+      const count = this.registrationCounts.get(entityType) ?? 0;
+      if (count <= 1) {
+        this.registrationCounts.delete(entityType);
+        this.projections.delete(entityType);
+        return;
+      }
+      this.registrationCounts.set(entityType, count - 1);
+    };
+  }
+
+  private isEquivalentProjection(
+    existing: AtprotoProjection,
+    projection: AtprotoProjection,
+  ): boolean {
+    return (
+      existing.entityType === projection.entityType &&
+      existing.collection === projection.collection &&
+      existing.lexicon.id === projection.lexicon.id &&
+      existing.validate === projection.validate
+    );
   }
 
   private validateProjection(projection: AtprotoProjection): void {

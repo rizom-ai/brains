@@ -37,6 +37,7 @@ export class SocialMediaPlugin extends EntityPlugin<
   readonly adapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: SocialMediaConfigInput) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
@@ -77,11 +78,17 @@ export class SocialMediaPlugin extends EntityPlugin<
 
     subscribeToGenerateExecute(context, this.logger);
     registerEvalHandlers(context);
-    AtprotoProjectionRegistry.getInstance().register(
-      createSocialPostAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createSocialPostAtprotoProjection(),
+      );
 
     this.logger.info("Social media plugin registered successfully");
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private initializeProviders(): void {

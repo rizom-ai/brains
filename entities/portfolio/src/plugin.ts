@@ -66,6 +66,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   readonly entityType = projectAdapter.entityType;
   readonly schema = projectSchema;
   readonly adapter = projectAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
@@ -160,9 +161,15 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
     this.registerEvalHandlers(context);
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
-    AtprotoProjectionRegistry.getInstance().register(
-      createProjectAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createProjectAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {

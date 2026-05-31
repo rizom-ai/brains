@@ -28,6 +28,7 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
   readonly entityType = blogPostAdapter.entityType;
   readonly schema = blogPostSchema;
   readonly adapter = blogPostAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: BlogConfigInput = {}) {
     super("blog", packageJson, config, blogConfigSchema);
@@ -68,13 +69,19 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildCompleted(context, this.logger);
     registerEvalHandlers(context);
-    AtprotoProjectionRegistry.getInstance().register(
-      createBlogAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createBlogAtprotoProjection(),
+      );
 
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
     );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 }
 

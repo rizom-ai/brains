@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { createServicePluginContext } from "@brains/plugins";
+import {
+  createServicePluginContext,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import {
   createMockServicePluginContext,
   createMockShell,
@@ -48,6 +51,67 @@ describe("blog ATProto projection", () => {
       sourceEntityType: "post",
       sourceEntityId: "post-1",
       publishedAt: "2026-05-28T12:00:00.000Z",
+    });
+  });
+
+  it("includes cover image shape during dry-run without uploading a blob", async () => {
+    const projection = createBlogAtprotoProjection();
+    const entity = createMockPost(
+      "post-1",
+      "Distributed Brains",
+      "distributed-brains",
+      "published",
+      { publishedAt: "2026-05-28T12:00:00.000Z" },
+    );
+    const postWithCover = {
+      ...entity,
+      content: generateMarkdownWithFrontmatter(
+        "# Distributed Brains\n\nContent for Distributed Brains",
+        {
+          title: "Distributed Brains",
+          slug: "distributed-brains",
+          status: "published" as const,
+          publishedAt: "2026-05-28T12:00:00.000Z",
+          excerpt: "Excerpt for Distributed Brains",
+          author: "Test Author",
+          coverImageId: "image-1",
+        },
+      ),
+    };
+    const image = {
+      id: "image-1",
+      entityType: "image",
+      content: "data:image/png;base64,aGVsbG8=",
+      created: "2026-05-28T10:00:00.000Z",
+      updated: "2026-05-28T10:00:00.000Z",
+      visibility: "public" as const,
+      contentHash: "image-hash",
+      metadata: { alt: "Cover alt", width: 1200, height: 630 },
+    };
+    const shell = createMockShell();
+    shell.addEntities([postWithCover, image]);
+    const context = createServicePluginContext(shell, "blog");
+
+    const record = await projection.buildRecord({
+      entity: postWithCover,
+      context,
+      config: {
+        enabled: true,
+        pdsEndpoint: "https://bsky.social",
+      },
+      dryRun: true,
+    });
+
+    expect(record.coverImage).toEqual({
+      blob: {
+        $type: "blob",
+        ref: { $link: "dry-run" },
+        mimeType: "image/png",
+        size: 5,
+      },
+      alt: "Cover alt",
+      width: 1200,
+      height: 630,
     });
   });
 

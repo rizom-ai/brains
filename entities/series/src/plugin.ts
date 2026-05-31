@@ -53,6 +53,7 @@ export class SeriesPlugin extends EntityPlugin<Series> {
   readonly schema = seriesSchema;
   readonly adapter = seriesAdapter;
   private manager?: SeriesManager;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
     super("series", packageJson);
@@ -142,9 +143,15 @@ export class SeriesPlugin extends EntityPlugin<Series> {
       context.entityService,
       this.logger.child("SeriesManager"),
     );
-    AtprotoProjectionRegistry.getInstance().register(
-      createSeriesAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createSeriesAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private createSeriesProjectionHandler(

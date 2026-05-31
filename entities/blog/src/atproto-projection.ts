@@ -63,6 +63,7 @@ async function uploadCoverImage(
   context: ServicePluginContext,
   entity: BaseEntity,
   client: BlobUploader | undefined,
+  dryRun: boolean,
 ): Promise<BlogAtprotoCoverImage | undefined> {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
@@ -70,8 +71,8 @@ async function uploadCoverImage(
   );
   const coverImageId = parsed.metadata.coverImageId;
   if (!coverImageId) return undefined;
-  if (!client) return undefined;
-  if (!client.uploadBlob) {
+  if (!client && !dryRun) return undefined;
+  if (client && !client.uploadBlob) {
     throw new Error("AT Protocol PDS client does not support blob uploads");
   }
 
@@ -85,7 +86,15 @@ async function uploadCoverImage(
   }
 
   const uploadInput = dataUrlToUploadInput(image.content);
-  const uploaded = await client.uploadBlob(uploadInput);
+  const blob = dryRun
+    ? {
+        $type: "blob" as const,
+        ref: { $link: "dry-run" },
+        mimeType: uploadInput.mimeType,
+        size: uploadInput.data.byteLength,
+      }
+    : (await client?.uploadBlob?.(uploadInput))?.blob;
+  if (!blob) return undefined;
   const metadata = image.metadata;
   const alt = typeof metadata["alt"] === "string" ? metadata["alt"] : undefined;
   const width =
@@ -94,7 +103,7 @@ async function uploadCoverImage(
     typeof metadata["height"] === "number" ? metadata["height"] : undefined;
 
   return {
-    blob: uploaded.blob,
+    blob,
     ...(alt && { alt }),
     ...(width !== undefined && { width }),
     ...(height !== undefined && { height }),
@@ -107,6 +116,7 @@ export async function buildBlogAtprotoPostRecord({
   config,
   client,
   topics,
+  dryRun = false,
 }: AtprotoProjectionBuildInput): Promise<BlogAtprotoPostRecord> {
   if (entity.entityType !== "post") {
     throw new Error(`Expected entityType post, got ${entity.entityType}`);
@@ -117,7 +127,7 @@ export async function buildBlogAtprotoPostRecord({
     blogPostFrontmatterSchema,
   );
   const frontmatter = parsed.metadata;
-  const coverImage = await uploadCoverImage(context, entity, client);
+  const coverImage = await uploadCoverImage(context, entity, client, dryRun);
 
   return {
     $type: "ai.rizom.brain.post",

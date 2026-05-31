@@ -52,6 +52,7 @@ export class TopicsPlugin extends EntityPlugin<
   readonly entityType = TOPIC_ENTITY_TYPE;
   readonly schema = topicEntitySchema;
   readonly adapter = topicAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
   private readonly sourceBatch = new TopicSourceBatchBuffer();
@@ -172,9 +173,15 @@ export class TopicsPlugin extends EntityPlugin<
       config: this.config,
     });
 
-    AtprotoProjectionRegistry.getInstance().register(
-      createTopicAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createTopicAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   // ── Public helpers (used by tests) ──

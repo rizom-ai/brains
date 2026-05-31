@@ -33,6 +33,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   readonly schema = deckAdapter.schema;
   readonly adapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(private readonly deps: DecksPluginDeps = {}) {
     super("decks", packageJson);
@@ -71,9 +72,10 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerEvalHandlers(context);
-    AtprotoProjectionRegistry.getInstance().register(
-      createDeckAtprotoProjection(),
-    );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createDeckAtprotoProjection(),
+      );
 
     this.logger.info("Decks plugin registered");
   }
@@ -81,6 +83,8 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   protected override async onShutdown(): Promise<void> {
     this.unregisterCarouselAttachmentProvider?.();
     this.unregisterCarouselAttachmentProvider = undefined;
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private async registerWithPublishPipeline(
