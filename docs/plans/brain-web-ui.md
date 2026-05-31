@@ -244,6 +244,15 @@ stream. Background/batch jobs without an active web-chat channel stay silent in
 the transcript. Async artifacts should use attachment/job polling rather than
 injecting late raw completion messages.
 
+Next progress slice: surface the agent's own tool activity while a web-chat
+turn is in flight. `createToolExecuteWrapper` already emits `tool:invoking`,
+`tool:completed`, and `tool:failed` events with conversation/channel routing;
+web-chat should subscribe through the message-interface path and translate
+matching active-channel events into transient `data-status` parts such as
+`Using <toolName>…`. Prefer a base-class hook defaulting to no-op, overridden by
+web-chat, matching the existing progress-update pattern. Validate that matching
+active streams receive status parts and unrelated channels are dropped.
+
 Remaining progress work: decide whether completed progress parts should be
 persisted as transcript history or remain live-only. For artifact readiness,
 keep using attachment `jobId` polling unless a broader durable notification
@@ -251,8 +260,20 @@ model is introduced.
 
 ### 7. Deeper streaming
 
-Token-by-token model streaming remains a later `AgentService` capability;
-current progress/status/final-response streaming is enough for the MVP.
+Token-by-token model streaming remains a later `AgentService` capability. The
+SDK-backed `ToolLoopAgent` has a `stream()` path, but `AgentService.chat()` still
+uses a generate-to-completion turn. A future slice should add a streaming agent
+path, consume it inside `AgentService` so conversation persistence,
+`extractToolResults`, pending confirmations, and usage accounting stay intact,
+and forward safe text deltas through chat context callbacks to web-chat. The
+web-chat adapter can then emit `text-start` / ordered `text-delta` /
+`text-end` instead of a single final text block.
+
+Open risks for real token streaming: do not leak model text before destructive
+tool approval, thread abort signals so closed tabs cancel generation, and keep
+xstate's turn completion semantics stable while deltas travel as a side channel.
+Validation should cover ordered deltas, final persisted assistant text, and an
+approval turn that streams no pre-approval model prose.
 
 ### 8. Per-release polish pass
 
