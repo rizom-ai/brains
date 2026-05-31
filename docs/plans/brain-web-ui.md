@@ -36,8 +36,9 @@ surface; multi-platform adapter consolidation is parked in
    contracts and structure track upstream so we don't accumulate a homebrew
    fork.
 7. **Progress feedback from day one.** Silent 10–30 second waits are not
-   acceptable UX. Progress/status/final-response streaming is shipped; true
-   token-by-token model streaming remains a later `AgentService` capability.
+   acceptable UX. Web-chat now streams durable UI events for progress, tool
+   activity, approvals, attachments, and final assistant responses. We are not
+   pursuing token-by-token model streaming without a clearer product need.
 
 ## Architecture
 
@@ -174,6 +175,9 @@ The active chat transcript shows attached filenames on submitted user messages,
 so upload validation/submission success is visible even if the later agent
 response times out. The prompt area also shows transient upload notices for
 client validation, handoff success, and server-side upload validation failures.
+Browser verification confirmed the primary multipart flow: files upload to
+`/api/chat/uploads` first, and `/api/chat` receives durable `data-upload` refs
+rather than inline file content.
 
 Initial durable upload protocol slice exists: operator-only
 `POST /api/chat/uploads` accepts multipart text uploads, validates the same text
@@ -256,22 +260,22 @@ persisted as transcript history or remain live-only. For artifact readiness,
 keep using attachment `jobId` polling unless a broader durable notification
 model is introduced.
 
-### 7. Deeper streaming
+### 7. Responsiveness roadmap
 
-Token-by-token model streaming remains a later `AgentService` capability. The
-SDK-backed `ToolLoopAgent` has a `stream()` path, but `AgentService.chat()` still
-uses a generate-to-completion turn. A future slice should add a streaming agent
-path, consume it inside `AgentService` so conversation persistence,
-`extractToolResults`, pending confirmations, and usage accounting stay intact,
-and forward safe text deltas through chat context callbacks to web-chat. The
-web-chat adapter can then emit `text-start` / ordered `text-delta` /
-`text-end` instead of a single final text block.
+Token-by-token model streaming is intentionally not on the active roadmap. The
+highest-value responsiveness gap was opaque tool/job waits; that is now covered
+by structured progress and live tool-status events without changing the core
+`AgentService.chat()` generate-to-completion contract.
 
-Open risks for real token streaming: do not leak model text before destructive
-tool approval, thread abort signals so closed tabs cancel generation, and keep
-xstate's turn completion semantics stable while deltas travel as a side channel.
-Validation should cover ordered deltas, final persisted assistant text, and an
-approval turn that streams no pre-approval model prose.
+Do not start model-token streaming unless user feedback shows final answer text
+latency is a materially bigger problem than tool/status visibility. If revived,
+open a fresh design first; the known risks are approval safety, abort/cancel
+threading, conversation persistence, usage accounting, and xstate turn
+completion semantics.
+
+Near-term responsiveness work should stay smaller: browser-verify real tool
+status flows, polish status copy/rendering, and tighten failed/completed status
+semantics before changing AI-service streaming contracts.
 
 ### 8. Per-release polish pass
 
@@ -285,9 +289,10 @@ bun run --filter @brains/web-chat lint
 ```
 
 Browser pass covers: empty state, sign-in required state, sending a message,
-streaming markdown, code blocks and long-message overflow, session
+assistant markdown, code blocks and long-message overflow, session
 switching/new-session, tool result collapse/expand, confirmation
-approve/decline, light/dark mode, mobile drawer/header/action layout.
+approve/decline, upload pills/download links, live tool status, light/dark mode,
+and mobile drawer/header/action layout.
 
 ## Deferred
 
