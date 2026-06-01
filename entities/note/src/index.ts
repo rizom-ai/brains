@@ -1,5 +1,10 @@
 // Plugin exports
 export { NotePlugin, notePlugin } from "./plugin";
+export {
+  buildNoteAtprotoRecord,
+  createNoteAtprotoProjection,
+  type NoteAtprotoRecord,
+} from "./atproto-projection";
 
 // Schema exports
 export {

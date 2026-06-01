@@ -17,7 +17,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Conversation memory](./summary-conversation-memory.md) — Phases 1–4 shipped; active hardening: full-agent evals, operator visibility, memory dashboard
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
@@ -34,7 +33,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Content, sync, and generation
 
-- [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
 - [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
 
 ### Auth, users, CMS, and HTTP
@@ -58,6 +56,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — Phase 1–2 in progress on `feat/atproto`: plugin foundation, brain card publish, and blog post records landed on the feature branch
+- [AT Protocol integration](./atproto-integration.md) — active prototype; Phase 1/2 outbound publishing and Phase 2.6 registry contracts are implemented, with live `rizom.ai` registry enablement still pending
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

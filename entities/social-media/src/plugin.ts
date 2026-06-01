@@ -6,6 +6,7 @@ import type {
   EntityTypeConfig,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
@@ -25,6 +26,7 @@ import {
   subscribeToAutoGenerate,
   subscribeToGenerateExecute,
 } from "./lib/auto-generate";
+import { createSocialPostAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
@@ -36,6 +38,7 @@ export class SocialMediaPlugin extends EntityPlugin<
   readonly adapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: SocialMediaConfigInput) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
@@ -82,8 +85,17 @@ export class SocialMediaPlugin extends EntityPlugin<
 
     subscribeToGenerateExecute(context, this.logger);
     registerEvalHandlers(context);
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createSocialPostAtprotoProjection(),
+      );
 
     this.logger.info("Social media plugin registered successfully");
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private initializeProviders(): void {

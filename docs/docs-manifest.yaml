@@ -53,6 +53,12 @@ docs:
     order: 80
     source: docs/interface-setup.md
 
+  - id: atproto-lexicons
+    title: ATProto Lexicons
+    section: Interfaces
+    order: 85
+    source: docs/atproto-lexicons.md
+
   - id: mcp-inspector-guide
     title: MCP Inspector Guide
     section: Interfaces

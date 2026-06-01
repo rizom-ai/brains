@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress on `feat/atproto`. `plugins/atproto` exists on the feature branch with the plugin foundation, brain-card publishing, blog post records, and the first round of outbound-publishing hardening committed; nothing has merged to `main` yet. Phase 3+ (inbound ingestion, discovery, feeds, federation) remains future work. The distribution/discovery direction is still aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and `@brains/atproto-registry` serves them when explicitly enabled. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Remaining public closeout is enabling that capability on the live official `rizom.ai` instance and verifying the canonical URLs. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -50,11 +50,22 @@ ai.rizom.brain.post       — blog posts (markdown body, title, series, topics)
 ai.rizom.brain.note       — knowledge notes
 ai.rizom.brain.link       — curated bookmarks (URL, title, description, extracted content)
 ai.rizom.brain.deck       — presentations
-ai.rizom.brain.socialPost — social media posts (platform, content)
+ai.rizom.brain.socialPost — semantic social-post entities (not Bluesky feed posts)
+ai.rizom.brain.series     — derived public series/grouping entities
+ai.rizom.brain.project    — public portfolio/project entries
+ai.rizom.brain.topic      — public topic/knowledge tags
 ai.rizom.brain.card       — brain capability card (name, role, skills, endpoints)
 ```
 
-Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. The lexicon schema is generated from existing Zod entity schemas where possible.
+Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. Lexicons are distribution projections of existing brain entities, not replacement entity models. For example, `ai.rizom.brain.post` is the ATProto projection of the existing blog `post` entity (`entities/blog`, entityType `post`). The local entity remains the source of truth. Do not introduce parallel ATProto-only entity models.
+
+Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs, generic publishing, and the brain card publisher. Shared ATProto contracts live in `@brains/atproto-contracts`, not in the service plugin package. Canonical `ai.rizom.brain.*` lexicon JSON should live in `@brains/atproto-contracts` as the single in-repo source of truth for local validation and projection registration. Entity packages own projection definitions, mappers, and package-local conformance tests for their entity types; they import canonical lexicons from `@brains/atproto-contracts` and do not carry separate `ai.rizom.brain.*` lexicon JSON. Public protocol authority is provided by a Rizom protocol registry plugin operated by the official `rizom.ai` brain/site, which serves the same canonical contracts. The projection registry entry includes the entity type, collection NSID, canonical lexicon JSON, mapper, and optional publish hook; registration rejects collection/lexicon mismatches and conflicting entity-type registrations. The blog `post` projection lives in `entities/blog`; broader entity projections should likewise be registered from their entity plugins instead of centralized in the ATProto plugin.
+
+Projection selection rule: durable, user-meaningful public entities should generally get quiet semantic ATProto projections. Public visibility is required but not sufficient: each entity package must define an explicit safe projection. Derived entities are not excluded automatically: `series` is derived from source entities with `seriesName`, but it is still a first-class durable grouping entity and should be projected. Ephemeral, operational, evidence/support, or relationship/directory entities should not be published just because they exist. `agent` is excluded from Phase 2 because publishing discovered peer-agent directory entries implies a product/approval semantics decision; `skill` is currently derived/ephemeral support data and should not be projected in Phase 2.
+
+Current decision: keep hand-written projection types and explicit tests for now. Remove package-local `ai.rizom.brain.*` lexicon ownership in the next slice: entity packages should import canonical lexicons from `@brains/atproto-contracts`, while a separate registry plugin serves those same lexicons publicly from `rizom.ai`. The ATProto service plugin owns only publishing behavior such as identity, PDS writes, blobs, and brain-card publishing; it should also consume canonical lexicons rather than define separate service-local copies. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
+
+PDS-side validation is not the authoritative contract for Rizom custom records. Public PDS instances may reject unknown `ai.rizom.brain.*` lexicons when `validate: true`, so outbound custom record writes use `validate: false` at the PDS boundary. The safety contract is local: before publishing, Rizom should validate projected records against the registered lexicon and entity-owned mapper contract, then use the PDS as the signed repository/storage layer. Public lexicon publication is required before network interoperability work depends on other producers or consumers understanding Rizom records.
 
 ## Identity Model
 
@@ -64,7 +75,7 @@ Separate AT Protocol repo identity from public brain identity:
 - **Anchor DID** — the human/operator identity. This may be the same as the repo DID for personal brains, or a DID referenced from records/profile metadata.
 - **Brain DID** — the agent identity. This identifies which brain produced a record and is included in custom record fields such as `brainDid` / `operatedBy`. It does not imply write authority over the PDS repo unless the brain itself owns the PDS account.
 
-Phase 1 should support the simplest deployable model: one configured PDS repo DID plus optional `anchorDid` and `brainDid` metadata. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
+Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
 
 For public brain DID documents, prefer `did:web` served from the brain's domain at `/.well-known/did.json`. `did:plc` can be added later if domain-independent portability becomes important.
 
@@ -95,15 +106,33 @@ User-facing result: **"My brain can exist on AT Protocol."**
 
 ### Phase 2: Outbound publishing
 
-Users can publish brain content to AT Protocol and Bluesky.
+Users can publish public brain content to AT Protocol through explicit entity-owned projections. Semantic custom records are quiet network records by default; Bluesky/social feed posts are a separate `social-post` workflow to design later.
 
-- Brain entities become signed atproto records.
-- Summaries can cross-post to Bluesky.
-- Bluesky users can follow, reply, quote, and click through to full content on the brain's site.
+- Public brain entities with registered projections become signed atproto records.
+- Blog posts publish as `ai.rizom.brain.post` records.
+- Durable public entities such as notes, links, decks, semantic social posts, series, projects, and topics should get entity-owned projections.
+- Derived/ephemeral/internal support entities such as skills should not be projected in Phase 2 unless their product semantics change.
+- No entity type is published blindly or automatically; projection registration is the explicit safety boundary.
+- Bluesky `app.bsky.feed.post` publishing should be implemented through `social-post`, not as a side effect of semantic entity publishing.
 
-User-facing result: **"My brain can broadcast my work to Bluesky/ATProto."**
+User-facing result: **"My brain can publish my work to ATProto with portable identity and signed records."**
 
 This is the first visibly valuable milestone.
+
+### Phase 2.5: Public lexicon publication and local validation
+
+Before Phase 3/4 network interoperability depends on custom records from multiple brains, Rizom lexicons must become public, canonical contracts with an explicit owner.
+
+- Canonical `ai.rizom.brain.*` authority belongs to a Rizom protocol registry operated by the official `rizom.ai` brain/site, not to each publishing brain.
+- Canonical lexicon JSON has one in-repo source of truth in `@brains/atproto-contracts` so publishing code, mapper tests, and registry routes consume the same artifacts.
+- Entity packages own projections/mappers only. They import canonical lexicons from `@brains/atproto-contracts` for registration and local validation; they do not own separate `entities/*/lexicons/ai.rizom.brain.*.json` files.
+- Serve machine-readable `ai.rizom.brain.*` lexicon JSON from the canonical registry path, likely `https://rizom.ai/atproto/lexicons/<nsid>.json`, with a manifest/index.
+- Document canonical NSIDs, registry ownership, package projection ownership, compatibility/change policy, and how custom brain-specific extensions must use a namespace controlled by that brain/operator rather than `ai.rizom.brain.*`.
+- Add local lexicon-backed validation in the ATProto publish path before calling `com.atproto.repo.createRecord` / `putRecord`; keep PDS writes compatible with public PDS instances that do not know Rizom lexicons.
+- Add tests/checks that no duplicate canonical `ai.rizom.brain.*` lexicon JSON exists outside the contracts source of truth, and that all projections use canonical contracts.
+- Revisit PDS `validate: true` only where the target PDS can resolve the relevant Rizom lexicons; do not make PDS-side validation the only correctness check.
+
+User-facing result: **"Other tools and brains can understand Rizom ATProto records from a stable public contract owned by Rizom's protocol registry."**
 
 ### Phase 3: Inbound ingestion
 
@@ -151,40 +180,130 @@ User-facing result: **"My brain participates in a living knowledge network."**
 
 Recommended product order:
 
-1. Phase 1 + Phase 2: public ATProto/Bluesky publishing.
+1. Phase 1 + Phase 2: public ATProto article publishing.
 2. Phase 4: decentralized brain discovery.
 3. Phase 3: ingest external/social knowledge.
 4. Phase 5 + Phase 6: curation and federation.
 
-First product promise: **"Publish from your brain to Bluesky/ATProto, with portable identity and signed records."**
+First product promise: **"Publish public brain knowledge to ATProto, with portable identity and signed records, without automatically posting it to a social feed."**
 
 ## Phases
 
 ### Phase 1: Plugin skeleton + identity
 
+Status: core implementation complete for local/dev prototype; production hardening remains.
+
+Done:
+
 1. Create `plugins/atproto/` as a `ServicePlugin`
-2. Define lexicon JSON files for `ai.rizom.brain.card` and `ai.rizom.brain.post`
-3. Generate TypeScript types from lexicons (`@atproto/lex-cli`) or add checked generated types if lex generation is not yet wired into the workspace
-4. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and auth secret references
-5. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
-6. Authenticate to PDS with app password for the local prototype; keep OAuth as a follow-up once the first slice works
-7. Add a small PDS client wrapper so tests can mock repo writes without network access
-8. Tests: DID document route, config validation, mocked PDS authentication/client calls
+2. Define initial lexicon JSON for `ai.rizom.brain.card`; Phase 2.6 will move canonical `ai.rizom.brain.*` lexicons into `@brains/atproto-contracts` as the single source of truth
+3. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and standard `${ENV_VAR}`-interpolated auth secret references
+4. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
+5. Authenticate to PDS with app password for the local prototype; keep outbound ATProto OAuth as a follow-up once the first slice works
+6. Add a small PDS client wrapper so tests can mock repo writes without network access
+7. Tests: DID document route, config validation, mocked PDS authentication/client calls
+8. Document config, tools, and manual smoke checklist in `plugins/atproto/README.md`
+
+Closed Phase 1 decisions:
+
+1. Use tested hand-written projection types for now instead of wiring lexicon TypeScript generation into the workspace.
+2. Keep ATProto opt-in in Rover/Relay presets until credentials are configured and a real operator explicitly enables publishing.
+3. Treat existing brain OAuth as inbound auth for clients calling the brain; outbound ATProto OAuth to a PDS is a separate follow-up, not a blocker for the app-password prototype.
+
+Live PDS smoke result:
+
+- 2026-05-29 against `https://bsky.social` with test handle `rizom-test.bsky.social` / repo `did:plc:mut7oy7nctoevokkshes2wpq`.
+- `atproto_validate_credentials` equivalent session creation succeeded.
+- `atproto_publish_card` dry-run succeeded.
+- `atproto_publish_card` live upsert succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.card/self`, latest smoke CID `bafyreieqve77kosvsvjsob5nt2szoy3rhmpdxogbkwgchw6254sxyozgje`.
+- Follow-up verification via `com.atproto.repo.getRecord` returned the same card URI and `$type: ai.rizom.brain.card`.
+- `atproto_publish_post` dry-run and live custom post write succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmywyqjukc2h`, CID `bafyreidcjytze5rg3tmbpsff3big4i4ilqn7arczeamodxwwieaxhhu3u4`.
+- Follow-up verification via `com.atproto.repo.getRecord` returned the same post URI/CID and `$type: ai.rizom.brain.post`.
+- Cover-image custom post smoke succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`.
+- Follow-up verification returned the custom post with `coverImage`.
+- Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false`.
+
+Still needed before production:
+
+1. Add outbound ATProto OAuth once app-password prototype behavior is settled.
 
 ### Phase 2: Content distribution (outbound)
 
-1. Implement explicit outbound publishing in the atproto plugin: entity → custom record via `com.atproto.repo.createRecord`
-2. Do not initially replace existing content-pipeline providers for entity types such as `post`; the current registry is one provider per entity type and internal publish status semantics are separate from distribution targets
-3. Evaluate a content-pipeline multi-provider/distribution-target extension after the explicit path works
-4. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images
-5. Cross-post summaries as `app.bsky.feed.post` for Bluesky visibility, including length limits, facets, link embeds, image alt text, and aspect ratio metadata
-6. Add remaining lexicons (`note`, `link`, `deck`, `socialPost`) only after `post` and `card` are stable
-7. Tests: entity → custom record payload, blob upload path, Bluesky cross-post payload, no accidental override of internal publish providers
+1. Implement explicit outbound publishing in the atproto plugin: entity → custom record via `com.atproto.repo.createRecord` / `putRecord`; custom `ai.rizom.brain.*` records are written with PDS validation disabled because public PDS instances do not know Rizom lexicons — implemented
+2. Add an ATProto projection registration contract so entity plugins can register their mapper plus canonical lexicon contract as one projection; do not centralize entity mappers inside the ATProto plugin — implemented
+3. Add a generic projection-backed publish path for any public entity with a registered ATProto projection, while keeping entity-specific convenience paths where useful — implemented as `atproto_publish_entity`, with `atproto_publish_post` as the blog convenience path
+4. Add a tested `post` entity → `ai.rizom.brain.post` mapper using the existing blog post schema/frontmatter; include source references such as `sourceEntityType` and `sourceEntityId` where useful — implemented in `entities/blog`; successful publishes write the custom article URI back to blog frontmatter as `atprotoUri`
+5. Add entity-owned projections for durable public entity types beyond blog posts: `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. `series` is derived but durable and user-facing, so it belongs in Phase 2. Do not add Phase 2 projections for relationship/directory or ephemeral/support entities such as `agent` or `skill` unless their product semantics change. Public visibility is required but not sufficient: an entity type must define an explicit safe projection before it can be published.
+6. Do not initially replace existing content-pipeline providers for entity types such as `post`; internal publish status semantics are separate from external ATProto distribution targets — protected by provider override regression tests
+7. Evaluate a content-pipeline multi-provider/distribution-target extension after explicit publishing behavior is settled
+8. Handle blob uploads for images (`com.atproto.repo.uploadBlob`) before records reference images — implemented for blog post cover images in custom records
+9. Do not cross-post semantic entity records directly as `app.bsky.feed.post`; Bluesky/social posting should be added later as an ATProto provider/projection for the existing `social-post` workflow
+10. Tests: blog `post` entity → `ai.rizom.brain.post` record payload, blob upload path, generic projection publishing, no accidental override of internal publish providers — implemented
+
+### Phase 2 hardening (pre-merge review findings)
+
+Pre-merge review findings are implemented for the current outbound scope:
+
+1. **Registry uniqueness guard** — implemented. `AtprotoProjectionRegistry.register` allows idempotent re-registration of the same projection but rejects conflicting registrations for the same `entityType`.
+2. **Dry-run cover-image parity** — implemented. Projection build input includes `dryRun`; blog cover-image dry-runs emit the same record shape without uploading a blob.
+3. **Shared note frontmatter parsing** — implemented. The note projection uses `parseMarkdownWithFrontmatter` instead of a hand-rolled regex.
+4. **Cleanups** — implemented for the current scope. Entity ATProto projection registrations keep unregister handles for shutdown cleanup, and blog `post.body` now matches the other longform lexicons with `maxLength: 100000`.
+
+One structural cleanup remains deliberately deferred because it would move the topics plugin class: `topics` currently defines/registers its plugin from `src/index.ts`, unlike packages with a dedicated `src/plugin.ts`. This does not affect ATProto publishing behavior.
+
+Deliberately deferred (consistent with this plan, not blockers):
+
+- **JWT/session refresh** in `AtprotoPdsClient` — covered by the outbound ATProto OAuth follow-up; the app-password client does one-shot publishes today.
+- **`did:web` `verificationMethod`** — the identity model treats `brainDid` as a non-signing reference DID (the repo `did:plc` signs records), so the served DID document intentionally carries only the PDS service endpoint. Revisit if a brain owns its own signing key.
+
+### Phase 2.5: Local validation and provisional public lexicon publication
+
+1. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons — implemented.
+2. Publish provisional machine-readable lexicon JSON for `ai.rizom.brain.*` under `https://rizom.ai/atproto/lexicons/<nsid>.json` — implemented in the Rizom site static assets as a prototype, not the final ownership model.
+3. Add drift tests so package-local lexicons and the provisional public copies cannot diverge silently — implemented for the Rizom site static assets, but to be replaced by single-source contract checks in Phase 2.6.
+4. Document how other brains/tools should fetch and interpret Rizom lexicons — implemented in [ATProto Lexicons](../atproto-lexicons.md), but must be revised once the registry ownership model is implemented.
+5. Tests: malformed local projected record is rejected before PDS write; provisional lexicon publication includes every registered Rizom custom record; package-local and provisional public lexicons stay in sync.
+
+### Phase 2.6: Rizom protocol registry ownership
+
+Status: implemented in-repo. `@brains/atproto-registry` exists, Ranger exposes it as an opt-in capability, and live `rizom.ai` enablement/verification remains before Phase 3/4 interoperability depends on `ai.rizom.brain.*` records from multiple brains.
+
+Implement a registry capability as a separate service plugin, `@brains/atproto-registry`, rather than overloading the per-brain ATProto publisher. Running this plugin on the official `rizom.ai` Ranger brain/site makes that deployment the canonical public protocol authority for the shared Rizom ATProto namespace.
+
+Source-of-truth decision:
+
+- Canonical lexicon JSON lives in `@brains/atproto-contracts` and is exported as typed constants/helpers.
+- Entity projection packages import those canonical lexicons for registration and tests.
+- `@brains/atproto-registry` imports those same canonical lexicons and serves them publicly.
+- No `ai.rizom.brain.*` lexicon JSON should remain under `entities/*/lexicons`, `plugins/atproto/lexicons`, or `sites/rizom/src/runtime/atproto/lexicons` after this migration, except generated output if a later build step explicitly owns it.
+
+Responsibilities:
+
+1. Own public governance for `ai.rizom.brain.*` NSIDs when deployed on `rizom.ai`. Individual brains may publish records using those NSIDs, but do not independently define or mutate them.
+2. Serve canonical registry routes such as:
+   - `GET /atproto/lexicons/index.json`
+   - `GET /atproto/lexicons/<nsid>.json`
+   - optional human-readable `/atproto/lexicons/`
+3. Provide registry metadata from the same source as the canonical lexicons: NSID, status (`draft`, `approved`, `deprecated`), version/revision, owner/steward, projection package, compatibility notes, and replacement/deprecation pointers.
+4. Define the compatibility policy: additive fields, required-field changes, deprecation, and when a new NSID/version is required.
+5. Provide admin/check tools such as:
+   - `atproto_registry_list_lexicons`
+   - `atproto_registry_validate_lexicon`
+   - `atproto_registry_check_contracts`
+6. Add checks that all registered projections import/use canonical contracts and that no duplicate canonical `ai.rizom.brain.*` JSON files exist outside `@brains/atproto-contracts`.
+7. Clarify extension rules: brain-specific custom records must use a namespace controlled by that brain/operator, not `ai.rizom.brain.*`.
+8. Update [ATProto Lexicons](../atproto-lexicons.md) and the Rizom site routes to describe the registry as the canonical authority instead of treating static site copies as the ownership boundary.
+
+Important distinction:
+
+- Runtime projection registration means: "this brain can publish this entity type to this ATProto collection."
+- Protocol registry publication means: "the official `rizom.ai` registry exposes this NSID as part of the canonical `ai.rizom.brain.*` protocol."
+- Both consume the same `@brains/atproto-contracts` lexicon artifacts, so coordination is by shared contract import rather than drift-prone duplicated files.
 
 ### Phase 3: Inbound ingestion
 
 1. Subscribe to user's atproto repo (or Jetstream for lightweight JSON events)
-2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains)
+2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains). Do not rely on private repo-local lexicon JSON here; consume records against the public canonical Rizom lexicons from the Phase 2.6 protocol registry.
 3. Convert atproto records to brain entities (markdown with frontmatter)
 4. Ingest via entity service (`createEntity`)
 5. Run entity pipeline on ingested content (topic extraction, series association)
@@ -216,7 +335,7 @@ Shares the `agent` entity type with the broader agent-directory work. Firehose-d
 
 ### Phase 6: Ambient federation
 
-1. Subscribe to Jetstream filtered for `ai.rizom.brain.*` records from approved or explicitly followed brain DIDs
+1. Subscribe to Jetstream filtered for `ai.rizom.brain.*` records from approved or explicitly followed brain DIDs, interpreting custom records against the public canonical Rizom lexicons from the Phase 2.6 protocol registry
 2. On new record from a peer brain: create a local reference entity (link or note)
 3. Enable derive() reactions — e.g., Ranger auto-curates posts from network brains into a feed
 4. Publish `ai.rizom.brain.reaction` records (brain acknowledged/curated another brain's content)
@@ -226,7 +345,7 @@ Shares the `agent` entity type with the broader agent-directory work. Firehose-d
 ## Dependencies
 
 - `@atproto/api` — client library
-- `@atproto/oauth-client-node` — OAuth authentication (follow-up after app-password prototype)
+- `@atproto/oauth-client-node` — outbound PDS OAuth authentication (follow-up after app-password prototype; separate from the brain's existing inbound OAuth server)
 - `@atproto/lexicon` — schema validation
 - `@atproto/syntax` — identifier parsing (DIDs, handles, AT URIs)
 
@@ -234,20 +353,20 @@ No dependency on `@atproto/pds` — we connect to an external PDS, we don't run 
 
 ## Files affected (estimated)
 
-| Phase | Files | Nature                                                             |
-| ----- | ----- | ------------------------------------------------------------------ |
-| 1     | ~10   | New plugin, lexicons, DID config, webserver route                  |
-| 2     | ~5    | Explicit outbound publisher, record mappers, Bluesky cross-posting |
-| 3     | ~5    | Firehose subscriber, record-to-entity converter                    |
-| 4     | ~5    | Card publishing, Jetstream subscription, agent index               |
-| 5     | ~5    | Feed generator endpoint, topic/series filtering                    |
-| 6     | ~5    | Peer subscription, reaction records, derive() integration          |
+| Phase | Files | Nature                                                    |
+| ----- | ----- | --------------------------------------------------------- |
+| 1     | ~10   | New plugin, lexicons, DID config, webserver route         |
+| 2     | ~5    | Explicit outbound publisher, entity-owned record mappers  |
+| 3     | ~5    | Firehose subscriber, record-to-entity converter           |
+| 4     | ~5    | Card publishing, Jetstream subscription, agent index      |
+| 5     | ~5    | Feed generator endpoint, topic/series filtering           |
+| 6     | ~5    | Peer subscription, reaction records, derive() integration |
 
 ## Verification
 
 1. Configured `did:web` brain identities resolve at `/.well-known/did.json`
 2. Published entities appear as signed records in the configured PDS repo
-3. Cross-posted content is visible on Bluesky with valid facets/embeds
+3. Published blog posts appear as semantic custom records in the configured PDS repo
 4. Bluesky/atproto content can be ingested as brain entities with topic extraction
 5. Brain cards are discoverable by peer brains via Jetstream
 6. Firehose-discovered brains enter the agent directory as reviewable `discovered` agents and are not callable until approved

@@ -1,5 +1,14 @@
 # @brains/plugin-examples
 
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.98
+  - @brains/utils@0.2.0-alpha.98
+  - @brains/plugins@0.2.0-alpha.98
+
 ## 0.2.0-alpha.97
 
 ### Patch Changes

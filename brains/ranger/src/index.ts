@@ -4,6 +4,7 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
+import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -68,6 +69,7 @@ export default defineBrain({
     ["prompt", promptPlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
+    ["atproto-registry", atprotoRegistryPlugin, {}],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["social-media", socialMediaPlugin, {}],

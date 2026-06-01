@@ -7,6 +7,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
@@ -20,12 +21,14 @@ import {
 } from "./lib/publish-handler";
 import { subscribeToSiteBuildCompleted } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
+import { createBlogAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
   readonly entityType = blogPostAdapter.entityType;
   readonly schema = blogPostSchema;
   readonly adapter = blogPostAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: BlogConfigInput = {}) {
     super("blog", packageJson, config, blogConfigSchema);
@@ -69,10 +72,19 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildCompleted(context, this.logger);
     registerEvalHandlers(context);
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createBlogAtprotoProjection(),
+      );
 
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
     );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 }
 

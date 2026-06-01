@@ -1,7 +1,7 @@
 {
   "name": "@brains/portfolio",
   "private": true,
-  "version": "0.2.0-alpha.97",
+  "version": "0.2.0-alpha.98",
   "description": "Portfolio showcase for projects and case studies",
   "type": "module",
   "exports": {
@@ -15,6 +15,7 @@
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
