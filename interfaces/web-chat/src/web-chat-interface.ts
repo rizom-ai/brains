@@ -23,6 +23,7 @@ import {
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
+import { stripInternalEntityMemoryNote } from "./display-content";
 import {
   WebChatUploadStore,
   WebChatUploadStoreError,
@@ -2896,7 +2897,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         return {
           id: message.id,
           role: message.role,
-          content: message.content,
+          content: stripInternalEntityMemoryNote(message.content),
           ...(attachments.length > 0 ? { attachments } : {}),
           ...(cards.length > 0 ? { cards } : {}),
         };

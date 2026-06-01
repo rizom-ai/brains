@@ -2010,7 +2010,7 @@ describe("WebChatInterface", () => {
               "message-1",
               "web-session",
               "assistant",
-              "Queued image generation.",
+              'Queued image generation.\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]',
               JSON.stringify({ cards: [card] }),
             ),
           ],

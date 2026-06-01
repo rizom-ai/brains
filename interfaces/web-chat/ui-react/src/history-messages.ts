@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { stripInternalEntityMemoryNote } from "../../src/display-content";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
 
 export interface WebChatHistoryAttachmentSource {
@@ -52,8 +53,9 @@ export interface WebChatMessagesResponse {
 
 export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   const parts: UIMessage["parts"] = [];
-  if (message.content.length > 0) {
-    parts.push({ type: "text", text: message.content });
+  const displayContent = stripInternalEntityMemoryNote(message.content);
+  if (displayContent.length > 0) {
+    parts.push({ type: "text", text: displayContent });
   }
   for (const attachment of message.attachments ?? []) {
     const upload = toUploadResponse(attachment);

@@ -412,12 +412,14 @@ function narrowAttachmentJobStatus(
   }
 }
 
-function attachmentStatusLabel(status: AttachmentJobStatus | null): string {
+export function attachmentStatusLabel(
+  status: AttachmentJobStatus | null,
+): string {
   switch (status) {
     case "pending":
       return "queued";
     case "processing":
-      return "growing";
+      return "generating";
     case "completed":
       return "ready";
     case "failed":
@@ -425,7 +427,7 @@ function attachmentStatusLabel(status: AttachmentJobStatus | null): string {
     case "unknown":
       return "status unknown";
     default:
-      return "artifact";
+      return "ready";
   }
 }
 

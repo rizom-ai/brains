@@ -43,6 +43,21 @@ describe("web chat history messages", () => {
     });
   });
 
+  it("strips internal entity memory notes from hydrated assistant text", () => {
+    expect(
+      toUiMessage({
+        id: "message-1",
+        role: "assistant",
+        content:
+          'Queued image generation.\n\n[Entities affected this turn: image "wild-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]',
+      }),
+    ).toEqual({
+      id: "message-1",
+      role: "assistant",
+      parts: [{ type: "text", text: "Queued image generation." }],
+    });
+  });
+
   it("rehydrates stored generated artifact cards as AI SDK data-attachment parts", () => {
     const card = {
       kind: "attachment" as const,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  attachmentStatusLabel,
   formatAttachmentDisplay,
   formatConfirmationResult,
   formatNativeToolDisplay,
@@ -36,6 +37,15 @@ describe("attachment display", () => {
 
   it("returns null for malformed attachment data", () => {
     expect(formatAttachmentDisplay({ title: "Missing body" })).toBeNull();
+  });
+
+  it("uses explicit generated artifact status labels", () => {
+    expect(attachmentStatusLabel(null)).toBe("ready");
+    expect(attachmentStatusLabel("pending")).toBe("queued");
+    expect(attachmentStatusLabel("processing")).toBe("generating");
+    expect(attachmentStatusLabel("completed")).toBe("ready");
+    expect(attachmentStatusLabel("failed")).toBe("failed");
+    expect(attachmentStatusLabel("unknown")).toBe("status unknown");
   });
 });
 
