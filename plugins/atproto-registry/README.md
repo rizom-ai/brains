@@ -2,12 +2,12 @@
 
 Canonical Rizom AT Protocol lexicon registry plugin.
 
-This plugin serves the `ai.rizom.brain.*` lexicons from the single in-repo source of truth in `@brains/atproto-contracts`.
+This plugin serves the `ai.rizom.brain.*` lexicons and registry metadata from the single in-repo source of truth in `@brains/atproto-contracts`.
 
 Routes:
 
-- `GET /atproto/lexicons/index.json`
-- `GET /atproto/lexicons/<nsid>.json`
+- `GET /atproto/lexicons/index.json` — manifest with NSID, route, status, version/revision, steward, projection package, and compatibility notes
+- `GET /atproto/lexicons/<nsid>.json` — canonical lexicon JSON
 
 Tools:
 

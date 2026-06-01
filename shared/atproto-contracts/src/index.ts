@@ -71,6 +71,53 @@ export const canonicalAtprotoLexicons = {
 
 export type CanonicalAtprotoLexiconId = keyof typeof canonicalAtprotoLexicons;
 
+export type AtprotoLexiconStatus = "draft" | "approved" | "deprecated";
+
+export interface AtprotoLexiconMetadata {
+  id: CanonicalAtprotoLexiconId;
+  status: AtprotoLexiconStatus;
+  version: string;
+  revision: number;
+  owner: string;
+  steward: string;
+  projectionPackage: string;
+  compatibility: string;
+  replacedBy?: CanonicalAtprotoLexiconId | undefined;
+  deprecatedBy?: CanonicalAtprotoLexiconId | undefined;
+}
+
+const approvedCompatibilityPolicy =
+  "Additive optional fields are compatible; required-field, type, or constraint changes require a migration plan or new NSID.";
+
+function approvedLexiconMetadata(
+  projectionPackage: string,
+): Omit<AtprotoLexiconMetadata, "id"> {
+  return {
+    status: "approved",
+    version: "1.0.0",
+    revision: 1,
+    owner: "Rizom",
+    steward: "Rizom protocol registry",
+    projectionPackage,
+    compatibility: approvedCompatibilityPolicy,
+  };
+}
+
+export const canonicalAtprotoLexiconMetadata = {
+  "ai.rizom.brain.card": approvedLexiconMetadata("@brains/atproto"),
+  "ai.rizom.brain.deck": approvedLexiconMetadata("@brains/decks"),
+  "ai.rizom.brain.link": approvedLexiconMetadata("@brains/link"),
+  "ai.rizom.brain.note": approvedLexiconMetadata("@brains/note"),
+  "ai.rizom.brain.post": approvedLexiconMetadata("@brains/blog"),
+  "ai.rizom.brain.project": approvedLexiconMetadata("@brains/portfolio"),
+  "ai.rizom.brain.series": approvedLexiconMetadata("@brains/series"),
+  "ai.rizom.brain.socialPost": approvedLexiconMetadata("@brains/social-media"),
+  "ai.rizom.brain.topic": approvedLexiconMetadata("@brains/topics"),
+} satisfies Record<
+  CanonicalAtprotoLexiconId,
+  Omit<AtprotoLexiconMetadata, "id">
+>;
+
 export function listCanonicalAtprotoLexicons(): AtprotoLexicon[] {
   return Object.values(canonicalAtprotoLexicons);
 }
@@ -79,6 +126,26 @@ export function getCanonicalAtprotoLexicon(
   id: string,
 ): AtprotoLexicon | undefined {
   return canonicalAtprotoLexicons[id as CanonicalAtprotoLexiconId];
+}
+
+export function getCanonicalAtprotoLexiconMetadata(
+  id: string,
+): AtprotoLexiconMetadata | undefined {
+  if (!(id in canonicalAtprotoLexiconMetadata)) return undefined;
+  const canonicalId = id as CanonicalAtprotoLexiconId;
+  return {
+    id: canonicalId,
+    ...canonicalAtprotoLexiconMetadata[canonicalId],
+  };
+}
+
+export function listCanonicalAtprotoLexiconMetadata(): AtprotoLexiconMetadata[] {
+  return Object.entries(canonicalAtprotoLexiconMetadata).map(
+    ([id, metadata]) => ({
+      id: id as CanonicalAtprotoLexiconId,
+      ...metadata,
+    }),
+  );
 }
 
 interface AtprotoValidationProperty extends AtprotoLexiconProperty {

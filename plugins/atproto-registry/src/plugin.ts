@@ -2,10 +2,14 @@ import type { Tool, ToolResponse, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import {
   getCanonicalAtprotoLexicon,
+  listCanonicalAtprotoLexiconMetadata,
   listCanonicalAtprotoLexicons,
   validateAtprotoRecord,
 } from "@brains/atproto-contracts";
-import type { AtprotoLexicon } from "@brains/atproto-contracts";
+import type {
+  AtprotoLexicon,
+  AtprotoLexiconMetadata,
+} from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import packageJson from "../package.json";
 
@@ -16,10 +20,8 @@ export const atprotoRegistryConfigSchema = z.object({
 export type AtprotoRegistryConfig = z.infer<typeof atprotoRegistryConfigSchema>;
 export type AtprotoRegistryConfigInput = Partial<AtprotoRegistryConfig>;
 
-export interface AtprotoLexiconRegistryEntry {
-  id: string;
+export interface AtprotoLexiconRegistryEntry extends AtprotoLexiconMetadata {
   path: string;
-  status: "approved";
 }
 
 export interface AtprotoLexiconRegistryIndex {
@@ -62,10 +64,9 @@ export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> 
 
   getIndex(): AtprotoLexiconRegistryIndex {
     return {
-      lexicons: listCanonicalAtprotoLexicons().map((lexicon) => ({
-        id: lexicon.id,
-        path: `${BASE_PATH}/${lexicon.id}.json`,
-        status: "approved",
+      lexicons: listCanonicalAtprotoLexiconMetadata().map((metadata) => ({
+        ...metadata,
+        path: `${BASE_PATH}/${metadata.id}.json`,
       })),
     };
   }
@@ -149,6 +150,7 @@ export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> 
         data: {
           lexiconCount: listCanonicalAtprotoLexicons().length,
           nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
+          metadata: listCanonicalAtprotoLexiconMetadata(),
         },
       }),
     };
