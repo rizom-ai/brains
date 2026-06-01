@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- [`83037ba`](https://github.com/rizom-ai/brains/commit/83037ba788c9b242a65d190f9ebcbdba480a22f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Treat image-targeted image generation requests as standalone image generation so plain prompts do not fail when a model supplies image target fields, and rebuild the local brain runtime before dev starts so web-chat card changes are not hidden by stale bundles.
+
 ## 0.2.0-alpha.99
 
 ### Patch Changes
