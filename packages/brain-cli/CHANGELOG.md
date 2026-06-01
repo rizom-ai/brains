@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- [`2b75d18`](https://github.com/rizom-ai/brains/commit/2b75d182d8b11e0b56b37451e1d605c8d071258a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Hide internal entity-memory notes from hydrated web-chat messages while preserving them in stored conversation history for agent follow-ups.
+
+- [`c400d03`](https://github.com/rizom-ai/brains/commit/c400d0340edc5f04fa0d859013585d28607cbc09) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist generated artifact cards in conversation metadata and rehydrate them when web chat sessions are reopened, so generated image/document cards survive refreshes.
+
+- [`2034f7e`](https://github.com/rizom-ai/brains/commit/2034f7ee15e7ba243be9e1eea283755f7b7cf9be) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve generated image aspect ratios in web-chat attachment cards instead of cropping previews to a fixed card shape.
+
 ## 0.2.0-alpha.100
 
 ### Patch Changes

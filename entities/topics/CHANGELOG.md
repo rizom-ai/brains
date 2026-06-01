@@ -1,5 +1,16 @@
 # @brains/topics
 
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.101
+  - @brains/content-formatters@0.2.0-alpha.101
+  - @brains/ui-library@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/plugins@0.2.0-alpha.101
+
 ## 0.2.0-alpha.100
 
 ### Patch Changes

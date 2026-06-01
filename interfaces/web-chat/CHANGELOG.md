@@ -1,5 +1,14 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/auth-service@0.2.0-alpha.101
+  - @brains/plugins@0.2.0-alpha.101
+
 ## 0.2.0-alpha.100
 
 ### Patch Changes
