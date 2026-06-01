@@ -461,6 +461,7 @@ export function AttachmentPart({
       {isImage && previewUrl && !isPending ? (
         <img
           className="web-chat-attachment-preview"
+          data-fit="contain"
           src={previewUrl}
           alt=""
           loading="lazy"

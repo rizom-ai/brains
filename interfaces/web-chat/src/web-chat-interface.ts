@@ -1384,9 +1384,13 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   background: linear-gradient(180deg, var(--chat-accent), var(--chat-secondary));
 }
 .web-chat-attachment-preview {
-  width: 100%;
-  max-height: 260px;
-  object-fit: cover;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(70vh, 520px);
+  justify-self: center;
+  object-fit: contain;
   border-bottom: 1px solid var(--chat-border-soft);
   background: var(--chat-surface-inset);
 }
