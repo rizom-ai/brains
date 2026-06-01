@@ -15,4 +15,4 @@ Tools:
 - `atproto-registry_validate_lexicon`
 - `atproto-registry_check_contracts`
 
-Intended deployment: enabled on the official `rizom.ai` brain/site as the public protocol registry. Publishing brains use `@brains/atproto` and local projections; they do not independently define `ai.rizom.brain.*` lexicons.
+Intended deployment: enabled on the official `rizom.ai` brain/site as the public protocol registry. Ranger exposes this plugin as an opt-in capability, but it is not included in the default preset. Publishing brains use `@brains/atproto` and local projections; they do not independently define `ai.rizom.brain.*` lexicons.
