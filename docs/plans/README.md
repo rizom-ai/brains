@@ -42,8 +42,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
 - [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
-- [CMS GitHub OAuth proxy](./cms-github-oauth-proxy.md) — proposed small interim proxy for Sveltia's existing GitHub backend
-- [CMS heavy backend](./cms-heavy-backend.md) — proposed long-term brain-hosted git gateway for CMS writes
+- [CMS operator login](./cms-operator-login.md) — proposed CMS login (GitHub OAuth and/or passkey-gated PAT) for Sveltia's existing GitHub backend
 
 ### Hosted, deployed, and monetized product
 

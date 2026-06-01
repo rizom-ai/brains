@@ -199,6 +199,5 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 ## Related
 
 - `shell/auth-service` — existing OAuth/JWKS foundation that this plan extends
-- `docs/plans/cms-heavy-backend.md` — sequenced after this plan
 - `docs/plans/multi-user.md` — depends on this plan for cross-interface identity
 - `entities/agent-discovery` — saved-agent allowlist semantics this plan plugs into
