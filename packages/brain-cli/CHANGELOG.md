@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Add AT Protocol semantic publishing, canonical Rizom lexicon contracts, and the opt-in ATProto registry capability for Ranger.
+
 ## 0.2.0-alpha.97
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@brains/test-utils",
-  "version": "0.2.0-alpha.97",
+  "version": "0.2.0-alpha.98",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
