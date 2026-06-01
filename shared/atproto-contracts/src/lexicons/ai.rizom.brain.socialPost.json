@@ -5,7 +5,7 @@
     "main": {
       "type": "record",
       "description": "Semantic local social-post entity from a Rizom brain; not a Bluesky feed post.",
-      "key": "tid",
+      "key": "any",
       "record": {
         "type": "object",
         "required": ["title", "platform", "body", "createdAt"],

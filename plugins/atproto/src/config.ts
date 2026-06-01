@@ -18,11 +18,9 @@ export const atprotoConfigSchema = z.object({
   appPassword: z
     .string()
     .optional()
-    .describe("App password for prototype authentication"),
-  appPasswordEnv: z
-    .string()
-    .optional()
-    .describe("Environment variable containing the app password"),
+    .describe(
+      "App password for prototype authentication; supply via ${ENV_VAR} interpolation, never a committed literal",
+    ),
   anchorDid: z
     .string()
     .optional()

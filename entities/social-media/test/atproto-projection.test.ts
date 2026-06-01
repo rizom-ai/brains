@@ -36,8 +36,6 @@ describe("social-post ATProto projection", () => {
       entity: socialPost,
       context: createPluginHarness().getServiceContext("social-media"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });

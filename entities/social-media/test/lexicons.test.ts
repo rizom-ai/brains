@@ -11,7 +11,7 @@ describe("social-post ATProto lexicons", () => {
       defs: {
         main: {
           type: "record",
-          key: "tid",
+          key: "any",
           record: {
             required: ["title", "platform", "body", "createdAt"],
             properties: {

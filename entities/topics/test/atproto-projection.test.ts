@@ -29,8 +29,6 @@ describe("topic ATProto projection", () => {
       entity: topic,
       context: createPluginHarness().getServiceContext("topics"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });

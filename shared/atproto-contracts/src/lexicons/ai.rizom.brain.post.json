@@ -5,7 +5,7 @@
     "main": {
       "type": "record",
       "description": "Markdown blog post distributed by a Rizom brain.",
-      "key": "tid",
+      "key": "any",
       "record": {
         "type": "object",
         "required": ["title", "body", "createdAt"],

@@ -32,8 +32,6 @@ describe("blog ATProto projection", () => {
       entity,
       context: createMockServicePluginContext(),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
       topics: ["protocols"],
@@ -95,10 +93,7 @@ describe("blog ATProto projection", () => {
     const record = await projection.buildRecord({
       entity: postWithCover,
       context,
-      config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
-      },
+      config: {},
       dryRun: true,
     });
 
@@ -130,10 +125,7 @@ describe("blog ATProto projection", () => {
     const record = await projection.buildRecord({
       entity,
       context,
-      config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
-      },
+      config: {},
     });
 
     await projection.onPublished?.({

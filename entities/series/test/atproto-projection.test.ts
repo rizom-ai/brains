@@ -39,8 +39,6 @@ describe("series ATProto projection", () => {
       entity: series,
       context: createPluginHarness().getServiceContext("series"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });
