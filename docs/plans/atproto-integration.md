@@ -311,7 +311,9 @@ Important distinction:
 
 ### Phase 2.7: Zod-sourced contracts
 
-Today the lexicon JSON is the source of truth, with hand-written TypeScript record interfaces and a hand-rolled `validateAtprotoRecord` walker kept aligned by per-package conformance tests. Two weaknesses follow: the TS types are not compiler-enforced against the JSON (the deferred lexicon→TS codegen item), and the hand-written types are in practice richer than the JSON (e.g. `coverImage` is `{ type: "object" }` in the lexicon but a full nested type in TS). Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type axis relies on tests rather than the compiler.
+Status: partially implemented in-repo as an interim bridge. `@brains/atproto-contracts` now exports lexicon-derived Zod record schemas, record-schema lookup/list helpers, record type aliases, and a Zod-backed `validateAtprotoRecord` compatibility helper. This gives publishing and registry validation an executable contract before Phase 3 ingestion, while the planned final direction remains making Zod the source of truth and generating lexicon JSON from it.
+
+Today the lexicon JSON is still the source of truth, with TypeScript record interfaces and runtime schemas kept aligned by conformance tests. Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type/source axis still relies on tests until the Zod → lexicon emitter lands.
 
 Planned direction: make a **Zod schema the single source of truth** for each canonical record, with the lexicon JSON generated from it.
 

@@ -148,14 +148,16 @@ export function listCanonicalAtprotoLexiconMetadata(): AtprotoLexiconMetadata[] 
   );
 }
 
-interface AtprotoValidationProperty extends AtprotoLexiconProperty {
+interface AtprotoSchemaProperty extends AtprotoLexiconProperty {
   required?: string[] | undefined;
-  properties?: Record<string, AtprotoValidationProperty> | undefined;
-  items?: AtprotoValidationProperty | undefined;
+  properties?: Record<string, AtprotoSchemaProperty> | undefined;
+  items?: AtprotoSchemaProperty | undefined;
   knownValues?: string[] | undefined;
   maxLength?: number | undefined;
   format?: string | undefined;
 }
+
+export type AtprotoRecordSchema = z.ZodType<Record<string, unknown>>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -166,160 +168,211 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const RFC3339_DATETIME =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
-function validateScalarFormat(
-  path: string,
-  value: string,
-  property: AtprotoValidationProperty,
-): void {
-  if (
-    property.format === "datetime" &&
-    (!RFC3339_DATETIME.test(value) || Number.isNaN(Date.parse(value)))
-  ) {
-    throw new Error(
-      `Invalid AT Protocol record field ${path}: expected datetime`,
+function buildAtprotoStringSchema(
+  property: AtprotoSchemaProperty,
+): z.ZodType<string> {
+  const baseSchema = z.string();
+  let schema: z.ZodType<string> =
+    property.maxLength !== undefined
+      ? baseSchema.max(property.maxLength)
+      : baseSchema;
+  if (property.knownValues) {
+    schema = schema.refine((value) => property.knownValues?.includes(value), {
+      message: `expected one of ${property.knownValues.join(", ")}`,
+    });
+  }
+  if (property.format === "datetime") {
+    schema = schema.refine(
+      (value) => RFC3339_DATETIME.test(value) && !Number.isNaN(Date.parse(value)),
+      { message: "expected datetime" },
     );
   }
   if (property.format === "uri") {
-    try {
-      new URL(value);
-    } catch {
-      throw new Error(`Invalid AT Protocol record field ${path}: expected uri`);
-    }
-  }
-}
-
-function validateKnownValues(
-  path: string,
-  value: string,
-  property: AtprotoValidationProperty,
-): void {
-  if (property.knownValues && !property.knownValues.includes(value)) {
-    throw new Error(
-      `Invalid AT Protocol record field ${path}: expected one of ${property.knownValues.join(", ")}`,
+    schema = schema.refine(
+      (value) => {
+        try {
+          new URL(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "expected uri" },
     );
   }
+  return schema;
 }
 
-function validateAtprotoField(
-  path: string,
-  value: unknown,
-  property: AtprotoValidationProperty,
-): void {
+function buildAtprotoFieldSchema(
+  property: AtprotoSchemaProperty,
+): z.ZodType<unknown> {
   switch (property.type) {
-    case "string": {
-      if (typeof value !== "string") {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected string`,
-        );
-      }
-      if (
-        property.maxLength !== undefined &&
-        value.length > property.maxLength
-      ) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: exceeds maxLength ${property.maxLength}`,
-        );
-      }
-      validateKnownValues(path, value, property);
-      validateScalarFormat(path, value, property);
-      return;
-    }
-    case "integer": {
-      if (!Number.isInteger(value)) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected integer`,
-        );
-      }
-      return;
-    }
-    case "boolean": {
-      if (typeof value !== "boolean") {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected boolean`,
-        );
-      }
-      return;
-    }
+    case "string":
+      return buildAtprotoStringSchema(property);
+    case "integer":
+      return z.number().int();
+    case "boolean":
+      return z.boolean();
     case "array": {
-      if (!Array.isArray(value)) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected array`,
-        );
+      const itemSchema = property.items
+        ? buildAtprotoFieldSchema(property.items)
+        : z.unknown();
+      let schema = z.array(itemSchema);
+      if (property.maxLength !== undefined) {
+        schema = schema.max(property.maxLength);
       }
-      if (
-        property.maxLength !== undefined &&
-        value.length > property.maxLength
-      ) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: exceeds maxLength ${property.maxLength}`,
-        );
-      }
-      const itemProperty = property.items;
-      if (itemProperty) {
-        value.forEach((item, index) => {
-          validateAtprotoField(`${path}.${index}`, item, itemProperty);
-        });
-      }
-      return;
+      return schema;
     }
-    case "object": {
-      if (!isRecord(value)) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected object`,
-        );
-      }
-      validateAtprotoObject(path, value, property);
-      return;
-    }
-    case "blob": {
-      if (!isRecord(value)) {
-        throw new Error(
-          `Invalid AT Protocol record field ${path}: expected blob`,
-        );
-      }
-      return;
-    }
+    case "object":
+      return buildAtprotoObjectSchema(property);
+    case "blob":
+      return z.custom<Record<string, unknown>>(isRecord, {
+        message: "expected blob",
+      });
     default:
-      return;
+      return z.unknown();
   }
 }
 
-function validateAtprotoObject(
-  path: string,
-  value: Record<string, unknown>,
-  property: AtprotoValidationProperty,
-): void {
-  for (const field of property.required ?? []) {
-    if (value[field] === undefined || value[field] === null) {
-      const qualifiedPath = path ? `${path}.${field}` : field;
-      throw new Error(
-        `Missing required AT Protocol record field: ${qualifiedPath}`,
-      );
-    }
-  }
-
+function buildAtprotoObjectShape(
+  property: AtprotoSchemaProperty,
+): z.ZodRawShape {
+  const requiredFields = new Set(property.required ?? []);
+  const shape: z.ZodRawShape = {};
   for (const [field, fieldProperty] of Object.entries(
     property.properties ?? {},
   )) {
-    const fieldValue = value[field];
-    if (fieldValue === undefined || fieldValue === null) continue;
-    const qualifiedPath = path ? `${path}.${field}` : field;
-    validateAtprotoField(qualifiedPath, fieldValue, fieldProperty);
+    const fieldSchema = buildAtprotoFieldSchema(fieldProperty);
+    shape[field] = requiredFields.has(field)
+      ? fieldSchema
+      : fieldSchema.optional();
   }
+  return shape;
+}
+
+function buildAtprotoObjectSchema(
+  property: AtprotoSchemaProperty,
+): AtprotoRecordSchema {
+  return z.object(buildAtprotoObjectShape(property)).passthrough();
+}
+
+export function buildAtprotoRecordSchema(
+  lexicon: AtprotoLexicon,
+): AtprotoRecordSchema {
+  return z
+    .object({
+      ...buildAtprotoObjectShape(lexicon.defs.main.record),
+      $type: z.literal(lexicon.id).optional(),
+    })
+    .passthrough();
+}
+
+export const canonicalAtprotoRecordSchemas = {
+  "ai.rizom.brain.card": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.card"],
+  ),
+  "ai.rizom.brain.deck": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.deck"],
+  ),
+  "ai.rizom.brain.link": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.link"],
+  ),
+  "ai.rizom.brain.note": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.note"],
+  ),
+  "ai.rizom.brain.post": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.post"],
+  ),
+  "ai.rizom.brain.project": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.project"],
+  ),
+  "ai.rizom.brain.series": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.series"],
+  ),
+  "ai.rizom.brain.socialPost": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.socialPost"],
+  ),
+  "ai.rizom.brain.topic": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.topic"],
+  ),
+} satisfies Record<CanonicalAtprotoLexiconId, AtprotoRecordSchema>;
+
+export type CanonicalAtprotoRecordSchemaId =
+  keyof typeof canonicalAtprotoRecordSchemas;
+
+export type CanonicalAtprotoRecordMap = {
+  [K in CanonicalAtprotoRecordSchemaId]: z.infer<
+    (typeof canonicalAtprotoRecordSchemas)[K]
+  >;
+};
+
+export type CanonicalAtprotoRecord =
+  CanonicalAtprotoRecordMap[CanonicalAtprotoRecordSchemaId];
+
+export type AtprotoBrainCardRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.card"];
+export type AtprotoBrainDeckRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.deck"];
+export type AtprotoBrainLinkRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.link"];
+export type AtprotoBrainNoteRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.note"];
+export type AtprotoBrainPostRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.post"];
+export type AtprotoBrainProjectRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.project"];
+export type AtprotoBrainSeriesRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.series"];
+export type AtprotoBrainSocialPostRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.socialPost"];
+export type AtprotoBrainTopicRecord =
+  CanonicalAtprotoRecordMap["ai.rizom.brain.topic"];
+
+export function listCanonicalAtprotoRecordSchemas(): AtprotoRecordSchema[] {
+  return Object.values(canonicalAtprotoRecordSchemas);
+}
+
+export function getCanonicalAtprotoRecordSchema(
+  id: string,
+): AtprotoRecordSchema | undefined {
+  return canonicalAtprotoRecordSchemas[id as CanonicalAtprotoLexiconId];
+}
+
+function formatAtprotoSchemaIssue(
+  lexicon: AtprotoLexicon,
+  record: Record<string, unknown>,
+  issue: z.ZodIssue,
+): string {
+  const path = issue.path.join(".");
+  if (path === "$type") {
+    return `AT Protocol record $type must match lexicon id: ${String(
+      record["$type"],
+    )} !== ${lexicon.id}`;
+  }
+  if (issue.code === "invalid_type" && issue.received === "undefined") {
+    return `Missing required AT Protocol record field: ${path}`;
+  }
+  if (issue.code === "invalid_type") {
+    return `Invalid AT Protocol record field ${path}: expected ${issue.expected}`;
+  }
+  if (issue.code === "too_big") {
+    return `Invalid AT Protocol record field ${path}: exceeds maxLength ${issue.maximum}`;
+  }
+  if (issue.code === "custom") {
+    return `Invalid AT Protocol record field ${path}: ${issue.message}`;
+  }
+  return `Invalid AT Protocol record field ${path}: ${issue.message}`;
 }
 
 export function validateAtprotoRecord(
   lexicon: AtprotoLexicon,
   record: Record<string, unknown>,
 ): void {
-  const type = record["$type"];
-  if (type !== undefined && type !== lexicon.id) {
-    throw new Error(
-      `AT Protocol record $type must match lexicon id: ${String(type)} !== ${lexicon.id}`,
-    );
-  }
-
-  validateAtprotoObject("", record, lexicon.defs.main.record);
+  const result = buildAtprotoRecordSchema(lexicon).safeParse(record);
+  if (result.success) return;
+  const issue = result.error.issues[0];
+  if (!issue) throw result.error;
+  throw new Error(formatAtprotoSchemaIssue(lexicon, record, issue));
 }
 
 export interface AtprotoBlobRef {
