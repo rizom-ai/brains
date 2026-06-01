@@ -278,5 +278,27 @@ describe("ContentPipelinePlugin", () => {
 
       expect(plugin.getProviderRegistry().has("blog-post")).toBe(true);
     });
+
+    it("should not let internal fallback registration override an explicit provider", async () => {
+      const explicitProvider: PublishProvider = {
+        name: "atproto",
+        publish: async () => ({ id: "atproto-result" }),
+      };
+      const internalProvider: PublishProvider = {
+        name: "internal",
+        publish: async () => ({ id: "internal-result" }),
+      };
+
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "post",
+        provider: explicitProvider,
+      });
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "post",
+        provider: internalProvider,
+      });
+
+      expect(plugin.getProviderRegistry().get("post")).toBe(explicitProvider);
+    });
   });
 });

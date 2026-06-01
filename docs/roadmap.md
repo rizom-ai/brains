@@ -109,7 +109,6 @@ Both tracks share the same weekly review with Relay POC observations: what hit u
 Supporting plans:
 
 - [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
-- [generic-media-generation.md](./plans/generic-media-generation.md) — clean lifecycle surface for generated media artifacts.
 - [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
@@ -142,7 +141,6 @@ Until then, Relay remains an internal experiment owned by `rizom-foundation`.
 Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
-- [summary-conversation-memory.md](./plans/summary-conversation-memory.md) — conversation memory policy and remaining eval/policy tightening.
 - [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
 ### 3. Make shared Relay trustworthy enough to matter
@@ -204,7 +202,7 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
-- [atproto-integration.md](./plans/atproto-integration.md) — Phase 1–2 in progress on `feat/atproto`: plugin foundation, brain-card publishing, and blog-post records committed on the feature branch; merge gated on outbound-publishing hardening.
+- [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; Phase 1/2 outbound publishing and Phase 2.6 registry contracts are implemented, with live `rizom.ai` registry enablement still pending.
 - [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
 
 ### 6. Keep the framework sustainable

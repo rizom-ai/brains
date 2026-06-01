@@ -12,5 +12,11 @@ export {
 } from "./schemas/blog-post";
 export { blogPostAdapter, BlogPostAdapter } from "./adapters/blog-post-adapter";
 export { parsePostData } from "./datasources/parse-helpers";
+export {
+  buildBlogAtprotoPostRecord,
+  createBlogAtprotoProjection,
+  type BlogAtprotoCoverImage,
+  type BlogAtprotoPostRecord,
+} from "./atproto-projection";
 export { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
 export { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";

@@ -32,6 +32,26 @@ describe("ProviderRegistry", () => {
 
       expect(registry.get("social-post")).toBe(provider2);
     });
+
+    it("should not replace an explicit provider with an internal fallback", () => {
+      const provider = createMockProvider("atproto");
+      const internalProvider = createMockProvider("internal");
+
+      registry.register("post", provider);
+      registry.register("post", internalProvider);
+
+      expect(registry.get("post")).toBe(provider);
+    });
+
+    it("should allow an explicit provider to replace an internal fallback", () => {
+      const internalProvider = createMockProvider("internal");
+      const provider = createMockProvider("atproto");
+
+      registry.register("post", internalProvider);
+      registry.register("post", provider);
+
+      expect(registry.get("post")).toBe(provider);
+    });
   });
 
   describe("get", () => {

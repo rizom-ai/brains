@@ -9,6 +9,7 @@ import type {
   DerivedEntityProjection,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
@@ -18,6 +19,7 @@ import { SeriesGenerationHandler } from "./handlers/seriesGenerationHandler";
 import { getTemplates } from "./lib/register-templates";
 import { seriesDescriptionTemplate } from "./templates/description-template";
 import { getSeriesName, parseSeriesFields } from "./lib/series-metadata";
+import { createSeriesAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
@@ -51,6 +53,7 @@ export class SeriesPlugin extends EntityPlugin<Series> {
   readonly schema = seriesSchema;
   readonly adapter = seriesAdapter;
   private manager?: SeriesManager;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
     super("series", packageJson);
@@ -150,6 +153,15 @@ export class SeriesPlugin extends EntityPlugin<Series> {
       context.entityService,
       this.logger.child("SeriesManager"),
     );
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createSeriesAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private createSeriesProjectionHandler(
