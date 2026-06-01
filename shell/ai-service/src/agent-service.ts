@@ -420,6 +420,8 @@ export class AgentService implements IAgentService {
           this.buildMessageMetadata(
             this.getAssistantActor(),
             this.buildAssistantSource(channelId, channelName),
+            [],
+            cards,
           ),
         ),
       });
@@ -550,6 +552,8 @@ export class AgentService implements IAgentService {
         this.buildMessageMetadata(
           this.getAssistantActor(),
           this.buildAssistantSource(channelId, channelName),
+          [],
+          [approvalCard],
         ),
       ),
     });
@@ -566,6 +570,7 @@ export class AgentService implements IAgentService {
     actor: ConversationMessageActor | null,
     source: ConversationMessageSource | null,
     attachments: ChatAttachment[] = [],
+    cards: StructuredChatCard[] = [],
   ): ConversationMessageMetadata {
     const enrichedActor = actor
       ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
@@ -580,6 +585,7 @@ export class AgentService implements IAgentService {
             ),
           }
         : {}),
+      ...(cards.length > 0 ? { cards } : {}),
     };
   }
 

@@ -1,29 +1,16 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
+  AtprotoBrainNoteRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { noteFrontmatterSchema, noteSchema } from "./schemas/note";
 
-export interface NoteAtprotoRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.note";
-  title: string;
-  body: string;
-  format: "text/markdown";
-  brainDid?: string;
-  anchorDid?: string;
-  sourceEntityType: "base";
-  sourceEntityId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 export async function buildNoteAtprotoRecord({
   entity,
   config,
-}: AtprotoProjectionBuildInput): Promise<NoteAtprotoRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainNoteRecord> {
   const note = noteSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
     note.content,
@@ -44,7 +31,7 @@ export async function buildNoteAtprotoRecord({
   };
 }
 
-export function createNoteAtprotoProjection(): AtprotoProjection<NoteAtprotoRecord> {
+export function createNoteAtprotoProjection(): AtprotoProjection<AtprotoBrainNoteRecord> {
   return {
     entityType: "base",
     collection: "ai.rizom.brain.note",

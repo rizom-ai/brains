@@ -1704,9 +1704,9 @@ describe("AgentService", () => {
         "test-conversation",
       );
 
-      expect(response.cards).toEqual([
+      const expectedCards = [
         {
-          kind: "attachment",
+          kind: "attachment" as const,
           id: "attachment:mossy-robot",
           jobId: "job-1",
           title: "mossy-robot.png",
@@ -1725,7 +1725,14 @@ describe("AgentService", () => {
             },
           },
         },
-      ]);
+      ];
+      expect(response.cards).toEqual(expectedCards);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({ cards: expectedCards }),
+        }),
+      );
     });
 
     it("should return empty toolResults array when no tools are called", async () => {

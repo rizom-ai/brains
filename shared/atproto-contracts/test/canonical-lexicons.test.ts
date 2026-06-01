@@ -3,6 +3,8 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   getCanonicalAtprotoLexicon,
+  getCanonicalAtprotoLexiconMetadata,
+  listCanonicalAtprotoLexiconMetadata,
   listCanonicalAtprotoLexicons,
 } from "../src";
 
@@ -51,6 +53,25 @@ describe("canonical ATProto lexicons", () => {
       expect(lexicon.defs.main.type).toBe("record");
       expect(lexicon.defs.main.record.type).toBe("object");
       expect(getCanonicalAtprotoLexicon(lexicon.id)).toBe(lexicon);
+    }
+  });
+
+  it("exports governance metadata for every canonical Rizom brain lexicon", () => {
+    const metadata = listCanonicalAtprotoLexiconMetadata();
+
+    expect(metadata.map((entry) => String(entry.id)).sort()).toEqual(
+      [...expectedNsids].sort(),
+    );
+    for (const entry of metadata) {
+      expect(getCanonicalAtprotoLexicon(entry.id)).toBeDefined();
+      expect(getCanonicalAtprotoLexiconMetadata(entry.id)).toEqual(entry);
+      expect(entry.status).toBe("approved");
+      expect(entry.version).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(entry.revision).toBeGreaterThan(0);
+      expect(entry.owner).toBe("Rizom");
+      expect(entry.steward).toBe("Rizom protocol registry");
+      expect(entry.projectionPackage).toMatch(/^@brains\//);
+      expect(entry.compatibility).toContain("required-field");
     }
   });
 

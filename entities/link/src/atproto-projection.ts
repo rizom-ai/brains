@@ -1,33 +1,16 @@
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
+  AtprotoBrainLinkRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { linkAdapter } from "./adapters/link-adapter";
-import { linkSchema, type LinkSource } from "./schemas/link";
-
-export interface LinkAtprotoRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.link";
-  title: string;
-  url: string;
-  description?: string;
-  summary?: string;
-  domain?: string;
-  capturedAt?: string;
-  source?: LinkSource;
-  brainDid?: string;
-  anchorDid?: string;
-  sourceEntityType: "link";
-  sourceEntityId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { linkSchema } from "./schemas/link";
 
 export async function buildLinkAtprotoRecord({
   entity,
   config,
-}: AtprotoProjectionBuildInput): Promise<LinkAtprotoRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainLinkRecord> {
   const link = linkSchema.parse(entity);
   const { frontmatter, summary } = linkAdapter.parseLinkContent(link.content);
 
@@ -49,7 +32,7 @@ export async function buildLinkAtprotoRecord({
   };
 }
 
-export function createLinkAtprotoProjection(): AtprotoProjection<LinkAtprotoRecord> {
+export function createLinkAtprotoProjection(): AtprotoProjection<AtprotoBrainLinkRecord> {
   return {
     entityType: "link",
     collection: "ai.rizom.brain.link",

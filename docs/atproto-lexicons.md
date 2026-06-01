@@ -34,7 +34,7 @@ Canonical `ai.rizom.brain.*` lexicon JSON has one in-repo source of truth: `@bra
 
 Entity packages own projection/mapping logic only. For example, `entities/blog` owns the mapper from local `post` entities to `ai.rizom.brain.post` records, but it imports the canonical `ai.rizom.brain.post` lexicon from `@brains/atproto-contracts` instead of defining a separate schema.
 
-The `@brains/atproto-registry` plugin serves those same contract-owned lexicons from the official `rizom.ai` brain/site. Runtime projection registration and public protocol publication are separate responsibilities, but both consume the same canonical contract artifacts.
+The `@brains/atproto-registry` plugin serves those same contract-owned lexicons and their governance metadata from the official `rizom.ai` brain/site. Runtime projection registration and public protocol publication are separate responsibilities, but both consume the same canonical contract artifacts.
 
 Brain-specific extensions must use a namespace controlled by that brain/operator. They must not redefine or mutate `ai.rizom.brain.*`.
 
@@ -45,6 +45,8 @@ PDS-side validation is not the authoritative contract for Rizom custom records. 
 Rizom validates projected records locally before dry-run output or PDS writes. Local validation uses the canonical lexicon imported from `@brains/atproto-contracts` and rejects malformed records before they are stored in a PDS repo.
 
 ## Compatibility policy
+
+The registry index exposes each lexicon's status, version, revision, owner/steward, projection package, and compatibility notes from `@brains/atproto-contracts`.
 
 Compatible changes:
 

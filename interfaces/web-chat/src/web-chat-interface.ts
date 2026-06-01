@@ -23,6 +23,7 @@ import {
 import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
+import { stripInternalEntityMemoryNote } from "./display-content";
 import {
   WebChatUploadStore,
   WebChatUploadStoreError,
@@ -139,6 +140,30 @@ const storedChatAttachmentSchema = z.object({
 });
 
 const storedChatAttachmentsSchema = z.array(storedChatAttachmentSchema);
+
+const storedAttachmentCardSchema = z.object({
+  kind: z.literal("attachment"),
+  id: z.string().min(1),
+  jobId: z.string().min(1).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  attachment: z.object({
+    mediaType: z.string().min(1),
+    url: z.string().min(1),
+    downloadUrl: z.string().min(1).optional(),
+    previewUrl: z.string().min(1).optional(),
+    filename: z.string().min(1).optional(),
+    sizeBytes: z.number().nonnegative().optional(),
+    source: z
+      .object({
+        entityType: z.string().optional(),
+        entityId: z.string().optional(),
+        attachmentType: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+const storedChatCardsSchema = z.array(storedAttachmentCardSchema);
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -1359,9 +1384,13 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   background: linear-gradient(180deg, var(--chat-accent), var(--chat-secondary));
 }
 .web-chat-attachment-preview {
-  width: 100%;
-  max-height: 260px;
-  object-fit: cover;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(70vh, 520px);
+  justify-self: center;
+  object-fit: contain;
   border-bottom: 1px solid var(--chat-border-soft);
   background: var(--chat-surface-inset);
 }
@@ -2868,11 +2897,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           message.metadata,
           message.timestamp,
         );
+        const cards = this.getStoredMessageCards(message.metadata);
         return {
           id: message.id,
           role: message.role,
-          content: message.content,
+          content: stripInternalEntityMemoryNote(message.content),
           ...(attachments.length > 0 ? { attachments } : {}),
+          ...(cards.length > 0 ? { cards } : {}),
         };
       }),
     });
@@ -2903,6 +2934,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       createdAt,
       ...(attachment.source !== undefined && { source: attachment.source }),
     }));
+  }
+
+  private getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
+    const parsedMetadata = this.parseStoredMessageMetadata(metadata);
+    const parsedCards = storedChatCardsSchema.safeParse(
+      parsedMetadata?.["cards"],
+    );
+    if (!parsedCards.success) return [];
+    return parsedCards.data;
   }
 
   private parseStoredMessageMetadata(

@@ -14,7 +14,6 @@ export { parseDeckData } from "./datasources/parse-helpers";
 export {
   buildDeckAtprotoRecord,
   createDeckAtprotoProjection,
-  type DeckAtprotoRecord,
 } from "./atproto-projection";
 export { deckTemplate } from "./templates/deck-template";
 export { deckListTemplate } from "./templates/deck-list";

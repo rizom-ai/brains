@@ -253,5 +253,4 @@ export type { TopicEntity } from "./types";
 export {
   buildTopicAtprotoRecord,
   createTopicAtprotoProjection,
-  type TopicAtprotoRecord,
 } from "./atproto-projection";

@@ -1,34 +1,16 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
+  AtprotoBrainDeckRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { deckFrontmatterSchema, deckSchema } from "./schemas/deck";
 
-export interface DeckAtprotoRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.deck";
-  title: string;
-  slug?: string;
-  description?: string;
-  body: string;
-  format: "text/markdown";
-  author?: string;
-  event?: string;
-  publishedAt?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  sourceEntityType: "deck";
-  sourceEntityId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 export async function buildDeckAtprotoRecord({
   entity,
   config,
-}: AtprotoProjectionBuildInput): Promise<DeckAtprotoRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainDeckRecord> {
   const deck = deckSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
     deck.content,
@@ -55,7 +37,7 @@ export async function buildDeckAtprotoRecord({
   };
 }
 
-export function createDeckAtprotoProjection(): AtprotoProjection<DeckAtprotoRecord> {
+export function createDeckAtprotoProjection(): AtprotoProjection<AtprotoBrainDeckRecord> {
   return {
     entityType: "deck",
     collection: "ai.rizom.brain.deck",

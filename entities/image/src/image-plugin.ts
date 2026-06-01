@@ -107,21 +107,26 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     const prompt = getImageGenerationPrompt(input);
+    const targetEntityType = normalizeText(input.targetEntityType);
+    const targetEntityId = normalizeText(input.targetEntityId);
+    const imageTargetTitle =
+      targetEntityType === this.entityType ? targetEntityId : undefined;
 
-    if (!input.targetEntityType || !input.targetEntityId) {
+    if (!targetEntityType || !targetEntityId || imageTargetTitle) {
       if (!prompt) return { kind: "continue", input };
 
+      const title = normalizeText(input.title) ?? imageTargetTitle;
       const jobId = await context.jobs.enqueue({
         type: "image-generate",
         data: {
           prompt,
-          ...(input.title && { title: input.title }),
+          ...(title && { title }),
         },
       });
 
       const entityId = getPredictedImageId({
         prompt,
-        ...(input.title && { title: input.title }),
+        ...(title && { title }),
       });
       return {
         kind: "handled",
@@ -139,8 +144,8 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
 
     const resolved = await resolveEntityOrError(
       context.entityService,
-      input.targetEntityType,
-      input.targetEntityId,
+      targetEntityType,
+      targetEntityId,
       this.logger,
       "Target entity",
     );
@@ -165,7 +170,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       data: {
         prompt,
         ...(input.title && { title: input.title }),
-        targetEntityType: input.targetEntityType,
+        targetEntityType,
         targetEntityId: resolved.entity.id,
         entityTitle:
           typeof resolved.entity.metadata["title"] === "string"

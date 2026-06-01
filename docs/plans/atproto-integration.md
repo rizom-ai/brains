@@ -63,7 +63,7 @@ Ownership boundary: the ATProto plugin owns identity, PDS auth, transport, blobs
 
 Projection selection rule: durable, user-meaningful public entities should generally get quiet semantic ATProto projections. Public visibility is required but not sufficient: each entity package must define an explicit safe projection. Derived entities are not excluded automatically: `series` is derived from source entities with `seriesName`, but it is still a first-class durable grouping entity and should be projected. Ephemeral, operational, evidence/support, or relationship/directory entities should not be published just because they exist. `agent` is excluded from Phase 2 because publishing discovered peer-agent directory entries implies a product/approval semantics decision; `skill` is currently derived/ephemeral support data and should not be projected in Phase 2.
 
-Current decision: keep hand-written projection types and explicit tests for now. Remove package-local `ai.rizom.brain.*` lexicon ownership in the next slice: entity packages should import canonical lexicons from `@brains/atproto-contracts`, while a separate registry plugin serves those same lexicons publicly from `rizom.ai`. The ATProto service plugin owns only publishing behavior such as identity, PDS writes, blobs, and brain-card publishing; it should also consume canonical lexicons rather than define separate service-local copies. Add generated TypeScript from lexicons later only if the custom record surface grows enough to justify the build step.
+Current decision: do not defer typed runtime schemas. Phase 2.6 established `@brains/atproto-contracts` as the canonical lexicon source, and Phase 2.7 should add Zod-backed record schemas/types derived from those canonical contracts before Phase 3 inbound ingestion depends on accepting records from other producers. Entity packages should import canonical lexicons and generated/derived record schemas from `@brains/atproto-contracts`; they should not own separate `ai.rizom.brain.*` lexicon JSON or ad hoc validators. The ATProto service plugin owns only publishing behavior such as identity, PDS writes, blobs, and brain-card publishing.
 
 PDS-side validation is not the authoritative contract for Rizom custom records. Public PDS instances may reject unknown `ai.rizom.brain.*` lexicons when `validate: true`, so outbound custom record writes use `validate: false` at the PDS boundary. The safety contract is local: before publishing, Rizom should validate projected records against the registered lexicon and entity-owned mapper contract, then use the PDS as the signed repository/storage layer. Public lexicon publication is required before network interoperability work depends on other producers or consumers understanding Rizom records.
 
@@ -309,9 +309,11 @@ Important distinction:
 - Protocol registry publication means: "the official `rizom.ai` registry exposes this NSID as part of the canonical `ai.rizom.brain.*` protocol."
 - Both consume the same `@brains/atproto-contracts` lexicon artifacts, so coordination is by shared contract import rather than drift-prone duplicated files.
 
-### Phase 2.7: Zod-sourced contracts (planned)
+### Phase 2.7: Zod-sourced contracts
 
-Today the lexicon JSON is the source of truth, with hand-written TypeScript record interfaces and a hand-rolled `validateAtprotoRecord` walker kept aligned by per-package conformance tests. Two weaknesses follow: the TS types are not compiler-enforced against the JSON (the deferred lexicon→TS codegen item), and the hand-written types are in practice richer than the JSON (e.g. `coverImage` is `{ type: "object" }` in the lexicon but a full nested type in TS). Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type axis relies on tests rather than the compiler.
+Status: implemented in-repo for outbound contracts as an interim bridge. `@brains/atproto-contracts` now exports lexicon-derived Zod record schemas, record-schema lookup/list helpers, canonical record type interfaces, and a Zod-backed `validateAtprotoRecord` compatibility helper. Entity projection mappers return the canonical ATProto record types directly. This gives publishing and registry validation an executable contract before Phase 3 ingestion. Remaining follow-up: reuse these schemas directly in Phase 3 inbound ingestion, then complete the planned Zod-source-of-truth migration by generating lexicon JSON from Zod.
+
+Today the lexicon JSON is still the source of truth, with TypeScript record interfaces and runtime schemas kept aligned by conformance tests. Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type/source axis still relies on tests until the Zod → lexicon emitter lands.
 
 Planned direction: make a **Zod schema the single source of truth** for each canonical record, with the lexicon JSON generated from it.
 
@@ -321,13 +323,16 @@ Planned direction: make a **Zod schema the single source of truth** for each can
 - Generate the AT Protocol lexicon JSON from the Zod schema with a `zod → lexicon` emitter supporting the subset actually used (`ZodString.max → maxLength`, `.datetime()`/`.url() → format`, `ZodLiteral`/`ZodEnum → knownValues`, `ZodOptional → not-required`, nested `ZodObject → object properties`). The registry serves the generated JSON.
 - Commit the generated JSON and add a drift test that regenerates and asserts no git diff, so the compiler + Zod + that test together guarantee JSON ↔ TS ↔ validator alignment.
 - Lexicon enrichment (nested object shapes, etc.) then flows naturally from the schemas and simultaneously strengthens runtime validation.
+- Use the same schemas in `@brains/atproto-registry` validation tools, outbound projection mapper tests, and Phase 3 inbound ingestion.
 
 Rationale: Zod is already the repo's validation idiom — entity schemas, plugin config schemas, and the lexicon parser itself all use it. The one new bespoke piece is the `zod → lexicon` emitter, which replaces the bespoke validator being deleted, so net maintained complexity is roughly a wash but better leveraged. Prove the emitter on `ai.rizom.brain.card` (the simplest record) and confirm the generated JSON matches the current hand-authored file before migrating the rest.
+
+User-facing result: **"Rizom ATProto records have one canonical, executable contract for publishing and ingestion."**
 
 ### Phase 3: Inbound ingestion
 
 1. Subscribe to user's atproto repo (or Jetstream for lightweight JSON events)
-2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains). Do not rely on private repo-local lexicon JSON here; consume records against the public canonical Rizom lexicons from the Phase 2.6 protocol registry.
+2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains). Do not rely on private repo-local lexicon JSON here; consume records against the public canonical Rizom lexicons from the Phase 2.6 protocol registry and the Zod-backed contracts from Phase 2.7.
 3. Convert atproto records to brain entities (markdown with frontmatter)
 4. Ingest via entity service (`createEntity`)
 5. Run entity pipeline on ingested content (topic extraction, series association)

@@ -1,35 +1,16 @@
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
+  AtprotoBrainSocialPostRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
-import { socialPostSchema, type Platform } from "./schemas/social-post";
-
-export interface SocialPostAtprotoRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.socialPost";
-  title: string;
-  platform: Platform;
-  body: string;
-  format: "text/markdown";
-  status?: string;
-  publishedAt?: string;
-  platformPostId?: string;
-  sourceLocalEntityType?: string;
-  sourceLocalEntityId?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  sourceEntityType: "social-post";
-  sourceEntityId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { socialPostSchema } from "./schemas/social-post";
 
 export async function buildSocialPostAtprotoRecord({
   entity,
   config,
-}: AtprotoProjectionBuildInput): Promise<SocialPostAtprotoRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainSocialPostRecord> {
   const socialPost = socialPostSchema.parse(entity);
   const frontmatter = socialPostAdapter.parsePostFrontmatter(socialPost);
   const body = socialPostAdapter.getPostContent(socialPost);
@@ -60,7 +41,7 @@ export async function buildSocialPostAtprotoRecord({
   };
 }
 
-export function createSocialPostAtprotoProjection(): AtprotoProjection<SocialPostAtprotoRecord> {
+export function createSocialPostAtprotoProjection(): AtprotoProjection<AtprotoBrainSocialPostRecord> {
   return {
     entityType: "social-post",
     collection: "ai.rizom.brain.socialPost",

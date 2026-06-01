@@ -2,7 +2,6 @@ export { SeriesPlugin, seriesPlugin } from "./plugin";
 export {
   buildSeriesAtprotoRecord,
   createSeriesAtprotoProjection,
-  type SeriesAtprotoRecord,
 } from "./atproto-projection";
 export {
   seriesSchema,

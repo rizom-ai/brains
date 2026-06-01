@@ -140,6 +140,42 @@ describe("ImagePlugin", () => {
     });
   });
 
+  it("should treat image target fields as standalone image generation", async () => {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        prompt: "Can you generate an image of a robot for me?",
+        targetEntityType: "image",
+        targetEntityId: "robot",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result.kind).toBe("handled");
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]?.data).toMatchObject({
+      prompt: "Can you generate an image of a robot for me?",
+      title: "robot",
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityType: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityId: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      entityContent: expect.any(String),
+    });
+  });
+
   it("should not enqueue generated image data for prompt distillation", async () => {
     harness.addEntities([
       {
@@ -174,9 +210,13 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]?.data).toMatchObject({
       prompt: "A pretty robot, elegant and friendly, polished metallic design",
-      targetEntityType: "image",
-      targetEntityId: "pretty-robot",
-      entityTitle: "Pretty Robot",
+      title: "pretty robot",
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityType: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityId: expect.any(String),
     });
     expect(enqueuedJobs[0]?.data).not.toMatchObject({
       entityContent: expect.any(String),

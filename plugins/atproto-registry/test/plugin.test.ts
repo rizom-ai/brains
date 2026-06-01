@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { createPluginHarness } from "@brains/plugins/test";
+import {
+  listCanonicalAtprotoLexiconMetadata,
+  listCanonicalAtprotoLexicons,
+} from "@brains/atproto-contracts";
 import { atprotoRegistryPlugin, plugin } from "../src";
 
 async function jsonFromRoute(
@@ -30,7 +34,17 @@ describe("atproto registry plugin", () => {
     if (!indexRoute) throw new Error("Missing registry index route");
     expect(indexRoute.public).toBe(true);
     const body = (await jsonFromRoute(indexRoute)) as {
-      lexicons: Array<{ id: string; path: string; status: string }>;
+      lexicons: Array<{
+        id: string;
+        path: string;
+        status: string;
+        version: string;
+        revision: number;
+        owner: string;
+        steward: string;
+        projectionPackage: string;
+        compatibility: string;
+      }>;
     };
 
     expect(body.lexicons.map((lexicon) => lexicon.id).sort()).toEqual(
@@ -38,9 +52,12 @@ describe("atproto registry plugin", () => {
         .map((lexicon) => lexicon.id)
         .sort(),
     );
-    expect(
-      body.lexicons.every((lexicon) => lexicon.status === "approved"),
-    ).toBe(true);
+    expect(body.lexicons).toEqual(
+      listCanonicalAtprotoLexiconMetadata().map((metadata) => ({
+        ...metadata,
+        path: `/atproto/lexicons/${metadata.id}.json`,
+      })),
+    );
   });
 
   it("serves canonical lexicon JSON by NSID", async () => {
@@ -69,5 +86,33 @@ describe("atproto registry plugin", () => {
             route.path === "/atproto/lexicons/ai.rizom.brain.unknown.json",
         ),
     ).toBe(false);
+  });
+
+  it("reports canonical metadata from the contract check tool", async () => {
+    const harness = createPluginHarness();
+    const registry = atprotoRegistryPlugin();
+    await harness.installPlugin(registry);
+
+    const tool = harness
+      .getCapabilities()
+      .tools.find(
+        (candidate) => candidate.name === "atproto-registry_check_contracts",
+      );
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("Missing check contracts tool");
+
+    const response = await tool.handler(
+      {},
+      { interfaceType: "test", userId: "test" },
+    );
+    expect("success" in response && response.success).toBe(true);
+    if (!("success" in response) || !response.success) {
+      throw new Error("Contract check tool failed");
+    }
+    expect(response.data).toEqual({
+      lexiconCount: listCanonicalAtprotoLexicons().length,
+      nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
+      metadata: listCanonicalAtprotoLexiconMetadata(),
+    });
   });
 });

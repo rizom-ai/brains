@@ -1,5 +1,35 @@
 # @brains/plugins
 
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.101
+  - @brains/contracts@0.2.0-alpha.101
+  - @brains/site-composition@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/conversation-service@0.2.0-alpha.101
+  - @brains/identity-service@0.2.0-alpha.101
+  - @brains/job-queue@0.2.0-alpha.101
+  - @brains/messaging-service@0.2.0-alpha.101
+  - @brains/templates@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.100
+  - @brains/contracts@0.2.0-alpha.100
+  - @brains/site-composition@0.2.0-alpha.100
+  - @brains/utils@0.2.0-alpha.100
+  - @brains/conversation-service@0.2.0-alpha.100
+  - @brains/identity-service@0.2.0-alpha.100
+  - @brains/job-queue@0.2.0-alpha.100
+  - @brains/messaging-service@0.2.0-alpha.100
+  - @brains/templates@0.2.0-alpha.100
+
 ## 0.2.0-alpha.99
 
 ### Patch Changes
