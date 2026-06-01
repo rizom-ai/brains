@@ -311,7 +311,7 @@ Important distinction:
 
 ### Phase 2.7: Zod-sourced contracts
 
-Status: partially implemented in-repo as an interim bridge. `@brains/atproto-contracts` now exports lexicon-derived Zod record schemas, record-schema lookup/list helpers, record type aliases, and a Zod-backed `validateAtprotoRecord` compatibility helper. This gives publishing and registry validation an executable contract before Phase 3 ingestion, while the planned final direction remains making Zod the source of truth and generating lexicon JSON from it.
+Status: implemented in-repo for outbound contracts as an interim bridge. `@brains/atproto-contracts` now exports lexicon-derived Zod record schemas, record-schema lookup/list helpers, canonical record type interfaces, and a Zod-backed `validateAtprotoRecord` compatibility helper. Entity projection mappers return the canonical ATProto record types directly. This gives publishing and registry validation an executable contract before Phase 3 ingestion. Remaining follow-up: reuse these schemas directly in Phase 3 inbound ingestion, then complete the planned Zod-source-of-truth migration by generating lexicon JSON from Zod.
 
 Today the lexicon JSON is still the source of truth, with TypeScript record interfaces and runtime schemas kept aligned by conformance tests. Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type/source axis still relies on tests until the Zod → lexicon emitter lands.
 

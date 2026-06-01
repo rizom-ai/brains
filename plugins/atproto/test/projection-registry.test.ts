@@ -27,10 +27,11 @@ function createLexicon(id: string): AtprotoLexicon {
 }
 
 function createPostRecord(
-  input: Partial<AtprotoProjectedPostRecord> = {},
+  input: Record<string, unknown> = {},
 ): AtprotoProjectedPostRecord {
   return {
     title: "Post",
+    body: "Post body",
     sourceEntityType: "post",
     sourceEntityId: "post-1",
     createdAt: "2026-05-28T10:00:00.000Z",

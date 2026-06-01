@@ -41,7 +41,6 @@ export {
 export {
   buildSocialPostAtprotoRecord,
   createSocialPostAtprotoProjection,
-  type SocialPostAtprotoRecord,
 } from "./atproto-projection";
 
 // DataSource exports

@@ -1,34 +1,16 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
+  AtprotoBrainProjectRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { projectFrontmatterSchema, projectSchema } from "./schemas/project";
 
-export interface ProjectAtprotoRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.project";
-  title: string;
-  slug?: string;
-  description?: string;
-  body: string;
-  format: "text/markdown";
-  year: number;
-  url?: string;
-  publishedAt?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  sourceEntityType: "project";
-  sourceEntityId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 export async function buildProjectAtprotoRecord({
   entity,
   config,
-}: AtprotoProjectionBuildInput): Promise<ProjectAtprotoRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainProjectRecord> {
   const project = projectSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
     project.content,
@@ -55,7 +37,7 @@ export async function buildProjectAtprotoRecord({
   };
 }
 
-export function createProjectAtprotoProjection(): AtprotoProjection<ProjectAtprotoRecord> {
+export function createProjectAtprotoProjection(): AtprotoProjection<AtprotoBrainProjectRecord> {
   return {
     entityType: "project",
     collection: "ai.rizom.brain.project",

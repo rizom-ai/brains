@@ -3,38 +3,14 @@ import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
+  AtprotoBrainPostRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 
-export interface BlogAtprotoPostRecord {
-  [key: string]: unknown;
-  $type: "ai.rizom.brain.post";
-  title: string;
-  summary?: string;
-  body: string;
-  format: "text/markdown";
-  brainDid?: string;
-  anchorDid?: string;
-  canonicalUrl?: string;
-  topics?: string[];
-  coverImage?: BlogAtprotoCoverImage;
-  series?: string;
-  seriesIndex?: number;
-  sourceEntityType: "post";
-  sourceEntityId: string;
-  createdAt: string;
-  publishedAt?: string;
-}
-
-export interface BlogAtprotoCoverImage {
-  blob: AtprotoBlobRef;
-  alt?: string;
-  width?: number;
-  height?: number;
-}
+type BlogAtprotoCoverImage = NonNullable<AtprotoBrainPostRecord["coverImage"]>;
 
 interface BlobUploader {
   uploadBlob?(input: {
@@ -116,7 +92,7 @@ export async function buildBlogAtprotoPostRecord({
   client,
   topics,
   dryRun = false,
-}: AtprotoProjectionBuildInput): Promise<BlogAtprotoPostRecord> {
+}: AtprotoProjectionBuildInput): Promise<AtprotoBrainPostRecord> {
   if (entity.entityType !== "post") {
     throw new Error(`Expected entityType post, got ${entity.entityType}`);
   }
@@ -150,7 +126,7 @@ export async function buildBlogAtprotoPostRecord({
   };
 }
 
-export function createBlogAtprotoProjection(): AtprotoProjection<BlogAtprotoPostRecord> {
+export function createBlogAtprotoProjection(): AtprotoProjection<AtprotoBrainPostRecord> {
   return {
     entityType: "post",
     collection: "ai.rizom.brain.post",

@@ -3,7 +3,6 @@ export { LinkPlugin, createLinkPlugin, linkPlugin } from "./plugin";
 export {
   buildLinkAtprotoRecord,
   createLinkAtprotoProjection,
-  type LinkAtprotoRecord,
 } from "./atproto-projection";
 
 // Schema and type exports

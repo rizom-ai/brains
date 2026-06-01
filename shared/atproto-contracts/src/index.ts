@@ -267,6 +267,169 @@ export function buildAtprotoRecordSchema(
     .passthrough();
 }
 
+export interface AtprotoBrainCardRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.card";
+  name: string;
+  description?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  siteUrl?: string;
+  a2aEndpoint?: string;
+  capabilities?: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainDeckRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.deck";
+  title: string;
+  slug?: string;
+  description?: string;
+  body: string;
+  format?: "text/markdown";
+  author?: string;
+  event?: string;
+  publishedAt?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainLinkRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.link";
+  title: string;
+  url: string;
+  description?: string;
+  summary?: string;
+  domain?: string;
+  capturedAt?: string;
+  source?: { ref: string; label: string };
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainNoteRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.note";
+  title: string;
+  body: string;
+  format?: "text/markdown";
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainPostRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.post";
+  title: string;
+  summary?: string;
+  body: string;
+  format?: "text/markdown";
+  brainDid?: string;
+  anchorDid?: string;
+  canonicalUrl?: string;
+  topics?: string[];
+  coverImage?: {
+    blob: AtprotoBlobRef;
+    alt?: string;
+    width?: number;
+    height?: number;
+  };
+  series?: string;
+  seriesIndex?: number;
+  sourceEntityType?: "post";
+  sourceEntityId?: string;
+  createdAt: string;
+  publishedAt?: string;
+}
+
+export interface AtprotoBrainProjectRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.project";
+  title: string;
+  slug?: string;
+  description?: string;
+  body: string;
+  format?: "text/markdown";
+  year: number;
+  url?: string;
+  publishedAt?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainSeriesRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.series";
+  title: string;
+  slug?: string;
+  description?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainSocialPostRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.socialPost";
+  title: string;
+  platform: string;
+  body: string;
+  format?: "text/markdown";
+  status?: string;
+  publishedAt?: string;
+  platformPostId?: string;
+  sourceLocalEntityType?: string;
+  sourceLocalEntityId?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainTopicRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.topic";
+  title: string;
+  body: string;
+  format?: "text/markdown";
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CanonicalAtprotoRecordMap {
+  "ai.rizom.brain.card": AtprotoBrainCardRecord;
+  "ai.rizom.brain.deck": AtprotoBrainDeckRecord;
+  "ai.rizom.brain.link": AtprotoBrainLinkRecord;
+  "ai.rizom.brain.note": AtprotoBrainNoteRecord;
+  "ai.rizom.brain.post": AtprotoBrainPostRecord;
+  "ai.rizom.brain.project": AtprotoBrainProjectRecord;
+  "ai.rizom.brain.series": AtprotoBrainSeriesRecord;
+  "ai.rizom.brain.socialPost": AtprotoBrainSocialPostRecord;
+  "ai.rizom.brain.topic": AtprotoBrainTopicRecord;
+}
+
+export type CanonicalAtprotoRecord =
+  CanonicalAtprotoRecordMap[keyof CanonicalAtprotoRecordMap];
+
 export const canonicalAtprotoRecordSchemas = {
   "ai.rizom.brain.card": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.card"],
@@ -299,34 +462,6 @@ export const canonicalAtprotoRecordSchemas = {
 
 export type CanonicalAtprotoRecordSchemaId =
   keyof typeof canonicalAtprotoRecordSchemas;
-
-export type CanonicalAtprotoRecordMap = {
-  [K in CanonicalAtprotoRecordSchemaId]: z.infer<
-    (typeof canonicalAtprotoRecordSchemas)[K]
-  >;
-};
-
-export type CanonicalAtprotoRecord =
-  CanonicalAtprotoRecordMap[CanonicalAtprotoRecordSchemaId];
-
-export type AtprotoBrainCardRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.card"];
-export type AtprotoBrainDeckRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.deck"];
-export type AtprotoBrainLinkRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.link"];
-export type AtprotoBrainNoteRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.note"];
-export type AtprotoBrainPostRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.post"];
-export type AtprotoBrainProjectRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.project"];
-export type AtprotoBrainSeriesRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.series"];
-export type AtprotoBrainSocialPostRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.socialPost"];
-export type AtprotoBrainTopicRecord =
-  CanonicalAtprotoRecordMap["ai.rizom.brain.topic"];
 
 export function listCanonicalAtprotoRecordSchemas(): AtprotoRecordSchema[] {
   return Object.values(canonicalAtprotoRecordSchemas);
@@ -429,13 +564,7 @@ export interface AtprotoProjectionBuildInput {
   dryRun?: boolean;
 }
 
-export interface AtprotoProjectedPostRecord extends Record<string, unknown> {
-  title: string;
-  sourceEntityType: string;
-  sourceEntityId: string;
-  createdAt: string;
-  coverImage?: unknown;
-}
+export type AtprotoProjectedPostRecord = AtprotoBrainPostRecord;
 
 export interface AtprotoProjectionPublishedInput<
   TRecord extends Record<string, unknown>,

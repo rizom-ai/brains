@@ -32,7 +32,6 @@ export { ProjectAdapter, projectAdapter } from "./adapters/project-adapter";
 export {
   buildProjectAtprotoRecord,
   createProjectAtprotoProjection,
-  type ProjectAtprotoRecord,
 } from "./atproto-projection";
 
 // DataSource
