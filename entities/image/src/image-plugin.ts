@@ -11,6 +11,10 @@ import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
+import {
+  getDistillableEntityContent,
+  isImageDataUrl,
+} from "./lib/distillable-content";
 import packageJson from "../package.json";
 
 const imageConfigSchema = z.object({
@@ -28,16 +32,12 @@ function normalizeText(value: string | undefined): string | undefined {
   return trimmed;
 }
 
-function isDataUrl(value: string): boolean {
-  return /^data:image\/[a-z0-9.+-]+;base64,/i.test(value.trim());
-}
-
 function getImageGenerationPrompt(input: CreateInput): string | undefined {
   const prompt = normalizeText(input.prompt);
   if (prompt) return prompt;
 
   const content = normalizeText(input.content);
-  if (content && !isDataUrl(content)) return content;
+  if (content && !isImageDataUrl(content)) return content;
 
   return undefined;
 }
@@ -159,6 +159,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
+    const entityContent = getDistillableEntityContent(resolved.entity.content);
     const jobId = await context.jobs.enqueue({
       type: "image-generate",
       data: {
@@ -170,7 +171,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
           typeof resolved.entity.metadata["title"] === "string"
             ? resolved.entity.metadata["title"]
             : resolved.entity.id,
-        entityContent: resolved.entity.content,
+        ...(entityContent && { entityContent }),
       },
     });
 
