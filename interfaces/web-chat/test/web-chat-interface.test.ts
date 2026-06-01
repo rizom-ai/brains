@@ -1981,6 +1981,64 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(403);
   });
 
+  it("loads stored generated attachment cards for an operator", async () => {
+    const card = {
+      kind: "attachment",
+      id: "attachment:mossy-robot",
+      jobId: "job-1",
+      title: "mossy-robot.png",
+      description: "image generation has been queued.",
+      attachment: {
+        mediaType: "image/png",
+        url: "/api/chat/attachments/image?id=mossy-robot",
+        downloadUrl: "/api/chat/attachments/image?id=mossy-robot&download=1",
+        filename: "mossy-robot.png",
+        source: {
+          entityType: "image",
+          entityId: "mossy-robot",
+          attachmentType: "generated",
+        },
+      },
+    };
+    const shell = harness.getMockShell();
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("web-session", "web-chat")],
+        messagesByConversation: {
+          "web-session": [
+            makeMessage(
+              "message-1",
+              "web-session",
+              "assistant",
+              "Queued image generation.",
+              JSON.stringify({ cards: [card] }),
+            ),
+          ],
+        },
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/messages", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/messages?id=web-session"),
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body).toEqual({
+      messages: [
+        {
+          id: "message-1",
+          role: "assistant",
+          content: "Queued image generation.",
+          cards: [card],
+        },
+      ],
+    });
+  });
+
   it("loads web chat session messages for an operator", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(

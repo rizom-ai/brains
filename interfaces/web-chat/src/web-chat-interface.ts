@@ -140,6 +140,30 @@ const storedChatAttachmentSchema = z.object({
 
 const storedChatAttachmentsSchema = z.array(storedChatAttachmentSchema);
 
+const storedAttachmentCardSchema = z.object({
+  kind: z.literal("attachment"),
+  id: z.string().min(1),
+  jobId: z.string().min(1).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  attachment: z.object({
+    mediaType: z.string().min(1),
+    url: z.string().min(1),
+    downloadUrl: z.string().min(1).optional(),
+    previewUrl: z.string().min(1).optional(),
+    filename: z.string().min(1).optional(),
+    sizeBytes: z.number().nonnegative().optional(),
+    source: z
+      .object({
+        entityType: z.string().optional(),
+        entityId: z.string().optional(),
+        attachmentType: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+const storedChatCardsSchema = z.array(storedAttachmentCardSchema);
+
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
 /* Rizom-flavored chat styling. Mirrors interfaces/web-chat/mockup.html;
@@ -2868,11 +2892,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           message.metadata,
           message.timestamp,
         );
+        const cards = this.getStoredMessageCards(message.metadata);
         return {
           id: message.id,
           role: message.role,
           content: message.content,
           ...(attachments.length > 0 ? { attachments } : {}),
+          ...(cards.length > 0 ? { cards } : {}),
         };
       }),
     });
@@ -2903,6 +2929,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       createdAt,
       ...(attachment.source !== undefined && { source: attachment.source }),
     }));
+  }
+
+  private getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
+    const parsedMetadata = this.parseStoredMessageMetadata(metadata);
+    const parsedCards = storedChatCardsSchema.safeParse(
+      parsedMetadata?.["cards"],
+    );
+    if (!parsedCards.success) return [];
+    return parsedCards.data;
   }
 
   private parseStoredMessageMetadata(
