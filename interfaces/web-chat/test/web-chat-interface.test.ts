@@ -225,7 +225,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(12);
+    expect(routes).toHaveLength(13);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -267,21 +267,26 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[8]).toMatchObject({
-      path: "/api/chat/jobs/status",
+      path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
     expect(routes[9]).toMatchObject({
-      path: "/chat/assets/app.js",
+      path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
     expect(routes[10]).toMatchObject({
+      path: "/chat/assets/app.js",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[11]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
@@ -731,6 +736,54 @@ describe("WebChatInterface", () => {
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("utf8")).toBe(
       "%PDF-1.7",
     );
+  });
+
+  it("serves generated image attachments to operators", async () => {
+    const plugin = operatorPlugin();
+    harness.addEntities([
+      {
+        id: "mossy-robot",
+        entityType: "image",
+        content: "data:image/png;base64,iVBORw0KGgo=",
+        metadata: {
+          title: "Mossy robot",
+          alt: "Mossy robot",
+          format: "png",
+          width: 1,
+          height: 1,
+        },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/image?id=mossy-robot&download=1",
+      ),
+    );
+    const body = await response?.arrayBuffer();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("image/png");
+    expect(response?.headers.get("content-disposition")).toBe(
+      'attachment; filename="mossy-robot.png"',
+    );
+    expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("base64")).toBe(
+      "iVBORw0KGgo=",
+    );
+  });
+
+  it("rejects image attachment requests from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/attachments/image?id=mossy-robot"),
+    );
+
+    expect(response?.status).toBe(401);
   });
 
   it("rejects document attachment requests from non-operators", async () => {

@@ -74,6 +74,18 @@ describe("ImagePlugin", () => {
           entityId: "abstract-cover",
           status: "generating",
           jobId: "queued-image-job",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=abstract-cover",
+            downloadUrl:
+              "/api/chat/attachments/image?id=abstract-cover&download=1",
+            filename: "abstract-cover.png",
+            source: {
+              entityType: "image",
+              entityId: "abstract-cover",
+              attachmentType: "generated",
+            },
+          },
         },
       },
     });
@@ -123,6 +135,18 @@ describe("ImagePlugin", () => {
           entityId: "cover-my-blog-post",
           status: "generating",
           jobId: "queued-image-job",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=cover-my-blog-post",
+            downloadUrl:
+              "/api/chat/attachments/image?id=cover-my-blog-post&download=1",
+            filename: "cover-my-blog-post.png",
+            source: {
+              entityType: "image",
+              entityId: "cover-my-blog-post",
+              attachmentType: "generated",
+            },
+          },
         },
       },
     });

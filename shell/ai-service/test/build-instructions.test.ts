@@ -167,6 +167,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should distinguish standalone image generation from cover image targeting", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'For standalone image requests like "generate an image of a robot", call `system_create({ entityType: "image", prompt: "..." })` without `targetEntityType` or `targetEntityId`.',
+    );
+    expect(instructions).toContain(
+      "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image on an existing entity.",
+    );
+  });
+
   it("should teach the model to refuse never-gated and level-gated actions", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("### Entity Action Permissions");

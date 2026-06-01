@@ -241,10 +241,35 @@ export interface CreateExecutionContext {
 /**
  * Result returned to system_create when a plugin fully handles creation.
  */
+export const createResultAttachmentSchema = z.object({
+  mediaType: z.string(),
+  url: z.string(),
+  downloadUrl: z.string().optional(),
+  previewUrl: z.string().optional(),
+  filename: z.string().optional(),
+  sizeBytes: z.number().optional(),
+  source: z
+    .object({
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      attachmentType: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type CreateResultAttachment = z.infer<
+  typeof createResultAttachmentSchema
+>;
+
 export type CreateResult =
   | {
       success: true;
-      data: { entityId?: string; jobId?: string; status: string };
+      data: {
+        entityId?: string;
+        jobId?: string;
+        status: string;
+        attachment?: CreateResultAttachment;
+      };
     }
   | { success: false; error: string };
 

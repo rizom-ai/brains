@@ -2113,20 +2113,41 @@ interface ActiveStream {
 
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
 
-function parsePdfDataUrl(
+function parseBase64DataUrl(
   dataUrl: string,
-): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
-  const match = dataUrl.match(/^data:(application\/pdf);base64,(.+)$/i);
-  if (!match?.[1] || !match[2]) return null;
-  const buffer = Buffer.from(match[2], "base64");
+  mediaTypePattern: RegExp,
+): { mimeType: string; data: ArrayBuffer } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/i);
+  if (!match) return null;
+  const [, mimeType, encoded] = match;
+  if (!mimeType || !encoded || !mediaTypePattern.test(mimeType)) {
+    return null;
+  }
+  const buffer = Buffer.from(encoded, "base64");
   const data = buffer.buffer.slice(
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength,
   );
   return {
-    mimeType: "application/pdf",
+    mimeType,
     data,
   };
+}
+
+function parsePdfDataUrl(
+  dataUrl: string,
+): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
+  const parsed = parseBase64DataUrl(dataUrl, /^application\/pdf$/i);
+  if (parsed?.mimeType.toLowerCase() !== "application/pdf") {
+    return null;
+  }
+  return { mimeType: "application/pdf", data: parsed.data };
+}
+
+function parseImageDataUrl(
+  dataUrl: string,
+): { mimeType: string; data: ArrayBuffer } | null {
+  return parseBase64DataUrl(dataUrl, /^image\/[a-z0-9.+-]+$/i);
 }
 
 function getDocumentFilename(
@@ -2137,6 +2158,23 @@ function getDocumentFilename(
   return typeof filename === "string" && filename.length > 0
     ? filename
     : `${documentId}.pdf`;
+}
+
+function getImageFilename(
+  metadata: Record<string, unknown> | null | undefined,
+  imageId: string,
+  mimeType: string,
+): string {
+  const filename = metadata?.["filename"];
+  if (typeof filename === "string" && filename.length > 0) return filename;
+
+  const format = metadata?.["format"];
+  if (typeof format === "string" && format.length > 0) {
+    return `${imageId}.${format === "jpeg" ? "jpg" : format}`;
+  }
+
+  const subtype = mimeType.split("/")[1];
+  return `${imageId}.${subtype && subtype.length > 0 ? subtype : "png"}`;
 }
 
 function escapeHeaderValue(value: string): string {
@@ -2246,6 +2284,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         public: true,
         handler: (request): Promise<Response> =>
           this.handleDocumentAttachmentRequest(request),
+      },
+      {
+        path: "/api/chat/attachments/image",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleImageAttachmentRequest(request),
       },
       {
         path: "/api/chat/jobs/status",
@@ -2713,14 +2758,63 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const filename = getDocumentFilename(document.metadata, documentId);
-    const headers = new Headers({
-      "Content-Type": parsed.mimeType,
-      "Content-Length": String(parsed.data.byteLength),
-      "Content-Disposition": `${
-        url.searchParams.has("download") ? "attachment" : "inline"
-      }; filename="${escapeHeaderValue(filename)}"`,
+    return this.createBinaryAttachmentResponse({
+      requestUrl: url,
+      data: parsed.data,
+      mediaType: parsed.mimeType,
+      filename,
     });
-    return new Response(parsed.data, { headers });
+  }
+
+  private async handleImageAttachmentRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const imageId = url.searchParams.get("id")?.trim();
+    if (!imageId) {
+      return new Response("Missing image id", { status: 400 });
+    }
+
+    const image = await this.getContext().entityService.getEntity({
+      entityType: "image",
+      id: imageId,
+    });
+    if (!image) {
+      return new Response("Image not found", { status: 404 });
+    }
+
+    const parsed = parseImageDataUrl(image.content);
+    if (!parsed) {
+      return new Response("Image content is not an image", { status: 415 });
+    }
+
+    const filename = getImageFilename(image.metadata, imageId, parsed.mimeType);
+    return this.createBinaryAttachmentResponse({
+      requestUrl: url,
+      data: parsed.data,
+      mediaType: parsed.mimeType,
+      filename,
+    });
+  }
+
+  private createBinaryAttachmentResponse(input: {
+    requestUrl: URL;
+    data: ArrayBuffer;
+    mediaType: string;
+    filename: string;
+  }): Response {
+    const headers = new Headers({
+      "Content-Type": input.mediaType,
+      "Content-Length": String(input.data.byteLength),
+      "Content-Disposition": `${
+        input.requestUrl.searchParams.has("download") ? "attachment" : "inline"
+      }; filename="${escapeHeaderValue(input.filename)}"`,
+    });
+    return new Response(input.data, { headers });
   }
 
   private async handleJobStatusRequest(request: Request): Promise<Response> {

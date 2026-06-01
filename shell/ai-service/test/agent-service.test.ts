@@ -1644,6 +1644,90 @@ describe("AgentService", () => {
       ]);
     });
 
+    it("should include attachment cards for image generation results", async () => {
+      mockAgentGenerateResult = {
+        text: "Queued image generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "system_create",
+                toolCallId: "call1",
+                input: {
+                  entityType: "image",
+                  prompt: "Generate a mossy robot",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "system_create",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    entityId: "mossy-robot",
+                    status: "generating",
+                    jobId: "job-1",
+                    attachment: {
+                      mediaType: "image/png",
+                      url: "/api/chat/attachments/image?id=mossy-robot",
+                      downloadUrl:
+                        "/api/chat/attachments/image?id=mossy-robot&download=1",
+                      filename: "mossy-robot.png",
+                      source: {
+                        entityType: "image",
+                        entityId: "mossy-robot",
+                        attachmentType: "generated",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 20, totalTokens: 70 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Generate a mossy robot",
+        "test-conversation",
+      );
+
+      expect(response.cards).toEqual([
+        {
+          kind: "attachment",
+          id: "attachment:mossy-robot",
+          jobId: "job-1",
+          title: "mossy-robot.png",
+          description:
+            "image generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      ]);
+    });
+
     it("should return empty toolResults array when no tools are called", async () => {
       mockAgentGenerateResult = {
         text: "Hello! How can I help you?",

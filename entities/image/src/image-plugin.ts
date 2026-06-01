@@ -55,6 +55,31 @@ function getPredictedImageId(input: {
   return slugify(title);
 }
 
+function buildPredictedImageAttachment(imageId: string): {
+  mediaType: "image/png";
+  url: string;
+  downloadUrl: string;
+  filename: string;
+  source: {
+    entityType: "image";
+    entityId: string;
+    attachmentType: "generated";
+  };
+} {
+  const encodedId = encodeURIComponent(imageId);
+  return {
+    mediaType: "image/png",
+    url: `/api/chat/attachments/image?id=${encodedId}`,
+    downloadUrl: `/api/chat/attachments/image?id=${encodedId}&download=1`,
+    filename: `${imageId}.png`,
+    source: {
+      entityType: "image",
+      entityId: imageId,
+      attachmentType: "generated",
+    },
+  };
+}
+
 /**
  * Image EntityPlugin — manages image entities with AI generation.
  *
@@ -94,17 +119,19 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
         },
       });
 
+      const entityId = getPredictedImageId({
+        prompt,
+        ...(input.title && { title: input.title }),
+      });
       return {
         kind: "handled",
         result: {
           success: true,
           data: {
-            entityId: getPredictedImageId({
-              prompt,
-              ...(input.title && { title: input.title }),
-            }),
+            entityId,
             status: "generating",
             jobId,
+            attachment: buildPredictedImageAttachment(entityId),
           },
         },
       };
@@ -147,18 +174,20 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       },
     });
 
+    const entityId = getPredictedImageId({
+      prompt,
+      ...(input.title && { title: input.title }),
+      targetEntityId: resolved.entity.id,
+    });
     return {
       kind: "handled",
       result: {
         success: true,
         data: {
-          entityId: getPredictedImageId({
-            prompt,
-            ...(input.title && { title: input.title }),
-            targetEntityId: resolved.entity.id,
-          }),
+          entityId,
           status: "generating",
           jobId,
+          attachment: buildPredictedImageAttachment(entityId),
         },
       },
     };

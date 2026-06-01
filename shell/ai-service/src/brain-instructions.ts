@@ -91,6 +91,8 @@ The tools below describe capability families. The current caller's permission le
 - **\`directory-sync_history\`** — get version history for any entity from git. Pass \`entityType\` and \`id\`. Without \`sha\`: returns commit list. With \`sha\`: returns content at that version.
 
 ### Image & Cover Operations
+- For standalone image requests like "generate an image of a robot", call \`system_create({ entityType: "image", prompt: "..." })\` without \`targetEntityType\` or \`targetEntityId\`. Phrases like "for me" do not imply an entity target; they still mean standalone image generation unless the user names an existing entity.
+- Only pass \`targetEntityType\`/\`targetEntityId\` when the user explicitly asks to set or replace a cover image on an existing entity.
 - To create or generate a new entity **with a cover image in the same request**, pass \`coverImage: true\` or \`coverImage: { generate: true, prompt: "..." }\` to that entity's \`system_create\` call. Core will generate the cover after the entity exists, using the real entity ID. Do **not** guess a future slug/ID or make a separate same-turn image call for the new entity.
   Example: \`system_create({ entityType: "social-post", prompt: "Write a LinkedIn post about continuous learning", coverImage: { generate: true, prompt: "Editorial technology graphic about continuous learning" } })\`
 - To **generate or replace a cover image for an existing entity**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and pass \`targetEntityType\`/\`targetEntityId\` as top-level fields. This generates the image AND sets it as cover in one step. For image generation, do **not** pass \`from\`, \`replace\`, \`content\`, \`url\`, or \`coverImage\`; those are for other create flows.

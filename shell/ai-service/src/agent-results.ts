@@ -13,24 +13,29 @@ import type {
 
 const toolCallArgsSchema = z.record(z.unknown());
 const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
-const attachmentToolDataSchema = z.object({
-  documentId: z.string().min(1),
-  attachment: z.object({
-    mediaType: z.string().min(1),
-    url: z.string().min(1),
-    downloadUrl: z.string().min(1).optional(),
-    previewUrl: z.string().min(1).optional(),
-    filename: z.string().min(1).optional(),
-    sizeBytes: z.number().nonnegative().optional(),
-    source: z
-      .object({
-        entityType: z.string().optional(),
-        entityId: z.string().optional(),
-        attachmentType: z.string().optional(),
-      })
-      .optional(),
-  }),
-});
+const attachmentToolDataSchema = z
+  .object({
+    documentId: z.string().min(1).optional(),
+    entityId: z.string().min(1).optional(),
+    attachment: z.object({
+      mediaType: z.string().min(1),
+      url: z.string().min(1),
+      downloadUrl: z.string().min(1).optional(),
+      previewUrl: z.string().min(1).optional(),
+      filename: z.string().min(1).optional(),
+      sizeBytes: z.number().nonnegative().optional(),
+      source: z
+        .object({
+          entityType: z.string().optional(),
+          entityId: z.string().optional(),
+          attachmentType: z.string().optional(),
+        })
+        .optional(),
+    }),
+  })
+  .refine(
+    (data) => data.documentId !== undefined || data.entityId !== undefined,
+  );
 
 /** Human-readable noun for an attachment's media type, for card copy. */
 function describeAttachmentMedia(mediaType: string): string {
@@ -137,11 +142,14 @@ export function extractToolResults(
         );
         if (attachmentParsed.success) {
           const attachment = attachmentParsed.data.attachment;
+          const attachmentId =
+            attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
+          if (attachmentId === undefined) continue;
           const source = attachment.source;
           const mediaLabel = describeAttachmentMedia(attachment.mediaType);
           cards.push({
             kind: "attachment",
-            id: `attachment:${attachmentParsed.data.documentId}`,
+            id: `attachment:${attachmentId}`,
             ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
             title: attachment.filename ?? `Generated ${mediaLabel}`,
             // Only describe the work as queued when there is a job backing it;

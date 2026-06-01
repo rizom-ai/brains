@@ -1,3 +1,4 @@
+import { createResultAttachmentSchema } from "@brains/entity-service";
 import { z } from "@brains/utils";
 
 // ── Input schemas ──
@@ -67,12 +68,14 @@ export const createInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Attach to this entity type after creation (e.g. set as cover image)",
+      "Existing entity type to attach to after creation. Use only when the user explicitly asks to set/replace a cover or attach the artifact to an existing entity; omit for standalone image/document generation.",
     ),
   targetEntityId: z
     .string()
     .optional()
-    .describe("Attach to this entity ID after creation"),
+    .describe(
+      "Existing entity ID to attach to after creation. Use only with targetEntityType; omit for standalone image/document generation.",
+    ),
   coverImage: coverImageInputSchema
     .optional()
     .describe(
@@ -155,6 +158,7 @@ export const createOutputSchema = z.object({
   entityId: z.string().optional(),
   status: z.enum(["created", "generating"]),
   jobId: z.string().optional(),
+  attachment: createResultAttachmentSchema.optional(),
 });
 
 export const extractOutputSchema = z.object({

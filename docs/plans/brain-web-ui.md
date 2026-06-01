@@ -143,16 +143,18 @@ contract:
 
 Existing PDF document generation now returns predicted attachment metadata for
 chat surfaces, and web-chat serves generated document entities through the
-operator-only `/api/chat/attachments/document?id=...` route. The React island
-renders `data-attachment` parts as previews / download links / generic file
-cards, and polls `/api/chat/jobs/status?id=...` for queued artifacts so links
-stay disabled until the generation job is ready.
+operator-only `/api/chat/attachments/document?id=...` route. Generated image
+creation now follows the same `data-attachment` card path with predicted image
+metadata and an operator-only `/api/chat/attachments/image?id=...` route for
+view/download. The React island renders `data-attachment` parts as previews /
+download links / generic file cards, and polls `/api/chat/jobs/status?id=...`
+for queued artifacts so links stay disabled until the generation job is ready.
 
 Remaining:
 
-- extend the same attachment-data-part path to generated images and other
-  durable artifact kinds (PDF non-document outputs, exports, previews) instead
-  of treating each artifact kind as a one-off renderer;
+- extend the same attachment-data-part path to other durable artifact kinds
+  (PDF non-document outputs, exports, previews) instead of treating each
+  artifact kind as a one-off renderer;
 - confirm download routes for new artifact kinds reuse the existing
   attachment/media provider contracts rather than a web-chat-only blob path.
 
