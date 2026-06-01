@@ -224,6 +224,7 @@
     "tailwind-runtime-deps",
     "themes-export",
     "web-chat-bundled-ui",
+    "web-chat-generated-image-attachments",
     "web-chat-light-mode-and-mobile",
     "web-chat-live-tool-status",
     "web-chat-mobile-cleanup",

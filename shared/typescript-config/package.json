@@ -1,6 +1,6 @@
 {
   "name": "@brains/typescript-config",
-  "version": "0.2.0-alpha.98",
+  "version": "0.2.0-alpha.99",
   "private": true,
   "files": [
     "base.json"

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- [`9947471`](https://github.com/rizom-ai/brains/commit/99474713f696828748311b64bd6c71cfac3f17ac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Show generated images in web chat as structured attachment cards with operator-only image view/download routes, clarify standalone image generation so plain image requests do not incorrectly require a target entity, and avoid prompt-distilling generated image data URLs when regenerating image entities.
+
 ## 0.2.0-alpha.98
 
 ### Patch Changes
