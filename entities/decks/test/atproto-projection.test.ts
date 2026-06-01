@@ -35,8 +35,6 @@ describe("deck ATProto projection", () => {
       entity: deck,
       context: createPluginHarness().getServiceContext("decks"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });

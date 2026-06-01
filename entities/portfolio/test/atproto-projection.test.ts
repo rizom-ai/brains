@@ -35,8 +35,6 @@ describe("project ATProto projection", () => {
       entity: project,
       context: createPluginHarness().getServiceContext("portfolio"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });

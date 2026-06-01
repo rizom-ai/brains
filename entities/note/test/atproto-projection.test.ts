@@ -29,8 +29,6 @@ describe("note ATProto projection", () => {
       entity: note,
       context: createPluginHarness().getServiceContext("note"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         brainDid: "did:web:brain.example.com",
       },
     });
@@ -58,10 +56,7 @@ describe("note ATProto projection", () => {
           "---\r\ntitle: Networked Knowledge\r\n---\r\n# Networked Knowledge\r\n\r\nA note body.",
       },
       context: createPluginHarness().getServiceContext("note"),
-      config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
-      },
+      config: {},
     });
 
     expect(record.body).toBe("# Networked Knowledge\r\n\r\nA note body.");

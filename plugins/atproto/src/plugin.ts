@@ -269,9 +269,15 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       ...(options.topics && { topics: options.topics }),
     });
     validateAtprotoRecord(projection.lexicon, record);
-    const result = await client.createRecord({
+    if (!client.putRecord) {
+      throw new Error("AT Protocol PDS client does not support record upserts");
+    }
+    // Upsert under a stable key derived from the source entity so republishing
+    // the same entity updates its record in place instead of creating a duplicate.
+    const result = await client.putRecord({
       repo: targetRepo,
       collection: projection.collection,
+      rkey: deriveAtprotoRecordKey(entity.id),
       ...(projection.validate !== undefined && {
         validate: projection.validate,
       }),
@@ -336,10 +342,15 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   }
 
   private resolveAppPassword(): string | undefined {
-    if (this.config.appPassword) return this.config.appPassword;
-    if (!this.config.appPasswordEnv) return undefined;
-    return process.env[this.config.appPasswordEnv];
+    return this.config.appPassword;
   }
+}
+
+// AT Protocol record keys allow [A-Za-z0-9._~:-] up to 512 chars. Entity ids are
+// already within that set, but sanitize defensively so any entity type is safe.
+function deriveAtprotoRecordKey(entityId: string): string {
+  const sanitized = entityId.replace(/[^A-Za-z0-9._~:-]/g, "_").slice(0, 512);
+  return sanitized.length > 0 ? sanitized : "self";
 }
 
 export function atprotoPlugin(

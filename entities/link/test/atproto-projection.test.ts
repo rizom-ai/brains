@@ -40,8 +40,6 @@ describe("link ATProto projection", () => {
       entity: link,
       context: createPluginHarness().getServiceContext("link"),
       config: {
-        enabled: true,
-        pdsEndpoint: "https://bsky.social",
         anchorDid: "did:plc:anchor",
       },
     });

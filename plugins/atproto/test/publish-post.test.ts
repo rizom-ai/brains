@@ -186,7 +186,7 @@ describe("AT Protocol post publishing", () => {
       validate: false,
       buildRecord,
     });
-    const createRecord = mock(async () => ({
+    const putRecord = mock(async () => ({
       uri: "at://repo/link",
       cid: "cid",
     }));
@@ -205,7 +205,8 @@ describe("AT Protocol post publishing", () => {
             accessJwt: "access-token",
             refreshJwt: "refresh-token",
           })),
-          createRecord,
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
         }),
       },
     );
@@ -234,9 +235,10 @@ describe("AT Protocol post publishing", () => {
         entity: expect.objectContaining({ id: "link-123" }),
       }),
     );
-    expect(createRecord).toHaveBeenCalledWith({
+    expect(putRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.rizom.brain.link",
+      rkey: "link-123",
       validate: false,
       record: result.record,
     });
@@ -261,7 +263,7 @@ describe("AT Protocol post publishing", () => {
       buildRecord,
       onPublished,
     });
-    const createRecord = mock(async () => ({
+    const putRecord = mock(async () => ({
       uri: "at://repo/custom-post",
       cid: "cid",
     }));
@@ -280,7 +282,8 @@ describe("AT Protocol post publishing", () => {
             accessJwt: "access-token",
             refreshJwt: "refresh-token",
           })),
-          createRecord,
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
         }),
       },
     );
@@ -296,9 +299,10 @@ describe("AT Protocol post publishing", () => {
         config: expect.objectContaining({ identifier: "brain.example.com" }),
       }),
     );
-    expect(createRecord).toHaveBeenCalledWith({
+    expect(putRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.example.customPost",
+      rkey: "post-123",
       validate: false,
       record: result.record,
     });
@@ -434,7 +438,7 @@ describe("AT Protocol post publishing", () => {
       accessJwt: "access-token",
       refreshJwt: "refresh-token",
     }));
-    const createRecord = mock(async () => ({
+    const putRecord = mock(async () => ({
       uri: "at://repo/post",
       cid: "cid",
     }));
@@ -448,7 +452,8 @@ describe("AT Protocol post publishing", () => {
       {
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession,
-          createRecord,
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
         }),
       },
     );
@@ -460,9 +465,10 @@ describe("AT Protocol post publishing", () => {
     expect(result.dryRun).toBe(false);
     expect(result.repo).toBe("did:plc:session-repo");
     expect(result.uri).toBe("at://repo/post");
-    expect(createRecord).toHaveBeenCalledWith({
+    expect(putRecord).toHaveBeenCalledWith({
       repo: "did:plc:session-repo",
       collection: "ai.rizom.brain.post",
+      rkey: "post-123",
       validate: false,
       record: result.record,
     });

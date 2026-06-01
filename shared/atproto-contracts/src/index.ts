@@ -94,12 +94,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// RFC 3339 date-time with required offset (Z or ±hh:mm), matching the AT
+// Protocol `datetime` string format. Lenient Date.parse would accept "2026-01-01".
+const RFC3339_DATETIME =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
 function validateScalarFormat(
   path: string,
   value: string,
   property: AtprotoValidationProperty,
 ): void {
-  if (property.format === "datetime" && Number.isNaN(Date.parse(value))) {
+  if (
+    property.format === "datetime" &&
+    (!RFC3339_DATETIME.test(value) || Number.isNaN(Date.parse(value)))
+  ) {
     throw new Error(
       `Invalid AT Protocol record field ${path}: expected datetime`,
     );
@@ -254,15 +262,15 @@ export interface AtprotoBlobRef {
   size: number;
 }
 
+/**
+ * Subset of the AT Protocol plugin config that entity projections may read when
+ * building records. Projections do not authenticate or write, so PDS auth and
+ * transport fields (identifier, endpoint, credentials, repo DID) are
+ * intentionally excluded — they stay on the plugin's own config.
+ */
 export interface AtprotoPublishConfig {
-  enabled: boolean;
-  pdsEndpoint: string;
-  identifier?: string | undefined;
-  repoDid?: string | undefined;
   brainDid?: string | undefined;
   anchorDid?: string | undefined;
-  appPassword?: string | undefined;
-  appPasswordEnv?: string | undefined;
 }
 
 export interface AtprotoPdsClientLike {

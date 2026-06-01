@@ -256,6 +256,15 @@ Deliberately deferred (consistent with this plan, not blockers):
 - **JWT/session refresh** in `AtprotoPdsClient` — covered by the outbound ATProto OAuth follow-up; the app-password client does one-shot publishes today.
 - **`did:web` `verificationMethod`** — the identity model treats `brainDid` as a non-signing reference DID (the repo `did:plc` signs records), so the served DID document intentionally carries only the PDS service endpoint. Revisit if a brain owns its own signing key.
 
+### Phase 2 post-merge review fixes
+
+Follow-up review of the integration merge fixed these issues in the current outbound scope:
+
+1. **Idempotent entity publishing** — projected entity records now upsert via `putRecord` under a stable record key derived from the source entity id, instead of `createRecord` minting a new TID on every call. Republishing an entity updates its record in place rather than creating duplicates. Entity lexicon `key` is therefore `any` (caller-supplied stable keys), matching the "local entity is the source of truth" model; the brain card keeps `literal:self`. The blog `post` convenience path still writes `atprotoUri` back to frontmatter.
+2. **Projection config surface narrowed** — `AtprotoPublishConfig` in `@brains/atproto-contracts` (the config handed to entity `buildRecord` mappers) now exposes only `brainDid`/`anchorDid`, the fields projections actually read. PDS auth/transport fields (identifier, endpoint, credentials, repo DID) stay on the plugin's own `AtprotoConfig` and no longer leak into entity packages.
+3. **Secret handling consolidated** — removed the redundant `appPasswordEnv` config field. The app password is supplied via `${ENV_VAR}` interpolation into `appPassword`, consistent with how every other secret in the repo is configured.
+4. **Stricter local validation** — `validateAtprotoRecord` now requires RFC-3339 date-times (previously a lenient `Date.parse`).
+
 ### Phase 2.5: Local validation and provisional public lexicon publication
 
 1. Add local lexicon-backed validation for projected records before PDS writes. This validation is required even when the PDS write uses `validate: false` for unknown custom lexicons — implemented.
@@ -299,6 +308,21 @@ Important distinction:
 - Runtime projection registration means: "this brain can publish this entity type to this ATProto collection."
 - Protocol registry publication means: "the official `rizom.ai` registry exposes this NSID as part of the canonical `ai.rizom.brain.*` protocol."
 - Both consume the same `@brains/atproto-contracts` lexicon artifacts, so coordination is by shared contract import rather than drift-prone duplicated files.
+
+### Phase 2.7: Zod-sourced contracts (planned)
+
+Today the lexicon JSON is the source of truth, with hand-written TypeScript record interfaces and a hand-rolled `validateAtprotoRecord` walker kept aligned by per-package conformance tests. Two weaknesses follow: the TS types are not compiler-enforced against the JSON (the deferred lexicon→TS codegen item), and the hand-written types are in practice richer than the JSON (e.g. `coverImage` is `{ type: "object" }` in the lexicon but a full nested type in TS). Sync is structural where it can be (one imported lexicon object, a repo-wide duplicate-file guard, publish-time and CI validation), but the type axis relies on tests rather than the compiler.
+
+Planned direction: make a **Zod schema the single source of truth** for each canonical record, with the lexicon JSON generated from it.
+
+- Define each record as a Zod schema in `@brains/atproto-contracts` via a small `defineAtprotoRecord({ id, key, description, schema })` helper.
+- TypeScript record type = `z.infer<typeof schema>` — always in sync, no codegen-for-types, no drift.
+- Runtime validation = `schema.parse(...)`, replacing the hand-rolled `validateAtprotoRecord` walker.
+- Generate the AT Protocol lexicon JSON from the Zod schema with a `zod → lexicon` emitter supporting the subset actually used (`ZodString.max → maxLength`, `.datetime()`/`.url() → format`, `ZodLiteral`/`ZodEnum → knownValues`, `ZodOptional → not-required`, nested `ZodObject → object properties`). The registry serves the generated JSON.
+- Commit the generated JSON and add a drift test that regenerates and asserts no git diff, so the compiler + Zod + that test together guarantee JSON ↔ TS ↔ validator alignment.
+- Lexicon enrichment (nested object shapes, etc.) then flows naturally from the schemas and simultaneously strengthens runtime validation.
+
+Rationale: Zod is already the repo's validation idiom — entity schemas, plugin config schemas, and the lexicon parser itself all use it. The one new bespoke piece is the `zod → lexicon` emitter, which replaces the bespoke validator being deleted, so net maintained complexity is roughly a wash but better leveraged. Prove the emitter on `ai.rizom.brain.card` (the simplest record) and confirm the generated JSON matches the current hand-authored file before migrating the rest.
 
 ### Phase 3: Inbound ingestion
 

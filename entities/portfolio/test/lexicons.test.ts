@@ -11,7 +11,7 @@ describe("project ATProto lexicons", () => {
       defs: {
         main: {
           type: "record",
-          key: "tid",
+          key: "any",
           record: {
             required: ["title", "body", "year", "createdAt"],
             properties: {
