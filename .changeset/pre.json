@@ -105,11 +105,15 @@
     "@brains/document": "0.2.0-alpha.68",
     "@brains/media-page-composer": "0.2.0-alpha.68",
     "@brains/media-renderer": "0.2.0-alpha.68",
-    "@brains/web-chat": "0.2.0-alpha.84"
+    "@brains/web-chat": "0.2.0-alpha.84",
+    "@brains/atproto": "0.2.0-alpha.94",
+    "@brains/atproto-registry": "0.2.0-alpha.94",
+    "@brains/atproto-contracts": "0.2.0-alpha.94"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
+    "atproto-registry-contracts",
     "auth-service-setup-email",
     "bitwarden-deploy-workflow-template",
     "bitwarden-secrets-push",

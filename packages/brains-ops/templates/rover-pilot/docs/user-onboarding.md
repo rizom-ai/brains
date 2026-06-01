@@ -1,339 +1,111 @@
 # Rover Pilot User Onboarding
 
-Welcome to the Rover pilot.
+---
 
-This guide is for first-time Rover users. You do not need prior experience with Rover, MCP, git, GitHub, or Obsidian to get started.
+Most of us have more thinking happening than we can hold onto. Ideas show up in the wrong moment, notes land in five different places, and half of what you've figured out is effectively invisible by the time you need it again.
+
+Rover is built for that problem. It's a private space where your thinking accumulates — notes, links, fragments, half-formed ideas — and an AI that can work with all of it. Find things you saved months ago. Connect dots across topics. Turn a rough note into a draft. The more you put in, the more useful it gets. And if another Rover user is in your network, your Rovers can talk to each other — share knowledge, work on something together — just by asking.
+
+---
 
 ## What Rover is
 
-Rover is your private AI assistant for working with your own notes, links, and ideas.
+Rover is your private knowledge companion. It holds your notes, links, and ideas — and helps you think with them, not just store them.
 
-For the current pilot, the normal core experience is:
+Ask it a question and it searches what you've saved. Give it a fragment of thinking and it can help you turn it into something.
 
-- **Passkey setup email** — your secure first step
-- **Discord** — the main chat interface when enabled for your pilot
-- **Dashboard** — your browser overview at `https://<handle>.rizom.ai/`
-- **MCP** — optional direct access from OAuth/passkey-capable AI clients
+---
 
-Some users may also receive:
+## Getting in
 
-- **CMS** access at `https://<handle>.rizom.ai/cms`
-- **GitHub/content repo** access for editing the underlying markdown files
-- **Obsidian** instructions for a local file-based workflow
+We'll send you a personal URL — something like `https://<handle>.rizom.ai/`.
 
-If we did not explicitly give you CMS, GitHub, MCP, or Obsidian instructions, you can ignore those sections for now.
+When you open it for the first time, you'll be asked to set a passkey. Do that once and you're in. No passwords to remember.
 
-## Start here: setup
+From there, your three main interfaces are:
 
-1. Open the setup email from Rover.
-2. Click the passkey setup link.
-3. Register a passkey in your browser.
-4. Open your Dashboard: `https://<handle>.rizom.ai/`.
-5. If Discord is enabled for you, send Rover a first message there.
-6. If we asked you to test MCP, use the separate MCP connection instructions we sent for your pilot.
+- **Chat** (`/chat`) — where you talk to Rover
+- **Dashboard** (`/`) — an overview of your Rover
+- **CMS** (`/cms`) — a browser editor for your content
 
-## Your setup email
+Start with Chat. Everything else follows from there.
 
-The setup email contains a single-use passkey setup link.
+---
 
-Treat that link like a temporary password:
+## Your first five minutes
 
-- do not forward it
-- use it once
-- expect it to expire
-- ask us for help if it has expired or does not work
+1. Open your Chat URL. A good first message:
+   > Help me save my first note.
+2. Save something — a thought, a link, an idea. Doesn't need to be polished.
+3. Ask Rover about it. See what comes back.
 
-After you register your passkey, the setup link closes. Your passkey becomes the sign-in method for Rover's browser and OAuth-capable client flows.
+That loop — save, ask, get something useful back — is the core of how Rover works.
 
-If your Rover already existed before you received this email, nothing is being reset. The email is just the secure handoff for registering your own passkey so you can sign in yourself.
+---
 
-## Your first Rover session
+## The Chat and the CMS: when to use which
 
-Start in **Discord** if it is enabled for your pilot. That is the normal first interface.
+**Chat** is for thinking out loud, asking questions, saving things quickly, and using Rover as a day-to-day thinking partner.
 
-### 1. Say hello
+**CMS** is for when you want to deliberately create or edit content — browsing your notes, making clean edits, working more like an editor than a conversationalist.
 
-Send:
+Most people spend most of their time in Chat. The CMS becomes useful once you have something worth editing.
 
-> What can you help me do, and what should I use you for?
+---
 
-Rover should answer with a short overview of what it can do.
+## Other ways to chat with Rover
 
-### 2. Create your first note
+`/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
 
-Ask Rover to save a simple note:
+---
 
-> Save a note: I am trying Rover because I want a better way to collect ideas, links, and questions in one place.
+## Connecting Rover to other tools
 
-Or:
+Rover can connect to external tools via MCP — a standard protocol that works in two directions: agentic AI clients (like Claude Desktop) can use it to talk to Rover, and Rover can use it to talk to productivity tools like Notion or Linear.
 
-> Help me save my first note.
+Plugins exist for a number of tools already, and new ones can be built quickly in response to what you actually need. If there's a tool you'd want Rover to connect to, tell us.
 
-### 3. Add your first link
+If MCP is part of your setup, we'll send specific instructions alongside your URL.
 
-Send Rover a link you want to remember:
+---
 
-> Save this link and tell me why it might be useful later: https://example.com
+## A few common questions
 
-Or:
+**How do I access my data?**
+Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
 
-> Add this as a link about tools I want to revisit: https://example.com
+**Does Rover connect to the internet?**
+No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
 
-Rover should save the link and, when possible, keep a short description of why it matters.
+**What does this cost?**
+Nothing during the pilot. We cover hosting costs while you're part of the programme.
 
-### 4. Upload an existing Markdown doc
+---
 
-If you already have notes or docs in Markdown, you do not need to retype them.
+## This is a pilot
 
-Upload a `.md` file and ask Rover to save or import it:
+Rover works. But it's not finished.
 
-> Save this Markdown doc in my notes.
+You'll hit rough edges. Some things you try won't work. Some things you expect to be there won't be yet. That's normal — and it's actually why you're here.
 
-Or:
+There's a ceiling on how much Rover can improve without real people using it on real problems. We've reached that ceiling on our own. Your usage is what lets the product become what it's capable of becoming. A single Rover in isolation can only do so much — the network only becomes real when there are enough active, populated Rovers in it.
 
-> Import this doc and tell me what it is about.
+Rover has a built-in wishlist. If you ask it to do something it can't do yet, it should tell you clearly and log the request — that goes back to us as a signal for where the product needs to go next.
 
-This is often the fastest way to give Rover useful context.
+When something breaks or falls short, tell us: what you were trying to do, what you expected, and what happened instead.
 
-### 5. Ask Rover about what you just added
+---
 
-After you have saved a note, link, or Markdown doc, ask Rover to reflect it back:
+## Your access details
 
-> What have I added so far?
+When we onboard you, we'll send something like:
 
-Or:
-
-> What do you know about what I am interested in so far?
-
-This is the basic Rover loop: add material, then ask Rover to help you think with it.
-
-### 6. Try a more useful task
-
-Once Rover has a little context, try one of these:
-
-> Summarize my notes so far.
-
-> What themes do you see in what I have added?
-
-> Turn my rough note into a clearer paragraph.
-
-> Help me make a small reading list from the links I saved.
-
-These examples show the main scope of Rover: saving material, organizing it, reflecting on it, and helping you make something from it.
-
-### 7. Ask another agent
-
-If your pilot has agent-to-agent access enabled, we will tell you which other agents you can address and how to talk to them. Otherwise Rover should clearly say that this workflow is not available yet.
-
-## The default mental model
-
-If you remember only one thing, remember this:
-
-- **Discord** = talk to Rover, when enabled
-- **Dashboard** = browser overview
-- **MCP** = optional direct client integration through OAuth/passkey login
-- **CMS / git / Obsidian** = optional content-editing workflows when we enable them for you
-
-## What you will receive from us
-
-Depending on your pilot cohort, we will send you some or all of these:
-
-- a passkey setup email from Rover
-- this onboarding guide, or a link to it
-- confirmation that Discord is enabled for you, plus the invite/setup steps
-- your **Dashboard URL**: `https://<handle>.rizom.ai/`
-- CMS URL and GitHub token instructions, if CMS editing is enabled
-- private content repo access, if file-based editing is enabled
-- separate MCP connection instructions, if MCP testing is enabled
-- any extra instructions if we are testing a specific workflow with your cohort
-
-Keep setup links, GitHub tokens, and any MCP credentials separate. Do not paste the passkey setup link into an MCP client.
-
-## Discord
-
-Discord is the default chat interface when it is enabled for your pilot. It is separate from the passkey setup email: the email sets up browser/client identity, while Discord is where many users chat with Rover day to day.
-
-Use it to:
-
-- save quick notes
-- drop in links
-- ask questions
-- use Rover day to day without setting up a separate client
-
-If Discord is enabled, we will send the exact invite/setup steps separately.
-
-## Dashboard basics
-
-The Dashboard is the browser landing page for your Rover.
-
-Open it at:
-
-```text
-https://<handle>.rizom.ai/
 ```
-
-Use it to confirm your Rover is up, see available endpoints, and orient yourself before using optional tools. This is not meant to be a public marketing website.
-
-## Optional: Working in the CMS
-
-If CMS is enabled for you, open:
-
-```text
-https://<handle>.rizom.ai/cms
-```
-
-The CMS is a browser editor for your Rover content. It may ask for GitHub access because your content lives in a private GitHub repo.
-
-Use the CMS when you want to:
-
-- create or edit notes in the browser
-- add existing Markdown docs
-- browse structured content collections
-- make cleaner edits than you would in chat
-
-A good first CMS task is:
-
-1. open the **Notes** collection
-2. create a note titled `Why I’m using Rover`
-3. write 3 to 5 sentences
-4. save it
-5. refresh the CMS and confirm the note is still there
-
-If the CMS asks for GitHub access, use the fine-grained GitHub token for your private Rover content repo. If you were not given CMS/GitHub instructions, skip this section.
-
-## Optional: direct MCP access
-
-MCP is an optional way to connect Rover directly to an AI client that supports remote HTTP MCP.
-
-Use MCP only if we ask you to test it or if you already use a client that supports remote HTTP / Streamable HTTP MCP servers.
-
-We will send MCP connection details separately when MCP testing is enabled. The normal hosted MCP path is `https://<handle>.rizom.ai/mcp`, but use the exact server URL we send for your pilot.
-
-### What the MCP login flow looks like
-
-If your client supports OAuth / browser login, the normal flow is:
-
-1. In your MCP client, add a remote MCP server.
-2. Enter the Rover MCP server URL we sent you.
-3. The client discovers Rover's OAuth settings automatically.
-4. The client opens a browser window for Rover login.
-5. You sign in with your passkey.
-6. Rover asks you to approve client access.
-7. The client receives an access token automatically.
-8. You can use Rover tools from that client.
-
-You should not need to copy a setup link into the client. The setup link is only for registering your first passkey.
-
-If your client asks for a token or other credential, use only the MCP instructions we sent separately. Treat any MCP credentials like a password. Do not share them.
-
-### Client-specific notes
-
-Different MCP clients support remote HTTP and OAuth at different speeds. If you are using Claude Desktop, Cursor, VS Code, MCP Inspector, or another client, tell us the exact version before assuming it should work.
-
-### If MCP does not work
-
-Send us:
-
-- the client name
-- the client version
-- the exact error message
-- a screenshot if possible
-- the server URL you entered, without any secret token
-
-Do not paste your passkey setup link into an MCP client.
-
-## Optional: git, text files, and Obsidian
-
-Rover content can also live as normal markdown/text files in a private GitHub repo.
-
-This workflow is optional. Use it only if we explicitly enabled it for you or if you want more control.
-
-If enabled, we will:
-
-1. create or confirm your private content repo
-2. invite your GitHub account to that repo
-3. send you the repo URL
-4. explain whether to use GitHub Desktop, command-line git, Obsidian, or the CMS
-
-You do not need GitHub repo access just to use Rover in Discord.
-
-## Wishlist: when Rover cannot do something yet
-
-Rover has a built-in wishlist.
-
-If you ask for something Rover cannot do yet, it should explain the limitation and save the request as a wish. This helps us see which missing capabilities matter most.
-
-## What to expect in the pilot
-
-This is a real working system, but it is still an early pilot. Expect some rough edges, setup steps that may still be a bit manual, and improvements during the pilot.
-
-## Privacy and boundaries
-
-For the pilot:
-
-- your Rover is deployed specifically for you
-- browser/client access uses passkeys/OAuth where supported
-- if you are using MCP, we will send separate access instructions
-- your content repo is private when repo access is enabled
-- avoid putting highly sensitive material into the pilot unless we have explicitly agreed that it is in scope
-
-If you are unsure whether something belongs in Rover, ask us first.
-
-## Troubleshooting
-
-### I did not receive the setup email
-
-Check spam/promotions first. If it is not there, tell us which email address we should use.
-
-### The setup link expired or does not work
-
-Reply to your Rover operator. We can rotate/reissue setup.
-
-### I opened the domain and it does not look like a normal public site
-
-That is expected. The root URL is your Dashboard, not a public marketing site.
-
-### The browser asks me to use a passkey
-
-That is expected after setup. Use the same passkey you registered from the setup email.
-
-### My MCP client cannot connect
-
-Send us the client name, version, exact error message, and a screenshot if possible.
-
-### The CMS asks for GitHub auth and I am not sure what to do
-
-That is expected only if CMS is enabled for you. Use the GitHub token instructions we sent for your private Rover content repo. If you did not receive those instructions, ask us before continuing.
-
-## What feedback helps us most
-
-We especially want to hear:
-
-- what was confusing during setup
-- whether the setup email and passkey flow made sense
-- whether Discord and Dashboard made sense
-- what felt useful immediately
-- what felt weak, awkward, or unclear
-- what you expected Rover to do but could not get it to do
-- whether you would keep using it after the pilot
-
-Short, honest feedback is perfect.
-
-## Quick handoff template
-
-When we onboard you, the message will look roughly like this:
-
-```text
-Setup email: sent to <email>
-Onboarding guide: attached / linked
+Chat URL: https://<handle>.rizom.ai/chat
 Dashboard URL: https://<handle>.rizom.ai/
-Discord enabled: yes/no
-Discord setup: <invite link or setup steps>
-MCP access: optional / enabled / not enabled
-MCP setup: sent separately if enabled
-CMS enabled: yes/no
 CMS URL: https://<handle>.rizom.ai/cms
-Content repo access: yes/no
+Discord: yes/no — setup steps below if yes
+MCP: enabled/not enabled — details below if enabled
 ```
 
-If anything is unclear, reply with the exact error text or a screenshot and we will help.
+If anything is unclear, reply with what you're seeing and we'll help.
