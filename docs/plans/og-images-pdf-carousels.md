@@ -2,9 +2,20 @@
 
 ## Status
 
-Proposed follow-up to the generic media/document work.
+In progress follow-up to the generic media/document work.
 
-Already available:
+Implemented in this branch:
+
+- `post/printable`, `project/printable`, and `product/printable` PDF attachment providers
+- durable printable PDFs through `system_create({ entityType: "document", from: { ..., attachmentType: "printable" } })`
+- agent/eval guidance for printable PDF saves and regeneration
+
+Still remaining:
+
+- dedicated OG image media templates and capture path
+- `ogImageId` fallback plumbing for public `<Head />` metadata
+
+Already available from previous work:
 
 - Playwright/Chromium media rendering
 - generated internal media pages served by a temporary static render server

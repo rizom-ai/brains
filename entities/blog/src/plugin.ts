@@ -22,6 +22,8 @@ import {
 import { subscribeToSiteBuildCompleted } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { createBlogAtprotoProjection } from "./atproto-projection";
+import { BlogPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
 import packageJson from "../package.json";
 
 export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
@@ -29,6 +31,7 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
   readonly schema = blogPostSchema;
   readonly adapter = blogPostAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
+  private unregisterPrintableAttachmentProvider: (() => void) | undefined;
 
   constructor(config: BlogConfigInput = {}) {
     super("blog", packageJson, config, blogConfigSchema);
@@ -72,6 +75,11 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildCompleted(context, this.logger);
     registerEvalHandlers(context);
+    this.unregisterPrintableAttachmentProvider = context.attachments.register(
+      "post",
+      BLOG_PRINTABLE_ATTACHMENT_TYPE,
+      new BlogPrintableAttachmentProvider(context),
+    );
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(
         createBlogAtprotoProjection(),
@@ -83,6 +91,8 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.unregisterPrintableAttachmentProvider?.();
+    this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterAtprotoProjection?.();
     this.unregisterAtprotoProjection = undefined;
   }

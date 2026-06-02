@@ -26,6 +26,8 @@ import {
 } from "./templates/product-detail";
 import type { ProductsConfig, ProductsConfigInput } from "./config";
 import { productsConfigSchema } from "./config";
+import { ProductPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { PRODUCT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
 import packageJson from "../package.json";
 
 const productsPageSchema = z.object({
@@ -41,6 +43,7 @@ export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
   readonly entityType = productAdapter.entityType;
   readonly schema = productSchema;
   readonly adapter = productAdapter;
+  private unregisterPrintableAttachmentProvider: (() => void) | undefined;
 
   constructor(config: ProductsConfigInput = {}) {
     super("products", packageJson, config, productsConfigSchema);
@@ -80,12 +83,23 @@ export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    this.unregisterPrintableAttachmentProvider = context.attachments.register(
+      "product",
+      PRODUCT_PRINTABLE_ATTACHMENT_TYPE,
+      new ProductPrintableAttachmentProvider(context),
+    );
+
     // Second entity type: products-overview (singleton)
     context.entities.register(
       "products-overview",
       overviewSchema,
       overviewAdapter,
     );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterPrintableAttachmentProvider?.();
+    this.unregisterPrintableAttachmentProvider = undefined;
   }
 }
 
