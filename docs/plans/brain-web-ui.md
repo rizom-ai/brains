@@ -219,10 +219,22 @@ PDFs promote to `document`, images promote to `image`, and derived entities
 instruction that consumes the upload as context. Bare upload handoff must not
 create, update, or delete entities.
 
+Follow-up turns in the same conversation should be able to consume recent upload
+refs without forcing the operator to reattach the file. For example, after a bare
+image upload acknowledgement, "describe that picture" should resolve the
+previous upload ref, attach the stored image bytes to that model turn, and answer
+from the image content. If more than one recent upload could match the user's
+reference, the assistant should ask which one. This deferred consumption remains
+context-only: describing or summarizing a prior upload must not promote it to an
+entity unless the operator also asks to save/import it.
+
 Remaining upload work:
 
 - expose runtime upload storage through a shared upload registry/service rather
   than a web-chat-only helper;
+- implement deferred same-conversation upload consumption for explicit follow-up
+  references like "describe that image/file" or "summarize the PDF", including
+  tests for single-match reuse and ambiguous multi-upload clarification;
 - add an explicit promotion contract, likely `system_create({ entityType:
 "document" | "image", fromUpload: { kind: "web-chat-upload", id } })`, with
   conversation/operator scoping so only accessible uploads can be promoted;
