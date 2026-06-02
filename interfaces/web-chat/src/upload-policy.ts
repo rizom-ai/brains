@@ -99,10 +99,15 @@ export function normalizeWebChatUploadMediaType(
   mediaType: string | undefined,
 ): string {
   const trimmed = mediaType?.trim() ?? "";
-  if (trimmed.length > 0)
-    return trimmed.split(";", 1)[0]?.toLowerCase() ?? trimmed;
+  const explicitMediaType = trimmed.split(";", 1)[0]?.toLowerCase() ?? trimmed;
+  if (
+    explicitMediaType.length > 0 &&
+    explicitMediaType !== "application/octet-stream"
+  ) {
+    return explicitMediaType;
+  }
 
-  const textMediaType = normalizeTextUploadMediaType(filename, mediaType);
+  const textMediaType = normalizeTextUploadMediaType(filename, undefined);
   if (textMediaType !== "application/octet-stream") return textMediaType;
 
   const lowerFilename = filename.toLowerCase();

@@ -92,6 +92,26 @@ describe("web chat upload policy", () => {
     });
   });
 
+  it("infers supported image media types from filenames for generic browser uploads", () => {
+    const pngBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    expect(
+      validateWebChatUpload({
+        filename: "robot.png",
+        mediaType: "application/octet-stream",
+        content: pngBytes,
+      }),
+    ).toEqual({
+      ok: true,
+      kind: "file",
+      filename: "robot.png",
+      mediaType: "image/png",
+      sizeBytes: pngBytes.byteLength,
+    });
+  });
+
   it("rejects spoofed binary uploads with unsupported content", () => {
     expect(
       validateWebChatUpload({
