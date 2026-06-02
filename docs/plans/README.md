@@ -33,7 +33,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### Content, sync, and generation
 
-- [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
+- [OG images and printable PDFs on the media rendering substrate](./og-images-pdf-carousels.md) — proposed follow-up for OG images plus printable post/project/product PDFs
 
 ### Auth, users, CMS, and HTTP
 
