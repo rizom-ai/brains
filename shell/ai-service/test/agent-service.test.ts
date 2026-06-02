@@ -304,6 +304,64 @@ describe("AgentService", () => {
       });
     });
 
+    it("adds native file attachments to the current model turn without mutating stored user text", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const imageBytes = new Uint8Array([137, 80, 78, 71]);
+
+      await service.chat("Describe this image", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content: [
+          { type: "text", text: "Describe this image" },
+          {
+            type: "file",
+            data: imageBytes,
+            mediaType: "image/png",
+            filename: "robot.png",
+          },
+        ],
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "Describe this image",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                sizeBytes: imageBytes.byteLength,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

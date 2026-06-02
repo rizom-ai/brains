@@ -19,8 +19,21 @@ export const TextChatAttachmentSchema = z.object({
   source: ChatAttachmentSourceSchema.optional(),
 });
 
+const fileAttachmentDataSchema: z.ZodType<Uint8Array> =
+  z.instanceof(Uint8Array);
+
+export const FileChatAttachmentSchema = z.object({
+  kind: z.literal("file"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  data: fileAttachmentDataSchema,
+  sizeBytes: z.number().nonnegative().optional(),
+  source: ChatAttachmentSourceSchema.optional(),
+});
+
 export const ChatAttachmentSchema = z.discriminatedUnion("kind", [
   TextChatAttachmentSchema,
+  FileChatAttachmentSchema,
 ]);
 
 export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;

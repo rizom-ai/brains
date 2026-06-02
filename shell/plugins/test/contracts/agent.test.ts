@@ -73,6 +73,35 @@ describe("public agent contracts", () => {
     });
   });
 
+  it("accepts native file attachments in chat context", () => {
+    const imageBytes = new Uint8Array([137, 80, 78, 71]);
+    expect(
+      ChatContextSchema.parse({
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      }),
+    ).toEqual({
+      attachments: [
+        {
+          kind: "file",
+          filename: "robot.png",
+          mediaType: "image/png",
+          data: imageBytes,
+          sizeBytes: imageBytes.byteLength,
+          source: { kind: "web-chat-upload", id: "upload-123" },
+        },
+      ],
+    });
+  });
+
   it("forwards native attachments through the public agent namespace", async () => {
     const calls: unknown[] = [];
     const agent = createPublicAgentNamespace({

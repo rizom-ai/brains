@@ -92,7 +92,16 @@ export interface TextChatAttachment {
   source?: ChatAttachmentSource | undefined;
 }
 
-export type ChatAttachment = TextChatAttachment;
+export interface FileChatAttachment {
+  kind: "file";
+  filename: string;
+  mediaType: string;
+  data: Uint8Array;
+  sizeBytes?: number | undefined;
+  source?: ChatAttachmentSource | undefined;
+}
+
+export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety

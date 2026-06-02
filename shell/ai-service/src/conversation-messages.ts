@@ -1,6 +1,6 @@
 import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
-import type { ModelMessage } from "ai";
+import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
@@ -43,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function buildModelMessages(
   historyMessages: Message[],
-  userMessage: string,
+  userMessage: UserContent,
 ): ModelMessage[] {
   return [
     ...toModelMessages(historyMessages),
@@ -54,15 +54,35 @@ export function buildModelMessages(
 export function buildMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
-): string {
-  const textAttachments = (attachments ?? []).map(formatTextAttachment);
-  return [message, ...textAttachments]
+): UserContent {
+  const nativeAttachments = attachments ?? [];
+  const textAttachments = nativeAttachments
+    .filter((attachment) => attachment.kind === "text")
+    .map(formatTextAttachment);
+  const text = [message, ...textAttachments]
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
     .join("\n\n");
+  const fileAttachments = nativeAttachments.filter(
+    (attachment) => attachment.kind === "file",
+  );
+
+  if (fileAttachments.length === 0) return text;
+
+  return [
+    ...(text.length > 0 ? [{ type: "text" as const, text }] : []),
+    ...fileAttachments.map((attachment) => ({
+      type: "file" as const,
+      data: attachment.data,
+      mediaType: attachment.mediaType,
+      filename: attachment.filename,
+    })),
+  ];
 }
 
-function formatTextAttachment(attachment: ChatAttachment): string {
+function formatTextAttachment(
+  attachment: Extract<ChatAttachment, { kind: "text" }>,
+): string {
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
