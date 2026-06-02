@@ -322,12 +322,18 @@ export function formatAttachmentDisplay(
   };
 }
 
-type AttachmentJobStatus =
+export type AttachmentJobStatus =
   | "pending"
   | "processing"
   | "completed"
   | "failed"
   | "unknown";
+
+export interface AttachmentCardState {
+  status: AttachmentJobStatus | "ready";
+  label: string;
+  isPending: boolean;
+}
 
 function useAttachmentJobStatus(
   jobId: string | undefined,
@@ -431,6 +437,16 @@ export function attachmentStatusLabel(
   }
 }
 
+export function getAttachmentCardState(
+  jobStatus: AttachmentJobStatus | null,
+): AttachmentCardState {
+  return {
+    status: jobStatus ?? "ready",
+    label: attachmentStatusLabel(jobStatus),
+    isPending: jobStatus === "pending" || jobStatus === "processing",
+  };
+}
+
 export function AttachmentPart({
   data,
 }: {
@@ -442,12 +458,12 @@ export function AttachmentPart({
   const href = display.downloadUrl ?? display.url;
   const previewUrl = display.previewUrl ?? display.url;
   const isImage = display.mediaType?.startsWith("image/") ?? false;
-  const isPending = jobStatus === "pending" || jobStatus === "processing";
+  const cardState = getAttachmentCardState(jobStatus);
   const meta = [
     display.filename,
     display.mediaType,
     display.sizeLabel,
-    jobStatus ? attachmentStatusLabel(jobStatus) : undefined,
+    jobStatus ? cardState.label : undefined,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -455,10 +471,10 @@ export function AttachmentPart({
   return (
     <section
       className="web-chat-attachment-card"
-      data-status={jobStatus ?? "ready"}
+      data-status={cardState.status}
       aria-label={display.title}
     >
-      {isImage && previewUrl && !isPending ? (
+      {isImage && previewUrl && !cardState.isPending ? (
         <img
           className="web-chat-attachment-preview"
           data-fit="contain"
@@ -468,9 +484,7 @@ export function AttachmentPart({
         />
       ) : null}
       <div className="web-chat-attachment-body">
-        <span className="web-chat-attachment-kicker">
-          {attachmentStatusLabel(jobStatus)}
-        </span>
+        <span className="web-chat-attachment-kicker">{cardState.label}</span>
         <h4>{display.title}</h4>
         {display.description ? <p>{display.description}</p> : null}
         {meta ? <span className="web-chat-attachment-meta">{meta}</span> : null}
@@ -478,15 +492,15 @@ export function AttachmentPart({
           <div className="web-chat-attachment-actions">
             {display.url ? (
               <a
-                aria-disabled={isPending}
-                href={isPending ? undefined : display.url}
+                aria-disabled={cardState.isPending}
+                href={cardState.isPending ? undefined : display.url}
               >
                 Open
               </a>
             ) : null}
             <a
-              aria-disabled={isPending}
-              href={isPending ? undefined : href}
+              aria-disabled={cardState.isPending}
+              href={cardState.isPending ? undefined : href}
               download={display.filename ?? undefined}
             >
               Download

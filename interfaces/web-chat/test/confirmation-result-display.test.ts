@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   attachmentStatusLabel,
+  getAttachmentCardState,
   formatAttachmentDisplay,
   formatConfirmationResult,
   formatNativeToolDisplay,
@@ -46,6 +47,24 @@ describe("attachment display", () => {
     expect(attachmentStatusLabel("completed")).toBe("ready");
     expect(attachmentStatusLabel("failed")).toBe("failed");
     expect(attachmentStatusLabel("unknown")).toBe("status unknown");
+  });
+
+  it("derives card status semantics for failed and unknown artifact jobs", () => {
+    expect(getAttachmentCardState("failed")).toEqual({
+      status: "failed",
+      label: "failed",
+      isPending: false,
+    });
+    expect(getAttachmentCardState("unknown")).toEqual({
+      status: "unknown",
+      label: "status unknown",
+      isPending: false,
+    });
+    expect(getAttachmentCardState(null)).toEqual({
+      status: "ready",
+      label: "ready",
+      isPending: false,
+    });
   });
 });
 

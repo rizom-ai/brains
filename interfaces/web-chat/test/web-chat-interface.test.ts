@@ -650,6 +650,51 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("/tmp/background");
   });
 
+  it("does not infer artifact cards from assistant text without structured cards", async () => {
+    const agent = createSpyAgentService({
+      text: "Started generating image wild-robot.",
+      toolResults: [
+        {
+          toolName: "system_create",
+          jobId: "job-1",
+          data: {
+            success: true,
+            entityId: "wild-robot",
+            status: "generating",
+          },
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Generate a wild robot" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("Started generating image wild-robot.");
+    expect(body).toContain("data-tool-result");
+    expect(body).not.toContain("data-attachment");
+    expect(body).not.toContain("/api/chat/attachments/image");
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",
