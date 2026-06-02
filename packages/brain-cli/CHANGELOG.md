@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- [`67b8411`](https://github.com/rizom-ai/brains/commit/67b84110c7739898d14e11beb6a0b8e6de0a583f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add native file attachment support to the agent chat context so interfaces can pass binary attachments to model turns without embedding file bytes in stored conversation text.
+
+- [`fb03560`](https://github.com/rizom-ai/brains/commit/fb03560cac461921cd823793e30cf1b1d0b47013) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expand web-chat uploads to accept supported native file attachments and forward binary uploads to model turns as AI SDK file parts.
+
 ## 0.2.0-alpha.103
 
 ## 0.2.0-alpha.102

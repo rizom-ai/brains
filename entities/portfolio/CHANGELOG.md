@@ -1,5 +1,20 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.104
+  - @brains/content-formatters@0.2.0-alpha.104
+  - @brains/contracts@0.2.0-alpha.104
+  - @brains/media-page-composer@0.2.0-alpha.104
+  - @brains/media-renderer@0.2.0-alpha.104
+  - @brains/ui-library@0.2.0-alpha.104
+  - @brains/utils@0.2.0-alpha.104
+  - @brains/plugins@0.2.0-alpha.104
+  - @brains/templates@0.2.0-alpha.104
+
 ## 0.2.0-alpha.103
 
 ### Patch Changes
