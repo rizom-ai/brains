@@ -10,7 +10,7 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { join } from "path";
-import { mkdir, utimes, writeFile } from "fs/promises";
+import { mkdir, rm, utimes, writeFile } from "fs/promises";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -940,6 +940,48 @@ describe("WebChatInterface", () => {
       sizeBytes: body.sizeBytes,
       createdAt: body.createdAt,
     });
+  });
+
+  it("stores multipart uploads in runtime data, not content brain-data", async () => {
+    const root = "/tmp/web-chat-upload-path-test";
+    await rm(root, { recursive: true, force: true });
+    const scopedHarness = createPluginHarness<WebChatInterface>({
+      dataDir: join(root, "brain-data"),
+    });
+    const plugin = new WebChatInterface(
+      {},
+      { resolveOperatorSession: async (): Promise<boolean> => true },
+    );
+    await scopedHarness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+    const form = new FormData();
+    form.set(
+      "file",
+      new File(["# Runtime"], "runtime.md", { type: "text/markdown" }),
+    );
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const body = (await response?.json()) as { id: string };
+
+    expect(response?.status).toBe(201);
+    expect(
+      await Bun.file(
+        join(root, "data", "web-chat", "uploads", body.id, "content"),
+      ).text(),
+    ).toBe("# Runtime");
+    expect(
+      await Bun.file(
+        join(root, "brain-data", "web-chat", "uploads", body.id, "content"),
+      ).exists(),
+    ).toBe(false);
+
+    scopedHarness.reset();
+    await rm(root, { recursive: true, force: true });
   });
 
   it("serves stored multipart text uploads to operators", async () => {

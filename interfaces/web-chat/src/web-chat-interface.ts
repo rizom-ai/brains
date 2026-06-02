@@ -20,7 +20,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { join } from "path";
+import { basename, dirname, join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
 import { stripInternalEntityMemoryNote } from "./display-content";
@@ -3224,7 +3224,14 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private getUploadStore(): WebChatUploadStore {
-    return new WebChatUploadStore({ dataDir: this.getContext().dataDir });
+    return new WebChatUploadStore({ dataDir: this.getUploadRuntimeDataDir() });
+  }
+
+  private getUploadRuntimeDataDir(): string {
+    const contentDataDir = this.getContext().dataDir;
+    return basename(contentDataDir) === "brain-data"
+      ? join(dirname(contentDataDir), "data")
+      : contentDataDir;
   }
 
   private async readStoredUpload(

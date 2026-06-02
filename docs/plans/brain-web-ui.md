@@ -186,15 +186,19 @@ rather than inline file content.
 Initial durable upload protocol slice exists: operator-only
 `POST /api/chat/uploads` accepts multipart text and supported binary file
 uploads, validates explicit media policies, stores content plus metadata under
-the web-chat data directory, and returns a `web-chat-upload` ref. The chat
-endpoint also accepts AI SDK `data-upload` parts carrying those refs and
+the runtime web-chat upload store (`data/web-chat/uploads` for standard
+instances, not synced `brain-data`), and returns a `web-chat-upload` ref. The
+chat endpoint also accepts AI SDK `data-upload` parts carrying those refs and
 resolves stored content into native `AgentService.chat()` attachments. Legacy
 inline AI SDK `file` parts use the same native attachment path. The agent
 service still projects text attachments into the current model turn using the
 existing text-upload prompt format for compatibility, but sends binary uploads
 as model file parts; the stored user message remains the user's text instead of
-an upload-content blob. The React prompt now uploads selected files first, then
-sends `data-upload` refs through the AI SDK message parts protocol.
+an upload-content blob. Attachment-only turns are treated as a handoff, not an
+instruction: the assistant acknowledges the upload and asks what the operator
+wants to do next without invoking the model or tools. The React prompt now
+uploads selected files first, then sends `data-upload` refs through the AI SDK
+message parts protocol.
 
 Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
 so transcript rendering can continue to show attachment filename pills. Upload
@@ -208,8 +212,23 @@ only, 100KB max, UTF-8 text required, and binary payloads rejected even with tex
 filenames or MIME types; native file uploads are restricted to supported
 image/PDF MIME types with signature checks and a 5MB max.
 
-Remaining upload work: add storage/registry integration beyond the web-chat
-upload store.
+Upload refs are chat-context attachments by default. They should not become
+content entities unless the operator explicitly asks to save or import them:
+PDFs promote to `document`, images promote to `image`, and derived entities
+(such as decks generated from a PDF) should be created from an explicit user
+instruction that consumes the upload as context. Bare upload handoff must not
+create, update, or delete entities.
+
+Remaining upload work:
+
+- expose runtime upload storage through a shared upload registry/service rather
+  than a web-chat-only helper;
+- add an explicit promotion contract, likely `system_create({ entityType:
+"document" | "image", fromUpload: { kind: "web-chat-upload", id } })`, with
+  conversation/operator scoping so only accessible uploads can be promoted;
+- keep upload promotion separate from generated artifact cards: generated
+  artifacts stay on `data-attachment`, while uploads stay input refs until a
+  user asks to promote them.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

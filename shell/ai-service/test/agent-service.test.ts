@@ -362,6 +362,63 @@ describe("AgentService", () => {
       );
     });
 
+    it("asks for intent when the user submits only a native file attachment", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+
+      const response = await service.chat("", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "brief.pdf",
+            mediaType: "application/pdf",
+            data: pdfBytes,
+            sizeBytes: pdfBytes.byteLength,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      expect(response).toEqual({
+        text: "I got `brief.pdf`. What would you like me to do with it?",
+        toolResults: [],
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      });
+      expect(mockGenerate).not.toHaveBeenCalled();
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                sizeBytes: pdfBytes.byteLength,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          role: "assistant",
+          content: "I got `brief.pdf`. What would you like me to do with it?",
+        }),
+      );
+    });
+
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

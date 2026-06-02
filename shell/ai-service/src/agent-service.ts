@@ -57,6 +57,15 @@ function isFailedToolOutput(value: unknown): boolean {
   return isRecord(value) && value["success"] === false;
 }
 
+function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
+  const filenames = attachments.map((attachment) => attachment.filename);
+  const fileLabel =
+    filenames.length === 1
+      ? `\`${filenames[0]}\``
+      : filenames.map((filename) => `\`${filename}\``).join(", ");
+  return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
+}
+
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
@@ -340,6 +349,36 @@ export class AgentService implements IAgentService {
       channelId,
       metadata: { channelName, interfaceType, channelId },
     });
+
+    if (message.trim().length === 0 && attachments.length > 0) {
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(actor, source, attachments),
+        ),
+      });
+
+      const responseText = buildAttachmentOnlyResponse(attachments);
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "assistant",
+        content: responseText,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(
+            this.getAssistantActor(),
+            this.buildAssistantSource(channelId, channelName),
+          ),
+        ),
+      });
+
+      return {
+        text: responseText,
+        toolResults: [],
+        usage: emptyUsage,
+      };
+    }
 
     // Load conversation history
     const historyMessages = await this.conversationService.getMessages(
