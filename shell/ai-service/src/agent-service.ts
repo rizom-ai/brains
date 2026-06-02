@@ -400,28 +400,28 @@ export class AgentService implements IAgentService {
 
     const responseText =
       pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
+    const entityMemoryNote =
+      pendingConfirmations.length > 0 ? "" : buildEntityMemoryNote(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
     //
-    // Append a memory note of entities this turn created/updated so their IDs
-    // stay addressable next turn (history is text-only and otherwise drops the
-    // tool results). The note is stored only — the returned text is unchanged.
+    // Store a memory note of entities this turn created/updated so their IDs
+    // stay addressable next turn. The note is injected into model history from
+    // metadata only; visible assistant content stays clean.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
-        content:
-          pendingConfirmations.length > 0
-            ? responseText
-            : responseText + buildEntityMemoryNote(toolResults),
+        content: responseText,
         ...this.withMessageMetadata(
           this.buildMessageMetadata(
             this.getAssistantActor(),
             this.buildAssistantSource(channelId, channelName),
             [],
             cards,
+            entityMemoryNote,
           ),
         ),
       });
@@ -571,6 +571,7 @@ export class AgentService implements IAgentService {
     source: ConversationMessageSource | null,
     attachments: ChatAttachment[] = [],
     cards: StructuredChatCard[] = [],
+    entityMemoryNote = "",
   ): ConversationMessageMetadata {
     const enrichedActor = actor
       ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
@@ -586,6 +587,7 @@ export class AgentService implements IAgentService {
           }
         : {}),
       ...(cards.length > 0 ? { cards } : {}),
+      ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
     };
   }
 

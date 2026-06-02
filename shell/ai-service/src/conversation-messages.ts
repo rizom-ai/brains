@@ -7,8 +7,38 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
     msg.role === "user"
       ? { role: "user", content: msg.content }
-      : { role: "assistant", content: [{ type: "text", text: msg.content }] },
+      : {
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: msg.content + getEntityMemoryNote(msg.metadata),
+            },
+          ],
+        },
   );
+}
+
+function getEntityMemoryNote(metadata: Message["metadata"]): string {
+  const parsedMetadata = parseMessageMetadata(metadata);
+  const value = parsedMetadata?.["entityMemoryNote"];
+  return typeof value === "string" ? value : "";
+}
+
+function parseMessageMetadata(
+  metadata: Message["metadata"],
+): Record<string, unknown> | null {
+  if (typeof metadata !== "string") return null;
+  try {
+    const parsed = JSON.parse(metadata) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function buildModelMessages(

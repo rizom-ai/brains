@@ -265,6 +265,45 @@ describe("AgentService", () => {
       );
     });
 
+    it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
+      const entityMemoryNote =
+        '\n\n[Entities affected this turn: image "wild-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg1",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content: "Queued image generation.",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ entityMemoryNote }),
+          },
+        ]),
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Use that image", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.messages[0]).toEqual({
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: `Queued image generation.${entityMemoryNote}`,
+          },
+        ],
+      });
+    });
+
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
@@ -1727,10 +1766,16 @@ describe("AgentService", () => {
         },
       ];
       expect(response.cards).toEqual(expectedCards);
+      const entityMemoryNote =
+        '\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
-          metadata: expect.objectContaining({ cards: expectedCards }),
+          content: "Queued image generation.",
+          metadata: expect.objectContaining({
+            cards: expectedCards,
+            entityMemoryNote,
+          }),
         }),
       );
     });
