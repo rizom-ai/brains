@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and `@brains/atproto-registry` serves them when explicitly enabled. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Remaining public closeout is enabling that capability on the live official `rizom.ai` instance and verifying the canonical URLs. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -275,7 +275,7 @@ Follow-up review of the integration merge fixed these issues in the current outb
 
 ### Phase 2.6: Rizom protocol registry ownership
 
-Status: implemented in-repo. `@brains/atproto-registry` exists, Ranger exposes it as an opt-in capability, and live `rizom.ai` enablement/verification remains before Phase 3/4 interoperability depends on `ai.rizom.brain.*` records from multiple brains.
+Status: implemented, released, deployed, and live-verified. `@brains/atproto-registry` exists, Ranger exposes it as an opt-in capability, and the official `rizom.ai` instance serves the canonical `ai.rizom.brain.*` registry routes.
 
 Implement a registry capability as a separate service plugin, `@brains/atproto-registry`, rather than overloading the per-brain ATProto publisher. Running this plugin on the official `rizom.ai` Ranger brain/site makes that deployment the canonical public protocol authority for the shared Rizom ATProto namespace.
 
@@ -302,6 +302,13 @@ Responsibilities:
 6. Add checks that all registered projections import/use canonical contracts and that no duplicate canonical `ai.rizom.brain.*` JSON files exist outside `@brains/atproto-contracts`.
 7. Clarify extension rules: brain-specific custom records must use a namespace controlled by that brain/operator, not `ai.rizom.brain.*`.
 8. Update [ATProto Lexicons](../atproto-lexicons.md) and the Rizom site routes to describe the registry as the canonical authority instead of treating static site copies as the ownership boundary.
+
+Live registry smoke result:
+
+- 2026-06-02: `https://rizom.ai/health` returned `200 OK` after deploying `rizom-ai` with `@rizom/brain@0.2.0-alpha.101`.
+- 2026-06-02: `https://rizom.ai/atproto/lexicons/index.json` returned `200 OK`.
+- 2026-06-02: `https://rizom.ai/atproto/lexicons/ai.rizom.brain.post.json` returned `200 OK`.
+- 2026-06-02: `https://rizom.ai/atproto/lexicons/ai.rizom.brain.card.json` returned `200 OK`.
 
 Important distinction:
 
