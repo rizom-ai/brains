@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- [`94a25cc`](https://github.com/rizom-ai/brains/commit/94a25cc84c01805b6f9ac4d6cb50d403d8325fbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store internal entity-memory notes in assistant message metadata and inject them only into model history, keeping persisted assistant text clean for web-chat hydration.
+
 ## 0.2.0-alpha.101
 
 ### Patch Changes
