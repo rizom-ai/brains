@@ -215,13 +215,15 @@ Live PDS smoke result:
 - 2026-05-29 against `https://bsky.social` with test handle `rizom-test.bsky.social` / repo `did:plc:mut7oy7nctoevokkshes2wpq`.
 - `atproto_validate_credentials` equivalent session creation succeeded.
 - `atproto_publish_card` dry-run succeeded.
-- `atproto_publish_card` live upsert succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.card/self`, latest smoke CID `bafyreieqve77kosvsvjsob5nt2szoy3rhmpdxogbkwgchw6254sxyozgje`.
+- `atproto_publish_card` live upsert succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.card/self`, latest smoke CID `bafyreidssutwp4rz42biofxtlkzbeiygwkwrst2she3owtxuykrc3xhzsm`.
 - Follow-up verification via `com.atproto.repo.getRecord` returned the same card URI and `$type: ai.rizom.brain.card`.
 - `atproto_publish_post` dry-run and live custom post write succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmywyqjukc2h`, CID `bafyreidcjytze5rg3tmbpsff3big4i4ilqn7arczeamodxwwieaxhhu3u4`.
 - Follow-up verification via `com.atproto.repo.getRecord` returned the same post URI/CID and `$type: ai.rizom.brain.post`.
 - Cover-image custom post smoke succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`.
 - Follow-up verification returned the custom post with `coverImage`.
 - Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false`.
+- 2026-06-02: stale `ai.rizom.brain.card/self` was republished after canonical validation tightened `a2aEndpoint` to require a full URI. Follow-up PDS readback validated against the live `rizom.ai` lexicon with `a2aEndpoint: https://rizom-test.bsky.social/a2a`.
+- 2026-06-02: generic semantic post smoke via `atproto_publish_entity` upserted `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/rizom-atproto-live-smoke`, CID `bafyreibjm3tazhp2hnryirtpairwcowpzl6pjbzgv7ljdjiqdpputyzquu`; follow-up PDS readback validated against the live `rizom.ai` post lexicon.
 
 Still needed before production:
 
