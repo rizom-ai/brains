@@ -35,9 +35,9 @@ import {
 import {
   defaultWebChatUploadFilename,
   sanitizeUploadFilename,
-  validateTextUpload,
-  webChatTextUploadMaxBytes,
-  type ValidatedTextUpload,
+  validateWebChatUpload,
+  webChatUploadMaxBytes,
+  type ValidatedWebChatUpload,
 } from "./upload-policy";
 
 const textPartSchema = z.object({
@@ -2506,7 +2506,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const declaredSize = Number(request.headers.get("content-length"));
     if (
       Number.isFinite(declaredSize) &&
-      declaredSize > webChatTextUploadMaxBytes + webChatUploadEnvelopeSlackBytes
+      declaredSize > webChatUploadMaxBytes + webChatUploadEnvelopeSlackBytes
     ) {
       return new Response("File upload too large", { status: 400 });
     }
@@ -2524,7 +2524,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const validated = validateTextUpload({
+    const validated = validateWebChatUpload({
       filename: file.name,
       mediaType: file.type,
       content: buffer,
@@ -3195,7 +3195,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       });
     }
 
-    const validated = validateTextUpload({
+    const validated = validateWebChatUpload({
       filename,
       mediaType: file.mediaType,
       content: decoded.buffer,
@@ -3204,13 +3204,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response(validated.message, { status: 400 });
     }
 
-    return {
-      kind: "text",
-      filename: validated.filename,
-      mediaType: validated.mediaType,
-      content: validated.text,
-      sizeBytes: validated.sizeBytes,
-    };
+    return this.toChatAttachment(validated, decoded.buffer);
   }
 
   private async resolveReferencedUpload(
@@ -3223,14 +3217,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const validated = this.validateStoredUpload(record, content);
     if (validated instanceof Response) return validated;
 
-    return {
-      kind: "text",
-      filename: validated.filename,
-      mediaType: validated.mediaType,
-      content: validated.text,
-      sizeBytes: validated.sizeBytes,
-      source: { kind: webChatUploadRefKind, id: uploadId },
-    };
+    return this.toChatAttachment(validated, content, {
+      kind: webChatUploadRefKind,
+      id: uploadId,
+    });
   }
 
   private getUploadStore(): WebChatUploadStore {
@@ -3253,8 +3243,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   private validateStoredUpload(
     record: WebChatUploadRecord,
     content: Buffer,
-  ): ValidatedTextUpload | Response {
-    const validated = validateTextUpload({
+  ): ValidatedWebChatUpload | Response {
+    const validated = validateWebChatUpload({
       filename: record.filename,
       mediaType: record.mediaType,
       content,
@@ -3263,6 +3253,32 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response(validated.message, { status: 400 });
     }
     return validated;
+  }
+
+  private toChatAttachment(
+    upload: ValidatedWebChatUpload,
+    content: Uint8Array,
+    source?: ChatAttachment["source"],
+  ): ChatAttachment {
+    if (upload.kind === "text") {
+      return {
+        kind: "text",
+        filename: upload.filename,
+        mediaType: upload.mediaType,
+        content: upload.text,
+        sizeBytes: upload.sizeBytes,
+        ...(source !== undefined ? { source } : {}),
+      };
+    }
+
+    return {
+      kind: "file",
+      filename: upload.filename,
+      mediaType: upload.mediaType,
+      data: new Uint8Array(content),
+      sizeBytes: upload.sizeBytes,
+      ...(source !== undefined ? { source } : {}),
+    };
   }
 
   private uploadStoreErrorToResponse(error: WebChatUploadStoreError): Response {

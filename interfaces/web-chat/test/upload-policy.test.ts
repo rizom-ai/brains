@@ -4,16 +4,23 @@ import {
   normalizeTextUploadMediaType,
   sanitizeUploadFilename,
   validateTextUpload,
+  validateWebChatUpload,
   webChatTextUploadAccept,
   webChatTextUploadMaxBytes,
+  webChatUploadAccept,
+  webChatUploadMaxBytes,
 } from "../src/upload-policy";
 
 describe("web chat upload policy", () => {
-  it("documents the accepted browser file types and max text upload size", () => {
+  it("documents the accepted browser file types and max upload sizes", () => {
     expect(webChatTextUploadAccept).toBe(
       ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown",
     );
+    expect(webChatUploadAccept).toBe(
+      ".md,.txt,.markdown,.png,.jpg,.jpeg,.webp,.gif,.pdf,text/plain,text/markdown,text/x-markdown,image/png,image/jpeg,image/webp,image/gif,application/pdf",
+    );
     expect(webChatTextUploadMaxBytes).toBe(100_000);
+    expect(webChatUploadMaxBytes).toBe(5_000_000);
   });
 
   it("sanitizes uploaded filenames to a safe leaf name", () => {
@@ -51,9 +58,43 @@ describe("web chat upload policy", () => {
     });
   });
 
-  it("rejects unsupported media policies before storing content", () => {
+  it("rejects unsupported media policies before storing text content", () => {
     expect(
       validateTextUpload({
+        filename: "image.png",
+        mediaType: "image/png",
+        content: Buffer.from("not image"),
+      }),
+    ).toEqual({
+      ok: false,
+      code: "unsupported_type",
+      message: "Unsupported file upload type: image.png",
+    });
+  });
+
+  it("accepts supported image uploads as native file attachments", () => {
+    const pngBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    expect(
+      validateWebChatUpload({
+        filename: "../robot.png",
+        mediaType: "image/png",
+        content: pngBytes,
+      }),
+    ).toEqual({
+      ok: true,
+      kind: "file",
+      filename: "robot.png",
+      mediaType: "image/png",
+      sizeBytes: pngBytes.byteLength,
+    });
+  });
+
+  it("rejects spoofed binary uploads with unsupported content", () => {
+    expect(
+      validateWebChatUpload({
         filename: "image.png",
         mediaType: "image/png",
         content: Buffer.from("not image"),

@@ -182,6 +182,16 @@ function textDataUrl(content: string): string {
   return `data:text/plain;base64,${Buffer.from(content, "utf8").toString("base64")}`;
 }
 
+function pngBytes(): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(new ArrayBuffer(8));
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return bytes;
+}
+
+function pngDataUrl(bytes = pngBytes()): string {
+  return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
 function getRoute(
   plugin: WebChatInterface,
   path: string,
@@ -965,6 +975,50 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toBe("# Downloadable");
   });
 
+  it("accepts and serves multipart image uploads to operators", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/uploads", "POST");
+    const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
+    const image = pngBytes();
+    const form = new FormData();
+    form.set("file", new File([image], "robot.png", { type: "image/png" }));
+
+    const uploadResponse = await route?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      filename: string;
+      mediaType: string;
+      sizeBytes: number;
+      url: string;
+    };
+
+    expect(uploadResponse?.status).toBe(201);
+    expect(upload).toEqual(
+      expect.objectContaining({
+        filename: "robot.png",
+        mediaType: "image/png",
+        sizeBytes: image.byteLength,
+      }),
+    );
+
+    const response = await downloadRoute?.handler(
+      new Request(`http://brain${upload.url}`),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Content-Type")).toBe("image/png");
+    expect(response?.headers.get("Content-Disposition")).toBe(
+      'inline; filename="robot.png"',
+    );
+    if (!response) throw new Error("Missing download response");
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(image);
+  });
+
   it("rejects stored upload downloads from non-operators", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
@@ -1048,10 +1102,10 @@ describe("WebChatInterface", () => {
     const response = await route?.handler(
       new Request("http://brain/api/chat/uploads", {
         method: "POST",
-        // Declared length far exceeds the 100KB limit + envelope slack, so the
+        // Declared length far exceeds the upload limit + envelope slack, so the
         // guard rejects before the multipart body is buffered. No filename is
         // known yet, so the message carries no filename suffix.
-        headers: { "content-length": "5000000" },
+        headers: { "content-length": "6000000" },
         body: form,
       }),
     );
@@ -1174,6 +1228,57 @@ describe("WebChatInterface", () => {
         mediaType: "text/markdown",
         content: "# Durable Notes",
         sizeBytes: 15,
+        source: { kind: "web-chat-upload", id: upload.ref.id },
+      },
+    ]);
+  });
+
+  it("passes durable image upload refs to the agent as native file attachments", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
+    const image = pngBytes();
+    const form = new FormData();
+    form.set("file", new File([image], "robot.png", { type: "image/png" }));
+    const uploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              content: "Describe this image",
+              parts: [{ type: "data-upload", data: { ref: upload.ref } }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.message).toBe("Describe this image");
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "robot.png",
+        mediaType: "image/png",
+        data: image,
+        sizeBytes: image.byteLength,
         source: { kind: "web-chat-upload", id: upload.ref.id },
       },
     ]);
@@ -1471,6 +1576,50 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("passes inline uploaded image file parts to the agent as native file attachments", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+    const image = pngBytes();
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [
+                { type: "text", text: "Describe this" },
+                {
+                  type: "file",
+                  mediaType: "image/png",
+                  filename: "diagram.png",
+                  url: pngDataUrl(image),
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "diagram.png",
+        mediaType: "image/png",
+        data: image,
+        sizeBytes: image.byteLength,
+      },
+    ]);
+  });
+
   it("rejects unsupported uploaded file types", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -1491,9 +1640,9 @@ describe("WebChatInterface", () => {
                 { type: "text", text: "Read this" },
                 {
                   type: "file",
-                  mediaType: "image/png",
-                  filename: "diagram.png",
-                  url: "data:image/png;base64,iVBORw0KGgo=",
+                  mediaType: "application/octet-stream",
+                  filename: "archive.bin",
+                  url: "data:application/octet-stream;base64,AAECAw==",
                 },
               ],
             },

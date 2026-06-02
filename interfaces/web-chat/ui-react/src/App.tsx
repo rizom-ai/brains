@@ -45,8 +45,8 @@ import { groupMessageParts } from "./message-parts";
 import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
-  webChatTextUploadAccept,
-  webChatTextUploadMaxBytes,
+  webChatUploadAccept,
+  webChatUploadMaxBytes,
 } from "../../src/upload-policy";
 
 const conversationStorageKey = "brain:web-chat:conversation-id";
@@ -84,7 +84,7 @@ function PromptAttachmentButton(): React.ReactElement {
       className="web-chat-prompt-attach"
       onClick={() => attachments.openFileDialog()}
     >
-      Attach text
+      Attach file
     </button>
   );
 }
@@ -1259,8 +1259,8 @@ export function App(): React.ReactElement {
         ) : null}
 
         <PromptInput
-          accept={webChatTextUploadAccept}
-          maxFileSize={webChatTextUploadMaxBytes}
+          accept={webChatUploadAccept}
+          maxFileSize={webChatUploadMaxBytes}
           multiple
           onError={(uploadError) =>
             setUploadNotice({ tone: "error", message: uploadError.message })

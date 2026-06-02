@@ -165,13 +165,15 @@ chat, the dashboard, or a small chooser remains a product call.
 
 ### 4. Inbound uploads
 
-User → brain text-file uploads are now routed through durable web-chat upload
-refs. The prompt accepts `.md`, `.txt`, and `.markdown` files up to the shared
-message-interface text-upload size limit, posts them to `/api/chat/uploads`, and
-then sends AI SDK `data-upload` parts into `/api/chat`. The server resolves
-those refs and currently passes the content to `AgentService.chat()` using the
-same `User uploaded a file "..."` text format as Discord and other message
-interfaces.
+User → brain uploads are now routed through durable web-chat upload refs. The
+prompt accepts `.md`, `.txt`, and `.markdown` text files up to the shared
+message-interface text-upload size limit, plus supported native model file
+attachments (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.pdf`) up to the
+web-chat file-upload limit. The browser posts files to `/api/chat/uploads`, then
+sends AI SDK `data-upload` parts into `/api/chat`. The server resolves those
+refs into native `AgentService.chat()` attachments: text uploads project into
+the current model turn using the compatibility `User uploaded a file "..."`
+format, while binary file uploads are forwarded as model file parts.
 
 The active chat transcript shows attached filenames on submitted user messages,
 so upload validation/submission success is visible even if the later agent
@@ -182,31 +184,32 @@ Browser verification confirmed the primary multipart flow: files upload to
 rather than inline file content.
 
 Initial durable upload protocol slice exists: operator-only
-`POST /api/chat/uploads` accepts multipart text uploads, validates the same text
-file policy, stores content plus metadata under the web-chat data directory, and
-returns a `web-chat-upload` ref. The chat endpoint also accepts AI SDK
-`data-upload` parts carrying those refs and resolves the stored text into
-native `AgentService.chat()` text attachments. Legacy inline AI SDK `file`
-parts use the same native text attachment path. The agent service still
-projects text attachments into the current model turn using the existing
-text-upload prompt format for compatibility, but the stored user message
-remains the user's text instead of an upload-content blob. The React prompt now
-uploads selected text files first, then sends `data-upload` refs through the AI
-SDK message parts protocol.
+`POST /api/chat/uploads` accepts multipart text and supported binary file
+uploads, validates explicit media policies, stores content plus metadata under
+the web-chat data directory, and returns a `web-chat-upload` ref. The chat
+endpoint also accepts AI SDK `data-upload` parts carrying those refs and
+resolves stored content into native `AgentService.chat()` attachments. Legacy
+inline AI SDK `file` parts use the same native attachment path. The agent
+service still projects text attachments into the current model turn using the
+existing text-upload prompt format for compatibility, but sends binary uploads
+as model file parts; the stored user message remains the user's text instead of
+an upload-content blob. The React prompt now uploads selected files first, then
+sends `data-upload` refs through the AI SDK message parts protocol.
 
 Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
 so transcript rendering can continue to show attachment filename pills. Upload
 responses and rehydrated refs include operator-only `/api/chat/uploads?id=...`
-links, and the same route can serve stored text uploads back to the browser for
+links, and the same route can serve stored uploads back to the browser for
 review/download. Filesystem persistence, metadata/ref validation, URL building,
 and retention pruning now live in a focused `WebChatUploadStore` helper rather
-than in the route handler. Text upload media policy is explicit in
-`upload-policy.ts`: `.md`, `.txt`, and `.markdown` / text MIME uploads only,
-100KB max, UTF-8 text required, and binary payloads rejected even with text
-filenames or MIME types.
+than in the route handler. Upload media policy is explicit in
+`upload-policy.ts`: text uploads stay `.md`, `.txt`, and `.markdown` / text MIME
+only, 100KB max, UTF-8 text required, and binary payloads rejected even with text
+filenames or MIME types; native file uploads are restricted to supported
+image/PDF MIME types with signature checks and a 5MB max.
 
 Remaining upload work: add storage/registry integration beyond the web-chat
-upload store and expand native attachment handling beyond text attachments.
+upload store.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
