@@ -42,6 +42,8 @@ import {
 } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
 import { createProjectAtprotoProjection } from "./atproto-projection";
+import { ProjectPrintableAttachmentProvider } from "./attachments/printable-provider";
+import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
 import packageJson from "../package.json";
 
 const projectListSchema = z.object({
@@ -67,6 +69,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   readonly schema = projectSchema;
   readonly adapter = projectAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
+  private unregisterPrintableAttachmentProvider: (() => void) | undefined;
 
   constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
@@ -159,6 +162,11 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
     context: EntityPluginContext,
   ): Promise<void> {
     this.registerEvalHandlers(context);
+    this.unregisterPrintableAttachmentProvider = context.attachments.register(
+      "project",
+      PROJECT_PRINTABLE_ATTACHMENT_TYPE,
+      new ProjectPrintableAttachmentProvider(context),
+    );
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
     this.unregisterAtprotoProjection =
@@ -168,6 +176,8 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.unregisterPrintableAttachmentProvider?.();
+    this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterAtprotoProjection?.();
     this.unregisterAtprotoProjection = undefined;
   }

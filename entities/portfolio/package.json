@@ -1,7 +1,7 @@
 {
   "name": "@brains/portfolio",
   "private": true,
-  "version": "0.2.0-alpha.101",
+  "version": "0.2.0-alpha.102",
   "description": "Portfolio showcase for projects and case studies",
   "type": "module",
   "exports": {
@@ -18,6 +18,8 @@
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

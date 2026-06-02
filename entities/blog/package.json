@@ -1,7 +1,7 @@
 {
   "name": "@brains/blog",
   "private": true,
-  "version": "0.2.0-alpha.101",
+  "version": "0.2.0-alpha.102",
   "description": "AI-powered blog post generation from existing brain content",
   "type": "module",
   "exports": {
@@ -17,7 +17,10 @@
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

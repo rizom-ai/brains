@@ -1,5 +1,14 @@
 # @brains/products
 
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.102
+  - @brains/utils@0.2.0-alpha.102
+  - @brains/plugins@0.2.0-alpha.102
+
 ## 0.2.0-alpha.101
 
 ### Patch Changes
