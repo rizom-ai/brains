@@ -64,6 +64,77 @@ describe("DocumentPlugin", () => {
           entityId: expect.any(String),
           jobId: expect.any(String),
           status: "generating",
+          attachment: {
+            mediaType: "application/pdf",
+            url: expect.stringContaining("/api/chat/attachments/document?id="),
+            downloadUrl: expect.stringContaining(
+              "/api/chat/attachments/document?id=",
+            ),
+            filename: expect.stringMatching(/\.pdf$/),
+            source: {
+              entityType: "document",
+              entityId: expect.any(String),
+              attachmentType: "carousel",
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it("returns an existing deduped document id for system_create attachment cards", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+    harness.addEntities([
+      {
+        id: "post-1",
+        entityType: "post",
+        content: "---\ntitle: Post\n---\nBody",
+        contentHash: "source-hash",
+        metadata: { title: "Post" },
+      },
+      {
+        id: "existing-printable",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0=",
+        metadata: {
+          filename: "post-printable.pdf",
+          mimeType: "application/pdf",
+          dedupKey: "printable:post:post-1:resolved-attachment:source-hash",
+        },
+      },
+    ]);
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("document");
+    if (!interceptor) throw new Error("document interceptor not registered");
+
+    const result = await interceptor(
+      {
+        entityType: "document",
+        from: {
+          sourceEntityType: "post",
+          sourceEntityId: "post-1",
+          attachmentType: "printable",
+        },
+      },
+      { interfaceType: "test", userId: "test-user" },
+    );
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: "existing-printable",
+          attachment: {
+            url: "/api/chat/attachments/document?id=existing-printable",
+            source: {
+              entityType: "document",
+              entityId: "existing-printable",
+              attachmentType: "printable",
+            },
+          },
         },
       },
     });
