@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-professional",
   "private": true,
-  "version": "0.2.0-alpha.102",
+  "version": "0.2.0-alpha.103",
   "description": "Professional site composition package",
   "type": "module",
   "exports": {
