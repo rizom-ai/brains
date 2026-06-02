@@ -32,12 +32,31 @@ const passkeyLoginConfigSchema = z.object({
   contentRepoToken: z.string().optional(),
 });
 
-const cmsPluginConfigSchema = z.object({
-  entityDisplay: z.record(entityDisplayEntrySchema).optional(),
-  routePath: z.string().default("/cms"),
-  githubOAuth: githubOAuthConfigSchema.optional(),
-  passkeyLogin: passkeyLoginConfigSchema.optional(),
-});
+const cmsPluginConfigSchema = z
+  .object({
+    entityDisplay: z.record(entityDisplayEntrySchema).optional(),
+    routePath: z.string().default("/cms"),
+    githubOAuth: githubOAuthConfigSchema.optional(),
+    passkeyLogin: passkeyLoginConfigSchema.optional(),
+  })
+  // A brain runs a single CMS login method. Enabling both would force a chooser
+  // and mix commit identities (real GitHub user vs shared PAT); keep it to one.
+  .refine(
+    (config) => {
+      const githubEnabled = Boolean(
+        configuredString(config.githubOAuth?.clientId) &&
+        configuredString(config.githubOAuth?.clientSecret),
+      );
+      const passkeyEnabled = Boolean(
+        configuredString(config.passkeyLogin?.contentRepoToken),
+      );
+      return !(githubEnabled && passkeyEnabled);
+    },
+    {
+      message:
+        "CMS login supports a single method per brain: configure githubOAuth or passkeyLogin, not both.",
+    },
+  );
 
 type CmsPluginConfig = z.infer<typeof cmsPluginConfigSchema>;
 
@@ -93,13 +112,13 @@ function getEnabledLoginMethods(config: CmsPluginConfig): EnabledLoginMethods {
   };
 }
 
-function hasEnabledLogin(config: CmsPluginConfig): boolean {
-  const methods = getEnabledLoginMethods(config);
-  return Boolean(methods.githubOAuth ?? methods.passkeyLogin);
+function hasEnabledLogin(loginMethods: EnabledLoginMethods): boolean {
+  return Boolean(loginMethods.githubOAuth ?? loginMethods.passkeyLogin);
 }
 
 function getCmsConfigOptions(
   config: CmsPluginConfig,
+  loginMethods: EnabledLoginMethods,
   context?: ServicePluginContext,
 ): CmsConfigBuildOptions {
   const entityDisplay =
@@ -107,7 +126,9 @@ function getCmsConfigOptions(
     (context?.entityDisplay as EntityDisplayMap | undefined);
   return {
     ...(entityDisplay ? { entityDisplay } : {}),
-    ...(hasEnabledLogin(config) ? { authEndpoint: CMS_AUTH_ENDPOINT } : {}),
+    ...(hasEnabledLogin(loginMethods)
+      ? { authEndpoint: CMS_AUTH_ENDPOINT }
+      : {}),
   };
 }
 
@@ -237,6 +258,7 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
           try {
             const configOptions = getCmsConfigOptions(
               this.config,
+              loginMethods,
               this.getContext(),
             );
             const yaml = await buildCmsConfigYaml(this.getContext(), {
@@ -267,38 +289,21 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
     request: Request,
     loginMethods: EnabledLoginMethods,
   ): Promise<Response> {
-    const url = new URL(request.url);
-    const method = url.searchParams.get("method");
-
-    if (method === "github") {
-      if (!loginMethods.githubOAuth) {
-        return textResponse("GitHub login is not enabled", 404);
-      }
-      return this.redirectToGitHub(request, loginMethods.githubOAuth);
-    }
-
-    if (method === "passkey") {
-      if (!loginMethods.passkeyLogin) {
-        return textResponse("Passkey login is not enabled", 404);
-      }
-      return htmlResponse(
-        renderPasskeyLoginPage(resolveAuthOrigin(this.getContext(), request)),
-      );
-    }
-
-    if (loginMethods.passkeyLogin && (await hasOperatorSession(request))) {
-      return htmlResponse(
-        renderPasskeyTokenPage(resolveAuthOrigin(this.getContext(), request)),
-      );
-    }
-
+    // A brain enables exactly one login method (enforced at config time), and
+    // Sveltia opens /auth with no method hint, so dispatch purely on what is
+    // configured.
     if (loginMethods.githubOAuth) {
       return this.redirectToGitHub(request, loginMethods.githubOAuth);
     }
 
     if (loginMethods.passkeyLogin) {
+      // An operator who already holds a session skips the passkey prompt and
+      // goes straight to releasing the PAT.
+      const renderPage = (await hasOperatorSession(request))
+        ? renderPasskeyTokenPage
+        : renderPasskeyLoginPage;
       return htmlResponse(
-        renderPasskeyLoginPage(resolveAuthOrigin(this.getContext(), request)),
+        renderPage(resolveAuthOrigin(this.getContext(), request)),
       );
     }
 
@@ -632,7 +637,7 @@ function renderTokenHandshakePage(token: string, targetOrigin: string): string {
       <p id="status" role="status">Returning to the content manager...</p>
     </main>
     <script>${tokenHandshakeScript(targetOrigin)}
-    postGitHubToken(${JSON.stringify(token)});</script>
+    postGitHubToken(${serializeForScript(token)});</script>
   </body>
 </html>`;
 }
@@ -655,7 +660,7 @@ function cmsTokenFetchScript(): string {
 
 function tokenHandshakeScript(targetOrigin: string): string {
   return `
-    const targetOrigin = ${JSON.stringify(targetOrigin)};
+    const targetOrigin = ${serializeForScript(targetOrigin)};
     function postGitHubToken(token) {
       const status = document.getElementById('status');
       if (!token) throw new Error('CMS token response omitted token');
@@ -745,11 +750,19 @@ function authPageStyles(): string {
     .card { width: min(100%, 34rem); border: 1px solid rgba(243,234,220,.14); border-radius: 6px; padding: 30px; background: var(--panel); box-shadow: 0 28px 70px -34px rgba(0,0,0,.72); }
     h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.2rem); line-height: 1; letter-spacing: -.04em; }
     p { color: var(--muted); line-height: 1.55; }
-    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
-    .button, button { border: 1px solid rgba(255,139,61,.55); border-radius: 999px; padding: .82rem 1.08rem; font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; background: var(--accent); color: #080711; cursor: pointer; }
-    .button.secondary { background: transparent; color: var(--paper); }
+    button { margin-top: 24px; border: 1px solid rgba(255,139,61,.55); border-radius: 999px; padding: .82rem 1.08rem; font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: #080711; cursor: pointer; }
     [role='status'] { min-height: 1.5em; }
   </style>`;
+}
+
+// Embed a value as a JSON literal inside an inline <script>. JSON.stringify
+// alone leaves `<` and `/` intact, so a value containing `</script>` (or a
+// U+2028/U+2029 line separator) could break out of the script element.
+function serializeForScript(value: unknown): string {
+  return JSON.stringify(value).replace(
+    /[<>&\u2028\u2029]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 }
 
 function escapeHtml(value: string): string {

@@ -314,22 +314,13 @@ describe("cms plugin", () => {
     expect(html).not.toContain("ghp_secret_pat");
   });
 
-  it("automatically prefers GitHub OAuth when both methods are enabled without a session", async () => {
-    const shell = createCmsTestShell({ domain: "yeehaa.io" });
-    const plugin = cmsPlugin({
-      githubOAuth: { clientId: "client-id", clientSecret: "client-secret" },
-      passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
-    });
-    await plugin.register(shell);
-
-    const response = await findRoute(plugin.getWebRoutes(), "/auth").handler(
-      new Request("https://yeehaa.io/auth"),
-    );
-
-    expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toContain(
-      "https://github.com/login/oauth/authorize",
-    );
+  it("rejects configuring both login methods on a single brain", () => {
+    expect(() =>
+      cmsPlugin({
+        githubOAuth: { clientId: "client-id", clientSecret: "client-secret" },
+        passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
+      }),
+    ).toThrow(/single method/i);
   });
 
   it("redirects GitHub login with a state cookie", async () => {

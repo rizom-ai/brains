@@ -28,7 +28,7 @@ The two methods cover a spectrum:
 - **GitHub OAuth** — for editors who already have GitHub repo access. Commits are attributed to their real GitHub identity. No shared credential leaves the server beyond the editor's own token.
 - **Passkey-gated PAT** — for editors with no GitHub account. Commits are attributed to the shared PAT identity. The brain releases the PAT only after a verified passkey assertion.
 
-A deployment can enable either or both. With both enabled, the login popup presents a choice.
+A deployment enables exactly one method per brain. Configuring both is a config-time error, since the two paths produce different commit identities (real GitHub user vs shared PAT) and mixing them on one brain isn't a current need. If a single brain ever needs to serve both a GitHub-account editor and a passkey-only editor, revisit this and add a chooser at `/auth` (Sveltia opens `/auth` with no method hint and only waits for the handshake, so an intermediate chooser page is compatible).
 
 ## Non-goals
 
@@ -85,13 +85,12 @@ backend:
 
 This tells Sveltia to open `https://<brain-domain>/auth` in a popup instead of going to Netlify's default proxy. When no method is enabled, `auth_endpoint` must be omitted. `@brains/cms-config` needs explicit `auth_endpoint` support on `CmsConfig.backend`; emitting `base_url` alone must not imply a login endpoint exists. (`CmsConfig.backend` is currently `{ name, repo, branch, base_url? }` — add `auth_endpoint?`.)
 
-### `GET /auth` — the fork
+### `GET /auth` — single method dispatch
 
-Serves the login popup. Behavior depends on what is enabled:
+Serves the login popup. Exactly one method is enabled per brain, so dispatch is on what is configured:
 
-- Both methods enabled: render a minimal page with "Sign in with GitHub" and "Sign in with passkey".
-- Only GitHub enabled: skip the page and redirect straight to GitHub.
-- Only passkey enabled: render the passkey assertion page directly.
+- GitHub enabled: redirect straight to GitHub.
+- Passkey enabled: render the passkey assertion page — or, if the request already carries a valid operator session, skip straight to releasing the PAT.
 
 ## Method 1 — GitHub OAuth
 
@@ -182,7 +181,7 @@ Reference for the GitHub path: the Netlify CMS OAuth proxy and `vencax/netlify-c
 3. `GET /auth/callback` rejects missing or mismatched state; successful callback exchanges the code server-side and posts `authorization:github:success:{...}` only to the expected origin; token-exchange errors return a clear 400.
 4. With passkey config, `GET /auth` serves a WebAuthn assertion page; a successful assertion lets `POST /auth/cms-token` return the PAT; the page posts it via the handshake.
 5. `POST /auth/cms-token` refuses to return the PAT without a valid operator session from a completed passkey assertion.
-6. With both configured, `GET /auth` presents both options and each yields a working handshake.
+6. Configuring both `githubOAuth` and `passkeyLogin` is a config-time error.
 7. The released PAT never appears in the initial page HTML or in logs.
 8. Existing CMS shell and config routes keep working without any login config.
 
