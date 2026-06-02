@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Next implementation target is Phase 4 discovery before Phase 3 inbound ingestion; phase numbers remain historical. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -178,16 +178,20 @@ Users get ongoing brain-to-brain awareness.
 
 User-facing result: **"My brain participates in a living knowledge network."**
 
-Recommended product order:
+Current implementation/product order:
 
-1. Phase 1 + Phase 2: public ATProto article publishing.
-2. Phase 4: decentralized brain discovery.
-3. Phase 3: ingest external/social knowledge.
+1. Phase 1 + Phase 2: public ATProto article publishing — done for the app-password prototype.
+2. Phase 4: decentralized brain discovery — next.
+3. Phase 3: ingest external/social knowledge — after discovery establishes trusted/followed peers.
 4. Phase 5 + Phase 6: curation and federation.
+
+Phase numbers are historical; implementation proceeds in the order above.
 
 First product promise: **"Publish public brain knowledge to ATProto, with portable identity and signed records, without automatically posting it to a social feed."**
 
 ## Phases
+
+Implementation order is Phase 4 before Phase 3. The sections below keep the original phase numbers for continuity with earlier planning and cross-references.
 
 ### Phase 1: Plugin skeleton + identity
 
@@ -340,6 +344,8 @@ User-facing result: **"Rizom ATProto records have one canonical, executable cont
 
 ### Phase 3: Inbound ingestion
 
+Deferred until after Phase 4 discovery so ingestion can use the approved/followed brain model instead of importing arbitrary network records first.
+
 1. Subscribe to user's atproto repo (or Jetstream for lightweight JSON events)
 2. Filter for relevant record types (`app.bsky.feed.post`, `ai.rizom.brain.*` custom lexicons from other brains). Do not rely on private repo-local lexicon JSON here; consume records against the public canonical Rizom lexicons from the Phase 2.6 protocol registry and the Zod-backed contracts from Phase 2.7.
 3. Convert atproto records to brain entities (markdown with frontmatter)
@@ -349,6 +355,8 @@ User-facing result: **"Rizom ATProto records have one canonical, executable cont
 7. Tests: mock firehose events → verify entities created
 
 ### Phase 4: Discovery
+
+Next implementation phase.
 
 Shares the `agent` entity type with the broader agent-directory work. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain.
 
