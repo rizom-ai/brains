@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Next implementation target is Phase 4 discovery before Phase 3 inbound ingestion; phase numbers remain historical. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
+Phase 1 foundation is implemented and live-smoked for the app-password prototype. Phase 2 outbound publishing is implemented as a generic projection-backed substrate: any public entity can be published to ATProto when its entity package registers an explicit ATProto projection. Blog `post` publishes semantic `ai.rizom.brain.post` records with cover-image blobs, and Phase 2 projections now cover `post`, `note`, `link`, `deck`, semantic `social-post`, `series`, `project`, and `topic`. Phase 2.5 local validation is implemented for the current outbound record set. Phase 2.6 establishes canonical `ai.rizom.brain.*` lexicons as a single in-repo contract source in `@brains/atproto-contracts`; entity projections and the Rizom site consume those contracts, and the official live `rizom.ai` instance serves them through the opt-in `@brains/atproto-registry` capability. Ranger exposes `atproto-registry` as an opt-in capability, but it is not in the default preset. Next implementation target is Phase 4 discovery before Phase 3 inbound ingestion; phase numbers remain historical. Phase 4 should add network discovery and signed card enrichment on top of the existing add-brain-by-URL flow, not recreate URL-based agent creation. The remaining Phase 1 production hardening item is outbound ATProto OAuth. Bluesky feed posting is intentionally not part of semantic entity publishing; it should be handled later through the `social-post` workflow/provider, mirroring LinkedIn-style social distribution. Content-pipeline provider registration now preserves explicit providers when entity plugins send internal fallback registrations. The distribution/discovery direction remains aligned with the current agent-directory approval model: firehose-discovered brains may create or refresh reviewable `agent` entities with `status: discovered`, but they must not become callable A2A targets until explicitly approved.
 
 ## Context
 
@@ -146,11 +146,13 @@ User-facing result: **"My brain can learn from my Bluesky/ATProto world."**
 
 ### Phase 4: Discovery
 
-Users can discover other brains through the network while staying in control.
+Users can discover other brains through the network while staying in control. Existing URL-based brain/agent addition remains the right path when the user already knows a brain URL; ATProto discovery adds value by finding unknown peers and enriching known agents from signed cards.
 
 - Brains publish capability cards.
 - Other brains see those cards through Jetstream/firehose.
 - Discovered brains appear as reviewable `agent` entries.
+- Known agents can be enriched with signed card metadata, repo DID, brain DID, capabilities, site URL, A2A endpoint, card URI, and CID.
+- Discovery emits internal brain events so dashboards, notifications, or interfaces can signal new reviewable brains to the user.
 - Users explicitly approve agents before A2A calls are allowed.
 
 User-facing result: **"My brain can find other useful brains, but I stay in control."**
@@ -181,7 +183,7 @@ User-facing result: **"My brain participates in a living knowledge network."**
 Current implementation/product order:
 
 1. Phase 1 + Phase 2: public ATProto article publishing — done for the app-password prototype.
-2. Phase 4: decentralized brain discovery — next.
+2. Phase 4: decentralized brain discovery and signed card enrichment — next.
 3. Phase 3: ingest external/social knowledge — after discovery establishes trusted/followed peers.
 4. Phase 5 + Phase 6: curation and federation.
 
@@ -358,15 +360,21 @@ Deferred until after Phase 4 discovery so ingestion can use the approved/followe
 
 Next implementation phase.
 
-Shares the `agent` entity type with the broader agent-directory work. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain.
+Shares the `agent` entity type with the broader agent-directory work. Phase 4 should not duplicate the existing add-brain-by-URL workflow; when a user already knows a brain URL, that remains the direct path. ATProto discovery adds value by discovering unknown peers from the network and by enriching existing agents from signed `ai.rizom.brain.card` records. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain.
 
 1. Publish an `ai.rizom.brain.card` record to PDS when configured (name, role, capabilities, public site URL, optional A2A endpoint)
-2. Subscribe to Jetstream filtered for `ai.rizom.brain.card` records
-3. Upsert discovered brains as `agent` entities keyed by domain/URL/DID, merging with existing entries by domain where possible
-4. Preserve the approval lifecycle: new firehose entries are `status: discovered`; existing `approved` entries may be enriched but must not be downgraded; discovered entries must not be callable until approved
-5. A2A client resolution continues to use only approved saved agents
-6. Update card when capabilities change (new plugins registered)
-7. Tests: publish card → discover from another brain → create reviewable agent, enrich existing approved agent without downgrade, verify discovered agents are refused by A2A until approval
+2. Discover candidate brain cards from Jetstream filtered for `ai.rizom.brain.card`, with explicit limits and filters rather than unbounded ingestion
+3. Validate cards against the canonical `ai.rizom.brain.card` contract before creating or updating anything
+4. Upsert discovered brains as `agent` entities keyed by domain/URL/DID, merging with existing entries by domain where possible
+5. Enrich known agents from signed cards with safe metadata: repo DID, brain DID, card URI/CID, capabilities, site URL, and A2A endpoint
+6. Preserve the approval lifecycle: new firehose entries are `status: discovered`; existing `approved` entries may be enriched but must not be downgraded; discovered entries must not be callable until approved
+7. Emit internal discovery events through the shell message bus after create/update, e.g. `atproto:brain-discovered` for new reviewable agents and `atproto:brain-card-refreshed` for existing-agent enrichment
+8. Keep notification delivery separate from discovery logic: dashboards, notification plugins, Discord/web interfaces, or future UI surfaces may subscribe to those events and decide whether/how to alert the user
+9. A2A client resolution continues to use only approved saved agents
+10. Add a refresh path for existing agents so known URL-added agents can be upgraded with signed ATProto card metadata
+11. Add configurable discovery filters: allowed domains/DIDs, capability keywords, max cards per run, and dedupe by DID/domain/card URI
+12. Update card when capabilities change (new plugins registered)
+13. Tests: publish card → discover from another brain → create reviewable agent, emit discovery event, enrich existing approved agent without downgrade, refresh URL-added agent from card, emit refresh event, verify discovered agents are refused by A2A until approval
 
 ### Phase 5: Feed generators
 
