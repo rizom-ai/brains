@@ -93,6 +93,21 @@ describe("generateCmsConfig", () => {
     expect(config.backend.branch).toBe("main");
   });
 
+  it("should emit auth_endpoint only when explicitly configured", () => {
+    expect(
+      generateCmsConfig(cmsOpts({})).backend.auth_endpoint,
+    ).toBeUndefined();
+
+    const config = generateCmsConfig({
+      ...cmsOpts({}),
+      baseUrl: "https://brain.example",
+      authEndpoint: "auth",
+    });
+
+    expect(config.backend.base_url).toBe("https://brain.example");
+    expect(config.backend.auth_endpoint).toBe("auth");
+  });
+
   it("should emit base collection as raw Markdown notes at repo root", () => {
     const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
 
