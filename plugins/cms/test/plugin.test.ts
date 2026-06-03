@@ -93,7 +93,7 @@ describe("cms plugin", () => {
 
     expect(parsed.backend.repo).toBe("owner/repo");
     expect(parsed.backend.branch).toBe("main");
-    expect(parsed.backend.base_url).toBe("https://yeehaa.io");
+    expect(parsed.backend.base_url).toBeUndefined();
     expect(parsed.backend.auth_endpoint).toBeUndefined();
     expect(
       parsed.collections.some(
@@ -163,6 +163,7 @@ describe("cms plugin", () => {
     const configYaml = await configResponse?.text();
     expect(configYaml).toContain("owner/repo");
     expect(configYaml).toContain("branch: main");
+    expect(configYaml).not.toContain("base_url");
     expect(configYaml).not.toContain("auth_endpoint");
 
     const expectedHtml = renderCmsShellHtml({

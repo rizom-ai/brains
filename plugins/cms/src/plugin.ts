@@ -157,11 +157,10 @@ async function buildCmsConfig(
   options: CmsConfigBuildOptions = {},
 ): Promise<CmsConfig> {
   const { repo, branch } = await getRepoInfo(context);
-  const baseUrl = options.baseUrl ?? context.siteUrl;
   return generateCmsConfig({
     repo,
     branch,
-    ...(baseUrl && { baseUrl }),
+    ...(options.baseUrl && { baseUrl: options.baseUrl }),
     ...(options.authEndpoint && { authEndpoint: options.authEndpoint }),
     entityTypes: context.entityService.getEntityTypes(),
     getFrontmatterSchema: (type) =>

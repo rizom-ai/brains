@@ -131,7 +131,19 @@ export default defineBrain({
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
-    ["cms", cmsPlugin, {}],
+    [
+      "cms",
+      cmsPlugin,
+      (env): PluginConfig => ({
+        ...(env["CMS_CONTENT_REPO_PAT"]
+          ? {
+              passkeyLogin: {
+                contentRepoToken: env["CMS_CONTENT_REPO_PAT"],
+              },
+            }
+          : {}),
+      }),
+    ],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["email-resend", emailResendPlugin, undefined],
