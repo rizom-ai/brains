@@ -124,7 +124,10 @@ interface WebChatToolStatusData {
 interface ParsedUserInput {
   message: string;
   attachments: ChatAttachment[];
+  responseText?: string;
 }
+
+type DeferredUploadIntent = "image" | "pdf" | "upload";
 
 const storedChatAttachmentSchema = z.object({
   kind: z.literal("text"),
@@ -2590,9 +2593,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const conversationId = parsed.data.id ?? this.createId("web");
-    const userInput = await this.extractLastUserInput(parsed.data);
+    const userInput = await this.extractLastUserInput(
+      parsed.data,
+      conversationId,
+    );
     if (userInput instanceof Response) return userInput;
-    const { message, attachments } = userInput;
+    const { message, attachments, responseText } = userInput;
     const hasUserInput = message.length > 0 || attachments.length > 0;
     const approvalResponses = hasUserInput
       ? []
@@ -2609,6 +2615,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
             conversationId,
             approvalResponses,
           });
+          return;
+        }
+
+        if (responseText !== undefined) {
+          this.writeText(writer, responseText, "text");
           return;
         }
 
@@ -3127,6 +3138,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   private async extractLastUserInput(
     request: ChatRequest,
+    conversationId: string,
   ): Promise<ParsedUserInput | Response> {
     const lastUserMessage = this.findLastUserMessage(request);
     if (!lastUserMessage) return { message: "", attachments: [] };
@@ -3165,13 +3177,148 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       }
     }
 
+    const message =
+      messageParts.length > 0
+        ? messageParts.join("\n\n")
+        : (lastUserMessage.content ?? "");
+
+    if (attachments.length === 0) {
+      const deferred = await this.resolveDeferredUploadReference(
+        request,
+        conversationId,
+        lastUserMessage,
+        message,
+      );
+      if (deferred instanceof Response) return deferred;
+      if (deferred !== null) return { message, ...deferred };
+    }
+
     return {
-      message:
-        messageParts.length > 0
-          ? messageParts.join("\n\n")
-          : (lastUserMessage.content ?? ""),
+      message,
       attachments,
     };
+  }
+
+  private async resolveDeferredUploadReference(
+    request: ChatRequest,
+    conversationId: string,
+    lastUserMessage: ChatRequest["messages"][number],
+    message: string,
+  ): Promise<Pick<ParsedUserInput, "attachments" | "responseText"> | null> {
+    const intent = this.getDeferredUploadIntent(message);
+    if (intent === null) return null;
+
+    const uploadIds = await this.collectPriorUploadIds(
+      request,
+      conversationId,
+      lastUserMessage,
+    );
+    const candidates: ChatAttachment[] = [];
+    for (const uploadId of uploadIds) {
+      const attachment = await this.resolveReferencedUpload(uploadId);
+      if (attachment instanceof Response) continue;
+      if (this.matchesDeferredUploadIntent(attachment, intent)) {
+        candidates.push(attachment);
+      }
+    }
+
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return { attachments: candidates };
+
+    return {
+      attachments: [],
+      responseText: `Which upload should I use? ${candidates
+        .map((candidate) => `\`${candidate.filename}\``)
+        .join(", ")}`,
+    };
+  }
+
+  private getDeferredUploadIntent(
+    message: string,
+  ): DeferredUploadIntent | null {
+    const normalized = message.toLowerCase();
+    const hasAction =
+      /\b(describe|summari[sz]e|read|analy[sz]e|inspect|review|explain)\b/.test(
+        normalized,
+      ) || /\b(?:what(?:'s| is)|tell me)\b/.test(normalized);
+    if (!hasAction) return null;
+
+    if (/\b(image|picture|photo|pic|screenshot)\b/.test(normalized)) {
+      return "image";
+    }
+    if (/\bpdf\b/.test(normalized)) return "pdf";
+    if (/\b(file|attachment|upload|it|that|this)\b/.test(normalized)) {
+      return "upload";
+    }
+
+    return null;
+  }
+
+  private async collectPriorUploadIds(
+    request: ChatRequest,
+    conversationId: string,
+    lastUserMessage: ChatRequest["messages"][number],
+  ): Promise<string[]> {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    const add = (uploadId: string): void => {
+      if (seen.has(uploadId)) return;
+      seen.add(uploadId);
+      ids.push(uploadId);
+    };
+
+    const lastUserIndex = request.messages.indexOf(lastUserMessage);
+    const priorMessages = request.messages.slice(
+      0,
+      lastUserIndex === -1 ? request.messages.length : lastUserIndex,
+    );
+    for (const message of priorMessages) {
+      if (message.role !== "user") continue;
+      for (const part of message.parts ?? []) {
+        const parsedUploadRef = uploadRefPartSchema.safeParse(part);
+        if (parsedUploadRef.success) {
+          add(parsedUploadRef.data.data.ref.id);
+        }
+      }
+    }
+
+    const storedMessages = await this.getContext().conversations.getMessages(
+      conversationId,
+      { limit: 50 },
+    );
+    for (const message of storedMessages) {
+      if (message.role !== "user") continue;
+      const parsedMetadata = this.parseStoredMessageMetadata(message.metadata);
+      const attachments = parsedMetadata?.["attachments"];
+      if (!Array.isArray(attachments)) continue;
+      for (const attachment of attachments) {
+        if (!this.isRecord(attachment)) continue;
+        const source = attachment["source"];
+        if (!this.isRecord(source)) continue;
+        if (source["kind"] !== webChatUploadRefKind) continue;
+        const uploadId = source["id"];
+        if (
+          typeof uploadId === "string" &&
+          webChatUploadIdPattern.test(uploadId)
+        ) {
+          add(uploadId);
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  private matchesDeferredUploadIntent(
+    attachment: ChatAttachment,
+    intent: DeferredUploadIntent,
+  ): boolean {
+    if (intent === "upload") return true;
+    if (intent === "image") return attachment.mediaType.startsWith("image/");
+    return (
+      attachment.mediaType === "application/pdf" ||
+      attachment.filename.toLowerCase().endsWith(".pdf")
+    );
   }
 
   private getPartType(part: unknown): string | undefined {
