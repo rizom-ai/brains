@@ -245,7 +245,28 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
         path: this.config.routePath,
         method: "GET",
         public: true,
-        handler: async (): Promise<Response> => {
+        handler: async (request): Promise<Response> => {
+          if (loginMethods.passkeyLogin) {
+            if (!(await hasOperatorSession(request))) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  Location: `/login?return_to=${encodeURIComponent(
+                    this.config.routePath,
+                  )}`,
+                  "Cache-Control": "no-store",
+                },
+              });
+            }
+
+            return htmlResponse(
+              renderCmsShellHtml({
+                cmsConfigPath,
+                authTokenEndpoint: "/auth/cms-token",
+              }),
+            );
+          }
+
           return htmlResponse(renderCmsShellHtml({ cmsConfigPath }));
         },
       },

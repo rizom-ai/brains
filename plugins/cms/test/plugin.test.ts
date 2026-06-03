@@ -213,6 +213,50 @@ describe("cms plugin", () => {
     expect(parsed.backend.auth_endpoint).toBe("auth");
   });
 
+  it("serves a pre-authorized CMS shell for logged-in passkey CMS operators", async () => {
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
+    });
+    await authPlugin.register(shell);
+    const session = await authPlugin.getService().createOperatorSession();
+
+    const plugin = cmsPlugin({
+      passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
+    });
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin.getWebRoutes(), "/cms").handler(
+      new Request("https://yeehaa.io/cms", {
+        headers: { Cookie: session.cookie },
+      }),
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("Content Manager");
+    expect(html).toContain("/auth/cms-token");
+    expect(html).toContain("sveltia-cms.user");
+    expect(html).toContain("sveltia-cms.js");
+    expect(html).not.toContain("CMS passkey login");
+    expect(html).not.toContain("ghp_secret_pat");
+  });
+
+  it("redirects unauthenticated passkey CMS visitors to operator login", async () => {
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin({
+      passkeyLogin: { contentRepoToken: "ghp_secret_pat" },
+    });
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin.getWebRoutes(), "/cms").handler(
+      new Request("https://yeehaa.io/cms"),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/login?return_to=%2Fcms");
+  });
+
   it("serves the passkey login page without embedding the PAT", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin({
