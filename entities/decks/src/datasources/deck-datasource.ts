@@ -12,6 +12,7 @@ import { parseDeckData } from "./parse-helpers";
 
 interface DeckDetailData {
   markdown: string;
+  deck: DeckWithData;
 }
 
 interface DeckListData {
@@ -77,7 +78,7 @@ export class DeckDataSource extends BaseEntityDataSource<
     item: DeckWithData,
     _navigation: NavigationResult<DeckWithData> | null,
   ): DeckDetailData {
-    return { markdown: item.body };
+    return { markdown: item.body, deck: item };
   }
 
   protected buildListResult(

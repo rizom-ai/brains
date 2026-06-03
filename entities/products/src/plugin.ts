@@ -28,6 +28,8 @@ import type { ProductsConfig, ProductsConfigInput } from "./config";
 import { productsConfigSchema } from "./config";
 import { ProductPrintableAttachmentProvider } from "./attachments/printable-provider";
 import { PRODUCT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
+import { ProductOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { PRODUCT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
 const productsPageSchema = z.object({
@@ -44,6 +46,7 @@ export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
   readonly schema = productSchema;
   readonly adapter = productAdapter;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
+  private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
   constructor(config: ProductsConfigInput = {}) {
     super("products", packageJson, config, productsConfigSchema);
@@ -88,6 +91,11 @@ export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
       PRODUCT_PRINTABLE_ATTACHMENT_TYPE,
       new ProductPrintableAttachmentProvider(context),
     );
+    this.unregisterOgImageAttachmentProvider = context.attachments.register(
+      "product",
+      PRODUCT_OG_IMAGE_ATTACHMENT_TYPE,
+      new ProductOgImageAttachmentProvider(context),
+    );
 
     // Second entity type: products-overview (singleton)
     context.entities.register(
@@ -100,6 +108,8 @@ export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
   protected override async onShutdown(): Promise<void> {
     this.unregisterPrintableAttachmentProvider?.();
     this.unregisterPrintableAttachmentProvider = undefined;
+    this.unregisterOgImageAttachmentProvider?.();
+    this.unregisterOgImageAttachmentProvider = undefined;
   }
 }
 

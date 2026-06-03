@@ -84,15 +84,14 @@ export const ProjectDetailTemplate = ({
   nextProject,
 }: ProjectDetailProps): JSX.Element => {
   const { frontmatter, structuredContent, metadata, coverImageUrl } = project;
+  const ogImage = project.ogImageUrl ?? coverImageUrl;
 
   return (
     <>
       <Head
         title={frontmatter.title}
         description={frontmatter.description}
-        {...(coverImageUrl && {
-          ogImage: coverImageUrl,
-        })}
+        {...(ogImage ? { ogImage } : {})}
         ogType="article"
       />
       <article className="project-detail">
