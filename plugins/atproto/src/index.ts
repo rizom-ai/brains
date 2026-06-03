@@ -9,6 +9,9 @@ export {
   type PublishEntityResult,
   type PublishPostOptions,
   type PublishPostResult,
+  type DiscoverBrainCardsOptions,
+  type DiscoverBrainCardResult,
+  type DiscoverBrainCardsResult,
 } from "./plugin";
 export {
   atprotoConfigSchema,
@@ -50,6 +53,8 @@ export {
   type CreateRecordResult,
   type PutRecordInput,
   type PutRecordResult,
+  type GetRecordInput,
+  type GetRecordResult,
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";

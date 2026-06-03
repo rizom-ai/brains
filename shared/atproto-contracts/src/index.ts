@@ -511,6 +511,45 @@ export function validateAtprotoRecord(
   throw new Error(formatAtprotoSchemaIssue(lexicon, record, issue));
 }
 
+export const ATPROTO_BRAIN_CARD_DISCOVERED = "atproto:brain-card-discovered";
+export const ATPROTO_BRAIN_DISCOVERED = "atproto:brain-discovered";
+export const ATPROTO_BRAIN_CARD_REFRESHED = "atproto:brain-card-refreshed";
+
+export const atprotoBrainCardDiscoveredPayloadSchema = z
+  .object({
+    repoDid: z.string().min(1),
+    uri: z.string().min(1),
+    cid: z.string().min(1),
+    record: canonicalAtprotoRecordSchemas["ai.rizom.brain.card"],
+  })
+  .strict();
+
+export interface AtprotoBrainCardDiscoveredPayload {
+  repoDid: string;
+  uri: string;
+  cid: string;
+  record: AtprotoBrainCardRecord;
+}
+
+export const atprotoBrainDiscoveryEventPayloadSchema = z
+  .object({
+    agentId: z.string().min(1),
+    name: z.string().min(1),
+    url: z.string().url(),
+    status: z.enum(["discovered", "approved"]),
+    repoDid: z.string().min(1).optional(),
+    brainDid: z.string().min(1).optional(),
+    cardUri: z.string().min(1).optional(),
+    cardCid: z.string().min(1).optional(),
+    a2aEndpoint: z.string().url().optional(),
+    capabilities: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export type AtprotoBrainDiscoveryEventPayload = z.infer<
+  typeof atprotoBrainDiscoveryEventPayloadSchema
+>;
+
 export interface AtprotoBlobRef {
   $type?: "blob" | undefined;
   ref: { $link: string };
@@ -550,6 +589,11 @@ export interface AtprotoPdsClientLike {
     rkey: string;
     validate?: boolean;
   }): Promise<{ uri: string; cid: string }>;
+  getRecord?(input: {
+    repo: string;
+    collection: string;
+    rkey: string;
+  }): Promise<{ uri: string; cid: string; value: Record<string, unknown> }>;
   uploadBlob?(input: {
     data: Buffer;
     mimeType: string;

@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createMockShell } from "@brains/test-utils";
+import { ATPROTO_BRAIN_CARD_DISCOVERED } from "@brains/atproto-contracts";
 import {
   AtprotoPlugin,
   atprotoPlugin,
@@ -103,6 +104,192 @@ describe("atproto plugin", () => {
       { interfaceType: "test", userId: "test" },
     );
     expect(response).toEqual({ success: true, data: { valid: false } });
+  });
+
+  it("discovers a valid brain card and emits a discovery event", async () => {
+    const cardRecord = {
+      $type: "ai.rizom.brain.card",
+      name: "Rizom Test Brain",
+      description: "A test brain",
+      brainDid: "did:web:test.example.com",
+      siteUrl: "https://test.example.com",
+      a2aEndpoint: "https://test.example.com/a2a",
+      capabilities: ["a2a"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    const getRecord = mock(async () => ({
+      uri: "at://did:plc:test/ai.rizom.brain.card/self",
+      cid: "bafytestcard",
+      value: cardRecord,
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+      },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:unused",
+            handle: "unused.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+          getRecord,
+        }),
+      },
+    );
+    const shell = createMockShell();
+    const events: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
+        events.push(message.payload);
+        return { success: true };
+      });
+
+    const capabilities = await plugin.register(shell);
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_discover_brain_cards",
+    );
+    const response = await tool?.handler(
+      { repos: ["test.example.com"] },
+      { interfaceType: "test", userId: "test" },
+    );
+
+    if (!response || !("success" in response) || !response.success) {
+      throw new Error("Expected discovery tool to succeed");
+    }
+    expect(response.data).toMatchObject({
+      discovered: 1,
+      results: [
+        {
+          repo: "test.example.com",
+          status: "discovered",
+          repoDid: "did:plc:test",
+          uri: "at://did:plc:test/ai.rizom.brain.card/self",
+          cid: "bafytestcard",
+        },
+      ],
+    });
+    expect(events).toEqual([
+      {
+        repoDid: "did:plc:test",
+        uri: "at://did:plc:test/ai.rizom.brain.card/self",
+        cid: "bafytestcard",
+        record: cardRecord,
+      },
+    ]);
+    expect(getRecord).toHaveBeenCalledWith({
+      repo: "test.example.com",
+      collection: "ai.rizom.brain.card",
+      rkey: "self",
+    });
+  });
+
+  it("skips invalid brain cards without emitting discovery events", async () => {
+    const getRecord = mock(async () => ({
+      uri: "at://did:plc:test/ai.rizom.brain.card/self",
+      cid: "bafytestcard",
+      value: {
+        $type: "ai.rizom.brain.card",
+        description: "missing required name and createdAt",
+      },
+    }));
+    const plugin = new AtprotoPlugin(
+      { pdsEndpoint: "https://pds.example.com" },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:unused",
+            handle: "unused.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+          getRecord,
+        }),
+      },
+    );
+    const shell = createMockShell();
+    const events: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
+        events.push(message.payload);
+        return { success: true };
+      });
+
+    const capabilities = await plugin.register(shell);
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_discover_brain_cards",
+    );
+    const response = await tool?.handler(
+      { repos: ["test.example.com"] },
+      { interfaceType: "test", userId: "test" },
+    );
+
+    if (!response || !("success" in response) || !response.success) {
+      throw new Error("Expected discovery tool to succeed");
+    }
+    expect(response.data).toMatchObject({
+      discovered: 0,
+      skipped: 1,
+      results: [{ status: "skipped" }],
+    });
+    expect(events).toEqual([]);
+  });
+
+  it("exposes a brain-card discovery tool", async () => {
+    const getRecord = mock(async () => ({
+      uri: "at://did:plc:test/ai.rizom.brain.card/self",
+      cid: "bafytestcard",
+      value: {
+        $type: "ai.rizom.brain.card",
+        name: "Rizom Test Brain",
+        siteUrl: "https://test.example.com",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    }));
+    const plugin = new AtprotoPlugin(
+      { pdsEndpoint: "https://pds.example.com" },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:unused",
+            handle: "unused.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+          getRecord,
+        }),
+      },
+    );
+    const capabilities = await plugin.register(createMockShell());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_discover_brain_cards",
+    );
+
+    expect(tool).toBeDefined();
+    const response = await tool?.handler(
+      { repos: ["test.example.com"] },
+      { interfaceType: "test", userId: "test" },
+    );
+
+    if (!response || !("success" in response) || !response.success) {
+      throw new Error("Expected discovery tool to succeed");
+    }
+    expect(response.data).toMatchObject({ discovered: 1 });
   });
 
   it("exposes a credential validation tool", async () => {

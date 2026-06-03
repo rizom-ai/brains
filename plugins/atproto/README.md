@@ -2,14 +2,15 @@
 
 AT Protocol integration for Rizom brains.
 
-This package currently covers the Phase 1 foundation plus the first outbound publishing slice:
+This package currently covers AT Protocol identity, outbound publishing, and the first discovery slice:
 
 - `ServicePlugin` package skeleton
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
-- app-password PDS client wrapper for mocked authentication, record creation, and blob upload tests
+- app-password PDS client wrapper for mocked authentication, record reads/writes, and blob upload tests
 - brain card publishing as `ai.rizom.brain.card`
 - projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
+- candidate brain-card discovery via public `com.atproto.repo.getRecord` reads and internal message-bus events
 
 ## Configuration
 
@@ -55,7 +56,6 @@ Secrets should be supplied through environment variables or app secret configura
 - `brainDid`: optional public brain DID. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
 - `anchorDid`: optional human/operator DID included in custom records.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
-- `appPasswordEnv`: legacy/alternate environment variable indirection. Prefer `appPassword: ${ATPROTO_APP_PASSWORD}` for normal brain instance config.
 
 ## Tools
 
@@ -97,6 +97,25 @@ Input:
 ```
 
 Use this for generic projection-backed publishing. The entity plugin owns the record mapper; the canonical lexicon contract comes from `@brains/atproto-contracts`.
+
+### `atproto_discover_brain_cards`
+
+Reads public `ai.rizom.brain.card/self` records from candidate AT Protocol repo DIDs or handles, validates them against the canonical brain-card contract, and emits internal discovery events for the agent-discovery plugin.
+
+Input:
+
+```json
+{
+  "repos": ["did:plc:example", "brain.example.com"]
+}
+```
+
+Notes:
+
+- Discovery is bounded to 50 repos per call.
+- Invalid cards are skipped and reported in the result.
+- Duplicate card URI/CID pairs in the same batch are skipped.
+- New brains enter agent discovery as reviewable `status: discovered` agents; existing approved agents may be enriched but are not downgraded.
 
 ### `atproto_publish_post`
 
@@ -168,6 +187,8 @@ Use a test PDS/Bluesky account and an app password.
 9. Publish the post record:
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": false }`
 10. Verify records in the PDS repo.
+11. Discover a known card from another repo:
+    - `atproto_discover_brain_cards { "repos": ["<repo-did-or-handle>"] }`
 
 ## Current limitations
 
