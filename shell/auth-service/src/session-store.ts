@@ -66,15 +66,21 @@ function parseStoreFile(value: unknown): SessionStoreFile {
   };
 }
 
-function sessionCookie(token: string, expiresAt: number): string {
+function sessionCookie(
+  token: string,
+  expiresAt: number,
+  secure: boolean,
+): string {
   return `${OPERATOR_SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(
     0,
     expiresAt - nowSeconds(),
-  )}`;
+  )}${secure ? "; Secure" : ""}`;
 }
 
-export function clearOperatorSessionCookie(): string {
-  return `${OPERATOR_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export function clearOperatorSessionCookie(secure = false): string {
+  return `${OPERATOR_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${
+    secure ? "; Secure" : ""
+  }`;
 }
 
 export class OperatorSessionStore {
@@ -88,7 +94,10 @@ export class OperatorSessionStore {
     );
   }
 
-  async createSession(subject: string): Promise<CreateOperatorSessionResult> {
+  async createSession(
+    subject: string,
+    options: { secure?: boolean } = {},
+  ): Promise<CreateOperatorSessionResult> {
     const token = `oss_${randomUUID()}`;
     const createdAt = nowSeconds();
     const expiresAt = createdAt + SESSION_TTL_SECONDS;
@@ -111,7 +120,7 @@ export class OperatorSessionStore {
 
     return {
       subject,
-      cookie: sessionCookie(token, expiresAt),
+      cookie: sessionCookie(token, expiresAt, options.secure ?? false),
       expiresAt,
     };
   }

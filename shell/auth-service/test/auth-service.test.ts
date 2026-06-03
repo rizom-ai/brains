@@ -1227,8 +1227,45 @@ describe("AuthService", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/dashboard");
-    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+    const cleared = response.headers.get("set-cookie") ?? "";
+    expect(cleared).toContain("Max-Age=0");
+    expect(cleared).toContain("; Secure");
     expect(await service.getOperatorSession(request)).toBeUndefined();
+  });
+
+  it("marks the operator session cookie Secure outside loopback", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    const secure = await service.createOperatorSession("single-operator", {
+      secure: true,
+    });
+    expect(secure.cookie).toContain("; Secure");
+
+    const insecure = await service.createOperatorSession("single-operator", {
+      secure: false,
+    });
+    expect(insecure.cookie).not.toContain("Secure");
+  });
+
+  it("omits Secure on the cleared cookie for loopback logout", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+    const session = await service.createOperatorSession();
+
+    const response = await service.handleRequest(
+      new Request("http://localhost:8080/logout", {
+        headers: { cookie: session.cookie },
+      }),
+    );
+
+    const cleared = response.headers.get("set-cookie") ?? "";
+    expect(cleared).toContain("Max-Age=0");
+    expect(cleared).not.toContain("Secure");
   });
 
   it("sanitizes logout return_to", async () => {

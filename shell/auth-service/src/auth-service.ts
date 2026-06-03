@@ -24,6 +24,7 @@ import {
   absoluteUrl,
   issuerFromRequest,
   isLoopbackIssuer,
+  isSecureRequest,
   normalizeIssuer,
 } from "./issuer";
 import {
@@ -208,8 +209,9 @@ export class AuthService {
 
   async createOperatorSession(
     subject = "single-operator",
+    options: { secure?: boolean } = {},
   ): Promise<CreateOperatorSessionResult> {
-    return this.sessionStore.createSession(subject);
+    return this.sessionStore.createSession(subject, options);
   }
 
   async getOperatorSession(
@@ -400,7 +402,7 @@ export class AuthService {
       status: 302,
       headers: {
         Location: returnTo,
-        "Set-Cookie": clearOperatorSessionCookie(),
+        "Set-Cookie": clearOperatorSessionCookie(isSecureRequest(request)),
         "Cache-Control": "no-store",
       },
     });
@@ -448,7 +450,9 @@ export class AuthService {
 
     this.setupToken = undefined;
     await this.setupStateStore.clearSetupState();
-    const session = await this.createOperatorSession(result.subject);
+    const session = await this.createOperatorSession(result.subject, {
+      secure: isSecureRequest(request),
+    });
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
@@ -542,7 +546,9 @@ export class AuthService {
       );
     }
 
-    const session = await this.createOperatorSession(result.subject);
+    const session = await this.createOperatorSession(result.subject, {
+      secure: isSecureRequest(request),
+    });
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
