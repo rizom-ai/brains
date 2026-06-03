@@ -6,7 +6,7 @@ import type {
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { Project } from "../schemas/project";
+import type { Project, ProjectContent } from "../schemas/project";
 import {
   projectFrontmatterSchema,
   projectWithDataSchema,
@@ -38,13 +38,18 @@ function parseProjectData(entity: Project): ProjectWithData {
     projectFrontmatterSchema,
   );
 
-  const structuredContent = projectAdapter.parseStructuredContent(entity);
+  let structuredContent: ProjectContent | undefined;
+  try {
+    structuredContent = projectAdapter.parseStructuredContent(entity);
+  } catch {
+    structuredContent = undefined;
+  }
 
   return projectWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
     body: parsed.content,
-    structuredContent,
+    ...(structuredContent && { structuredContent }),
   });
 }
 
