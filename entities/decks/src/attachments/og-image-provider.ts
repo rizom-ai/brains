@@ -1,16 +1,8 @@
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
 import type { AttachmentProvider, EntityPluginContext } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
-import { screenshotPng as defaultScreenshotPng } from "@brains/media-renderer";
-import type {
-  ScreenshotPngOptions,
-  ViewportOptions,
-} from "@brains/media-renderer";
 import {
-  startStaticRenderServer,
-  writeMediaRenderPage,
+  renderOgImagePng,
+  type ScreenshotPng,
 } from "@brains/media-page-composer";
 import { parseMarkdown, slugify } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
@@ -21,31 +13,18 @@ import {
   type DeckOgImageTemplateData,
 } from "./og-image-template";
 
-const OG_VIEWPORT: ViewportOptions = { width: 1200, height: 630 };
-const DEFAULT_TIMEOUT_MS = 60_000;
-
-export type ScreenshotPng = (
-  url: string,
-  viewport: ViewportOptions,
-  options?: ScreenshotPngOptions,
-) => Promise<Buffer>;
-
 export interface DeckOgImageAttachmentProviderDeps {
   screenshotPng?: ScreenshotPng;
 }
 
 export class DeckOgImageAttachmentProvider implements AttachmentProvider {
-  private readonly screenshotPng: ScreenshotPng;
-
   constructor(
     private readonly context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    deps: DeckOgImageAttachmentProviderDeps = {},
-  ) {
-    this.screenshotPng = deps.screenshotPng ?? defaultScreenshotPng;
-  }
+    private readonly deps: DeckOgImageAttachmentProviderDeps = {},
+  ) {}
 
   async resolve(request: {
     sourceEntityType: string;
@@ -65,47 +44,39 @@ export class DeckOgImageAttachmentProvider implements AttachmentProvider {
     });
     if (!deck) return undefined;
 
-    const ogContent = buildOgImageContent(deck, {
-      brandLabel: this.resolveBrandLabel(),
-      coverImageUrl: await this.resolveCoverImageUrl(deck),
+    const { frontmatter, content: body } = parseMarkdown(deck.content);
+    const parsed = deckFrontmatterSchema.parse(frontmatter);
+    const slideCount = countSlides(body);
+    const brandLabel = this.resolveBrandLabel();
+    const coverImageUrl = await this.resolveCoverImageUrl(parsed.coverImageId);
+    const content: DeckOgImageTemplateData = {
+      title: parsed.title,
+      ...(parsed.description ? { description: parsed.description } : {}),
+      ...(parsed.event ? { event: parsed.event } : {}),
+      ...(slideCount ? { slideCount } : {}),
+      ...(coverImageUrl ? { coverImageUrl } : {}),
+      ...(brandLabel ? { brandLabel } : {}),
+    };
+
+    const png = await renderOgImagePng({
+      mediaPath: `/_media/og/deck/${deck.id}`,
+      template: deckOgImageTemplate,
+      content,
+      title: content.title,
+      themeMode: "dark",
+      themeCSS: this.context.themeCSS,
+      tmpPrefix: "brain-deck-og-image-",
+      ...(this.deps.screenshotPng && {
+        screenshotPng: this.deps.screenshotPng,
+      }),
     });
-    const outputDir = await mkdtemp(join(tmpdir(), "brain-deck-og-image-"));
 
-    try {
-      const page = await writeMediaRenderPage({
-        outputDir,
-        mediaPath: `/_media/og/deck/${deck.id}`,
-        template: deckOgImageTemplate,
-        format: "image",
-        content: ogContent,
-        siteConfig: { title: ogContent.title, themeMode: "dark" },
-        themeCSS: this.context.themeCSS,
-      });
-
-      const server = await startStaticRenderServer({ rootDir: outputDir });
-      try {
-        const png = await this.screenshotPng(
-          server.urlFor(page.urlPath),
-          OG_VIEWPORT,
-          {
-            timeoutMs: DEFAULT_TIMEOUT_MS,
-            fullPage: false,
-            omitBackground: false,
-          },
-        );
-
-        return {
-          type: "image",
-          data: png,
-          mimeType: "image/png",
-          filename: `${getDeckSlug(deck)}-og.png`,
-        };
-      } finally {
-        await server.close();
-      }
-    } finally {
-      await rm(outputDir, { recursive: true, force: true });
-    }
+    return {
+      type: "image",
+      data: png,
+      mimeType: "image/png",
+      filename: `${getDeckSlug(deck)}-og.png`,
+    };
   }
 
   private resolveBrandLabel(): string | undefined {
@@ -117,38 +88,15 @@ export class DeckOgImageAttachmentProvider implements AttachmentProvider {
   }
 
   private async resolveCoverImageUrl(
-    deck: DeckEntity,
+    coverImageId: string | undefined,
   ): Promise<string | undefined> {
-    const { frontmatter } = parseMarkdown(deck.content);
-    const parsed = deckFrontmatterSchema.parse(frontmatter);
-    if (!parsed.coverImageId) return undefined;
-
+    if (!coverImageId) return undefined;
     const image = await this.context.entityService.getEntity({
       entityType: "image",
-      id: parsed.coverImageId,
+      id: coverImageId,
     });
     return image?.content.startsWith("data:image/") ? image.content : undefined;
   }
-}
-
-function buildOgImageContent(
-  deck: DeckEntity,
-  options: {
-    brandLabel?: string | undefined;
-    coverImageUrl?: string | undefined;
-  } = {},
-): DeckOgImageTemplateData {
-  const { frontmatter, content } = parseMarkdown(deck.content);
-  const parsed = deckFrontmatterSchema.parse(frontmatter);
-  const slideCount = countSlides(content);
-  return {
-    title: parsed.title,
-    ...(parsed.description ? { description: parsed.description } : {}),
-    ...(parsed.event ? { event: parsed.event } : {}),
-    ...(slideCount ? { slideCount } : {}),
-    ...(options.coverImageUrl ? { coverImageUrl: options.coverImageUrl } : {}),
-    ...(options.brandLabel ? { brandLabel: options.brandLabel } : {}),
-  };
 }
 
 function countSlides(content: string): number {

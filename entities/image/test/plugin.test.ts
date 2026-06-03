@@ -223,7 +223,10 @@ describe("ImagePlugin", () => {
     });
   });
 
-  it("should enqueue source-rendered OG image generation with canonical target id", async () => {
+  it("does not sniff 'OG' from the prompt — a prompt with a target generates a cover image", async () => {
+    // OG rendering is reachable only via the explicit `from: { attachmentType:
+    // "og-image" }` path (see next test). A prompt that happens to mention "OG"
+    // must NOT be special-cased into OG rendering; it is a normal cover request.
     harness.addEntities([
       {
         id: "my-blog-post",
@@ -254,30 +257,26 @@ describe("ImagePlugin", () => {
     if (result.kind !== "handled") throw new Error("Expected handled result");
     if (!result.result.success) throw new Error(result.result.error);
     expect(result.result.data).toMatchObject({
-      entityId: "og-post-my-blog-post",
+      entityId: "cover-my-blog-post",
       status: "generating",
       jobId: "queued-image-job",
       attachment: {
         mediaType: "image/png",
-        url: "/api/chat/attachments/image?id=og-post-my-blog-post",
+        url: "/api/chat/attachments/image?id=cover-my-blog-post",
         source: {
           entityType: "image",
-          entityId: "og-post-my-blog-post",
-          attachmentType: "og-image",
+          entityId: "cover-my-blog-post",
+          attachmentType: "generated",
         },
       },
     });
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]).toMatchObject({
-      type: "image:image-render-source",
+      type: "image:image-generate",
       data: {
-        sourceEntityType: "post",
-        sourceEntityId: "my-blog-post",
-        attachmentType: "og-image",
-        imageId: "og-post-my-blog-post",
+        prompt: "Generate an OG image for this post",
         targetEntityType: "post",
         targetEntityId: "my-blog-post",
-        targetImageField: "ogImageId",
       },
     });
   });

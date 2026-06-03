@@ -176,7 +176,12 @@ async function resolveImageForHead(
     imageId,
     options.pipelineContext.services.entityService,
   );
-  return image ? toAbsoluteUrl(image.url, options.siteUrl) : undefined;
+  if (!image) return undefined;
+  // A data: URL is unusable as an og:image/twitter:image — social crawlers
+  // reject it — so omit the head image rather than emit broken metadata. The
+  // pre-resolved branch above returns a real optimized file URL.
+  if (image.url.startsWith("data:")) return undefined;
+  return toAbsoluteUrl(image.url, options.siteUrl);
 }
 
 function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {

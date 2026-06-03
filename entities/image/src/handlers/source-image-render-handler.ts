@@ -105,8 +105,12 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Creating image entity",
       });
 
+      // Derive the data-URL format from the attachment's declared mime type
+      // rather than hardcoding "png", so it stays correct if providers ever
+      // emit another image format.
+      const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), "png"),
+        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
         title: data.imageId,
         sourceEntityType: data.sourceEntityType,
         sourceEntityId: data.sourceEntityId,
@@ -114,23 +118,21 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         ...(data.dedupKey && { dedupKey: data.dedupKey }),
       });
 
-      const existingImage = await this.context.entityService.getEntity({
+      // Replace in place rather than delete-then-create: a delete followed by a
+      // failed create would leave the target with no image at all. updateEntity
+      // recomputes the content hash, so replacing the content is sufficient.
+      const entity = { ...entityData, id: data.imageId };
+      const existing = await this.context.entityService.getEntity<Image>({
         entityType: "image",
         id: data.imageId,
       });
-      if (existingImage) {
-        await this.context.entityService.deleteEntity({
-          entityType: "image",
-          id: data.imageId,
+      if (existing) {
+        await this.context.entityService.updateEntity<Image>({
+          entity: { ...existing, ...entity },
         });
+      } else {
+        await this.context.entityService.createEntity({ entity });
       }
-
-      await this.context.entityService.createEntity({
-        entity: {
-          ...entityData,
-          id: data.imageId,
-        },
-      });
 
       await this.updateTarget(data, data.imageId);
 

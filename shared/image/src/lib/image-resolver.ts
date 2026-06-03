@@ -16,14 +16,14 @@ const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 export async function resolveImage(
   imageId: string,
   entityService: ICoreEntityService,
-): Promise<ResolvedImage | null> {
+): Promise<ResolvedImage | undefined> {
   const image = await entityService.getEntity<Image>({
     entityType: "image",
     id: imageId,
   });
 
   if (!image) {
-    return null;
+    return undefined;
   }
 
   return {
@@ -114,6 +114,5 @@ export async function resolveEntityCoverImage(
     return undefined;
   }
 
-  const resolved = await resolveImage(coverImageId, entityService);
-  return resolved ?? undefined;
+  return resolveImage(coverImageId, entityService);
 }

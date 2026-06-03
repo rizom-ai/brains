@@ -1,16 +1,8 @@
-import { mkdtemp, rm } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
 import type { AttachmentProvider, EntityPluginContext } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
-import { screenshotPng as defaultScreenshotPng } from "@brains/media-renderer";
-import type {
-  ScreenshotPngOptions,
-  ViewportOptions,
-} from "@brains/media-renderer";
 import {
-  startStaticRenderServer,
-  writeMediaRenderPage,
+  renderOgImagePng,
+  type ScreenshotPng,
 } from "@brains/media-page-composer";
 import { parseMarkdown, slugify } from "@brains/utils";
 import type { Product } from "../schemas/product";
@@ -21,31 +13,18 @@ import {
   type ProductOgImageTemplateData,
 } from "./og-image-template";
 
-const OG_VIEWPORT: ViewportOptions = { width: 1200, height: 630 };
-const DEFAULT_TIMEOUT_MS = 60_000;
-
-export type ScreenshotPng = (
-  url: string,
-  viewport: ViewportOptions,
-  options?: ScreenshotPngOptions,
-) => Promise<Buffer>;
-
 export interface ProductOgImageAttachmentProviderDeps {
   screenshotPng?: ScreenshotPng;
 }
 
 export class ProductOgImageAttachmentProvider implements AttachmentProvider {
-  private readonly screenshotPng: ScreenshotPng;
-
   constructor(
     private readonly context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    deps: ProductOgImageAttachmentProviderDeps = {},
-  ) {
-    this.screenshotPng = deps.screenshotPng ?? defaultScreenshotPng;
-  }
+    private readonly deps: ProductOgImageAttachmentProviderDeps = {},
+  ) {}
 
   async resolve(request: {
     sourceEntityType: string;
@@ -65,46 +44,36 @@ export class ProductOgImageAttachmentProvider implements AttachmentProvider {
     });
     if (!product) return undefined;
 
-    const ogContent = buildOgImageContent(product, {
-      brandLabel: this.resolveBrandLabel(),
+    const { frontmatter, content: body } = parseMarkdown(product.content);
+    const parsed = productFrontmatterSchema.parse(frontmatter);
+    const tagline = extractSection(body, "Tagline");
+    const brandLabel = this.resolveBrandLabel();
+    const content: ProductOgImageTemplateData = {
+      name: parsed.name,
+      availability: parsed.availability,
+      ...(tagline ? { tagline } : {}),
+      ...(brandLabel ? { brandLabel } : {}),
+    };
+
+    const png = await renderOgImagePng({
+      mediaPath: `/_media/og/product/${product.id}`,
+      template: productOgImageTemplate,
+      content,
+      title: content.name,
+      themeMode: "light",
+      themeCSS: this.context.themeCSS,
+      tmpPrefix: "brain-product-og-image-",
+      ...(this.deps.screenshotPng && {
+        screenshotPng: this.deps.screenshotPng,
+      }),
     });
-    const outputDir = await mkdtemp(join(tmpdir(), "brain-product-og-image-"));
 
-    try {
-      const page = await writeMediaRenderPage({
-        outputDir,
-        mediaPath: `/_media/og/product/${product.id}`,
-        template: productOgImageTemplate,
-        format: "image",
-        content: ogContent,
-        siteConfig: { title: ogContent.name, themeMode: "light" },
-        themeCSS: this.context.themeCSS,
-      });
-
-      const server = await startStaticRenderServer({ rootDir: outputDir });
-      try {
-        const png = await this.screenshotPng(
-          server.urlFor(page.urlPath),
-          OG_VIEWPORT,
-          {
-            timeoutMs: DEFAULT_TIMEOUT_MS,
-            fullPage: false,
-            omitBackground: false,
-          },
-        );
-
-        return {
-          type: "image",
-          data: png,
-          mimeType: "image/png",
-          filename: `${getProductSlug(product)}-og.png`,
-        };
-      } finally {
-        await server.close();
-      }
-    } finally {
-      await rm(outputDir, { recursive: true, force: true });
-    }
+    return {
+      type: "image",
+      data: png,
+      mimeType: "image/png",
+      filename: `${getProductSlug(product)}-og.png`,
+    };
   }
 
   private resolveBrandLabel(): string | undefined {
@@ -114,21 +83,6 @@ export class ProductOgImageAttachmentProvider implements AttachmentProvider {
     const name = this.context.identity.getProfile().name.trim();
     return name.length > 0 ? name : undefined;
   }
-}
-
-function buildOgImageContent(
-  product: Product,
-  options: { brandLabel?: string | undefined } = {},
-): ProductOgImageTemplateData {
-  const { frontmatter, content } = parseMarkdown(product.content);
-  const parsed = productFrontmatterSchema.parse(frontmatter);
-  const tagline = extractSection(content, "Tagline");
-  return {
-    name: parsed.name,
-    availability: parsed.availability,
-    ...(tagline ? { tagline } : {}),
-    ...(options.brandLabel ? { brandLabel: options.brandLabel } : {}),
-  };
 }
 
 function extractSection(content: string, heading: string): string | undefined {

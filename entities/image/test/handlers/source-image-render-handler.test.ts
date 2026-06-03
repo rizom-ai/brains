@@ -32,7 +32,6 @@ describe("SourceImageRenderJobHandler", () => {
       returns: {
         entityService: {
           getEntity: target,
-          createEntity: { entityId: "og-post-post-1", jobId: "job-1" },
         },
         attachmentsResolve: async () => ({
           type: "image" as const,
@@ -66,7 +65,9 @@ describe("SourceImageRenderJobHandler", () => {
       imageId: "og-post-post-1",
       reused: false,
     });
-    expect(context.entityService.createEntity).toHaveBeenCalledWith({
+    // Replace in place (not delete-then-create) when the image already exists,
+    // so a failure can't leave the target without an image.
+    expect(context.entityService.updateEntity).toHaveBeenCalledWith({
       entity: expect.objectContaining({
         id: "og-post-post-1",
         entityType: "image",

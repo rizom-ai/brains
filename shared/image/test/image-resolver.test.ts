@@ -42,7 +42,7 @@ describe("resolveImage", () => {
 
     const result = await resolveImage("hero-image", entityService);
 
-    expect(result).not.toBeNull();
+    expect(result).toBeDefined();
     expect(result?.url).toBe(TINY_PNG_DATA_URL);
     expect(result?.alt).toBe("A hero image for the blog");
     expect(result?.title).toBe("Hero Image");
@@ -50,7 +50,7 @@ describe("resolveImage", () => {
     expect(result?.height).toBe(1);
   });
 
-  it("should return null for non-existent image", async () => {
+  it("should return undefined for non-existent image", async () => {
     const entityService = createMockEntityService({
       entityTypes: ["image"],
       returns: { getEntity: null },
@@ -58,7 +58,7 @@ describe("resolveImage", () => {
 
     const result = await resolveImage("non-existent", entityService);
 
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
   });
 
   it("should call getEntity with correct parameters", async () => {

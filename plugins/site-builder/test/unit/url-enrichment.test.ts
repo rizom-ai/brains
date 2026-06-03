@@ -403,6 +403,43 @@ coverImageId: cover-image
       );
     });
 
+    it("should omit ogImageUrl when it would only resolve to a data URL", async () => {
+      // No imageBuildService → the head image falls back to direct resolution,
+      // which yields a data: URL. A data URI is unusable as an og:image (social
+      // crawlers reject it), so ogImageUrl must be omitted rather than emitted.
+      const content = `---
+title: Test Post
+slug: test-post
+ogImageId: og-image
+---
+# Test Post`;
+      const entity = createTestEntity("post", {
+        id: "post-1",
+        content,
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: { slug: "test-post", title: "Test Post" },
+      });
+
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
+        id: "og-image",
+        entityType: "image",
+        content: "data:image/png;base64,abc123",
+        contentHash: "hash",
+        visibility: "public",
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: {},
+      });
+
+      const result = z
+        .object({ ogImageUrl: z.never().optional(), url: z.string() })
+        .parse(await enrich(entity));
+
+      expect(result.ogImageUrl).toBeUndefined();
+      expect(result.url).toBe("/posts/test-post");
+    });
+
     it("should not add coverImageUrl when entity has no coverImageId", async () => {
       // Entity without coverImageId
       const content = `---

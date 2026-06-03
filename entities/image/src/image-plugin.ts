@@ -66,10 +66,6 @@ function getPredictedImageId(input: {
   return slugify(title);
 }
 
-function isOgImageRequest(prompt: string): boolean {
-  return /\b(og|open graph|social preview|social card)\b/i.test(prompt);
-}
-
 async function getSourceDedupKey(
   context: EntityPluginContext,
   input: {
@@ -149,41 +145,6 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     const from = input.from;
     if (from) {
       return this.enqueueSourceImageRender({ ...input, from }, context);
-    }
-
-    if (
-      prompt &&
-      targetEntityType &&
-      targetEntityId &&
-      !imageTargetTitle &&
-      isOgImageRequest(prompt)
-    ) {
-      const resolved = await resolveEntityOrError(
-        context.entityService,
-        targetEntityType,
-        targetEntityId,
-        this.logger,
-        "Target entity",
-      );
-      if (!resolved.ok) {
-        return {
-          kind: "handled",
-          result: { success: false, error: resolved.error },
-        };
-      }
-
-      return this.enqueueSourceImageRender(
-        {
-          ...input,
-          from: {
-            sourceEntityType: targetEntityType,
-            sourceEntityId: resolved.entity.id,
-            attachmentType: "og-image",
-          },
-          targetEntityId: resolved.entity.id,
-        },
-        context,
-      );
     }
 
     if (!targetEntityType || !targetEntityId || imageTargetTitle) {
