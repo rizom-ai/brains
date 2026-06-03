@@ -215,6 +215,11 @@ export interface CreateFromAttachmentInput {
   attachmentType: string;
 }
 
+export interface CreateFromUploadInput {
+  kind: string;
+  id: string;
+}
+
 export interface CreateInput {
   entityType: string;
   prompt?: string;
@@ -222,6 +227,7 @@ export interface CreateInput {
   content?: string;
   url?: string;
   from?: CreateFromAttachmentInput;
+  fromUpload?: CreateFromUploadInput;
   replace?: boolean;
   targetEntityType?: string;
   targetEntityId?: string;

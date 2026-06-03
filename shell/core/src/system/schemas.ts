@@ -44,6 +44,11 @@ const createFromAttachmentInputSchema = z.object({
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
+const createFromUploadInputSchema = z.object({
+  kind: z.string().min(1).describe("Runtime upload ref kind"),
+  id: z.string().min(1).describe("Runtime upload ID"),
+});
+
 export const createInputSchema = z.object({
   entityType: z.string().describe("Entity type to create"),
   title: z.string().optional().describe("Title for the entity"),
@@ -59,6 +64,11 @@ export const createInputSchema = z.object({
     .optional()
     .describe(
       "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+    ),
+  fromUpload: createFromUploadInputSchema
+    .optional()
+    .describe(
+      "Promote an accessible runtime upload ref, e.g. a web-chat-upload PDF to document or image upload to image",
     ),
   replace: z
     .boolean()

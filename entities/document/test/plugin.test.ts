@@ -82,6 +82,109 @@ describe("DocumentPlugin", () => {
     });
   });
 
+  it("promotes an uploaded PDF into a durable document entity", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000101",
+      });
+    const record = await store.save({
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      content: Buffer.from("%PDF-1.4\n%EOF\n"),
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("document");
+    if (!interceptor) throw new Error("document interceptor not registered");
+
+    const result = await interceptor(
+      {
+        entityType: "document",
+        title: "Brief",
+        fromUpload: record.ref,
+      },
+      { interfaceType: "web-chat", userId: "operator" },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: "brief",
+          status: "created",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=brief",
+            downloadUrl: "/api/chat/attachments/document?id=brief&download=1",
+            filename: "brief.pdf",
+            source: {
+              entityType: "document",
+              entityId: "brief",
+              attachmentType: "uploaded",
+            },
+          },
+        },
+      },
+    });
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "document",
+      id: "brief",
+    });
+    expect(entity?.content).toBe(
+      `data:application/pdf;base64,${Buffer.from("%PDF-1.4\n%EOF\n").toString("base64")}`,
+    );
+    expect(entity?.metadata).toMatchObject({
+      title: "Brief",
+      filename: "brief.pdf",
+      mimeType: "application/pdf",
+      attachmentType: "uploaded",
+    });
+  });
+
+  it("rejects non-PDF upload promotion to document", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000102",
+      });
+    const record = await store.save({
+      filename: "notes.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("hello"),
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("document");
+    if (!interceptor) throw new Error("document interceptor not registered");
+
+    const result = await interceptor(
+      { entityType: "document", fromUpload: record.ref },
+      { interfaceType: "web-chat", userId: "operator" },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error: "Only PDF uploads can be promoted to document entities",
+      },
+    });
+  });
+
   it("returns an existing deduped document id for system_create attachment cards", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
     await harness.installPlugin(new DocumentPlugin());

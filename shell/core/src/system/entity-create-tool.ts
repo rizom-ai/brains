@@ -105,12 +105,56 @@ function validateCoverImageSupport(
   };
 }
 
+function parseMessageMetadata(
+  metadata: unknown,
+): Record<string, unknown> | null {
+  if (typeof metadata === "string") {
+    try {
+      const parsed = JSON.parse(metadata) as unknown;
+      return isRecord(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isRecord(metadata) ? metadata : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function isUploadRefInConversation(
+  services: SystemServices,
+  input: { kind: string; id: string },
+  conversationId: string | undefined,
+): Promise<boolean> {
+  if (!conversationId) return false;
+  const messages = await services.conversationService.getMessages(
+    conversationId,
+    { limit: 100 },
+  );
+  for (const message of messages) {
+    const metadata = parseMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      if (source["kind"] === input.kind && source["id"] === input.id) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, or from for source attachment saves.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, from for source attachment saves, or fromUpload for explicit runtime upload promotion.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
@@ -118,6 +162,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
       const from = input.from;
+      const fromUpload = input.fromUpload;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -130,12 +175,27 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
         };
 
-      if (!content && !prompt && !url && !from)
+      if (!content && !prompt && !url && !from && !fromUpload)
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), or 'from' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'from' (source attachment create), or 'fromUpload' (runtime upload promotion), or a supported combination.",
         };
+
+      if (fromUpload) {
+        const hasAccess = await isUploadRefInConversation(
+          services,
+          fromUpload,
+          toolContext.channelId,
+        );
+        if (!hasAccess) {
+          return {
+            success: false,
+            error:
+              "Upload ref is not accessible in this conversation or no longer exists.",
+          };
+        }
+      }
 
       if (content && hasVisibilityFrontmatter(content)) {
         const requestedVisibility = extractVisibilityFromMarkdown(content);
@@ -159,6 +219,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(content && { content }),
         ...(url && { url }),
         ...(from && { from }),
+        ...(fromUpload && { fromUpload }),
         ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),
@@ -239,7 +300,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
         };
       }
 

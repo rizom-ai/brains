@@ -48,6 +48,114 @@ describe("ImagePlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
+  it("should promote an uploaded image into a durable image entity", async () => {
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000201",
+      });
+    const pngBytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const record = await store.save({
+      filename: "robot.png",
+      mediaType: "image/png",
+      content: pngBytes,
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        title: "Robot",
+        fromUpload: record.ref,
+      },
+      {
+        interfaceType: "web-chat",
+        userId: "operator",
+      },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: "robot",
+          status: "created",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=robot",
+            downloadUrl: "/api/chat/attachments/image?id=robot&download=1",
+            filename: "robot.png",
+            source: {
+              entityType: "image",
+              entityId: "robot",
+              attachmentType: "uploaded",
+            },
+          },
+        },
+      },
+    });
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "image",
+      id: "robot",
+    });
+    expect(entity?.content).toBe(
+      `data:image/png;base64,${pngBytes.toString("base64")}`,
+    );
+    expect(entity?.metadata).toMatchObject({
+      title: "Robot",
+      alt: "Robot",
+      format: "png",
+    });
+  });
+
+  it("should reject non-image upload promotion to image", async () => {
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000202",
+      });
+    const record = await store.save({
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      content: Buffer.from("%PDF-1.4\n%EOF\n"),
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      { entityType: "image", fromUpload: record.ref },
+      {
+        interfaceType: "web-chat",
+        userId: "operator",
+      },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error: "Only image uploads can be promoted to image entities",
+      },
+    });
+  });
+
   it("should enqueue prompt-based image generation via interceptor", async () => {
     const interceptor = harness
       .getEntityRegistry()

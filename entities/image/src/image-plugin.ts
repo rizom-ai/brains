@@ -26,6 +26,12 @@ const imageConfigSchema = z.object({
 
 type ImageConfig = z.infer<typeof imageConfigSchema>;
 
+const webChatUploadsScope = {
+  namespace: "web-chat",
+  refKind: "web-chat-upload",
+  routePath: "/api/chat/uploads",
+};
+
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
@@ -55,6 +61,23 @@ function getPredictedImageId(input: {
   return slugify(title);
 }
 
+function toDataUrl(mediaType: string, content: Buffer): string {
+  return `data:${mediaType};base64,${content.toString("base64")}`;
+}
+
+function getUploadTitle(input: CreateInput, filename: string): string {
+  const title = normalizeText(input.title);
+  if (title) return title;
+  const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
+  return withoutExt || filename;
+}
+
+function isSupportedImageMediaType(mediaType: string): boolean {
+  return ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
+    mediaType,
+  );
+}
+
 function buildPredictedImageAttachment(imageId: string): {
   mediaType: "image/png";
   url: string;
@@ -76,6 +99,35 @@ function buildPredictedImageAttachment(imageId: string): {
       entityType: "image",
       entityId: imageId,
       attachmentType: "generated",
+    },
+  };
+}
+
+function buildUploadedImageAttachment(input: {
+  mediaType: string;
+  entityId: string;
+  filename: string;
+}): {
+  mediaType: string;
+  url: string;
+  downloadUrl: string;
+  filename: string;
+  source: {
+    entityType: "image";
+    entityId: string;
+    attachmentType: "uploaded";
+  };
+} {
+  const encodedId = encodeURIComponent(input.entityId);
+  return {
+    mediaType: input.mediaType,
+    url: `/api/chat/attachments/image?id=${encodedId}`,
+    downloadUrl: `/api/chat/attachments/image?id=${encodedId}&download=1`,
+    filename: input.filename,
+    source: {
+      entityType: "image",
+      entityId: input.entityId,
+      attachmentType: "uploaded",
     },
   };
 }
@@ -106,6 +158,10 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     _executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
+    if (input.fromUpload) {
+      return this.promoteUpload(input, context);
+    }
+
     const prompt = getImageGenerationPrompt(input);
     const targetEntityType = normalizeText(input.targetEntityType);
     const targetEntityId = normalizeText(input.targetEntityId);
@@ -197,6 +253,89 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
         },
       },
     };
+  }
+
+  private async promoteUpload(
+    input: CreateInput,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    const fromUpload = input.fromUpload;
+    if (fromUpload?.kind !== webChatUploadsScope.refKind) {
+      return {
+        kind: "handled",
+        result: { success: false, error: "Unsupported upload ref kind" },
+      };
+    }
+
+    let upload;
+    try {
+      upload = await context.uploads
+        .scoped(webChatUploadsScope)
+        .read(fromUpload.id);
+    } catch {
+      return {
+        kind: "handled",
+        result: { success: false, error: "Upload ref not found" },
+      };
+    }
+
+    if (!isSupportedImageMediaType(upload.record.mediaType)) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error: "Only image uploads can be promoted to image entities",
+        },
+      };
+    }
+
+    const title = getUploadTitle(input, upload.record.filename);
+    const id = slugify(title);
+    if (!id) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error:
+            "Could not derive an image id from the uploaded filename. Provide a title.",
+        },
+      };
+    }
+
+    const now = new Date().toISOString();
+    const imageEntity = imageAdapter.createImageEntity({
+      dataUrl: toDataUrl(upload.record.mediaType, upload.content),
+      title,
+    });
+    const result = await context.entityService.createEntity({
+      entity: {
+        id,
+        ...imageEntity,
+        created: now,
+        updated: now,
+      },
+      options: { deduplicateId: true },
+    });
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: result.entityId,
+          status: "created",
+          attachment: buildUploadedImageAttachment({
+            mediaType: upload.record.mediaType,
+            entityId: result.entityId,
+            filename: upload.record.filename,
+          }),
+        },
+      },
+    };
+  }
+
+  protected override async getInstructions(): Promise<string> {
+    return `For durable image saves from uploaded images, call system_create with entityType: "image" and fromUpload: { kind: "web-chat-upload", id: <upload ID> } only after the user explicitly asks to save/import/promote the upload. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. For AI-generated images, call system_create with entityType: "image" and a prompt.`;
   }
 
   protected override createGenerationHandler(

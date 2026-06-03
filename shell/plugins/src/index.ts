@@ -142,6 +142,7 @@ export {
 export type {
   BaseEntity,
   CreateCoverImageInput,
+  CreateFromUploadInput,
   CreateInput,
   CreateExecutionContext,
   CreateResult,
