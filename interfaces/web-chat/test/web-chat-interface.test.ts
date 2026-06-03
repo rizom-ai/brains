@@ -1400,6 +1400,240 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("selects a prior upload by filename when follow-up text names it", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
+    const firstImage = pngBytes();
+    const secondImage = pngBytes();
+    const firstForm = new FormData();
+    firstForm.set(
+      "file",
+      new File([firstImage], "first-robot.png", { type: "image/png" }),
+    );
+    const secondForm = new FormData();
+    secondForm.set(
+      "file",
+      new File([secondImage], "second-robot.png", { type: "image/png" }),
+    );
+    const firstUploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: firstForm,
+      }),
+    );
+    const secondUploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: secondForm,
+      }),
+    );
+    const firstUpload = (await firstUploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+    const secondUpload = (await secondUploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "data-upload", data: { ref: firstUpload.ref } }],
+            },
+            {
+              role: "user",
+              parts: [{ type: "data-upload", data: { ref: secondUpload.ref } }],
+            },
+            {
+              role: "user",
+              content: "describe second-robot.png",
+              parts: [{ type: "text", text: "describe second-robot.png" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "second-robot.png",
+        mediaType: "image/png",
+        data: secondImage,
+        sizeBytes: secondImage.byteLength,
+        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
+      },
+    ]);
+  });
+
+  it("selects the most recent matching upload when follow-up text asks for it", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
+    const firstImage = pngBytes();
+    const secondImage = pngBytes();
+    const firstForm = new FormData();
+    firstForm.set(
+      "file",
+      new File([firstImage], "first-robot.png", { type: "image/png" }),
+    );
+    const secondForm = new FormData();
+    secondForm.set(
+      "file",
+      new File([secondImage], "second-robot.png", { type: "image/png" }),
+    );
+    const firstUploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: firstForm,
+      }),
+    );
+    const secondUploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: secondForm,
+      }),
+    );
+    const firstUpload = (await firstUploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+    const secondUpload = (await secondUploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "data-upload", data: { ref: firstUpload.ref } }],
+            },
+            {
+              role: "user",
+              parts: [{ type: "data-upload", data: { ref: secondUpload.ref } }],
+            },
+            {
+              role: "user",
+              content: "describe the most recent image",
+              parts: [{ type: "text", text: "describe the most recent image" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "second-robot.png",
+        mediaType: "image/png",
+        data: secondImage,
+        sizeBytes: secondImage.byteLength,
+        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
+      },
+    ]);
+  });
+
+  it("reuses prior stored upload metadata after session reload", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const shell = harness.getMockShell();
+    const messagesByConversation: Record<string, Message[]> = {
+      "test-conversation": [],
+    };
+    shell.setConversationService(
+      makeFixedConversationService({
+        conversations: [makeConversation("test-conversation", "web-chat")],
+        messagesByConversation,
+      }),
+    );
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
+    const image = pngBytes();
+    const form = new FormData();
+    form.set(
+      "file",
+      new File([image], "stored-robot.png", { type: "image/png" }),
+    );
+    const uploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+    messagesByConversation["test-conversation"] = [
+      makeMessage(
+        "message-1",
+        "test-conversation",
+        "user",
+        "",
+        JSON.stringify({
+          attachments: [
+            {
+              kind: "file",
+              filename: "stored-robot.png",
+              mediaType: "image/png",
+              sizeBytes: image.byteLength,
+              source: { kind: "web-chat-upload", id: upload.ref.id },
+            },
+          ],
+        }),
+      ),
+    ];
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              content: "describe that picture",
+              parts: [{ type: "text", text: "describe that picture" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "stored-robot.png",
+        mediaType: "image/png",
+        data: image,
+        sizeBytes: image.byteLength,
+        source: { kind: "web-chat-upload", id: upload.ref.id },
+      },
+    ]);
+  });
+
   it("asks which prior upload to use when a follow-up reference is ambiguous", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);

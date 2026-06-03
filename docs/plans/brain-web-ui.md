@@ -234,11 +234,13 @@ registry/service. Web chat scopes that service to `web-chat` and keeps the same
 path normalization (`brain-data` → sibling `data`) is centralized for future
 interfaces/plugins.
 
+Deferred upload reuse now handles common disambiguation paths: exact filename
+references (for example, "describe second-robot.png"), positional references
+such as "the most recent image", and stored upload metadata after session reload.
+Ambiguous same-type references still ask the operator which upload to use.
+
 Remaining upload work:
 
-- harden deferred upload reuse with broader reference matching and any needed
-  cross-client/reload coverage beyond the initial single-match and ambiguous
-  multi-upload tests;
 - add an explicit promotion contract, likely `system_create({ entityType:
 "document" | "image", fromUpload: { kind: "web-chat-upload", id } })`, with
   conversation/operator scoping so only accessible uploads can be promoted;

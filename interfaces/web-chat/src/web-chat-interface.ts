@@ -3224,8 +3224,31 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     if (candidates.length === 0) return null;
+
+    const namedCandidates = candidates.filter((candidate) =>
+      this.messageNamesUpload(message, candidate.filename),
+    );
+    if (namedCandidates.length === 1) return { attachments: namedCandidates };
+    if (namedCandidates.length > 1) {
+      return this.buildUploadClarificationResponse(namedCandidates);
+    }
+
     if (candidates.length === 1) return { attachments: candidates };
 
+    const positionalCandidate = this.selectPositionalUploadCandidate(
+      message,
+      candidates,
+    );
+    if (positionalCandidate !== null) {
+      return { attachments: [positionalCandidate] };
+    }
+
+    return this.buildUploadClarificationResponse(candidates);
+  }
+
+  private buildUploadClarificationResponse(
+    candidates: ChatAttachment[],
+  ): Pick<ParsedUserInput, "attachments" | "responseText"> {
     return {
       attachments: [],
       responseText: `Which upload should I use? ${candidates
@@ -3244,10 +3267,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       ) || /\b(?:what(?:'s| is)|tell me)\b/.test(normalized);
     if (!hasAction) return null;
 
-    if (/\b(image|picture|photo|pic|screenshot)\b/.test(normalized)) {
+    if (
+      /\b(image|picture|photo|pic|screenshot)\b/.test(normalized) ||
+      /\.(?:png|jpe?g|webp|gif)\b/.test(normalized)
+    ) {
       return "image";
     }
-    if (/\bpdf\b/.test(normalized)) return "pdf";
+    if (/\bpdf\b/.test(normalized) || /\.pdf\b/.test(normalized)) return "pdf";
     if (/\b(file|attachment|upload|it|that|this)\b/.test(normalized)) {
       return "upload";
     }
@@ -3320,6 +3346,24 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       attachment.mediaType === "application/pdf" ||
       attachment.filename.toLowerCase().endsWith(".pdf")
     );
+  }
+
+  private messageNamesUpload(message: string, filename: string): boolean {
+    return message.toLowerCase().includes(filename.toLowerCase());
+  }
+
+  private selectPositionalUploadCandidate(
+    message: string,
+    candidates: ChatAttachment[],
+  ): ChatAttachment | null {
+    const normalized = message.toLowerCase();
+    if (/\b(first|oldest|earliest)\b/.test(normalized)) {
+      return candidates[0] ?? null;
+    }
+    if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
+      return candidates.at(-1) ?? null;
+    }
+    return null;
   }
 
   private getPartType(part: unknown): string | undefined {
