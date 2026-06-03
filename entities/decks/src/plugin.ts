@@ -23,6 +23,8 @@ import {
   DeckCarouselAttachmentProvider,
   type DeckCarouselAttachmentProviderDeps,
 } from "./attachments/carousel-provider";
+import { DECK_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
+import { DeckOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
@@ -33,6 +35,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   readonly schema = deckAdapter.schema;
   readonly adapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
+  private unregisterOgImageAttachmentProvider: (() => void) | undefined;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(private readonly deps: DecksPluginDeps = {}) {
@@ -71,6 +74,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
+    this.registerOgImageAttachmentProvider(context);
     this.registerEvalHandlers(context);
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(
@@ -83,6 +87,8 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   protected override async onShutdown(): Promise<void> {
     this.unregisterCarouselAttachmentProvider?.();
     this.unregisterCarouselAttachmentProvider = undefined;
+    this.unregisterOgImageAttachmentProvider?.();
+    this.unregisterOgImageAttachmentProvider = undefined;
     this.unregisterAtprotoProjection?.();
     this.unregisterAtprotoProjection = undefined;
   }
@@ -185,6 +191,16 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
       "deck",
       DECK_CAROUSEL_ATTACHMENT_TYPE,
       new DeckCarouselAttachmentProvider(context, deps),
+    );
+  }
+
+  private registerOgImageAttachmentProvider(
+    context: EntityPluginContext,
+  ): void {
+    this.unregisterOgImageAttachmentProvider = context.attachments.register(
+      "deck",
+      DECK_OG_IMAGE_ATTACHMENT_TYPE,
+      new DeckOgImageAttachmentProvider(context),
     );
   }
 

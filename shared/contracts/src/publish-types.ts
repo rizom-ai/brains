@@ -9,12 +9,19 @@ export interface PublishImageData {
   mimeType: string;
 }
 
-export interface PublishMediaData {
-  type: "document";
-  data: Buffer;
-  mimeType: "application/pdf";
-  filename: string;
-}
+export type PublishMediaData =
+  | {
+      type: "document";
+      data: Buffer;
+      mimeType: "application/pdf";
+      filename: string;
+    }
+  | {
+      type: "image";
+      data: Buffer;
+      mimeType: "image/png";
+      filename: string;
+    };
 
 export interface PublishProvider {
   name: string;

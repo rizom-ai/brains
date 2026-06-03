@@ -7,7 +7,7 @@ import {
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
-import { setCoverImageId } from "@brains/image";
+import { setCoverImageId, setOgImageId } from "@brains/image";
 import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -26,7 +26,7 @@ function applyFieldUpdates(
   entity: BaseEntity,
   fields: Record<string, unknown>,
 ): BaseEntity {
-  const { visibility, coverImageId, ...metadataFields } = fields;
+  const { visibility, coverImageId, ogImageId, ...metadataFields } = fields;
   const nextVisibility =
     visibility === undefined
       ? entity.visibility
@@ -39,8 +39,15 @@ function applyFieldUpdates(
       )
     : entity;
 
+  const withOgImage = Object.hasOwn(fields, "ogImageId")
+    ? setOgImageId(
+        withCoverImage,
+        typeof ogImageId === "string" ? ogImageId : null,
+      )
+    : withCoverImage;
+
   return {
-    ...withCoverImage,
+    ...withOgImage,
     visibility: nextVisibility,
     metadata: { ...entity.metadata, ...metadataFields },
   };

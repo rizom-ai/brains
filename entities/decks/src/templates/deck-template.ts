@@ -1,12 +1,14 @@
 import { z } from "@brains/utils";
 import { PresentationLayout } from "@brains/ui-library";
 import { createTemplate } from "@brains/templates";
+import { enrichedDeckSchema } from "../schemas/deck";
 
 /**
  * Schema for deck template data
  */
 export const deckTemplateSchema = z.object({
   markdown: z.string().describe("Markdown content with slide separators (---)"),
+  deck: enrichedDeckSchema.optional(),
 });
 
 export type DeckTemplateData = z.infer<typeof deckTemplateSchema>;

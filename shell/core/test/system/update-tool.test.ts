@@ -277,6 +277,23 @@ describe("system_update tool", () => {
     expect(updated?.metadata).not.toHaveProperty("coverImageId");
   });
 
+  it("writes ogImageId field updates to frontmatter", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: { ogImageId: "social-card" },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "linkedin-update" },
+    });
+    const updated = services.getEntities().get("linkedin-update");
+    expect(updated?.content).toContain("ogImageId: social-card");
+    expect(updated?.metadata).not.toHaveProperty("ogImageId");
+  });
+
   it("clears coverImageId through system_update fields", async () => {
     services.addEntities([
       {

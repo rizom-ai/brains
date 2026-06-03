@@ -4,6 +4,8 @@ import {
   resolveEntityCoverImage,
   extractCoverImageId,
   setCoverImageId,
+  extractOgImageId,
+  setOgImageId,
 } from "../src/lib/image-resolver";
 import type { Image } from "../src/schemas/image";
 import type { BaseEntity } from "@brains/entity-service";
@@ -128,6 +130,59 @@ title: Test
     const result = extractCoverImageId(entity);
 
     expect(result).toBeUndefined();
+  });
+});
+
+describe("extractOgImageId", () => {
+  it("should extract ogImageId from frontmatter", () => {
+    const entity = createMockEntity(`---
+ogImageId: post-og-image
+title: Test
+---
+
+# Test Content`);
+
+    const result = extractOgImageId(entity);
+
+    expect(result).toBe("post-og-image");
+  });
+
+  it("should return undefined when no ogImageId is present", () => {
+    const entity = createMockEntity(`---
+title: Test
+---
+
+# Test Content`);
+
+    expect(extractOgImageId(entity)).toBeUndefined();
+  });
+});
+
+describe("setOgImageId", () => {
+  it("sets OG image ID on entity", () => {
+    const entity = createMockEntity(`---
+title: Test Post
+---
+
+Content here`);
+
+    const result = setOgImageId(entity, "new-og-image");
+
+    expect(result.id).toBe("test-entity-1");
+    expect(extractOgImageId(result)).toBe("new-og-image");
+  });
+
+  it("removes OG image when null", () => {
+    const entity = createMockEntity(`---
+title: Test Post
+ogImageId: old-image
+---
+
+Content here`);
+
+    const result = setOgImageId(entity, null);
+
+    expect(extractOgImageId(result)).toBeUndefined();
   });
 });
 

@@ -294,6 +294,11 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         `No attachment provider found for ${data.sourceEntityType}/${data.attachmentType}`,
       );
     }
+    if (attachment.type !== "document") {
+      throw new Error(
+        `Attachment provider returned ${attachment.type}; expected document`,
+      );
+    }
     return attachment;
   }
 

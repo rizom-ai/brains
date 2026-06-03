@@ -25,6 +25,7 @@ export const blogPostFrontmatterSchema = z.object({
   excerpt: z.string(),
   author: z.string(),
   coverImageId: z.string().optional(), // References an image entity by ID
+  ogImageId: z.string().optional(), // References an image entity for social/OG metadata
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
   // SEO metadata (optional, with smart fallbacks)
@@ -98,6 +99,7 @@ export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
   listLabel: z.string().optional(),
   seriesUrl: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
   coverImageSrcset: z.string().optional(),
@@ -115,6 +117,7 @@ export const templateBlogPostSchema = blogPostWithDataSchema.extend({
   listLabel: z.string(),
   seriesUrl: z.string().optional(), // URL to series detail page (if post is in a series)
   coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
   coverImageSrcset: z.string().optional(),

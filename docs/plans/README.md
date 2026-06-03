@@ -34,6 +34,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Content, sync, and generation
 
 - [OG images and printable PDFs on the media rendering substrate](./og-images-pdf-carousels.md) — proposed follow-up for OG images plus printable post/project/product PDFs
+- [Content pipeline publish assets](./content-pipeline-publish-assets.md) — proposed abstraction for auto-generating publish-adjacent assets such as OG images
 
 ### Auth, users, CMS, and HTTP
 

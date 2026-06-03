@@ -11,6 +11,7 @@ import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
+import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
 import {
   getDistillableEntityContent,
   isImageDataUrl,
@@ -42,6 +43,16 @@ function getImageGenerationPrompt(input: CreateInput): string | undefined {
   return undefined;
 }
 
+function getPredictedSourceImageId(input: {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+}): string {
+  const prefix =
+    input.attachmentType === "og-image" ? "og" : input.attachmentType;
+  return slugify(`${prefix}-${input.sourceEntityType}-${input.sourceEntityId}`);
+}
+
 function getPredictedImageId(input: {
   prompt: string;
   title?: string;
@@ -55,7 +66,30 @@ function getPredictedImageId(input: {
   return slugify(title);
 }
 
-function buildPredictedImageAttachment(imageId: string): {
+function isOgImageRequest(prompt: string): boolean {
+  return /\b(og|open graph|social preview|social card)\b/i.test(prompt);
+}
+
+async function getSourceDedupKey(
+  context: EntityPluginContext,
+  input: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
+  },
+): Promise<string> {
+  const base = `${input.attachmentType}:${input.sourceEntityType}:${input.sourceEntityId}:resolved-attachment`;
+  const source = await context.entityService.getEntity({
+    entityType: input.sourceEntityType,
+    id: input.sourceEntityId,
+  });
+  return source ? `${base}:${source.contentHash}` : base;
+}
+
+function buildPredictedImageAttachment(
+  imageId: string,
+  attachmentType = "generated",
+): {
   mediaType: "image/png";
   url: string;
   downloadUrl: string;
@@ -63,7 +97,7 @@ function buildPredictedImageAttachment(imageId: string): {
   source: {
     entityType: "image";
     entityId: string;
-    attachmentType: "generated";
+    attachmentType: string;
   };
 } {
   const encodedId = encodeURIComponent(imageId);
@@ -75,7 +109,7 @@ function buildPredictedImageAttachment(imageId: string): {
     source: {
       entityType: "image",
       entityId: imageId,
-      attachmentType: "generated",
+      attachmentType,
     },
   };
 }
@@ -111,6 +145,46 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     const targetEntityId = normalizeText(input.targetEntityId);
     const imageTargetTitle =
       targetEntityType === this.entityType ? targetEntityId : undefined;
+
+    const from = input.from;
+    if (from) {
+      return this.enqueueSourceImageRender({ ...input, from }, context);
+    }
+
+    if (
+      prompt &&
+      targetEntityType &&
+      targetEntityId &&
+      !imageTargetTitle &&
+      isOgImageRequest(prompt)
+    ) {
+      const resolved = await resolveEntityOrError(
+        context.entityService,
+        targetEntityType,
+        targetEntityId,
+        this.logger,
+        "Target entity",
+      );
+      if (!resolved.ok) {
+        return {
+          kind: "handled",
+          result: { success: false, error: resolved.error },
+        };
+      }
+
+      return this.enqueueSourceImageRender(
+        {
+          ...input,
+          from: {
+            sourceEntityType: targetEntityType,
+            sourceEntityId: resolved.entity.id,
+            attachmentType: "og-image",
+          },
+          targetEntityId: resolved.entity.id,
+        },
+        context,
+      );
+    }
 
     if (!targetEntityType || !targetEntityId || imageTargetTitle) {
       if (!prompt) return { kind: "continue", input };
@@ -199,6 +273,92 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
   }
 
+  private async enqueueSourceImageRender(
+    input: CreateInput & { from: NonNullable<CreateInput["from"]> },
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    const sourceEntityType = normalizeText(input.from.sourceEntityType);
+    const sourceEntityId = normalizeText(input.from.sourceEntityId);
+    const attachmentType = normalizeText(input.from.attachmentType);
+    if (!sourceEntityType || !sourceEntityId || !attachmentType) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error:
+            "Image source requires sourceEntityType, sourceEntityId, and attachmentType",
+        },
+      };
+    }
+
+    const source = await resolveEntityOrError(
+      context.entityService,
+      sourceEntityType,
+      sourceEntityId,
+      this.logger,
+      "Source entity",
+    );
+    if (!source.ok) {
+      return {
+        kind: "handled",
+        result: { success: false, error: source.error },
+      };
+    }
+
+    const targetEntityType = normalizeText(input.targetEntityType);
+    const targetEntityId = normalizeText(input.targetEntityId);
+    let resolvedTargetId: string | undefined;
+    if (targetEntityType && targetEntityId) {
+      const target = await resolveEntityOrError(
+        context.entityService,
+        targetEntityType,
+        targetEntityId,
+        this.logger,
+        "Target entity",
+      );
+      if (!target.ok) {
+        return {
+          kind: "handled",
+          result: { success: false, error: target.error },
+        };
+      }
+      resolvedTargetId = target.entity.id;
+    }
+
+    const sourceInput = {
+      sourceEntityType,
+      sourceEntityId: source.entity.id,
+      attachmentType,
+    };
+    const dedupKey = await getSourceDedupKey(context, sourceInput);
+    const imageId = getPredictedSourceImageId(sourceInput);
+    const jobId = await context.jobs.enqueue({
+      type: "image-render-source",
+      data: {
+        ...sourceInput,
+        imageId,
+        dedupKey,
+        ...(input.replace === true && { replace: true }),
+        ...(targetEntityType && { targetEntityType }),
+        ...(resolvedTargetId && { targetEntityId: resolvedTargetId }),
+        ...(attachmentType === "og-image" && { targetImageField: "ogImageId" }),
+      },
+    });
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: imageId,
+          status: "generating",
+          jobId,
+          attachment: buildPredictedImageAttachment(imageId, attachmentType),
+        },
+      },
+    };
+  }
+
   protected override createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler {
@@ -214,6 +374,10 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   ): Promise<void> {
     const handler = new ImageGenerationJobHandler(context, this.logger);
     context.jobs.registerHandler("image-generate", handler);
+    context.jobs.registerHandler(
+      "image-render-source",
+      new SourceImageRenderJobHandler(context, this.logger),
+    );
   }
 }
 

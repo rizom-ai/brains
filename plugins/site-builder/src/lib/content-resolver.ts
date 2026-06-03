@@ -9,6 +9,7 @@ import type { BuildPipelineContext } from "./build-pipeline-context";
 export interface SiteContentResolverOptions {
   pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
+  siteUrl?: string | undefined;
 }
 
 export async function resolveSiteSectionContent(
@@ -50,6 +51,7 @@ export async function resolveSiteSectionContent(
   return enrichWithUrls(content, {
     pipelineContext: options.pipelineContext,
     imageBuildService: options.imageBuildService,
+    siteUrl: options.siteUrl,
     urlGenerator: EntityUrlGenerator.getInstance(),
   });
 }

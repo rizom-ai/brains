@@ -44,6 +44,8 @@ import { ProjectDataSource } from "./datasources/project-datasource";
 import { createProjectAtprotoProjection } from "./atproto-projection";
 import { ProjectPrintableAttachmentProvider } from "./attachments/printable-provider";
 import { PROJECT_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
+import { ProjectOgImageAttachmentProvider } from "./attachments/og-image-provider";
+import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import packageJson from "../package.json";
 
 const projectListSchema = z.object({
@@ -70,6 +72,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   readonly adapter = projectAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
+  private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
   constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
@@ -167,6 +170,11 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
       PROJECT_PRINTABLE_ATTACHMENT_TYPE,
       new ProjectPrintableAttachmentProvider(context),
     );
+    this.unregisterOgImageAttachmentProvider = context.attachments.register(
+      "project",
+      PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
+      new ProjectOgImageAttachmentProvider(context),
+    );
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
     this.unregisterAtprotoProjection =
@@ -178,6 +186,8 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   protected override async onShutdown(): Promise<void> {
     this.unregisterPrintableAttachmentProvider?.();
     this.unregisterPrintableAttachmentProvider = undefined;
+    this.unregisterOgImageAttachmentProvider?.();
+    this.unregisterOgImageAttachmentProvider = undefined;
     this.unregisterAtprotoProjection?.();
     this.unregisterAtprotoProjection = undefined;
   }
