@@ -186,7 +186,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         const hasAccess = await isUploadRefInConversation(
           services,
           fromUpload,
-          toolContext.channelId,
+          toolContext.conversationId ?? toolContext.channelId,
         );
         if (!hasAccess) {
           return {

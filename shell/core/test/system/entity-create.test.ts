@@ -244,6 +244,7 @@ describe("system_create tool", () => {
     context?: {
       interfaceType?: string;
       userId?: string;
+      conversationId?: string;
       channelId?: string;
       channelName?: string;
       userPermissionLevel?: UserPermissionLevel;
@@ -254,6 +255,9 @@ describe("system_create tool", () => {
     return tool.handler(input, {
       interfaceType: context?.interfaceType ?? "test",
       userId: context?.userId ?? "test",
+      ...(context?.conversationId
+        ? { conversationId: context.conversationId }
+        : {}),
       ...(context?.channelId ? { channelId: context.channelId } : {}),
       ...(context?.channelName ? { channelName: context.channelName } : {}),
       ...(context?.userPermissionLevel
@@ -379,6 +383,76 @@ describe("system_create tool", () => {
         id: "upload-00000000-0000-4000-8000-000000000301",
       },
     });
+  });
+
+  it("should use conversationId for upload access when channelId is not the conversation id", async () => {
+    let capturedInput: CreateInput | undefined;
+    services = createMockSystemServices({
+      conversationService: {
+        getMessages: async (conversationId: string) =>
+          conversationId === "web-conversation-1"
+            ? [
+                {
+                  id: "message-1",
+                  conversationId: "web-conversation-1",
+                  role: "user",
+                  content: "",
+                  metadata: {
+                    attachments: [
+                      {
+                        kind: "file",
+                        filename: "brief.pdf",
+                        mediaType: "application/pdf",
+                        source: {
+                          kind: "web-chat-upload",
+                          id: "upload-00000000-0000-4000-8000-000000000303",
+                        },
+                      },
+                    ],
+                  },
+                  created: new Date().toISOString(),
+                },
+              ]
+            : [],
+      } as unknown as MockServices["conversationService"],
+    });
+    tools = createSystemTools(services);
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input) => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { status: "created", entityId: "brief" },
+          },
+        };
+      },
+    );
+
+    const result = await exec(
+      {
+        entityType: "document",
+        fromUpload: {
+          kind: "web-chat-upload",
+          id: "upload-00000000-0000-4000-8000-000000000303",
+        },
+      },
+      {
+        interfaceType: "web-chat",
+        conversationId: "web-conversation-1",
+        channelId: "web-channel-1",
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "brief" },
+    });
+    expect(capturedInput?.fromUpload?.id).toBe(
+      "upload-00000000-0000-4000-8000-000000000303",
+    );
   });
 
   it("should reject upload refs outside the current conversation", async () => {

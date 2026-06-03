@@ -8,7 +8,7 @@ This service provides conversation tracking and message storage, enabling memory
 
 ## Features
 
-- Conversation management by interface and channel
+- Conversation management by session/conversation, interface, and channel
 - Message storage with role tracking
 - Conversation context retrieval
 - Memory tools for MCP
@@ -49,13 +49,25 @@ const messages = await service.getMessages(conversationId, { limit: 20 });
 const conv = await service.getConversation(conversationId);
 ```
 
+## Conversation vs channel scope
+
+`conversationId` identifies the persisted transcript/session. Use it for
+conversation-scoped reads and writes, including message history, conversation
+memory, and access checks for artifacts referenced from prior messages.
+
+`channelId` identifies the transport routing destination, such as a Discord or
+Matrix channel/room. Some interfaces, including web chat, may use the same value
+for both fields, but runtime code should not rely on that coincidence. When a
+legacy call path only provides `channelId`, conversation-scoped code may fall
+back to it for backward compatibility.
+
 ## Schema
 
 ### Conversations Table
 
 - `id` - Unique identifier
 - `interfaceType` - Interface type (cli, matrix, mcp)
-- `channelId` - Channel identifier
+- `channelId` - Transport channel identifier; may equal `id` for single-session interfaces
 - `created` - Creation timestamp
 - `lastActive` - Last activity timestamp
 

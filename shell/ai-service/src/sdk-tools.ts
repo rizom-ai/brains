@@ -42,6 +42,7 @@ export function convertToSDKTools(
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           userId: "agent-user",
+          conversationId: contextInfo.conversationId,
           channelId: contextInfo.channelId ?? contextInfo.conversationId,
           ...(contextInfo.channelName && {
             channelName: contextInfo.channelName,

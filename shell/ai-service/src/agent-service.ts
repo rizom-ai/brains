@@ -544,6 +544,7 @@ export class AgentService implements IAgentService {
     const context: ToolContext = {
       interfaceType,
       userId: "agent-user",
+      conversationId,
       channelId,
       channelName,
       userPermissionLevel,
