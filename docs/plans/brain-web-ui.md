@@ -228,10 +228,14 @@ assistant asks which one. This deferred consumption remains context-only:
 describing or summarizing a prior upload must not promote it to an entity unless
 the operator also asks to save/import it.
 
+Runtime upload storage now lives behind the shared plugin-context upload
+registry/service. Web chat scopes that service to `web-chat` and keeps the same
+`web-chat-upload` ref contract and `/api/chat/uploads` routes, while runtime
+path normalization (`brain-data` → sibling `data`) is centralized for future
+interfaces/plugins.
+
 Remaining upload work:
 
-- expose runtime upload storage through a shared upload registry/service rather
-  than a web-chat-only helper;
 - harden deferred upload reuse with broader reference matching and any needed
   cross-client/reload coverage beyond the initial single-match and ambiguous
   multi-upload tests;

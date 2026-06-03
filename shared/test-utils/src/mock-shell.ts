@@ -1,6 +1,8 @@
 import {
   AttachmentRegistry,
+  RuntimeUploadRegistry,
   createAttachmentsNamespace,
+  createRuntimeUploadsNamespace,
 } from "@brains/plugins";
 import type {
   IShell,
@@ -131,9 +133,12 @@ function createDefaultMockConversationService(): IConversationService {
 export function createMockShell(options: MockShellOptions = {}): MockShell {
   const logger = options.logger ?? createSilentLogger("MockShell");
 
-  // Fresh attachment registry per mock shell — keeps tests isolated from each
-  // other and from the process-wide singleton.
+  // Fresh registries per mock shell — keeps tests isolated from each other and
+  // from process-wide singleton state.
   const attachmentRegistry = AttachmentRegistry.createFresh();
+  const runtimeUploadRegistry = RuntimeUploadRegistry.createFresh({
+    dataDir: options.dataDir ?? "/tmp/mock-shell-test-data",
+  });
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -589,6 +594,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         listFormats: () => [],
       }) as unknown as RenderService,
     getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
+    getRuntimeUploadRegistry: () =>
+      createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getConversationService: () => conversationService,
     getMCPService: () =>
       ({

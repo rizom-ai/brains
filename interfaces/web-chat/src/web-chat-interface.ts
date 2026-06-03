@@ -10,7 +10,11 @@ import {
   type SendMessageWithIdRequest,
   type StructuredChatCard,
   type WebRouteDefinition,
+  RuntimeUploadStoreError,
   type ChatAttachment,
+  type ResolvedRuntimeUpload,
+  type RuntimeUploadRecord,
+  type RuntimeUploadStore,
   type ToolActivityEvent,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -20,17 +24,14 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { basename, dirname, join } from "path";
+import { join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
 import { stripInternalEntityMemoryNote } from "./display-content";
 import {
-  WebChatUploadStore,
-  WebChatUploadStoreError,
+  createWebChatUploadStoreScope,
   webChatUploadIdPattern,
   webChatUploadRefKind,
-  type ResolvedWebChatUpload,
-  type WebChatUploadRecord,
 } from "./upload-store";
 import {
   defaultWebChatUploadFilename,
@@ -3370,24 +3371,17 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  private getUploadStore(): WebChatUploadStore {
-    return new WebChatUploadStore({ dataDir: this.getUploadRuntimeDataDir() });
-  }
-
-  private getUploadRuntimeDataDir(): string {
-    const contentDataDir = this.getContext().dataDir;
-    return basename(contentDataDir) === "brain-data"
-      ? join(dirname(contentDataDir), "data")
-      : contentDataDir;
+  private getUploadStore(): RuntimeUploadStore {
+    return this.getContext().uploads.scoped(createWebChatUploadStoreScope());
   }
 
   private async readStoredUpload(
     uploadId: string,
-  ): Promise<ResolvedWebChatUpload | Response> {
+  ): Promise<ResolvedRuntimeUpload | Response> {
     try {
       return await this.getUploadStore().read(uploadId);
     } catch (error) {
-      if (error instanceof WebChatUploadStoreError) {
+      if (error instanceof RuntimeUploadStoreError) {
         return this.uploadStoreErrorToResponse(error);
       }
       throw error;
@@ -3395,7 +3389,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   }
 
   private validateStoredUpload(
-    record: WebChatUploadRecord,
+    record: RuntimeUploadRecord,
     content: Buffer,
   ): ValidatedWebChatUpload | Response {
     const validated = validateWebChatUpload({
@@ -3435,7 +3429,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     };
   }
 
-  private uploadStoreErrorToResponse(error: WebChatUploadStoreError): Response {
+  private uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
     switch (error.code) {
       case "invalid_ref":
         return new Response("Invalid upload ref", { status: 400 });

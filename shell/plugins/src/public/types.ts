@@ -306,6 +306,52 @@ export interface IPermissionsNamespace {
   ): void;
 }
 
+export interface RuntimeUploadRecord {
+  id: string;
+  ref: { kind: string; id: string };
+  filename: string;
+  mediaType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
+  url: string;
+  downloadUrl: string;
+}
+
+export interface ResolvedRuntimeUpload {
+  record: RuntimeUploadRecord;
+  content: Buffer;
+}
+
+export interface SaveRuntimeUploadInput {
+  filename: string;
+  mediaType: string;
+  content: Buffer;
+}
+
+export interface RuntimeUploadScopeOptions {
+  namespace: string;
+  refKind: string;
+  routePath: string;
+  retentionMs?: number | undefined;
+  maxCount?: number | undefined;
+}
+
+export interface RuntimeUploadStore {
+  save(input: SaveRuntimeUploadInput): Promise<RuntimeUploadRecord>;
+  read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+  readRecord(uploadId: string): Promise<RuntimeUploadRecord>;
+  toResponseBody(record: RuntimeUploadRecord): RuntimeUploadResponseBody;
+  prune(): Promise<void>;
+  getUploadDir(uploadId: string): string;
+}
+
+export interface IRuntimeUploadsNamespace {
+  scoped(options: RuntimeUploadScopeOptions): RuntimeUploadStore;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -323,6 +369,7 @@ export interface BasePluginContext {
   readonly eval: IEvalNamespace;
   readonly insights: IInsightsNamespace;
   readonly permissions: IPermissionsNamespace;
+  readonly uploads: IRuntimeUploadsNamespace;
 }
 
 export interface IPromptsNamespace {
