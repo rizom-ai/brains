@@ -8,6 +8,7 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
+import type { SiteImageLookup } from "@brains/site-engine";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils";
 
@@ -301,6 +302,105 @@ coverImageId: project-cover-image
       expect(result.coverImageWidth).toBe(800);
       expect(result.coverImageHeight).toBe(600);
       expect(result.url).toBe("/projects/test-project");
+    });
+
+    it("should resolve absolute ogImageUrl from ogImageId before coverImageId", async () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageId: cover-image
+ogImageId: og-image
+---
+# Test Post`;
+      const entity = createTestEntity("post", {
+        id: "post-1",
+        content,
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: { slug: "test-post", title: "Test Post" },
+      });
+
+      const imageBuildService: SiteImageLookup = {
+        get: (id: string) =>
+          id === "og-image"
+            ? {
+                src: "/images/og-image.png",
+                width: 1200,
+                height: 630,
+              }
+            : id === "cover-image"
+              ? {
+                  src: "/images/cover-image.png",
+                  width: 800,
+                  height: 600,
+                }
+              : undefined,
+      };
+
+      const result = z
+        .object({
+          ogImageUrl: z.string(),
+          coverImageUrl: z.string(),
+          url: z.string(),
+        })
+        .parse(
+          await enrichWithUrls(entity, {
+            pipelineContext: {
+              services: createSiteBuilderServices(mockContext),
+              entityDisplay,
+            },
+            imageBuildService,
+            siteUrl: "https://example.com",
+            urlGenerator: EntityUrlGenerator.getInstance(),
+          }),
+        );
+
+      expect(result.ogImageUrl).toBe("https://example.com/images/og-image.png");
+      expect(result.coverImageUrl).toBe("/images/cover-image.png");
+      expect(result.url).toBe("/posts/test-post");
+    });
+
+    it("should fall back to cover image for ogImageUrl", async () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageId: cover-image
+---
+# Test Post`;
+      const entity = createTestEntity("post", {
+        id: "post-1",
+        content,
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: { slug: "test-post", title: "Test Post" },
+      });
+
+      const imageBuildService: SiteImageLookup = {
+        get: (id: string) =>
+          id === "cover-image"
+            ? {
+                src: "/images/cover-image.png",
+                width: 800,
+                height: 600,
+              }
+            : undefined,
+      };
+
+      const result = z.object({ ogImageUrl: z.string() }).parse(
+        await enrichWithUrls(entity, {
+          pipelineContext: {
+            services: createSiteBuilderServices(mockContext),
+            entityDisplay,
+          },
+          imageBuildService,
+          siteUrl: "https://example.com/",
+          urlGenerator: EntityUrlGenerator.getInstance(),
+        }),
+      );
+
+      expect(result.ogImageUrl).toBe(
+        "https://example.com/images/cover-image.png",
+      );
     });
 
     it("should not add coverImageUrl when entity has no coverImageId", async () => {

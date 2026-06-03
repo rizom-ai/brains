@@ -8,12 +8,16 @@ Implemented in this branch:
 
 - `post/printable`, `project/printable`, and `product/printable` PDF attachment providers
 - durable printable PDFs through `system_create({ entityType: "document", from: { ..., attachmentType: "printable" } })`
-- agent/eval guidance for printable PDF saves and regeneration
+- blog post OG image rendering through `system_create({ entityType: "image", from: { sourceEntityType: "post", attachmentType: "og-image" } })`
+- `ogImageId` frontmatter support for posts and site-builder fallback to `coverImageId`
+- absolute public OG/Twitter image URL enrichment for rendered site pages
+- agent/eval guidance for printable PDF saves/regeneration and blog OG image generation
 
 Still remaining:
 
-- dedicated OG image media templates and capture path
-- `ogImageId` fallback plumbing for public `<Head />` metadata
+- manual preview-site smoke of generated OG image metadata
+- automatic publish-time/backfill asset generation, tracked separately in [Content pipeline publish assets](./content-pipeline-publish-assets.md)
+- extend OG image templates/providers to projects/products if desired
 
 Already available from previous work:
 
@@ -222,23 +226,23 @@ Add instructions for these natural-language intents:
 
 ## Implementation order
 
-1. OG fallback plumbing:
+1. OG fallback plumbing: ✅
    - add selected `ogImageId` schemas/frontmatter
    - resolve `ogImageId` → absolute URL before `<Head />`
    - test fallback order and absolute URL output
-2. OG rendering:
+2. OG rendering: ✅ for blog posts
    - add first OG media template for blog posts
    - capture 1200×630 PNG
    - persist as image entity
    - verify media pages stay private/noindex
-3. Blog printable PDF:
+3. Blog printable PDF: ✅
    - add `post/printable` provider
    - add print media template
    - add unit tests and a Rover eval
-4. Project/product printable PDFs:
+4. Project/product printable PDFs: ✅
    - add providers/templates for project and product entity packages
    - add unit tests and Rover evals
-5. Agent/eval polish:
+5. Agent/eval polish: ✅ for blog OG + printable PDF flows
    - update system and plugin instructions
    - add evals for OG image generation and printable PDF save/regenerate
 

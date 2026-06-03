@@ -19,6 +19,10 @@ export interface CreateImageInput {
   dataUrl: string;
   title: string;
   alt?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  attachmentType?: string;
+  dedupKey?: string;
 }
 
 /**
@@ -94,6 +98,12 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
         format: finalFormat,
         width: dimensions?.width ?? 0,
         height: dimensions?.height ?? 0,
+        ...(input.sourceEntityType && {
+          sourceEntityType: input.sourceEntityType,
+        }),
+        ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+        ...(input.attachmentType && { attachmentType: input.attachmentType }),
+        ...(input.dedupKey && { dedupKey: input.dedupKey }),
       },
     };
   }

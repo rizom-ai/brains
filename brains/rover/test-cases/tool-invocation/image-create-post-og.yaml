@@ -1,0 +1,32 @@
+id: tool-invocation-image-create-post-og
+name: Generate Blog Post OG Image
+description: "Verifies system_create renders a blog post OG/social preview image and targets ogImageId"
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - blog
+  - image
+  - media
+  - og-image
+
+turns:
+  - userMessage: "Generate an OG image for blog post 'resilience-in-distributed-systems'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "image"
+        targetEntityType: "post"
+        targetEntityId: "resilience-in-distributed-systems"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

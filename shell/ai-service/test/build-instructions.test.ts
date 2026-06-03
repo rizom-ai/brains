@@ -167,13 +167,13 @@ describe("buildInstructions", () => {
     );
   });
 
-  it("should distinguish standalone image generation from cover image targeting", () => {
+  it("should distinguish standalone image generation from entity-attached image targeting", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
       'For standalone image requests like "generate an image of a robot", call `system_create({ entityType: "image", prompt: "..." })` without `targetEntityType` or `targetEntityId`.',
     );
     expect(instructions).toContain(
-      "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image on an existing entity.",
+      "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image, OG image, or other entity-attached image on an existing entity.",
     );
   });
 

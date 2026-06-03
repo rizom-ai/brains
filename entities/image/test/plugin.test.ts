@@ -223,6 +223,111 @@ describe("ImagePlugin", () => {
     });
   });
 
+  it("should enqueue source-rendered OG image generation with canonical target id", async () => {
+    harness.addEntities([
+      {
+        id: "my-blog-post",
+        entityType: "post",
+        content: "---\ntitle: My Blog Post\nslug: my-blog-post\n---\nContent",
+        metadata: { title: "My Blog Post", slug: "my-blog-post" },
+      },
+    ]);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        prompt: "Generate an OG image for this post",
+        targetEntityType: "post",
+        targetEntityId: "My Blog Post",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    if (result.kind !== "handled") throw new Error("Expected handled result");
+    if (!result.result.success) throw new Error(result.result.error);
+    expect(result.result.data).toMatchObject({
+      entityId: "og-post-my-blog-post",
+      status: "generating",
+      jobId: "queued-image-job",
+      attachment: {
+        mediaType: "image/png",
+        url: "/api/chat/attachments/image?id=og-post-my-blog-post",
+        source: {
+          entityType: "image",
+          entityId: "og-post-my-blog-post",
+          attachmentType: "og-image",
+        },
+      },
+    });
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:image-render-source",
+      data: {
+        sourceEntityType: "post",
+        sourceEntityId: "my-blog-post",
+        attachmentType: "og-image",
+        imageId: "og-post-my-blog-post",
+        targetEntityType: "post",
+        targetEntityId: "my-blog-post",
+        targetImageField: "ogImageId",
+      },
+    });
+  });
+
+  it("should enqueue source-rendered image generation from explicit source", async () => {
+    harness.addEntities([
+      {
+        id: "my-blog-post",
+        entityType: "post",
+        content: "---\ntitle: My Blog Post\nslug: my-blog-post\n---\nContent",
+        metadata: { title: "My Blog Post", slug: "my-blog-post" },
+      },
+    ]);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        from: {
+          sourceEntityType: "post",
+          sourceEntityId: "my-blog-post",
+          attachmentType: "og-image",
+        },
+        targetEntityType: "post",
+        targetEntityId: "my-blog-post",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    if (result.kind !== "handled") throw new Error("Expected handled result");
+    if (!result.result.success) throw new Error(result.result.error);
+    expect(result.result.data.entityId).toBe("og-post-my-blog-post");
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:image-render-source",
+      data: {
+        sourceEntityType: "post",
+        sourceEntityId: "my-blog-post",
+        attachmentType: "og-image",
+        imageId: "og-post-my-blog-post",
+      },
+    });
+  });
+
   it("should enqueue targeted cover image generation with canonical target id", async () => {
     harness.addEntities([
       {
