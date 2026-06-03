@@ -8,7 +8,7 @@ import {
   type AtprotoPdsClientLike,
 } from "../src";
 
-function createContext(): ServicePluginContext {
+function createShellWithA2A(): ReturnType<typeof createMockShell> {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.registerEndpoint({
     pluginId: "a2a",
@@ -26,7 +26,11 @@ function createContext(): ServicePluginContext {
     priority: 20,
     visibility: "public",
   });
-  return createServicePluginContext(shell, "atproto");
+  return shell;
+}
+
+function createContext(): ServicePluginContext {
+  return createServicePluginContext(createShellWithA2A(), "atproto");
 }
 
 describe("AT Protocol brain card publishing", () => {
@@ -71,11 +75,10 @@ describe("AT Protocol brain card publishing", () => {
       brainDid: "did:web:brain.example.com",
       anchorDid: "did:plc:anchor",
       siteUrl: "https://brain.example.com/",
-      a2aEndpoint: "https://brain.example.com/a2a",
+      skills: [],
+      model: "test-brain",
     });
-    expect(result.record.capabilities).toContain("model:test-brain");
-    expect(result.record.capabilities).toContain("endpoint:A2A");
-    expect(result.record.capabilities).toContain("interaction:Chat");
+    expect(result.record.version).toBeDefined();
     expect(createRecord).not.toHaveBeenCalled();
   });
 
@@ -100,6 +103,7 @@ describe("AT Protocol brain card publishing", () => {
         identifier: "brain.example.com",
         appPassword: "secret",
         brainDid: "did:web:brain.example.com",
+        anchorDid: "did:plc:anchor",
       },
       {
         createPdsClient: (): AtprotoPdsClientLike => ({
@@ -132,12 +136,9 @@ describe("AT Protocol brain card publishing", () => {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
+      anchorDid: "did:plc:anchor",
     });
-    const capabilities = await plugin.register(
-      createMockShell({
-        domain: "brain.example.com",
-      }),
-    );
+    const capabilities = await plugin.register(createShellWithA2A());
 
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "atproto_publish_card",
@@ -152,7 +153,13 @@ describe("AT Protocol brain card publishing", () => {
       success: true,
       data: {
         dryRun: true,
-        record: { $type: "ai.rizom.brain.card", name: "Test Brain" },
+        record: {
+          $type: "ai.rizom.brain.card",
+          name: "Test Brain",
+          siteUrl: "https://brain.example.com/",
+          brainDid: "did:web:brain.example.com",
+          anchorDid: "did:plc:anchor",
+        },
       },
     });
   });

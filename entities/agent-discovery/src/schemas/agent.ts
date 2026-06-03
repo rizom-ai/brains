@@ -36,10 +36,6 @@ export const agentFrontmatterSchema = anchorProfileBodySchema
     cardUri: z.string().optional().describe("ATProto brain card URI"),
     cardCid: z.string().optional().describe("ATProto brain card CID"),
     a2aEndpoint: z.string().url().optional().describe("A2A endpoint URL"),
-    capabilities: z
-      .array(z.string())
-      .optional()
-      .describe("Advertised ATProto brain-card capabilities"),
 
     // Relationship
     status: agentStatusSchema,
@@ -68,7 +64,6 @@ export const agentMetadataSchema = agentFrontmatterSchema
     cardUri: z.string().optional(),
     cardCid: z.string().optional(),
     a2aEndpoint: z.string().url().optional(),
-    capabilities: z.array(z.string()).optional(),
   });
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;

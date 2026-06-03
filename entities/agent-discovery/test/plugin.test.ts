@@ -38,10 +38,19 @@ const testBrainCardPayload = {
     $type: "ai.rizom.brain.card" as const,
     name: "Peer Brain",
     description: "A peer brain discovered through ATProto.",
-    brainDid: "did:web:peer.example.com",
     siteUrl: "https://peer.example.com",
-    a2aEndpoint: "https://peer.example.com/a2a",
-    capabilities: ["model:ranger", "endpoint:A2A", "skill:research"],
+    model: "ranger",
+    version: "0.2.0-test",
+    brainDid: "did:web:peer.example.com",
+    anchorDid: "did:plc:anchor",
+    skills: [
+      {
+        id: "research",
+        name: "Research",
+        description: "Research topics for collaborators.",
+        tags: ["research"],
+      },
+    ],
     createdAt: "2026-06-02T12:00:00.000Z",
     updatedAt: "2026-06-02T12:30:00.000Z",
   },
@@ -311,7 +320,8 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.metadata.url).toBe("https://peer.example.com");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
     expect(agent?.metadata.cardUri).toBe(testBrainCardPayload.uri);
-    expect(agent?.metadata.a2aEndpoint).toBe("https://peer.example.com/a2a");
+    expect(agent?.metadata.a2aEndpoint).toBeUndefined();
+    expect(agent?.content).toContain("Research");
     expect(events).toEqual([
       expect.objectContaining({
         agentId: "peer.example.com",

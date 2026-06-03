@@ -53,8 +53,8 @@ Secrets should be supplied through environment variables or app secret configura
 - `pdsEndpoint`: PDS service endpoint. Defaults to `https://bsky.social`.
 - `identifier`: PDS login identifier, usually a handle or account DID.
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
-- `brainDid`: optional public brain DID. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
-- `anchorDid`: optional human/operator DID included in custom records.
+- `brainDid`: public brain DID. Required for `atproto_publish_card`. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
+- `anchorDid`: public human/operator DID. Required for `atproto_publish_card`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 
 ## Tools
@@ -71,7 +71,7 @@ Input:
 
 ### `atproto_publish_card`
 
-Upserts this brain's capability card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
+Upserts this brain's public discovery card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
 
 Input:
 
@@ -80,6 +80,20 @@ Input:
 ```
 
 Use `dryRun: true` to inspect the record without writing to the PDS.
+
+The card is intentionally not a full A2A Agent Card. It is the public ATProto listing for a Rizom brain and requires:
+
+- `name`
+- `description`
+- `siteUrl`
+- `skills`
+- `model`
+- `version`
+- `brainDid`
+- `anchorDid`
+- `createdAt`
+
+The operational A2A Agent Card is derived conventionally from `siteUrl` at `/.well-known/agent-card.json`.
 
 ### `atproto_publish_entity`
 
@@ -170,7 +184,7 @@ The registry rejects collection/lexicon mismatches. Before dry-run results or PD
 
 Use a test PDS/Bluesky account and an app password.
 
-1. Configure `identifier`, `repoDid` or handle, `brainDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+1. Configure `identifier`, `repoDid` or handle, `brainDid`, `anchorDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
 2. Start a brain with the atproto plugin enabled.
 3. Confirm DID document if using `did:web`:
    - `GET https://<brain-domain>/.well-known/did.json`

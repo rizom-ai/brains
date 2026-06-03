@@ -5,7 +5,7 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage, type FetchLike } from "@brains/utils";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
@@ -35,6 +35,7 @@ export interface AtprotoPluginDeps {
     appPassword: string;
   }) => AtprotoPdsClientLike;
   projectionRegistry?: AtprotoProjectionRegistry;
+  fetch?: FetchLike;
 }
 
 export interface PublishBrainCardOptions {
@@ -224,22 +225,24 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       );
     }
 
-    const client = this.createPublicPdsClient();
-    if (!client.getRecord) {
-      throw new Error("AT Protocol PDS client does not support record reads");
-    }
-
     const seenRecords = new Set<string>();
     const results: DiscoverBrainCardResult[] = [];
     for (const repo of repos) {
       try {
+        const resolved = await this.resolveRepoPdsEndpoint(repo);
+        const client = this.createPublicPdsClient(resolved.pdsEndpoint);
+        if (!client.getRecord) {
+          throw new Error(
+            "AT Protocol PDS client does not support record reads",
+          );
+        }
         const record = await client.getRecord({
-          repo,
+          repo: resolved.repoDid,
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
         validateAtprotoRecord(brainCardLexicon, record.value);
-        const repoDid = parseAtUriRepo(record.uri) ?? repo;
+        const repoDid = parseAtUriRepo(record.uri) ?? resolved.repoDid;
         const recordKey = `${repoDid}:${record.uri}:${record.cid}`;
         if (seenRecords.has(recordKey)) {
           results.push({
@@ -433,20 +436,100 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     return null;
   }
 
-  private createPublicPdsClient(): AtprotoPdsClientLike {
+  private createPublicPdsClient(pdsEndpoint: string): AtprotoPdsClientLike {
     if (this.deps.createPdsClient) {
       return this.deps.createPdsClient({
-        pdsEndpoint: this.config.pdsEndpoint,
+        pdsEndpoint,
         identifier: this.config.identifier ?? "",
         appPassword: this.config.appPassword ?? "",
       });
     }
 
     return new AtprotoPdsClient({
-      pdsEndpoint: this.config.pdsEndpoint,
+      pdsEndpoint,
       identifier: this.config.identifier ?? "",
       appPassword: this.config.appPassword ?? "",
     });
+  }
+
+  private async resolveRepoPdsEndpoint(repo: string): Promise<{
+    repoDid: string;
+    pdsEndpoint: string;
+  }> {
+    const repoDid = repo.startsWith("did:")
+      ? repo
+      : await this.resolveHandleToDid(repo);
+    if (!repoDid) {
+      throw new Error(`Could not resolve AT Protocol repo: ${repo}`);
+    }
+    const pdsEndpoint = await this.resolveDidToPdsEndpoint(repoDid);
+    if (!pdsEndpoint) {
+      throw new Error(`Could not resolve AT Protocol PDS for repo: ${repoDid}`);
+    }
+    return { repoDid, pdsEndpoint };
+  }
+
+  private async resolveHandleToDid(
+    handle: string,
+  ): Promise<string | undefined> {
+    const url = new URL(
+      "/xrpc/com.atproto.identity.resolveHandle",
+      this.config.pdsEndpoint,
+    );
+    url.searchParams.set("handle", handle);
+    const response = await this.fetch(url.toString());
+    if (!response.ok) return undefined;
+    const body = (await response.json()) as unknown;
+    if (typeof body !== "object" || body === null || !("did" in body)) {
+      return undefined;
+    }
+    return typeof body.did === "string" ? body.did : undefined;
+  }
+
+  private async resolveDidToPdsEndpoint(
+    did: string,
+  ): Promise<string | undefined> {
+    const didDocument = did.startsWith("did:plc:")
+      ? await this.fetchJson(`https://plc.directory/${encodeURIComponent(did)}`)
+      : did.startsWith("did:web:")
+        ? await this.fetchJson(didWebDocumentUrl(did))
+        : undefined;
+    if (typeof didDocument !== "object" || didDocument === null) {
+      return undefined;
+    }
+    const services = (didDocument as { service?: unknown }).service;
+    if (!Array.isArray(services)) return undefined;
+    const pdsService = services.find(
+      (
+        service,
+      ): service is {
+        id?: unknown;
+        type?: unknown;
+        serviceEndpoint?: unknown;
+      } => {
+        return (
+          typeof service === "object" &&
+          service !== null &&
+          ((service as { id?: unknown }).id === "#atproto_pds" ||
+            (service as { type?: unknown }).type ===
+              "AtprotoPersonalDataServer")
+        );
+      },
+    );
+    return typeof pdsService?.serviceEndpoint === "string"
+      ? pdsService.serviceEndpoint
+      : undefined;
+  }
+
+  private async fetchJson(url: string): Promise<unknown> {
+    const response = await this.fetch(url);
+    if (!response.ok) return undefined;
+    return response.json() as Promise<unknown>;
+  }
+
+  private fetch(input: string): Promise<Response> {
+    const fetchFn = this.deps.fetch ?? fetch;
+    return fetchFn(input);
   }
 
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {
@@ -480,6 +563,14 @@ function deriveAtprotoRecordKey(entityId: string): string {
 function parseAtUriRepo(uri: string): string | undefined {
   const match = /^at:\/\/([^/]+)/.exec(uri);
   return match?.[1];
+}
+
+function didWebDocumentUrl(did: string): string {
+  const parts = did.slice("did:web:".length).split(":").map(decodeURIComponent);
+  const [host, ...pathParts] = parts;
+  if (!host) throw new Error(`Invalid did:web value: ${did}`);
+  if (pathParts.length === 0) return `https://${host}/.well-known/did.json`;
+  return `https://${host}/${pathParts.join("/")}/did.json`;
 }
 
 export function atprotoPlugin(

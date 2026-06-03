@@ -4,40 +4,89 @@
   "defs": {
     "main": {
       "type": "record",
-      "description": "Public capability card for a Rizom brain.",
+      "description": "Public discovery card for a Rizom brain. The operational A2A Agent Card is conventionally served at /.well-known/agent-card.json under siteUrl.",
       "key": "literal:self",
       "record": {
         "type": "object",
-        "required": ["name", "createdAt"],
+        "required": [
+          "name",
+          "description",
+          "siteUrl",
+          "skills",
+          "model",
+          "version",
+          "brainDid",
+          "anchorDid",
+          "createdAt"
+        ],
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 200
+            "maxLength": 200,
+            "description": "Human-readable brain name."
           },
           "description": {
             "type": "string",
-            "maxLength": 2000
-          },
-          "brainDid": {
-            "type": "string"
-          },
-          "anchorDid": {
-            "type": "string"
+            "maxLength": 2000,
+            "description": "Short public description of what this brain is for."
           },
           "siteUrl": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Public site URL. Consumers derive the A2A Agent Card URL from this base."
           },
-          "a2aEndpoint": {
-            "type": "string",
-            "format": "uri"
-          },
-          "capabilities": {
+          "skills": {
             "type": "array",
+            "description": "User-facing skills this brain advertises for discovery.",
             "items": {
-              "type": "string"
+              "type": "object",
+              "required": ["id", "name", "description"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxLength": 50
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxLength": 20
+                }
+              }
             },
             "maxLength": 100
+          },
+          "model": {
+            "type": "string",
+            "description": "Rizom brain model identifier."
+          },
+          "version": {
+            "type": "string",
+            "description": "Brain runtime/model implementation version."
+          },
+          "brainDid": {
+            "type": "string",
+            "description": "Public DID for the brain identity."
+          },
+          "anchorDid": {
+            "type": "string",
+            "description": "Public DID for the human/org anchor identity."
           },
           "createdAt": {
             "type": "string",

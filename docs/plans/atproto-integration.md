@@ -358,22 +358,22 @@ Deferred until after Phase 4 discovery so ingestion can use the approved/followe
 
 ### Phase 4: Discovery
 
-Status: partially implemented. The first slice adds bounded candidate repo discovery and agent-directory enrichment without enabling broad inbound ingestion. `atproto_discover_brain_cards` reads public `ai.rizom.brain.card/self` records from supplied repo DIDs/handles, validates them locally, and emits `atproto:brain-card-discovered`. The agent-discovery plugin consumes those events, creates reviewable `status: discovered` agents, enriches existing approved agents without downgrading them, and emits `atproto:brain-discovered` / `atproto:brain-card-refreshed` for notification/UI consumers.
+Status: partially implemented. The first slice adds bounded candidate repo discovery and agent-directory enrichment without enabling broad inbound ingestion. `atproto_discover_brain_cards` resolves supplied repo DIDs/handles to their owning PDS, reads public `ai.rizom.brain.card/self` records, validates them locally, and emits `atproto:brain-card-discovered`. The agent-discovery plugin consumes those events, creates reviewable `status: discovered` agents, enriches existing approved agents without downgrading them, and emits `atproto:brain-discovered` / `atproto:brain-card-refreshed` for notification/UI consumers.
 
 Shares the `agent` entity type with the broader agent-directory work. Phase 4 should not duplicate the existing add-brain-by-URL workflow; when a user already knows a brain URL, that remains the direct path. ATProto discovery adds value by discovering unknown peers from the network and by enriching existing agents from signed `ai.rizom.brain.card` records. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain.
 
-1. Publish an `ai.rizom.brain.card` record to PDS when configured (name, role, capabilities, public site URL, optional A2A endpoint) — implemented
-2. Discover candidate brain cards from supplied repo DIDs/handles via `com.atproto.repo.getRecord`, with explicit limits and filters rather than unbounded ingestion — implemented as the first producer slice; Jetstream candidate sourcing remains deferred
+1. Publish an `ai.rizom.brain.card` record to PDS when configured. The card is a strict public listing with required `name`, `description`, `siteUrl`, `skills`, `model`, `version`, `brainDid`, `anchorDid`, and `createdAt`. It does not duplicate A2A endpoints; consumers derive the operational A2A Agent Card URL conventionally from `siteUrl` at `/.well-known/agent-card.json` — implemented
+2. Discover candidate brain cards from supplied repo DIDs/handles via resolved-PDS `com.atproto.repo.getRecord`, with explicit limits and filters rather than unbounded ingestion — implemented as the first producer slice; Jetstream candidate sourcing remains deferred
 3. Validate cards against the canonical `ai.rizom.brain.card` contract before creating or updating anything — implemented
 4. Upsert discovered brains as `agent` entities keyed by domain/URL/DID, merging with existing entries by domain where possible — implemented by domain for card events
-5. Enrich known agents from signed cards with safe metadata: repo DID, brain DID, card URI/CID, capabilities, site URL, and A2A endpoint — implemented
+5. Enrich known agents from signed cards with safe metadata: repo DID, brain DID, card URI/CID, site URL, and public skills — implemented
 6. Preserve the approval lifecycle: new firehose entries are `status: discovered`; existing `approved` entries may be enriched but must not be downgraded; discovered entries must not be callable until approved — create/enrich behavior implemented; A2A approval-only guard remains covered by existing agent workflow semantics
 7. Emit internal discovery events through the shell message bus after create/update, e.g. `atproto:brain-discovered` for new reviewable agents and `atproto:brain-card-refreshed` for existing-agent enrichment — implemented
 8. Keep notification delivery separate from discovery logic: dashboards, notification plugins, Discord/web interfaces, or future UI surfaces may subscribe to those events and decide whether/how to alert the user — implemented as message-bus-only events
 9. A2A client resolution continues to use only approved saved agents
 10. Add a refresh path for existing agents so known URL-added agents can be upgraded with signed ATProto card metadata — implemented for existing agents keyed by domain
-11. Add configurable discovery filters: allowed domains/DIDs, capability keywords, max cards per run, and dedupe by DID/domain/card URI — max per run and in-batch card dedupe implemented; allow/deny and capability filters remain deferred
-12. Update card when capabilities change (new plugins registered)
+11. Add configurable discovery filters: allowed domains/DIDs, skill keywords, max cards per run, and dedupe by DID/domain/card URI — max per run and in-batch card dedupe implemented; allow/deny and skill filters remain deferred
+12. Update card when identity/model/skills change
 13. Tests: publish card → discover from another brain → create reviewable agent, emit discovery event, enrich existing approved agent without downgrade, refresh URL-added agent from card, emit refresh event, verify discovered agents are refused by A2A until approval — discovery producer, agent create/enrich, and event tests implemented
 
 ### Phase 5: Feed generators

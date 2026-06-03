@@ -1,29 +1,13 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type {
+  AtprotoBrainCardRecord,
+  AtprotoBrainCardSkill,
+} from "@brains/atproto-contracts";
 import type { AtprotoConfig } from "./config";
 
-export interface BrainCardRecord {
-  [key: string]: unknown;
+export type BrainCardRecord = AtprotoBrainCardRecord & {
   $type: "ai.rizom.brain.card";
-  name: string;
-  description?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  siteUrl?: string;
-  a2aEndpoint?: string;
-  capabilities?: string[];
-  createdAt: string;
-  updatedAt?: string;
-}
-
-function uniqueStrings(values: Array<string | undefined>): string[] {
-  return Array.from(
-    new Set(
-      values.filter(
-        (value): value is string => typeof value === "string" && value !== "",
-      ),
-    ),
-  );
-}
+};
 
 function normalizePublicUrl(
   value: string | undefined,
@@ -37,11 +21,82 @@ function normalizePublicUrl(
   }
 }
 
+function firstNonEmpty(values: Array<string | undefined>): string | undefined {
+  return values.find((value) => value !== undefined && value.length > 0);
+}
+
+function normalizeSkillId(name: string): string {
+  const normalized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+  return normalized.length > 0 ? normalized : "skill";
+}
+
+function readString(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = metadata[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readStringArray(
+  metadata: Record<string, unknown>,
+  key: string,
+): string[] | undefined {
+  const value = metadata[key];
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter(
+    (item): item is string => typeof item === "string" && item.length > 0,
+  );
+  return strings.length > 0 ? strings : undefined;
+}
+
+function skillFromEntity(
+  entity: BaseEntity,
+): AtprotoBrainCardSkill | undefined {
+  const metadata = entity.metadata;
+  const name = readString(metadata, "name");
+  const description = readString(metadata, "description");
+  if (!name || !description) return undefined;
+  const tags = readStringArray(metadata, "tags");
+  const examples = readStringArray(metadata, "examples");
+  return {
+    id: normalizeSkillId(name),
+    name,
+    description,
+    ...(tags && { tags }),
+    ...(examples && { examples }),
+  };
+}
+
+async function listPublicSkills(
+  context: ServicePluginContext,
+): Promise<AtprotoBrainCardSkill[]> {
+  if (!context.entityService.hasEntityType("skill")) return [];
+  const entities = await context.entityService.listEntities({
+    entityType: "skill",
+    options: { filter: { visibilityScope: "public" } },
+  });
+  return entities
+    .map((entity) => skillFromEntity(entity))
+    .filter((skill): skill is AtprotoBrainCardSkill => skill !== undefined)
+    .slice(0, 100);
+}
+
 export async function buildBrainCardRecord(
   context: ServicePluginContext,
   config: AtprotoConfig,
   now: Date = new Date(),
 ): Promise<BrainCardRecord> {
+  if (!config.brainDid || !config.anchorDid) {
+    throw new Error(
+      "AT Protocol brain card publishing requires brainDid and anchorDid",
+    );
+  }
+
   const identity = context.identity.get();
   const profile = context.identity.getProfile();
   const appInfo = await context.identity.getAppInfo();
@@ -49,33 +104,25 @@ export async function buildBrainCardRecord(
     context.siteUrl ?? profile.website,
     undefined,
   );
-  const a2aEndpoint = normalizePublicUrl(
-    appInfo.endpoints.find(
-      (endpoint) => endpoint.url === "/a2a" || endpoint.url.endsWith("/a2a"),
-    )?.url,
-    siteUrl,
-  );
+  if (!siteUrl) {
+    throw new Error("AT Protocol brain card publishing requires siteUrl");
+  }
 
-  const capabilities = uniqueStrings([
-    `model:${appInfo.model}`,
-    ...identity.values.map((value) => `value:${value}`),
-    ...appInfo.endpoints.map((endpoint) => `endpoint:${endpoint.label}`),
-    ...appInfo.interactions.map(
-      (interaction) => `interaction:${interaction.label}`,
-    ),
-  ]).slice(0, 100);
-
-  const description = identity.purpose || profile.description;
+  const description =
+    firstNonEmpty([identity.purpose, profile.description, identity.role]) ??
+    identity.name;
+  const skills = await listPublicSkills(context);
 
   return {
     $type: "ai.rizom.brain.card",
     name: identity.name,
-    ...(description && { description }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(siteUrl && { siteUrl }),
-    ...(a2aEndpoint && { a2aEndpoint }),
-    ...(capabilities.length > 0 && { capabilities }),
+    description,
+    siteUrl,
+    skills,
+    model: appInfo.model,
+    version: appInfo.version,
+    brainDid: config.brainDid,
+    anchorDid: config.anchorDid,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
   };

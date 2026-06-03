@@ -1,12 +1,67 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createMockShell } from "@brains/test-utils";
-import { ATPROTO_BRAIN_CARD_DISCOVERED } from "@brains/atproto-contracts";
+import {
+  ATPROTO_BRAIN_CARD_DISCOVERED,
+  type AtprotoBrainCardRecord,
+} from "@brains/atproto-contracts";
 import {
   AtprotoPlugin,
   atprotoPlugin,
   plugin,
   type AtprotoPdsClientLike,
 } from "../src";
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function createResolverFetch(): (
+  input: string | URL | Request,
+) => Promise<Response> {
+  return mock(async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes("com.atproto.identity.resolveHandle")) {
+      return jsonResponse({ did: "did:plc:test" });
+    }
+    if (url === "https://plc.directory/did%3Aplc%3Atest") {
+      return jsonResponse({
+        service: [
+          {
+            id: "#atproto_pds",
+            type: "AtprotoPersonalDataServer",
+            serviceEndpoint: "https://resolved-pds.example.com",
+          },
+        ],
+      });
+    }
+    return jsonResponse({ message: "Not found" }, 404);
+  });
+}
+
+function createTestBrainCardRecord(): AtprotoBrainCardRecord {
+  return {
+    $type: "ai.rizom.brain.card",
+    name: "Rizom Test Brain",
+    description: "A test brain",
+    siteUrl: "https://test.example.com",
+    model: "test-brain",
+    version: "0.2.0-test",
+    skills: [
+      {
+        id: "research",
+        name: "Research",
+        description: "Research topics for collaborators.",
+        tags: ["research"],
+      },
+    ],
+    brainDid: "did:web:test.example.com",
+    anchorDid: "did:plc:test-anchor",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+}
 
 describe("atproto plugin", () => {
   it("exports a conventional external plugin factory", () => {
@@ -107,39 +162,35 @@ describe("atproto plugin", () => {
   });
 
   it("discovers a valid brain card and emits a discovery event", async () => {
-    const cardRecord = {
-      $type: "ai.rizom.brain.card",
-      name: "Rizom Test Brain",
-      description: "A test brain",
-      brainDid: "did:web:test.example.com",
-      siteUrl: "https://test.example.com",
-      a2aEndpoint: "https://test.example.com/a2a",
-      capabilities: ["a2a"],
-      createdAt: "2026-01-01T00:00:00.000Z",
-    };
+    const cardRecord = createTestBrainCardRecord();
     const getRecord = mock(async () => ({
       uri: "at://did:plc:test/ai.rizom.brain.card/self",
       cid: "bafytestcard",
       value: cardRecord,
     }));
+    const pdsEndpoints: string[] = [];
     const plugin = new AtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
       },
       {
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:unused",
-            handle: "unused.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
-          createRecord: mock(async () => ({
-            uri: "at://repo/record",
-            cid: "cid",
-          })),
-          getRecord,
-        }),
+        fetch: createResolverFetch(),
+        createPdsClient: ({ pdsEndpoint }): AtprotoPdsClientLike => {
+          pdsEndpoints.push(pdsEndpoint);
+          return {
+            createSession: mock(async () => ({
+              did: "did:plc:unused",
+              handle: "unused.example.com",
+              accessJwt: "access-token",
+              refreshJwt: "refresh-token",
+            })),
+            createRecord: mock(async () => ({
+              uri: "at://repo/record",
+              cid: "cid",
+            })),
+            getRecord,
+          };
+        },
       },
     );
     const shell = createMockShell();
@@ -183,8 +234,9 @@ describe("atproto plugin", () => {
         record: cardRecord,
       },
     ]);
+    expect(pdsEndpoints).toEqual(["https://resolved-pds.example.com"]);
     expect(getRecord).toHaveBeenCalledWith({
-      repo: "test.example.com",
+      repo: "did:plc:test",
       collection: "ai.rizom.brain.card",
       rkey: "self",
     });
@@ -202,6 +254,7 @@ describe("atproto plugin", () => {
     const plugin = new AtprotoPlugin(
       { pdsEndpoint: "https://pds.example.com" },
       {
+        fetch: createResolverFetch(),
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",
@@ -246,20 +299,72 @@ describe("atproto plugin", () => {
     expect(events).toEqual([]);
   });
 
+  it("skips unresolved repo DIDs instead of falling back to the configured PDS", async () => {
+    const getRecord = mock(async () => ({
+      uri: "at://did:plc:missing/ai.rizom.brain.card/self",
+      cid: "bafytestcard",
+      value: createTestBrainCardRecord(),
+    }));
+    const createPdsClient = mock(
+      (): AtprotoPdsClientLike => ({
+        createSession: mock(async () => ({
+          did: "did:plc:unused",
+          handle: "unused.example.com",
+          accessJwt: "access-token",
+          refreshJwt: "refresh-token",
+        })),
+        createRecord: mock(async () => ({
+          uri: "at://repo/record",
+          cid: "cid",
+        })),
+        getRecord,
+      }),
+    );
+    const plugin = new AtprotoPlugin(
+      { pdsEndpoint: "https://fallback-pds.example.com" },
+      {
+        fetch: mock(async () => jsonResponse({ message: "Not found" }, 404)),
+        createPdsClient,
+      },
+    );
+    const capabilities = await plugin.register(createMockShell());
+    const tool = capabilities.tools.find(
+      (candidate) => candidate.name === "atproto_discover_brain_cards",
+    );
+
+    const response = await tool?.handler(
+      { repos: ["did:plc:missing"] },
+      { interfaceType: "test", userId: "test" },
+    );
+
+    if (!response || !("success" in response) || !response.success) {
+      throw new Error("Expected discovery tool to succeed");
+    }
+    expect(response.data).toMatchObject({
+      discovered: 0,
+      skipped: 1,
+      results: [
+        {
+          repo: "did:plc:missing",
+          status: "skipped",
+          error: expect.stringContaining("Could not resolve AT Protocol PDS"),
+        },
+      ],
+    });
+    expect(createPdsClient).not.toHaveBeenCalled();
+    expect(getRecord).not.toHaveBeenCalled();
+  });
+
   it("exposes a brain-card discovery tool", async () => {
     const getRecord = mock(async () => ({
       uri: "at://did:plc:test/ai.rizom.brain.card/self",
       cid: "bafytestcard",
-      value: {
-        $type: "ai.rizom.brain.card",
-        name: "Rizom Test Brain",
-        siteUrl: "https://test.example.com",
-        createdAt: "2026-01-01T00:00:00.000Z",
-      },
+      value: createTestBrainCardRecord(),
     }));
     const plugin = new AtprotoPlugin(
       { pdsEndpoint: "https://pds.example.com" },
       {
+        fetch: createResolverFetch(),
         createPdsClient: (): AtprotoPdsClientLike => ({
           createSession: mock(async () => ({
             did: "did:plc:unused",

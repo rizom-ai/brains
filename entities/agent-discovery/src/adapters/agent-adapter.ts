@@ -56,7 +56,6 @@ export interface CreateAgentContentInput {
   cardUri?: string;
   cardCid?: string;
   a2aEndpoint?: string;
-  capabilities?: string[];
   status: AgentStatus | string;
   discoveredAt: string;
   about: string;
@@ -96,9 +95,6 @@ export class AgentAdapter extends BaseEntityAdapter<
         ...(frontmatter.a2aEndpoint && {
           a2aEndpoint: frontmatter.a2aEndpoint,
         }),
-        ...(frontmatter.capabilities && {
-          capabilities: frontmatter.capabilities,
-        }),
       },
     };
   }
@@ -116,7 +112,6 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.cardUri && { cardUri: input.cardUri }),
       ...(input.cardCid && { cardCid: input.cardCid }),
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
-      ...(input.capabilities && { capabilities: input.capabilities }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,
     };

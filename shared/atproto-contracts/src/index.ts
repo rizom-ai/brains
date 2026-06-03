@@ -268,15 +268,24 @@ export function buildAtprotoRecordSchema(
     .passthrough();
 }
 
+export interface AtprotoBrainCardSkill extends Record<string, unknown> {
+  id: string;
+  name: string;
+  description: string;
+  tags?: string[];
+  examples?: string[];
+}
+
 export interface AtprotoBrainCardRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.card";
   name: string;
-  description?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  siteUrl?: string;
-  a2aEndpoint?: string;
-  capabilities?: string[];
+  description: string;
+  siteUrl: string;
+  skills: AtprotoBrainCardSkill[];
+  model: string;
+  version: string;
+  brainDid: string;
+  anchorDid: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -541,8 +550,6 @@ export const atprotoBrainDiscoveryEventPayloadSchema = z
     brainDid: z.string().min(1).optional(),
     cardUri: z.string().min(1).optional(),
     cardCid: z.string().min(1).optional(),
-    a2aEndpoint: z.string().url().optional(),
-    capabilities: z.array(z.string()).optional(),
   })
   .strict();
 

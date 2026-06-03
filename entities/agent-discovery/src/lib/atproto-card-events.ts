@@ -8,7 +8,7 @@ import {
 import type { EntityPluginContext } from "@brains/plugins";
 import { slugifyUrl } from "@brains/utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import type { AgentEntity, AgentStatus } from "../schemas/agent";
+import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
 
@@ -33,7 +33,28 @@ function readStringArray(
 }
 
 function chooseUrl(record: Record<string, unknown>): string | undefined {
-  return readString(record, "siteUrl") ?? readString(record, "a2aEndpoint");
+  return readString(record, "siteUrl");
+}
+
+function readSkills(record: Record<string, unknown>): AgentSkill[] {
+  const value = record["skills"];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      return [];
+    }
+    const skill = item as Record<string, unknown>;
+    const name = readString(skill, "name");
+    const description = readString(skill, "description");
+    if (!name || !description) return [];
+    return [
+      {
+        name,
+        description,
+        tags: readStringArray(skill, "tags") ?? [],
+      },
+    ];
+  });
 }
 
 function domainIdFromUrl(url: string): string {
@@ -44,21 +65,12 @@ function buildNotes(input: {
   repoDid: string;
   uri: string;
   cid: string;
-  capabilities: string[] | undefined;
 }): string {
-  const lines = [
+  return [
     `ATProto card: ${input.uri}`,
     `ATProto card CID: ${input.cid}`,
     `ATProto repo DID: ${input.repoDid}`,
-  ];
-  if (input.capabilities && input.capabilities.length > 0) {
-    lines.push(
-      "",
-      "Capabilities:",
-      ...input.capabilities.map((cap) => `- ${cap}`),
-    );
-  }
-  return lines.join("\n");
+  ].join("\n");
 }
 
 function buildEventPayload(input: {
@@ -69,8 +81,6 @@ function buildEventPayload(input: {
   record: Record<string, unknown>;
 }): AtprotoBrainDiscoveryEventPayload {
   const brainDid = readString(input.record, "brainDid");
-  const a2aEndpoint = readString(input.record, "a2aEndpoint");
-  const capabilities = readStringArray(input.record, "capabilities");
   return {
     agentId: input.agent.id,
     name: input.agent.metadata.name,
@@ -80,8 +90,6 @@ function buildEventPayload(input: {
     ...(brainDid && { brainDid }),
     cardUri: input.uri,
     cardCid: input.cid,
-    ...(a2aEndpoint && { a2aEndpoint }),
-    ...(capabilities && { capabilities }),
   };
 }
 
@@ -108,7 +116,7 @@ async function upsertAgentFromCard(
 ): Promise<{ agent: AgentEntity; created: boolean }> {
   const url = chooseUrl(input.record);
   if (!url) {
-    throw new Error("ATProto brain card requires siteUrl or a2aEndpoint");
+    throw new Error("ATProto brain card requires siteUrl");
   }
 
   const agentId = domainIdFromUrl(url);
@@ -118,8 +126,7 @@ async function upsertAgentFromCard(
   });
   const status: AgentStatus = existing?.metadata.status ?? "discovered";
   const brainDid = readString(input.record, "brainDid");
-  const a2aEndpoint = readString(input.record, "a2aEndpoint");
-  const capabilities = readStringArray(input.record, "capabilities");
+  const skills = readSkills(input.record);
   const now = new Date().toISOString();
   const metadata = {
     ...(existing?.metadata ?? {}),
@@ -133,8 +140,6 @@ async function upsertAgentFromCard(
     ...(brainDid && { brainDid }),
     cardUri: input.uri,
     cardCid: input.cid,
-    ...(a2aEndpoint && { a2aEndpoint }),
-    ...(capabilities && { capabilities }),
   };
 
   if (existing) {
@@ -147,26 +152,24 @@ async function upsertAgentFromCard(
     return { agent: updated, created: false };
   }
 
+  const name = readString(input.record, "name") ?? agentId;
   const content = agentAdapter.createAgentContent({
-    name: readString(input.record, "name") ?? agentId,
+    name,
     kind: "professional",
-    brainName: readString(input.record, "name") ?? agentId,
+    brainName: name,
     url,
     ...(brainDid && { did: brainDid, brainDid }),
     repoDid: input.repoDid,
     cardUri: input.uri,
     cardCid: input.cid,
-    ...(a2aEndpoint && { a2aEndpoint }),
-    ...(capabilities && { capabilities }),
     status,
     discoveredAt: now,
     about: readString(input.record, "description") ?? "",
-    skills: [],
+    skills,
     notes: buildNotes({
       repoDid: input.repoDid,
       uri: input.uri,
       cid: input.cid,
-      capabilities,
     }),
   });
   const agent: AgentEntity = {
