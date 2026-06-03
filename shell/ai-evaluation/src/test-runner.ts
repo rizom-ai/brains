@@ -12,6 +12,7 @@ import type {
   EvaluationResult,
   TurnResult,
   FailureDetail,
+  EvalAttachment,
 } from "./schemas";
 import { MetricCollector } from "./metric-collector";
 import {
@@ -19,6 +20,8 @@ import {
   evaluateEfficiency,
   evaluateQualityThresholds,
 } from "./criteria-evaluator";
+
+type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
 /**
  * Runs individual test cases against an agent service
@@ -44,12 +47,15 @@ export class TestRunner implements ITestRunner {
     const turnResults: TurnResult[] = [];
     const failures: FailureDetail[] = [];
 
-    const context = this.buildChatContext(testCase);
+    const baseContext = this.buildChatContext(testCase);
     let pendingApprovalIds: string[] = [];
+    let previousAttachments: ChatAttachment[] = [];
 
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
       if (!turn) continue;
+      const attachments = this.buildTurnAttachments(turn, previousAttachments);
+      if (turn.attachments !== undefined) previousAttachments = attachments;
 
       collector.startTurn();
       let response: AgentResponse;
@@ -71,7 +77,7 @@ export class TestRunner implements ITestRunner {
         response = await this.agentService.chat(
           turn.userMessage,
           conversationId,
-          context,
+          this.withTurnAttachments(baseContext, attachments),
         );
       }
       pendingApprovalIds = this.extractPendingApprovalIds(response);
@@ -188,6 +194,53 @@ export class TestRunner implements ITestRunner {
         ? { channelName: testCase.setup.channelName }
         : {}),
     };
+  }
+
+  private buildTurnAttachments(
+    turn: AgentTestCase["turns"][number],
+    previousAttachments: ChatAttachment[],
+  ): ChatAttachment[] {
+    const explicitAttachments = (turn.attachments ?? []).map((attachment) =>
+      this.toChatAttachment(attachment),
+    );
+    return [
+      ...(turn.reusePreviousAttachments ? previousAttachments : []),
+      ...explicitAttachments,
+    ];
+  }
+
+  private toChatAttachment(attachment: EvalAttachment): ChatAttachment {
+    if (attachment.kind === "text") {
+      return {
+        kind: "text",
+        filename: attachment.filename,
+        mediaType: attachment.mediaType,
+        content: attachment.content,
+        ...(attachment.sizeBytes !== undefined
+          ? { sizeBytes: attachment.sizeBytes }
+          : {}),
+        ...(attachment.source !== undefined
+          ? { source: attachment.source }
+          : {}),
+      };
+    }
+
+    const data = new Uint8Array(Buffer.from(attachment.dataBase64, "base64"));
+    return {
+      kind: "file",
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      data,
+      sizeBytes: attachment.sizeBytes ?? data.byteLength,
+      ...(attachment.source !== undefined ? { source: attachment.source } : {}),
+    };
+  }
+
+  private withTurnAttachments(
+    context: ChatContext,
+    attachments: ChatAttachment[],
+  ): ChatContext {
+    return attachments.length > 0 ? { ...context, attachments } : context;
   }
 
   /**

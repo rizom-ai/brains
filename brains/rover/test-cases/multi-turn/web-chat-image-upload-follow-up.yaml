@@ -1,0 +1,58 @@
+id: multi-turn-web-chat-image-upload-follow-up
+name: Web chat image upload follow-up reuses attachment context
+description: Verifies a bare web-chat image upload is inert, then an explicit follow-up description request can consume the prior upload without creating entities.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-upload
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: flirty-robot.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=
+    successCriteria:
+      responseContains:
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "can you describe that picture for me"
+    reusePreviousAttachments: true
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseNotContains:
+        - "from the filename alone"
+        - "only the filename"
+        - "Please reattach"
+        - "I can't see the image"
+        - "I can’t see the image"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "from the filename alone"
+    - "Please reattach"
+    - "I can't see the image"
+    - "I can’t see the image"
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 40000

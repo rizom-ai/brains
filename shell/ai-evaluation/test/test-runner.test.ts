@@ -93,6 +93,93 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should pass native turn attachments to chat", async () => {
+      const testCase: TestCase = {
+        id: "test-turn-attachments",
+        name: "Turn Attachment Test",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "Describe this image",
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                dataBase64: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString(
+                  "base64",
+                ),
+              },
+            ],
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+            sizeBytes: 4,
+          },
+        ],
+      });
+    });
+
+    it("should reuse previous attachments when a turn asks for them", async () => {
+      const testCase: TestCase = {
+        id: "test-reuse-attachments",
+        name: "Reuse Attachment Test",
+        type: "multi_turn",
+        turns: [
+          {
+            userMessage: "",
+            attachments: [
+              {
+                kind: "text",
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                content: "# Notes",
+              },
+            ],
+          },
+          {
+            userMessage: "Summarize that file",
+            reusePreviousAttachments: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[1]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        attachments: [
+          {
+            kind: "text",
+            filename: "notes.md",
+            mediaType: "text/markdown",
+            content: "# Notes",
+          },
+        ],
+      });
+    });
+
     it("should resolve pending confirmations when a turn requests confirmation", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(
