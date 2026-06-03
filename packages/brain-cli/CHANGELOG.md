@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- [`0aede59`](https://github.com/rizom-ai/brains/commit/0aede594c9dcf6a9f67f3292085cecac86396a9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire Rover CMS passkey login from `CMS_CONTENT_REPO_PAT`, include the variable in Rover env schemas, and avoid emitting a CMS auth base URL when no CMS login route is configured.
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes

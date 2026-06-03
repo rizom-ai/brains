@@ -1,5 +1,19 @@
 # @brains/cms
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- [`0aede59`](https://github.com/rizom-ai/brains/commit/0aede594c9dcf6a9f67f3292085cecac86396a9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire Rover CMS passkey login from `CMS_CONTENT_REPO_PAT`, include the variable in Rover env schemas, and avoid emitting a CMS auth base URL when no CMS login route is configured.
+
+- [`ae1b456`](https://github.com/rizom-ai/brains/commit/ae1b45622b7cbf9efcd80c5a8d01176d0f7c76cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate passkey-backed CMS access on the operator session and pre-authorize Sveltia from `/cms` so logged-in operators do not see the CMS login screen.
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/auth-service@0.2.0-alpha.106
+  - @brains/plugins@0.2.0-alpha.106
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes
