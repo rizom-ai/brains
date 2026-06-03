@@ -213,11 +213,15 @@ filenames or MIME types; native file uploads are restricted to supported
 image/PDF MIME types with signature checks and a 5MB max.
 
 Upload refs are chat-context attachments by default. They should not become
-content entities unless the operator explicitly asks to save or import them:
-PDFs promote to `document`, images promote to `image`, and derived entities
-(such as decks generated from a PDF) should be created from an explicit user
-instruction that consumes the upload as context. Bare upload handoff must not
-create, update, or delete entities.
+content entities unless the operator explicitly asks to save or import them.
+Raw-file promotion preserves the original artifact: PDFs promote to `document`
+and images promote to `image`. Markdown import/extraction is a separate explicit
+flow: "turn this PDF into a note" should resolve the upload, extract text with a
+deterministic PDF extraction library (`pdfjs-dist`), optionally use the LLM only
+for cleanup/structuring, then create a markdown entity such as `base`/note (or a
+future explicit docs target). Derived entities (such as decks generated from a
+PDF) should be created from an explicit user instruction that consumes the upload
+as context. Bare upload handoff must not create, update, or delete entities.
 
 Follow-up turns in the same conversation can consume recent upload refs without
 forcing the operator to reattach the file. For example, after a bare image upload
@@ -241,9 +245,15 @@ Ambiguous same-type references still ask the operator which upload to use.
 
 Remaining upload work:
 
-- add an explicit promotion contract, likely `system_create({ entityType:
-"document" | "image", fromUpload: { kind: "web-chat-upload", id } })`, with
-  conversation/operator scoping so only accessible uploads can be promoted;
+- add an explicit raw-file promotion contract, likely `system_create({
+entityType: "document" | "image", fromUpload: { kind: "web-chat-upload", id }
+})`, with conversation/operator scoping so only accessible uploads can be
+  promoted;
+- add an explicit markdown import/extraction contract for text/PDF uploads,
+  likely `system_create({ entityType: "base" | "doc", fromUpload: { kind:
+"web-chat-upload", id }, transform: "extract-markdown" })`; PDF extraction
+  should use `pdfjs-dist` behind a small service/job boundary, with any LLM pass
+  limited to cleanup or summarization after deterministic extraction;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
   user asks to promote them.
