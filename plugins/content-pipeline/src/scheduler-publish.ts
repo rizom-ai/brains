@@ -37,6 +37,7 @@ export async function emitPublishExecute(
   const event: PublishExecuteEvent = {
     entityType: entry.entityType,
     entityId: entry.entityId,
+    authContext: entry.authContext,
   };
 
   if (deps.messageBus) {

@@ -804,11 +804,14 @@ describe("ChatInterface", () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmation: {
-        toolName: "system_delete",
-        description: "Delete thing",
-        args: {},
-      },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -824,6 +827,7 @@ describe("ChatInterface", () => {
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
       true,
+      "approval-1",
     );
     expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
   });
@@ -832,11 +836,14 @@ describe("ChatInterface", () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmation: {
-        toolName: "system_delete",
-        description: "Delete thing",
-        args: {},
-      },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -852,6 +859,7 @@ describe("ChatInterface", () => {
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
       false,
+      "approval-1",
     );
     expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
   });
@@ -860,11 +868,14 @@ describe("ChatInterface", () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmation: {
-        toolName: "system_delete",
-        description: "Delete thing",
-        args: {},
-      },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -888,6 +899,7 @@ describe("ChatInterface", () => {
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
       true,
+      "approval-1",
     );
   });
 

@@ -11,5 +11,9 @@ export {
 } from "./schemas/deck";
 export { DeckAdapter, deckAdapter } from "./adapters/deck-adapter";
 export { parseDeckData } from "./datasources/parse-helpers";
+export {
+  buildDeckAtprotoRecord,
+  createDeckAtprotoProjection,
+} from "./atproto-projection";
 export { deckTemplate } from "./templates/deck-template";
 export { deckListTemplate } from "./templates/deck-list";

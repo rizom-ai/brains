@@ -6,10 +6,12 @@ import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import type { GenerationCondition } from "./config";
 import type { SchedulerBackend } from "../scheduler-backend";
+import type { PublishAuthContext } from "./messages";
 
 export interface PublishExecuteEvent {
   entityType: string;
   entityId: string;
+  authContext: PublishAuthContext;
 }
 
 export interface GenerateExecuteEvent {

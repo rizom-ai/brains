@@ -4,47 +4,6 @@ import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
 import type { Mock } from "bun:test";
 
-interface MockAgentService {
-  chat: Mock<
-    (
-      message: string,
-      conversationId: string,
-      context?: ChatContext,
-    ) => Promise<{
-      text: string;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-      pendingConfirmation?: {
-        toolName: string;
-        description: string;
-        args: unknown;
-      };
-    }>
-  >;
-  confirmPendingAction: Mock<
-    (
-      conversationId: string,
-      confirmed: boolean,
-    ) => Promise<{
-      text: string;
-      usage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-      };
-      pendingConfirmation?: {
-        toolName: string;
-        description: string;
-        args: unknown;
-      };
-    }>
-  >;
-  invalidateAgent: () => void;
-}
-
 interface MockConversationService {
   startConversation: Mock<(request: { sessionId: string }) => Promise<string>>;
   addMessage: Mock<(_request: unknown) => Promise<void>>;
@@ -53,6 +12,8 @@ interface MockConversationService {
   searchConversations: Mock<() => Promise<never[]>>;
   getMessages: Mock<() => Promise<never[]>>;
   countMessages: Mock<() => Promise<number>>;
+  updateConversationMetadata: Mock<() => Promise<boolean>>;
+  deleteConversation: Mock<() => Promise<boolean>>;
   close: Mock<() => void>;
 }
 
@@ -101,10 +62,12 @@ const mockForeignThreadChannel = {
 };
 
 let messageCreateHandler: ((message: unknown) => void) | null = null;
+let interactionCreateHandler: ((interaction: unknown) => void) | null = null;
 
 const mockClientOn = mock(
   (event: string, handler: (...args: unknown[]) => void) => {
     if (event === "messageCreate") messageCreateHandler = handler;
+    if (event === "interactionCreate") interactionCreateHandler = handler;
     return mockClientInstance;
   },
 );
@@ -145,12 +108,27 @@ void mock.module("discord.js", () => ({
     MessageContent: 4,
     DirectMessages: 8,
   },
-  Events: { ClientReady: "ready", MessageCreate: "messageCreate" },
+  Events: {
+    ClientReady: "ready",
+    MessageCreate: "messageCreate",
+    InteractionCreate: "interactionCreate",
+  },
   Partials: { Channel: 0 },
 }));
 
 // Import after mock
 const { DiscordInterface } = await import("../src/discord-interface");
+
+type MockAgentServiceBase = Parameters<
+  PluginTestHarness<InstanceType<typeof DiscordInterface>>["setAgentService"]
+>[0];
+type MockAgentService = Omit<
+  MockAgentServiceBase,
+  "chat" | "confirmPendingAction"
+> & {
+  chat: Mock<MockAgentServiceBase["chat"]>;
+  confirmPendingAction: Mock<MockAgentServiceBase["confirmPendingAction"]>;
+};
 
 // ── Helpers ──
 
@@ -164,11 +142,12 @@ const createMockAgentService = (): MockAgentService => ({
         usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
       }),
   ),
-  confirmPendingAction: mock((_conversationId: string, _confirmed: boolean) =>
-    Promise.resolve({
-      text: "Action confirmed.",
-      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-    }),
+  confirmPendingAction: mock(
+    (_conversationId: string, _confirmed: boolean, _approvalId?: string) =>
+      Promise.resolve({
+        text: "Action confirmed.",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      }),
   ),
   invalidateAgent: (): void => {},
 });
@@ -183,10 +162,14 @@ const createMockConversationService = (): MockConversationService => ({
   searchConversations: mock(() => Promise.resolve([])),
   getMessages: mock(() => Promise.resolve([])),
   countMessages: mock(() => Promise.resolve(0)),
+  updateConversationMetadata: mock(() => Promise.resolve(false)),
+  deleteConversation: mock(() => Promise.resolve(false)),
   close: mock((): void => {}),
 });
 
 const mockReact = mock(() => Promise.resolve());
+const mockDeferUpdate = mock(() => Promise.resolve());
+const mockInteractionReply = mock(() => Promise.resolve());
 
 function createDiscordMessage(
   overrides: Record<string, unknown> = {},
@@ -204,6 +187,19 @@ function createDiscordMessage(
     attachments: new Map(),
     startThread: mockStartThread,
     react: mockReact,
+    ...overrides,
+  };
+}
+
+function createDiscordButtonInteraction(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    isButton: (): boolean => true,
+    customId: "brains:approval:approve:approval:call-1",
+    channelId: "thread-456",
+    deferUpdate: mockDeferUpdate,
+    reply: mockInteractionReply,
     ...overrides,
   };
 }
@@ -226,7 +222,10 @@ describe("DiscordInterface", () => {
     mockClientOnce.mockClear();
     mockFetchText.mockClear();
     mockReact.mockClear();
+    mockDeferUpdate.mockClear();
+    mockInteractionReply.mockClear();
     messageCreateHandler = null;
+    interactionCreateHandler = null;
 
     mockAgentService = createMockAgentService();
     harness = createPluginHarness<InstanceType<typeof DiscordInterface>>();
@@ -707,11 +706,15 @@ describe("DiscordInterface", () => {
       // First message triggers pending confirmation
       mockAgentService.chat.mockResolvedValueOnce({
         text: "Are you sure?",
-        pendingConfirmation: {
-          toolName: "dangerous_tool",
-          description: "Delete all",
-          args: {},
-        },
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:dangerous-tool",
+            toolName: "dangerous_tool",
+            summary: "Delete all",
+            state: "approval-requested",
+          },
+        ],
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       });
 
@@ -724,7 +727,359 @@ describe("DiscordInterface", () => {
       messageCreateHandler?.(yesMsg);
       await new Promise((r) => setTimeout(r, 100));
 
-      expect(mockAgentService.confirmPendingAction).toHaveBeenCalled();
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.stringContaining("discord-"),
+        true,
+        "approval:dangerous-tool",
+      );
+    });
+
+    it("should render structured approval cards with Discord buttons", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("Use the buttons below"),
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Approval required",
+              description: "Delete note?",
+            }),
+          ]),
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              components: expect.arrayContaining([
+                expect.objectContaining({
+                  label: "Approve",
+                  custom_id: "brains:approval:approve:approval:call-1",
+                }),
+                expect.objectContaining({
+                  label: "Decline",
+                  custom_id: "brains:approval:deny:approval:call-1",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it("should render multiple approval cards without collapsing their ids", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-delete",
+            toolCallId: "call-delete",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+          {
+            kind: "tool-approval",
+            id: "approval:call-update",
+            toolCallId: "call-update",
+            toolName: "update_note",
+            input: { noteId: "456" },
+            summary: "Update note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Completed: Update note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-update",
+            toolCallId: "call-update",
+            toolName: "update_note",
+            input: { noteId: "456" },
+            summary: "Update note?",
+            state: "output-available",
+            output: { success: true },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.arrayContaining([
+            expect.objectContaining({ description: "Delete note?" }),
+            expect.objectContaining({ description: "Update note?" }),
+          ]),
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              components: expect.arrayContaining([
+                expect.objectContaining({
+                  custom_id: "brains:approval:approve:approval:call-delete",
+                }),
+              ]),
+            }),
+            expect.objectContaining({
+              components: expect.arrayContaining([
+                expect.objectContaining({
+                  custom_id: "brains:approval:approve:approval:call-update",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+      mockSend.mockClear();
+
+      const interaction = createDiscordButtonInteraction({
+        customId: "brains:approval:approve:approval:call-update",
+      });
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        "discord-thread-456",
+        true,
+        "approval:call-update",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action completed",
+              description: "Update note?",
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it("should confirm structured approval button responses with the explicit approval id", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Completed: Delete note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "output-available",
+            output: { success: true, data: { deleted: "123" } },
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const interaction = createDiscordButtonInteraction();
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockDeferUpdate).toHaveBeenCalled();
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        "discord-thread-456",
+        true,
+        "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action completed",
+              description: "Delete note?",
+            }),
+          ]),
+          components: [],
+        }),
+      );
+    });
+
+    it("should reject stale approval button responses", async () => {
+      const interaction = createDiscordButtonInteraction();
+      interactionCreateHandler?.(interaction);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockInteractionReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "This approval is no longer pending or has changed.",
+          ephemeral: true,
+        }),
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+    });
+
+    it("should store explicit approval ids from structured cards", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Failed: Delete note?\n\nEntity not found",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "output-error",
+            output: { success: false, error: "Entity not found" },
+            error: "Entity not found",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const yesMsg = createDiscordMessage({ content: "yes" });
+      messageCreateHandler?.(yesMsg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.stringContaining("discord-"),
+        true,
+        "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action failed",
+              description: "Delete note?",
+              fields: expect.arrayContaining([
+                expect.objectContaining({
+                  name: "Error",
+                  value: "Entity not found",
+                }),
+              ]),
+            }),
+          ]),
+          components: [],
+        }),
+      );
+    });
+
+    it("should render denied approval results as a declined embed", async () => {
+      mockAgentService.chat.mockResolvedValueOnce({
+        text: "Confirmation required.",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "approval-requested",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+      mockAgentService.confirmPendingAction.mockResolvedValueOnce({
+        text: "Cancelled: Delete note?",
+        cards: [
+          {
+            kind: "tool-approval",
+            id: "approval:call-1",
+            toolCallId: "call-1",
+            toolName: "delete_note",
+            input: { noteId: "123" },
+            summary: "Delete note?",
+            state: "output-denied",
+          },
+        ],
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
+
+      const msg = createDiscordMessage();
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+      mockSend.mockClear();
+
+      const noMsg = createDiscordMessage({ content: "no" });
+      messageCreateHandler?.(noMsg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.stringContaining("discord-"),
+        false,
+        "approval:call-1",
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "",
+          embeds: expect.arrayContaining([
+            expect.objectContaining({
+              title: "Action declined",
+              description: "Delete note?",
+            }),
+          ]),
+          components: [],
+        }),
+      );
     });
   });
 

@@ -9,6 +9,7 @@ const statusBadgeVariants = cva(
       status: {
         // Newsletter/content statuses
         draft: "bg-status-neutral text-status-neutral",
+        generating: "bg-status-warning text-status-warning",
         queued: "bg-status-info text-status-info",
         sent: "bg-status-success text-status-success",
         failed: "bg-status-danger text-status-danger",
@@ -30,8 +31,9 @@ const statusBadgeVariants = cva(
   },
 );
 
-export interface StatusBadgeProps
-  extends VariantProps<typeof statusBadgeVariants> {
+export interface StatusBadgeProps extends VariantProps<
+  typeof statusBadgeVariants
+> {
   className?: string;
   /** Override the displayed text (defaults to status value) */
   label?: string;

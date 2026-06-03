@@ -1,16 +1,14 @@
 import {
   EntityPlugin,
   hasPersistedTargets,
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
   type EntityChangePayload,
   type EntityPluginContext,
   type DataSource,
   type DerivedEntityProjection,
   type Template,
 } from "@brains/plugins";
-import {
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_SOURCE_KIND,
-} from "@brains/conversation-service";
 import { z } from "@brains/utils";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import {
@@ -36,6 +34,7 @@ import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
 import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
 import { registerSummaryCoverageWidget } from "./lib/widgets/coverage";
+import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
@@ -222,6 +221,8 @@ export class ConversationMemoryPlugin extends EntityPlugin<
       pluginId: this.id,
       config: this.config,
     });
+
+    registerConversationMemoryAgentContext(context);
 
     registerSummaryEvalHandlers({
       context,

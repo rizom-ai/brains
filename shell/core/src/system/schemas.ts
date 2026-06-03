@@ -1,3 +1,4 @@
+import { createResultAttachmentSchema } from "@brains/entity-service";
 import { z } from "@brains/utils";
 
 // ── Input schemas ──
@@ -6,6 +7,10 @@ export const searchInputSchema = z.object({
   query: z.string().describe("Search term"),
   entityType: z.string().optional().describe("Entity type to filter by"),
   limit: z.number().optional().describe("Maximum number of results"),
+  includeUngenerated: z
+    .boolean()
+    .optional()
+    .describe("Include queued/failed generation stubs in results"),
 });
 
 export const getInputSchema = z.object({
@@ -23,12 +28,21 @@ export const listInputSchema = z.object({
 });
 
 const coverImageInputSchema = z.union([
-  z.boolean(),
   z.object({
-    generate: z.boolean().optional().describe("Generate a cover image"),
+    generate: z
+      .literal(true)
+      .describe("Set to true when the user asks for a cover image"),
     prompt: z.string().optional().describe("Prompt for cover image generation"),
   }),
+  z.literal(true).describe("Set to true when the user asks for a cover image"),
+  z.literal(false).describe("Do not generate a cover image"),
 ]);
+
+const createFromAttachmentInputSchema = z.object({
+  sourceEntityType: z.string().min(1).describe("Source entity type"),
+  sourceEntityId: z.string().min(1).describe("Source entity ID"),
+  attachmentType: z.string().min(1).describe("Source attachment type"),
+});
 
 export const createInputSchema = z.object({
   entityType: z.string().describe("Entity type to create"),
@@ -41,20 +55,31 @@ export const createInputSchema = z.object({
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
+  from: createFromAttachmentInputSchema
+    .optional()
+    .describe(
+      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+    ),
+  replace: z
+    .boolean()
+    .optional()
+    .describe("Force regeneration instead of reusing a deterministic artifact"),
   targetEntityType: z
     .string()
     .optional()
     .describe(
-      "Attach to this entity type after creation (e.g. set as cover image)",
+      "Existing entity type to attach to after creation. Use only when the user explicitly asks to set/replace a cover or attach the artifact to an existing entity; omit for standalone image/document generation.",
     ),
   targetEntityId: z
     .string()
     .optional()
-    .describe("Attach to this entity ID after creation"),
+    .describe(
+      "Existing entity ID to attach to after creation. Use only with targetEntityType; omit for standalone image/document generation.",
+    ),
   coverImage: coverImageInputSchema
     .optional()
     .describe(
-      "Generate a cover image for the created entity after the entity exists. Use true or { generate: true, prompt }.",
+      "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
     ),
 });
 
@@ -100,12 +125,6 @@ export const extractInputSchema = z.object({
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 
-export const setCoverInputSchema = z.object({
-  entityType: z.string().describe("Entity type"),
-  entityId: z.string().describe("Entity ID or slug"),
-  imageId: z.string().nullable().describe("Image ID to set, or null to remove"),
-});
-
 export const checkJobStatusInputSchema = z.object({
   batchId: z.string().optional().describe("Specific batch ID to check"),
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
@@ -139,6 +158,7 @@ export const createOutputSchema = z.object({
   entityId: z.string().optional(),
   status: z.enum(["created", "generating"]),
   jobId: z.string().optional(),
+  attachment: createResultAttachmentSchema.optional(),
 });
 
 export const extractOutputSchema = z.object({
@@ -147,10 +167,4 @@ export const extractOutputSchema = z.object({
   entityType: z.string(),
   source: z.string().optional(),
   mode: z.enum(["derive", "rebuild"]).optional(),
-});
-
-export const setCoverOutputSchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-  imageId: z.string().nullable(),
 });

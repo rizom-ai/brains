@@ -7,11 +7,14 @@ import type {
   JobHandler,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
-import { resolveEntityOrError } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
+import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
+import {
+  getDistillableEntityContent,
+  isImageDataUrl,
+} from "./lib/distillable-content";
 import packageJson from "../package.json";
 
 const imageConfigSchema = z.object({
@@ -23,13 +26,67 @@ const imageConfigSchema = z.object({
 
 type ImageConfig = z.infer<typeof imageConfigSchema>;
 
+function normalizeText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed;
+}
+
+function getImageGenerationPrompt(input: CreateInput): string | undefined {
+  const prompt = normalizeText(input.prompt);
+  if (prompt) return prompt;
+
+  const content = normalizeText(input.content);
+  if (content && !isImageDataUrl(content)) return content;
+
+  return undefined;
+}
+
+function getPredictedImageId(input: {
+  prompt: string;
+  title?: string;
+  targetEntityId?: string;
+}): string {
+  const title =
+    normalizeText(input.title) ??
+    (input.targetEntityId
+      ? `cover-${input.targetEntityId}`
+      : input.prompt.slice(0, 60).trim());
+  return slugify(title);
+}
+
+function buildPredictedImageAttachment(imageId: string): {
+  mediaType: "image/png";
+  url: string;
+  downloadUrl: string;
+  filename: string;
+  source: {
+    entityType: "image";
+    entityId: string;
+    attachmentType: "generated";
+  };
+} {
+  const encodedId = encodeURIComponent(imageId);
+  return {
+    mediaType: "image/png",
+    url: `/api/chat/attachments/image?id=${encodedId}`,
+    downloadUrl: `/api/chat/attachments/image?id=${encodedId}&download=1`,
+    filename: `${imageId}.png`,
+    source: {
+      entityType: "image",
+      entityId: imageId,
+      attachmentType: "generated",
+    },
+  };
+}
+
 /**
  * Image EntityPlugin — manages image entities with AI generation.
  *
  * Zero tools. Image operations go through:
  * - system_create { entityType: "image", content: dataUrl } — upload
  * - system_create { entityType: "image", prompt: "..." } — AI generation
- * - system_set-cover — set cover image on entities (in system plugin)
+ * - system_update { fields: { coverImageId } } — set cover image references
  */
 export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   readonly entityType = imageAdapter.entityType;
@@ -49,14 +106,46 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     _executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
-    if (!input.targetEntityType || !input.targetEntityId) {
-      return { kind: "continue", input };
+    const prompt = getImageGenerationPrompt(input);
+    const targetEntityType = normalizeText(input.targetEntityType);
+    const targetEntityId = normalizeText(input.targetEntityId);
+    const imageTargetTitle =
+      targetEntityType === this.entityType ? targetEntityId : undefined;
+
+    if (!targetEntityType || !targetEntityId || imageTargetTitle) {
+      if (!prompt) return { kind: "continue", input };
+
+      const title = normalizeText(input.title) ?? imageTargetTitle;
+      const jobId = await context.jobs.enqueue({
+        type: "image-generate",
+        data: {
+          prompt,
+          ...(title && { title }),
+        },
+      });
+
+      const entityId = getPredictedImageId({
+        prompt,
+        ...(title && { title }),
+      });
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: {
+            entityId,
+            status: "generating",
+            jobId,
+            attachment: buildPredictedImageAttachment(entityId),
+          },
+        },
+      };
     }
 
     const resolved = await resolveEntityOrError(
       context.entityService,
-      input.targetEntityType,
-      input.targetEntityId,
+      targetEntityType,
+      targetEntityId,
       this.logger,
       "Target entity",
     );
@@ -68,9 +157,45 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
+    if (!prompt) {
+      return {
+        kind: "continue",
+        input: { ...input, targetEntityId: resolved.entity.id },
+      };
+    }
+
+    const entityContent = getDistillableEntityContent(resolved.entity.content);
+    const jobId = await context.jobs.enqueue({
+      type: "image-generate",
+      data: {
+        prompt,
+        ...(input.title && { title: input.title }),
+        targetEntityType,
+        targetEntityId: resolved.entity.id,
+        entityTitle:
+          typeof resolved.entity.metadata["title"] === "string"
+            ? resolved.entity.metadata["title"]
+            : resolved.entity.id,
+        ...(entityContent && { entityContent }),
+      },
+    });
+
+    const entityId = getPredictedImageId({
+      prompt,
+      ...(input.title && { title: input.title }),
+      targetEntityId: resolved.entity.id,
+    });
     return {
-      kind: "continue",
-      input: { ...input, targetEntityId: resolved.entity.id },
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId,
+          status: "generating",
+          jobId,
+          attachment: buildPredictedImageAttachment(entityId),
+        },
+      },
     };
   }
 

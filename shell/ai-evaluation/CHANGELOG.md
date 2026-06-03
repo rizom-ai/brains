@@ -1,5 +1,149 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/ai-service@0.2.0-alpha.106
+  - @brains/app@0.2.0-alpha.106
+  - @brains/plugins@0.2.0-alpha.106
+  - @brains/templates@0.2.0-alpha.106
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.105
+  - @brains/utils@0.2.0-alpha.105
+  - @brains/ai-service@0.2.0-alpha.105
+  - @brains/app@0.2.0-alpha.105
+  - @brains/plugins@0.2.0-alpha.105
+  - @brains/templates@0.2.0-alpha.105
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.104
+  - @brains/utils@0.2.0-alpha.104
+  - @brains/ai-service@0.2.0-alpha.104
+  - @brains/app@0.2.0-alpha.104
+  - @brains/plugins@0.2.0-alpha.104
+  - @brains/templates@0.2.0-alpha.104
+
+## 0.2.0-alpha.103
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.103
+  - @brains/utils@0.2.0-alpha.103
+  - @brains/ai-service@0.2.0-alpha.103
+  - @brains/app@0.2.0-alpha.103
+  - @brains/plugins@0.2.0-alpha.103
+  - @brains/templates@0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.102
+  - @brains/utils@0.2.0-alpha.102
+  - @brains/ai-service@0.2.0-alpha.102
+  - @brains/app@0.2.0-alpha.102
+  - @brains/plugins@0.2.0-alpha.102
+  - @brains/templates@0.2.0-alpha.102
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/ai-service@0.2.0-alpha.101
+  - @brains/app@0.2.0-alpha.101
+  - @brains/plugins@0.2.0-alpha.101
+  - @brains/templates@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.100
+  - @brains/utils@0.2.0-alpha.100
+  - @brains/ai-service@0.2.0-alpha.100
+  - @brains/app@0.2.0-alpha.100
+  - @brains/plugins@0.2.0-alpha.100
+  - @brains/templates@0.2.0-alpha.100
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.99
+  - @brains/utils@0.2.0-alpha.99
+  - @brains/ai-service@0.2.0-alpha.99
+  - @brains/app@0.2.0-alpha.99
+  - @brains/plugins@0.2.0-alpha.99
+  - @brains/templates@0.2.0-alpha.99
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.98
+  - @brains/utils@0.2.0-alpha.98
+  - @brains/ai-service@0.2.0-alpha.98
+  - @brains/app@0.2.0-alpha.98
+  - @brains/plugins@0.2.0-alpha.98
+  - @brains/templates@0.2.0-alpha.98
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.97
+  - @brains/utils@0.2.0-alpha.97
+  - @brains/ai-service@0.2.0-alpha.97
+  - @brains/app@0.2.0-alpha.97
+  - @brains/plugins@0.2.0-alpha.97
+  - @brains/templates@0.2.0-alpha.97
+
+## 0.2.0-alpha.96
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.96
+  - @brains/utils@0.2.0-alpha.96
+  - @brains/ai-service@0.2.0-alpha.96
+  - @brains/app@0.2.0-alpha.96
+  - @brains/plugins@0.2.0-alpha.96
+  - @brains/templates@0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.95
+  - @brains/utils@0.2.0-alpha.95
+  - @brains/ai-service@0.2.0-alpha.95
+  - @brains/app@0.2.0-alpha.95
+  - @brains/plugins@0.2.0-alpha.95
+  - @brains/templates@0.2.0-alpha.95
+
 ## 0.2.0-alpha.94
 
 ### Patch Changes

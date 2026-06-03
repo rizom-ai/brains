@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { messageRoleSchema, type MessageRole } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
 
 /** Source kind for projections that derive entities from conversation events. */
@@ -9,11 +10,6 @@ export const CONVERSATION_MESSAGE_ADDED_CHANNEL = "conversation:messageAdded";
 
 /** Bus channel emitted when a new conversation is started. */
 export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
-
-/**
- * Valid message roles in a conversation
- */
-export type MessageRole = "user" | "assistant" | "system";
 
 /**
  * Configuration for ConversationService
@@ -59,7 +55,7 @@ export const conversationMessageActorSchema = z.object({
   actorId: z.string(),
   canonicalId: z.string().optional(),
   interfaceType: z.string(),
-  role: z.enum(["user", "assistant", "system"]),
+  role: messageRoleSchema,
   displayName: z.string().optional(),
   username: z.string().optional(),
   isBot: z.boolean().optional(),
@@ -99,6 +95,11 @@ export interface AddConversationMessageRequest {
   metadata?: Record<string, unknown>;
 }
 
+export interface UpdateConversationMetadataRequest {
+  conversationId: string;
+  metadata: Record<string, unknown>;
+}
+
 export interface ListConversationsOptions {
   limit?: number;
   updatedAfter?: string;
@@ -120,6 +121,10 @@ export interface IConversationService {
   listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;
+  updateConversationMetadata(
+    request: UpdateConversationMetadataRequest,
+  ): Promise<boolean>;
+  deleteConversation(conversationId: string): Promise<boolean>;
 
   // Search operations
   searchConversations(

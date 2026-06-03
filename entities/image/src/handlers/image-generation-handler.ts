@@ -1,12 +1,12 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, findEntityByIdentifier } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import { imageAdapter, setCoverImageId } from "@brains/image";
 import { getErrorMessage, z, slugify } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
-import { findEntityByIdentifier } from "@brains/entity-service";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
+import { getDistillableEntityContent } from "../lib/distillable-content";
 
 /**
  * Schema for AI-distilled image prompt
@@ -105,7 +105,8 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
 
       // Step 1.5: Distill prompt using AI when entity content is provided
       let finalPrompt = prompt;
-      if (data.entityContent) {
+      const entityContent = getDistillableEntityContent(data.entityContent);
+      if (entityContent) {
         await this.reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.FETCH,
           message: "Distilling image prompt from content",
@@ -128,7 +129,7 @@ Example bad output: "A dreamlike crystal formation glowing with ethereal light i
 Title: "${data.entityTitle ?? title}"
 
 Content:
-${data.entityContent}`,
+${entityContent}`,
             imagePromptSchema,
           );
           finalPrompt = `${prompt.trim()} ${object.imagePrompt}`;

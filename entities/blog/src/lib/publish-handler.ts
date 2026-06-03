@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { EntityPluginContext, ToolContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
@@ -33,16 +33,27 @@ export function subscribeToPublishExecute(
   logger: Logger,
 ): void {
   context.messaging.subscribe<
-    { entityType: string; entityId: string },
+    {
+      entityType: string;
+      entityId: string;
+      authContext?: {
+        userPermissionLevel?: ToolContext["userPermissionLevel"];
+      };
+    },
     { success: boolean }
   >("publish:execute", async (msg) => {
-    const { entityType, entityId } = msg.payload;
+    const { entityType, entityId, authContext } = msg.payload;
 
     if (entityType !== "post") {
       return { success: true };
     }
 
     try {
+      context.permissions.assertEntityActionAllowed(
+        entityType,
+        "publish",
+        authContext ?? { userPermissionLevel: "anchor" },
+      );
       const post = await context.entityService.getEntity<BlogPost>({
         entityType: "post",
         id: entityId,

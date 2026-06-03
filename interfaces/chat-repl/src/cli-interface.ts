@@ -3,6 +3,8 @@ import {
   type InterfacePluginContext,
   PluginError,
   parseConfirmationResponse,
+  type StructuredChatCard,
+  type ToolApprovalCard,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
@@ -26,8 +28,8 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   private responseCallback: ((response: string) => void) | undefined;
   private agentService?: AgentNamespace;
 
-  // Track pending confirmations
-  private pendingConfirmation = false;
+  // Track pending confirmation approval ids
+  private pendingConfirmationIds: string[] = [];
 
   constructor(config: Partial<CLIConfig> = {}) {
     super("cli", packageJson, config, cliConfigSchema);
@@ -187,7 +189,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
     try {
       // Check for confirmation response
-      if (this.pendingConfirmation) {
+      if (this.pendingConfirmationIds.length > 0) {
         await this.handleConfirmationResponse(input, conversationId);
         return;
       }
@@ -204,13 +206,21 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         },
       );
 
-      // Track pending confirmation if returned
-      if (response.pendingConfirmation) {
-        this.pendingConfirmation = true;
+      // Track pending confirmations if returned
+      const approvalCards = this.getPendingApprovalCards(response.cards);
+      if (approvalCards.length > 0) {
+        this.pendingConfirmationIds = approvalCards.map((card) => card.id);
+      } else if (response.pendingConfirmations) {
+        this.pendingConfirmationIds = response.pendingConfirmations.map(
+          (confirmation) => confirmation.id,
+        );
       }
 
       // Build response with tool results
-      const responseText = response.text;
+      const responseText = this.formatAgentResponseText(
+        response.text,
+        approvalCards,
+      );
 
       // Debug: log tool results
       this.logger.debug("Agent response received", {
@@ -244,37 +254,158 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
+   * Get pending approval card from structured agent response cards.
+   */
+  private getPendingApprovalCards(
+    cards: StructuredChatCard[] | undefined,
+  ): ToolApprovalCard[] {
+    return (
+      cards?.filter(
+        (card): card is ToolApprovalCard =>
+          card.kind === "tool-approval" && card.state === "approval-requested",
+      ) ?? []
+    );
+  }
+
+  private getResolvedApprovalCard(
+    cards: StructuredChatCard[] | undefined,
+  ): ToolApprovalCard | undefined {
+    return cards?.find(
+      (card): card is ToolApprovalCard =>
+        card.kind === "tool-approval" &&
+        (card.state === "output-available" ||
+          card.state === "output-error" ||
+          card.state === "output-denied"),
+    );
+  }
+
+  /**
+   * Format CLI response text for structured approval cards.
+   */
+  private formatAgentResponseText(
+    text: string,
+    approvalCards: ToolApprovalCard[],
+  ): string {
+    if (approvalCards.length === 0) return text;
+
+    if (approvalCards.length === 1) {
+      const approvalCard = approvalCards[0];
+      if (!approvalCard) return text;
+      const baseText = text.trim().length > 0 ? text : approvalCard.summary;
+      const preview = approvalCard.preview ? `\n\n${approvalCard.preview}` : "";
+      return `${baseText}${preview}\n\n_Please reply with **yes** to confirm or **no/cancel** to abort._`;
+    }
+
+    const baseText =
+      text.trim().length > 0 ? text : "Multiple approvals required.";
+    const approvalList = approvalCards
+      .map((card, index) => {
+        const preview = card.preview ? `\n   ${card.preview}` : "";
+        return `${index + 1}. ${card.summary}${preview}`;
+      })
+      .join("\n");
+    return `${baseText}\n\n${approvalList}\n\n_Please reply with **yes 1** / **no 1** for the matching action._`;
+  }
+
+  private formatApprovalResultText(
+    text: string,
+    cards: StructuredChatCard[] | undefined,
+  ): string {
+    const resultCard = this.getResolvedApprovalCard(cards);
+    if (!resultCard) return text;
+
+    if (resultCard.state === "output-error") {
+      return resultCard.error
+        ? `✗ ${resultCard.summary}\n\n${resultCard.error}`
+        : `✗ ${resultCard.summary}`;
+    }
+    if (resultCard.state === "output-denied") {
+      return `○ ${resultCard.summary}`;
+    }
+    return `✓ ${resultCard.summary}`;
+  }
+
+  private parseIndexedConfirmationResponse(
+    message: string,
+  ): { confirmed: boolean; index?: number } | undefined {
+    const match = /^(.*?)(?:\s+#?(\d+))?$/.exec(message.trim());
+    const responseText = match?.[1]?.trim() ?? message.trim();
+    const parsed = parseConfirmationResponse(responseText);
+    if (!parsed) return undefined;
+
+    const indexText = match?.[2];
+    if (!indexText) return { confirmed: parsed.confirmed };
+
+    return { confirmed: parsed.confirmed, index: Number(indexText) - 1 };
+  }
+
+  private getConfirmationHelpText(): string {
+    if (this.pendingConfirmationIds.length > 1) {
+      return "_Please reply with **yes 1** / **no 1** for the matching action._";
+    }
+    return "_Please reply with **yes** to confirm or **no/cancel** to abort._";
+  }
+
+  private resolvePendingApprovalSelection(
+    message: string,
+  ): { confirmed: boolean; approvalId: string } | undefined {
+    const result = this.parseIndexedConfirmationResponse(message);
+    if (result === undefined) {
+      this.sendMessageToChannel({
+        channelId: null,
+        message: this.getConfirmationHelpText(),
+      });
+      return undefined;
+    }
+
+    if (this.pendingConfirmationIds.length > 1 && result.index === undefined) {
+      this.sendMessageToChannel({
+        channelId: null,
+        message:
+          "_Multiple approvals are pending. Reply with **yes 1** / **no 1** for the matching action._",
+      });
+      return undefined;
+    }
+
+    const selectedIndex = result.index ?? 0;
+    const approvalId = this.pendingConfirmationIds[selectedIndex];
+    if (!approvalId) {
+      this.sendMessageToChannel({
+        channelId: null,
+        message: this.getConfirmationHelpText(),
+      });
+      return undefined;
+    }
+
+    return { confirmed: result.confirmed, approvalId };
+  }
+
+  /**
    * Handle confirmation responses (yes/no)
    */
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
   ): Promise<void> {
-    const result = parseConfirmationResponse(message);
+    const approvalSelection = this.resolvePendingApprovalSelection(message);
+    if (!approvalSelection) return;
 
-    // Unrecognized response - show help
-    if (result === undefined) {
-      this.sendMessageToChannel({
-        channelId: null,
-        message:
-          "_Please reply with **yes** to confirm or **no/cancel** to abort._",
-      });
-      return;
-    }
-
-    // Clear pending confirmation
-    this.pendingConfirmation = false;
+    // Clear selected pending confirmation before calling AgentService.
+    this.pendingConfirmationIds = this.pendingConfirmationIds.filter(
+      (id) => id !== approvalSelection.approvalId,
+    );
 
     // Call AgentService to confirm or cancel
     const response = await this.getAgentService().confirmPendingAction(
       conversationId,
-      result.confirmed,
+      approvalSelection.confirmed,
+      approvalSelection.approvalId,
     );
 
     // Send response to UI
     this.sendMessageToChannel({
       channelId: null,
-      message: response.text,
+      message: this.formatApprovalResultText(response.text, response.cards),
     });
   }
 

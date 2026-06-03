@@ -104,7 +104,7 @@ describe("buildActionItemsWidgetData", () => {
       context,
       new Date("2026-05-10T00:00:00.000Z"),
     );
-    expect(data.items[0]?.meta?.[0]).toBe("#raw-channel-id");
+    expect(data.items[0]?.meta[0]).toBe("#raw-channel-id");
   });
 });
 

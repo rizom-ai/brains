@@ -17,8 +17,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Publish action policy](./publish-action-policy.md) — proposed follow-up for draft/edit vs publish authorization
-- [Conversation memory](./summary-conversation-memory.md) — partial; remaining policy/eval tightening
 - [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
@@ -30,11 +28,12 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Unify build pipeline](./unify-build-pipeline.md) — proposed
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
+- [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
+- [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
 
 ### Content, sync, and generation
 
-- [Generic media generation and saved artifacts](./generic-media-generation.md) — remaining unification work after the durable document/PDF carousel path
-- [OG images on the media rendering substrate](./og-images-pdf-carousels.md) — remaining OG image phase after the PDF carousel MVP
+- [OG images and printable PDFs on the media rendering substrate](./og-images-pdf-carousels.md) — proposed follow-up for OG images plus printable post/project/product PDFs
 
 ### Auth, users, CMS, and HTTP
 
@@ -43,8 +42,8 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
 - [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
-- [CMS GitHub OAuth proxy](./cms-github-oauth-proxy.md) — proposed small interim proxy for Sveltia's existing GitHub backend
-- [CMS heavy backend](./cms-heavy-backend.md) — proposed long-term brain-hosted git gateway for CMS writes
+- [CMS operator login](./cms-operator-login.md) — proposed CMS login (GitHub OAuth and/or passkey-gated PAT) for Sveltia's existing GitHub backend
+- [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted successor that mints short-lived GitHub App installation tokens for platform-created content repos
 
 ### Hosted, deployed, and monetized product
 
@@ -55,9 +54,8 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### New interfaces, renderers, and runtimes
 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
-- [Structured chat confirmations](./structured-chat-confirmations.md) — ready / unblocked; align web-chat, Discord, and chat-repl behind a shared structured tool/approval contract
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; revisits multi-platform Chat SDK direction only when a new platform is prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — parked
+- [AT Protocol integration](./atproto-integration.md) — active prototype; Phase 1/2 outbound publishing and Phase 2.6 registry contracts are implemented, with live `rizom.ai` registry enablement still pending
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

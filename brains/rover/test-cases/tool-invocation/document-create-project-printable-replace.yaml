@@ -1,0 +1,36 @@
+id: tool-invocation-document-create-project-printable-replace
+name: Regenerate Project Printable PDF
+description: "Verifies regenerate requests force replacement of a saved project printable PDF document"
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - portfolio
+  - project
+  - document
+  - media
+  - printable
+  - document-create
+
+turns:
+  - userMessage: "Regenerate the printable PDF for project 'CityPulse'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "document"
+        from.sourceEntityType: "project"
+        from.sourceEntityId: "city-pulse"
+        from.attachmentType: "printable"
+        replace: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

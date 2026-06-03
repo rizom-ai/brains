@@ -40,7 +40,7 @@ export async function ensureUniqueTitle(
     entityType: entityType,
     id: proposedId,
   });
-  if (!existing) {
+  if (!existing || existing.metadata["status"] === "generating") {
     return title;
   }
 

@@ -1,5 +1,6 @@
 import type { Tool, Resource, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
@@ -27,7 +28,22 @@ const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
   studio: "/canvases/constellation.canvas.js",
 };
 
+export const RIZOM_ATPROTO_LEXICON_BASE_PATH = "/atproto/lexicons";
+
+function formatLexiconJson(lexicon: unknown): string {
+  return `${JSON.stringify(lexicon, null, 2)}\n`;
+}
+
+export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
+  Object.fromEntries(
+    listCanonicalAtprotoLexicons().map((lexicon) => [
+      `${RIZOM_ATPROTO_LEXICON_BASE_PATH}/${lexicon.id}.json`,
+      formatLexiconJson(lexicon),
+    ]),
+  );
+
 export const rizomRuntimeStaticAssets: Record<string, string> = {
+  ...rizomAtprotoLexiconStaticAssets,
   "/canvases/prelude.canvas.js": canvasPrelude,
   "/canvases/tree.canvas.js": treeCanvas,
   "/canvases/constellation.canvas.js": constellationCanvas,

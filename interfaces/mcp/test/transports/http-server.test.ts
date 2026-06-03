@@ -441,6 +441,56 @@ describe("StreamableHTTPServer", () => {
     });
   });
 
+  describe("Agent chat endpoints", () => {
+    test("should confirm pending actions with explicit approval ids", async () => {
+      const confirmPendingAction = mock(
+        async (
+          _conversationId: string,
+          _confirmed: boolean,
+          _approvalId?: string,
+        ) => ({
+          text: "Action confirmed.",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+      );
+      server = new StreamableHTTPServer({
+        logger: mockLogger,
+        auth: { disabled: true },
+      });
+      server.connectAgentService({
+        chat: async () => ({
+          text: "ok",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+        confirmPendingAction,
+        invalidate: (): void => {},
+      });
+
+      const response = await server.handleRequest(
+        new Request("http://localhost/api/chat/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: "conversation-1",
+            confirmed: false,
+            approvalId: "approval:delete",
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        text: "Action confirmed.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      });
+      expect(confirmPendingAction).toHaveBeenCalledWith(
+        "conversation-1",
+        false,
+        "approval:delete",
+      );
+    });
+  });
+
   describe("Error Handling", () => {
     test("should handle transport close errors gracefully", async () => {
       server = new StreamableHTTPServer({

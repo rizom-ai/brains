@@ -1,4 +1,5 @@
-import { type Logger } from "@brains/utils";
+import type { AgentContextItem } from "@brains/contracts";
+import { type Logger, getErrorMessage } from "@brains/utils";
 import { type IMCPService, type ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
@@ -14,8 +15,11 @@ import type {
   AgentConfig,
   AgentResponse,
   BrainAgent,
+  ChatAttachment,
   ChatContext,
   IAgentService,
+  StructuredChatCard,
+  ToolResultData,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 import {
@@ -25,8 +29,12 @@ import {
   type ExecuteActionInput,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
-import { buildModelMessages } from "./conversation-messages";
-import { extractToolResults } from "./agent-results";
+import {
+  buildAgentContextInstructions,
+  buildMessageWithAttachments,
+  buildModelMessages,
+} from "./conversation-messages";
+import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
 
@@ -34,6 +42,29 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getStringField(value: unknown, field: string): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const fieldValue = value[field];
+  return typeof fieldValue === "string" ? fieldValue : undefined;
+}
+
+function isFailedToolOutput(value: unknown): boolean {
+  return isRecord(value) && value["success"] === false;
+}
+
+function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
+  const filenames = attachments.map((attachment) => attachment.filename);
+  const fileLabel =
+    filenames.length === 1
+      ? `\`${filenames[0]}\``
+      : filenames.map((filename) => `\`${filename}\``).join(", ");
+  return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
+}
 
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
@@ -53,6 +84,7 @@ export class AgentService implements IAgentService {
   private agentInstructions: AgentConfig["agentInstructions"];
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
+  private agentContextProvider: AgentConfig["agentContextProvider"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -145,6 +177,7 @@ export class AgentService implements IAgentService {
     this.agentInstructions = config.agentInstructions;
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
+    this.agentContextProvider = config.agentContextProvider;
   }
 
   /**
@@ -220,6 +253,7 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
       actor: context?.actor ?? null,
       source: context?.source ?? null,
+      attachments: context?.attachments ?? [],
     });
 
     const snapshot = await waitFor(
@@ -241,19 +275,49 @@ export class AgentService implements IAgentService {
   public async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId: string,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
-
-    if (!actor?.getSnapshot().matches("awaitingConfirmation")) {
+    if (!actor) {
       return {
         text: "No pending action to confirm.",
         usage: emptyUsage,
       };
     }
 
-    actor.send({ type: confirmed ? "CONFIRM" : "CANCEL" });
+    const snapshotBeforeConfirm = actor.getSnapshot();
 
-    const snapshot = await waitFor(actor, (s) => s.matches("idle"));
+    if (!snapshotBeforeConfirm.matches("awaitingConfirmation")) {
+      return {
+        text: "No pending action to confirm.",
+        usage: emptyUsage,
+      };
+    }
+
+    const matchesApproval =
+      snapshotBeforeConfirm.context.pendingConfirmations.some(
+        (confirmation) => confirmation.id === approvalId,
+      );
+    if (!matchesApproval) {
+      return {
+        text: `No pending action matches approval id '${approvalId}'.`,
+        usage: emptyUsage,
+      };
+    }
+
+    actor.send({
+      type: confirmed ? "CONFIRM" : "CANCEL",
+      approvalId,
+    });
+
+    const snapshot = await waitFor(
+      actor,
+      (s) =>
+        (s.matches("idle") || s.matches("awaitingConfirmation")) &&
+        !s.context.pendingConfirmations.some(
+          (confirmation) => confirmation.id === approvalId,
+        ),
+    );
 
     return (
       snapshot.context.response ?? {
@@ -275,6 +339,7 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
       actor,
       source,
+      attachments,
     } = input;
 
     // Ensure conversation exists
@@ -285,13 +350,55 @@ export class AgentService implements IAgentService {
       metadata: { channelName, interfaceType, channelId },
     });
 
+    if (message.trim().length === 0 && attachments.length > 0) {
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(actor, source, attachments),
+        ),
+      });
+
+      const responseText = buildAttachmentOnlyResponse(attachments);
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "assistant",
+        content: responseText,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(
+            this.getAssistantActor(),
+            this.buildAssistantSource(channelId, channelName),
+          ),
+        ),
+      });
+
+      return {
+        text: responseText,
+        toolResults: [],
+        usage: emptyUsage,
+      };
+    }
+
     // Load conversation history
     const historyMessages = await this.conversationService.getMessages(
       conversationId,
       { limit: 50 },
     );
 
-    const messages = buildModelMessages(historyMessages, message);
+    const contextItems = await this.fetchAgentContext({
+      conversationId,
+      message,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    });
+
+    const modelMessage = buildMessageWithAttachments(message, attachments);
+    const messages = buildModelMessages(historyMessages, modelMessage);
+    const agentContextInstructions =
+      buildAgentContextInstructions(contextItems);
 
     // Log available tools
     const tools = this.mcpService
@@ -307,7 +414,9 @@ export class AgentService implements IAgentService {
       conversationId,
       role: "user",
       content: message,
-      ...this.withMessageMetadata(this.buildMessageMetadata(actor, source)),
+      ...this.withMessageMetadata(
+        this.buildMessageMetadata(actor, source, attachments),
+      ),
     });
 
     // Call agent
@@ -317,6 +426,7 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
+      ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 
     const result = await this.getAgent().generate({
@@ -324,16 +434,21 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    const { toolResults, pendingConfirmation, totalToolCalls } =
+    const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
 
-    const responseText = pendingConfirmation
-      ? "Confirmation required."
-      : result.text;
+    const responseText =
+      pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
+    const entityMemoryNote =
+      pendingConfirmations.length > 0 ? "" : buildEntityMemoryNote(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
+    //
+    // Store a memory note of entities this turn created/updated so their IDs
+    // stay addressable next turn. The note is injected into model history from
+    // metadata only; visible assistant content stays clean.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
@@ -343,6 +458,9 @@ export class AgentService implements IAgentService {
           this.buildMessageMetadata(
             this.getAssistantActor(),
             this.buildAssistantSource(channelId, channelName),
+            [],
+            cards,
+            entityMemoryNote,
           ),
         ),
       });
@@ -359,14 +477,43 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
+      ...(cards.length > 0 ? { cards } : {}),
       usage: toTokenUsage(result.usage),
     };
 
-    if (pendingConfirmation) {
-      response.pendingConfirmation = pendingConfirmation;
+    if (pendingConfirmations.length > 0) {
+      response.pendingConfirmations = pendingConfirmations;
     }
 
     return response;
+  }
+
+  private async fetchAgentContext(params: {
+    conversationId: string;
+    message: string;
+    interfaceType: string;
+    channelId: string;
+    channelName: string;
+    userPermissionLevel: ChatContext["userPermissionLevel"];
+  }): Promise<AgentContextItem[] | undefined> {
+    if (!this.agentContextProvider) return undefined;
+
+    try {
+      return await this.agentContextProvider({
+        conversationId: params.conversationId,
+        message: params.message,
+        interfaceType: params.interfaceType,
+        channelId: params.channelId,
+        channelName: params.channelName,
+        userPermissionLevel: params.userPermissionLevel ?? "public",
+      });
+    } catch (error) {
+      this.logger.warn("Agent context provider failed", {
+        conversationId: params.conversationId,
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
   }
 
   private async executeConfirmedAction(
@@ -403,7 +550,38 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const failed = isFailedToolOutput(result);
+    const prefix = failed ? "Failed" : "Completed";
+    const errorMessage = failed
+      ? (getStringField(result, "error") ?? getStringField(result, "message"))
+      : undefined;
+    const resultText = errorMessage
+      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
+      : `${prefix}: ${pendingConfirmation.summary}`;
+    const toolResult: ToolResultData = {
+      toolName: pendingConfirmation.toolName,
+      data: result,
+      ...(isRecord(pendingConfirmation.args)
+        ? { args: pendingConfirmation.args }
+        : {}),
+    };
+    const approvalCard: StructuredChatCard = {
+      kind: "tool-approval",
+      id: pendingConfirmation.id,
+      ...(pendingConfirmation.toolCallId
+        ? { toolCallId: pendingConfirmation.toolCallId }
+        : {}),
+      toolName: pendingConfirmation.toolName,
+      ...(isRecord(pendingConfirmation.args)
+        ? { input: pendingConfirmation.args }
+        : {}),
+      summary: pendingConfirmation.summary,
+      state: failed ? "output-error" : "output-available",
+      output: result,
+      ...(failed
+        ? { error: getStringField(result, "error") ?? "Action failed" }
+        : {}),
+    };
 
     await this.conversationService.addMessage({
       conversationId,
@@ -413,12 +591,16 @@ export class AgentService implements IAgentService {
         this.buildMessageMetadata(
           this.getAssistantActor(),
           this.buildAssistantSource(channelId, channelName),
+          [],
+          [approvalCard],
         ),
       ),
     });
 
     return {
       text: resultText,
+      toolResults: [toolResult],
+      cards: [approvalCard],
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }
@@ -426,6 +608,9 @@ export class AgentService implements IAgentService {
   private buildMessageMetadata(
     actor: ConversationMessageActor | null,
     source: ConversationMessageSource | null,
+    attachments: ChatAttachment[] = [],
+    cards: StructuredChatCard[] = [],
+    entityMemoryNote = "",
   ): ConversationMessageMetadata {
     const enrichedActor = actor
       ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
@@ -433,6 +618,29 @@ export class AgentService implements IAgentService {
     return {
       ...(enrichedActor ? { actor: enrichedActor } : {}),
       ...(source ? { source } : {}),
+      ...(attachments.length > 0
+        ? {
+            attachments: attachments.map((attachment) =>
+              this.toMessageAttachmentMetadata(attachment),
+            ),
+          }
+        : {}),
+      ...(cards.length > 0 ? { cards } : {}),
+      ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
+    };
+  }
+
+  private toMessageAttachmentMetadata(
+    attachment: ChatAttachment,
+  ): Record<string, unknown> {
+    return {
+      kind: attachment.kind,
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      ...(attachment.sizeBytes !== undefined && {
+        sizeBytes: attachment.sizeBytes,
+      }),
+      ...(attachment.source !== undefined && { source: attachment.source }),
     };
   }
 

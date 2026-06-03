@@ -60,7 +60,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private app: ChatSdkApp | undefined;
   private readonly threadRegistry = new ThreadRegistry();
-  private readonly pendingConfirmations = new Map<string, boolean>();
+  private readonly pendingConfirmations = new Map<string, Set<string>>();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private gatewayAbortController: AbortController | undefined;
   private gatewayLoopPromise: Promise<void> | undefined;
@@ -341,8 +341,18 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         },
       );
 
-      if (response.pendingConfirmation) {
-        this.pendingConfirmations.set(conversationId, true);
+      if (
+        response.pendingConfirmations &&
+        response.pendingConfirmations.length > 0
+      ) {
+        this.pendingConfirmations.set(
+          conversationId,
+          new Set(
+            response.pendingConfirmations.map(
+              (confirmation) => confirmation.id,
+            ),
+          ),
+        );
       }
 
       const messageId = await this.sendMessageWithId({
@@ -385,13 +395,41 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    this.pendingConfirmations.delete(conversationId);
+    const approvalIds = this.pendingConfirmations.get(conversationId);
+    if (approvalIds && approvalIds.size > 1) {
+      await thread.post(
+        "_Multiple approvals are pending; please resolve them individually._",
+      );
+      return;
+    }
+
+    const approvalId = approvalIds ? [...approvalIds][0] : undefined;
+    if (!approvalId) {
+      this.pendingConfirmations.delete(conversationId);
+      await thread.post("_No pending approval to resolve._");
+      return;
+    }
+
+    this.removePendingApproval(conversationId, approvalId);
     const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
+      approvalId,
     );
     if (response) {
       await thread.post(response.text);
+    }
+  }
+
+  private removePendingApproval(
+    conversationId: string,
+    approvalId: string,
+  ): void {
+    const approvalIds = this.pendingConfirmations.get(conversationId);
+    if (!approvalIds) return;
+    approvalIds.delete(approvalId);
+    if (approvalIds.size === 0) {
+      this.pendingConfirmations.delete(conversationId);
     }
   }
 

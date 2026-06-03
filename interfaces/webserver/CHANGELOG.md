@@ -1,5 +1,95 @@
 # @brains/webserver
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.106
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.105
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.104
+
+## 0.2.0-alpha.103
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.102
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.100
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.99
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.98
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.97
+
+## 0.2.0-alpha.96
+
+### Patch Changes
+
+- [`4e7436d`](https://github.com/rizom-ai/brains/commit/4e7436d3aa998a1582718880ef4a7a65b2d3571c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Set an explicit Bun.serve idle timeout so long streaming responses survive. The
+  web-chat `POST /api/chat` stream stays silent while the agent runs synchronously
+  (cold model init + tool loop + an uploaded file's full content in the prompt); a
+  slow first turn exceeded Bun's 10s default idle timeout and the socket was closed,
+  surfacing in the UI as a "[ signal lost ]" network error. Stream writes do not reset
+  Bun's idle timer, so the timeout itself now covers the worst-case turn.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.95
+
 ## 0.2.0-alpha.94
 
 ### Patch Changes

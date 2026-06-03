@@ -197,7 +197,8 @@ describe("LinkPlugin with Harness", () => {
             registeredHandlers.push(args[0]);
           },
         };
-      mockShell.getJobQueueService = () => trackingJobQueue;
+      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
+        trackingJobQueue;
 
       await plugin.register(mockShell);
 
@@ -224,7 +225,8 @@ describe("LinkPlugin with Harness", () => {
             return "job-123";
           },
         };
-      mockShell.getJobQueueService = () => trackingJobQueue;
+      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
+        trackingJobQueue;
 
       await plugin.register(mockShell);
       const interceptor = mockShell
@@ -281,7 +283,8 @@ describe("LinkPlugin with Harness", () => {
             return "job-123";
           },
         };
-      mockShell.getJobQueueService = () => trackingJobQueue;
+      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
+        trackingJobQueue;
 
       await plugin.register(mockShell);
       const interceptor = mockShell

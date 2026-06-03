@@ -41,7 +41,7 @@ export interface ToolCompletionEvent extends ToolContextInfo {
  * Can be backed by MessageBus or a simple callback for testing
  */
 export interface ToolEventEmitter {
-  emit(type: string, payload: unknown): void;
+  emit(type: string, payload: unknown): Promise<void> | void;
 }
 
 /**
@@ -79,7 +79,7 @@ export function createToolExecuteWrapper(
           channelName: contextInfo.channelName,
         }),
       };
-      emitter.emit("tool:invoking", invokingPayload);
+      await emitter.emit("tool:invoking", invokingPayload);
     }
 
     try {
@@ -99,7 +99,7 @@ export function createToolExecuteWrapper(
             channelName: contextInfo.channelName,
           }),
         };
-        emitter.emit("tool:completed", completedPayload);
+        await emitter.emit("tool:completed", completedPayload);
       }
 
       return result;
@@ -118,7 +118,7 @@ export function createToolExecuteWrapper(
             channelName: contextInfo.channelName,
           }),
         };
-        emitter.emit("tool:failed", failedPayload);
+        await emitter.emit("tool:failed", failedPayload);
       }
 
       // Re-throw the original error
@@ -140,14 +140,16 @@ export function createMessageBusEmitter(
       type: string;
       payload: unknown;
       sender: string;
+      broadcast?: boolean;
     }) => Promise<unknown>;
   },
   sender: string = "brain-agent",
 ): ToolEventEmitter {
   return {
-    emit: (type: string, payload: unknown): void => {
-      // Fire and forget - don't wait for response, but avoid unhandled rejections.
-      void messageBus.send({ type, payload, sender }).catch(() => undefined);
+    emit: async (type: string, payload: unknown): Promise<void> => {
+      await messageBus
+        .send({ type, payload, sender, broadcast: true })
+        .catch(() => undefined);
     },
   };
 }

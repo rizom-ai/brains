@@ -1,7 +1,7 @@
 {
   "name": "@brains/products",
   "private": true,
-  "version": "0.2.0-alpha.94",
+  "version": "0.2.0-alpha.106",
   "description": "Product entity management and overview page for marketing showcase",
   "type": "module",
   "exports": {
@@ -15,7 +15,11 @@
   },
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

@@ -3,7 +3,7 @@ import type {
   BaseDataSourceContext,
   IEntityService,
   BaseEntity,
-} from "@brains/entity-service";
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
@@ -14,6 +14,7 @@ import {
   type SeriesWithData,
 } from "../schemas/series";
 import { seriesAdapter } from "../adapters/series-adapter";
+import { getSeriesName, compareBySeriesIndex } from "../lib/series-metadata";
 
 // DynamicRouteGenerator format (entityType + query)
 const dynamicQuerySchema = z.object({
@@ -122,9 +123,6 @@ export class SeriesDataSource implements DataSource {
   ): Promise<T> {
     const seriesEntities = await entityService.listEntities<Series>({
       entityType: "series",
-      options: {
-        limit: 1000,
-      },
     });
 
     // Count entities per series across ALL entity types
@@ -200,8 +198,11 @@ export class SeriesDataSource implements DataSource {
 
     const seriesEntity = candidates[0];
     if (!seriesEntity) {
-      this.logger.warn(`Series not found with slug: ${seriesSlug}`);
-      return outputSchema.parse({ seriesName: seriesSlug, posts: [] });
+      // Consistent with fetchSeriesDetail: a missing series is a not-found,
+      // not a renderable empty page. The detail schema requires `series`, so
+      // returning a partial payload here would throw an opaque ZodError —
+      // throw a clear error the route can turn into a 404 instead.
+      throw new Error(`Series not found with slug: ${seriesSlug}`);
     }
 
     return this.fetchSeriesDetail(
@@ -225,10 +226,9 @@ export class SeriesDataSource implements DataSource {
       if (type === "series") continue;
       const entities = await entityService.listEntities({
         entityType: type,
-        options: { limit: 1000 },
       });
       for (const entity of entities) {
-        const name = this.getSeriesName(entity);
+        const name = getSeriesName(entity);
         if (name) {
           counts.set(name, (counts.get(name) ?? 0) + 1);
         }
@@ -259,22 +259,9 @@ export class SeriesDataSource implements DataSource {
       members.push(...entities);
     }
 
-    // Sort by seriesIndex if available
-    members.sort((a, b) => {
-      const ai = (a.metadata as Record<string, unknown>)["seriesIndex"];
-      const bi = (b.metadata as Record<string, unknown>)["seriesIndex"];
-      return (
-        (typeof ai === "number" ? ai : 999) -
-        (typeof bi === "number" ? bi : 999)
-      );
-    });
+    // Sort by seriesIndex; members without an index sort last.
+    members.sort(compareBySeriesIndex);
 
     return members;
-  }
-
-  private getSeriesName(entity: BaseEntity): string | undefined {
-    const metadata = entity.metadata as Record<string, unknown>;
-    const name = metadata["seriesName"];
-    return typeof name === "string" ? name : undefined;
   }
 }

@@ -16,15 +16,24 @@ module.exports = {
   },
   overrides: [
     {
-      // Enforce import pattern for plugins and interfaces - shell packages must go through @brains/plugins
-      // Note: This applies to plugins/* and interfaces/*, NOT shell/plugins (the plugins package itself)
-      files: ["**/plugins/**/*.ts", "**/interfaces/**/*.ts"],
+      // Enforce import pattern for entities, plugins, and interfaces - shell packages must go through @brains/plugins
+      // Note: This applies to top-level entities/*, plugins/*, and interfaces/*, NOT shell/plugins (the plugins package itself)
+      files: [
+        "**/entities/**/*.ts",
+        "**/plugins/**/*.ts",
+        "**/interfaces/**/*.ts",
+      ],
       excludedFiles: ["**/shell/plugins/**/*.ts"],
       rules: {
         "no-restricted-imports": [
           "error",
           {
             paths: [
+              {
+                name: "@brains/core",
+                message:
+                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
+              },
               {
                 name: "@brains/job-queue",
                 message:
@@ -59,6 +68,22 @@ module.exports = {
                 name: "@brains/ai-service",
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
+              },
+            ],
+            patterns: [
+              {
+                group: [
+                  "@brains/core/*",
+                  "@brains/job-queue/*",
+                  "@brains/identity-service/*",
+                  "@brains/entity-service/*",
+                  "@brains/content-service/*",
+                  "@brains/conversation-service/*",
+                  "@brains/messaging-service/*",
+                  "@brains/ai-service/*",
+                ],
+                message:
+                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
               },
             ],
           },

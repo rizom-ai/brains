@@ -4,7 +4,11 @@ import type {
   ConversationMessageActor,
   ConversationMessageSource,
 } from "@brains/conversation-service";
-import type { AgentResponse, PendingConfirmation } from "./agent-types";
+import type {
+  AgentResponse,
+  ChatAttachment,
+  PendingConfirmation,
+} from "./agent-types";
 
 /**
  * Context for the agent state machine.
@@ -19,8 +23,10 @@ export interface AgentMachineContext {
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
+  attachments: ChatAttachment[];
   response: AgentResponse | null;
-  pendingConfirmation: PendingConfirmation | null;
+  pendingConfirmations: PendingConfirmation[];
+  activeConfirmation: PendingConfirmation | null;
   error: string | null;
 }
 
@@ -38,9 +44,10 @@ export type AgentMachineEvent =
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
       source: ConversationMessageSource | null;
+      attachments: ChatAttachment[];
     }
-  | { type: "CONFIRM" }
-  | { type: "CANCEL" };
+  | { type: "CONFIRM"; approvalId: string }
+  | { type: "CANCEL"; approvalId: string };
 
 /**
  * Input for the processMessage actor
@@ -54,6 +61,7 @@ export interface ProcessMessageInput {
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
+  attachments: ChatAttachment[];
 }
 
 /**
@@ -73,6 +81,70 @@ export const emptyUsage = {
   completionTokens: 0,
   totalTokens: 0,
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function findPendingConfirmation(
+  context: AgentMachineContext,
+  approvalId: string,
+): PendingConfirmation | null {
+  return (
+    context.pendingConfirmations.find(
+      (confirmation) => confirmation.id === approvalId,
+    ) ?? null
+  );
+}
+
+function remainingPendingConfirmations(
+  context: AgentMachineContext,
+  approvalId: string,
+): PendingConfirmation[] {
+  return context.pendingConfirmations.filter(
+    (confirmation) => confirmation.id !== approvalId,
+  );
+}
+
+function hasRemainingPendingConfirmations({
+  context,
+  event,
+}: {
+  context: AgentMachineContext;
+  event: AgentMachineEvent;
+}): boolean {
+  if (event.type !== "CONFIRM" && event.type !== "CANCEL") return false;
+  return remainingPendingConfirmations(context, event.approvalId).length > 0;
+}
+
+function buildCancelledResponse(
+  confirmation: PendingConfirmation | null,
+): AgentResponse {
+  const summary = confirmation?.summary ?? "unknown action";
+  return {
+    text: `Action cancelled: ${summary}`,
+    ...(confirmation
+      ? {
+          cards: [
+            {
+              kind: "tool-approval",
+              id: confirmation.id,
+              ...(confirmation.toolCallId
+                ? { toolCallId: confirmation.toolCallId }
+                : {}),
+              toolName: confirmation.toolName,
+              ...(isRecord(confirmation.args)
+                ? { input: confirmation.args }
+                : {}),
+              summary,
+              state: "output-denied",
+            },
+          ],
+        }
+      : {}),
+    usage: emptyUsage,
+  };
+}
 
 /**
  * Create the agent state machine.
@@ -112,8 +184,10 @@ export const agentMachine = setup({
     userPermissionLevel: "public" as UserPermissionLevel,
     actor: null,
     source: null,
+    attachments: [],
     response: null,
-    pendingConfirmation: null,
+    pendingConfirmations: [],
+    activeConfirmation: null,
     error: null,
   },
   states: {
@@ -130,8 +204,10 @@ export const agentMachine = setup({
             userPermissionLevel: event.userPermissionLevel,
             actor: event.actor,
             source: event.source,
+            attachments: event.attachments,
             response: null,
-            pendingConfirmation: null,
+            pendingConfirmations: [],
+            activeConfirmation: null,
             error: null,
           })),
         },
@@ -150,14 +226,17 @@ export const agentMachine = setup({
           userPermissionLevel: context.userPermissionLevel,
           actor: context.actor,
           source: context.source,
+          attachments: context.attachments,
         }),
         onDone: [
           {
-            guard: ({ event }): boolean => !!event.output.pendingConfirmation,
+            guard: ({ event }): boolean =>
+              (event.output.pendingConfirmations ?? []).length > 0,
             target: "awaitingConfirmation",
             actions: assign(({ event }) => ({
               response: event.output,
-              pendingConfirmation: event.output.pendingConfirmation ?? null,
+              pendingConfirmations: event.output.pendingConfirmations ?? [],
+              activeConfirmation: null,
             })),
           },
           {
@@ -190,17 +269,43 @@ export const agentMachine = setup({
       on: {
         CONFIRM: {
           target: "executing",
-        },
-        CANCEL: {
-          target: "idle",
-          actions: assign(({ context }) => ({
-            response: {
-              text: `Action cancelled: ${context.pendingConfirmation?.description ?? "unknown action"}`,
-              usage: emptyUsage,
-            },
-            pendingConfirmation: null,
+          actions: assign(({ context, event }) => ({
+            activeConfirmation: findPendingConfirmation(
+              context,
+              event.approvalId,
+            ),
+            pendingConfirmations: remainingPendingConfirmations(
+              context,
+              event.approvalId,
+            ),
           })),
         },
+        CANCEL: [
+          {
+            guard: hasRemainingPendingConfirmations,
+            target: "awaitingConfirmation",
+            actions: assign(({ context, event }) => ({
+              response: buildCancelledResponse(
+                findPendingConfirmation(context, event.approvalId),
+              ),
+              pendingConfirmations: remainingPendingConfirmations(
+                context,
+                event.approvalId,
+              ),
+              activeConfirmation: null,
+            })),
+          },
+          {
+            target: "idle",
+            actions: assign(({ context, event }) => ({
+              response: buildCancelledResponse(
+                findPendingConfirmation(context, event.approvalId),
+              ),
+              pendingConfirmations: [],
+              activeConfirmation: null,
+            })),
+          },
+        ],
       },
     },
 
@@ -208,43 +313,78 @@ export const agentMachine = setup({
       invoke: {
         src: "executeConfirmedAction",
         input: ({ context }): ExecuteActionInput => {
-          if (!context.pendingConfirmation) {
+          if (!context.activeConfirmation) {
             throw new Error("No pending confirmation in executing state");
           }
           return {
             conversationId: context.conversationId,
-            pendingConfirmation: context.pendingConfirmation,
+            pendingConfirmation: context.activeConfirmation,
             interfaceType: context.interfaceType,
             channelId: context.channelId,
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,
           };
         },
-        onDone: {
-          target: "idle",
-          actions: assign(({ event }) => ({
-            response: event.output,
-            pendingConfirmation: null,
-          })),
-        },
-        onError: {
-          target: "idle",
-          actions: assign(({ context, event }) => ({
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : "Unknown error",
-            response: {
-              text: `Error executing ${context.pendingConfirmation?.toolName ?? "action"}: ${
+        onDone: [
+          {
+            guard: ({ context }): boolean =>
+              context.pendingConfirmations.length > 0,
+            target: "awaitingConfirmation",
+            actions: assign(({ event }) => ({
+              response: event.output,
+              activeConfirmation: null,
+            })),
+          },
+          {
+            target: "idle",
+            actions: assign(({ event }) => ({
+              response: event.output,
+              pendingConfirmations: [],
+              activeConfirmation: null,
+            })),
+          },
+        ],
+        onError: [
+          {
+            guard: ({ context }): boolean =>
+              context.pendingConfirmations.length > 0,
+            target: "awaitingConfirmation",
+            actions: assign(({ context, event }) => ({
+              error:
                 event.error instanceof Error
                   ? event.error.message
-                  : "Unknown error"
-              }`,
-              usage: emptyUsage,
-            },
-            pendingConfirmation: null,
-          })),
-        },
+                  : "Unknown error",
+              response: {
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
+                  event.error instanceof Error
+                    ? event.error.message
+                    : "Unknown error"
+                }`,
+                usage: emptyUsage,
+              },
+              activeConfirmation: null,
+            })),
+          },
+          {
+            target: "idle",
+            actions: assign(({ context, event }) => ({
+              error:
+                event.error instanceof Error
+                  ? event.error.message
+                  : "Unknown error",
+              response: {
+                text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${
+                  event.error instanceof Error
+                    ? event.error.message
+                    : "Unknown error"
+                }`,
+                usage: emptyUsage,
+              },
+              pendingConfirmations: [],
+              activeConfirmation: null,
+            })),
+          },
+        ],
       },
     },
   },

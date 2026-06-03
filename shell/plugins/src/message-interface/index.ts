@@ -15,6 +15,13 @@ export {
 } from "./progress-handler";
 
 export {
+  setupToolActivityHandler,
+  type ToolActivityEvent,
+  type ToolActivityEventType,
+  type ToolActivityHandlers,
+} from "./tool-event-handler";
+
+export {
   parseConfirmationResponse,
   formatConfirmationPrompt,
   ConfirmationTracker,

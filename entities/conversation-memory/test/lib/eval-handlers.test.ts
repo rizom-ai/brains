@@ -40,6 +40,7 @@ describe("registerSummaryEvalHandlers", () => {
     expect(handlers.has("summarizeMessages")).toBe(true);
     expect(handlers.has("decideProjection")).toBe(true);
     expect(handlers.has("retrieveMemory")).toBe(true);
+    expect(handlers.has("buildAgentContext")).toBe(true);
     expect(handlers.has("projectConversation")).toBe(true);
   });
 
@@ -89,6 +90,58 @@ describe("registerSummaryEvalHandlers", () => {
           conversationId: "summary-1",
           spaceId: "mcp:team",
           excerpt: "Team chose same-space retrieval.",
+        }),
+      ],
+    });
+  });
+
+  it("buildAgentContext evaluates injected same-space memory with provenance", async () => {
+    const { handlers } = registerHandlers();
+    const handler = handlers.get("buildAgentContext");
+    if (!handler) throw new Error("buildAgentContext handler missing");
+
+    const result = await handler({
+      message: "What did the team decide about memory?",
+      interfaceType: "mcp",
+      channelId: "team",
+      memory: [
+        {
+          id: "summary-1",
+          entityType: "summary",
+          conversationId: "conv-1",
+          interfaceType: "mcp",
+          channelId: "team",
+          content:
+            "# Conversation Summary\n\nThe team chose explicit memory retrieval.",
+          excerpt: "The team chose explicit memory retrieval.",
+          score: 0.8,
+          visibility: "shared",
+        },
+        {
+          id: "summary-other",
+          entityType: "summary",
+          conversationId: "conv-other",
+          interfaceType: "mcp",
+          channelId: "other-team",
+          content: "# Conversation Summary\n\nOther team memory.",
+          excerpt: "Other team memory.",
+          score: 0.99,
+          visibility: "shared",
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "summary-1",
+          source: "conversation-memory",
+          content: "The team chose explicit memory retrieval.",
+          provenance: expect.objectContaining({
+            entityType: "summary",
+            conversationId: "conv-1",
+            spaceId: "mcp:team",
+          }),
         }),
       ],
     });

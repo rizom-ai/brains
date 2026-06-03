@@ -80,6 +80,27 @@ describe("system_update tool", () => {
         created: new Date("2026-03-14T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-14T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "linkedin-update",
+        entityType: "social-post",
+        content:
+          "---\ntitle: LinkedIn Update\nstatus: draft\n---\n\nPost body.",
+        contentHash: "hash-social-draft",
+        visibility: "public",
+        metadata: { title: "LinkedIn Update", status: "draft" },
+        created: new Date("2026-03-15T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T10:00:00.000Z").toISOString(),
+      },
+      {
+        id: "workflow-card",
+        entityType: "workflow-card",
+        content: "---\ntitle: Workflow Card\nstatus: draft\n---\n\nTask body.",
+        contentHash: "hash-workflow-draft",
+        visibility: "public",
+        metadata: { title: "Workflow Card", status: "draft" },
+        created: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -120,10 +141,8 @@ describe("system_update tool", () => {
     expect(result).toMatchObject({
       needsConfirmation: true,
       toolName: "system_update",
+      summary: expect.stringContaining('Update "Notes on Living Systems"?'),
     });
-    expect((result as { description: string }).description).toContain(
-      'Update "Notes on Living Systems"?',
-    );
   });
 
   it("uses non-title metadata as the display label in delete confirmations", async () => {
@@ -135,10 +154,8 @@ describe("system_update tool", () => {
     expect(result).toMatchObject({
       needsConfirmation: true,
       toolName: "system_delete",
+      summary: expect.stringContaining('Delete "Notes on Living Systems"?'),
     });
-    expect((result as { description: string }).description).toContain(
-      'Delete "Notes on Living Systems"?',
-    );
   });
 
   it("does not delete when confirmed is passed without a pending confirmation token", async () => {
@@ -227,6 +244,68 @@ describe("system_update tool", () => {
     const updated = services.getEntities().get("old-agent.io");
     expect(updated?.visibility).toBe("restricted");
     expect(updated?.metadata).not.toHaveProperty("visibility");
+  });
+
+  it("rejects coverImageId field updates for entity types without cover support", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      fields: { coverImageId: "hero-banner" },
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "Entity type 'agent' doesn't support cover images",
+    });
+  });
+
+  it("writes coverImageId field updates to frontmatter for entity types with cover support", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: { coverImageId: "hero-banner" },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "linkedin-update" },
+    });
+    const updated = services.getEntities().get("linkedin-update");
+    expect(updated?.content).toContain("coverImageId: hero-banner");
+    expect(updated?.metadata).not.toHaveProperty("coverImageId");
+  });
+
+  it("clears coverImageId through system_update fields", async () => {
+    services.addEntities([
+      {
+        id: "covered-post",
+        entityType: "social-post",
+        content:
+          "---\ntitle: Covered Post\nstatus: draft\ncoverImageId: hero-banner\n---\n\nPost body.",
+        contentHash: "hash-covered",
+        visibility: "public",
+        metadata: { title: "Covered Post", status: "draft" },
+        created: new Date("2026-03-15T12:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T12:00:00.000Z").toISOString(),
+      },
+    ]);
+
+    const result = await exec({
+      entityType: "social-post",
+      id: "covered-post",
+      fields: { coverImageId: null },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "covered-post" },
+    });
+    expect(services.getEntities().get("covered-post")?.content).not.toContain(
+      "coverImageId",
+    );
   });
 
   it("re-parses visibility from frontmatter on full content replacement", async () => {
@@ -395,6 +474,135 @@ describe("system_update tool", () => {
 
     const unchanged = services.getEntities().get("old-agent.io");
     expect(unchanged?.metadata["status"]).toBe("active");
+  });
+
+  it("requires publish permission when a publish-aware status enters the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("requires publish permission when a publish-aware status stays in the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+    const existing = services.getEntities().get("linkedin-update");
+    if (existing) {
+      services.getEntities().set("linkedin-update", {
+        ...existing,
+        metadata: { ...existing.metadata, status: "queued" },
+      });
+    }
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "failed" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("requires publish permission for manual failed retry", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+    const existing = services.getEntities().get("linkedin-update");
+    if (existing) {
+      services.getEntities().set("linkedin-update", {
+        ...existing,
+        metadata: { ...existing.metadata, status: "failed" },
+      });
+    }
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
+  });
+
+  it("does not require publish permission for matching status names on non-publish-aware entity types", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "workflow-card": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "workflow-card",
+        id: "workflow-card",
+        fields: { status: "queued" },
+      },
+      "trusted",
+    );
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_update",
+    });
+  });
+
+  it("requires publish permission for full content replacements entering the publish set", async () => {
+    services.permissionService = new PermissionService({
+      entityActions: {
+        "social-post": { update: "trusted", publish: "anchor" },
+      },
+    });
+
+    const result = await exec(
+      {
+        entityType: "social-post",
+        id: "linkedin-update",
+        content:
+          "---\ntitle: LinkedIn Update\nstatus: queued\n---\n\nPost body.",
+      },
+      "trusted",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Publishing `social-post` requires Owner/anchor permission; your current permission is Collaborator/trusted.",
+    });
   });
 
   it("rejects trusted deletes when entity action policy requires anchor", async () => {

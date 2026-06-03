@@ -1,0 +1,34 @@
+id: tool-invocation-document-create-post-printable
+name: Save Blog Post as Printable PDF
+description: "Verifies system_create persists a blog post printable PDF as a durable document entity"
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - blog
+  - document
+  - media
+  - printable
+  - document-create
+
+turns:
+  - userMessage: "Save the blog post 'Resilience Is Not Redundancy' as a printable PDF"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "document"
+        from.sourceEntityType: "post"
+        from.sourceEntityId: "resilience-in-distributed-systems"
+        from.attachmentType: "printable"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

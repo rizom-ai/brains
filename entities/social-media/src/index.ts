@@ -38,6 +38,11 @@ export {
   SocialPostAdapter,
 } from "./adapters/social-post-adapter";
 
+export {
+  buildSocialPostAtprotoRecord,
+  createSocialPostAtprotoProjection,
+} from "./atproto-projection";
+
 // DataSource exports
 export { SocialPostDataSource } from "./datasources/social-post-datasource";
 

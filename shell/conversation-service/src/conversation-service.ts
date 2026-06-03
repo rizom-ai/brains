@@ -1,5 +1,6 @@
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
+import { coerceConversationMetadata } from "./metadata";
 import type { Client } from "@libsql/client";
 import type {
   IConversationService,
@@ -10,6 +11,7 @@ import type {
   ConversationDigestPayload,
   StartConversationRequest,
   AddConversationMessageRequest,
+  UpdateConversationMetadataRequest,
 } from "./types";
 import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
@@ -341,6 +343,41 @@ export class ConversationService implements IConversationService {
       .from(messages)
       .where(eq(messages.conversationId, conversationId));
     return Number(result?.count ?? 0);
+  }
+
+  async updateConversationMetadata(
+    request: UpdateConversationMetadataRequest,
+  ): Promise<boolean> {
+    const existing = await this.getConversation(request.conversationId);
+    if (!existing) return false;
+
+    const now = new Date().toISOString();
+    const metadata = {
+      ...coerceConversationMetadata(existing.metadata),
+      ...request.metadata,
+    };
+
+    await this.db
+      .update(conversations)
+      .set({ metadata: JSON.stringify(metadata), updated: now })
+      .where(eq(conversations.id, request.conversationId));
+
+    this.logger.debug("Updated conversation metadata", {
+      conversationId: request.conversationId,
+    });
+    return true;
+  }
+
+  async deleteConversation(conversationId: string): Promise<boolean> {
+    const existing = await this.getConversation(conversationId);
+    if (!existing) return false;
+
+    await this.db
+      .delete(conversations)
+      .where(eq(conversations.id, conversationId));
+
+    this.logger.debug("Deleted conversation", { conversationId });
+    return true;
   }
 
   /**

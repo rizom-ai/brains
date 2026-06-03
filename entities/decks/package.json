@@ -1,7 +1,7 @@
 {
   "name": "@brains/decks",
   "private": true,
-  "version": "0.2.0-alpha.94",
+  "version": "0.2.0-alpha.106",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "type": "module",
   "exports": {
@@ -15,6 +15,7 @@
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",

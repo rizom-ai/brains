@@ -4,7 +4,12 @@ import { baseEntitySchema } from "@brains/plugins";
 /**
  * Project status
  */
-export const projectStatusSchema = z.enum(["draft", "published"]);
+export const projectStatusSchema = z.enum([
+  "generating",
+  "draft",
+  "published",
+  "failed",
+]);
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
 /**
@@ -39,6 +44,7 @@ export const projectMetadataSchema = projectFrontmatterSchema
   .extend({
     // slug is required in metadata (auto-generated from title if not in frontmatter)
     slug: z.string(),
+    error: z.string().optional(),
   });
 
 export type ProjectMetadata = z.infer<typeof projectMetadataSchema>;

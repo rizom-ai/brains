@@ -145,6 +145,8 @@ export {
   isVisibleWithinScope,
   permissionToVisibilityScope,
   scopedDerivedId,
+  findEntityByIdentifier,
+  resolveEntityOrError,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
@@ -217,13 +219,27 @@ export type { ResolutionOptions } from "@brains/content-service";
 
 export {
   AgentResponseSchema,
+  ChatAttachmentSchema,
+  ChatAttachmentSourceSchema,
   ChatContextSchema,
   PendingConfirmationSchema,
+  TextChatAttachmentSchema,
+  AttachmentCardDataSchema,
+  AttachmentCardSchema,
+  AttachmentCardSourceSchema,
+  StructuredChatCardSchema,
+  ToolApprovalCardSchema,
+  ToolApprovalCardStateSchema,
   ToolResultDataSchema,
+  toPublicAttachmentCard,
   type AgentResponse,
+  type ChatAttachment,
   type ChatContext,
   type AgentNamespace,
+  type AttachmentCard,
   type PendingConfirmation,
+  type StructuredChatCard,
+  type ToolApprovalCard,
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
@@ -255,7 +271,16 @@ export type {
   GetMessagesOptions,
   IConversationService,
 } from "@brains/conversation-service";
-export { conversationDigestPayloadSchema } from "@brains/conversation-service";
+export {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
+  coerceConversationMetadata,
+  conversationDigestPayloadSchema,
+  conversationMessageActorSchema,
+  conversationMessageMetadataSchema,
+  conversationMessageSourceSchema,
+} from "@brains/conversation-service";
+export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
 
@@ -274,6 +299,8 @@ export {
   parseConfirmationResponse,
   formatConfirmationPrompt,
   urlCaptureConfigSchema,
+  type ToolActivityEvent,
+  type ToolActivityEventType,
 } from "./message-interface";
 
 // ============================================================================

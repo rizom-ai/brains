@@ -1,5 +1,125 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.106
+  - @brains/contracts@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/job-queue@0.2.0-alpha.106
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.105
+  - @brains/contracts@0.2.0-alpha.105
+  - @brains/utils@0.2.0-alpha.105
+  - @brains/job-queue@0.2.0-alpha.105
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.104
+  - @brains/contracts@0.2.0-alpha.104
+  - @brains/utils@0.2.0-alpha.104
+  - @brains/job-queue@0.2.0-alpha.104
+
+## 0.2.0-alpha.103
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.103
+  - @brains/contracts@0.2.0-alpha.103
+  - @brains/utils@0.2.0-alpha.103
+  - @brains/job-queue@0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.102
+  - @brains/contracts@0.2.0-alpha.102
+  - @brains/utils@0.2.0-alpha.102
+  - @brains/job-queue@0.2.0-alpha.102
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.101
+  - @brains/contracts@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/job-queue@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.100
+  - @brains/contracts@0.2.0-alpha.100
+  - @brains/utils@0.2.0-alpha.100
+  - @brains/job-queue@0.2.0-alpha.100
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.99
+  - @brains/contracts@0.2.0-alpha.99
+  - @brains/utils@0.2.0-alpha.99
+  - @brains/job-queue@0.2.0-alpha.99
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.98
+  - @brains/contracts@0.2.0-alpha.98
+  - @brains/utils@0.2.0-alpha.98
+  - @brains/job-queue@0.2.0-alpha.98
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.97
+  - @brains/contracts@0.2.0-alpha.97
+  - @brains/utils@0.2.0-alpha.97
+  - @brains/job-queue@0.2.0-alpha.97
+
+## 0.2.0-alpha.96
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.96
+  - @brains/contracts@0.2.0-alpha.96
+  - @brains/utils@0.2.0-alpha.96
+  - @brains/job-queue@0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.95
+  - @brains/contracts@0.2.0-alpha.95
+  - @brains/utils@0.2.0-alpha.95
+  - @brains/job-queue@0.2.0-alpha.95
+
 ## 0.2.0-alpha.94
 
 ### Patch Changes

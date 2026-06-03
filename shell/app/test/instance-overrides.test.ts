@@ -384,6 +384,7 @@ permissions:
       update: trusted
       delete: anchor
       extract: anchor
+      publish: anchor
     summary:
       create: anchor
       update: anchor
@@ -395,6 +396,7 @@ permissions:
         update: "trusted",
         delete: "anchor",
         extract: "anchor",
+        publish: "anchor",
       },
       summary: { create: "anchor", update: "anchor" },
     });
@@ -1028,6 +1030,7 @@ describe("resolve with instance overrides", () => {
         update: "anchor",
         delete: "anchor",
         extract: "anchor",
+        publish: "anchor",
       },
     });
   });
@@ -1091,6 +1094,36 @@ describe("resolve with instance overrides", () => {
     );
   });
 
+  test("should reject effective publish policy that is looser than update", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+      permissions: {
+        entityActions: {
+          "*": { update: "anchor", publish: "anchor" },
+        },
+      },
+    });
+
+    expect(() =>
+      resolve(
+        def,
+        {},
+        {
+          permissions: {
+            entityActions: {
+              social: { publish: "trusted" },
+            },
+          },
+        },
+      ),
+    ).toThrow(
+      'Invalid entity action policy for "social": publish must be at least as restrictive as update',
+    );
+  });
+
   test("should merge yaml entity action policy with definition defaults", () => {
     const def = defineBrain({
       name: "test",
@@ -1104,6 +1137,7 @@ describe("resolve with instance overrides", () => {
             update: "trusted",
             delete: "anchor",
             extract: "anchor",
+            publish: "anchor",
           },
           summary: { create: "anchor", update: "anchor", delete: "anchor" },
         },
@@ -1128,6 +1162,7 @@ describe("resolve with instance overrides", () => {
         update: "trusted",
         delete: "anchor",
         extract: "anchor",
+        publish: "anchor",
       },
       summary: { create: "anchor", update: "trusted", delete: "anchor" },
     });

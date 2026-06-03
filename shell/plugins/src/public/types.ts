@@ -10,7 +10,11 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
-import type { OutputFormat, UserPermissionLevel } from "@brains/templates";
+import type {
+  EntityAction,
+  OutputFormat,
+  UserPermissionLevel,
+} from "@brains/templates";
 import { z } from "@brains/utils";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
@@ -58,6 +62,7 @@ export interface ToolContext {
   userId?: string;
   channelId?: string;
   channelName?: string;
+  userPermissionLevel?: UserPermissionLevel;
 }
 
 export interface ToolResponse<T = unknown> {
@@ -293,6 +298,14 @@ export interface IInsightsNamespace {
   register(type: string, handler: InsightHandler): void;
 }
 
+export interface IPermissionsNamespace {
+  assertEntityActionAllowed(
+    entityType: string,
+    action: EntityAction,
+    context: { userPermissionLevel?: UserPermissionLevel | undefined },
+  ): void;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -309,6 +322,7 @@ export interface BasePluginContext {
   readonly conversations: IConversationsNamespace;
   readonly eval: IEvalNamespace;
   readonly insights: IInsightsNamespace;
+  readonly permissions: IPermissionsNamespace;
 }
 
 export interface IPromptsNamespace {

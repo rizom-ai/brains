@@ -1,5 +1,4 @@
 import type { Tool } from "@brains/mcp-service";
-import { createEntityCoverTool } from "./entity-cover-tool";
 import { createEntityCreateTool } from "./entity-create-tool";
 import { createEntityDeleteTool } from "./entity-delete-tool";
 import { createEntityExtractTool } from "./entity-extract-tool";
@@ -12,6 +11,5 @@ export function createEntityMutationTools(services: SystemServices): Tool[] {
     createEntityDeleteTool(services),
     createEntityUpdateTool(services),
     createEntityExtractTool(services),
-    createEntityCoverTool(services),
   ];
 }

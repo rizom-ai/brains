@@ -1,6 +1,6 @@
 id: social-media-generate-cover-for-existing
 name: Generate cover image for previously created post
-description: Tests that in a multi-turn conversation, the agent uses system_create with entityType "image" and passes targetEntityType in options when asked to add a cover image to a previously generated post
+description: Tests that a prompt-created social post returns an addressable entity id, and the follow-up cover-image request uses that id directly instead of searching for a still-generating entity
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -16,6 +16,8 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
+          argsContain:
+            entityType: "social-post"
   - userMessage: "Now generate a cover image for that post"
     successCriteria:
       expectedTools:
@@ -24,6 +26,8 @@ turns:
           argsContain:
             entityType: "image"
             targetEntityType: "social-post"
+        - toolName: system_search
+          shouldBeCalled: false
 
 successCriteria: {}
 

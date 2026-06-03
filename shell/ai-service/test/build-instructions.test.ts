@@ -118,6 +118,27 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should append retrieved conversation memory as context, not mandatory behavior", () => {
+    const instructions = buildInstructions(
+      identity,
+      "anchor",
+      undefined,
+      undefined,
+      undefined,
+      "Relevant conversation memory retrieved for this turn.",
+    );
+
+    expect(instructions).toContain(
+      "### Retrieved Conversation Memory (CONTEXT)",
+    );
+    expect(instructions).toContain(
+      "Relevant conversation memory retrieved for this turn.",
+    );
+    expect(instructions).not.toContain(
+      "### Brain-Specific Behavior (MANDATORY)\n\nRelevant conversation memory",
+    );
+  });
+
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
@@ -143,6 +164,16 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "Never self-confirm a destructive operation",
+    );
+  });
+
+  it("should distinguish standalone image generation from cover image targeting", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'For standalone image requests like "generate an image of a robot", call `system_create({ entityType: "image", prompt: "..." })` without `targetEntityType` or `targetEntityId`.',
+    );
+    expect(instructions).toContain(
+      "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image on an existing entity.",
     );
   });
 

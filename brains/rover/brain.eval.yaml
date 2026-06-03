@@ -14,6 +14,18 @@ keys:
 # Eval-specific config — safe subset for automated testing
 # mode: eval disables interfaces and side-effect plugins (defined by evalDisable in brain model)
 
+permissions:
+  entityActions:
+    post:
+      update: trusted
+      publish: anchor
+    social-post:
+      update: trusted
+      publish: anchor
+    newsletter:
+      update: trusted
+      publish: anchor
+
 plugins:
   directory-sync:
     seedContentPath: eval-content

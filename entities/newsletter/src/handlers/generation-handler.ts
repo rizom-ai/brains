@@ -7,8 +7,7 @@ import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import { type GenerationResult } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
-import type { BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** Source entity shape consumed by newsletter generation */
@@ -187,8 +186,6 @@ The newsletter should:
       ...(sourceEntityType && { sourceEntityType }),
     };
 
-    const markdownContent = generateMarkdownWithFrontmatter(content, metadata);
-
     const finalSubject = await ensureUniqueTitle({
       entityType: "newsletter",
       title: subject,
@@ -201,6 +198,8 @@ The newsletter should:
     if (finalSubject !== subject) {
       metadata.subject = finalSubject;
     }
+
+    const markdownContent = generateMarkdownWithFrontmatter(content, metadata);
 
     return {
       id: slugify(finalSubject),

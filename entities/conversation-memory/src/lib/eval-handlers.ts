@@ -6,14 +6,13 @@ import {
   type EntityPluginContext,
   type Message,
   type SearchResult,
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
 } from "@brains/plugins";
+import { messageRoleSchema } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  conversationMessageActorSchema,
-  conversationMessageSourceSchema,
-} from "@brains/conversation-service";
 import type {
   ActionItemEntity,
   DecisionEntity,
@@ -22,11 +21,12 @@ import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import { SummaryProjector } from "./summary-projector";
+import { buildConversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 
 const evalMessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
+  role: messageRoleSchema,
   content: z.string(),
   timestamp: z.string().datetime().optional(),
   actor: conversationMessageActorSchema.optional(),
@@ -99,6 +99,19 @@ const retrieveMemoryInputSchema = z.object({
   includeOtherSpaces: z.boolean().optional(),
   actorId: z.string().optional(),
   canonicalId: z.string().optional(),
+  visibilityScope: contentVisibilitySchema.optional(),
+  memory: z.array(seededMemorySchema).optional(),
+});
+
+const agentContextInputSchema = z.object({
+  conversationId: z.string().default("eval-conversation"),
+  message: z.string(),
+  interfaceType: z.string().default("eval"),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  userPermissionLevel: z
+    .enum(["anchor", "trusted", "public"])
+    .default("trusted"),
   memory: z.array(seededMemorySchema).optional(),
 });
 
@@ -167,6 +180,14 @@ export function registerSummaryEvalHandlers(params: {
       : context;
     const retriever = new ConversationMemoryRetriever(retrievalContext);
     return retriever.retrieve(parsed);
+  });
+
+  context.eval.registerHandler("buildAgentContext", async (input: unknown) => {
+    const parsed = agentContextInputSchema.parse(input);
+    const retrievalContext = parsed.memory
+      ? createSeededRetrievalContext(context, parsed.memory)
+      : context;
+    return buildConversationMemoryAgentContext(retrievalContext, parsed);
   });
 
   context.eval.registerHandler("projectMessages", async (input: unknown) => {

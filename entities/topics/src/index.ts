@@ -9,6 +9,7 @@ import {
   hasPersistedTargets,
   isVisibleWithinScope,
 } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -39,6 +40,7 @@ import {
   TOPICS_PLUGIN_ID,
   TOPICS_SOURCE_BATCH_DEDUP_KEY,
 } from "./lib/constants";
+import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
@@ -50,6 +52,7 @@ export class TopicsPlugin extends EntityPlugin<
   readonly entityType = TOPIC_ENTITY_TYPE;
   readonly schema = topicEntitySchema;
   readonly adapter = topicAdapter;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
   private readonly sourceBatch = new TopicSourceBatchBuffer();
@@ -169,6 +172,16 @@ export class TopicsPlugin extends EntityPlugin<
       logger: this.logger,
       config: this.config,
     });
+
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createTopicAtprotoProjection(),
+      );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   // ── Public helpers (used by tests) ──
@@ -237,3 +250,7 @@ export function topicsPlugin(
 
 export type { TopicsPluginConfig } from "./schemas/config";
 export type { TopicEntity } from "./types";
+export {
+  buildTopicAtprotoRecord,
+  createTopicAtprotoProjection,
+} from "./atproto-projection";

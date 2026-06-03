@@ -1,3 +1,4 @@
+import { inspect } from "node:util";
 import { describe, test, expect, mock } from "bun:test";
 import { EntitySearch, MAX_SEARCH_QUERY_CHARS } from "../src/entity-search";
 import { EntityRegistry } from "../src/entityRegistry";
@@ -7,12 +8,24 @@ import type { EntityDB } from "../src/db";
 import type { IEmbeddingService } from "../src/embedding-types";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
-function createSearchDb(): EntityDB {
+interface SearchChain {
+  from: (...args: unknown[]) => SearchChain;
+  innerJoin: (...args: unknown[]) => SearchChain;
+  where: (condition: unknown) => SearchChain;
+  orderBy: (...args: unknown[]) => SearchChain;
+  limit: (...args: unknown[]) => SearchChain;
+  offset: (...args: unknown[]) => Promise<unknown[]>;
+}
+
+function createSearchDb(onWhere?: (condition: unknown) => void): EntityDB {
   const selectResult = mock(() => Promise.resolve([]));
-  const chainableMock = {
+  const chainableMock: SearchChain = {
     from: mock(() => chainableMock),
     innerJoin: mock(() => chainableMock),
-    where: mock(() => chainableMock),
+    where: mock((condition: unknown) => {
+      onWhere?.(condition);
+      return chainableMock;
+    }),
     orderBy: mock(() => chainableMock),
     limit: mock(() => chainableMock),
     offset: selectResult,
@@ -115,5 +128,31 @@ describe("EntitySearch query preparation", () => {
     expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
       "distance query",
     );
+  });
+
+  test("excludes queued and failed generation stubs by default", async () => {
+    let whereCondition: unknown;
+    const { entitySearch } = createEntitySearch({
+      db: createSearchDb((condition) => {
+        whereCondition = condition;
+      }),
+    });
+
+    await entitySearch.search("queued stub");
+
+    expect(inspect(whereCondition, { depth: 20 })).toContain("generating");
+  });
+
+  test("can include queued and failed generation stubs for diagnostics", async () => {
+    let whereCondition: unknown;
+    const { entitySearch } = createEntitySearch({
+      db: createSearchDb((condition) => {
+        whereCondition = condition;
+      }),
+    });
+
+    await entitySearch.search("queued stub", { includeUngenerated: true });
+
+    expect(inspect(whereCondition, { depth: 20 })).not.toContain("generating");
   });
 });

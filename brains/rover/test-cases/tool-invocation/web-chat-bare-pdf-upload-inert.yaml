@@ -1,0 +1,47 @@
+id: tool-invocation-web-chat-bare-pdf-upload-inert
+name: Bare web chat PDF upload is inert
+description: Verifies an attachment-only PDF handoff is acknowledged without invoking model tools or creating document/deck entities.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-upload
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - pdf
+  - regression
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: brief.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=
+    successCriteria:
+      responseContains:
+        - "brief.pdf"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: document_generate
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "created"
+    - "saved"
+    - "deck"
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 1000

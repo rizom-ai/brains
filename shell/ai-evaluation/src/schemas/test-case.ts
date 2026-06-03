@@ -71,6 +71,36 @@ export const successCriteriaSchema = z.object({
 
 export type SuccessCriteria = z.infer<typeof successCriteriaSchema>;
 
+const evalAttachmentSourceSchema = z.object({
+  kind: z.string().min(1),
+  id: z.string().min(1),
+});
+
+const evalTextAttachmentSchema = z.object({
+  kind: z.literal("text"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  content: z.string(),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: evalAttachmentSourceSchema.optional(),
+});
+
+const evalFileAttachmentSchema = z.object({
+  kind: z.literal("file"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  dataBase64: z.string().min(1),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: evalAttachmentSourceSchema.optional(),
+});
+
+export const evalAttachmentSchema = z.discriminatedUnion("kind", [
+  evalTextAttachmentSchema,
+  evalFileAttachmentSchema,
+]);
+
+export type EvalAttachment = z.infer<typeof evalAttachmentSchema>;
+
 /**
  * Single conversation turn
  */
@@ -82,6 +112,24 @@ export const turnSchema = z.object({
     .describe(
       "When set, this turn resolves the pending confirmation instead of sending a chat message.",
     ),
+  approvalId: z
+    .string()
+    .optional()
+    .describe(
+      "Explicit approval id to resolve when confirmPendingAction is set. Required when multiple confirmations are pending.",
+    ),
+  attachments: z
+    .array(evalAttachmentSchema)
+    .optional()
+    .describe(
+      "Native attachments to pass with this turn. File data is base64-encoded in YAML and decoded before AgentService.chat().",
+    ),
+  reusePreviousAttachments: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, passes the previous turn's attachments again with this turn, simulating interface-level deferred upload reuse.",
+    ),
   successCriteria: successCriteriaSchema.optional(),
 });
 
@@ -92,6 +140,9 @@ export type Turn = z.infer<typeof turnSchema>;
  */
 export const testSetupSchema = z.object({
   permissionLevel: UserPermissionLevelSchema.default("anchor"),
+  interfaceType: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
 });
 
 export type TestSetup = z.infer<typeof testSetupSchema>;

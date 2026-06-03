@@ -9,4 +9,24 @@ describe("rover presets", () => {
 
     expect(pluginIds).toContain("document");
   });
+
+  it("wires CMS passkey login from CMS_CONTENT_REPO_PAT when present", () => {
+    const config = resolve(
+      rover,
+      { CMS_CONTENT_REPO_PAT: "cms-pat" },
+      { preset: "full" },
+    );
+    const cms = config.plugins?.find((plugin) => plugin.id === "cms");
+
+    expect(cms?.config).toMatchObject({
+      passkeyLogin: { contentRepoToken: "cms-pat" },
+    });
+  });
+
+  it("keeps CMS login disabled when CMS_CONTENT_REPO_PAT is absent", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+    const cms = config.plugins?.find((plugin) => plugin.id === "cms");
+
+    expect(cms?.config).not.toHaveProperty("passkeyLogin");
+  });
 });

@@ -1,5 +1,75 @@
 # @rizom/brain
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- [`0aede59`](https://github.com/rizom-ai/brains/commit/0aede594c9dcf6a9f67f3292085cecac86396a9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire Rover CMS passkey login from `CMS_CONTENT_REPO_PAT`, include the variable in Rover env schemas, and avoid emitting a CMS auth base URL when no CMS login route is configured.
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- [`dc9548c`](https://github.com/rizom-ai/brains/commit/dc9548cd2c015d3b751f791078ce5a1fb8213e39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reuse recent web-chat upload refs for explicit follow-up requests, so asking to describe an already-uploaded image attaches the stored file to that model turn instead of requiring a reupload.
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- [`67b8411`](https://github.com/rizom-ai/brains/commit/67b84110c7739898d14e11beb6a0b8e6de0a583f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add native file attachment support to the agent chat context so interfaces can pass binary attachments to model turns without embedding file bytes in stored conversation text.
+
+- [`fb03560`](https://github.com/rizom-ai/brains/commit/fb03560cac461921cd823793e30cf1b1d0b47013) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expand web-chat uploads to accept supported native file attachments and forward binary uploads to model turns as AI SDK file parts.
+
+## 0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- [`94a25cc`](https://github.com/rizom-ai/brains/commit/94a25cc84c01805b6f9ac4d6cb50d403d8325fbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store internal entity-memory notes in assistant message metadata and inject them only into model history, keeping persisted assistant text clean for web-chat hydration.
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- [`2b75d18`](https://github.com/rizom-ai/brains/commit/2b75d182d8b11e0b56b37451e1d605c8d071258a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Hide internal entity-memory notes from hydrated web-chat messages while preserving them in stored conversation history for agent follow-ups.
+
+- [`c400d03`](https://github.com/rizom-ai/brains/commit/c400d0340edc5f04fa0d859013585d28607cbc09) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist generated artifact cards in conversation metadata and rehydrate them when web chat sessions are reopened, so generated image/document cards survive refreshes.
+
+- [`2034f7e`](https://github.com/rizom-ai/brains/commit/2034f7ee15e7ba243be9e1eea283755f7b7cf9be) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Preserve generated image aspect ratios in web-chat attachment cards instead of cropping previews to a fixed card shape.
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- [`83037ba`](https://github.com/rizom-ai/brains/commit/83037ba788c9b242a65d190f9ebcbdba480a22f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Treat image-targeted image generation requests as standalone image generation so plain prompts do not fail when a model supplies image target fields, and rebuild the local brain runtime before dev starts so web-chat card changes are not hidden by stale bundles.
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- [`9947471`](https://github.com/rizom-ai/brains/commit/99474713f696828748311b64bd6c71cfac3f17ac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Show generated images in web chat as structured attachment cards with operator-only image view/download routes, clarify standalone image generation so plain image requests do not incorrectly require a target entity, and avoid prompt-distilling generated image data URLs when regenerating image entities.
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Add AT Protocol semantic publishing, canonical Rizom lexicon contracts, and the opt-in ATProto registry capability for Ranger.
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- [`a669988`](https://github.com/rizom-ai/brains/commit/a669988d7351efb1371412e55366c329dc848489) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web chat live tool activity status in the published brain runtime. Tool invocation events now broadcast to all interface subscribers and are delivered before tool execution continues, so `/chat` can reliably show transient `Using <tool>…` status while tools run.
+
+## 0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- [`13cbae4`](https://github.com/rizom-ai/brains/commit/13cbae42d91f6dac9f32db1d61b90f9091645d7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refresh Rover eval A2A directory fixtures so saved brain contacts are keyed by anchor/contact name while preserving the remote brain name separately.
+
 ## 0.2.0-alpha.94
 
 ## 0.2.0-alpha.93

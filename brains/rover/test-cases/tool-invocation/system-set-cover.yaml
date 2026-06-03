@@ -1,6 +1,6 @@
 id: tool-invocation-set-cover
 name: Set Cover with Existing Image
-description: Verifies that the agent correctly uses system_set-cover to attach an existing image to an entity
+description: Verifies that the agent correctly uses system_update to attach an existing image to an entity
 type: tool_invocation
 setup:
   permissionLevel: anchor
@@ -14,12 +14,12 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_set-cover
+    - toolName: system_update
       shouldBeCalled: true
       argsContain:
         entityType: "post"
-        entityId: "resilience-in-distributed-systems"
-        imageId: "hero-banner"
+        id: "resilience-in-distributed-systems"
+        fields.coverImageId: "hero-banner"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

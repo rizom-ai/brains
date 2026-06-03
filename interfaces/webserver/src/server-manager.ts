@@ -32,9 +32,28 @@ export interface ServerManagerOptions {
   getApiRoutes?: () => RegisteredApiRoute[];
   /** Message bus used to execute plugin API routes. */
   messageBus?: IMessageBus;
+  /**
+   * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
+   */
+  idleTimeout?: number;
+  /** Override for `Bun.serve`, for tests. Defaults to `Bun.serve`. */
+  serve?: typeof Bun.serve;
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+
+/**
+ * Idle timeout (seconds) for the shared Bun server.
+ *
+ * Streaming routes like the web-chat `POST /api/chat` keep a single response
+ * open while the agent runs synchronously (cold model init + tool loop + an
+ * uploaded file's full content in the prompt). No bytes flow during that wait,
+ * and Bun's default idle timeout is only 10s — which closes the socket on a
+ * slow first turn and surfaces to the client as a generic network error.
+ * Stream writes do NOT reset Bun's idle timer, so a keepalive heartbeat cannot
+ * help; the timeout itself must cover the worst-case turn. 255s is Bun's max.
+ */
+export const WEBSERVER_IDLE_TIMEOUT_SECONDS = 255;
 
 interface AppOptions {
   distDir: string;
@@ -100,9 +119,11 @@ export class ServerManager {
           healthEndpoint: false,
         })
       : undefined;
+    const serve = this.options.serve ?? Bun.serve;
     try {
-      this.productionServer = Bun.serve({
+      this.productionServer = serve({
         port: this.options.productionPort,
+        idleTimeout: this.options.idleTimeout ?? WEBSERVER_IDLE_TIMEOUT_SECONDS,
         fetch: async (req) => {
           const fastResponse = await this.serveImageFastPath(req);
           if (fastResponse) return fastResponse;

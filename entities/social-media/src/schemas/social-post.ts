@@ -15,6 +15,7 @@ export type Platform = z.infer<typeof platformSchema>;
  * - failed: Publish error after max retries
  */
 export const socialPostStatusSchema = z.enum([
+  "generating",
   "draft",
   "queued",
   "published",
@@ -75,6 +76,19 @@ export const socialPostFrontmatterSchema = z.object({
 export type SocialPostFrontmatter = z.infer<typeof socialPostFrontmatterSchema>;
 
 /**
+ * Lenient frontmatter schema for direct creation. A user "save this post"
+ * request may omit platform/status, so make them optional here and let the
+ * adapter fall back (platform is a single-value enum; an unspecified post is a
+ * draft). Storage and read paths keep the strict schema above, so derived
+ * metadata types are unaffected.
+ */
+export const socialPostCreateFrontmatterSchema =
+  socialPostFrontmatterSchema.extend({
+    platform: platformSchema.optional(),
+    status: socialPostStatusSchema.optional(),
+  });
+
+/**
  * Social post metadata schema - derived from frontmatter
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
@@ -89,6 +103,7 @@ export const socialPostMetadataSchema = socialPostFrontmatterSchema
   })
   .extend({
     slug: z.string().describe("URL-friendly identifier: {platform}-{title}"),
+    error: z.string().optional(),
   });
 
 export type SocialPostMetadata = z.infer<typeof socialPostMetadataSchema>;

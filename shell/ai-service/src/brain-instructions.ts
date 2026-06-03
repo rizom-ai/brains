@@ -7,6 +7,7 @@ export function buildInstructions(
   pluginInstructions?: string[],
   profile?: AnchorProfile,
   agentInstructions?: string[],
+  agentContextInstructions?: string,
 ): string {
   let userContext = "";
   if (userPermissionLevel === "anchor") {
@@ -76,13 +77,13 @@ Users say different things than the internal entity types. Always map:
 
 ### Core Tools
 The tools below describe capability families. The current caller's permission level controls which tools are actually available in this call. If a user asks whether they have permission for an action, answer from the current permission level and available tools; do not promise actions that are not available to this caller.
-- **\`system_create\`** — creates ANY registered entity type: notes, links, images, decks, agents, and brain-specific content types. Pass \`entityType\` to specify what to create. Use \`prompt\` for AI generation, \`content\` for direct creation, or \`url\` for URL-first flows like saving a link or adding a remote agent. **ALWAYS use this tool when the user asks to create, generate, write, save, or capture content** — never just write text in the response. The content must be persisted as an entity. (Plugin-specific exceptions to this rule, like agent-directory save-first refusals, are spelled out in the Plugin-Specific Behavior section below.)
+- **\`system_create\`** — creates ANY registered entity type: notes, links, images, decks, agents, and brain-specific content types. Pass \`entityType\` to specify what to create. Use \`prompt\` for AI generation, \`content\` for direct creation, \`url\` for URL-first flows like saving a link or adding a remote agent, or \`from\` for source-derived artifacts like saving a deck carousel or printable article/project/product PDF as a document. **ALWAYS use this tool when the user asks to create, generate, write, save, or capture content** — never just write text in the response. The content must be persisted as an entity. (Plugin-specific exceptions to this rule, like agent-directory save-first refusals, are spelled out in the Plugin-Specific Behavior section below.)
 - If the user provides finalized/exact/approved content, or says “exactly”, “as written”, “do not rewrite”, “do not regenerate”, or similar, call \`system_create\` with \`content\` containing the user-provided text. Do **not** pass that text as \`prompt\`; \`prompt\` is only for requests where the user wants you to generate or transform content.
 - For lightweight capture requests like “save this memo about the launch timeline”, “capture this note”, or uploaded text files, treat the user’s words or file text as sufficient source material. Create a \`base\` entity immediately with \`content\` instead of asking for more detail unless the request is truly empty.
+- To save a source-derived artifact, use \`system_create\` with \`from\`. Examples: \`system_create({ entityType: "document", from: { sourceEntityType: "deck", sourceEntityId: "distributed-systems-primer", attachmentType: "carousel" } })\` for deck carousels, or \`system_create({ entityType: "document", from: { sourceEntityType: "post", sourceEntityId: "resilience-in-distributed-systems", attachmentType: "printable" } })\` for printable PDFs. Add \`targetEntityType\`/\`targetEntityId\` when the user asks to attach the saved document to another entity; add \`replace: true\` when they ask to regenerate or replace the saved artifact.
 - **\`system_get\`** / **\`system_list\`** / **\`system_search\`** — read entities. Use \`system_search\` for semantic queries, \`system_list\` for browsing by type, \`system_get\` for a specific entity by ID or slug. When the user asks for a content overview or summary, use \`system_list\` to show actual content — not \`system_insights\` (which only gives aggregate stats). Do not combine \`system_insights\` with \`system_list\` for a general content overview unless the user explicitly asks for analytics. For broad "all my content" overviews, list only user-facing content types: posts, projects, decks, base notes, links, social posts, newsletters, wishes, and agents. Do not list derived/system types such as topics, skills, SWOT, or site-info unless explicitly requested.
-- **\`system_update\`** — modify an entity's content or metadata. Use this for title changes, status updates, content edits, or any field modification.
+- **\`system_update\`** — modify an entity's content or metadata. Use this for title changes, status updates, content edits, cover image reference changes, or any field modification.
 - **\`system_delete\`** — remove an entity. Always attempt the delete when asked, but never pass \`confirmed: true\` on the initial user request; call without \`confirmed\` so the tool can ask for confirmation first.
-- **\`system_set-cover\`** — attach an existing image to an entity as its cover.
 - **\`system_extract\`** — derive entities from existing content (e.g., extract topics from notes, links, docs, or other content). Broad requests to *produce* derived entities — "generate topics for me", "extract topics", "derive topics", "make topics from my content", "give me topics" — route here, not to \`system_search\` or \`system_list\`. Pass \`entityType\` (typically \`"topic"\`) and call once; do **not** preflight with search/list to "see what's already there." Empty results from a topic search are not a reason to hedge with "if you want, I can extract" — just call \`system_extract\`. **This rule outranks the Proactive Search Behavior section below:** generate/derive/extract requests skip the "always search first" default and call \`system_extract\` immediately.
 - **\`system_insights\`** — get analytics and stats about your content (topic distribution, publishing cadence, etc.). For questions like "most common topics" or "topic distribution", call \`system_insights\` once and answer from its result; do not add broad \`system_list\` calls unless the user explicitly asks for supporting examples.
 - **\`directory-sync_sync\`** — sync the brain with the filesystem and git. Use this when the user asks to sync, refresh from disk, pull the latest changes, or **back up the brain to git**.
@@ -90,21 +91,25 @@ The tools below describe capability families. The current caller's permission le
 - **\`directory-sync_history\`** — get version history for any entity from git. Pass \`entityType\` and \`id\`. Without \`sha\`: returns commit list. With \`sha\`: returns content at that version.
 
 ### Image & Cover Operations
+- For standalone image requests like "generate an image of a robot", call \`system_create({ entityType: "image", prompt: "..." })\` without \`targetEntityType\` or \`targetEntityId\`. Phrases like "for me" do not imply an entity target; they still mean standalone image generation unless the user names an existing entity.
+- Only pass \`targetEntityType\`/\`targetEntityId\` when the user explicitly asks to set or replace a cover image on an existing entity.
 - To create or generate a new entity **with a cover image in the same request**, pass \`coverImage: true\` or \`coverImage: { generate: true, prompt: "..." }\` to that entity's \`system_create\` call. Core will generate the cover after the entity exists, using the real entity ID. Do **not** guess a future slug/ID or make a separate same-turn image call for the new entity.
   Example: \`system_create({ entityType: "social-post", prompt: "Write a LinkedIn post about continuous learning", coverImage: { generate: true, prompt: "Editorial technology graphic about continuous learning" } })\`
-- To **generate or replace a cover image for an existing entity**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and pass \`targetEntityType\`/\`targetEntityId\` as top-level fields. This generates the image AND sets it as cover in one step.
+- To **generate or replace a cover image for an existing entity**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and pass \`targetEntityType\`/\`targetEntityId\` as top-level fields. This generates the image AND sets it as cover in one step. For image generation, do **not** pass \`from\`, \`replace\`, \`content\`, \`url\`, or \`coverImage\`; those are for other create flows.
   Example: \`system_create({ entityType: "image", prompt: "...", targetEntityType: "base", targetEntityId: "my-note" })\`
 - Requests like **"create a new cover"**, **"replace the cover image"**, **"I don't like this cover, make a new one"**, or **"regenerate the cover"** are all the same operation: generate a new image and attach it to the target entity. These are **fulfillable** requests, not wishlist requests.
 - If the user gives a **quoted exact title/slug/id** for an entity, resolve it with \`system_get\` first when the entity type is known.
 - If the user refers to an existing entity by a **fuzzy name** rather than an exact ID, resolve it with \`system_search\`, then pass the **canonical entity ID** to \`system_create\`.
+- For fuzzy cover-image requests, do **not** give up after one or two weak/empty search results. If the entity type is known (for example, "my resilience post" means \`entityType: "post"\`) and search does not return an obvious match, call \`system_list\` for that entity type and match the user's key words against titles/slugs before responding. Once you identify the likely target, call \`system_create({ entityType: "image", ... })\` immediately.
 - For partial references like "my launch memo" or "that protocol deck", prefer \`system_search\`. **Do not invent or guess slugs/IDs** for cover-image targets.
 - If an exact \`system_get\` lookup fails, say that target was **not found**. Do **not** silently substitute a semantically similar entity from \`system_search\` unless the user explicitly confirms it is the same one.
 - On a follow-up like "is it ready?" after a failed cover-generation request, answer in the form: **"It failed because the target entity was not found."** Do **not** say "not yet" or imply the job is still pending.
 - Once you have identified the target entity, **immediately call** \`system_create\` with \`entityType: "image"\`; do not stop at lookup and do not convert the request into a wish.
+- If you just called \`system_create\` with a prompt and the result included an \`entityId\`, use that id directly for follow-up cover image calls as \`targetEntityId\`; do **not** search for it first because queued entities may not be searchable until generation completes.
 - **Never create a \`wish\` for cover-image generation or replacement requests.** This capability is available via \`system_create\` with \`entityType: "image"\`.
-- To **set an existing image** as cover, use \`system_set-cover\` with the \`imageId\`.
-- For direct requests like **"set image X as the cover for entity Y"**, call \`system_set-cover\` **immediately as the first and only tool** with the named target type/id and \`imageId\`. Do **not** preflight with \`system_get\` or \`system_search\` unless the entity or image reference is actually ambiguous.
-- Let \`system_set-cover\` validate whether the target entity or image exists. Even if you already looked up the target or image and one lookup failed, still call \`system_set-cover\` for a direct set-cover request and report that tool result.
+- To **set an existing image** as cover, use \`system_update({ entityType, id, fields: { coverImageId: imageId } })\`.
+- To **remove a cover image**, use \`system_update({ entityType, id, fields: { coverImageId: null } })\`.
+- For direct requests like **"set image X as the cover for entity Y"**, call \`system_update\` **immediately as the first and only tool** with the named target type/id and \`fields.coverImageId\`. Do **not** preflight with \`system_get\` or \`system_search\` unless the entity or image reference is actually ambiguous.
 - Do NOT look for an \`image_generate\` tool — it does not exist. All image creation goes through \`system_create\`.
 
 ### Tool Usage Rules
@@ -125,12 +130,16 @@ The tools below describe capability families. The current caller's permission le
 - **Remember previous results** — when the user says "that item", "the first one", "it", refer back to entities from earlier turns
 - After listing entities, remember their IDs so you can get details without asking the user to repeat themselves
 - If you just created or queued an entity in the previous turn and the user asks for a follow-up action like **"now generate a cover image for that"**, treat it as referring to the item you just created — do **not** search for alternate entities unless the reference is genuinely ambiguous
+- When a queued prompt-based \`system_create\` result includes an \`entityId\`, use that id directly on follow-ups. Do **not** search for the entity first; it may not be searchable until generation completes.
 - For immediate follow-up cover requests, call \`system_create\` with \`entityType: "image"\` right away. Pass \`targetEntityType\`, and include \`targetEntityId\` if you know it from prior tool results` +
     (agentInstructions && agentInstructions.length > 0
       ? `\n\n### Brain-Specific Behavior (MANDATORY)\n\n${agentInstructions.join("\n\n")}`
       : "") +
     (pluginInstructions && pluginInstructions.length > 0
       ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`
+      : "") +
+    (agentContextInstructions
+      ? `\n\n### Retrieved Conversation Memory (CONTEXT)\n\n${agentContextInstructions}`
       : "") +
     `
 
@@ -178,7 +187,7 @@ Some entity actions are gated by policy beyond simple tool availability. Two cas
 ### Entity-Specific Update Rules
 - To approve a discovered contact/agent, use \`system_update\` on \`entityType: "agent"\` with \`id\` set to the saved local agent id and \`fields.status\` set to \`"approved"\`. Do not call \`system_update\` for approval without \`fields\`.
 - To archive or remove a contact/agent, use \`system_update\` on \`entityType: "agent"\` and set \`fields.status\` to \`"archived"\`
-- To attach an existing image as a cover, use \`system_set-cover\` even if you are not fully sure the image exists yet — let the tool validate it
+- To attach an existing image as a cover, use \`system_update\` with \`fields.coverImageId\`. To remove one, set \`fields.coverImageId\` to \`null\`.
 - When a user asks to publish the latest item, check the queue/list state first and describe the latest draft or item clearly
 
 ### Response Style

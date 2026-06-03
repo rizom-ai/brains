@@ -34,7 +34,6 @@ turns:
     successCriteria:
       responseContains:
         - "Completed: Update"
-        - '"success": true'
 
   - userMessage: "Can you talk to old-agent.io now?"
     successCriteria:

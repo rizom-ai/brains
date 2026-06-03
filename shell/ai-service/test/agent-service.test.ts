@@ -35,6 +35,10 @@ const mockAgentFactory = mock(
   (_config: BrainAgentConfig): BrainAgent => mockAgent,
 );
 
+function expectNoSystemMessages(messages: ModelMessage[]): void {
+  expect(messages.some((message) => message.role === "system")).toBe(false);
+}
+
 // Mock BrainCharacterService
 const createMockCharacterService = (): IBrainCharacterService => ({
   getCharacter: mock(() => ({
@@ -54,6 +58,8 @@ const createMockConversationService = (): IConversationService => ({
   getConversation: mock(() => Promise.resolve(null)),
   listConversations: mock(() => Promise.resolve([])),
   searchConversations: mock(() => Promise.resolve([])),
+  updateConversationMetadata: mock(() => Promise.resolve(false)),
+  deleteConversation: mock(() => Promise.resolve(false)),
   close: mock(() => {}),
 });
 
@@ -186,7 +192,8 @@ describe("AgentService", () => {
 
       expect(response.text).toBe("I found some results for you.");
       expect(response.usage.totalTokens).toBe(150);
-      expect(response.pendingConfirmation).toBeUndefined();
+      expect(response.pendingConfirmations).toBeUndefined();
+      expect(response.cards).toBeUndefined();
       expect(mockGenerate).toHaveBeenCalled();
     });
 
@@ -255,6 +262,210 @@ describe("AgentService", () => {
       );
       expect(messages[2]).toEqual(
         expect.objectContaining({ content: "New message" }),
+      );
+    });
+
+    it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
+      const entityMemoryNote =
+        '\n\n[Entities affected this turn: image "wild-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg1",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content: "Queued image generation.",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({ entityMemoryNote }),
+          },
+        ]),
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Use that image", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.messages[0]).toEqual({
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: `Queued image generation.${entityMemoryNote}`,
+          },
+        ],
+      });
+    });
+
+    it("adds native file attachments to the current model turn without mutating stored user text", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const imageBytes = new Uint8Array([137, 80, 78, 71]);
+
+      await service.chat("Describe this image", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content: [
+          { type: "text", text: "Describe this image" },
+          {
+            type: "file",
+            data: imageBytes,
+            mediaType: "image/png",
+            filename: "robot.png",
+          },
+        ],
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "Describe this image",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                sizeBytes: imageBytes.byteLength,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it("asks for intent when the user submits only a native file attachment", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+
+      const response = await service.chat("", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "brief.pdf",
+            mediaType: "application/pdf",
+            data: pdfBytes,
+            sizeBytes: pdfBytes.byteLength,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      expect(response).toEqual({
+        text: "I got `brief.pdf`. What would you like me to do with it?",
+        toolResults: [],
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      });
+      expect(mockGenerate).not.toHaveBeenCalled();
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                sizeBytes: pdfBytes.byteLength,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          role: "assistant",
+          content: "I got `brief.pdf`. What would you like me to do with it?",
+        }),
+      );
+    });
+
+    it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Summarize this", "test-conversation", {
+        attachments: [
+          {
+            kind: "text",
+            filename: "durable-notes.md",
+            mediaType: "text/markdown",
+            content: "# Durable Notes",
+            sizeBytes: 16,
+            source: { kind: "web-chat-upload", id: "upload-123" },
+          },
+        ],
+      });
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content:
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "Summarize this",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "text",
+                filename: "durable-notes.md",
+                mediaType: "text/markdown",
+                sizeBytes: 16,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
       );
     });
 
@@ -633,6 +844,86 @@ describe("AgentService", () => {
     });
   });
 
+  describe("agent context retrieval", () => {
+    it("passes retrieved context through agent instructions with provenance", async () => {
+      const agentContextProvider = mock(async () => [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "summary from #relay-team",
+          content: "The team decided to use explicit memory retrieval.",
+          provenance: {
+            entityType: "summary",
+            conversationId: "relay-conv",
+            spaceId: "mcp:relay-team",
+          },
+        },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What did we decide?", "relay-conv", {
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      expect(agentContextProvider).toHaveBeenCalledWith({
+        conversationId: "relay-conv",
+        message: "What did we decide?",
+        interfaceType: "mcp",
+        channelId: "relay-team",
+        channelName: "Relay Team",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "The team decided to use explicit memory retrieval.",
+      );
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "conversationId=relay-conv",
+      );
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "spaceId=mcp:relay-team",
+      );
+    });
+
+    it("tells the agent when the context provider returns no relevant memory", async () => {
+      const agentContextProvider = mock(async () => []);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      await service.chat("What memory is available?", "empty-context", {
+        interfaceType: "mcp",
+        channelId: "empty-space",
+        userPermissionLevel: "trusted",
+      });
+
+      const generateInput = mockGenerate.mock.calls[0]?.[0];
+      const messages = generateInput?.messages ?? [];
+      expectNoSystemMessages(messages);
+      expect(generateInput?.options.agentContextInstructions).toContain(
+        "No relevant conversation memory was retrieved for this turn.",
+      );
+    });
+  });
+
   describe("error handling", () => {
     it("should handle agent errors gracefully", async () => {
       mockGenerate.mockImplementationOnce(() =>
@@ -677,6 +968,8 @@ describe("AgentService", () => {
     // Helper: make the agent return a tool result with needsConfirmation
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
+      summary = "Delete note 'Meeting Notes'?",
+      preview?: string,
     ): void => {
       mockAgentGenerateResult = {
         text,
@@ -696,7 +989,8 @@ describe("AgentService", () => {
                 output: {
                   needsConfirmation: true,
                   toolName: "delete_note",
-                  description: "Delete note 'Meeting Notes'?",
+                  summary,
+                  ...(preview !== undefined ? { preview } : {}),
                   args: { noteId: "123" },
                 },
               },
@@ -736,6 +1030,43 @@ describe("AgentService", () => {
       expect(deleteHandler).not.toHaveBeenCalled();
     });
 
+    it("rejects confirmation when the explicit approval id does not match", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:wrong-call",
+      );
+
+      expect(response.text).toBe(
+        "No pending action matches approval id 'approval:wrong-call'.",
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
     it("does not return or persist misleading model completion text before confirmation", async () => {
       setupConfirmationResponse("Deleted.");
 
@@ -753,7 +1084,26 @@ describe("AgentService", () => {
         "test-conversation",
       );
 
-      expect(response.pendingConfirmation).toBeDefined();
+      expect(response.pendingConfirmations).toEqual([
+        {
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          summary: "Delete note 'Meeting Notes'?",
+          args: { noteId: "123" },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "approval-requested",
+        },
+      ]);
       expect(response.text).toBe("Confirmation required.");
       expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -799,18 +1149,92 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain(
-        "Completed: Delete note 'Meeting Notes'?",
-      );
-      expect(response.text).toContain('"success": true');
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'?");
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": true');
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: { success: true },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
           content: response.text,
         }),
       );
+    });
+
+    it("does not repeat destructive preview text after confirmation", async () => {
+      setupConfirmationResponse(
+        "Deleted.",
+        "Delete note 'Meeting Notes'?",
+        "Sensitive content that should only appear before approval.",
+      );
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat("delete my note", "test-conversation");
+      expect(pending.pendingConfirmations?.[0]?.summary).toBe(
+        "Delete note 'Meeting Notes'?",
+      );
+      expect(pending.pendingConfirmations?.[0]?.preview).toBe(
+        "Sensitive content that should only appear before approval.",
+      );
+
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
+
+      expect(response.text).toContain(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(response.text).not.toContain("Sensitive content");
+      const resolvedCard = response.cards?.[0];
+      expect(resolvedCard?.kind).toBe("tool-approval");
+      if (resolvedCard?.kind !== "tool-approval") {
+        throw new Error("Expected tool approval card");
+      }
+      expect(resolvedCard.summary).toBe("Delete note 'Meeting Notes'?");
+      expect(resolvedCard.preview).toBeUndefined();
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {
@@ -844,10 +1268,40 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain('"success": false');
-      expect(response.text).toContain("Entity not found: base/woodchuck-note");
+      expect(response.text).toBe(
+        "Failed: Delete note 'Meeting Notes'?\n\nEntity not found: base/woodchuck-note",
+      );
+      expect(response.text).not.toContain("Result:");
+      expect(response.text).not.toContain('"success": false');
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "delete_note",
+          args: { noteId: "123" },
+          data: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note 'Meeting Notes'?",
+          state: "output-error",
+          output: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+          error: "Entity not found: base/woodchuck-note",
+        },
+      ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
@@ -892,11 +1346,18 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
-      expect(response.text).toContain('"success": false');
+      expect(response.text).not.toContain('"success": false');
       expect(response.text).toContain(
         "Tool delete_note returned an invalid response shape",
+      );
+      expect(response.cards?.[0]).toEqual(
+        expect.objectContaining({
+          state: "output-error",
+          error: "Tool delete_note returned an invalid response shape",
+        }),
       );
     });
 
@@ -917,16 +1378,129 @@ describe("AgentService", () => {
         "delete my note",
         "test-conversation",
       );
-      expect(chatResponse.pendingConfirmation).toBeDefined();
-      expect(chatResponse.pendingConfirmation?.toolName).toBe("delete_note");
+      expect(chatResponse.pendingConfirmations?.[0]?.toolName).toBe(
+        "delete_note",
+      );
+      expect(chatResponse.cards?.[0]?.id).toBe("approval:call-1");
 
       // Confirm the action
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:call-1",
       );
 
       expect(response.text).toBeDefined();
+    });
+
+    it("keeps multiple pending approvals distinct by approval id", async () => {
+      mockAgentGenerateResult = {
+        text: "Delete and update requested.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                input: { noteId: "456", title: "New title" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-delete",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  summary: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+              {
+                toolCallId: "call-update",
+                toolName: "update_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "update_note",
+                  summary: "Update note 'Roadmap'?",
+                  args: { noteId: "456", title: "New title" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      const updateTool: Tool = {
+        name: "update_note",
+        description: "Update note",
+        inputSchema: { noteId: z.string(), title: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+        { pluginId: "test", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const pending = await service.chat(
+        "delete and update",
+        "test-conversation",
+      );
+
+      expect(pending.cards?.map((card) => card.id)).toEqual([
+        "approval:call-delete",
+        "approval:call-update",
+      ]);
+
+      const updateResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update",
+      );
+      expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'?");
+      expect(updateHandler).toHaveBeenCalledWith(
+        { noteId: "456", title: "New title" },
+        expect.any(Object),
+      );
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      const deleteResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-delete",
+      );
+      expect(deleteResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'?",
+      );
+      expect(deleteHandler).toHaveBeenCalledWith(
+        { noteId: "123" },
+        expect.any(Object),
+      );
     });
 
     it("should cancel pending confirmation when user declines", async () => {
@@ -948,6 +1522,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         false,
+        "approval:call-1",
       );
 
       expect(response.text).toContain("cancelled");
@@ -983,7 +1558,11 @@ describe("AgentService", () => {
         channelId: "!room:example.org",
         channelName: "Ops",
       });
-      await service.confirmPendingAction("test-conversation", true);
+      await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
 
       expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
         "trusted",
@@ -1012,6 +1591,7 @@ describe("AgentService", () => {
       const response = await service.confirmPendingAction(
         "test-conversation",
         true,
+        "approval:noop",
       );
 
       expect(response.text).toContain("No pending");
@@ -1132,6 +1712,187 @@ describe("AgentService", () => {
       expect(response.toolResults?.[0]?.data).toEqual({
         results: ["note1", "note2"],
       });
+    });
+
+    it("should include attachment cards for document generation results", async () => {
+      mockAgentGenerateResult = {
+        text: "Queued PDF generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "document_generate",
+                toolCallId: "call1",
+                input: {
+                  sourceEntityType: "deck",
+                  sourceEntityId: "deck-1",
+                  attachmentType: "carousel",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "document_generate",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    jobId: "job-1",
+                    documentId: "deck-carousel",
+                    attachment: {
+                      mediaType: "application/pdf",
+                      url: "/api/chat/attachments/document?id=deck-carousel",
+                      downloadUrl:
+                        "/api/chat/attachments/document?id=deck-carousel&download=1",
+                      filename: "deck-carousel.pdf",
+                      source: {
+                        entityType: "document",
+                        entityId: "deck-carousel",
+                        attachmentType: "carousel",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 20, totalTokens: 70 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Generate a carousel PDF",
+        "test-conversation",
+      );
+
+      expect(response.cards).toEqual([
+        {
+          kind: "attachment",
+          id: "attachment:deck-carousel",
+          jobId: "job-1",
+          title: "deck-carousel.pdf",
+          description:
+            "PDF generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-carousel",
+            downloadUrl:
+              "/api/chat/attachments/document?id=deck-carousel&download=1",
+            filename: "deck-carousel.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-carousel",
+              attachmentType: "carousel",
+            },
+          },
+        },
+      ]);
+    });
+
+    it("should include attachment cards for image generation results", async () => {
+      mockAgentGenerateResult = {
+        text: "Queued image generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "system_create",
+                toolCallId: "call1",
+                input: {
+                  entityType: "image",
+                  prompt: "Generate a mossy robot",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "system_create",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    entityId: "mossy-robot",
+                    status: "generating",
+                    jobId: "job-1",
+                    attachment: {
+                      mediaType: "image/png",
+                      url: "/api/chat/attachments/image?id=mossy-robot",
+                      downloadUrl:
+                        "/api/chat/attachments/image?id=mossy-robot&download=1",
+                      filename: "mossy-robot.png",
+                      source: {
+                        entityType: "image",
+                        entityId: "mossy-robot",
+                        attachmentType: "generated",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 20, totalTokens: 70 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Generate a mossy robot",
+        "test-conversation",
+      );
+
+      const expectedCards = [
+        {
+          kind: "attachment" as const,
+          id: "attachment:mossy-robot",
+          jobId: "job-1",
+          title: "mossy-robot.png",
+          description:
+            "image generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      ];
+      expect(response.cards).toEqual(expectedCards);
+      const entityMemoryNote =
+        '\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Queued image generation.",
+          metadata: expect.objectContaining({
+            cards: expectedCards,
+            entityMemoryNote,
+          }),
+        }),
+      );
     });
 
     it("should return empty toolResults array when no tools are called", async () => {

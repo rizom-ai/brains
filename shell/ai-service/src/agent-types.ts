@@ -1,3 +1,4 @@
+import type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -67,12 +68,41 @@ export interface AgentConfig {
   assistantActorId?: string;
   /** Optional explicit actor -> canonical identity resolver */
   canonicalIdentityResolver?: CanonicalIdentityResolver;
+  /** Optional provider for same-turn retrieved context, e.g. durable memory. */
+  agentContextProvider?: (
+    request: AgentContextRequest,
+  ) => Promise<AgentContextItem[]>;
 }
 
 /**
  * Context for a chat message
  * Contains per-message information like user permission level
  */
+export interface ChatAttachmentSource {
+  kind: string;
+  id: string;
+}
+
+export interface TextChatAttachment {
+  kind: "text";
+  filename: string;
+  mediaType: string;
+  content: string;
+  sizeBytes?: number | undefined;
+  source?: ChatAttachmentSource | undefined;
+}
+
+export interface FileChatAttachment {
+  kind: "file";
+  filename: string;
+  mediaType: string;
+  data: Uint8Array;
+  sizeBytes?: number | undefined;
+  source?: ChatAttachmentSource | undefined;
+}
+
+export type ChatAttachment = TextChatAttachment | FileChatAttachment;
+
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
@@ -80,16 +110,70 @@ export interface ChatContext {
   channelName?: string; // Human-readable name for the channel/room
   actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
   source?: ConversationMessageSource; // Platform-specific source provenance
+  attachments?: ChatAttachment[] | undefined; // Native same-turn attachments supplied by the interface
 }
 
 /**
  * Pending confirmation for destructive operations
  */
 export interface PendingConfirmation {
+  id: string;
+  toolCallId?: string;
   toolName: string;
-  description: string;
+  summary: string;
+  preview?: string;
   args: unknown;
 }
+
+export type ToolApprovalCardState =
+  | "approval-requested"
+  | "approval-responded"
+  | "output-available"
+  | "output-denied"
+  | "output-error";
+
+export interface ToolApprovalCard {
+  kind: "tool-approval";
+  id: string;
+  toolCallId?: string;
+  toolName: string;
+  input?: Record<string, unknown>;
+  summary: string;
+  preview?: string;
+  state: ToolApprovalCardState;
+  output?: unknown;
+  error?: string;
+}
+
+// Optionals mirror the zod schema in @brains/plugins (`.optional()` widens to
+// `| undefined`) so the two card mirrors stay structurally interchangeable
+// under exactOptionalPropertyTypes.
+export interface AttachmentCardSource {
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  attachmentType?: string | undefined;
+}
+
+export interface AttachmentCardData {
+  mediaType: string;
+  url: string;
+  downloadUrl?: string | undefined;
+  previewUrl?: string | undefined;
+  filename?: string | undefined;
+  sizeBytes?: number | undefined;
+  source?: AttachmentCardSource | undefined;
+}
+
+export interface AttachmentCard {
+  kind: "attachment";
+  id: string;
+  jobId?: string | undefined;
+  title: string;
+  description?: string | undefined;
+  attachment: AttachmentCardData;
+}
+
+export type StructuredChatCard = ToolApprovalCard | AttachmentCard;
 
 /**
  * Tool result data for tracking
@@ -113,8 +197,12 @@ export interface AgentResponse {
   // Interfaces should render these directly to ensure data is shown
   toolResults?: ToolResultData[];
 
-  // Confirmation flow for destructive operations
-  pendingConfirmation?: PendingConfirmation;
+  // Structured chat cards for interface-specific rendering of approvals,
+  // tool outputs, artifacts, and future rich parts.
+  cards?: StructuredChatCard[];
+
+  // Pending confirmations for destructive operations.
+  pendingConfirmations?: PendingConfirmation[];
 
   // Token usage for tracking
   usage: {
@@ -144,10 +232,12 @@ export interface IAgentService {
    * Confirm a pending destructive operation
    * @param conversationId - ID of the conversation
    * @param confirmed - Whether the user confirmed the operation
+   * @param approvalId - Explicit approval/action id to resolve
    */
   confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
+    approvalId: string,
   ): Promise<AgentResponse>;
 
   /**

@@ -410,7 +410,9 @@ describe("BatchJobManager", () => {
 
       let getStatusCalls = 0;
       const originalGetStatus = jobQueueService.getStatus.bind(jobQueueService);
-      jobQueueService.getStatus = async (id: string) => {
+      jobQueueService.getStatus = async (
+        id: string,
+      ): ReturnType<typeof originalGetStatus> => {
         getStatusCalls++;
         return originalGetStatus(id);
       };

@@ -85,6 +85,29 @@ export class ProjectAdapter extends BaseEntityAdapter<
     const bodyMarkdown = bodyFormatter.format(body);
     return this.buildMarkdown(bodyMarkdown, frontmatter);
   }
+
+  public buildStub(input: { id: string; title: string }): {
+    content: string;
+    metadata: ProjectMetadata;
+  } {
+    const year = new Date().getUTCFullYear();
+    const frontmatter: ProjectFrontmatter = {
+      title: input.title,
+      slug: input.id,
+      status: "generating",
+      description: "",
+      year,
+    };
+    return {
+      content: this.buildMarkdown("", frontmatter),
+      metadata: {
+        title: input.title,
+        slug: input.id,
+        status: "generating",
+        year,
+      },
+    };
+  }
 }
 
 export const projectAdapter = new ProjectAdapter();

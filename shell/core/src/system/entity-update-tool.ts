@@ -7,6 +7,7 @@ import {
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
+import { setCoverImageId } from "@brains/image";
 import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -15,6 +16,7 @@ import {
   getEntityDisplayLabel,
   normalizeUpdateInput,
 } from "./tool-helpers";
+import { getPublishBoundaryState } from "./entity-publish-policy";
 
 function currentFieldValue(entity: BaseEntity, key: string): unknown {
   return key === "visibility" ? entity.visibility : entity.metadata[key];
@@ -24,17 +26,79 @@ function applyFieldUpdates(
   entity: BaseEntity,
   fields: Record<string, unknown>,
 ): BaseEntity {
-  const { visibility, ...metadataFields } = fields;
+  const { visibility, coverImageId, ...metadataFields } = fields;
   const nextVisibility =
     visibility === undefined
       ? entity.visibility
       : contentVisibilitySchema.parse(visibility);
 
+  const withCoverImage = Object.hasOwn(fields, "coverImageId")
+    ? setCoverImageId(
+        entity,
+        typeof coverImageId === "string" ? coverImageId : null,
+      )
+    : entity;
+
   return {
-    ...entity,
+    ...withCoverImage,
     visibility: nextVisibility,
     metadata: { ...entity.metadata, ...metadataFields },
   };
+}
+
+function validateCoverImageFieldUpdate(
+  entityType: string,
+  normalizedInput: { fields?: Record<string, unknown> },
+  entityRegistry: SystemServices["entityRegistry"],
+): { success: false; error: string } | undefined {
+  if (!normalizedInput.fields || !("coverImageId" in normalizedInput.fields)) {
+    return undefined;
+  }
+
+  const coverImageId = normalizedInput.fields["coverImageId"];
+  if (
+    coverImageId !== null &&
+    coverImageId !== undefined &&
+    typeof coverImageId !== "string"
+  ) {
+    return {
+      success: false,
+      error: "coverImageId must be a string or null",
+    };
+  }
+
+  const adapter = entityRegistry.getAdapter(entityType);
+  if (adapter.supportsCoverImage) return undefined;
+  return {
+    success: false,
+    error: `Entity type '${entityType}' doesn't support cover images`,
+  };
+}
+
+function getUpdatedStatus(
+  entity: BaseEntity,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  entityRegistry: SystemServices["entityRegistry"],
+): unknown {
+  if (normalizedInput.fields && "status" in normalizedInput.fields) {
+    return normalizedInput.fields["status"];
+  }
+
+  if (normalizedInput.content !== undefined) {
+    const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
+      entity.entityType,
+    );
+    if (!frontmatterSchema) return entity.metadata["status"];
+    try {
+      return entityRegistry
+        .getAdapter(entity.entityType)
+        .parseFrontMatter(normalizedInput.content, frontmatterSchema)["status"];
+    } catch {
+      return entity.metadata["status"];
+    }
+  }
+
+  return entity.metadata["status"];
 }
 
 function buildUpdateDiff(
@@ -70,14 +134,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     "Update an entity's fields or content. Requires confirmation.",
     updateInputSchema,
     async (input, context) => {
-      const policyError = assertEntityActionAllowed(
-        services,
-        input.entityType,
-        "update",
-        context,
-      );
-      if (policyError) return policyError;
-
       const visibilityScope = permissionToVisibilityScope(
         context.userPermissionLevel,
       );
@@ -125,6 +181,35 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
+
+      const coverImageFieldError = validateCoverImageFieldUpdate(
+        entity.entityType,
+        normalizedInput,
+        entityRegistry,
+      );
+      if (coverImageFieldError) return coverImageFieldError;
+
+      const oldStatus = entity.metadata["status"];
+      const newStatus = getUpdatedStatus(
+        entity,
+        normalizedInput,
+        entityRegistry,
+      );
+      const publishBoundary = getPublishBoundaryState(
+        entity.entityType,
+        oldStatus,
+        newStatus,
+        entityRegistry,
+      );
+      const requiredAction =
+        publishBoundary === "non-publish" ? "update" : "publish";
+      const policyError = assertEntityActionAllowed(
+        services,
+        input.entityType,
+        requiredAction,
+        context,
+      );
+      if (policyError) return policyError;
 
       if (input.confirmed) {
         if (input.contentHash && entity.contentHash !== input.contentHash) {
@@ -203,7 +288,8 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       return {
         needsConfirmation: true,
         toolName: "system_update",
-        description: `Update "${label}"?\n\nChanges:\n${diff}`,
+        summary: `Update "${label}"?`,
+        preview: diff,
         args: {
           ...input,
           ...normalizedInput,

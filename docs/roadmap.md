@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-24
+Last updated: 2026-05-29
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -72,6 +72,11 @@ These areas are effectively landed:
 - **Dashboard entry point** — the dashboard now uses permission-aware widgets/endpoints/interactions, renders first-class “ways to connect,” and has mobile ordering that leads with identity and interaction affordances before corpus metrics
 - **Preview-domain alignment** — standalone deploy scaffolding and shared preview-domain derivation now use `preview.<brain-domain>` consistently for apex and nested brain domains
 - **PDF carousel and LinkedIn document publishing** — deck-owned carousel rendering now produces Playwright-backed PDF attachments with opaque LinkedIn-safe backgrounds; operators can preview generated attachments, save durable PDF `document` entities, attach them to `social-post.documents[]`, and publish native LinkedIn document/carousel posts through the current `/rest/documents` + `/rest/posts` flow
+- **Queued entity stubs** — prompt-based `system_create` now persists an addressable stub with `status: generating` and returns its id immediately, so multi-turn follow-ups (e.g. "now generate a cover image for that post") can reference the entity before the generation job completes; stubs are excluded from semantic search by default and the base generation handler updates the stub in place on completion or marks it `failed` on error
+- **Publish action policy** — entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows
+- **Structured chat confirmations** — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path
+- **Web chat session management** — the bundled `/chat` surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation
+- **Web chat outbound attachments** — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances
 
 ## Strategic roadmap
 
@@ -104,7 +109,6 @@ Both tracks share the same weekly review with Relay POC observations: what hit u
 Supporting plans:
 
 - [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
-- [generic-media-generation.md](./plans/generic-media-generation.md) — clean lifecycle surface for generated media artifacts.
 - [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
@@ -137,7 +141,6 @@ Until then, Relay remains an internal experiment owned by `rizom-foundation`.
 Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
-- [summary-conversation-memory.md](./plans/summary-conversation-memory.md) — conversation memory policy and remaining eval/policy tightening.
 - [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
 ### 3. Make shared Relay trustworthy enough to matter
@@ -179,8 +182,7 @@ Plans:
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
-- [cms-github-oauth-proxy.md](./plans/cms-github-oauth-proxy.md) — tactical CMS OAuth proxy.
-- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — longer-term brain-hosted CMS git gateway.
+- [cms-operator-login.md](./plans/cms-operator-login.md) — CMS login: GitHub OAuth and/or passkey-gated PAT.
 - [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — parked; revisits multi-platform chat adapter consolidation only when a new platform is prioritized.
 
 ### 5. Make the ecosystem credible
@@ -199,7 +201,7 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
-- [atproto-integration.md](./plans/atproto-integration.md) — parked distribution/discovery layer.
+- [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; Phase 1/2 outbound publishing and Phase 2.6 registry contracts are implemented, with live `rizom.ai` registry enablement still pending.
 - [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
 
 ### 6. Keep the framework sustainable

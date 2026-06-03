@@ -1,11 +1,10 @@
-import type { Conversation, Message } from "@brains/plugins";
+import type { Conversation } from "@brains/plugins";
 import { matchSpaceSelector } from "@brains/templates";
 
 export type SummaryEligibilityReason =
   | "configured-space"
   | "no-spaces-configured"
-  | "space-not-configured"
-  | "system-only";
+  | "space-not-configured";
 
 export interface SummaryEligibilityResult {
   eligible: boolean;
@@ -23,9 +22,8 @@ export function getConversationSpaceId(scope: {
 export function evaluateSummaryEligibility(params: {
   conversation: Conversation;
   spaces: string[];
-  messages?: Message[];
 }): SummaryEligibilityResult {
-  const { conversation, spaces, messages } = params;
+  const { conversation, spaces } = params;
   const spaceId = getConversationSpaceId(conversation);
 
   if (spaces.length === 0) {
@@ -34,14 +32,6 @@ export function evaluateSummaryEligibility(params: {
 
   if (!spaces.some((selector) => matchSpaceSelector(selector, spaceId))) {
     return { eligible: false, reason: "space-not-configured", spaceId };
-  }
-
-  if (
-    messages &&
-    messages.length > 0 &&
-    messages.every((message) => message.role === "system")
-  ) {
-    return { eligible: false, reason: "system-only", spaceId };
   }
 
   return { eligible: true, reason: "configured-space", spaceId };

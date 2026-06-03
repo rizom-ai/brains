@@ -1,11 +1,17 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  coerceConversationMetadata,
   type EditMessageRequest,
   type InterfacePluginContext,
+  type JobContext,
+  type JobProgressEvent,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
+  type StructuredChatCard,
   type WebRouteDefinition,
+  type ChatAttachment,
+  type ToolActivityEvent,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
@@ -14,14 +20,47 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { join } from "path";
+import { basename, dirname, join } from "path";
 import packageJson from "../package.json";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
+import { stripInternalEntityMemoryNote } from "./display-content";
+import {
+  WebChatUploadStore,
+  WebChatUploadStoreError,
+  webChatUploadIdPattern,
+  webChatUploadRefKind,
+  type ResolvedWebChatUpload,
+  type WebChatUploadRecord,
+} from "./upload-store";
+import {
+  defaultWebChatUploadFilename,
+  sanitizeUploadFilename,
+  validateWebChatUpload,
+  webChatUploadMaxBytes,
+  type ValidatedWebChatUpload,
+} from "./upload-policy";
 
 const textPartSchema = z.object({
   type: z.literal("text"),
   text: z.string(),
 });
+
+const filePartSchema = z.object({
+  type: z.literal("file"),
+  mediaType: z.string().optional(),
+  filename: z.string().optional(),
+  url: z.string(),
+});
+
+const approvalResponsePartSchema = z
+  .object({
+    state: z.literal("approval-responded"),
+    approval: z.object({
+      id: z.string(),
+      approved: z.boolean(),
+    }),
+  })
+  .passthrough();
 
 const uiMessageSchema = z.object({
   role: z.string(),
@@ -32,19 +71,102 @@ const uiMessageSchema = z.object({
 const chatRequestSchema = z.object({
   id: z.string().optional(),
   messages: z.array(uiMessageSchema).min(1),
-});
-
-const confirmationRequestSchema = z.object({
-  id: z.string(),
-  confirmed: z.boolean(),
+  trigger: z.string().optional(),
 });
 
 const webChatInterfaceType = "web-chat";
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
+const webChatUploadFormField = "file";
+/* Extra slack over the text-file size limit to cover the multipart envelope
+   (boundary, headers) when guarding on Content-Length before buffering. */
+const webChatUploadEnvelopeSlackBytes = 16_384;
+
+const uploadRefSchema = z.object({
+  kind: z.literal(webChatUploadRefKind),
+  id: z.string().regex(webChatUploadIdPattern),
+});
+
+const uploadRefPartSchema = z.object({
+  type: z.literal("data-upload"),
+  data: z.object({
+    ref: uploadRefSchema,
+  }),
+});
+
+const renameSessionRequestSchema = z.object({
+  title: z.string().trim().min(1).max(webChatTitleMaxLength),
+});
 
 type ChatRequest = z.infer<typeof chatRequestSchema>;
+type ApprovalResponse = z.infer<typeof approvalResponsePartSchema>["approval"];
+type WebChatConversation = NonNullable<
+  Awaited<ReturnType<InterfacePluginContext["conversations"]["get"]>>
+>;
+
+interface WebChatProgressData {
+  type: JobProgressEvent["type"];
+  status: JobProgressEvent["status"];
+  operationType: JobContext["operationType"];
+  operationTarget?: string;
+  message?: string;
+  progress?: JobProgressEvent["progress"];
+}
+
+interface WebChatToolStatusData {
+  status: "tool-invoking" | "tool-completed" | "tool-failed";
+  toolName: string;
+  message: string;
+  error?: string;
+}
+
+interface ParsedUserInput {
+  message: string;
+  attachments: ChatAttachment[];
+  responseText?: string;
+}
+
+type DeferredUploadIntent = "image" | "pdf" | "upload";
+
+const storedChatAttachmentSchema = z.object({
+  kind: z.literal("text"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: z
+    .object({
+      kind: z.string().min(1),
+      id: z.string().min(1),
+    })
+    .optional(),
+});
+
+const storedChatAttachmentsSchema = z.array(storedChatAttachmentSchema);
+
+const storedAttachmentCardSchema = z.object({
+  kind: z.literal("attachment"),
+  id: z.string().min(1),
+  jobId: z.string().min(1).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  attachment: z.object({
+    mediaType: z.string().min(1),
+    url: z.string().min(1),
+    downloadUrl: z.string().min(1).optional(),
+    previewUrl: z.string().min(1).optional(),
+    filename: z.string().min(1).optional(),
+    sizeBytes: z.number().nonnegative().optional(),
+    source: z
+      .object({
+        entityType: z.string().optional(),
+        entityId: z.string().optional(),
+        attachmentType: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+const storedChatCardsSchema = z.array(storedAttachmentCardSchema);
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
@@ -206,6 +328,7 @@ button, textarea, input { font: inherit; color: inherit; }
    56rem and centers, with a shared 2.75rem left pad so their content
    aligns with the message text behind the spine gutter. */
 .web-chat-app > .web-chat-conversation,
+.web-chat-app > .web-chat-session-notice,
 .web-chat-app > .web-chat-status,
 .web-chat-app > .web-chat-error,
 .web-chat-app > .web-chat-prompt-input {
@@ -322,6 +445,116 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 .web-chat-icon-action svg { width: 14px; height: 14px; }
 
+/* ─── Session dialogs ─── */
+.web-chat-session-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(0 0 0 / 0.42);
+  backdrop-filter: blur(10px);
+}
+.web-chat-session-dialog {
+  width: min(100%, 28rem);
+  padding: 1.25rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.25);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, var(--chat-bg-card), var(--chat-bg-subtle)),
+    var(--chat-bg-card);
+  box-shadow:
+    0 24px 80px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.web-chat-session-dialog-kicker {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--chat-font-display);
+  font-size: 1.45rem;
+  font-weight: 520;
+  letter-spacing: -0.02em;
+}
+.web-chat-session-dialog p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.web-chat-session-dialog strong { color: var(--chat-text); }
+.web-chat-session-dialog-form {
+  display: grid;
+  gap: 0.65rem;
+}
+.web-chat-session-dialog label {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chat-text-light);
+}
+.web-chat-session-dialog input {
+  width: 100%;
+  border: 1px solid var(--chat-border);
+  border-radius: 16px;
+  background: var(--chat-surface-inset);
+  color: var(--chat-text);
+  padding: 0.75rem 0.85rem;
+  outline: none;
+}
+.web-chat-session-dialog input:focus {
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 0 3px rgb(from var(--chat-accent) r g b / 0.14);
+}
+.web-chat-session-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+.web-chat-session-dialog-actions button {
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  background: var(--chat-surface-soft);
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  padding: 0.55rem 0.85rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-session-dialog-actions button:hover:not(:disabled) {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog-actions button[data-primary="true"] {
+  border-color: rgb(from var(--chat-accent) r g b / 0.55);
+  background: rgb(from var(--chat-accent) r g b / 0.14);
+  color: var(--chat-accent);
+}
+.web-chat-session-dialog-actions button[data-danger="true"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.45);
+  background: rgb(from var(--chat-error) r g b / 0.12);
+  color: var(--chat-error);
+}
+.web-chat-session-dialog-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ─── Sessions panel ─── */
 .web-chat-sessions {
   display: grid;
@@ -389,14 +622,114 @@ button, textarea, input { font: inherit; color: inherit; }
     transparent 100%);
   pointer-events: none;
 }
-.web-chat-sessions-list-empty {
+.web-chat-sessions-state {
   margin: 1rem 1.25rem;
-  color: var(--chat-text-light);
+  padding: 1rem;
+  border: 1px solid var(--chat-border-soft);
+  border-radius: 18px;
+  background: var(--chat-surface-inset);
+  color: var(--chat-text-muted);
+}
+.web-chat-sessions-state[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.28);
+  background: rgb(from var(--chat-error) r g b / 0.08);
+}
+.web-chat-sessions-state-tag {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-sessions-state[data-tone="error"] .web-chat-sessions-state-tag {
+  color: var(--chat-error);
+}
+.web-chat-sessions-state p {
+  margin: 0;
   font-family: var(--chat-font-display);
-  font-style: italic;
   font-size: 13px;
+  font-style: italic;
+  line-height: 1.45;
+}
+.web-chat-sessions-state button,
+.web-chat-sessions-inline-error button,
+.web-chat-session-notice button {
+  border: 0;
+  background: transparent;
+  color: var(--chat-accent);
+  cursor: pointer;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.web-chat-sessions-state button {
+  margin-top: 0.8rem;
+  padding: 0;
+}
+.web-chat-sessions-empty-spacer {
+  min-height: 0;
+}
+.web-chat-sessions-inline-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.25rem 1.25rem 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(from var(--chat-error) r g b / 0.22);
+  border-radius: 999px;
+  background: rgb(from var(--chat-error) r g b / 0.07);
+  color: var(--chat-error);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-session-skeleton {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  gap: 0.85rem;
+  padding: 0.8rem 1.25rem 0.8rem 0.85rem;
+}
+.web-chat-session-skeleton > span,
+.web-chat-session-skeleton div span {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    var(--chat-surface-soft),
+    var(--chat-surface),
+    var(--chat-surface-soft));
+  background-size: 200% 100%;
+  animation: web-chat-session-pulse 1.2s ease-in-out infinite;
+}
+.web-chat-session-skeleton > span {
+  width: 2.6rem;
+  height: 0.55rem;
+  justify-self: end;
+  margin-top: 0.25rem;
+}
+.web-chat-session-skeleton div {
+  display: grid;
+  gap: 0.45rem;
+  padding-left: 0.85rem;
+}
+.web-chat-session-skeleton div span:first-child { width: 82%; height: 0.7rem; }
+.web-chat-session-skeleton div span:last-child { width: 46%; height: 0.55rem; }
+@keyframes web-chat-session-pulse {
+  0% { background-position: 0% 50%; }
+  100% { background-position: -200% 50%; }
 }
 
+.web-chat-session-item {
+  position: relative;
+}
 .web-chat-session {
   position: relative;
   display: grid;
@@ -406,13 +739,20 @@ button, textarea, input { font: inherit; color: inherit; }
   width: 100%;
   border: 0;
   background: transparent;
-  padding: 0.75rem 1.25rem 0.75rem 0.85rem;
+  padding: 0.75rem 6.6rem 0.75rem 0.85rem;
   cursor: pointer;
   text-align: left;
   color: inherit;
   transition: background 0.2s ease;
 }
-.web-chat-session:hover { background: var(--chat-surface-soft); }
+.web-chat-session:hover:not(:disabled) { background: var(--chat-surface-soft); }
+.web-chat-session:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.web-chat-session:disabled:not([data-loading="true"]) {
+  cursor: not-allowed;
+}
 .web-chat-session-time {
   padding-top: 0.15rem;
   font-family: var(--chat-font-label);
@@ -472,6 +812,14 @@ button, textarea, input { font: inherit; color: inherit; }
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
+.web-chat-session-subtitle {
+  font-family: var(--chat-font-label);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
 .web-chat-session[data-active="true"] {
   background: linear-gradient(90deg,
     rgb(from var(--chat-accent) r g b / 0.08) 0%,
@@ -489,6 +837,64 @@ button, textarea, input { font: inherit; color: inherit; }
     rgb(from var(--chat-accent) r g b / 0.2));
 }
 .web-chat-session[data-active="true"] .web-chat-session-time { color: var(--chat-accent); }
+.web-chat-session-rename,
+.web-chat-session-archive,
+.web-chat-session-delete {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  opacity: 0.72;
+  transform: translateY(-50%) scale(1);
+  transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+.web-chat-session-rename { right: 4.45rem; }
+.web-chat-session-archive { right: 2.65rem; }
+.web-chat-session-delete { right: 0.85rem; }
+.web-chat-session-item:hover .web-chat-session-rename,
+.web-chat-session-item:hover .web-chat-session-archive,
+.web-chat-session-item:hover .web-chat-session-delete,
+.web-chat-session-rename:focus-visible,
+.web-chat-session-archive:focus-visible,
+.web-chat-session-delete:focus-visible,
+.web-chat-session-rename:disabled,
+.web-chat-session-archive:disabled,
+.web-chat-session-delete:disabled {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+.web-chat-session-rename:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-accent) r g b / 0.34);
+  background: rgb(from var(--chat-accent) r g b / 0.1);
+  color: var(--chat-accent);
+}
+.web-chat-session-archive:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-secondary) r g b / 0.34);
+  background: rgb(from var(--chat-secondary) r g b / 0.1);
+  color: var(--chat-secondary);
+}
+.web-chat-session-delete:hover:not(:disabled) {
+  border-color: rgb(from var(--chat-error) r g b / 0.34);
+  background: rgb(from var(--chat-error) r g b / 0.1);
+  color: var(--chat-error);
+}
+.web-chat-session-rename:disabled,
+.web-chat-session-archive:disabled,
+.web-chat-session-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.web-chat-session-rename svg,
+.web-chat-session-archive svg,
+.web-chat-session-delete svg { width: 13px; height: 13px; }
 
 .web-chat-sessions-footer {
   display: flex;
@@ -518,6 +924,45 @@ button, textarea, input { font: inherit; color: inherit; }
 }
 
 /* ─── Conversation (mycelial spine) ─── */
+.web-chat-session-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.24);
+  border-radius: 20px;
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-accent) r g b / 0.09),
+    var(--chat-surface-inset));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.web-chat-session-notice[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.28);
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-error) r g b / 0.1),
+    var(--chat-surface-inset));
+}
+.web-chat-session-notice-tag {
+  grid-column: 1 / -1;
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-session-notice[data-tone="error"] .web-chat-session-notice-tag {
+  color: var(--chat-error);
+}
+.web-chat-session-notice p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.web-chat-session-notice button { padding: 0.15rem 0 0; }
+
 .web-chat-conversation {
   min-height: 0;
   overflow: auto;
@@ -646,7 +1091,75 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-message-bubble ul,
 .web-chat-message-bubble ol { margin: 0 0 0.75rem; padding-left: 1.25rem; }
 .web-chat-message-bubble li { margin-bottom: 0.35rem; }
-
+.web-chat-uploaded-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(100%, 20rem);
+  margin-top: 0.65rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.35);
+  border-radius: 999px;
+  background: rgb(from var(--chat-accent) r g b / 0.12);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.web-chat-uploaded-file-kicker { color: var(--chat-text-light); }
+.web-chat-uploaded-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--chat-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-progress-part {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
+  border-radius: 12px;
+  background: rgb(from var(--chat-accent) r g b / 0.08);
+  color: var(--chat-text);
+  font-size: 0.92rem;
+}
+.web-chat-progress-part[data-status="completed"] {
+  border-color: rgb(from var(--chat-success) r g b / 0.35);
+  background: rgb(from var(--chat-success) r g b / 0.08);
+}
+.web-chat-progress-part[data-status="failed"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.38);
+  background: rgb(from var(--chat-error) r g b / 0.08);
+}
+.web-chat-progress-kicker {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-progress-part[data-status="completed"] .web-chat-progress-kicker { color: var(--chat-success); }
+.web-chat-progress-part[data-status="failed"] .web-chat-progress-kicker { color: var(--chat-error); }
+.web-chat-progress-title { font-weight: 700; }
+.web-chat-progress-message { color: var(--chat-text-muted); }
+.web-chat-progress-meter {
+  height: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--chat-surface);
+}
+.web-chat-progress-meter span {
+  display: block;
+  height: 100%;
+  width: var(--web-chat-progress-value, 0%);
+  border-radius: inherit;
+  background: currentColor;
+}
 /* user — amber notched panel */
 .web-chat-message[data-role="user"] .web-chat-message-header { color: var(--chat-accent); }
 .web-chat-message[data-role="user"] .web-chat-message-bubble {
@@ -853,6 +1366,104 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   color: var(--chat-accent);
 }
 
+.web-chat-attachment-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  margin: 1rem 0 0;
+  border: 1px solid var(--chat-border);
+  background: linear-gradient(135deg,
+    rgb(from var(--chat-accent) r g b / 0.08) 0%,
+    rgb(from var(--chat-secondary) r g b / 0.04) 100%);
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+.web-chat-attachment-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--chat-accent), var(--chat-secondary));
+}
+.web-chat-attachment-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(70vh, 520px);
+  justify-self: center;
+  object-fit: contain;
+  border-bottom: 1px solid var(--chat-border-soft);
+  background: var(--chat-surface-inset);
+}
+.web-chat-attachment-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem 1rem 1.15rem;
+}
+.web-chat-attachment-kicker,
+.web-chat-attachment-meta {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-text-light);
+}
+.web-chat-attachment-kicker { color: var(--chat-accent); }
+.web-chat-attachment-card[data-status="pending"] .web-chat-attachment-kicker,
+.web-chat-attachment-card[data-status="processing"] .web-chat-attachment-kicker {
+  color: var(--chat-secondary);
+}
+.web-chat-attachment-card[data-status="failed"] .web-chat-attachment-kicker {
+  color: var(--chat-error);
+}
+.web-chat-attachment-body h4 {
+  margin: 0;
+  font-family: var(--chat-font-body);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--chat-text);
+}
+.web-chat-attachment-body p {
+  margin: 0;
+  color: var(--chat-text-muted);
+  line-height: 1.5;
+}
+.web-chat-attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+.web-chat-attachment-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  color: var(--chat-text);
+  background: var(--chat-surface-soft);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.web-chat-attachment-actions a:hover {
+  border-color: rgb(from var(--chat-accent) r g b / 0.48);
+  color: var(--chat-accent);
+}
+.web-chat-attachment-actions a[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* ─── Confirmations — instrument card. This is an action affordance,
    not a debug toggle, so it keeps the card chrome to grab attention. ─── */
 .web-chat-confirmation {
@@ -911,6 +1522,18 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
     rgb(from var(--chat-success) r g b / 0.2));
 }
 .web-chat-confirmation[data-state="resolved"] .web-chat-confirmation-header { color: var(--chat-success); }
+.web-chat-confirmation[data-state="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.35);
+}
+.web-chat-confirmation[data-state="error"]::before {
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--chat-error) r g b / 0.9),
+    rgb(from var(--chat-error) r g b / 0.2));
+}
+.web-chat-confirmation[data-state="error"] .web-chat-confirmation-header {
+  color: var(--chat-error);
+}
 
 .web-chat-confirmation-body { padding: 0.85rem; display: grid; gap: 0.85rem; }
 .web-chat-confirmation-summary { margin: 0; color: var(--chat-text); line-height: 1.6; }
@@ -956,6 +1579,8 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   background: rgb(from var(--chat-success) r g b / 0.12);
@@ -964,7 +1589,17 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
+}
+.web-chat-confirmation-result[data-variant="error"] {
+  background: rgb(from var(--chat-error) r g b / 0.12);
+  color: var(--chat-error);
+}
+.web-chat-confirmation-result[data-variant="declined"] {
+  background: rgb(from var(--chat-text-muted) r g b / 0.12);
+  color: var(--chat-text-muted);
 }
 
 /* ─── Status (growing root + italic phrase) ─── */
@@ -1121,6 +1756,82 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   line-height: 1.55;
 }
 .web-chat-prompt-textarea::placeholder { color: var(--chat-text-light); }
+.web-chat-upload-notice {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.26);
+  border-radius: 14px;
+  background: rgb(from var(--chat-accent) r g b / 0.08);
+  color: var(--chat-text-muted);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.web-chat-upload-notice[data-tone="error"] {
+  border-color: rgb(from var(--chat-error) r g b / 0.42);
+  background: rgb(from var(--chat-error) r g b / 0.1);
+  color: var(--chat-error);
+}
+.web-chat-prompt-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.web-chat-prompt-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(100%, 18rem);
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+  border: 1px solid rgb(from var(--chat-accent) r g b / 0.28);
+  border-radius: 999px;
+  background: rgb(from var(--chat-accent) r g b / 0.1);
+  color: var(--chat-text);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.web-chat-prompt-attachment span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-prompt-attachment button,
+.web-chat-prompt-attach {
+  border: 1px solid var(--chat-border);
+  background: var(--chat-surface);
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  font-family: var(--chat-font-label);
+}
+.web-chat-prompt-attachment button {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+}
+.web-chat-prompt-attach {
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-prompt-attachment button:hover,
+.web-chat-prompt-attach:hover {
+  border-color: var(--chat-accent);
+  color: var(--chat-accent);
+}
 .web-chat-prompt-footer {
   display: flex; align-items: center; justify-content: space-between;
   gap: 0.75rem;
@@ -1325,6 +2036,24 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   }
   .web-chat-mobile-trigger svg { width: 18px; height: 18px; }
 
+  .web-chat-session-rename,
+  .web-chat-session-archive,
+  .web-chat-session-delete {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+
+  .web-chat-session-dialog-backdrop {
+    place-items: end center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  .web-chat-session-dialog {
+    width: 100%;
+    max-height: calc(100vh - 2rem - env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+  }
+
   /* Header CTA buttons → 40px icon-only circles, matching the trigger. */
   .web-chat-header-actions {
     gap: 0.35rem;
@@ -1350,6 +2079,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-app::before { left: 0.6rem; }
   .web-chat-app::after { left: calc(0.6rem - 2px); bottom: 0.85rem; }
   .web-chat-app > .web-chat-conversation,
+  .web-chat-app > .web-chat-session-notice,
   .web-chat-app > .web-chat-status,
   .web-chat-app > .web-chat-error,
   .web-chat-app > .web-chat-prompt-input {
@@ -1401,6 +2131,11 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   .web-chat-empty-state-glyph { width: 130px; height: 64px; }
   .web-chat-empty-state h2 { font-size: 1.4rem; }
   .web-chat-empty-state p { font-size: 14px; max-width: 26ch; }
+  .web-chat-session-dialog-actions { flex-direction: column-reverse; }
+  .web-chat-session-dialog-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
 }
 `;
 
@@ -1409,6 +2144,74 @@ interface ActiveStream {
 }
 
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+
+function parseBase64DataUrl(
+  dataUrl: string,
+  mediaTypePattern: RegExp,
+): { mimeType: string; data: ArrayBuffer } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/i);
+  if (!match) return null;
+  const [, mimeType, encoded] = match;
+  if (!mimeType || !encoded || !mediaTypePattern.test(mimeType)) {
+    return null;
+  }
+  const buffer = Buffer.from(encoded, "base64");
+  const data = buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  );
+  return {
+    mimeType,
+    data,
+  };
+}
+
+function parsePdfDataUrl(
+  dataUrl: string,
+): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
+  const parsed = parseBase64DataUrl(dataUrl, /^application\/pdf$/i);
+  if (parsed?.mimeType.toLowerCase() !== "application/pdf") {
+    return null;
+  }
+  return { mimeType: "application/pdf", data: parsed.data };
+}
+
+function parseImageDataUrl(
+  dataUrl: string,
+): { mimeType: string; data: ArrayBuffer } | null {
+  return parseBase64DataUrl(dataUrl, /^image\/[a-z0-9.+-]+$/i);
+}
+
+function getDocumentFilename(
+  metadata: Record<string, unknown> | null | undefined,
+  documentId: string,
+): string {
+  const filename = metadata?.["filename"];
+  return typeof filename === "string" && filename.length > 0
+    ? filename
+    : `${documentId}.pdf`;
+}
+
+function getImageFilename(
+  metadata: Record<string, unknown> | null | undefined,
+  imageId: string,
+  mimeType: string,
+): string {
+  const filename = metadata?.["filename"];
+  if (typeof filename === "string" && filename.length > 0) return filename;
+
+  const format = metadata?.["format"];
+  if (typeof format === "string" && format.length > 0) {
+    return `${imageId}.${format === "jpeg" ? "jpg" : format}`;
+  }
+
+  const subtype = mimeType.split("/")[1];
+  return `${imageId}.${subtype && subtype.length > 0 ? subtype : "png"}`;
+}
+
+function escapeHeaderValue(value: string): string {
+  return value.replace(/["\\\r\n]/g, "_");
+}
 
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
@@ -1473,18 +2276,32 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatRequest(request),
       },
       {
-        path: "/api/chat/confirm",
-        method: "POST",
-        public: true,
-        handler: (request): Promise<Response> =>
-          this.handleConfirmationRequest(request),
-      },
-      {
         path: "/api/chat/sessions",
         method: "GET",
         public: true,
         handler: (request): Promise<Response> =>
           this.handleSessionsRequest(request),
+      },
+      {
+        path: "/api/chat/sessions",
+        method: "DELETE",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleDeleteSessionRequest(request),
+      },
+      {
+        path: "/api/chat/sessions",
+        method: "PUT",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleRenameSessionRequest(request),
+      },
+      {
+        path: "/api/chat/sessions/archive",
+        method: "PUT",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleArchiveSessionRequest(request),
       },
       {
         path: "/api/chat/messages",
@@ -1494,10 +2311,45 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleMessagesRequest(request),
       },
       {
+        path: "/api/chat/attachments/document",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleDocumentAttachmentRequest(request),
+      },
+      {
+        path: "/api/chat/attachments/image",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleImageAttachmentRequest(request),
+      },
+      {
+        path: "/api/chat/jobs/status",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleJobStatusRequest(request),
+      },
+      {
         path: uiAssetPath,
         method: "GET",
         public: true,
         handler: (): Promise<Response> => this.handleUiAssetRequest(),
+      },
+      {
+        path: "/api/chat/uploads",
+        method: "POST",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleUploadRequest(request),
+      },
+      {
+        path: "/api/chat/uploads",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleUploadDownloadRequest(request),
       },
     ];
   }
@@ -1536,6 +2388,92 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return true;
   }
 
+  protected override async handleProgressEvent(
+    event: JobProgressEvent,
+    _context: JobContext,
+  ): Promise<void> {
+    const channelId = event.metadata.channelId;
+    if (
+      event.metadata.interfaceType !== webChatInterfaceType ||
+      typeof channelId !== "string"
+    ) {
+      return;
+    }
+
+    const stream = this.getActiveStream(channelId);
+    if (!stream) return;
+
+    stream.writer.write({
+      type: "data-progress",
+      id: `progress:${event.id}`,
+      data: this.toProgressData(event),
+      transient: event.status === "processing" || event.status === "pending",
+    });
+  }
+
+  protected override async handleToolActivityEvent(
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    if (
+      event.interfaceType !== webChatInterfaceType ||
+      typeof event.channelId !== "string"
+    ) {
+      return;
+    }
+
+    const stream = this.getActiveStream(event.channelId);
+    if (!stream) return;
+
+    stream.writer.write({
+      type: "data-status",
+      id: this.createId("tool-status"),
+      data: this.toToolStatusData(event),
+      transient: true,
+    });
+  }
+
+  private toProgressData(event: JobProgressEvent): WebChatProgressData {
+    const data: WebChatProgressData = {
+      type: event.type,
+      status: event.status,
+      operationType: event.metadata.operationType,
+    };
+    if (event.metadata.operationTarget) {
+      data.operationTarget = event.metadata.operationTarget;
+    }
+    if (event.message) {
+      data.message = event.message;
+    }
+    if (event.progress) {
+      data.progress = event.progress;
+    }
+    return data;
+  }
+
+  private toToolStatusData(event: ToolActivityEvent): WebChatToolStatusData {
+    switch (event.type) {
+      case "tool:invoking":
+        return {
+          status: "tool-invoking",
+          toolName: event.toolName,
+          message: `Using ${event.toolName}…`,
+        };
+      case "tool:completed":
+        return {
+          status: "tool-completed",
+          toolName: event.toolName,
+          message: `Finished ${event.toolName}.`,
+        };
+      case "tool:failed":
+        return {
+          status: "tool-failed",
+          toolName: event.toolName,
+          message: `${event.toolName} failed.`,
+          ...(event.error !== undefined && { error: event.error }),
+        };
+    }
+  }
+
   private async handleChatPage(request: Request): Promise<Response> {
     if (!(await this.resolveOperatorSession(request))) {
       return this.createOperatorLoginRequiredResponse(request);
@@ -1560,6 +2498,88 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
+  private async handleUploadRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    // Reject obviously oversized bodies before buffering the whole upload into
+    // memory. Best-effort: Content-Length may be absent, so the post-decode
+    // size check below remains authoritative.
+    const declaredSize = Number(request.headers.get("content-length"));
+    if (
+      Number.isFinite(declaredSize) &&
+      declaredSize > webChatUploadMaxBytes + webChatUploadEnvelopeSlackBytes
+    ) {
+      return new Response("File upload too large", { status: 400 });
+    }
+
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return new Response("Invalid multipart upload", { status: 400 });
+    }
+
+    const file = formData.get(webChatUploadFormField);
+    if (!(file instanceof File)) {
+      return new Response("Missing upload file", { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const validated = validateWebChatUpload({
+      filename: file.name,
+      mediaType: file.type,
+      content: buffer,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
+    }
+
+    const store = this.getUploadStore();
+    const record = await store.save({
+      filename: validated.filename,
+      mediaType: validated.mediaType,
+      content: buffer,
+    });
+
+    return Response.json(store.toResponseBody(record), { status: 201 });
+  }
+
+  private async handleUploadDownloadRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
+    if (!uploadId) {
+      return new Response("Missing upload id", { status: 400 });
+    }
+
+    const resolved = await this.readStoredUpload(uploadId);
+    if (resolved instanceof Response) return resolved;
+    const { record, content } = resolved;
+
+    const validated = this.validateStoredUpload(record, content);
+    if (validated instanceof Response) return validated;
+
+    const disposition = new URL(request.url).searchParams.has("download")
+      ? "attachment"
+      : "inline";
+    const body = new Uint8Array(content).buffer;
+    return new Response(body, {
+      headers: {
+        "Content-Type": record.mediaType,
+        "Content-Length": String(content.byteLength),
+        "Content-Disposition": `${disposition}; filename="${escapeHeaderValue(
+          record.filename,
+        )}"`,
+      },
+    });
+  }
+
   private async handleChatRequest(request: Request): Promise<Response> {
     if (!(await this.resolveOperatorSession(request))) {
       return new Response("Forbidden", { status: 403 });
@@ -1572,47 +2592,48 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       return new Response("Invalid chat request", { status: 400 });
     }
 
-    const message = this.extractLastUserText(parsed.data);
-    if (!message) {
+    const conversationId = parsed.data.id ?? this.createId("web");
+    const userInput = await this.extractLastUserInput(
+      parsed.data,
+      conversationId,
+    );
+    if (userInput instanceof Response) return userInput;
+    const { message, attachments, responseText } = userInput;
+    const hasUserInput = message.length > 0 || attachments.length > 0;
+    const approvalResponses = hasUserInput
+      ? []
+      : this.extractLatestApprovalResponses(parsed.data);
+    if (!hasUserInput && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
     }
 
-    const conversationId = parsed.data.id ?? this.createId("web");
     const stream = createUIMessageStream<UIMessage>({
       execute: async ({ writer }) => {
+        if (approvalResponses.length > 0) {
+          await this.handleStreamedConfirmations({
+            writer,
+            conversationId,
+            approvalResponses,
+          });
+          return;
+        }
+
+        if (responseText !== undefined) {
+          this.writeText(writer, responseText, "text");
+          return;
+        }
+
         await this.handleStreamedChat({
           writer,
           conversationId,
           message,
           permissionLevel,
+          attachments,
         });
       },
     });
 
     return createUIMessageStreamResponse({ stream });
-  }
-
-  private async handleConfirmationRequest(request: Request): Promise<Response> {
-    const permissionLevel = await this.resolvePermissionLevel(request);
-    if (permissionLevel !== "anchor") {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    const parsed = confirmationRequestSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return new Response("Invalid confirmation request", { status: 400 });
-    }
-
-    const response = await this.getContext().agent.confirmPendingAction(
-      parsed.data.id,
-      parsed.data.confirmed,
-    );
-
-    return Response.json({
-      text: response.text,
-      toolResults: response.toolResults ?? [],
-      pendingConfirmation: response.pendingConfirmation ?? null,
-    });
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {
@@ -1625,8 +2646,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       interfaceType: webChatInterfaceType,
       limit: webChatSessionLimit,
     });
+    const activeConversations = conversations.filter(
+      (conversation) => !this.isArchivedMetadata(conversation.metadata),
+    );
     const sessions = await Promise.all(
-      conversations.map(async (conversation) => ({
+      activeConversations.map(async (conversation) => ({
         id: conversation.id,
         title: await this.getConversationTitle(conversation.id),
         lastActiveAt: conversation.lastActiveAt,
@@ -1636,7 +2660,89 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     return Response.json({ sessions });
   }
 
+  private async handleDeleteSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const deleted = await this.getContext().conversations.delete(
+      conversation.id,
+    );
+    return Response.json({ deleted });
+  }
+
+  private async handleRenameSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const parsed = renameSessionRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return new Response("Invalid rename request", { status: 400 });
+    }
+
+    const renamed = await this.getContext().conversations.updateMetadata({
+      conversationId: conversation.id,
+      metadata: { title: parsed.data.title },
+    });
+
+    return Response.json({ renamed, title: parsed.data.title });
+  }
+
+  private async handleArchiveSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const conversation = await this.resolveWebChatSession(request);
+    if (conversation instanceof Response) return conversation;
+
+    const archived = await this.getContext().conversations.updateMetadata({
+      conversationId: conversation.id,
+      metadata: { archivedAt: new Date().toISOString() },
+    });
+
+    return Response.json({ archived });
+  }
+
+  private async resolveWebChatSession(
+    request: Request,
+  ): Promise<WebChatConversation | Response> {
+    const conversationId = new URL(request.url).searchParams.get("id");
+    if (!conversationId) {
+      return new Response("Missing conversation id", { status: 400 });
+    }
+
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    if (conversation?.interfaceType !== webChatInterfaceType) {
+      return new Response("Conversation not found", { status: 404 });
+    }
+
+    return conversation;
+  }
+
   private async getConversationTitle(conversationId: string): Promise<string> {
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    const renamedTitle = this.getMetadataTitle(conversation?.metadata);
+    if (renamedTitle) return renamedTitle;
+
     const messages = await this.getContext().conversations.getMessages(
       conversationId,
       { limit: webChatTitleMessageLimit },
@@ -1650,6 +2756,128 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       firstUserMessage.content.trim().split(/\r?\n/, 1)[0] ?? "";
     if (firstLine.length <= webChatTitleMaxLength) return firstLine;
     return `${firstLine.slice(0, webChatTitleMaxLength - 1).trimEnd()}…`;
+  }
+
+  private isArchivedMetadata(metadata: unknown): boolean {
+    return (
+      typeof coerceConversationMetadata(metadata)["archivedAt"] === "string"
+    );
+  }
+
+  private getMetadataTitle(metadata: unknown): string | undefined {
+    const title = coerceConversationMetadata(metadata)["title"];
+    return typeof title === "string" && title.trim().length > 0
+      ? title
+      : undefined;
+  }
+
+  private async handleDocumentAttachmentRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const documentId = url.searchParams.get("id")?.trim();
+    if (!documentId) {
+      return new Response("Missing document id", { status: 400 });
+    }
+
+    const document = await this.getContext().entityService.getEntity({
+      entityType: "document",
+      id: documentId,
+    });
+    if (!document) {
+      return new Response("Document not found", { status: 404 });
+    }
+
+    const parsed = parsePdfDataUrl(document.content);
+    if (!parsed) {
+      return new Response("Document content is not a PDF", { status: 415 });
+    }
+
+    const filename = getDocumentFilename(document.metadata, documentId);
+    return this.createBinaryAttachmentResponse({
+      requestUrl: url,
+      data: parsed.data,
+      mediaType: parsed.mimeType,
+      filename,
+    });
+  }
+
+  private async handleImageAttachmentRequest(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const imageId = url.searchParams.get("id")?.trim();
+    if (!imageId) {
+      return new Response("Missing image id", { status: 400 });
+    }
+
+    const image = await this.getContext().entityService.getEntity({
+      entityType: "image",
+      id: imageId,
+    });
+    if (!image) {
+      return new Response("Image not found", { status: 404 });
+    }
+
+    const parsed = parseImageDataUrl(image.content);
+    if (!parsed) {
+      return new Response("Image content is not an image", { status: 415 });
+    }
+
+    const filename = getImageFilename(image.metadata, imageId, parsed.mimeType);
+    return this.createBinaryAttachmentResponse({
+      requestUrl: url,
+      data: parsed.data,
+      mediaType: parsed.mimeType,
+      filename,
+    });
+  }
+
+  private createBinaryAttachmentResponse(input: {
+    requestUrl: URL;
+    data: ArrayBuffer;
+    mediaType: string;
+    filename: string;
+  }): Response {
+    const headers = new Headers({
+      "Content-Type": input.mediaType,
+      "Content-Length": String(input.data.byteLength),
+      "Content-Disposition": `${
+        input.requestUrl.searchParams.has("download") ? "attachment" : "inline"
+      }; filename="${escapeHeaderValue(input.filename)}"`,
+    });
+    return new Response(input.data, { headers });
+  }
+
+  private async handleJobStatusRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return this.createOperatorLoginRequiredResponse(request);
+    }
+
+    const url = new URL(request.url);
+    const jobId = url.searchParams.get("id")?.trim();
+    if (!jobId) {
+      return new Response("Missing job id", { status: 400 });
+    }
+
+    const job = await this.getContext().jobs.getStatus(jobId);
+    if (!job) {
+      return new Response("Job not found", { status: 404 });
+    }
+
+    return Response.json({
+      id: job.id,
+      status: job.status,
+      message: job.lastError ?? undefined,
+    });
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {
@@ -1675,12 +2903,75 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     );
 
     return Response.json({
-      messages: messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-      })),
+      messages: messages.map((message) => {
+        const attachments = this.getStoredMessageAttachments(
+          message.metadata,
+          message.timestamp,
+        );
+        const cards = this.getStoredMessageCards(message.metadata);
+        return {
+          id: message.id,
+          role: message.role,
+          content: stripInternalEntityMemoryNote(message.content),
+          ...(attachments.length > 0 ? { attachments } : {}),
+          ...(cards.length > 0 ? { cards } : {}),
+        };
+      }),
     });
+  }
+
+  private getStoredMessageAttachments(
+    metadata: unknown,
+    createdAt: string,
+  ): Array<{
+    kind: "text";
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    createdAt: string;
+    source?: { kind: string; id: string } | undefined;
+  }> {
+    const parsedMetadata = this.parseStoredMessageMetadata(metadata);
+    const parsedAttachments = storedChatAttachmentsSchema.safeParse(
+      parsedMetadata?.["attachments"],
+    );
+    if (!parsedAttachments.success) return [];
+
+    return parsedAttachments.data.map((attachment) => ({
+      kind: attachment.kind,
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      sizeBytes: attachment.sizeBytes ?? 0,
+      createdAt,
+      ...(attachment.source !== undefined && { source: attachment.source }),
+    }));
+  }
+
+  private getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
+    const parsedMetadata = this.parseStoredMessageMetadata(metadata);
+    const parsedCards = storedChatCardsSchema.safeParse(
+      parsedMetadata?.["cards"],
+    );
+    if (!parsedCards.success) return [];
+    return parsedCards.data;
+  }
+
+  private parseStoredMessageMetadata(
+    metadata: unknown,
+  ): Record<string, unknown> | null {
+    if (typeof metadata === "string") {
+      try {
+        const parsed = JSON.parse(metadata) as unknown;
+        return this.isRecord(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+    return this.isRecord(metadata) ? metadata : null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   private async handleStreamedChat(input: {
@@ -1688,6 +2979,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     conversationId: string;
     message: string;
     permissionLevel: "anchor" | "public";
+    attachments: ChatAttachment[];
   }): Promise<void> {
     this.activeStreams.set(input.conversationId, { writer: input.writer });
     this.startProcessingInput(input.conversationId);
@@ -1707,6 +2999,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           interfaceType: webChatInterfaceType,
           channelId: input.conversationId,
           channelName: "Web Chat",
+          attachments: input.attachments,
         },
       );
 
@@ -1718,16 +3011,107 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           data: toolResult,
         });
       }
-      if (response.pendingConfirmation) {
-        input.writer.write({
-          type: "data-confirmation",
-          id: this.createId("confirmation"),
-          data: response.pendingConfirmation,
-        });
+      this.writeStructuredCards(input.writer, response.cards ?? []);
+    } finally {
+      this.endProcessingInput();
+      this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private async handleStreamedConfirmations(input: {
+    writer: UIMessageStreamWriter<UIMessage>;
+    conversationId: string;
+    approvalResponses: ApprovalResponse[];
+  }): Promise<void> {
+    this.activeStreams.set(input.conversationId, { writer: input.writer });
+    this.startProcessingInput(input.conversationId);
+    const allApproved = input.approvalResponses.every(
+      (approvalResponse) => approvalResponse.approved,
+    );
+    input.writer.write({
+      type: "data-status",
+      id: this.createId("status"),
+      data: { status: allApproved ? "approving" : "resolving approvals" },
+      transient: true,
+    });
+
+    try {
+      for (const approvalResponse of input.approvalResponses) {
+        const response = await this.getContext().agent.confirmPendingAction(
+          input.conversationId,
+          approvalResponse.approved,
+          approvalResponse.id,
+        );
+        this.writeText(input.writer, response.text, "text");
+        this.writeStructuredCards(input.writer, response.cards ?? []);
       }
     } finally {
       this.endProcessingInput();
       this.activeStreams.delete(input.conversationId);
+    }
+  }
+
+  private writeStructuredCards(
+    writer: UIMessageStreamWriter<UIMessage>,
+    cards: StructuredChatCard[],
+  ): void {
+    for (const card of cards) {
+      if (card.kind === "attachment") {
+        writer.write({
+          type: "data-attachment",
+          id: card.id,
+          data: card,
+        });
+        continue;
+      }
+
+      const toolCallId = card.toolCallId ?? card.id;
+      const input = card.input ?? {};
+      writer.write({
+        type: "tool-input-available",
+        toolCallId,
+        toolName: card.toolName,
+        input,
+        dynamic: true,
+        title: card.preview
+          ? `${card.summary}\n\n${card.preview}`
+          : card.summary,
+      });
+      switch (card.state) {
+        case "approval-requested":
+          writer.write({
+            type: "tool-approval-request",
+            approvalId: card.id,
+            toolCallId,
+          });
+          break;
+        case "approval-responded":
+          // Agent skips this state — it transitions directly from
+          // approval-requested to one of the output-* states.
+          break;
+        case "output-available":
+          writer.write({
+            type: "tool-output-available",
+            toolCallId,
+            output: card.output,
+            dynamic: true,
+          });
+          break;
+        case "output-error":
+          writer.write({
+            type: "tool-output-error",
+            toolCallId,
+            errorText: card.error ?? "Tool failed",
+            dynamic: true,
+          });
+          break;
+        case "output-denied":
+          writer.write({
+            type: "tool-output-denied",
+            toolCallId,
+          });
+          break;
+      }
     }
   }
 
@@ -1752,18 +3136,350 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  private extractLastUserText(request: ChatRequest): string {
+  private async extractLastUserInput(
+    request: ChatRequest,
+    conversationId: string,
+  ): Promise<ParsedUserInput | Response> {
     const lastUserMessage = this.findLastUserMessage(request);
-    if (!lastUserMessage) return "";
-    if (lastUserMessage.content) return lastUserMessage.content;
+    if (!lastUserMessage) return { message: "", attachments: [] };
 
-    return (lastUserMessage.parts ?? [])
-      .map((part) => {
-        const parsed = textPartSchema.safeParse(part);
-        return parsed.success ? parsed.data.text : "";
-      })
-      .filter((part) => part.length > 0)
-      .join("\n");
+    const messageParts: string[] = [];
+    const attachments: ChatAttachment[] = [];
+    for (const part of lastUserMessage.parts ?? []) {
+      const parsedText = textPartSchema.safeParse(part);
+      if (parsedText.success) {
+        if (parsedText.data.text.length > 0) {
+          messageParts.push(parsedText.data.text);
+        }
+        continue;
+      }
+
+      const parsedFile = filePartSchema.safeParse(part);
+      if (parsedFile.success) {
+        const attachment = this.resolveInlineUploadPart(parsedFile.data);
+        if (attachment instanceof Response) return attachment;
+        attachments.push(attachment);
+        continue;
+      }
+
+      const parsedUploadRef = uploadRefPartSchema.safeParse(part);
+      if (parsedUploadRef.success) {
+        const attachment = await this.resolveReferencedUpload(
+          parsedUploadRef.data.data.ref.id,
+        );
+        if (attachment instanceof Response) return attachment;
+        attachments.push(attachment);
+        continue;
+      }
+
+      if (this.getPartType(part) === "data-upload") {
+        return new Response("Invalid upload ref", { status: 400 });
+      }
+    }
+
+    const message =
+      messageParts.length > 0
+        ? messageParts.join("\n\n")
+        : (lastUserMessage.content ?? "");
+
+    if (attachments.length === 0) {
+      const deferred = await this.resolveDeferredUploadReference(
+        request,
+        conversationId,
+        lastUserMessage,
+        message,
+      );
+      if (deferred instanceof Response) return deferred;
+      if (deferred !== null) return { message, ...deferred };
+    }
+
+    return {
+      message,
+      attachments,
+    };
+  }
+
+  private async resolveDeferredUploadReference(
+    request: ChatRequest,
+    conversationId: string,
+    lastUserMessage: ChatRequest["messages"][number],
+    message: string,
+  ): Promise<Pick<ParsedUserInput, "attachments" | "responseText"> | null> {
+    const intent = this.getDeferredUploadIntent(message);
+    if (intent === null) return null;
+
+    const uploadIds = await this.collectPriorUploadIds(
+      request,
+      conversationId,
+      lastUserMessage,
+    );
+    const candidates: ChatAttachment[] = [];
+    for (const uploadId of uploadIds) {
+      const attachment = await this.resolveReferencedUpload(uploadId);
+      if (attachment instanceof Response) continue;
+      if (this.matchesDeferredUploadIntent(attachment, intent)) {
+        candidates.push(attachment);
+      }
+    }
+
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return { attachments: candidates };
+
+    return {
+      attachments: [],
+      responseText: `Which upload should I use? ${candidates
+        .map((candidate) => `\`${candidate.filename}\``)
+        .join(", ")}`,
+    };
+  }
+
+  private getDeferredUploadIntent(
+    message: string,
+  ): DeferredUploadIntent | null {
+    const normalized = message.toLowerCase();
+    const hasAction =
+      /\b(describe|summari[sz]e|read|analy[sz]e|inspect|review|explain)\b/.test(
+        normalized,
+      ) || /\b(?:what(?:'s| is)|tell me)\b/.test(normalized);
+    if (!hasAction) return null;
+
+    if (/\b(image|picture|photo|pic|screenshot)\b/.test(normalized)) {
+      return "image";
+    }
+    if (/\bpdf\b/.test(normalized)) return "pdf";
+    if (/\b(file|attachment|upload|it|that|this)\b/.test(normalized)) {
+      return "upload";
+    }
+
+    return null;
+  }
+
+  private async collectPriorUploadIds(
+    request: ChatRequest,
+    conversationId: string,
+    lastUserMessage: ChatRequest["messages"][number],
+  ): Promise<string[]> {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    const add = (uploadId: string): void => {
+      if (seen.has(uploadId)) return;
+      seen.add(uploadId);
+      ids.push(uploadId);
+    };
+
+    const lastUserIndex = request.messages.indexOf(lastUserMessage);
+    const priorMessages = request.messages.slice(
+      0,
+      lastUserIndex === -1 ? request.messages.length : lastUserIndex,
+    );
+    for (const message of priorMessages) {
+      if (message.role !== "user") continue;
+      for (const part of message.parts ?? []) {
+        const parsedUploadRef = uploadRefPartSchema.safeParse(part);
+        if (parsedUploadRef.success) {
+          add(parsedUploadRef.data.data.ref.id);
+        }
+      }
+    }
+
+    const storedMessages = await this.getContext().conversations.getMessages(
+      conversationId,
+      { limit: 50 },
+    );
+    for (const message of storedMessages) {
+      if (message.role !== "user") continue;
+      const parsedMetadata = this.parseStoredMessageMetadata(message.metadata);
+      const attachments = parsedMetadata?.["attachments"];
+      if (!Array.isArray(attachments)) continue;
+      for (const attachment of attachments) {
+        if (!this.isRecord(attachment)) continue;
+        const source = attachment["source"];
+        if (!this.isRecord(source)) continue;
+        if (source["kind"] !== webChatUploadRefKind) continue;
+        const uploadId = source["id"];
+        if (
+          typeof uploadId === "string" &&
+          webChatUploadIdPattern.test(uploadId)
+        ) {
+          add(uploadId);
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  private matchesDeferredUploadIntent(
+    attachment: ChatAttachment,
+    intent: DeferredUploadIntent,
+  ): boolean {
+    if (intent === "upload") return true;
+    if (intent === "image") return attachment.mediaType.startsWith("image/");
+    return (
+      attachment.mediaType === "application/pdf" ||
+      attachment.filename.toLowerCase().endsWith(".pdf")
+    );
+  }
+
+  private getPartType(part: unknown): string | undefined {
+    if (typeof part !== "object" || part === null || !("type" in part)) {
+      return undefined;
+    }
+    const type = part.type;
+    return typeof type === "string" ? type : undefined;
+  }
+
+  private resolveInlineUploadPart(
+    file: z.infer<typeof filePartSchema>,
+  ): ChatAttachment | Response {
+    const filename = sanitizeUploadFilename(
+      file.filename ?? defaultWebChatUploadFilename,
+    );
+    const decoded = this.decodeUploadedDataUrl(file.url);
+    if (!decoded) {
+      return new Response(`Unsupported file upload URL: ${filename}`, {
+        status: 400,
+      });
+    }
+
+    const validated = validateWebChatUpload({
+      filename,
+      mediaType: file.mediaType,
+      content: decoded.buffer,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
+    }
+
+    return this.toChatAttachment(validated, decoded.buffer);
+  }
+
+  private async resolveReferencedUpload(
+    uploadId: string,
+  ): Promise<ChatAttachment | Response> {
+    const resolved = await this.readStoredUpload(uploadId);
+    if (resolved instanceof Response) return resolved;
+
+    const { record, content } = resolved;
+    const validated = this.validateStoredUpload(record, content);
+    if (validated instanceof Response) return validated;
+
+    return this.toChatAttachment(validated, content, {
+      kind: webChatUploadRefKind,
+      id: uploadId,
+    });
+  }
+
+  private getUploadStore(): WebChatUploadStore {
+    return new WebChatUploadStore({ dataDir: this.getUploadRuntimeDataDir() });
+  }
+
+  private getUploadRuntimeDataDir(): string {
+    const contentDataDir = this.getContext().dataDir;
+    return basename(contentDataDir) === "brain-data"
+      ? join(dirname(contentDataDir), "data")
+      : contentDataDir;
+  }
+
+  private async readStoredUpload(
+    uploadId: string,
+  ): Promise<ResolvedWebChatUpload | Response> {
+    try {
+      return await this.getUploadStore().read(uploadId);
+    } catch (error) {
+      if (error instanceof WebChatUploadStoreError) {
+        return this.uploadStoreErrorToResponse(error);
+      }
+      throw error;
+    }
+  }
+
+  private validateStoredUpload(
+    record: WebChatUploadRecord,
+    content: Buffer,
+  ): ValidatedWebChatUpload | Response {
+    const validated = validateWebChatUpload({
+      filename: record.filename,
+      mediaType: record.mediaType,
+      content,
+    });
+    if (!validated.ok) {
+      return new Response(validated.message, { status: 400 });
+    }
+    return validated;
+  }
+
+  private toChatAttachment(
+    upload: ValidatedWebChatUpload,
+    content: Uint8Array,
+    source?: ChatAttachment["source"],
+  ): ChatAttachment {
+    if (upload.kind === "text") {
+      return {
+        kind: "text",
+        filename: upload.filename,
+        mediaType: upload.mediaType,
+        content: upload.text,
+        sizeBytes: upload.sizeBytes,
+        ...(source !== undefined ? { source } : {}),
+      };
+    }
+
+    return {
+      kind: "file",
+      filename: upload.filename,
+      mediaType: upload.mediaType,
+      data: new Uint8Array(content),
+      sizeBytes: upload.sizeBytes,
+      ...(source !== undefined ? { source } : {}),
+    };
+  }
+
+  private uploadStoreErrorToResponse(error: WebChatUploadStoreError): Response {
+    switch (error.code) {
+      case "invalid_ref":
+        return new Response("Invalid upload ref", { status: 400 });
+      case "invalid_metadata":
+        return new Response("Invalid upload metadata", { status: 500 });
+      case "not_found":
+        return new Response("Upload not found", { status: 404 });
+    }
+  }
+
+  private decodeUploadedDataUrl(
+    url: string,
+  ): { buffer: Buffer; byteLength: number } | null {
+    const match = /^data:[^,]*,(.*)$/s.exec(url);
+    if (!match) return null;
+
+    const metadata = url.slice(5, url.indexOf(","));
+    const isBase64 = metadata
+      .split(";")
+      .some((part) => part.toLowerCase() === "base64");
+    try {
+      const buffer = isBase64
+        ? Buffer.from(match[1] ?? "", "base64")
+        : Buffer.from(decodeURIComponent(match[1] ?? ""), "utf8");
+      return { buffer, byteLength: buffer.byteLength };
+    } catch {
+      return null;
+    }
+  }
+
+  private extractLatestApprovalResponses(
+    request: ChatRequest,
+  ): ApprovalResponse[] {
+    // Clients resend the full message history on every turn, but only the
+    // trailing assistant message carries this turn's approval responses.
+    // Scanning earlier messages would replay decisions the agent already
+    // executed.
+    const lastMessage = request.messages.at(-1);
+    if (!lastMessage || lastMessage.role === "user") return [];
+
+    return (lastMessage.parts ?? [])
+      .map((part) => approvalResponsePartSchema.safeParse(part))
+      .filter((result) => result.success)
+      .map((result) => result.data.approval);
   }
 
   private findLastUserMessage(

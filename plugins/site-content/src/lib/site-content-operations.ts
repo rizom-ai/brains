@@ -171,9 +171,9 @@ export class SiteContentOperations {
           data: {
             routeId: route.id,
             sectionId: section.id,
-            routeTitle: route.title || siteConfig?.title || "",
+            routeTitle: route.title ?? siteConfig?.title ?? "",
             routeDescription:
-              route.description || siteConfig?.description || "",
+              route.description ?? siteConfig?.description ?? "",
             sectionContent: section.content,
           },
           conversationId: "system",

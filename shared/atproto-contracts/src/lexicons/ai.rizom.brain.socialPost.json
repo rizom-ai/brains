@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "ai.rizom.brain.socialPost",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Semantic local social-post entity from a Rizom brain; not a Bluesky feed post.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["title", "platform", "body", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 300 },
+          "platform": { "type": "string" },
+          "body": { "type": "string", "maxLength": 100000 },
+          "format": { "type": "string", "knownValues": ["text/markdown"] },
+          "status": { "type": "string" },
+          "publishedAt": { "type": "string", "format": "datetime" },
+          "platformPostId": { "type": "string" },
+          "sourceLocalEntityType": { "type": "string" },
+          "sourceLocalEntityId": { "type": "string" },
+          "brainDid": { "type": "string" },
+          "anchorDid": { "type": "string" },
+          "sourceEntityType": { "type": "string" },
+          "sourceEntityId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

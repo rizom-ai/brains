@@ -62,6 +62,7 @@ export interface CmsConfig {
     repo: string;
     branch: string;
     base_url?: string;
+    auth_endpoint?: string;
   };
   media_folder: string;
   public_folder: string;
@@ -75,6 +76,7 @@ export interface CmsConfigOptions {
   repo: string;
   branch: string;
   baseUrl?: string;
+  authEndpoint?: string;
   entityTypes: string[];
   /** Get effective frontmatter schema for an entity type (base + any extensions) */
   getFrontmatterSchema: (
@@ -282,6 +284,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
       repo: options.repo,
       branch: options.branch,
       ...(options.baseUrl && { base_url: options.baseUrl }),
+      ...(options.authEndpoint && { auth_endpoint: options.authEndpoint }),
     },
     media_folder: "image",
     public_folder: "/images",
@@ -297,7 +300,7 @@ export const CMS_ADMIN_HTML = `<!doctype html>
     <title>Content Manager</title>
   </head>
   <body>
-    <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+    <script src="https://unpkg.com/@sveltia/cms@0.165.1/dist/sveltia-cms.js"></script>
   </body>
 </html>
 `;

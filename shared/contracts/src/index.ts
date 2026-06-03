@@ -1,9 +1,21 @@
+export {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextPermissionLevelSchema,
+  agentContextRequestSchema,
+  agentContextItemSchema,
+  agentContextResponseSchema,
+  parseAgentContextItems,
+  type AgentContextRequest,
+  type AgentContextItem,
+  type AgentContextResponse,
+} from "./agent-context";
 export { dbConfigSchema, type DbConfig } from "./db-config";
 export {
   generationResultSchema,
   type GenerationResult,
 } from "./generation-result";
 export { JobResult } from "./job-result";
+export { messageRoleSchema, type MessageRole } from "./message-role";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export type {
   PublishResult,

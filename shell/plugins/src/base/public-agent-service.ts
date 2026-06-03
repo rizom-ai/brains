@@ -2,13 +2,16 @@ import type {
   AgentResponse as RuntimeAgentResponse,
   ChatContext as RuntimeChatContext,
   IAgentService as RuntimeAgentService,
+  PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
-import type {
-  AgentNamespace,
-  AgentResponse,
-  ChatContext,
-  PendingConfirmation,
-  ToolResultData,
+import {
+  toPublicAttachmentCard,
+  type AgentNamespace,
+  type AgentResponse,
+  type ChatContext,
+  type PendingConfirmation,
+  type StructuredChatCard,
+  type ToolResultData,
 } from "../contracts/agent";
 
 export function toPublicAgentResponse(
@@ -26,14 +29,53 @@ export function toPublicAgentResponse(
         }),
       ),
     }),
-    ...(response.pendingConfirmation && {
-      pendingConfirmation: {
-        toolName: response.pendingConfirmation.toolName,
-        description: response.pendingConfirmation.description,
-        args: response.pendingConfirmation.args,
-      } satisfies PendingConfirmation,
+    ...(response.cards && {
+      cards: response.cards.map(toPublicStructuredChatCard),
+    }),
+    ...(response.pendingConfirmations && {
+      pendingConfirmations: response.pendingConfirmations.map((confirmation) =>
+        toPublicPendingConfirmation(confirmation),
+      ),
     }),
     usage: response.usage,
+  };
+}
+
+function toPublicStructuredChatCard(
+  card: NonNullable<RuntimeAgentResponse["cards"]>[number],
+): StructuredChatCard {
+  if (card.kind === "attachment") {
+    return toPublicAttachmentCard(card);
+  }
+
+  return {
+    kind: card.kind,
+    id: card.id,
+    ...(card.toolCallId !== undefined && { toolCallId: card.toolCallId }),
+    toolName: card.toolName,
+    ...(card.input !== undefined && { input: card.input }),
+    summary: card.summary,
+    ...(card.preview !== undefined && { preview: card.preview }),
+    state: card.state,
+    ...(card.output !== undefined && { output: card.output }),
+    ...(card.error !== undefined && { error: card.error }),
+  };
+}
+
+function toPublicPendingConfirmation(
+  confirmation: RuntimePendingConfirmation,
+): PendingConfirmation {
+  return {
+    id: confirmation.id,
+    ...(confirmation.toolCallId !== undefined && {
+      toolCallId: confirmation.toolCallId,
+    }),
+    toolName: confirmation.toolName,
+    summary: confirmation.summary,
+    ...(confirmation.preview !== undefined && {
+      preview: confirmation.preview,
+    }),
+    args: confirmation.args,
   };
 }
 
@@ -51,6 +93,7 @@ function toRuntimeChatContext(
     ...(context.channelName && { channelName: context.channelName }),
     ...(context.actor && { actor: context.actor }),
     ...(context.source && { source: context.source }),
+    ...(context.attachments && { attachments: context.attachments }),
   };
 }
 
@@ -74,9 +117,14 @@ export function createPublicAgentNamespace(
     confirmPendingAction: async (
       conversationId,
       confirmed,
+      approvalId,
     ): Promise<AgentResponse> => {
       return toPublicAgentResponse(
-        await agentService.confirmPendingAction(conversationId, confirmed),
+        await agentService.confirmPendingAction(
+          conversationId,
+          confirmed,
+          approvalId,
+        ),
       );
     },
     invalidate: (): void => {

@@ -21,6 +21,16 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
     });
   });
 
+  describe("entity policy registration", () => {
+    it("declares social-post publish statuses", async () => {
+      await harness.installPlugin(new SocialMediaPlugin({}));
+
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("social-post").publish,
+      ).toEqual({ publishStatuses: ["queued", "published", "failed"] });
+    });
+  });
+
   describe("provider registration", () => {
     it("should send publish:register message after system:plugins:ready with linkedin provider", async () => {
       await harness.installPlugin(

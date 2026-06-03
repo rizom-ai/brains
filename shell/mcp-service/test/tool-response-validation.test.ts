@@ -33,7 +33,7 @@ describe("tool response validation", () => {
         {
           needsConfirmation: true,
           toolName: "test_tool",
-          description: "Confirm?",
+          summary: "Confirm?",
           args: { id: "123" },
         },
         context(),
@@ -41,7 +41,7 @@ describe("tool response validation", () => {
     ).toEqual({
       needsConfirmation: true,
       toolName: "test_tool",
-      description: "Confirm?",
+      summary: "Confirm?",
       args: { id: "123" },
     });
   });

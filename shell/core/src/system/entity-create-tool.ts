@@ -1,4 +1,5 @@
 import type {
+  BaseEntity,
   CreateCoverImageInput,
   CreateExecutionContext,
   CreateInput,
@@ -45,6 +46,27 @@ function buildCoverImagePrompt(
   return coverImage.prompt ?? `Editorial cover image for: ${title}. `;
 }
 
+function buildGenerationStubEntity(
+  services: SystemServices,
+  input: { entityType: string; id: string; title: string },
+): BaseEntity | undefined {
+  const adapter = services.entityRegistry.getAdapter(input.entityType);
+  if (!adapter.buildStub) return undefined;
+
+  const stub = adapter.buildStub({ id: input.id, title: input.title });
+  const now = new Date().toISOString();
+  return {
+    id: input.id,
+    entityType: input.entityType,
+    content: stub.content,
+    metadata: stub.metadata as Record<string, unknown>,
+    visibility: "public",
+    created: now,
+    updated: now,
+    contentHash: "",
+  };
+}
+
 async function enqueueCoverImageGeneration(
   services: SystemServices,
   input: {
@@ -88,13 +110,15 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, or a url for URL-first flows.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, or from for source attachment saves.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
       const content = normalizeOptionalString(input.content);
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
+      const from = input.from;
+      const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
       let coverImage = normalizeCoverImageInput(input.coverImage);
@@ -106,11 +130,11 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
         };
 
-      if (!content && !prompt && !url)
+      if (!content && !prompt && !url && !from)
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), or 'url' (URL-first create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), or 'from' (source attachment create), or a supported combination.",
         };
 
       if (content && hasVisibilityFrontmatter(content)) {
@@ -134,6 +158,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(title && { title }),
         ...(content && { content }),
         ...(url && { url }),
+        ...(from && { from }),
+        ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),
         ...(coverImage && { coverImage }),
@@ -213,15 +239,56 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
         };
       }
 
       if (createInput.prompt) {
+        const proposedId = slugify(
+          createInput.title ?? createInput.prompt,
+        ).slice(0, 100);
+        if (!proposedId) {
+          return {
+            success: false,
+            error:
+              "Could not derive a slug from the provided title/prompt. Provide a 'title' with at least one URL-safe character.",
+          };
+        }
+        const stubTitle = createInput.title ?? proposedId;
+        const stub = buildGenerationStubEntity(services, {
+          entityType: createInput.entityType,
+          id: proposedId,
+          title: stubTitle,
+        });
+        if (!stub) {
+          return {
+            success: false,
+            error: `Entity type '${createInput.entityType}' does not support queued (prompt-based) creation. Provide 'content' instead.`,
+          };
+        }
+
+        let resolvedEntityId: string;
+        try {
+          const result = await entityService.createEntity({
+            entity: stub,
+            options: { deduplicateId: true },
+          });
+          resolvedEntityId = result.entityId;
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to persist generation stub",
+          };
+        }
+
         try {
           const jobId = await jobs.enqueue({
             type: `${createInput.entityType}:generation`,
             data: {
+              entityId: resolvedEntityId,
               prompt: createInput.prompt,
               ...(createInput.title && { title: createInput.title }),
               ...(createInput.content && { content: createInput.content }),
@@ -235,7 +302,14 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             },
             toolContext,
           });
-          return { success: true, data: { status: "generating", jobId } };
+          return {
+            success: true,
+            data: {
+              entityId: resolvedEntityId,
+              status: "generating",
+              jobId,
+            },
+          };
         } catch (error) {
           return {
             success: false,

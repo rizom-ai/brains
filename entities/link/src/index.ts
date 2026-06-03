@@ -1,5 +1,9 @@
 // Plugin exports
 export { LinkPlugin, createLinkPlugin, linkPlugin } from "./plugin";
+export {
+  buildLinkAtprotoRecord,
+  createLinkAtprotoProjection,
+} from "./atproto-projection";
 
 // Schema and type exports
 export type {
@@ -20,7 +24,7 @@ export {
 } from "./schemas/link";
 
 // Adapter exports
-export { LinkAdapter } from "./adapters/link-adapter";
+export { LinkAdapter, linkAdapter } from "./adapters/link-adapter";
 
 // Service exports
 export { LinkService } from "./lib/link-service";

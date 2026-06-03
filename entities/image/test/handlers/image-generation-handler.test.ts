@@ -482,6 +482,27 @@ describe("ImageGenerationJobHandler", () => {
       );
     });
 
+    it("should skip prompt distillation for image data URL entity content", async () => {
+      const jobData = createValidJobData({
+        prompt: "A pretty robot, elegant and friendly",
+        entityTitle: "Pretty Robot",
+        entityContent: VALID_PNG_DATA_URL,
+      });
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(context.ai.generateObject).not.toHaveBeenCalled();
+      expect(context.ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining("A pretty robot, elegant and friendly"),
+        expect.any(Object),
+      );
+    });
+
     it("should prepend base style prompt to all generated images", async () => {
       const jobData = createValidJobData();
 

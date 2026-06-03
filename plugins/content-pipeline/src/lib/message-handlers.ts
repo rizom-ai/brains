@@ -4,7 +4,11 @@ import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
 import type { ContentScheduler } from "../scheduler";
-import { PUBLISH_MESSAGES, GENERATE_MESSAGES } from "../types/messages";
+import {
+  PUBLISH_MESSAGES,
+  GENERATE_MESSAGES,
+  SYSTEM_PUBLISH_AUTH_CONTEXT,
+} from "../types/messages";
 import type {
   PublishRegisterPayload,
   PublishQueuePayload,
@@ -135,7 +139,17 @@ async function handleQueue(
   const { entityType, entityId } = payload;
 
   try {
-    const result = await deps.queueManager.add(entityType, entityId);
+    const authContext = payload.authContext ?? SYSTEM_PUBLISH_AUTH_CONTEXT;
+    context.permissions.assertEntityActionAllowed(
+      entityType,
+      "publish",
+      authContext,
+    );
+    const result = await deps.queueManager.add(
+      entityType,
+      entityId,
+      authContext,
+    );
 
     await context.messaging.send({
       type: PUBLISH_MESSAGES.QUEUED,
@@ -165,18 +179,32 @@ async function handleDirect(
   payload: PublishDirectPayload,
 ): Promise<{ success: boolean }> {
   const { entityType, entityId } = payload;
+  const authContext = payload.authContext ?? SYSTEM_PUBLISH_AUTH_CONTEXT;
 
-  await context.messaging.send({
-    type: PUBLISH_MESSAGES.EXECUTE,
-    payload: {
+  try {
+    context.permissions.assertEntityActionAllowed(
       entityType,
-      entityId,
-    },
-  });
+      "publish",
+      authContext,
+    );
 
-  deps.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
+    await context.messaging.send({
+      type: PUBLISH_MESSAGES.EXECUTE,
+      payload: {
+        entityType,
+        entityId,
+        authContext,
+      },
+    });
 
-  return { success: true };
+    deps.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    deps.logger.error(`Failed direct publish request: ${errorMessage}`);
+    return { success: false };
+  }
 }
 
 async function handleRemove(

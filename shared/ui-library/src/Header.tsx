@@ -70,15 +70,15 @@ export function Header({
   showThemeToggle = false,
   themeToggleClassName,
 }: HeaderProps): VNode {
-  const titleElement = wordmark ? (
-    wordmark
-  ) : logo ? (
-    <Logo height={36} />
-  ) : titleClassName ? (
-    <span className={titleClassName}>{title}</span>
-  ) : (
-    <Logo title={title} height={36} />
-  );
+  const titleElement =
+    wordmark ??
+    (logo ? (
+      <Logo height={36} />
+    ) : titleClassName ? (
+      <span className={titleClassName}>{title}</span>
+    ) : (
+      <Logo title={title} height={36} />
+    ));
 
   return (
     <header className="sticky top-0 z-50 py-5 border-b border-rule bg-header">

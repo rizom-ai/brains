@@ -1,9 +1,11 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
   JobHandler,
   DataSource,
   Template,
+  ToolContext,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
@@ -38,6 +40,12 @@ export class NewsletterPlugin extends EntityPlugin<
 
   constructor(config: Partial<NewsletterConfig> = {}) {
     super("newsletter", packageJson, config, newsletterConfigSchema);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig {
+    return {
+      publish: { publishStatuses: ["queued", "published", "failed"] },
+    };
   }
 
   protected override createGenerationHandler(
@@ -118,13 +126,24 @@ export class NewsletterPlugin extends EntityPlugin<
 
   private subscribeToPublishExecute(context: EntityPluginContext): void {
     context.messaging.subscribe<
-      { entityType: string; entityId: string },
+      {
+        entityType: string;
+        entityId: string;
+        authContext?: {
+          userPermissionLevel?: ToolContext["userPermissionLevel"];
+        };
+      },
       { success: boolean }
     >("publish:execute", async (msg) => {
-      const { entityType, entityId } = msg.payload;
+      const { entityType, entityId, authContext } = msg.payload;
       if (entityType !== "newsletter") return { success: true };
 
       try {
+        context.permissions.assertEntityActionAllowed(
+          entityType,
+          "publish",
+          authContext ?? { userPermissionLevel: "anchor" },
+        );
         const newsletter = await context.entityService.getEntity<Newsletter>({
           entityType: "newsletter",
           id: entityId,

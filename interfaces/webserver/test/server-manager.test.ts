@@ -3,9 +3,11 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import { createMockMessageBus } from "@brains/messaging-service/test";
-import type { IMessageBus } from "@brains/plugins";
-import { ServerManager } from "../src/server-manager";
+import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
+import {
+  ServerManager,
+  WEBSERVER_IDLE_TIMEOUT_SECONDS,
+} from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {
   let testDir: string;
@@ -412,5 +414,74 @@ describe("ServerManager (in-process)", () => {
 
     const status = m.getStatus();
     expect(status.previewUrl).toBeUndefined();
+  });
+
+  // Regression: web-chat's first-upload "[ signal lost ]" timeout.
+  //
+  // POST /api/chat opens a streaming response and stays silent while the agent
+  // runs synchronously; a slow first-turn upload outran Bun's 10s default idle
+  // timeout, so Bun closed the socket and the client saw a network error.
+  // Stream writes don't reset Bun's idle timer (verified empirically), so the
+  // fix is configuring the idle timeout itself. These tests pin that wiring by
+  // capturing the exact options ServerManager passes to Bun.serve.
+  describe("Bun.serve idle timeout", () => {
+    function captureServeOptions(): {
+      options: () => { idleTimeout?: number } | undefined;
+      serve: typeof Bun.serve;
+    } {
+      let captured: { idleTimeout?: number } | undefined;
+      const serve = ((opts: { idleTimeout?: number }) => {
+        captured = opts;
+        return {
+          port: 12345,
+          stop: () => {},
+        } as unknown as ReturnType<typeof Bun.serve>;
+      }) as unknown as typeof Bun.serve;
+      return { options: () => captured, serve };
+    }
+
+    function setupWithServe(
+      serve: typeof Bun.serve,
+      idleTimeout?: number,
+    ): ServerManager {
+      testDir = join(tmpdir(), `webserver-idle-${Date.now()}`);
+      const prodDir = join(testDir, "dist", "production");
+      const imagesDir = join(testDir, "dist", "images");
+      mkdirSync(prodDir, { recursive: true });
+      mkdirSync(imagesDir, { recursive: true });
+      writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+      const m = new ServerManager({
+        logger: createSilentLogger("test"),
+        productionDistDir: prodDir,
+        sharedImagesDir: imagesDir,
+        productionPort: 0,
+        serve,
+        ...(idleTimeout !== undefined ? { idleTimeout } : {}),
+      });
+      manager = m;
+      return m;
+    }
+
+    it("passes the default idle timeout to Bun.serve", async () => {
+      const { options, serve } = captureServeOptions();
+      await setupWithServe(serve).start();
+
+      // Without this, Bun falls back to its 10s default and closes a slow
+      // first-turn /api/chat stream mid-flight.
+      expect(options()?.idleTimeout).toBe(WEBSERVER_IDLE_TIMEOUT_SECONDS);
+    });
+
+    it("lets callers override the idle timeout", async () => {
+      const { options, serve } = captureServeOptions();
+      await setupWithServe(serve, 42).start();
+
+      expect(options()?.idleTimeout).toBe(42);
+    });
+
+    it("defaults to an idle timeout that covers long agent turns", () => {
+      // Bun's default is 10s, which is too short for a cold first-turn upload.
+      expect(WEBSERVER_IDLE_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(120);
+    });
   });
 });

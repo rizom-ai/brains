@@ -1,6 +1,7 @@
 import type {
   BasePluginContext,
   IConversationsNamespace,
+  IPermissionsNamespace as IBasePermissionsNamespace,
 } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -18,6 +19,7 @@ import { createPublicAgentNamespace } from "../base/public-agent-service";
 import type {
   StartConversationRequest,
   AddConversationMessageRequest,
+  UpdateConversationMetadataRequest,
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
@@ -28,7 +30,7 @@ import type { ToolInfo } from "@brains/mcp-service";
  * Permissions namespace for InterfacePluginContext
  * Provides permission checking for users
  */
-export interface IPermissionsNamespace {
+export interface IPermissionsNamespace extends IBasePermissionsNamespace {
   /** Get permission level for a user on an interface */
   getUserLevel: (
     interfaceType: string,
@@ -86,6 +88,14 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
 
   /** Add a message to a conversation */
   addMessage: (request: AddConversationMessageRequest) => Promise<void>;
+
+  /** Update conversation metadata */
+  updateMetadata: (
+    request: UpdateConversationMetadataRequest,
+  ) => Promise<boolean>;
+
+  /** Delete a conversation and its messages */
+  delete: (conversationId: string) => Promise<boolean>;
 }
 
 /**
@@ -202,6 +212,7 @@ export function createInterfacePluginContext(
     agent,
 
     permissions: {
+      ...baseContext.permissions,
       getUserLevel: (
         interfaceType: string,
         userId: string,
@@ -237,6 +248,16 @@ export function createInterfacePluginContext(
       ): Promise<void> => {
         const conversationService = shell.getConversationService();
         await conversationService.addMessage(request);
+      },
+      updateMetadata: async (
+        request: UpdateConversationMetadataRequest,
+      ): Promise<boolean> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.updateConversationMetadata(request);
+      },
+      delete: async (conversationId: string): Promise<boolean> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.deleteConversation(conversationId);
       },
     },
 

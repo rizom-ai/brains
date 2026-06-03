@@ -25,7 +25,7 @@ describe("SwotAssessmentPlugin", () => {
     const registrations: Array<{ pluginId: string; handlerId: string }> = [];
     const mockShell = harness.getMockShell();
 
-    mockShell.registerEvalHandler = (pluginId, handlerId) => {
+    mockShell.registerEvalHandler = (pluginId, handlerId): void => {
       registrations.push({ pluginId, handlerId });
     };
 

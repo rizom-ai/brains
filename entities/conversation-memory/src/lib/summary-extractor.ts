@@ -13,17 +13,6 @@ import {
   type ExtractedSummaryEntry,
 } from "../schemas/extraction";
 
-function tokenizeConstraint(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter((token) => token.length >= 5 && token !== "constraint"),
-    ),
-  );
-}
-
 export interface ExtractedConversationMemoryItem {
   text: string;
   timeRange: SummaryTimeRange;
@@ -34,18 +23,6 @@ export interface SummaryExtraction {
   entries: SummaryEntry[];
   decisions: ExtractedConversationMemoryItem[];
   actionItems: ExtractedConversationMemoryItem[];
-}
-
-function entryMentionsConstraint(
-  entry: SummaryEntry,
-  constraint: string,
-): boolean {
-  const tokens = tokenizeConstraint(constraint);
-  if (tokens.length === 0) return false;
-
-  const entryText = [entry.summary, ...entry.keyPoints].join(" ").toLowerCase();
-  const matched = tokens.filter((token) => entryText.includes(token)).length;
-  return matched >= Math.min(3, tokens.length);
 }
 
 export class SummaryExtractor {
@@ -79,7 +56,7 @@ export class SummaryExtractor {
         .filter((entry): entry is SummaryEntry => entry !== null);
 
       return {
-        entries: this.withSystemConstraints(entries, messages),
+        entries,
         decisions: this.toMemoryItems(extractedEntries, messages, "decisions"),
         actionItems: this.toMemoryItems(
           extractedEntries,
@@ -93,78 +70,6 @@ export class SummaryExtractor {
       });
       throw error;
     }
-  }
-
-  private withSystemConstraints(
-    entries: SummaryEntry[],
-    messages: Message[],
-  ): SummaryEntry[] {
-    if (!this.config.includeKeyPoints) return entries;
-
-    const constraints = messages
-      .filter((message) => message.role === "system")
-      .map((message) => {
-        const match = message.content.match(/^\s*constraint:\s*(.+)$/i);
-        if (!match?.[1]) return null;
-        return {
-          text: `Constraint: ${match[1].trim()}`,
-          timestamp: message.timestamp,
-        };
-      })
-      .filter(
-        (constraint): constraint is { text: string; timestamp: string } =>
-          constraint !== null,
-      );
-
-    if (constraints.length === 0) return entries;
-
-    const firstConstraint = constraints[0];
-    if (!firstConstraint) return entries;
-
-    if (entries.length === 0) {
-      return [
-        {
-          title: "Conversation constraints",
-          summary: constraints.map((constraint) => constraint.text).join(" "),
-          timeRange: {
-            start: firstConstraint.timestamp,
-            end:
-              constraints[constraints.length - 1]?.timestamp ??
-              firstConstraint.timestamp,
-          },
-          sourceMessageCount: constraints.length,
-          keyPoints: constraints.map((constraint) => constraint.text),
-        },
-      ];
-    }
-
-    const [firstEntry, ...rest] = entries;
-    if (!firstEntry) return entries;
-
-    const missingConstraints = constraints.filter(
-      (constraint) => !entryMentionsConstraint(firstEntry, constraint.text),
-    );
-    if (missingConstraints.length === 0) return entries;
-
-    return [
-      {
-        ...firstEntry,
-        timeRange: {
-          start:
-            firstConstraint.timestamp < firstEntry.timeRange.start
-              ? firstConstraint.timestamp
-              : firstEntry.timeRange.start,
-          end: firstEntry.timeRange.end,
-        },
-        sourceMessageCount:
-          firstEntry.sourceMessageCount + missingConstraints.length,
-        keyPoints: [
-          ...missingConstraints.map((constraint) => constraint.text),
-          ...firstEntry.keyPoints,
-        ],
-      },
-      ...rest,
-    ];
   }
 
   private toSummaryEntry(

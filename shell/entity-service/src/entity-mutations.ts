@@ -23,6 +23,29 @@ import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import { and, eq, sql } from "drizzle-orm";
 
+function toStableJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      item === undefined ? null : toStableJsonValue(item),
+    );
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, toStableJsonValue(item)]),
+    );
+  }
+
+  return value;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(toStableJsonValue(value));
+}
+
 export interface EntityMutationDeps {
   db: EntityDB;
   entityRegistry: EntityRegistry;
@@ -194,9 +217,16 @@ export class EntityMutations {
 
     const contentHash = computeContentHash(markdown);
 
-    // Skip update if content hasn't changed
+    // Skip update only when all persisted fields are unchanged. Metadata-only
+    // updates can leave serialized markdown/contentHash unchanged for adapters
+    // that preserve frontmatter from content, but those DB metadata changes must
+    // still persist for filtering/projections.
     const existing = await this.db
-      .select({ contentHash: entities.contentHash })
+      .select({
+        contentHash: entities.contentHash,
+        visibility: entities.visibility,
+        metadata: entities.metadata,
+      })
       .from(entities)
       .where(
         and(
@@ -206,7 +236,13 @@ export class EntityMutations {
       )
       .limit(1);
 
-    if (existing[0]?.contentHash === contentHash) {
+    const existingEntity = existing.at(0);
+
+    if (
+      existingEntity?.contentHash === contentHash &&
+      existingEntity.visibility === validatedEntity.visibility &&
+      stableJson(existingEntity.metadata) === stableJson(metadata)
+    ) {
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -245,6 +281,10 @@ export class EntityMutations {
       validatedEntity.entityType,
       validatedEntity.id,
       validatedEntity,
+      // Prior metadata lets projections (e.g. series) reconcile a moved value
+      // such as a changed `seriesName` without a full resync. Already loaded
+      // above for the no-op check, so this adds no extra read.
+      existingEntity?.metadata,
     );
 
     return this.enqueueEmbeddingJob({
@@ -397,6 +437,7 @@ export class EntityMutations {
     entityType: string,
     entityId: string,
     entity?: BaseEntity,
+    previousMetadata?: BaseEntity["metadata"],
   ): Promise<void> {
     if (!this.messageBus) {
       return;
@@ -407,6 +448,9 @@ export class EntityMutations {
     const payload: Record<string, unknown> = { entityType, entityId };
     if (entity) {
       payload["entity"] = entity;
+    }
+    if (previousMetadata) {
+      payload["previousMetadata"] = previousMetadata;
     }
 
     await this.messageBus.send({

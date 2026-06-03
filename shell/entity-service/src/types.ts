@@ -209,12 +209,20 @@ export interface CreateCoverImageInput {
   prompt?: string | undefined;
 }
 
+export interface CreateFromAttachmentInput {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+}
+
 export interface CreateInput {
   entityType: string;
   prompt?: string;
   title?: string;
   content?: string;
   url?: string;
+  from?: CreateFromAttachmentInput;
+  replace?: boolean;
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
@@ -233,10 +241,35 @@ export interface CreateExecutionContext {
 /**
  * Result returned to system_create when a plugin fully handles creation.
  */
+export const createResultAttachmentSchema = z.object({
+  mediaType: z.string(),
+  url: z.string(),
+  downloadUrl: z.string().optional(),
+  previewUrl: z.string().optional(),
+  filename: z.string().optional(),
+  sizeBytes: z.number().optional(),
+  source: z
+    .object({
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      attachmentType: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type CreateResultAttachment = z.infer<
+  typeof createResultAttachmentSchema
+>;
+
 export type CreateResult =
   | {
       success: true;
-      data: { entityId?: string; jobId?: string; status: string };
+      data: {
+        entityId?: string;
+        jobId?: string;
+        status: string;
+        attachment?: CreateResultAttachment;
+      };
     }
   | { success: false; error: string };
 
@@ -328,6 +361,18 @@ export interface EntityAdapter<
 
   /** Optional: Extract coverImageId from entity content/frontmatter */
   getCoverImageId?(entity: TEntity): string | undefined;
+
+  /**
+   * Optional: build the markdown content and metadata for a queued-generation stub.
+   * When undefined, this entity type does not support prompt-based queued creation
+   * via system_create; the tool will reject the call rather than silently degrade.
+   * The returned metadata must satisfy this entity's metadata schema (with
+   * status set to "generating"); central code only stamps id/timestamps/visibility.
+   */
+  buildStub?(input: { id: string; title: string }): {
+    content: string;
+    metadata: TMetadata;
+  };
 }
 
 /**
@@ -373,6 +418,8 @@ export interface SearchOptions {
   /** Score multipliers per entity type - applied after initial search */
   weight?: Record<string, number>;
   visibilityScope?: ContentVisibility;
+  /** Include queued/failed generation stubs in search results (default: false) */
+  includeUngenerated?: boolean;
 }
 
 /**
@@ -387,6 +434,12 @@ export interface EntityTypeConfig {
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
+  /** Publish semantics for status-bearing entity types. Statuses listed here
+   *  represent publication commitment/execution states and require the
+   *  `publish` entity action when entered or modified. */
+  publish?: {
+    publishStatuses: string[];
+  };
 }
 
 /**
@@ -503,10 +556,15 @@ export interface IEntitiesNamespace {
     config?: EntityTypeConfig,
   ): void;
 
-  /** Get the adapter for an entity type */
-  getAdapter<TEntity extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<TEntity> | undefined;
+  /**
+   * Get the adapter for an entity type.
+   *
+   * Returns the structural `EntityAdapter<BaseEntity>` view — namespace
+   * consumers don't narrow by entity type. For typed access tied to a
+   * specific `TEntity`, use the underlying `EntityRegistry.getAdapter<T>`
+   * directly (see `entity-serializer.ts`).
+   */
+  getAdapter(entityType: string): EntityAdapter<BaseEntity> | undefined;
 
   /** Extend an adapter's frontmatterSchema with additional fields */
   extendFrontmatterSchema(

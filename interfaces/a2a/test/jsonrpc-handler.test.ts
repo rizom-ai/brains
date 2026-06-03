@@ -21,8 +21,11 @@ function createMockAgentService(
       completionTokens: 20,
       totalTokens: 30,
     },
-    toolResults: response?.toolResults,
-    pendingConfirmation: response?.pendingConfirmation,
+    ...(response?.toolResults ? { toolResults: response.toolResults } : {}),
+    ...(response?.cards ? { cards: response.cards } : {}),
+    ...(response?.pendingConfirmations
+      ? { pendingConfirmations: response.pendingConfirmations }
+      : {}),
   };
   return {
     chat: async () => r,

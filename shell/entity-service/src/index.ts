@@ -65,6 +65,7 @@ export {
   BASE_ENTITY_TYPE,
   canWriteVisibility,
   contentVisibilitySchema,
+  createResultAttachmentSchema,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   normalizeContentVisibility,

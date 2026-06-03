@@ -6,6 +6,7 @@ import { baseEntitySchema } from "@brains/plugins";
  * Newsletter status enum
  */
 export const newsletterStatusSchema = z.enum([
+  "generating",
   "draft",
   "queued",
   "published",
@@ -33,15 +34,19 @@ export type NewsletterFrontmatter = z.infer<typeof newsletterFrontmatterSchema>;
  * Newsletter metadata schema - derived from frontmatter
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const newsletterMetadataSchema = newsletterFrontmatterSchema.pick({
-  subject: true,
-  status: true,
-  entityIds: true,
-  scheduledFor: true,
-  sentAt: true,
-  buttondownId: true,
-  sourceEntityType: true,
-});
+export const newsletterMetadataSchema = newsletterFrontmatterSchema
+  .pick({
+    subject: true,
+    status: true,
+    entityIds: true,
+    scheduledFor: true,
+    sentAt: true,
+    buttondownId: true,
+    sourceEntityType: true,
+  })
+  .extend({
+    error: z.string().optional(),
+  });
 
 export type NewsletterMetadata = z.infer<typeof newsletterMetadataSchema>;
 

@@ -206,7 +206,7 @@ themeMode: light
           renderedHtml = await (await fetch(url)).text();
           return Buffer.from("%PDF-light");
         },
-        getThemeMode: async () => "light",
+        getThemeMode: async (): Promise<"light" | "dark"> => "light",
       },
     );
 

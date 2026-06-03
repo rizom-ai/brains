@@ -30,6 +30,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                 options: {
                   limit: input.limit ?? services.searchLimit,
                   ...(input.entityType && { types: [input.entityType] }),
+                  ...(input.includeUngenerated !== undefined && {
+                    includeUngenerated: input.includeUngenerated,
+                  }),
                   visibilityScope,
                 },
               })

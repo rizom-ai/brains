@@ -43,8 +43,10 @@ export function createEntityExtractTool(services: SystemServices): Tool {
         return {
           needsConfirmation: true,
           toolName: "system_extract",
-          description:
-            "Rebuild all derived topic entities from current source content?\n\nThis will delete existing topics and regenerate them from scratch.",
+          summary:
+            "Rebuild all derived topic entities from current source content?",
+          preview:
+            "This will delete existing topics and regenerate them from scratch.",
           args: {
             ...input,
             confirmed: true,

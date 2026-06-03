@@ -154,6 +154,121 @@ describe("DocumentGenerationJobHandler", () => {
     });
   });
 
+  it("attaches a reused deduped document to the requested target", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "existing-doc",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "existing.pdf",
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          attachmentType: "carousel",
+          dedupKey: "same-key",
+        },
+      },
+    });
+    await context.entityService.createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "social-post",
+        content: `---\ntitle: Test\n---\nPost body`,
+        metadata: { title: "Test" },
+      },
+    });
+
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<Buffer> => {
+          throw new Error("should not render");
+        },
+      },
+    );
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/template/post-1",
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        dedupKey: "same-key",
+        targetEntityType: "social-post",
+        targetEntityId: "post-1",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    expect(result).toEqual({
+      success: true,
+      documentId: "existing-doc",
+      reused: true,
+    });
+    const post = await context.entityService.getEntity({
+      entityType: "social-post",
+      id: "post-1",
+    });
+    expect(post?.content).toContain("id: existing-doc");
+  });
+
+  it("replace true bypasses dedup and keeps the previous document artifact", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "existing-doc",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "existing.pdf",
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          attachmentType: "carousel",
+          dedupKey: "same-key",
+        },
+      },
+    });
+
+    const replacementPdf = Buffer.from("%PDF-1.7\n%replacement");
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => replacementPdf },
+    );
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/template/post-1",
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        dedupKey: "same-key",
+        replace: true,
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.reused).toBe(false);
+    expect(result.documentId).not.toBe("existing-doc");
+
+    const existing = await context.entityService.getEntity({
+      entityType: "document",
+      id: "existing-doc",
+    });
+    expect(existing?.content).toBe(createPdfDataUrl(pdfBuffer));
+
+    const replacement = await context.entityService.getEntity({
+      entityType: "document",
+      id: result.documentId,
+    });
+    expect(replacement?.content).toBe(createPdfDataUrl(replacementPdf));
+  });
+
   it("freezes a source-derived document attachment into a document entity", async () => {
     context.attachments.register("social-post", "carousel", {
       resolve: async () => ({
@@ -203,6 +318,57 @@ describe("DocumentGenerationJobHandler", () => {
     });
   });
 
+  it("includes the source content hash in attachment-derived dedup keys", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "social-post",
+        content: `---\ntitle: Test\n---\nPost body`,
+        metadata: { title: "Test" },
+      },
+    });
+    context.attachments.register("social-post", "carousel", {
+      resolve: async () => ({
+        type: "document",
+        data: pdfBuffer,
+        mimeType: "application/pdf",
+        filename: "from-provider.pdf",
+      }),
+    });
+    const source = await context.entityService.getEntity({
+      entityType: "social-post",
+      id: "post-1",
+    });
+    if (!source) throw new Error("source not created");
+
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<Buffer> => {
+          throw new Error("should resolve attachment instead of render URL");
+        },
+      },
+    );
+
+    await handler.process(
+      {
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        documentId: "source-hash-doc",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    const document = await context.entityService.getEntity({
+      entityType: "document",
+      id: "source-hash-doc",
+    });
+    expect(document?.metadata["dedupKey"]).toContain(source.contentHash);
+  });
+
   it("attaches the generated document to a target social post documents field", async () => {
     await context.entityService.createEntity({
       entity: {
@@ -239,6 +405,75 @@ describe("DocumentGenerationJobHandler", () => {
     });
     expect(post?.content).toContain("documents:");
     expect(post?.content).toContain("id: carousel-pdf");
+  });
+
+  it("replace true repoints target document references for the same source attachment", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "old-carousel",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "old.pdf",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+          dedupKey: "old-key",
+        },
+      },
+    });
+    await context.entityService.createEntity({
+      entity: {
+        id: "unrelated-doc",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "unrelated.pdf",
+          sourceEntityType: "deck",
+          sourceEntityId: "other-deck",
+          attachmentType: "carousel",
+        },
+      },
+    });
+    await context.entityService.createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "social-post",
+        content: `---\ntitle: Test\ndocuments:\n  - id: old-carousel\n  - id: unrelated-doc\n---\nPost body`,
+        metadata: { title: "Test" },
+      },
+    });
+
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => Buffer.from("%PDF-new") },
+    );
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/deck-1",
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+        dedupKey: "old-key",
+        replace: true,
+        targetEntityType: "social-post",
+        targetEntityId: "post-1",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    const post = await context.entityService.getEntity({
+      entityType: "social-post",
+      id: "post-1",
+    });
+    expect(post?.content).not.toContain("id: old-carousel");
+    expect(post?.content).toContain("id: unrelated-doc");
+    expect(post?.content).toContain(`id: ${result.documentId}`);
   });
 
   it("warns when multiple documents share a dedup key and reuses the first", async () => {

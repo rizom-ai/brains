@@ -65,16 +65,135 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should pass configured interface and channel context to chat", async () => {
+      const testCase: TestCase = {
+        id: "test-channel-context",
+        name: "Channel Context Test",
+        type: "response_quality",
+        setup: {
+          permissionLevel: "trusted",
+          interfaceType: "discord",
+          channelId: "relay-poc",
+          channelName: "Relay POC",
+        },
+        turns: [{ userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "trusted",
+        interfaceType: "discord",
+        channelId: "relay-poc",
+        channelName: "Relay POC",
+      });
+    });
+
+    it("should pass native turn attachments to chat", async () => {
+      const testCase: TestCase = {
+        id: "test-turn-attachments",
+        name: "Turn Attachment Test",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "Describe this image",
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                dataBase64: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString(
+                  "base64",
+                ),
+              },
+            ],
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+            sizeBytes: 4,
+          },
+        ],
+      });
+    });
+
+    it("should reuse previous attachments when a turn asks for them", async () => {
+      const testCase: TestCase = {
+        id: "test-reuse-attachments",
+        name: "Reuse Attachment Test",
+        type: "multi_turn",
+        turns: [
+          {
+            userMessage: "",
+            attachments: [
+              {
+                kind: "text",
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                content: "# Notes",
+              },
+            ],
+          },
+          {
+            userMessage: "Summarize that file",
+            reusePreviousAttachments: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls[1]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        attachments: [
+          {
+            kind: "text",
+            filename: "notes.md",
+            mediaType: "text/markdown",
+            content: "# Notes",
+          },
+        ],
+      });
+    });
+
     it("should resolve pending confirmations when a turn requests confirmation", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(
           createMockResponse({
             text: "Confirmation required.",
-            pendingConfirmation: {
-              toolName: "system_update",
-              description: "Update agent?",
-              args: { entityType: "agent", id: "old-agent.io" },
-            },
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval:system_update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                state: "approval-requested",
+              },
+            ],
           }),
         ),
       );
@@ -102,6 +221,60 @@ describe("TestRunner", () => {
       expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
         expect.any(String),
         true,
+        "approval:system_update",
+      );
+    });
+
+    it("should pass explicit approval ids for multi-confirmation eval turns", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                args: { entityType: "agent", id: "old-agent.io" },
+              },
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve(createMockResponse({ text: "Action confirmed." })),
+      );
+
+      const testCase: TestCase = {
+        id: "test-explicit-approval-id",
+        name: "Explicit Approval ID Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Prepare update and delete" },
+          {
+            userMessage: "Approve delete",
+            confirmPendingAction: true,
+            approvalId: "approval:delete",
+          },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.any(String),
+        true,
+        "approval:delete",
       );
     });
 

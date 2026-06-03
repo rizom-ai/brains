@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  createQueueTool,
-  queueInputSchema,
-  type QueueOutput,
-} from "../src/tools/queue";
+import { createQueueTool, queueInputSchema } from "../src/tools/queue";
 import { QueueManager } from "../src/queue-manager";
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/plugins";
+import {
+  createMockShell,
+  createServicePluginContext,
+} from "@brains/plugins/test";
+import { PermissionService } from "@brains/templates";
 
 /**
  * Tests for the unified publish_queue tool
@@ -17,8 +18,12 @@ import type { ServicePluginContext, ToolContext } from "@brains/plugins";
  * - reorder: change position of an entity
  */
 
-// Mock context for testing
-const mockContext = {} as ServicePluginContext;
+const permissionChecks: Array<{
+  entityType: string;
+  action: Parameters<PermissionService["assertEntityActionAllowed"]>[1];
+  userPermissionLevel: ToolContext["userPermissionLevel"];
+}> = [];
+
 const mockToolContext: ToolContext = {
   interfaceType: "test",
   userId: "test-user",
@@ -29,8 +34,20 @@ describe("publish_queue tool", () => {
   let tool: ReturnType<typeof createQueueTool>;
 
   beforeEach(() => {
+    permissionChecks.length = 0;
     queueManager = QueueManager.createFresh();
-    tool = createQueueTool(mockContext, "publish-pipeline", queueManager);
+    const shell = createMockShell();
+    const permissionService = new PermissionService({});
+    permissionService.assertEntityActionAllowed = (
+      entityType,
+      action,
+      userPermissionLevel,
+    ): void => {
+      permissionChecks.push({ entityType, action, userPermissionLevel });
+    };
+    shell.getPermissionService = (): PermissionService => permissionService;
+    const context = createServicePluginContext(shell, "publish-pipeline");
+    tool = createQueueTool(context, "publish-pipeline", queueManager);
   });
 
   describe("input schema", () => {
@@ -87,10 +104,7 @@ describe("publish_queue tool", () => {
 
   describe("list action", () => {
     it("should return empty queue when nothing is queued", async () => {
-      const result = (await tool.handler(
-        { action: "list" },
-        mockToolContext,
-      )) as QueueOutput;
+      const result = await tool.handler({ action: "list" }, mockToolContext);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.queue).toEqual([]);
@@ -103,10 +117,7 @@ describe("publish_queue tool", () => {
       await queueManager.add("social-post", "sp-1");
       await queueManager.add("blog-post", "bp-1");
 
-      const result = (await tool.handler(
-        { action: "list" },
-        mockToolContext,
-      )) as QueueOutput;
+      const result = await tool.handler({ action: "list" }, mockToolContext);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.queue).toHaveLength(2);
@@ -120,10 +131,10 @@ describe("publish_queue tool", () => {
       await queueManager.add("social-post", "sp-2");
       await queueManager.add("blog-post", "bp-1");
 
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "list", entityType: "social-post" },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.queue).toHaveLength(2);
@@ -135,10 +146,10 @@ describe("publish_queue tool", () => {
 
   describe("add action", () => {
     it("should require entityType", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "add", entityId: "post-123" },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityType");
@@ -146,10 +157,10 @@ describe("publish_queue tool", () => {
     });
 
     it("should require entityId", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "add", entityType: "social-post" },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityId");
@@ -157,19 +168,38 @@ describe("publish_queue tool", () => {
     });
 
     it("should add entity to queue and return position", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "add",
           entityType: "social-post",
           entityId: "post-123",
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.position).toBe(1);
         expect(result.message).toBe("Added to queue at position 1");
       }
+    });
+
+    it("should require publish permission", async () => {
+      await tool.handler(
+        {
+          action: "add",
+          entityType: "social-post",
+          entityId: "post-123",
+        },
+        { ...mockToolContext, userPermissionLevel: "trusted" },
+      );
+
+      expect(permissionChecks).toEqual([
+        {
+          entityType: "social-post",
+          action: "publish",
+          userPermissionLevel: "trusted",
+        },
+      ]);
     });
 
     it("should return existing position if already queued", async () => {
@@ -194,14 +224,14 @@ describe("publish_queue tool", () => {
       );
 
       // Try to add first again
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "add",
           entityType: "social-post",
           entityId: "post-123",
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.position).toBe(1);
@@ -211,10 +241,10 @@ describe("publish_queue tool", () => {
 
   describe("remove action", () => {
     it("should require entityType", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "remove", entityId: "post-123" },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityType");
@@ -222,14 +252,35 @@ describe("publish_queue tool", () => {
     });
 
     it("should require entityId", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "remove", entityType: "social-post" },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityId");
       }
+    });
+
+    it("should require update permission", async () => {
+      await queueManager.add("social-post", "post-123");
+
+      await tool.handler(
+        {
+          action: "remove",
+          entityType: "social-post",
+          entityId: "post-123",
+        },
+        { ...mockToolContext, userPermissionLevel: "trusted" },
+      );
+
+      expect(permissionChecks).toEqual([
+        {
+          entityType: "social-post",
+          action: "update",
+          userPermissionLevel: "trusted",
+        },
+      ]);
     });
 
     it("should remove entity from queue", async () => {
@@ -237,14 +288,14 @@ describe("publish_queue tool", () => {
       await queueManager.add("social-post", "post-123");
 
       // Then remove
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "remove",
           entityType: "social-post",
           entityId: "post-123",
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.message).toBe("Removed from queue");
@@ -258,10 +309,10 @@ describe("publish_queue tool", () => {
 
   describe("reorder action", () => {
     it("should require entityType", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "reorder", entityId: "post-123", position: 1 },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityType");
@@ -269,10 +320,10 @@ describe("publish_queue tool", () => {
     });
 
     it("should require entityId", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         { action: "reorder", entityType: "social-post", position: 1 },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("entityId");
@@ -280,14 +331,14 @@ describe("publish_queue tool", () => {
     });
 
     it("should require position", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "reorder",
           entityType: "social-post",
           entityId: "post-123",
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("position");
@@ -295,7 +346,7 @@ describe("publish_queue tool", () => {
     });
 
     it("should reject position less than 1", async () => {
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "reorder",
           entityType: "social-post",
@@ -303,11 +354,34 @@ describe("publish_queue tool", () => {
           position: 0,
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("positive");
       }
+    });
+
+    it("should require update permission", async () => {
+      await queueManager.add("social-post", "post-1");
+      await queueManager.add("social-post", "post-2");
+
+      await tool.handler(
+        {
+          action: "reorder",
+          entityType: "social-post",
+          entityId: "post-2",
+          position: 1,
+        },
+        { ...mockToolContext, userPermissionLevel: "trusted" },
+      );
+
+      expect(permissionChecks).toEqual([
+        {
+          entityType: "social-post",
+          action: "update",
+          userPermissionLevel: "trusted",
+        },
+      ]);
     });
 
     it("should reorder entity in queue", async () => {
@@ -317,7 +391,7 @@ describe("publish_queue tool", () => {
       await queueManager.add("social-post", "post-3");
 
       // Move post-3 to position 1
-      const result = (await tool.handler(
+      const result = await tool.handler(
         {
           action: "reorder",
           entityType: "social-post",
@@ -325,7 +399,7 @@ describe("publish_queue tool", () => {
           position: 1,
         },
         mockToolContext,
-      )) as QueueOutput;
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data?.position).toBe(1);

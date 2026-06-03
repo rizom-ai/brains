@@ -214,7 +214,7 @@ async function withBrowser<T>(
   operation: (browser: MediaBrowser) => Promise<T>,
 ): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  let aborted = false;
+  let aborted: boolean = false;
   // Ref object so the timeout handler can see late-arriving browsers without
   // TS narrowing the closed-over `let` to `null`.
   const slot: { browser: MediaBrowser | null } = { browser: null };

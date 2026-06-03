@@ -34,7 +34,7 @@ The runtime subject is still `single-operator`. Canonical identity plumbing exis
 - **MCP OAuth**: per-session permissions from the authenticated user instead of global anchor authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
-- **CMS git gateway**: editor identity and permission level for commit attribution and write gating.
+- **CMS passkey login**: a valid operator session to gate release of the shared content PAT (see [CMS operator login](./cms-operator-login.md)). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
 - **Future dashboard People UX / CLI**: user, role, passkey, and identity management.
 
 ## Core decisions
@@ -273,10 +273,9 @@ Validation: owners can create/promote/suspend users; trusted users cannot manage
 
 - Wire `CanonicalIdentityService` to auth DB identity lookup.
 - Wire chat/hosted Discord routing to identity lookup where needed.
-- Wire CMS git gateway author/permission decisions to `AuthPrincipal`.
 - Add conversation/job/tool attribution from `AuthPrincipal`.
 
-Validation: linked Discord user maps to a brain user; CMS commits show editor attribution; conversation metadata can include user/canonical attribution without content-stored account bindings.
+Validation: linked Discord user maps to a brain user; conversation metadata can include user/canonical attribution without content-stored account bindings.
 
 ## Security notes
 
@@ -302,5 +301,4 @@ Validation: linked Discord user maps to a brain user; CMS commits show editor at
 - [Conversation speaker attribution](./conversation-speaker-attribution.md)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md)
 - [Brain web UI](./brain-web-ui.md)
-- [CMS heavy backend](./cms-heavy-backend.md)
 - [Operator runtime database](./operator-runtime-db.md)

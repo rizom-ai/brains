@@ -1,5 +1,113 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/mcp-service@0.2.0-alpha.106
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.105
+  - @brains/utils@0.2.0-alpha.105
+  - @brains/mcp-service@0.2.0-alpha.105
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.104
+  - @brains/utils@0.2.0-alpha.104
+  - @brains/mcp-service@0.2.0-alpha.104
+
+## 0.2.0-alpha.103
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.103
+  - @brains/utils@0.2.0-alpha.103
+  - @brains/mcp-service@0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.102
+  - @brains/utils@0.2.0-alpha.102
+  - @brains/mcp-service@0.2.0-alpha.102
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/mcp-service@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.100
+  - @brains/utils@0.2.0-alpha.100
+  - @brains/mcp-service@0.2.0-alpha.100
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.99
+  - @brains/utils@0.2.0-alpha.99
+  - @brains/mcp-service@0.2.0-alpha.99
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.98
+  - @brains/utils@0.2.0-alpha.98
+  - @brains/mcp-service@0.2.0-alpha.98
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.97
+  - @brains/utils@0.2.0-alpha.97
+  - @brains/mcp-service@0.2.0-alpha.97
+
+## 0.2.0-alpha.96
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.96
+  - @brains/utils@0.2.0-alpha.96
+  - @brains/mcp-service@0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.95
+  - @brains/utils@0.2.0-alpha.95
+  - @brains/mcp-service@0.2.0-alpha.95
+
 ## 0.2.0-alpha.94
 
 ### Patch Changes

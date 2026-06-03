@@ -1,5 +1,123 @@
 # @brains/cms
 
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- [`0aede59`](https://github.com/rizom-ai/brains/commit/0aede594c9dcf6a9f67f3292085cecac86396a9c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wire Rover CMS passkey login from `CMS_CONTENT_REPO_PAT`, include the variable in Rover env schemas, and avoid emitting a CMS auth base URL when no CMS login route is configured.
+
+- [`ae1b456`](https://github.com/rizom-ai/brains/commit/ae1b45622b7cbf9efcd80c5a8d01176d0f7c76cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate passkey-backed CMS access on the operator session and pre-authorize Sveltia from `/cms` so logged-in operators do not see the CMS login screen.
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/auth-service@0.2.0-alpha.106
+  - @brains/plugins@0.2.0-alpha.106
+
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.105
+  - @brains/utils@0.2.0-alpha.105
+  - @brains/auth-service@0.2.0-alpha.105
+  - @brains/plugins@0.2.0-alpha.105
+
+## 0.2.0-alpha.104
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.104
+  - @brains/utils@0.2.0-alpha.104
+  - @brains/auth-service@0.2.0-alpha.104
+  - @brains/plugins@0.2.0-alpha.104
+
+## 0.2.0-alpha.103
+
+### Patch Changes
+
+- [`fe530be`](https://github.com/rizom-ai/brains/commit/fe530bedefeb258427df2245244b4859dd1c176b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add Sveltia-compatible CMS operator login routes for GitHub OAuth and passkey-gated PAT flows, plus explicit `auth_endpoint` generation in CMS config. A brain enables one login method at a time; configuring both is a config-time error.
+
+- Updated dependencies [[`fe530be`](https://github.com/rizom-ai/brains/commit/fe530bedefeb258427df2245244b4859dd1c176b)]:
+  - @brains/cms-config@0.2.0-alpha.103
+  - @brains/utils@0.2.0-alpha.103
+  - @brains/auth-service@0.2.0-alpha.103
+  - @brains/plugins@0.2.0-alpha.103
+
+## 0.2.0-alpha.102
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.102
+  - @brains/utils@0.2.0-alpha.102
+  - @brains/plugins@0.2.0-alpha.102
+
+## 0.2.0-alpha.101
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.101
+  - @brains/utils@0.2.0-alpha.101
+  - @brains/plugins@0.2.0-alpha.101
+
+## 0.2.0-alpha.100
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.100
+  - @brains/utils@0.2.0-alpha.100
+  - @brains/plugins@0.2.0-alpha.100
+
+## 0.2.0-alpha.99
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.99
+  - @brains/utils@0.2.0-alpha.99
+  - @brains/plugins@0.2.0-alpha.99
+
+## 0.2.0-alpha.98
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.98
+  - @brains/utils@0.2.0-alpha.98
+  - @brains/plugins@0.2.0-alpha.98
+
+## 0.2.0-alpha.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.97
+  - @brains/utils@0.2.0-alpha.97
+  - @brains/plugins@0.2.0-alpha.97
+
+## 0.2.0-alpha.96
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.96
+  - @brains/utils@0.2.0-alpha.96
+  - @brains/plugins@0.2.0-alpha.96
+
+## 0.2.0-alpha.95
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.95
+  - @brains/utils@0.2.0-alpha.95
+  - @brains/plugins@0.2.0-alpha.95
+
 ## 0.2.0-alpha.94
 
 ### Patch Changes

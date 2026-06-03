@@ -1,4 +1,4 @@
-import type { BasePluginContext } from "../base/context";
+import type { BasePluginContext, IPermissionsNamespace } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
   IShell,
@@ -67,6 +67,7 @@ export interface EntityPluginContext extends BasePluginContext {
   readonly entities: IEntitiesNamespace;
   readonly ai: IEntityAINamespace;
   readonly prompts: IPromptsNamespace;
+  readonly permissions: IPermissionsNamespace;
 }
 
 /**
@@ -116,5 +117,7 @@ export function createEntityPluginContext(
     },
 
     prompts: createPromptsNamespace(entityService),
+
+    permissions: baseContext.permissions,
   };
 }

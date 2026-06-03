@@ -29,6 +29,11 @@ export {
 // Adapter
 export { ProjectAdapter, projectAdapter } from "./adapters/project-adapter";
 
+export {
+  buildProjectAtprotoRecord,
+  createProjectAtprotoProjection,
+} from "./atproto-projection";
+
 // DataSource
 export { ProjectDataSource } from "./datasources/project-datasource";
 

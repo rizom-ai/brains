@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogPlugin } from "../src/plugin";
+import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -32,6 +33,18 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         return { success: true };
       });
     }
+  });
+
+  describe("entity policy registration", () => {
+    it("declares post publish statuses", async () => {
+      await harness.installPlugin(new BlogPlugin({}));
+
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("post").publish,
+      ).toEqual({
+        publishStatuses: ["queued", "published"],
+      });
+    });
   });
 
   describe("provider registration", () => {
@@ -94,6 +107,41 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         m.type.startsWith("publish:report"),
       );
       expect(reportMessages).toHaveLength(0);
+    });
+
+    it("requires publish permission before publishing a draft post", async () => {
+      const localHarness = createPluginHarness<BlogPlugin>({
+        dataDir: "/tmp/test-blog-permissions",
+      });
+      localHarness.setPermissionService(
+        new PermissionService({
+          entityActions: { post: { publish: "anchor" } },
+        }),
+      );
+      const messages: Array<{ type: string; payload: unknown }> = [];
+      localHarness.subscribe("publish:report:failure", async (msg) => {
+        messages.push({ type: "publish:report:failure", payload: msg.payload });
+        return { success: true };
+      });
+      await localHarness.installPlugin(new BlogPlugin({}));
+      const entityService = localHarness.getEntityService();
+      await entityService.createEntity({ entity: sampleDraftPost });
+
+      await localHarness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "post-1",
+        authContext: { userPermissionLevel: "trusted" },
+      });
+
+      const updatedPost = await entityService.getEntity<BlogPost>({
+        entityType: "post",
+        id: "post-1",
+      });
+      expect(updatedPost?.metadata.status).toBe("draft");
+      expect(messages[0]?.payload).toMatchObject({
+        entityType: "post",
+        entityId: "post-1",
+      });
     });
 
     it("should report success when publishing draft post", async () => {

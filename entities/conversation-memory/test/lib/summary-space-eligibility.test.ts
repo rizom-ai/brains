@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Conversation, Message } from "@brains/plugins";
+import type { Conversation } from "@brains/plugins";
 import {
   evaluateSummaryEligibility,
   getConversationSpaceId,
@@ -18,17 +18,6 @@ const conversation: Conversation = {
   updatedAt: "2026-01-01T00:01:00.000Z",
   metadata: {},
 };
-
-function message(role: Message["role"]): Message {
-  return {
-    id: `m-${role}`,
-    conversationId: "conv-1",
-    role,
-    content: `${role} message`,
-    timestamp: "2026-01-01T00:00:00.000Z",
-    metadata: {},
-  };
-}
 
 describe("summary space eligibility", () => {
   it("builds canonical space ids from conversation metadata", () => {
@@ -68,25 +57,11 @@ describe("summary space eligibility", () => {
     });
   });
 
-  it("is ineligible for system-only conversations", () => {
+  it("is eligible in configured spaces", () => {
     expect(
       evaluateSummaryEligibility({
         conversation,
         spaces: ["discord:project-*"],
-        messages: [message("system")],
-      }),
-    ).toMatchObject({
-      eligible: false,
-      reason: "system-only",
-    });
-  });
-
-  it("is eligible in configured spaces with non-system messages", () => {
-    expect(
-      evaluateSummaryEligibility({
-        conversation,
-        spaces: ["discord:project-*"],
-        messages: [message("system"), message("user")],
       }),
     ).toEqual({
       eligible: true,

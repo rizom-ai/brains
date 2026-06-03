@@ -7,6 +7,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
 import { getErrorMessage, z } from "@brains/utils";
 import { deckAdapter } from "./adapters/deck-adapter";
@@ -22,6 +23,7 @@ import {
   DeckCarouselAttachmentProvider,
   type DeckCarouselAttachmentProviderDeps,
 } from "./attachments/carousel-provider";
+import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
@@ -31,6 +33,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   readonly schema = deckAdapter.schema;
   readonly adapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
+  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(private readonly deps: DecksPluginDeps = {}) {
     super("decks", packageJson);
@@ -69,6 +72,10 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerEvalHandlers(context);
+    this.unregisterAtprotoProjection =
+      AtprotoProjectionRegistry.getInstance().register(
+        createDeckAtprotoProjection(),
+      );
 
     this.logger.info("Decks plugin registered");
   }
@@ -76,6 +83,8 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   protected override async onShutdown(): Promise<void> {
     this.unregisterCarouselAttachmentProvider?.();
     this.unregisterCarouselAttachmentProvider = undefined;
+    this.unregisterAtprotoProjection?.();
+    this.unregisterAtprotoProjection = undefined;
   }
 
   private async registerWithPublishPipeline(
@@ -163,7 +172,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
       ...this.deps,
       getThemeMode:
         this.deps.getThemeMode ??
-        (async () => {
+        (async (): Promise<"light" | "dark"> => {
           try {
             const info = await fetchSiteInfo(context.entityService);
             return info.themeMode ?? "dark";

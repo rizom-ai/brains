@@ -1,5 +1,20 @@
 import type { PublishProvider } from "@brains/contracts";
+import type { ToolContext } from "@brains/plugins";
 import type { PublishConfig } from "./config";
+
+export interface PublishAuthContext {
+  interfaceType?: ToolContext["interfaceType"];
+  userId?: ToolContext["userId"];
+  userPermissionLevel?: ToolContext["userPermissionLevel"];
+  authorization?: "user" | "system";
+}
+
+export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
+  interfaceType: "system",
+  userId: "system",
+  userPermissionLevel: "anchor",
+  authorization: "system",
+};
 
 /**
  * Message payloads for plugin → service communication
@@ -16,12 +31,14 @@ export interface PublishRegisterPayload {
 export interface PublishQueuePayload {
   entityType: string;
   entityId: string;
+  authContext?: PublishAuthContext;
 }
 
 /** Publish entity immediately (bypass queue) */
 export interface PublishDirectPayload {
   entityType: string;
   entityId: string;
+  authContext?: PublishAuthContext;
 }
 
 /** Remove entity from queue */
@@ -67,6 +84,7 @@ export interface PublishReportFailurePayload {
 export interface PublishExecutePayload {
   entityType: string;
   entityId: string;
+  authContext?: PublishAuthContext;
 }
 
 /** Entity was added to queue */

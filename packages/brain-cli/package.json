@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.94",
+  "version": "0.2.0-alpha.106",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
@@ -54,7 +54,7 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
-    "dev:start": "bun dist/brain.js start",
+    "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts"

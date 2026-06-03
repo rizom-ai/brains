@@ -5,9 +5,20 @@ import { createPluginHarness } from "@brains/plugins/test";
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let plugin: ImagePlugin;
+  let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
 
   beforeEach(async () => {
+    enqueuedJobs = [];
     harness = createPluginHarness({ dataDir: "/tmp/test-image" });
+    const shell = harness.getMockShell();
+    const jobQueue = shell.getJobQueueService();
+    shell.getJobQueueService = (): typeof jobQueue => ({
+      ...jobQueue,
+      enqueue: async (request): Promise<string> => {
+        enqueuedJobs.push(request);
+        return "queued-image-job";
+      },
+    });
     plugin = new ImagePlugin();
     await harness.installPlugin(plugin);
   });
@@ -37,7 +48,182 @@ describe("ImagePlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
-  it("should rewrite image target ids to canonical ids via interceptor", async () => {
+  it("should enqueue prompt-based image generation via interceptor", async () => {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        title: "Abstract cover",
+        prompt: "Generate an abstract image",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: "abstract-cover",
+          status: "generating",
+          jobId: "queued-image-job",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=abstract-cover",
+            downloadUrl:
+              "/api/chat/attachments/image?id=abstract-cover&download=1",
+            filename: "abstract-cover.png",
+            source: {
+              entityType: "image",
+              entityId: "abstract-cover",
+              attachmentType: "generated",
+            },
+          },
+        },
+      },
+    });
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:image-generate",
+      data: {
+        prompt: "Generate an abstract image",
+        title: "Abstract cover",
+      },
+    });
+  });
+
+  it("should treat empty target fields as standalone image generation", async () => {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        title: "Robot",
+        prompt: "Can you generate an image of a robot for me?",
+        content: "",
+        targetEntityType: "",
+        targetEntityId: "",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result.kind).toBe("handled");
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:image-generate",
+      data: {
+        prompt: "Can you generate an image of a robot for me?",
+        title: "Robot",
+      },
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityType: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityId: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      entityContent: expect.any(String),
+    });
+  });
+
+  it("should treat image target fields as standalone image generation", async () => {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        prompt: "Can you generate an image of a robot for me?",
+        targetEntityType: "image",
+        targetEntityId: "robot",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result.kind).toBe("handled");
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]?.data).toMatchObject({
+      prompt: "Can you generate an image of a robot for me?",
+      title: "robot",
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityType: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityId: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      entityContent: expect.any(String),
+    });
+  });
+
+  it("should not enqueue generated image data for prompt distillation", async () => {
+    harness.addEntities([
+      {
+        id: "pretty-robot",
+        entityType: "image",
+        content: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB",
+        metadata: { title: "Pretty Robot" },
+      },
+    ]);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        title: "pretty robot",
+        prompt:
+          "A pretty robot, elegant and friendly, polished metallic design",
+        targetEntityType: "image",
+        targetEntityId: "pretty-robot",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result.kind).toBe("handled");
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]?.data).toMatchObject({
+      prompt: "A pretty robot, elegant and friendly, polished metallic design",
+      title: "pretty robot",
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityType: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      targetEntityId: expect.any(String),
+    });
+    expect(enqueuedJobs[0]?.data).not.toMatchObject({
+      entityContent: expect.any(String),
+    });
+  });
+
+  it("should enqueue targeted cover image generation with canonical target id", async () => {
     harness.addEntities([
       {
         id: "my-blog-post",
@@ -66,13 +252,73 @@ describe("ImagePlugin", () => {
     );
 
     expect(result).toEqual({
-      kind: "continue",
-      input: {
-        entityType: "image",
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: "cover-my-blog-post",
+          status: "generating",
+          jobId: "queued-image-job",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=cover-my-blog-post",
+            downloadUrl:
+              "/api/chat/attachments/image?id=cover-my-blog-post&download=1",
+            filename: "cover-my-blog-post.png",
+            source: {
+              entityType: "image",
+              entityId: "cover-my-blog-post",
+              attachmentType: "generated",
+            },
+          },
+        },
+      },
+    });
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:image-generate",
+      data: {
         prompt: "Generate a cover image",
         targetEntityType: "post",
         targetEntityId: "my-blog-post",
+        entityTitle: "My Blog Post",
       },
+    });
+  });
+
+  it("should treat non-image content as an image generation prompt for targeted cover requests", async () => {
+    harness.addEntities([
+      {
+        id: "my-blog-post",
+        entityType: "post",
+        content: "---\ntitle: My Blog Post\nslug: my-blog-post\n---\nContent",
+        metadata: { title: "My Blog Post", slug: "my-blog-post" },
+      },
+    ]);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "image",
+        content: "Generate a cover image",
+        targetEntityType: "post",
+        targetEntityId: "My Blog Post",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result.kind).toBe("handled");
+    expect(enqueuedJobs[0]?.data).toMatchObject({
+      prompt: "Generate a cover image",
+      targetEntityType: "post",
+      targetEntityId: "my-blog-post",
     });
   });
 

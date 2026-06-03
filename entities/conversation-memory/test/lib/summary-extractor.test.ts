@@ -137,54 +137,6 @@ describe("SummaryExtractor", () => {
     });
   });
 
-  it("preserves system constraints as key points, not decisions", async () => {
-    const logger = createSilentLogger();
-    const context = createEntityPluginContext(
-      createMockShell({ logger }),
-      "summary",
-    );
-    spyOn(context.ai, "generate").mockResolvedValue({
-      entries: [
-        {
-          title: "Package rebuild",
-          summary: "The user requested healthier abstractions.",
-          startMessageIndex: 2,
-          endMessageIndex: 3,
-          keyPoints: ["The rebuild should use healthy abstractions."],
-          decisions: [],
-          actionItems: [],
-        },
-      ],
-    });
-
-    const extractor = new SummaryExtractor(
-      context,
-      logger,
-      summaryConfigSchema.parse({}),
-    );
-
-    const memory = await extractor.extract([
-      {
-        id: "m0",
-        conversationId: "conv-1",
-        role: "system",
-        content:
-          "Constraint: do not preserve backward compatibility for the summary schema.",
-        timestamp: "2026-01-01T00:00:00.000Z",
-        metadata: {},
-      },
-      ...messages,
-    ]);
-
-    expect(memory.entries[0]?.keyPoints).toContain(
-      "Constraint: do not preserve backward compatibility for the summary schema.",
-    );
-    expect(memory.decisions.map((item) => item.text).join("\n")).not.toContain(
-      "backward compatibility",
-    );
-    expect(memory.entries[0]?.timeRange.start).toBe("2026-01-01T00:00:00.000Z");
-  });
-
   it("keeps decisions and action items separate from summary entries", async () => {
     const logger = createSilentLogger();
     const context = createEntityPluginContext(

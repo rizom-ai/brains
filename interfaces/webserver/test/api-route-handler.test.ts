@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Hono } from "hono";
-import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
+import type { RegisteredApiRoute } from "@brains/plugins";
 import { createApiRouteHandler } from "../src/api-server";
 import { createSilentLogger } from "@brains/test-utils";
-import { createMockMessageBus } from "@brains/messaging-service/test";
+import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import { ApiServer } from "../src/api-server";
 
 describe("createApiRouteHandler", () => {
