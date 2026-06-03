@@ -1,7 +1,7 @@
 {
   "name": "@brains/web-chat",
   "private": true,
-  "version": "0.2.0-alpha.104",
+  "version": "0.2.0-alpha.105",
   "description": "Web chat interface for Brains",
   "type": "module",
   "exports": {

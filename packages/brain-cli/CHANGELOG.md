@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.105
+
+### Patch Changes
+
+- [`dc9548c`](https://github.com/rizom-ai/brains/commit/dc9548cd2c015d3b751f791078ce5a1fb8213e39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reuse recent web-chat upload refs for explicit follow-up requests, so asking to describe an already-uploaded image attaches the stored file to that model turn instead of requiring a reupload.
+
 ## 0.2.0-alpha.104
 
 ### Patch Changes

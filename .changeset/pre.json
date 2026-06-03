@@ -228,6 +228,7 @@
     "tailwind-runtime-deps",
     "themes-export",
     "web-chat-bundled-ui",
+    "web-chat-follow-up-upload-reuse",
     "web-chat-generated-image-attachments",
     "web-chat-hide-entity-memory-notes",
     "web-chat-history-artifact-cards",
