@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.107
+
+### Patch Changes
+
+- [`037da1a`](https://github.com/rizom-ai/brains/commit/037da1a1c75376a0eedc1f7c6cfebfc4fd73303b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden OG image rendering: omit the social-preview meta tag when an image would only resolve to an unusable data: URL, render OG images only via the explicit source-attachment path (a plain prompt is always a normal cover-image request), and replace the source-image render's delete-then-create with an in-place update so a failure can't leave an entity with no image. Also consolidate the per-entity OG image providers onto one shared render helper.
+
 ## 0.2.0-alpha.106
 
 ### Patch Changes
