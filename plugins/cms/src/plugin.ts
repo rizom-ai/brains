@@ -8,6 +8,7 @@ import {
   type EntityDisplayMap,
 } from "@brains/cms-config";
 import { renderCmsShellHtml } from "./cms-shell";
+import { serializeForScript } from "./script-literal";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
 
@@ -157,11 +158,10 @@ async function buildCmsConfig(
   options: CmsConfigBuildOptions = {},
 ): Promise<CmsConfig> {
   const { repo, branch } = await getRepoInfo(context);
-  const baseUrl = options.baseUrl ?? context.siteUrl;
   return generateCmsConfig({
     repo,
     branch,
-    ...(baseUrl && { baseUrl }),
+    ...(options.baseUrl && { baseUrl: options.baseUrl }),
     ...(options.authEndpoint && { authEndpoint: options.authEndpoint }),
     entityTypes: context.entityService.getEntityTypes(),
     getFrontmatterSchema: (type) =>
@@ -246,7 +246,28 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
         path: this.config.routePath,
         method: "GET",
         public: true,
-        handler: async (): Promise<Response> => {
+        handler: async (request): Promise<Response> => {
+          if (loginMethods.passkeyLogin) {
+            if (!(await hasOperatorSession(request))) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  Location: `/login?return_to=${encodeURIComponent(
+                    this.config.routePath,
+                  )}`,
+                  "Cache-Control": "no-store",
+                },
+              });
+            }
+
+            return htmlResponse(
+              renderCmsShellHtml({
+                cmsConfigPath,
+                authTokenEndpoint: "/auth/cms-token",
+              }),
+            );
+          }
+
           return htmlResponse(renderCmsShellHtml({ cmsConfigPath }));
         },
       },
@@ -753,16 +774,6 @@ function authPageStyles(): string {
     button { margin-top: 24px; border: 1px solid rgba(255,139,61,.55); border-radius: 999px; padding: .82rem 1.08rem; font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: #080711; cursor: pointer; }
     [role='status'] { min-height: 1.5em; }
   </style>`;
-}
-
-// Embed a value as a JSON literal inside an inline <script>. JSON.stringify
-// alone leaves `<` and `/` intact, so a value containing `</script>` (or a
-// U+2028/U+2029 line separator) could break out of the script element.
-function serializeForScript(value: unknown): string {
-  return JSON.stringify(value).replace(
-    /[<>&\u2028\u2029]/g,
-    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
-  );
 }
 
 function escapeHtml(value: string): string {

@@ -43,6 +43,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
 - [CMS operator login](./cms-operator-login.md) — proposed CMS login (GitHub OAuth and/or passkey-gated PAT) for Sveltia's existing GitHub backend
+- [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted successor that mints short-lived GitHub App installation tokens for platform-created content repos
 
 ### Hosted, deployed, and monetized product
 

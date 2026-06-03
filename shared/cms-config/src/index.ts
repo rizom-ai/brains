@@ -300,7 +300,7 @@ export const CMS_ADMIN_HTML = `<!doctype html>
     <title>Content Manager</title>
   </head>
   <body>
-    <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+    <script src="https://unpkg.com/@sveltia/cms@0.165.1/dist/sveltia-cms.js"></script>
   </body>
 </html>
 `;

@@ -7,9 +7,12 @@ describe("env schema resolution", () => {
       throw new Error("workspace lookup unavailable");
     };
 
-    expect(
-      resolveModelEnvSchema("rover", unavailableWorkspaceLookup),
-    ).toContain("AI_API_KEY=");
+    const roverSchema = resolveModelEnvSchema(
+      "rover",
+      unavailableWorkspaceLookup,
+    );
+    expect(roverSchema).toContain("AI_API_KEY=");
+    expect(roverSchema).toContain("CMS_CONTENT_REPO_PAT=");
     expect(
       resolveModelEnvSchema("ranger", unavailableWorkspaceLookup),
     ).toContain("LINKEDIN_ORGANIZATION_ID=");
