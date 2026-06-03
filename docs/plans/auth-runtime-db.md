@@ -34,7 +34,7 @@ The runtime subject is still `single-operator`. Canonical identity plumbing exis
 - **MCP OAuth**: per-session permissions from the authenticated user instead of global anchor authority.
 - **Chat / hosted Discord**: explicit `discord:<id>` to user lookup for routing and attribution, without storing those bindings in content.
 - **Conversation memory**: optional canonical identity enrichment from private runtime identity bindings.
-- **CMS passkey login**: a valid operator session to gate release of the shared content PAT (see [CMS operator login](./cms-operator-login.md)). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
+- **CMS passkey login**: a valid operator session to gate release of the shared content PAT (see `plugins/cms/src/plugin.ts`, where the GitHub OAuth and passkey-gated PAT login methods already consume `auth-service`). No per-editor commit attribution — that is a Sveltia limitation, not an auth-DB feature.
 - **Future dashboard People UX / CLI**: user, role, passkey, and identity management.
 
 ## Core decisions

@@ -182,7 +182,7 @@ Plans:
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
-- [cms-operator-login.md](./plans/cms-operator-login.md) — CMS login: GitHub OAuth and/or passkey-gated PAT.
+- [cms-github-app-hosted.md](./plans/cms-github-app-hosted.md) — hosted-product CMS login via short-lived GitHub App installation tokens (the local GitHub OAuth / passkey-gated PAT methods already shipped in `plugins/cms`).
 - [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — parked; revisits multi-platform chat adapter consolidation only when a new platform is prioritized.
 
 ### 5. Make the ecosystem credible
@@ -210,8 +210,7 @@ These are real, but they should not masquerade as product bets. They reduce drag
 
 Cleanup:
 
-- [env-schema-canonical.md](./plans/env-schema-canonical.md) — canonical env declarations.
-- [core-env-config.md](./plans/core-env-config.md) — move env-derived core defaults to the app layer.
+- [env-handling.md](./plans/env-handling.md) — co-locate env declarations and move `process.env` reads out of `shell/core` into the app/deploy layer.
 - [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 

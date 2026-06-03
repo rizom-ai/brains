@@ -4,7 +4,7 @@
 
 Proposed. Replaces long-lived shared CMS PATs for hosted Rover/content repos with short-lived GitHub App installation tokens.
 
-This is a hosted-product successor to the passkey-gated PAT path in [CMS operator login](./cms-operator-login.md). It keeps Sveltia on its GitHub backend, so the browser still receives a GitHub token, but the token is minted on demand, scoped to one content repo, and expires automatically.
+This is a hosted-product successor to the now-shipped passkey-gated PAT path in `plugins/cms` (the GitHub OAuth and passkey-gated PAT flows landed with `feat/cms-operator-login`). It keeps Sveltia on its GitHub backend, so the browser still receives a GitHub token, but the token is minted on demand, scoped to one content repo, and expires automatically.
 
 ## Context
 
@@ -251,7 +251,7 @@ Operational requirements:
 
 ## Related
 
-- [CMS operator login](./cms-operator-login.md) — current GitHub OAuth / passkey PAT flow
+- `plugins/cms/src/plugin.ts` — current GitHub OAuth / passkey PAT flow (predecessor login methods)
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — hosted repo provisioning context
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — hosted runtime direction
 - `plugins/cms` — CMS config and auth route owner

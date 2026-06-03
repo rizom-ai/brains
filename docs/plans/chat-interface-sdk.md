@@ -2,7 +2,7 @@
 
 ## Status
 
-Parked. The web-first chat surface that motivated most of this plan now lives in [brain-web-ui.md](./brain-web-ui.md), which is the active near-term investment. This document remains as the design record for a _later_ multi-platform adapter consolidation, if and when another chat surface (Slack, Teams, Matrix return path) gets prioritized.
+Parked. This plan is the design record for a _later_ multi-platform chat adapter consolidation, to be revisited only when another chat surface (Slack, Teams, Matrix return path) gets prioritized. The web-first chat surface that previously appeared in this doc is out of scope here — it shipped via [brain-web-ui.md](./brain-web-ui.md) and is tracked there.
 
 The previous hosted-Rover Discord gateway direction has been dropped. The "shared bot + central gateway + per-user routing" model added accidental complexity to solve a self-imposed constraint (one shared bot for all hosted users). The replacement model is: each Rover user brings their own Discord app token if they want Discord; each Relay team installs their own Discord app for their team's server.
 
@@ -18,11 +18,11 @@ The motivating goals were:
 
 These goals remain valid, but they are not urgent. Today's brain ships `@brains/discord` directly on `MessageInterfacePlugin` and that works fine for the standalone/self-hosted case. Multi-platform demand is not the bottleneck — primary-UI parity in the browser is.
 
-## Why this is now parked
+## Why this is parked
 
-- **Web is the primary UI focus.** [brain-web-ui.md](./brain-web-ui.md) builds a bundled browser chat surface so a new user can chat with their brain without any external platform setup. That closes the "try Rover" gap.
-- **Discord stays on `@brains/discord`.** No migration off the existing package is planned for v0.2.0. Bring-your-own-Discord-app for Rover and per-team install for Relay both work with the current package.
+- **Discord stays on `@brains/discord`.** No migration off the existing package is planned. Bring-your-own-Discord-app for Rover and per-team install for Relay both work with the current package.
 - **No urgent Slack/Teams demand.** When a new chat platform is actually prioritized, this plan's adapter architecture is the right starting point — but until then, building it speculatively just creates surface to maintain.
+- **Web is its own surface, not a multi-platform adapter.** The bundled browser chat uses AI SDK UI streaming, not the Chat SDK platform-adapter model this plan describes. See [brain-web-ui.md](./brain-web-ui.md) for the active web surface and the distinction below.
 
 ## When to revisit
 
@@ -30,7 +30,7 @@ Reasons that would warrant reviving multi-platform consolidation:
 
 1. A team explicitly needs Slack or Teams support for Relay deployments.
 2. Matrix becomes a priority for federation/identity reasons.
-3. The bundled web chat (per `brain-web-ui.md`) needs to share substantial chat-handling code with platform adapters in a way that proves duplication painful.
+3. A second non-web platform adapter is built and proves duplication with `@brains/discord` painful enough to consolidate.
 
 Until one of those triggers fires, this plan stays parked.
 
