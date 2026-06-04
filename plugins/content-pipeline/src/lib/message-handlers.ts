@@ -7,6 +7,7 @@ import type { ContentScheduler } from "../scheduler";
 import {
   PUBLISH_MESSAGES,
   GENERATE_MESSAGES,
+  PUBLISH_ASSET_MESSAGES,
   SYSTEM_PUBLISH_AUTH_CONTEXT,
 } from "../types/messages";
 import type {
@@ -20,15 +21,19 @@ import type {
   PublishReportFailurePayload,
   GenerateCompletedPayload,
   GenerateFailedPayload,
+  PublishAssetRegisterPayload,
 } from "../types/messages";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishEntityExecutor } from "../publish-executor";
+import type { PublishAssetRegistry } from "../publish-assets";
+import { publishAssetDefinitionSchema } from "../publish-assets";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   publishExecutor: PublishEntityExecutor;
+  publishAssetRegistry: PublishAssetRegistry;
   scheduler: ContentScheduler;
   logger: Logger;
 }
@@ -42,6 +47,7 @@ export function subscribeToMessages(
 ): void {
   subscribeToPublishMessages(context, deps);
   subscribeToGenerationMessages(context, deps);
+  subscribeToPublishAssetMessages(context, deps);
 }
 
 function subscribeToPublishMessages(
@@ -112,6 +118,20 @@ function subscribeToGenerationMessages(
   deps.logger.debug("Subscribed to generation messages");
 }
 
+function subscribeToPublishAssetMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
+  context.messaging.subscribe<
+    PublishAssetRegisterPayload,
+    { success: boolean }
+  >(PUBLISH_ASSET_MESSAGES.REGISTER, async (msg) =>
+    handlePublishAssetRegister(deps, msg.payload),
+  );
+
+  deps.logger.debug("Subscribed to publish asset messages");
+}
+
 async function handleRegister(
   deps: MessageHandlerDeps,
   payload: PublishRegisterPayload,
@@ -131,6 +151,27 @@ async function handleRegister(
     deps.logger.error(`Failed to register provider: ${errorMessage}`);
     return { success: false };
   }
+}
+
+async function handlePublishAssetRegister(
+  deps: MessageHandlerDeps,
+  payload: PublishAssetRegisterPayload,
+): Promise<{ success: boolean }> {
+  const parsed = publishAssetDefinitionSchema.safeParse(payload);
+  if (!parsed.success) {
+    deps.logger.warn("Invalid publish asset registration", {
+      error: parsed.error.message,
+    });
+    return { success: false };
+  }
+
+  deps.publishAssetRegistry.register(parsed.data);
+  deps.logger.info("Registered publish asset", {
+    entityType: parsed.data.entityType,
+    attachmentType: parsed.data.attachmentType,
+    mediaEntityType: parsed.data.mediaEntityType,
+  });
+  return { success: true };
 }
 
 async function handleQueue(

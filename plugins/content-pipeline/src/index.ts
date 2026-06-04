@@ -36,6 +36,13 @@ export {
   type SchedulerBackend,
   type ScheduledJob,
 } from "./scheduler-backend";
+export {
+  PublishAssetRegistry,
+  publishAssetDefinitionSchema,
+  publishAssetTargetFieldSchema,
+  type PublishAssetDefinition,
+  type PublishAssetTargetField,
+} from "./publish-assets";
 
 // Tools
 export {

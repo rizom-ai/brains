@@ -5,6 +5,7 @@ import { createQueueTool, createPublishTool } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { PublishExecutor } from "./publish-executor";
+import { PublishAssetRegistry } from "./publish-assets";
 import type { ContentScheduler } from "./scheduler";
 import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
@@ -20,6 +21,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
   private publishExecutor!: PublishExecutor;
+  private publishAssetRegistry!: PublishAssetRegistry;
   private scheduler!: ContentScheduler;
 
   constructor(config?: Partial<ContentPipelineConfig>) {
@@ -42,6 +44,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       maxRetries: this.config.maxRetries,
       baseDelayMs: this.config.retryBaseDelayMs,
     });
+    this.publishAssetRegistry = PublishAssetRegistry.createFresh();
     this.publishExecutor = new PublishExecutor({
       context,
       providerRegistry: this.providerRegistry,
@@ -62,6 +65,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
+      publishAssetRegistry: this.publishAssetRegistry,
       scheduler: this.scheduler,
       logger: this.logger,
     });
@@ -116,6 +120,10 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     return this.retryTracker;
   }
 
+  public getPublishAssetRegistry(): PublishAssetRegistry {
+    return this.publishAssetRegistry;
+  }
+
   public getScheduler(): ContentScheduler {
     return this.scheduler;
   }
@@ -125,6 +133,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     QueueManager.resetInstance();
     ProviderRegistry.resetInstance();
     RetryTracker.resetInstance();
+    PublishAssetRegistry.resetInstance();
   }
 }
 

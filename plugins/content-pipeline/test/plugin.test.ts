@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
-import { PUBLISH_MESSAGES } from "../src/types/messages";
+import {
+  PUBLISH_ASSET_MESSAGES,
+  PUBLISH_MESSAGES,
+} from "../src/types/messages";
 import type { PublishProvider } from "@brains/contracts";
 import { PermissionService } from "@brains/templates";
 import {
@@ -306,6 +309,28 @@ Post body`,
 
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue.length).toBe(0);
+    });
+  });
+
+  describe("publish asset registration", () => {
+    it("registers publish assets via message bus", async () => {
+      await harness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+        entityType: "post",
+        attachmentType: "og-image",
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
+        jobType: "image:image-render-source",
+      });
+
+      expect(
+        plugin.getPublishAssetRegistry().get("post", "og-image"),
+      ).toMatchObject({
+        entityType: "post",
+        attachmentType: "og-image",
+        mediaEntityType: "image",
+      });
     });
   });
 
