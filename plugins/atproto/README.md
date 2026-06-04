@@ -21,8 +21,9 @@ atprotoPlugin({
   pdsEndpoint: "https://bsky.social",
   identifier: "example.com",
   repoDid: "did:plc:...",
+  // Optional; defaults from site domain when omitted.
   brainDid: "did:web:example.com",
-  anchorDid: "did:plc:...",
+  anchorDid: "did:web:example.com:anchor",
   appPassword: "${ATPROTO_APP_PASSWORD}",
 });
 ```
@@ -35,8 +36,9 @@ plugins:
     pdsEndpoint: https://bsky.social
     identifier: example.com
     repoDid: did:plc:...
+    # Optional; defaults from domain/siteUrl when omitted.
     brainDid: did:web:example.com
-    anchorDid: did:plc:...
+    anchorDid: did:web:example.com:anchor
     appPassword: ${ATPROTO_APP_PASSWORD}
 ```
 
@@ -53,8 +55,8 @@ Secrets should be supplied through environment variables or app secret configura
 - `pdsEndpoint`: PDS service endpoint. Defaults to `https://bsky.social`.
 - `identifier`: PDS login identifier, usually a handle or account DID.
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
-- `brainDid`: public brain DID. Required for `atproto_publish_card`. If this is `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
-- `anchorDid`: public human/operator DID. Required for `atproto_publish_card`. If this is a path-based `did:web:*`, for example `did:web:example.com:anchor`, the plugin exposes `/anchor/did.json`.
+- `brainDid`: public brain DID. Defaults to `did:web:<site-host>` when omitted. If configured as `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
+- `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 
 ## Tools
@@ -182,7 +184,7 @@ The registry rejects collection/lexicon mismatches. Before dry-run results or PD
 
 Use a test PDS/Bluesky account and an app password.
 
-1. Configure `identifier`, `repoDid` or handle, `brainDid`, `anchorDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities.
 2. Start a brain with the atproto plugin enabled.
 3. Confirm DID documents if using `did:web`:
    - brain root DID: `GET https://<brain-domain>/.well-known/did.json`

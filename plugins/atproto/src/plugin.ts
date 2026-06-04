@@ -12,7 +12,10 @@ import {
   type AtprotoConfigInput,
 } from "./config";
 import { AtprotoPdsClient } from "./pds-client";
-import { buildConfiguredDidWebDocuments } from "./did";
+import {
+  buildConfiguredDidWebDocuments,
+  buildConventionalDidWebDocuments,
+} from "./did";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
@@ -115,27 +118,37 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   override getWebRoutes(): WebRouteDefinition[] {
     if (!this.config.enabled) return [];
 
-    const didDocuments = buildConfiguredDidWebDocuments(this.config);
-    const paths = [...new Set(didDocuments.map((entry) => entry.path))];
+    const configuredDocuments = buildConfiguredDidWebDocuments(this.config);
+    const conventionalPaths = [
+      ...(!this.config.brainDid ? ["/.well-known/did.json"] : []),
+      ...(!this.config.anchorDid ? ["/anchor/did.json"] : []),
+    ];
+    const paths = [
+      ...new Set([
+        ...configuredDocuments.map((entry) => entry.path),
+        ...conventionalPaths,
+      ]),
+    ];
 
-    return paths.map((path) => {
-      const candidates = didDocuments.filter((entry) => entry.path === path);
-      return {
-        path,
-        method: "GET",
-        public: true,
-        handler: (request: Request): Response => {
-          const hostname = new URL(request.url).hostname;
-          const match =
-            candidates.find((entry) => entry.hostname === hostname) ??
-            candidates[0];
-          if (!match) return new Response("Not found", { status: 404 });
-          return new Response(JSON.stringify(match.document), {
-            headers: { "Content-Type": "application/did+json" },
-          });
-        },
-      };
-    });
+    return paths.map((path) => ({
+      path,
+      method: "GET",
+      public: true,
+      handler: (request: Request): Response => {
+        const hostname = new URL(request.url).hostname;
+        const candidates = [
+          ...buildConfiguredDidWebDocuments(this.config),
+          ...buildConventionalDidWebDocuments(this.config, hostname),
+        ].filter((entry) => entry.path === path);
+        const match =
+          candidates.find((entry) => entry.hostname === hostname) ??
+          candidates[0];
+        if (!match) return new Response("Not found", { status: 404 });
+        return new Response(JSON.stringify(match.document), {
+          headers: { "Content-Type": "application/did+json" },
+        });
+      },
+    }));
   }
 
   async publishBrainCard(

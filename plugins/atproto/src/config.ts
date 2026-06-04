@@ -24,11 +24,15 @@ export const atprotoConfigSchema = z.object({
   anchorDid: z
     .string()
     .optional()
-    .describe("Optional human/operator DID referenced from records"),
+    .describe(
+      "Optional human/operator DID referenced from records; defaults to did:web:<site-host>:anchor when omitted",
+    ),
   brainDid: z
     .string()
     .optional()
-    .describe("Optional public brain DID referenced from records"),
+    .describe(
+      "Optional public brain DID referenced from records; defaults to did:web:<site-host> when omitted",
+    ),
 });
 
 export type AtprotoConfig = z.infer<typeof atprotoConfigSchema>;

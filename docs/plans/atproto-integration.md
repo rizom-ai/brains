@@ -75,7 +75,7 @@ Separate AT Protocol repo identity from public brain identity:
 - **Brain DID** — the agent/brain identity. This identifies the specific brain described by a record. It does not imply write authority over the PDS repo unless the brain itself owns the PDS account.
 - **Anchor DID** — the owner/operator identity for a person, team, organization, or collective. One anchor may own/operate multiple brains across multiple domains. Discovery groups related brains by `anchor.did`, not by domain.
 
-Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
+Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. When `brainDid` / `anchorDid` are omitted, publishing and DID routes use the site-host conventions `did:web:<site-host>` and `did:web:<site-host>:anchor`. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
 
 Identity architecture target:
 
@@ -87,8 +87,8 @@ Identity architecture target:
 
 For public DID documents, prefer `did:web`:
 
-- If a domain primarily serves one brain, the root DID can be the brain: `did:web:yeehaa.io` served at `https://yeehaa.io/.well-known/did.json`.
-- The anchor can still be distinct on the same domain using a path DID: `did:web:yeehaa.io:anchor` served at `https://yeehaa.io/anchor/did.json` — implemented for configured `anchorDid` values in the ATProto plugin.
+- If a domain primarily serves one brain, the root DID is conventional for the brain: `did:web:yeehaa.io` served at `https://yeehaa.io/.well-known/did.json`.
+- The anchor is conventionally distinct on the same domain using a path DID: `did:web:yeehaa.io:anchor` served at `https://yeehaa.io/anchor/did.json` — implemented for both conventional defaults and configured `anchorDid` values in the ATProto plugin.
 - If a domain primarily represents the anchor and hosts multiple brains, use path/subdomain DIDs for brains instead.
 - `did:plc` remains appropriate when domain-independent portability is needed.
 
@@ -217,7 +217,7 @@ Done:
 1. Create `plugins/atproto/` as a `ServicePlugin`
 2. Define initial lexicon JSON for `ai.rizom.brain.card`; Phase 2.6 will move canonical `ai.rizom.brain.*` lexicons into `@brains/atproto-contracts` as the single source of truth
 3. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and standard `${ENV_VAR}`-interpolated auth secret references
-4. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
+4. Implement `did:web` document serving via `getWebRoutes()`: conventional root brain DID at `/.well-known/did.json` and conventional/configured path-based anchor DID values such as `did:web:example.com:anchor` at `/anchor/did.json`
 5. Authenticate to PDS with app password for the local prototype; keep outbound ATProto OAuth as a follow-up once the first slice works
 6. Add a small PDS client wrapper so tests can mock repo writes without network access
 7. Tests: DID document route, config validation, mocked PDS authentication/client calls
@@ -241,7 +241,8 @@ Live PDS smoke result:
 - Cover-image custom post smoke succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`.
 - Follow-up verification returned the custom post with `coverImage`.
 - Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false`.
-- 2026-06-02: stale `ai.rizom.brain.card/self` was republished against the then-current discovery-card schema. That live card is stale after the brain/anchor schema revision and must be republished before the next live discovery smoke.
+- 2026-06-02: stale `ai.rizom.brain.card/self` was republished against the then-current discovery-card schema.
+- 2026-06-04: follow-up readback confirmed the live card is now invalid against the nested brain/anchor card schema (`Missing required AT Protocol record field: brain`). It still contains old top-level `name`, `description`, `a2aEndpoint`, and `capabilities`. Republish requires a controlled `siteUrl` domain; the conventional DIDs will be `did:web:<site-host>` and `did:web:<site-host>:anchor`. `rizom-test.bsky.social` is only the PDS handle and must not be used as a `did:web` host.
 - 2026-06-02: generic semantic post smoke via `atproto_publish_entity` upserted `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/rizom-atproto-live-smoke`, CID `bafyreibjm3tazhp2hnryirtpairwcowpzl6pjbzgv7ljdjiqdpputyzquu`; follow-up PDS readback validated against the live `rizom.ai` post lexicon.
 
 Still needed before production:

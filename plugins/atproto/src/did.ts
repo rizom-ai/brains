@@ -62,6 +62,14 @@ export function normalizeServiceEndpoint(endpoint: string): string {
   return endpoint.replace(/\/+$/, "");
 }
 
+export function didWebFromHostname(hostname: string): string {
+  return `did:web:${encodeURIComponent(hostname)}`;
+}
+
+export function anchorDidWebFromHostname(hostname: string): string {
+  return `${didWebFromHostname(hostname)}:anchor`;
+}
+
 function buildBaseDidWebDocument(did: string): DidDocument {
   return {
     "@context": ["https://www.w3.org/ns/did/v1"],
@@ -69,9 +77,10 @@ function buildBaseDidWebDocument(did: string): DidDocument {
   };
 }
 
-export function buildDidWebDocument(config: AtprotoConfig): DidDocument | null {
-  if (!isDidWeb(config.brainDid)) return null;
-
+function buildBrainDidWebDocument(
+  config: AtprotoConfig,
+  did: string,
+): DidDocument {
   const alsoKnownAs = config.identifier?.startsWith("did:")
     ? undefined
     : config.identifier
@@ -79,7 +88,7 @@ export function buildDidWebDocument(config: AtprotoConfig): DidDocument | null {
       : undefined;
 
   return {
-    ...buildBaseDidWebDocument(config.brainDid),
+    ...buildBaseDidWebDocument(did),
     ...(alsoKnownAs && { alsoKnownAs }),
     service: [
       {
@@ -89,6 +98,11 @@ export function buildDidWebDocument(config: AtprotoConfig): DidDocument | null {
       },
     ],
   };
+}
+
+export function buildDidWebDocument(config: AtprotoConfig): DidDocument | null {
+  if (!isDidWeb(config.brainDid)) return null;
+  return buildBrainDidWebDocument(config, config.brainDid);
 }
 
 function createConfiguredDocument(
@@ -121,4 +135,28 @@ export function buildConfiguredDidWebDocuments(
   }
 
   return configured;
+}
+
+export function buildConventionalDidWebDocuments(
+  config: AtprotoConfig,
+  hostname: string,
+): ConfiguredDidWebDocument[] {
+  const documents: ConfiguredDidWebDocument[] = [];
+  if (!config.brainDid) {
+    const brainDid = didWebFromHostname(hostname);
+    documents.push({
+      path: "/.well-known/did.json",
+      hostname,
+      document: buildBrainDidWebDocument(config, brainDid),
+    });
+  }
+  if (!config.anchorDid) {
+    const anchorDid = anchorDidWebFromHostname(hostname);
+    documents.push({
+      path: "/anchor/did.json",
+      hostname,
+      document: buildBaseDidWebDocument(anchorDid),
+    });
+  }
+  return documents;
 }

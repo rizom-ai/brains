@@ -80,10 +80,57 @@ describe("atproto plugin", () => {
     expect(() => atprotoPlugin({ pdsEndpoint: "not-a-url" })).toThrowError();
   });
 
-  it("exposes no did route without a did:web brain identity", () => {
+  it("exposes conventional did:web routes when enabled", () => {
     const plugin = atprotoPlugin();
 
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(
+      plugin
+        .getWebRoutes()
+        .map((route) => route.path)
+        .sort(),
+    ).toEqual(["/.well-known/did.json", "/anchor/did.json"]);
+  });
+
+  it("serves conventional did:web document routes when DIDs are omitted", async () => {
+    const plugin = atprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+    });
+
+    const routes = plugin.getWebRoutes();
+    expect(routes.map((route) => route.path).sort()).toEqual([
+      "/.well-known/did.json",
+      "/anchor/did.json",
+    ]);
+
+    const brainRoute = routes.find(
+      (route) => route.path === "/.well-known/did.json",
+    );
+    const brainResponse = await brainRoute?.handler(
+      new Request("https://brain.example.com/.well-known/did.json"),
+    );
+    expect(await brainResponse?.json()).toMatchObject({
+      id: "did:web:brain.example.com",
+      alsoKnownAs: ["at://brain.example.com"],
+      service: [
+        {
+          id: "#atproto_pds",
+          type: "AtprotoPersonalDataServer",
+          serviceEndpoint: "https://pds.example.com",
+        },
+      ],
+    });
+
+    const anchorRoute = routes.find(
+      (route) => route.path === "/anchor/did.json",
+    );
+    const anchorResponse = await anchorRoute?.handler(
+      new Request("https://brain.example.com/anchor/did.json"),
+    );
+    expect(await anchorResponse?.json()).toEqual({
+      "@context": ["https://www.w3.org/ns/did/v1"],
+      id: "did:web:brain.example.com:anchor",
+    });
   });
 
   it("serves did:web document routes when configured", async () => {

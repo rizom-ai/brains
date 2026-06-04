@@ -92,6 +92,21 @@ describe("AT Protocol brain card publishing", () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  it("defaults brain and anchor DIDs from the siteUrl host", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+    });
+
+    const result = await plugin.publishBrainCard(createContext(), {
+      dryRun: true,
+    });
+
+    expect(result.record.brain.did).toBe("did:web:brain.example.com");
+    expect(result.record.anchor.did).toBe("did:web:brain.example.com:anchor");
+  });
+
   it("rejects did:web brain identities that do not match siteUrl host", async () => {
     const plugin = new AtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",

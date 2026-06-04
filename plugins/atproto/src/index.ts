@@ -38,8 +38,11 @@ export {
 } from "@brains/atproto-contracts";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
+  anchorDidWebFromHostname,
   buildConfiguredDidWebDocuments,
+  buildConventionalDidWebDocuments,
   buildDidWebDocument,
+  didWebFromHostname,
   didWebToDocumentPath,
   didWebToHostname,
   isDidWeb,

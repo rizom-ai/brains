@@ -4,7 +4,12 @@ import type {
   AtprotoBrainCardSkill,
 } from "@brains/atproto-contracts";
 import type { AtprotoConfig } from "./config";
-import { didWebToHostname, isDidWeb } from "./did";
+import {
+  anchorDidWebFromHostname,
+  didWebFromHostname,
+  didWebToHostname,
+  isDidWeb,
+} from "./did";
 
 export type BrainCardRecord = AtprotoBrainCardRecord & {
   $type: "ai.rizom.brain.card";
@@ -88,12 +93,6 @@ export async function buildBrainCardRecord(
   config: AtprotoConfig,
   now: Date = new Date(),
 ): Promise<BrainCardRecord> {
-  if (!config.brainDid || !config.anchorDid) {
-    throw new Error(
-      "AT Protocol brain card publishing requires brainDid and anchorDid",
-    );
-  }
-
   const identity = context.identity.get();
   const profile = context.identity.getProfile();
   const appInfo = await context.identity.getAppInfo();
@@ -104,9 +103,11 @@ export async function buildBrainCardRecord(
   if (!siteUrl) {
     throw new Error("AT Protocol brain card publishing requires siteUrl");
   }
-  if (isDidWeb(config.brainDid)) {
-    const didHostname = didWebToHostname(config.brainDid);
-    const siteHostname = new URL(siteUrl).hostname;
+  const siteHostname = new URL(siteUrl).hostname;
+  const brainDid = config.brainDid ?? didWebFromHostname(siteHostname);
+  const anchorDid = config.anchorDid ?? anchorDidWebFromHostname(siteHostname);
+  if (isDidWeb(brainDid)) {
+    const didHostname = didWebToHostname(brainDid);
     if (didHostname !== siteHostname) {
       throw new Error(
         "AT Protocol brain card did:web host must match siteUrl host",
@@ -120,14 +121,14 @@ export async function buildBrainCardRecord(
     $type: "ai.rizom.brain.card",
     siteUrl,
     brain: {
-      did: config.brainDid,
+      did: brainDid,
       name: identity.name,
       role: identity.role,
       purpose: identity.purpose,
       values: identity.values,
     },
     anchor: {
-      did: config.anchorDid,
+      did: anchorDid,
       name: profile.name,
       kind: profile.kind,
     },
