@@ -21,7 +21,7 @@ turns:
       - kind: file
         filename: distributed-systems-primer.pdf
         mediaType: application/pdf
-        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==
         source:
           kind: web-chat-upload
           id: upload-00000000-0000-4000-8000-000000000501
@@ -40,10 +40,12 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: document
-            fromUpload.kind: web-chat-upload
-            fromUpload.id: upload-00000000-0000-4000-8000-000000000501
+            upload.kind: web-chat-upload
+            upload.id: upload-00000000-0000-4000-8000-000000000501
           argsAbsent:
             - from
+            - fromUpload
+            - sourceAttachment
       responseNotContains:
         - "upload reference isn't accessible"
         - "upload reference isn’t accessible"
@@ -58,10 +60,12 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: document
-        fromUpload.kind: web-chat-upload
-        fromUpload.id: upload-00000000-0000-4000-8000-000000000501
+        upload.kind: web-chat-upload
+        upload.id: upload-00000000-0000-4000-8000-000000000501
       argsAbsent:
         - from
+        - fromUpload
+        - sourceAttachment
     - toolName: document_generate
       shouldBeCalled: false
     - toolName: system_update

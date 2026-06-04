@@ -154,15 +154,19 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, from for source attachment saves, or fromUpload for explicit runtime upload promotion.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for runtime upload promotion, or sourceAttachment for source attachment saves.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
       const content = normalizeOptionalString(input.content);
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
-      const from = input.from;
-      const fromUpload = input.fromUpload;
+      const uploadRef = input.upload;
+      const from: CreateInput["from"] =
+        uploadRef ??
+        (input.sourceAttachment
+          ? { kind: "entity-attachment", ...input.sourceAttachment }
+          : undefined);
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -175,17 +179,17 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
         };
 
-      if (!content && !prompt && !url && !from && !fromUpload)
+      if (!content && !prompt && !url && !from)
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'from' (source attachment create), or 'fromUpload' (runtime upload promotion), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (runtime upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
 
-      if (fromUpload) {
+      if (uploadRef) {
         const hasAccess = await isUploadRefInConversation(
           services,
-          fromUpload,
+          uploadRef,
           toolContext.conversationId ?? toolContext.channelId,
         );
         if (!hasAccess) {
@@ -219,7 +223,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(content && { content }),
         ...(url && { url }),
         ...(from && { from }),
-        ...(fromUpload && { fromUpload }),
         ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),

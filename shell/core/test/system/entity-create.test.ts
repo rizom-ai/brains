@@ -364,7 +364,7 @@ describe("system_create tool", () => {
     const result = await exec(
       {
         entityType: "document",
-        fromUpload: {
+        upload: {
           kind: "web-chat-upload",
           id: "upload-00000000-0000-4000-8000-000000000301",
         },
@@ -378,7 +378,7 @@ describe("system_create tool", () => {
     });
     expect(capturedInput).toEqual({
       entityType: "document",
-      fromUpload: {
+      from: {
         kind: "web-chat-upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
       },
@@ -434,7 +434,7 @@ describe("system_create tool", () => {
     const result = await exec(
       {
         entityType: "document",
-        fromUpload: {
+        upload: {
           kind: "web-chat-upload",
           id: "upload-00000000-0000-4000-8000-000000000303",
         },
@@ -450,16 +450,17 @@ describe("system_create tool", () => {
       success: true,
       data: { status: "created", entityId: "brief" },
     });
-    expect(capturedInput?.fromUpload?.id).toBe(
-      "upload-00000000-0000-4000-8000-000000000303",
-    );
+    expect(capturedInput?.from).toEqual({
+      kind: "web-chat-upload",
+      id: "upload-00000000-0000-4000-8000-000000000303",
+    });
   });
 
   it("should reject upload refs outside the current conversation", async () => {
     const result = await exec(
       {
         entityType: "document",
-        fromUpload: {
+        upload: {
           kind: "web-chat-upload",
           id: "upload-00000000-0000-4000-8000-000000000302",
         },
@@ -689,7 +690,7 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
-  it("should require content, prompt, url, from, or fromUpload", async () => {
+  it("should require content, prompt, url, upload, or sourceAttachment", async () => {
     const result = await exec({
       entityType: "base",
       title: "Nothing else",
@@ -942,19 +943,21 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url, from, fromUpload, replace, and coverImage, and not include options field in schema", () => {
+  it("should expose top-level url, upload, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
-    expect(tool.inputSchema).toHaveProperty("from");
-    expect(tool.inputSchema).toHaveProperty("fromUpload");
+    expect(tool.inputSchema).not.toHaveProperty("from");
+    expect(tool.inputSchema).toHaveProperty("upload");
+    expect(tool.inputSchema).toHaveProperty("sourceAttachment");
+    expect(tool.inputSchema).not.toHaveProperty("fromUpload");
     expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
   });
 
-  it("should accept from as a create source and forward replace to create interceptors", async () => {
+  it("should accept sourceAttachment as a create source and forward normalized from plus replace to create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
       "document",
@@ -976,7 +979,7 @@ A saved research link.`;
 
     const result = await exec({
       entityType: "document",
-      from: {
+      sourceAttachment: {
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
         attachmentType: "carousel",
@@ -997,6 +1000,7 @@ A saved research link.`;
     expect(capturedInput).toEqual({
       entityType: "document",
       from: {
+        kind: "entity-attachment",
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
         attachmentType: "carousel",

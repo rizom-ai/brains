@@ -45,6 +45,7 @@ describe("DocumentPlugin", () => {
       {
         entityType: "document",
         from: {
+          kind: "entity-attachment",
           sourceEntityType: "deck",
           sourceEntityId: "deck-1",
           attachmentType: "carousel",
@@ -108,7 +109,7 @@ describe("DocumentPlugin", () => {
       {
         entityType: "document",
         title: "Brief",
-        fromUpload: record.ref,
+        from: { kind: "web-chat-upload", id: record.ref.id },
       },
       { interfaceType: "web-chat", userId: "operator" },
     );
@@ -172,7 +173,10 @@ describe("DocumentPlugin", () => {
     if (!interceptor) throw new Error("document interceptor not registered");
 
     const result = await interceptor(
-      { entityType: "document", fromUpload: record.ref },
+      {
+        entityType: "document",
+        from: { kind: "web-chat-upload", id: record.ref.id },
+      },
       { interfaceType: "web-chat", userId: "operator" },
     );
 
@@ -216,6 +220,7 @@ describe("DocumentPlugin", () => {
       {
         entityType: "document",
         from: {
+          kind: "entity-attachment",
           sourceEntityType: "post",
           sourceEntityId: "post-1",
           attachmentType: "printable",

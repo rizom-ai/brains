@@ -28,7 +28,7 @@ const webChatUploadsScope = {
   namespace: "web-chat",
   refKind: "web-chat-upload",
   routePath: "/api/chat/uploads",
-};
+} as const;
 
 function getUploadTitle(input: CreateInput, filename: string): string {
   const title = input.title?.trim();
@@ -102,7 +102,7 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     input: CreateInput,
   ): Promise<CreateInterceptionResult> {
     const context = this.pluginContext;
-    if (input.fromUpload) {
+    if (input.from?.kind === webChatUploadsScope.refKind) {
       if (!context) {
         return {
           kind: "handled",
@@ -174,8 +174,8 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     input: CreateInput,
     context: ServicePluginContext,
   ): Promise<CreateInterceptionResult> {
-    const fromUpload = input.fromUpload;
-    if (fromUpload?.kind !== webChatUploadsScope.refKind) {
+    const uploadRef = input.from;
+    if (uploadRef?.kind !== webChatUploadsScope.refKind) {
       return {
         kind: "handled",
         result: { success: false, error: "Unsupported upload ref kind" },
@@ -186,7 +186,7 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
     try {
       upload = await context.uploads
         .scoped(webChatUploadsScope)
-        .read(fromUpload.id);
+        .read(uploadRef.id);
     } catch {
       return {
         kind: "handled",
@@ -223,7 +223,7 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
       filename: upload.record.filename,
       title,
       attachmentType: "uploaded",
-      dedupKey: `upload:${fromUpload.kind}:${fromUpload.id}`,
+      dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
     });
     const result = await context.entityService.createEntity({
       entity: {
@@ -280,7 +280,7 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable PDF saves from uploaded PDFs, call system_create with entityType: "document" and fromUpload: { kind: "web-chat-upload", id: <upload ID> } only after the user explicitly asks to save/import/promote the upload. Uploaded PDFs are not decks; raw upload promotion preserves the PDF as a document. For generated/source-derived PDFs, call system_create with entityType: "document" and a source attachment in from. Deck carousel PDFs use from: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Printable PDFs for blog posts, projects, and products use attachmentType: "printable" with sourceEntityType "post", "project", or "product". Include targetEntityType/targetEntityId when the user asks to attach the saved document to another entity. Use replace: true when they ask to regenerate or replace a saved PDF. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document".`;
+    return `For durable PDF saves from uploaded PDFs, copy the exact upload object shown in the current turn's "Available runtime upload refs" hint only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Uploaded PDFs are not decks; raw upload promotion preserves the PDF as a document. For generated/source-derived PDFs, call system_create with entityType: "document" and sourceAttachment. Deck carousel PDFs use sourceAttachment: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Printable PDFs for blog posts, projects, and products use sourceAttachment with attachmentType: "printable" and sourceEntityType "post", "project", or "product". Omit upload and sourceAttachment entirely for ordinary direct document creates that use content, prompt, or url. Include targetEntityType/targetEntityId when the user asks to attach the saved document to another entity. Use replace: true when they ask to regenerate or replace a saved PDF. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document".`;
   }
 
   protected override async getTools(): Promise<Tool[]> {

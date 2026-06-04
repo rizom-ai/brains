@@ -5,6 +5,68 @@ import { z } from "@brains/utils";
 import { convertToSDKTools, toModelVisibleInputSchema } from "../src/sdk-tools";
 
 describe("convertToSDKTools", () => {
+  it("exposes create source fields only when enabled for the current turn", () => {
+    const tool: Tool = {
+      name: "system_create",
+      description: "Create",
+      inputSchema: {
+        entityType: z.string(),
+        upload: z
+          .object({ kind: z.literal("web-chat-upload"), id: z.string() })
+          .optional(),
+        sourceAttachment: z
+          .object({
+            sourceEntityType: z.string(),
+            sourceEntityId: z.string(),
+            attachmentType: z.string(),
+          })
+          .optional(),
+      },
+      visibility: "public",
+      handler: mock(async () => ({ success: true as const })),
+    };
+
+    const withoutSources = convertToSDKTools(
+      [tool],
+      { conversationId: "conversation-1", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    )["system_create"]?.inputSchema;
+    const withUpload = convertToSDKTools(
+      [tool],
+      {
+        conversationId: "conversation-1",
+        interfaceType: "agent",
+        enableCreateUpload: true,
+      },
+      { emit: mock(() => {}) },
+    )["system_create"]?.inputSchema;
+    const withSourceAttachment = convertToSDKTools(
+      [tool],
+      {
+        conversationId: "conversation-1",
+        interfaceType: "agent",
+        enableCreateSourceAttachment: true,
+      },
+      { emit: mock(() => {}) },
+    )["system_create"]?.inputSchema;
+
+    if (!withoutSources || !withUpload || !withSourceAttachment) {
+      throw new Error("Expected system_create schemas");
+    }
+    const withoutSourcesShape = (withoutSources as z.ZodObject<z.ZodRawShape>)
+      .shape;
+    const withUploadShape = (withUpload as z.ZodObject<z.ZodRawShape>).shape;
+    const withSourceAttachmentShape = (
+      withSourceAttachment as z.ZodObject<z.ZodRawShape>
+    ).shape;
+    expect(Object.keys(withoutSourcesShape)).toEqual(["entityType"]);
+    expect(Object.keys(withUploadShape)).toEqual(["entityType", "upload"]);
+    expect(Object.keys(withSourceAttachmentShape)).toEqual([
+      "entityType",
+      "sourceAttachment",
+    ]);
+  });
+
   it("passes coerced invalid registered tool responses through normal agent tool execution", async () => {
     const unsubscribeFn = mock(() => {});
     const mcpService = MCPService.createFresh(

@@ -216,7 +216,7 @@ Upload refs are chat-context attachments by default. They should not become
 content entities unless the operator explicitly asks to save or import them.
 Raw-file promotion preserves the original artifact: PDFs promote to `document`
 and images promote to `image` through explicit `system_create({ entityType:
-"document" | "image", fromUpload: { kind: "web-chat-upload", id } })` calls.
+"document" | "image", upload: { kind: "web-chat-upload", id } })` calls.
 `system_create` validates that the upload ref appears in the current
 conversation before forwarding it to the entity plugin, and the receiving plugin
 validates media type and ref existence before persisting. Markdown
@@ -251,7 +251,7 @@ Ambiguous same-type references still ask the operator which upload to use.
 Remaining upload work:
 
 - add an explicit markdown import/extraction contract for text/PDF uploads,
-  likely `system_create({ entityType: "base" | "doc", fromUpload: { kind:
+  likely `system_create({ entityType: "base" | "doc", upload: { kind:
 "web-chat-upload", id }, transform: "extract-markdown" })`; PDF extraction
   should use `pdfjs-dist` behind a small service/job boundary, with any LLM pass
   limited to cleanup or summarization after deterministic extraction;

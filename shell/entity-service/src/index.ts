@@ -27,6 +27,8 @@ export type { EmbeddingDB } from "./db/embedding-db";
 export type {
   BaseEntity,
   CreateCoverImageInput,
+  CreateFromAttachmentInput,
+  CreateFromInput,
   CreateFromUploadInput,
   CreateInput,
   CreateExecutionContext,

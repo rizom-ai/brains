@@ -10,6 +10,8 @@ export interface ToolContextInfo {
   channelName?: string | undefined;
   interfaceType: string;
   userPermissionLevel?: UserPermissionLevel;
+  enableCreateUpload?: boolean | undefined;
+  enableCreateSourceAttachment?: boolean | undefined;
 }
 
 const INTERNAL_CONFIRMATION_FIELDS = new Set([
@@ -18,13 +20,24 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "contentHash",
 ]);
 
+const CREATE_SOURCE_FIELDS = new Set(["upload", "sourceAttachment"]);
+
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
+  options: {
+    toolName?: string;
+    enableCreateUpload?: boolean;
+    enableCreateSourceAttachment?: boolean;
+  } = {},
 ): Tool["inputSchema"] {
   return Object.fromEntries(
-    Object.entries(inputSchema).filter(
-      ([key]) => !INTERNAL_CONFIRMATION_FIELDS.has(key),
-    ),
+    Object.entries(inputSchema).filter(([key]) => {
+      if (INTERNAL_CONFIRMATION_FIELDS.has(key)) return false;
+      if (options.toolName !== "system_create") return true;
+      if (!CREATE_SOURCE_FIELDS.has(key)) return true;
+      if (key === "upload") return options.enableCreateUpload === true;
+      return options.enableCreateSourceAttachment === true;
+    }),
   );
 }
 
@@ -59,7 +72,18 @@ export function convertToSDKTools(
 
     sdkTools[t.name] = dynamicTool({
       description: t.description,
-      inputSchema: z.object(toModelVisibleInputSchema(t.inputSchema)),
+      inputSchema: z.object(
+        toModelVisibleInputSchema(t.inputSchema, {
+          toolName: t.name,
+          ...(contextInfo.enableCreateUpload !== undefined && {
+            enableCreateUpload: contextInfo.enableCreateUpload,
+          }),
+          ...(contextInfo.enableCreateSourceAttachment !== undefined && {
+            enableCreateSourceAttachment:
+              contextInfo.enableCreateSourceAttachment,
+          }),
+        }),
+      ),
       execute: wrappedExecute,
     });
   }

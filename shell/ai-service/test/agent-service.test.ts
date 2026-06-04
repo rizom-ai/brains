@@ -335,7 +335,7 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: 'Describe this image\n\nAvailable upload refs for attached files:\n- robot.png: fromUpload { kind: "web-chat-upload", id: "upload-123" }',
+            text: 'Describe this image\n\nAvailable runtime upload refs for attached files. To save, import, or promote one of these files, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> }.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }',
           },
           {
             type: "file",
@@ -450,7 +450,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content:
-          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable upload refs for attached files:\n- durable-notes.md: fromUpload { kind: "web-chat-upload", id: "upload-123" }',
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable runtime upload refs for attached files. To save, import, or promote one of these files, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> }.\n- durable-notes.md: upload { kind: "web-chat-upload", id: "upload-123" }',
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,

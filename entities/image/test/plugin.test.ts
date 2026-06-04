@@ -76,7 +76,7 @@ describe("ImagePlugin", () => {
       {
         entityType: "image",
         title: "Robot",
-        fromUpload: record.ref,
+        from: { kind: "web-chat-upload", id: record.ref.id },
       },
       {
         interfaceType: "web-chat",
@@ -140,7 +140,10 @@ describe("ImagePlugin", () => {
     if (!interceptor) throw new Error("Expected image create interceptor");
 
     const result = await interceptor(
-      { entityType: "image", fromUpload: record.ref },
+      {
+        entityType: "image",
+        from: { kind: "web-chat-upload", id: record.ref.id },
+      },
       {
         interfaceType: "web-chat",
         userId: "operator",

@@ -16,6 +16,12 @@ successCriteria:
   expectedTools:
     - toolName: system_create
       shouldBeCalled: true
+      argsContain:
+        entityType: base
+      argsAbsent:
+        - upload
+        - sourceAttachment
+        - from
   toolCountRange:
     min: 1
   responseNotContains:

@@ -94,11 +94,11 @@ function formatUploadRefs(attachments: ChatAttachment[]): string {
   const lines = attachments.flatMap((attachment) => {
     if (attachment.source === undefined) return [];
     return [
-      `- ${attachment.filename}: fromUpload { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }`,
+      `- ${attachment.filename}: upload { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }`,
     ];
   });
   return lines.length > 0
-    ? `Available upload refs for attached files:\n${lines.join("\n")}`
+    ? `Available runtime upload refs for attached files. To save, import, or promote one of these files, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> }.\n${lines.join("\n")}`
     : "";
 }
 

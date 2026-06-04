@@ -38,14 +38,14 @@ const coverImageInputSchema = z.union([
   z.literal(false).describe("Do not generate a cover image"),
 ]);
 
-const createFromAttachmentInputSchema = z.object({
+const createSourceAttachmentInputSchema = z.object({
   sourceEntityType: z.string().min(1).describe("Source entity type"),
   sourceEntityId: z.string().min(1).describe("Source entity ID"),
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
-const createFromUploadInputSchema = z.object({
-  kind: z.string().min(1).describe("Runtime upload ref kind"),
+const createUploadInputSchema = z.object({
+  kind: z.literal("web-chat-upload").describe("Runtime upload ref kind"),
   id: z.string().min(1).describe("Runtime upload ID"),
 });
 
@@ -60,15 +60,15 @@ export const createInputSchema = z.object({
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
-  from: createFromAttachmentInputSchema
+  upload: createUploadInputSchema
     .optional()
     .describe(
-      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+      'Promote a runtime upload. Use only when the current turn shows an exact upload ref, e.g. { kind: "web-chat-upload", id: "upload-..." }. Omit for ordinary direct creates that use content, prompt, or url.',
     ),
-  fromUpload: createFromUploadInputSchema
+  sourceAttachment: createSourceAttachmentInputSchema
     .optional()
     .describe(
-      "Promote an accessible runtime upload ref, e.g. a web-chat-upload PDF to document or image upload to image",
+      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
   replace: z
     .boolean()

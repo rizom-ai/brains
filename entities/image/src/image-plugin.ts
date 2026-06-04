@@ -30,7 +30,7 @@ const webChatUploadsScope = {
   namespace: "web-chat",
   refKind: "web-chat-upload",
   routePath: "/api/chat/uploads",
-};
+} as const;
 
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -158,7 +158,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     _executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
-    if (input.fromUpload) {
+    if (input.from?.kind === webChatUploadsScope.refKind) {
       return this.promoteUpload(input, context);
     }
 
@@ -259,8 +259,8 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     input: CreateInput,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
-    const fromUpload = input.fromUpload;
-    if (fromUpload?.kind !== webChatUploadsScope.refKind) {
+    const uploadRef = input.from;
+    if (uploadRef?.kind !== webChatUploadsScope.refKind) {
       return {
         kind: "handled",
         result: { success: false, error: "Unsupported upload ref kind" },
@@ -271,7 +271,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     try {
       upload = await context.uploads
         .scoped(webChatUploadsScope)
-        .read(fromUpload.id);
+        .read(uploadRef.id);
     } catch {
       return {
         kind: "handled",
@@ -335,7 +335,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable image saves from uploaded images, call system_create with entityType: "image" and fromUpload: { kind: "web-chat-upload", id: <upload ID> } only after the user explicitly asks to save/import/promote the upload. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. For AI-generated images, call system_create with entityType: "image" and a prompt.`;
+    return `For durable image saves from uploaded images, copy the exact upload object shown in the current turn's "Available runtime upload refs" hint only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. For AI-generated images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely.`;
   }
 
   protected override createGenerationHandler(

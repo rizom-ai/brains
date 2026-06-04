@@ -21,9 +21,9 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "document"
-        from.sourceEntityType: "post"
-        from.sourceEntityId: "resilience-in-distributed-systems"
-        from.attachmentType: "printable"
+        sourceAttachment.sourceEntityType: "post"
+        sourceAttachment.sourceEntityId: "resilience-in-distributed-systems"
+        sourceAttachment.attachmentType: "printable"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

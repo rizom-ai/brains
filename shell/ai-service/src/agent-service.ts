@@ -66,6 +66,12 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
 }
 
+function hasSourceAttachmentIntent(message: string): boolean {
+  return /\b(carousel|printable|source attachment|attach(?:ed)? document|attach(?:ed)? pdf)\b/i.test(
+    message,
+  );
+}
+
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
@@ -426,6 +432,12 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
+      ...(attachments.some((attachment) => attachment.source !== undefined)
+        ? { enableCreateUpload: true }
+        : {}),
+      ...(hasSourceAttachmentIntent(message)
+        ? { enableCreateSourceAttachment: true }
+        : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 

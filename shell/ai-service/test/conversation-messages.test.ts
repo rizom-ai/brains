@@ -20,7 +20,7 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toEqual([
       {
         type: "text",
-        text: 'save it as a document\n\nAvailable upload refs for attached files:\n- brief.pdf: fromUpload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }',
+        text: 'save it as a document\n\nAvailable runtime upload refs for attached files. To save, import, or promote one of these files, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> }.\n- brief.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }',
       },
       {
         type: "file",
