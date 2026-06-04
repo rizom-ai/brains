@@ -53,8 +53,8 @@ Secrets should be supplied through environment variables or app secret configura
 - `pdsEndpoint`: PDS service endpoint. Defaults to `https://bsky.social`.
 - `identifier`: PDS login identifier, usually a handle or account DID.
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
-- `brainDid`: public brain DID. Required for `atproto_publish_card`. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
-- `anchorDid`: public human/operator DID. Required for `atproto_publish_card`.
+- `brainDid`: public brain DID. Required for `atproto_publish_card`. If this is `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
+- `anchorDid`: public human/operator DID. Required for `atproto_publish_card`. If this is a path-based `did:web:*`, for example `did:web:example.com:anchor`, the plugin exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 
 ## Tools
@@ -184,8 +184,9 @@ Use a test PDS/Bluesky account and an app password.
 
 1. Configure `identifier`, `repoDid` or handle, `brainDid`, `anchorDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
 2. Start a brain with the atproto plugin enabled.
-3. Confirm DID document if using `did:web`:
-   - `GET https://<brain-domain>/.well-known/did.json`
+3. Confirm DID documents if using `did:web`:
+   - brain root DID: `GET https://<brain-domain>/.well-known/did.json`
+   - same-domain anchor path DID: `GET https://<brain-domain>/anchor/did.json`
 4. Dry-run card publishing:
    - `atproto_publish_card { "dryRun": true }`
 5. Validate credentials:

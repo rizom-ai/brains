@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildConfiguredDidWebDocuments,
   buildDidWebDocument,
+  didWebToDocumentPath,
   didWebToHostname,
   isDidWeb,
   normalizeServiceEndpoint,
@@ -36,6 +38,19 @@ describe("did helpers", () => {
     );
   });
 
+  it("maps did:web identities to document paths", () => {
+    expect(didWebToDocumentPath("did:web:brain.example.com")).toBe(
+      "/.well-known/did.json",
+    );
+    expect(didWebToDocumentPath("did:web:brain.example.com:anchor")).toBe(
+      "/anchor/did.json",
+    );
+    expect(didWebToDocumentPath("did:web:brain.example.com:ids:owner")).toBe(
+      "/ids/owner/did.json",
+    );
+    expect(didWebToDocumentPath("did:plc:abc123")).toBeUndefined();
+  });
+
   it("builds a did:web document for AT Protocol", () => {
     const doc = buildDidWebDocument(baseConfig);
 
@@ -57,5 +72,37 @@ describe("did helpers", () => {
     expect(
       buildDidWebDocument({ ...baseConfig, brainDid: "did:plc:abc123" }),
     ).toBeNull();
+  });
+
+  it("builds configured brain and anchor did:web documents", () => {
+    const docs = buildConfiguredDidWebDocuments({
+      ...baseConfig,
+      anchorDid: "did:web:brain.example.com:anchor",
+    });
+
+    expect(docs).toEqual([
+      {
+        path: "/.well-known/did.json",
+        hostname: "brain.example.com",
+        document: expect.objectContaining({
+          id: "did:web:brain.example.com",
+          service: [
+            {
+              id: "#atproto_pds",
+              type: "AtprotoPersonalDataServer",
+              serviceEndpoint: "https://pds.example.com",
+            },
+          ],
+        }),
+      },
+      {
+        path: "/anchor/did.json",
+        hostname: "brain.example.com",
+        document: {
+          "@context": ["https://www.w3.org/ns/did/v1"],
+          id: "did:web:brain.example.com:anchor",
+        },
+      },
+    ]);
   });
 });

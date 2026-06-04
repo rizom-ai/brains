@@ -86,31 +86,53 @@ describe("atproto plugin", () => {
     expect(plugin.getWebRoutes()).toEqual([]);
   });
 
-  it("serves did:web document route when configured", async () => {
+  it("serves did:web document routes when configured", async () => {
     const plugin = atprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
+      anchorDid: "did:web:brain.example.com:anchor",
     });
 
     const routes = plugin.getWebRoutes();
-    expect(routes).toHaveLength(1);
-    expect(routes[0]?.path).toBe("/.well-known/did.json");
-    expect(routes[0]?.method).toBe("GET");
-    expect(routes[0]?.public).toBe(true);
+    expect(routes.map((route) => route.path).sort()).toEqual([
+      "/.well-known/did.json",
+      "/anchor/did.json",
+    ]);
+    expect(routes.every((route) => route.method === "GET")).toBe(true);
+    expect(routes.every((route) => route.public)).toBe(true);
 
-    const response = await routes[0]?.handler(
+    const brainRoute = routes.find(
+      (route) => route.path === "/.well-known/did.json",
+    );
+    const brainResponse = await brainRoute?.handler(
       new Request("https://brain.example.com/.well-known/did.json"),
     );
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get("content-type")).toBe("application/did+json");
+    expect(brainResponse?.status).toBe(200);
+    expect(brainResponse?.headers.get("content-type")).toBe(
+      "application/did+json",
+    );
 
-    const body = (await response?.json()) as {
+    const brainBody = (await brainResponse?.json()) as {
       id: string;
       service: Array<{ serviceEndpoint: string }>;
     };
-    expect(body.id).toBe("did:web:brain.example.com");
-    expect(body.service[0]?.serviceEndpoint).toBe("https://pds.example.com");
+    expect(brainBody.id).toBe("did:web:brain.example.com");
+    expect(brainBody.service[0]?.serviceEndpoint).toBe(
+      "https://pds.example.com",
+    );
+
+    const anchorRoute = routes.find(
+      (route) => route.path === "/anchor/did.json",
+    );
+    const anchorResponse = await anchorRoute?.handler(
+      new Request("https://brain.example.com/anchor/did.json"),
+    );
+    expect(anchorResponse?.status).toBe(200);
+    expect(await anchorResponse?.json()).toEqual({
+      "@context": ["https://www.w3.org/ns/did/v1"],
+      id: "did:web:brain.example.com:anchor",
+    });
   });
 
   it("hides routes when disabled", () => {

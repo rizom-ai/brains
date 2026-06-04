@@ -92,6 +92,29 @@ describe("AT Protocol brain card publishing", () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  it("rejects did:web brain identities that do not match siteUrl host", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      brainDid: "did:web:other.example.com",
+      anchorDid: "did:plc:anchor",
+    });
+
+    let error: unknown;
+    try {
+      await plugin.publishBrainCard(createContext(), { dryRun: true });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toHaveProperty(
+      "message",
+      "AT Protocol brain card did:web host must match siteUrl host",
+    );
+  });
+
   it("upserts the brain card to the configured PDS repo", async () => {
     const createSession = mock(async () => ({
       did: "did:plc:session-repo",

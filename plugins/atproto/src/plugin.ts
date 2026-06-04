@@ -12,7 +12,7 @@ import {
   type AtprotoConfigInput,
 } from "./config";
 import { AtprotoPdsClient } from "./pds-client";
-import { buildDidWebDocument } from "./did";
+import { buildConfiguredDidWebDocuments } from "./did";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
@@ -115,20 +115,27 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   override getWebRoutes(): WebRouteDefinition[] {
     if (!this.config.enabled) return [];
 
-    const didDocument = buildDidWebDocument(this.config);
-    if (!didDocument) return [];
+    const didDocuments = buildConfiguredDidWebDocuments(this.config);
+    const paths = [...new Set(didDocuments.map((entry) => entry.path))];
 
-    return [
-      {
-        path: "/.well-known/did.json",
+    return paths.map((path) => {
+      const candidates = didDocuments.filter((entry) => entry.path === path);
+      return {
+        path,
         method: "GET",
         public: true,
-        handler: (): Response =>
-          new Response(JSON.stringify(didDocument), {
+        handler: (request: Request): Response => {
+          const hostname = new URL(request.url).hostname;
+          const match =
+            candidates.find((entry) => entry.hostname === hostname) ??
+            candidates[0];
+          if (!match) return new Response("Not found", { status: 404 });
+          return new Response(JSON.stringify(match.document), {
             headers: { "Content-Type": "application/did+json" },
-          }),
-      },
-    ];
+          });
+        },
+      };
+    });
   }
 
   async publishBrainCard(

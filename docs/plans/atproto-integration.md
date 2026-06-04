@@ -88,7 +88,7 @@ Identity architecture target:
 For public DID documents, prefer `did:web`:
 
 - If a domain primarily serves one brain, the root DID can be the brain: `did:web:yeehaa.io` served at `https://yeehaa.io/.well-known/did.json`.
-- The anchor can still be distinct on the same domain using a path DID: `did:web:yeehaa.io:anchor` served at `https://yeehaa.io/anchor/did.json`.
+- The anchor can still be distinct on the same domain using a path DID: `did:web:yeehaa.io:anchor` served at `https://yeehaa.io/anchor/did.json` — implemented for configured `anchorDid` values in the ATProto plugin.
 - If a domain primarily represents the anchor and hosts multiple brains, use path/subdomain DIDs for brains instead.
 - `did:plc` remains appropriate when domain-independent portability is needed.
 

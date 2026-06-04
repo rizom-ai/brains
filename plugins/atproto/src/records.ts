@@ -4,6 +4,7 @@ import type {
   AtprotoBrainCardSkill,
 } from "@brains/atproto-contracts";
 import type { AtprotoConfig } from "./config";
+import { didWebToHostname, isDidWeb } from "./did";
 
 export type BrainCardRecord = AtprotoBrainCardRecord & {
   $type: "ai.rizom.brain.card";
@@ -102,6 +103,15 @@ export async function buildBrainCardRecord(
   );
   if (!siteUrl) {
     throw new Error("AT Protocol brain card publishing requires siteUrl");
+  }
+  if (isDidWeb(config.brainDid)) {
+    const didHostname = didWebToHostname(config.brainDid);
+    const siteHostname = new URL(siteUrl).hostname;
+    if (didHostname !== siteHostname) {
+      throw new Error(
+        "AT Protocol brain card did:web host must match siteUrl host",
+      );
+    }
   }
 
   const skills = await listPublicSkills(context);
