@@ -7,6 +7,7 @@ import type { RetryTracker } from "../retry-tracker";
 import type { GenerationCondition } from "./config";
 import type { SchedulerBackend } from "../scheduler-backend";
 import type { PublishAuthContext } from "./messages";
+import type { PublishEntityExecutor } from "../publish-executor";
 
 export interface PublishExecuteEvent {
   entityType: string;
@@ -64,8 +65,10 @@ export interface SchedulerConfig {
   generationConditions?: Record<string, GenerationCondition>;
   /** Optional message bus for message-driven publishing/generation */
   messageBus?: IMessageBus;
-  /** Entity service for fetching entity content (required for provider mode) */
+  /** Entity service for fetching entity content (required for legacy provider mode) */
   entityService?: ICoreEntityService;
+  /** Shared executor for provider publishing and durable publish state updates. */
+  publishExecutor?: PublishEntityExecutor;
   /** Callback when entity is ready to publish (message mode) */
   onExecute?: (event: PublishExecuteEvent) => void;
   /** Callback on successful publish (provider mode) */

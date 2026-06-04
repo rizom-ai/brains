@@ -4,6 +4,7 @@ import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import { ContentScheduler } from "../scheduler";
+import { PublishExecutor } from "../publish-executor";
 import { CronerBackend } from "../scheduler-backend";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
@@ -49,6 +50,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     }),
     messageBus,
     entityService: context.entityService,
+    publishExecutor: new PublishExecutor({ context, providerRegistry }),
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(
         context.entityService,

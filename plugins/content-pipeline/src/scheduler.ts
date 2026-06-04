@@ -165,6 +165,7 @@ export class ContentScheduler {
       retryTracker: this.config.retryTracker,
       messageBus: this.config.messageBus,
       entityService: this.config.entityService,
+      publishExecutor: this.config.publishExecutor,
       onExecute: this.config.onExecute,
       onPublish: this.config.onPublish,
       onFailed: this.config.onFailed,

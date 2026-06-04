@@ -24,6 +24,10 @@ export interface PublishEntityError {
 
 export type PublishEntityResult = PublishEntitySuccess | PublishEntityError;
 
+export interface PublishEntityExecutor {
+  publish(input: PublishEntityInput): Promise<PublishEntityResult>;
+}
+
 export interface PublishExecutorDeps {
   context: ServicePluginContext;
   providerRegistry: ProviderRegistry;
@@ -36,7 +40,7 @@ export interface PublishExecutorDeps {
  * validation/content preparation/state update flow, and queued provider-mode
  * execution can be moved here without changing tool behavior.
  */
-export class PublishExecutor {
+export class PublishExecutor implements PublishEntityExecutor {
   constructor(private readonly deps: PublishExecutorDeps) {}
 
   public async publish(

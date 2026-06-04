@@ -10,6 +10,7 @@ import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
 import type { QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
+import type { PublishEntityExecutor } from "./publish-executor";
 import type {
   PublishExecuteEvent,
   PublishSuccessEvent,
@@ -22,6 +23,7 @@ export interface PublishDeps {
   retryTracker: RetryTracker;
   messageBus?: IMessageBus | undefined;
   entityService?: ICoreEntityService | undefined;
+  publishExecutor?: PublishEntityExecutor | undefined;
   onExecute?: ((event: PublishExecuteEvent) => void) | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
   onFailed?: ((event: PublishFailedEvent) => void) | undefined;
@@ -61,10 +63,16 @@ export async function executeWithProvider(
     | "providerRegistry"
     | "retryTracker"
     | "entityService"
+    | "publishExecutor"
     | "onPublish"
     | "onFailed"
   >,
 ): Promise<void> {
+  if (deps.publishExecutor) {
+    await executeWithPublishExecutor(entry, deps);
+    return;
+  }
+
   const provider = deps.providerRegistry.get(entry.entityType);
 
   if (!deps.entityService) {
@@ -103,6 +111,54 @@ export async function executeWithProvider(
       entityType: entry.entityType,
       entityId: entry.entityId,
       result,
+    });
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+
+    deps.retryTracker.recordFailure(entry.entityId, errorMessage);
+    const retryInfo = deps.retryTracker.getRetryInfo(entry.entityId);
+
+    deps.onFailed?.({
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      error: errorMessage,
+      retryCount: retryInfo?.retryCount ?? 1,
+      willRetry: retryInfo?.willRetry ?? false,
+    });
+  }
+}
+
+async function executeWithPublishExecutor(
+  entry: QueueEntry,
+  deps: Pick<
+    PublishDeps,
+    "publishExecutor" | "retryTracker" | "onPublish" | "onFailed"
+  >,
+): Promise<void> {
+  if (!deps.publishExecutor) return;
+
+  try {
+    const publishResult = await deps.publishExecutor.publish({
+      entityType: entry.entityType,
+      id: entry.entityId,
+    });
+
+    if ("error" in publishResult) {
+      deps.onFailed?.({
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        error: publishResult.error,
+        retryCount: 0,
+        willRetry: false,
+      });
+      return;
+    }
+
+    deps.retryTracker.clearRetries(entry.entityId);
+    deps.onPublish?.({
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      result: publishResult.result,
     });
   } catch (error) {
     const errorMessage = getErrorMessage(error);
