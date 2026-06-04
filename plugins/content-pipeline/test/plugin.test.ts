@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { PublishProvider } from "@brains/contracts";
@@ -173,6 +173,51 @@ describe("ContentPipelinePlugin", () => {
           },
         },
       ]);
+    });
+
+    it("uses registered provider for direct publish messages", async () => {
+      const publish = mock(async () => ({ id: "platform-post-1" }));
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "post",
+        provider: { name: "test-provider", publish },
+      });
+      harness.addEntities([
+        {
+          id: "post-1",
+          entityType: "post",
+          visibility: "public",
+          content: `---
+title: Test Post
+status: draft
+---
+Post body`,
+          metadata: { status: "draft", slug: "post-1" },
+        },
+      ]);
+      const executePayloads: unknown[] = [];
+      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+        executePayloads.push(msg.payload);
+        return { success: true };
+      });
+
+      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
+        entityType: "post",
+        entityId: "post-1",
+      });
+
+      expect(executePayloads).toEqual([]);
+      expect(publish).toHaveBeenCalledWith(
+        "Post body",
+        expect.objectContaining({ status: "draft" }),
+        undefined,
+        undefined,
+      );
+      const updated = await harness.getEntityService().getEntity({
+        entityType: "post",
+        id: "post-1",
+      });
+      expect(updated?.metadata["status"]).toBe("published");
+      expect(updated?.content).toContain("status: published");
     });
 
     it("requires publish permission for direct publish messages", async () => {

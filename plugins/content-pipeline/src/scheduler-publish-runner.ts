@@ -95,10 +95,16 @@ export class PublishScheduleRunner {
       entry.entityId,
     );
 
-    if (this.deps.config.messageBus !== undefined) {
-      await emitPublishExecute(entry, this.deps.getPublishDeps());
+    const publishDeps = this.deps.getPublishDeps();
+    if (
+      publishDeps.publishExecutor &&
+      publishDeps.providerRegistry.has(entry.entityType)
+    ) {
+      await executeWithProvider(entry, publishDeps);
+    } else if (this.deps.config.messageBus !== undefined) {
+      await emitPublishExecute(entry, publishDeps);
     } else {
-      await executeWithProvider(entry, this.deps.getPublishDeps());
+      await executeWithProvider(entry, publishDeps);
     }
   }
 

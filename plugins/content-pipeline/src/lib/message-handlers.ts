@@ -22,11 +22,13 @@ import type {
   GenerateFailedPayload,
 } from "../types/messages";
 import type { ProviderRegistry } from "../provider-registry";
+import type { PublishEntityExecutor } from "../publish-executor";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
+  publishExecutor: PublishEntityExecutor;
   scheduler: ContentScheduler;
   logger: Logger;
 }
@@ -187,6 +189,27 @@ async function handleDirect(
       "publish",
       authContext,
     );
+
+    if (deps.providerRegistry.has(entityType)) {
+      const publishResult = await deps.publishExecutor.publish({
+        entityType,
+        id: entityId,
+      });
+      if ("error" in publishResult) {
+        deps.scheduler.failPublish(entityType, entityId, publishResult.error);
+        return { success: false };
+      }
+
+      deps.scheduler.completePublish(
+        entityType,
+        entityId,
+        publishResult.result,
+      );
+      deps.logger.debug(`Direct publish completed: ${entityId}`, {
+        entityType,
+      });
+      return { success: true };
+    }
 
     await context.messaging.send({
       type: PUBLISH_MESSAGES.EXECUTE,

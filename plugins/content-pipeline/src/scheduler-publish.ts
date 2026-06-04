@@ -64,6 +64,7 @@ export async function executeWithProvider(
     | "retryTracker"
     | "entityService"
     | "publishExecutor"
+    | "messageBus"
     | "onPublish"
     | "onFailed"
   >,
@@ -132,7 +133,7 @@ async function executeWithPublishExecutor(
   entry: QueueEntry,
   deps: Pick<
     PublishDeps,
-    "publishExecutor" | "retryTracker" | "onPublish" | "onFailed"
+    "publishExecutor" | "retryTracker" | "messageBus" | "onPublish" | "onFailed"
   >,
 ): Promise<void> {
   if (!deps.publishExecutor) return;
@@ -144,22 +145,30 @@ async function executeWithPublishExecutor(
     });
 
     if ("error" in publishResult) {
-      deps.onFailed?.({
+      const event = {
         entityType: entry.entityType,
         entityId: entry.entityId,
         error: publishResult.error,
         retryCount: 0,
         willRetry: false,
-      });
+      };
+      if (deps.messageBus) {
+        await deps.messageBus.send({
+          type: PUBLISH_MESSAGES.FAILED,
+          payload: event,
+          sender: "publish-service",
+        });
+      }
+      deps.onFailed?.(event);
       return;
     }
 
-    deps.retryTracker.clearRetries(entry.entityId);
-    deps.onPublish?.({
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-      result: publishResult.result,
-    });
+    sendPublishCompleted(
+      entry.entityType,
+      entry.entityId,
+      publishResult.result,
+      deps,
+    );
   } catch (error) {
     const errorMessage = getErrorMessage(error);
 

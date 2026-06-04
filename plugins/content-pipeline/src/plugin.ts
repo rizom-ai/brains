@@ -4,6 +4,7 @@ import { QueueManager } from "./queue-manager";
 import { createQueueTool, createPublishTool } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
+import { PublishExecutor } from "./publish-executor";
 import type { ContentScheduler } from "./scheduler";
 import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
@@ -18,6 +19,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
+  private publishExecutor!: PublishExecutor;
   private scheduler!: ContentScheduler;
 
   constructor(config?: Partial<ContentPipelineConfig>) {
@@ -40,6 +42,10 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       maxRetries: this.config.maxRetries,
       baseDelayMs: this.config.retryBaseDelayMs,
     });
+    this.publishExecutor = new PublishExecutor({
+      context,
+      providerRegistry: this.providerRegistry,
+    });
 
     this.scheduler = createScheduler({
       context,
@@ -47,6 +53,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      publishExecutor: this.publishExecutor,
       logger: this.logger,
     });
 
@@ -54,6 +61,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      publishExecutor: this.publishExecutor,
       scheduler: this.scheduler,
       logger: this.logger,
     });
@@ -80,7 +88,12 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 
     return [
       createQueueTool(this.pluginContext, this.id, this.queueManager),
-      createPublishTool(this.pluginContext, this.id, this.providerRegistry),
+      createPublishTool(
+        this.pluginContext,
+        this.id,
+        this.providerRegistry,
+        this.publishExecutor,
+      ),
     ];
   }
 

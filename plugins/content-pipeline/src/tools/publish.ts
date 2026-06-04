@@ -2,7 +2,10 @@ import type { Tool, ToolResult, ServicePluginContext } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
-import { PublishExecutor } from "../publish-executor";
+import {
+  PublishExecutor,
+  type PublishEntityExecutor,
+} from "../publish-executor";
 
 /**
  * Input schema for publish-pipeline:publish tool
@@ -60,8 +63,10 @@ export function createPublishTool(
   context: ServicePluginContext,
   pluginId: string,
   providerRegistry: ProviderRegistry,
+  publishExecutor?: PublishEntityExecutor,
 ): Tool<PublishOutput> {
-  const executor = new PublishExecutor({ context, providerRegistry });
+  const executor =
+    publishExecutor ?? new PublishExecutor({ context, providerRegistry });
   const tool = createTool(
     pluginId,
     "publish",

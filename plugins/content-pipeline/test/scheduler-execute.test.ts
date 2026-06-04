@@ -120,7 +120,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
       expect(queue.length).toBe(0);
     });
 
-    it("should not call provider.publish when messageBus is configured", async () => {
+    it("should not call provider.publish when messageBus is configured without an executor", async () => {
       const publishMock = mock(() => Promise.resolve({ id: "result-1" }));
       providerRegistry.register("social-post", {
         name: "test",
@@ -132,8 +132,56 @@ describe("ContentScheduler - Execute Message Mode", () => {
 
       await backend.tick();
 
-      // Provider should NOT be called when using message-driven mode
+      // Legacy message-driven mode still emits publish:execute when no executor
+      // is configured.
       expect(publishMock).not.toHaveBeenCalled();
+    });
+
+    it("should use publish executor for registered providers when available", async () => {
+      await scheduler.stop();
+      const publish = mock(async () => ({
+        entity: {
+          id: "post-1",
+          entityType: "social-post",
+          content: "Body",
+          visibility: "public" as const,
+          metadata: { status: "published" as const },
+          created: "2026-06-04T12:00:00.000Z",
+          updated: "2026-06-04T12:00:00.000Z",
+          contentHash: "hash",
+        },
+        result: { id: "result-1" },
+      }));
+      providerRegistry.register("social-post", {
+        name: "test",
+        publish: mock(async () => ({ id: "unused" })),
+      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          publishExecutor: { publish },
+          onExecute: onExecuteMock,
+        }),
+      );
+
+      await queueManager.add("social-post", "post-1");
+      await scheduler.start();
+      await backend.tick();
+
+      expect(publish).toHaveBeenCalledWith({
+        entityType: "social-post",
+        id: "post-1",
+      });
+      expect(onExecuteMock).not.toHaveBeenCalled();
+      expect(
+        messageBus._sentMessages.some(
+          (message) => message.type === PUBLISH_MESSAGES.EXECUTE,
+        ),
+      ).toBe(false);
+      expect(
+        messageBus._sentMessages.some(
+          (message) => message.type === PUBLISH_MESSAGES.COMPLETED,
+        ),
+      ).toBe(true);
     });
   });
 
