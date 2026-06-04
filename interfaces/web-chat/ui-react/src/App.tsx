@@ -143,6 +143,19 @@ interface WebChatSessionsResponse {
   sessions: WebChatSession[];
 }
 
+interface WebChatStarter {
+  id: string;
+  title: string;
+  description?: string;
+  playbookId: string;
+  lifecycle: string;
+  starterPrompt: string;
+}
+
+interface WebChatBootstrapResponse {
+  starters: WebChatStarter[];
+}
+
 function createConversationId(): string {
   return `web-${crypto.randomUUID()}`;
 }
@@ -330,6 +343,34 @@ function describeFetchFailure(response: Response, fallback: string): string {
   return `${fallback} (${response.status})`;
 }
 
+function PlaybookStarterCard({
+  starter,
+  onStart,
+  disabled,
+}: {
+  starter: WebChatStarter;
+  onStart: (starter: WebChatStarter) => void;
+  disabled: boolean;
+}): React.ReactElement {
+  return (
+    <section className="web-chat-playbook-starter" aria-label={starter.title}>
+      <span className="web-chat-playbook-starter-kicker">guided start</span>
+      <h2>{starter.title}</h2>
+      <p>
+        {starter.description ??
+          "Start a guided playbook inside this chat. Rover will teach by doing real work with your brain."}
+      </p>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onStart(starter)}
+      >
+        Start setup
+      </button>
+    </section>
+  );
+}
+
 export function App(): React.ReactElement {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState(() =>
@@ -357,6 +398,8 @@ export function App(): React.ReactElement {
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<UploadNotice>(null);
+  const [bootstrapStarter, setBootstrapStarter] =
+    useState<WebChatStarter | null>(null);
   const [liveStatusMessage, setLiveStatusMessage] = useState<string | null>(
     null,
   );
@@ -422,7 +465,21 @@ export function App(): React.ReactElement {
   useEffect(() => {
     focusPromptTextarea(promptInputRef.current);
     void loadSessions();
+    void loadBootstrap();
   }, []);
+
+  async function loadBootstrap(): Promise<void> {
+    try {
+      const response = await fetch("/api/chat/bootstrap", {
+        credentials: "include",
+      });
+      if (!response.ok) return;
+      const body = (await response.json()) as WebChatBootstrapResponse;
+      setBootstrapStarter(body.starters[0] ?? null);
+    } catch {
+      setBootstrapStarter(null);
+    }
+  }
 
   async function loadSessions(
     options: { quiet?: boolean } = {},
@@ -563,6 +620,10 @@ export function App(): React.ReactElement {
         void loadSessions({ quiet: true });
         focusPromptTextarea(promptInputRef.current);
       });
+  }
+
+  function startPlaybook(starter: WebChatStarter): void {
+    void submitMessage(starter.starterPrompt);
   }
 
   function resetToNewConversation(): void {
@@ -1159,10 +1220,18 @@ export function App(): React.ReactElement {
         <Conversation>
           <ConversationContent>
             {messages.length === 0 ? (
-              <ConversationEmptyState
-                title="Begin a field note."
-                description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
-              />
+              bootstrapStarter ? (
+                <PlaybookStarterCard
+                  starter={bootstrapStarter}
+                  disabled={isBusyStatus(status)}
+                  onStart={startPlaybook}
+                />
+              ) : (
+                <ConversationEmptyState
+                  title="Begin a field note."
+                  description="Ask the brain about entities, notes, prompts, or recent work — the thread grows from the first message."
+                />
+              )
             ) : (
               messages.map((message) => (
                 <Message

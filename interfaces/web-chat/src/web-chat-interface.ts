@@ -170,6 +170,21 @@ const storedChatCardsSchema = z.array(storedAttachmentCardSchema);
 
 const uiAssetPath = "/chat/assets/app.js";
 const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "app.js");
+const playbooksLifecycleStartersChannel = "playbooks:lifecycle-starters";
+const chatBootstrapResponseSchema = z.object({
+  starters: z.array(
+    z
+      .object({
+        id: z.string().min(1),
+        title: z.string().min(1),
+        description: z.string().min(1).optional(),
+        playbookId: z.string().min(1),
+        lifecycle: z.string().min(1),
+        starterPrompt: z.string().min(1),
+      })
+      .strict(),
+  ),
+});
 /* Rizom-flavored chat styling. Mirrors interfaces/web-chat/mockup.html;
    keep both in sync if you iterate on either. */
 const chatPageStyles = `
@@ -1046,6 +1061,79 @@ button, textarea, input { font: inherit; color: inherit; }
   font-weight: 400;
 }
 .web-chat-empty-state p { margin: 0; max-width: 40ch; line-height: 1.7; }
+.web-chat-playbook-starter {
+  margin: auto;
+  width: min(38rem, calc(100% - 1rem));
+  padding: clamp(1.25rem, 4vw, 2rem);
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--chat-border);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.1), transparent 38%),
+    var(--chat-bg-card);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.web-chat-playbook-starter::before {
+  content: "";
+  position: absolute;
+  inset: -35% -10% auto auto;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--chat-glow-cta-strong), transparent 65%);
+  opacity: 0.55;
+  z-index: -1;
+}
+.web-chat-playbook-starter-kicker {
+  font-family: var(--chat-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--chat-accent);
+}
+.web-chat-playbook-starter h2 {
+  margin: 0;
+  font-family: var(--chat-font-display);
+  font-size: clamp(1.9rem, 4vw, 3.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: var(--chat-text);
+}
+.web-chat-playbook-starter p {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--chat-text-muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.web-chat-playbook-starter button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.15rem;
+  font: 700 12px/1 var(--chat-font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chat-on-accent);
+  background: linear-gradient(135deg, var(--chat-accent), #ffd0a8);
+  box-shadow: 0 14px 34px var(--chat-glow-cta);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+.web-chat-playbook-starter button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 44px var(--chat-glow-cta-strong);
+}
+.web-chat-playbook-starter button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
 
 /* ─── Messages ─── */
 .web-chat-message {
@@ -2276,6 +2364,13 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatRequest(request),
       },
       {
+        path: "/api/chat/bootstrap",
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleBootstrapRequest(request),
+      },
+      {
         path: "/api/chat/sessions",
         method: "GET",
         public: true,
@@ -2634,6 +2729,43 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
 
     return createUIMessageStreamResponse({ stream });
+  }
+
+  private async handleBootstrapRequest(request: Request): Promise<Response> {
+    const permissionLevel = await this.resolvePermissionLevel(request);
+    if (permissionLevel !== "anchor") {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const response = await this.getContext().messaging.send<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      unknown
+    >({
+      type: playbooksLifecycleStartersChannel,
+      payload: {
+        lifecycle: "onboarding",
+        interfaceType: webChatInterfaceType,
+        userPermissionLevel: "anchor",
+      },
+    });
+
+    if ("noop" in response || !response.success || !response.data) {
+      return Response.json({ starters: [] });
+    }
+
+    const parsed = chatBootstrapResponseSchema.safeParse(response.data);
+    if (!parsed.success) {
+      this.logger.warn("Invalid playbook bootstrap response", {
+        issues: parsed.error.issues,
+      });
+      return Response.json({ starters: [] });
+    }
+
+    return Response.json(parsed.data);
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {

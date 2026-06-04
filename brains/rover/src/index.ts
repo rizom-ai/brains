@@ -27,6 +27,8 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { notificationsPlugin } from "@brains/notifications";
+import { playbookPlugin } from "@brains/playbook";
+import { playbooksPlugin } from "@brains/playbooks";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
@@ -63,6 +65,8 @@ const core = [
   "assessment",
   "auth-service",
   "notifications",
+  "playbook",
+  "playbooks",
   "email-resend",
   "cms",
   "dashboard-root",
@@ -146,6 +150,24 @@ export default defineBrain({
     ],
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
+    ["playbook", playbookPlugin, {}],
+    [
+      "playbooks",
+      playbooksPlugin,
+      {
+        lifecycle: {
+          onboarding: {
+            trigger: "first-anchor-web-chat",
+            playbookId: "rover-onboarding",
+            once: true,
+            starterText: "Set up Rover",
+            description:
+              "Learn Rover by saving a first idea and seeing how your knowledge becomes reusable.",
+            starterPrompt: "Start the Rover onboarding playbook.",
+          },
+        },
+      },
+    ],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

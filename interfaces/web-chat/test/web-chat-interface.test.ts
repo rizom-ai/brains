@@ -235,7 +235,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(13);
+    expect(routes).toHaveLength(14);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -247,56 +247,61 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[2]).toMatchObject({
-      path: "/api/chat/sessions",
+      path: "/api/chat/bootstrap",
       method: "GET",
       public: true,
     });
     expect(routes[3]).toMatchObject({
       path: "/api/chat/sessions",
-      method: "DELETE",
+      method: "GET",
       public: true,
     });
     expect(routes[4]).toMatchObject({
       path: "/api/chat/sessions",
-      method: "PUT",
+      method: "DELETE",
       public: true,
     });
     expect(routes[5]).toMatchObject({
-      path: "/api/chat/sessions/archive",
+      path: "/api/chat/sessions",
       method: "PUT",
       public: true,
     });
     expect(routes[6]).toMatchObject({
+      path: "/api/chat/sessions/archive",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[7]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[7]).toMatchObject({
+    expect(routes[8]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[8]).toMatchObject({
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
+    expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
