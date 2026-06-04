@@ -315,7 +315,7 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     if (!this.config.enabled) return undefined;
     return `## AT Protocol publishing
 - Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
-- Use \`atproto_publish_card\` to publish or dry-run this brain's public capability card.
+- Use \`atproto_publish_card\` to publish or dry-run this brain's public discovery card.
 - Use \`atproto_publish_entity\` to publish any public entity with a registered AT Protocol projection.
 - Use \`atproto_publish_post\` for the blog-post convenience path by \`entityId\` or \`slug\`.
 - Use \`atproto_discover_brain_cards\` to read public \`ai.rizom.brain.card/self\` records from candidate repo DIDs or handles and emit internal discovery events.

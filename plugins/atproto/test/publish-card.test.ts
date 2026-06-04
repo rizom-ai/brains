@@ -70,14 +70,24 @@ describe("AT Protocol brain card publishing", () => {
     expect(result.uri).toBeUndefined();
     expect(result.record).toMatchObject({
       $type: "ai.rizom.brain.card",
-      name: "Test Brain",
-      description: "Testing purposes",
-      brainDid: "did:web:brain.example.com",
-      anchorDid: "did:plc:anchor",
+      brain: {
+        did: "did:web:brain.example.com",
+        name: "Test Brain",
+        role: "Test Assistant",
+        purpose: "Testing purposes",
+        values: ["reliability", "accuracy"],
+      },
+      anchor: {
+        did: "did:plc:anchor",
+        name: "Test Owner",
+        kind: "professional",
+      },
       siteUrl: "https://brain.example.com/",
       skills: [],
       model: "test-brain",
     });
+    expect("brainDid" in result.record).toBe(false);
+    expect("anchorDid" in result.record).toBe(false);
     expect(result.record.version).toBeDefined();
     expect(createRecord).not.toHaveBeenCalled();
   });
@@ -155,10 +165,16 @@ describe("AT Protocol brain card publishing", () => {
         dryRun: true,
         record: {
           $type: "ai.rizom.brain.card",
-          name: "Test Brain",
+          brain: {
+            did: "did:web:brain.example.com",
+            name: "Test Brain",
+          },
+          anchor: {
+            did: "did:plc:anchor",
+            name: "Test Owner",
+            kind: "professional",
+          },
           siteUrl: "https://brain.example.com/",
-          brainDid: "did:web:brain.example.com",
-          anchorDid: "did:plc:anchor",
         },
       },
     });

@@ -44,9 +44,19 @@ function createResolverFetch(): (
 function createTestBrainCardRecord(): AtprotoBrainCardRecord {
   return {
     $type: "ai.rizom.brain.card",
-    name: "Rizom Test Brain",
-    description: "A test brain",
     siteUrl: "https://test.example.com",
+    brain: {
+      did: "did:web:test.example.com",
+      name: "Rizom Test Brain",
+      role: "assistant",
+      purpose: "A test brain",
+      values: ["helpful"],
+    },
+    anchor: {
+      did: "did:plc:test-anchor",
+      name: "Rizom",
+      kind: "collective",
+    },
     model: "test-brain",
     version: "0.2.0-test",
     skills: [
@@ -57,8 +67,6 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
         tags: ["research"],
       },
     ],
-    brainDid: "did:web:test.example.com",
-    anchorDid: "did:plc:test-anchor",
     createdAt: "2026-01-01T00:00:00.000Z",
   };
 }

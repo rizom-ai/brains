@@ -21,10 +21,6 @@ function normalizePublicUrl(
   }
 }
 
-function firstNonEmpty(values: Array<string | undefined>): string | undefined {
-  return values.find((value) => value !== undefined && value.length > 0);
-}
-
 function normalizeSkillId(name: string): string {
   const normalized = name
     .toLowerCase()
@@ -108,21 +104,26 @@ export async function buildBrainCardRecord(
     throw new Error("AT Protocol brain card publishing requires siteUrl");
   }
 
-  const description =
-    firstNonEmpty([identity.purpose, profile.description, identity.role]) ??
-    identity.name;
   const skills = await listPublicSkills(context);
 
   return {
     $type: "ai.rizom.brain.card",
-    name: identity.name,
-    description,
     siteUrl,
+    brain: {
+      did: config.brainDid,
+      name: identity.name,
+      role: identity.role,
+      purpose: identity.purpose,
+      values: identity.values,
+    },
+    anchor: {
+      did: config.anchorDid,
+      name: profile.name,
+      kind: profile.kind,
+    },
     skills,
     model: appInfo.model,
     version: appInfo.version,
-    brainDid: config.brainDid,
-    anchorDid: config.anchorDid,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
   };

@@ -20,6 +20,26 @@ function readString(
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+function readRecord(
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | undefined {
+  const value = record[key];
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return Object.fromEntries(Object.entries(value));
+}
+
+function readNestedString(
+  record: Record<string, unknown>,
+  key: string,
+  nestedKey: string,
+): string | undefined {
+  const nested = readRecord(record, key);
+  return nested ? readString(nested, nestedKey) : undefined;
+}
+
 function readStringArray(
   record: Record<string, unknown>,
   key: string,
@@ -80,7 +100,8 @@ function buildEventPayload(input: {
   cid: string;
   record: Record<string, unknown>;
 }): AtprotoBrainDiscoveryEventPayload {
-  const brainDid = readString(input.record, "brainDid");
+  const brainDid = readNestedString(input.record, "brain", "did");
+  const anchorDid = readNestedString(input.record, "anchor", "did");
   return {
     agentId: input.agent.id,
     name: input.agent.metadata.name,
@@ -88,6 +109,7 @@ function buildEventPayload(input: {
     status: input.agent.metadata.status,
     repoDid: input.repoDid,
     ...(brainDid && { brainDid }),
+    ...(anchorDid && { anchorDid }),
     cardUri: input.uri,
     cardCid: input.cid,
   };
@@ -125,19 +147,25 @@ async function upsertAgentFromCard(
     id: agentId,
   });
   const status: AgentStatus = existing?.metadata.status ?? "discovered";
-  const brainDid = readString(input.record, "brainDid");
+  const brainDid = readNestedString(input.record, "brain", "did");
+  const brainName = readNestedString(input.record, "brain", "name") ?? agentId;
+  const brainPurpose = readNestedString(input.record, "brain", "purpose") ?? "";
+  const anchorDid = readNestedString(input.record, "anchor", "did");
+  const anchorName =
+    readNestedString(input.record, "anchor", "name") ?? brainName;
+  const anchorKind = readNestedString(input.record, "anchor", "kind");
   const skills = readSkills(input.record);
   const now = new Date().toISOString();
   const metadata = {
     ...(existing?.metadata ?? {}),
-    name:
-      existing?.metadata.name ?? readString(input.record, "name") ?? agentId,
+    name: existing?.metadata.name ?? anchorName,
     url,
     status,
     discoveredAt: existing?.metadata.discoveredAt ?? now,
     slug: slugifyUrl(url),
     repoDid: input.repoDid,
     ...(brainDid && { brainDid }),
+    ...(anchorDid && { anchorDid }),
     cardUri: input.uri,
     cardCid: input.cid,
   };
@@ -152,19 +180,22 @@ async function upsertAgentFromCard(
     return { agent: updated, created: false };
   }
 
-  const name = readString(input.record, "name") ?? agentId;
   const content = agentAdapter.createAgentContent({
-    name,
-    kind: "professional",
-    brainName: name,
+    name: anchorName,
+    kind:
+      anchorKind === "team" || anchorKind === "collective"
+        ? anchorKind
+        : "professional",
+    brainName,
     url,
     ...(brainDid && { did: brainDid, brainDid }),
+    ...(anchorDid && { anchorDid }),
     repoDid: input.repoDid,
     cardUri: input.uri,
     cardCid: input.cid,
     status,
     discoveredAt: now,
-    about: readString(input.record, "description") ?? "",
+    about: brainPurpose,
     skills,
     notes: buildNotes({
       repoDid: input.repoDid,

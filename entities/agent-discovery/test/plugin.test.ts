@@ -36,13 +36,21 @@ const testBrainCardPayload = {
   cid: "bafy-peer-card",
   record: {
     $type: "ai.rizom.brain.card" as const,
-    name: "Peer Brain",
-    description: "A peer brain discovered through ATProto.",
     siteUrl: "https://peer.example.com",
+    brain: {
+      did: "did:web:peer.example.com",
+      name: "Peer Brain",
+      role: "assistant",
+      purpose: "A peer brain discovered through ATProto.",
+      values: ["collaboration"],
+    },
+    anchor: {
+      did: "did:plc:anchor",
+      name: "Peer Owner",
+      kind: "professional",
+    },
     model: "ranger",
     version: "0.2.0-test",
-    brainDid: "did:web:peer.example.com",
-    anchorDid: "did:plc:anchor",
     skills: [
       {
         id: "research",
@@ -318,7 +326,10 @@ describe("AgentDiscoveryPlugin", () => {
     });
     expect(agent?.metadata.status).toBe("discovered");
     expect(agent?.metadata.url).toBe("https://peer.example.com");
+    expect(agent?.metadata.name).toBe("Peer Owner");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
+    expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
+    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
     expect(agent?.metadata.cardUri).toBe(testBrainCardPayload.uri);
     expect(agent?.metadata.a2aEndpoint).toBeUndefined();
     expect(agent?.content).toContain("Research");
@@ -326,6 +337,8 @@ describe("AgentDiscoveryPlugin", () => {
       expect.objectContaining({
         agentId: "peer.example.com",
         status: "discovered",
+        brainDid: "did:web:peer.example.com",
+        anchorDid: "did:plc:anchor",
         cardUri: testBrainCardPayload.uri,
       }),
     ]);
@@ -366,11 +379,15 @@ describe("AgentDiscoveryPlugin", () => {
     });
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
+    expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
+    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
     expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
     expect(events).toEqual([
       expect.objectContaining({
         agentId: "peer.example.com",
         status: "approved",
+        brainDid: "did:web:peer.example.com",
+        anchorDid: "did:plc:anchor",
         cardUri: testBrainCardPayload.uri,
       }),
     ]);

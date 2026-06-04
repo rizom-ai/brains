@@ -9,31 +9,75 @@
       "record": {
         "type": "object",
         "required": [
-          "name",
-          "description",
           "siteUrl",
+          "brain",
+          "anchor",
           "skills",
           "model",
           "version",
-          "brainDid",
-          "anchorDid",
           "createdAt"
         ],
         "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 200,
-            "description": "Human-readable brain name."
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "description": "Short public description of what this brain is for."
-          },
           "siteUrl": {
             "type": "string",
             "format": "uri",
             "description": "Public site URL. Consumers derive the A2A Agent Card URL from this base."
+          },
+          "brain": {
+            "type": "object",
+            "description": "Brain identity described by this discovery card.",
+            "required": ["did", "name", "role", "purpose", "values"],
+            "properties": {
+              "did": {
+                "type": "string",
+                "description": "Public DID for the brain identity."
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Human-readable brain name."
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Brain role or persona."
+              },
+              "purpose": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Short public description of what this brain is for."
+              },
+              "values": {
+                "type": "array",
+                "description": "Public values or principles for this brain.",
+                "items": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "maxLength": 50
+              }
+            }
+          },
+          "anchor": {
+            "type": "object",
+            "description": "Minimal owner/operator snapshot for discovery grouping and display.",
+            "required": ["did", "name", "kind"],
+            "properties": {
+              "did": {
+                "type": "string",
+                "description": "Public DID for the owner/operator anchor identity."
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Human-readable anchor name."
+              },
+              "kind": {
+                "type": "string",
+                "knownValues": ["professional", "team", "collective"],
+                "description": "Anchor type."
+              }
+            }
           },
           "skills": {
             "type": "array",
@@ -79,14 +123,6 @@
           "version": {
             "type": "string",
             "description": "Brain runtime/model implementation version."
-          },
-          "brainDid": {
-            "type": "string",
-            "description": "Public DID for the brain identity."
-          },
-          "anchorDid": {
-            "type": "string",
-            "description": "Public DID for the human/org anchor identity."
           },
           "createdAt": {
             "type": "string",

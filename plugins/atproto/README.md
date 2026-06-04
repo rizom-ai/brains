@@ -83,14 +83,12 @@ Use `dryRun: true` to inspect the record without writing to the PDS.
 
 The card is intentionally not a full A2A Agent Card. It is the public ATProto listing for a Rizom brain and requires:
 
-- `name`
-- `description`
 - `siteUrl`
+- `brain`: `{ did, name, role, purpose, values }`
+- `anchor`: `{ did, name, kind }`
 - `skills`
 - `model`
 - `version`
-- `brainDid`
-- `anchorDid`
 - `createdAt`
 
 The operational A2A Agent Card is derived conventionally from `siteUrl` at `/.well-known/agent-card.json`.

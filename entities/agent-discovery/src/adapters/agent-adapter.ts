@@ -53,6 +53,7 @@ export interface CreateAgentContentInput {
   did?: string;
   repoDid?: string;
   brainDid?: string;
+  anchorDid?: string;
   cardUri?: string;
   cardCid?: string;
   a2aEndpoint?: string;
@@ -90,6 +91,7 @@ export class AgentAdapter extends BaseEntityAdapter<
         slug,
         ...(frontmatter.repoDid && { repoDid: frontmatter.repoDid }),
         ...(frontmatter.brainDid && { brainDid: frontmatter.brainDid }),
+        ...(frontmatter.anchorDid && { anchorDid: frontmatter.anchorDid }),
         ...(frontmatter.cardUri && { cardUri: frontmatter.cardUri }),
         ...(frontmatter.cardCid && { cardCid: frontmatter.cardCid }),
         ...(frontmatter.a2aEndpoint && {
@@ -109,6 +111,7 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.did && { did: input.did }),
       ...(input.repoDid && { repoDid: input.repoDid }),
       ...(input.brainDid && { brainDid: input.brainDid }),
+      ...(input.anchorDid && { anchorDid: input.anchorDid }),
       ...(input.cardUri && { cardUri: input.cardUri }),
       ...(input.cardCid && { cardCid: input.cardCid }),
       ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),

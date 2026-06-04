@@ -89,7 +89,7 @@ function createPublishCardTool(
   return {
     name: `${pluginId}_publish_card`,
     description:
-      "Publish this brain's AT Protocol capability card to the configured PDS, or dry-run the record payload.",
+      "Publish this brain's AT Protocol discovery card to the configured PDS, or dry-run the record payload.",
     inputSchema: publishCardInputSchema,
     handler: async (input): Promise<ToolResponse> => {
       const parsed = z.object(publishCardInputSchema).safeParse(input);
