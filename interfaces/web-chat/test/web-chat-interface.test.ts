@@ -1400,6 +1400,78 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("reuses a prior durable PDF upload for explicit save/import follow-ups", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
+    const chatRoute = getRoute(plugin, "/api/chat", "POST");
+    const pdf = Buffer.from("%PDF-1.4\n%EOF\n");
+    const form = new FormData();
+    form.set(
+      "file",
+      new File([pdf], "distributed-systems-primer.pdf", {
+        type: "application/pdf",
+      }),
+    );
+    const uploadResponse = await uploadRoute?.handler(
+      new Request("http://brain/api/chat/uploads", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    const upload = (await uploadResponse?.json()) as {
+      ref: { kind: string; id: string };
+    };
+
+    const response = await chatRoute?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              content: "",
+              parts: [{ type: "data-upload", data: { ref: upload.ref } }],
+            },
+            {
+              role: "assistant",
+              content:
+                "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
+              parts: [
+                {
+                  type: "text",
+                  text: "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
+                },
+              ],
+            },
+            {
+              role: "user",
+              content: "save it as a document",
+              parts: [{ type: "text", text: "save it as a document" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls[0]?.message).toBe("save it as a document");
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "distributed-systems-primer.pdf",
+        mediaType: "application/pdf",
+        data: pdf,
+        sizeBytes: pdf.byteLength,
+        source: { kind: "web-chat-upload", id: upload.ref.id },
+      },
+    ]);
+  });
+
   it("selects a prior upload by filename when follow-up text names it", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);

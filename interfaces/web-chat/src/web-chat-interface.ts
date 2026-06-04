@@ -3262,7 +3262,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): DeferredUploadIntent | null {
     const normalized = message.toLowerCase();
     const hasAction =
-      /\b(describe|summari[sz]e|read|analy[sz]e|inspect|review|explain)\b/.test(
+      /\b(describe|summari[sz]e|read|analy[sz]e|inspect|review|explain|save|import|promote|store)\b/.test(
         normalized,
       ) || /\b(?:what(?:'s| is)|tell me)\b/.test(normalized);
     if (!hasAction) return null;

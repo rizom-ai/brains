@@ -1,0 +1,78 @@
+id: multi-turn-web-chat-pdf-upload-save-follow-up
+name: Web chat PDF upload follow-up promotes document
+description: Verifies a bare web-chat PDF upload is inert, then an explicit save/import follow-up calls system_create with the prior web-chat upload ref as a document.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-upload-save
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - pdf
+  - document
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: distributed-systems-primer.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiA+PgolJUVPRgo=
+        source:
+          kind: web-chat-upload
+          id: upload-00000000-0000-4000-8000-000000000501
+    successCriteria:
+      responseContains:
+        - "distributed-systems-primer.pdf"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "save it as a document"
+    reusePreviousAttachments: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: document
+            fromUpload.kind: web-chat-upload
+            fromUpload.id: upload-00000000-0000-4000-8000-000000000501
+          argsAbsent:
+            - from
+      responseNotContains:
+        - "upload reference isn't accessible"
+        - "upload reference isn’t accessible"
+        - "file reference isn't accessible"
+        - "file reference isn’t accessible"
+        - "Please re-upload"
+        - "re-upload"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: document
+        fromUpload.kind: web-chat-upload
+        fromUpload.id: upload-00000000-0000-4000-8000-000000000501
+      argsAbsent:
+        - from
+    - toolName: document_generate
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "deck"
+    - "Please re-upload"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 40000

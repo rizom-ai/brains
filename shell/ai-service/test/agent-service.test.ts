@@ -333,7 +333,10 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: [
-          { type: "text", text: "Describe this image" },
+          {
+            type: "text",
+            text: 'Describe this image\n\nAvailable upload refs for attached files:\n- robot.png: fromUpload { kind: "web-chat-upload", id: "upload-123" }',
+          },
           {
             type: "file",
             data: imageBytes,
@@ -447,7 +450,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content:
-          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable upload refs for attached files:\n- durable-notes.md: fromUpload { kind: "web-chat-upload", id: "upload-123" }',
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,

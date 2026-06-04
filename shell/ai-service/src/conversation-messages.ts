@@ -59,7 +59,11 @@ export function buildMessageWithAttachments(
   const textAttachments = nativeAttachments
     .filter((attachment) => attachment.kind === "text")
     .map(formatTextAttachment);
-  const text = [message, ...textAttachments]
+  const text = [
+    message,
+    ...textAttachments,
+    formatUploadRefs(nativeAttachments),
+  ]
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
     .join("\n\n");
@@ -84,6 +88,18 @@ function formatTextAttachment(
   attachment: Extract<ChatAttachment, { kind: "text" }>,
 ): string {
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
+}
+
+function formatUploadRefs(attachments: ChatAttachment[]): string {
+  const lines = attachments.flatMap((attachment) => {
+    if (attachment.source === undefined) return [];
+    return [
+      `- ${attachment.filename}: fromUpload { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }`,
+    ];
+  });
+  return lines.length > 0
+    ? `Available upload refs for attached files:\n${lines.join("\n")}`
+    : "";
 }
 
 export function buildAgentContextInstructions(
