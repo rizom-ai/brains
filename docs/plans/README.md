@@ -48,6 +48,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Hosted, deployed, and monetized product
 
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
+- [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — proposed in-chat guided apprenticeship for first-run Rover operators
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
 - [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
