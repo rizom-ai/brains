@@ -182,7 +182,9 @@ The registry rejects collection/lexicon mismatches. Before dry-run results or PD
 
 ## Manual smoke checklist
 
-Use a test PDS/Bluesky account and an app password.
+Use a test PDS/Bluesky account, an app password, and a controlled public site domain.
+
+The committed Rover full test app uses the Alex example identity (`domain: alex.example.com`, `identifier: alex.example.com`) so it stays aligned with the eval content. `alex.example.com` is fixture data, not a live PDS handle/domain. For a real live smoke, use the matching deployed Alex domain/account and keep only the app password in the environment.
 
 1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities.
 2. Start a brain with the atproto plugin enabled.
