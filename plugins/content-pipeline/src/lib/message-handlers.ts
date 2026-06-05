@@ -32,6 +32,7 @@ import type { PublishEntityExecutor } from "../publish-executor";
 import type { PublishAssetRegistry } from "../publish-assets";
 import { publishAssetDefinitionSchema } from "../publish-assets";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
+import { publishConfigSchema } from "../types/config";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
@@ -173,8 +174,19 @@ async function handleRegister(
   const { entityType, provider, config } = payload;
 
   try {
+    const parsedConfig = config
+      ? publishConfigSchema.safeParse(config)
+      : undefined;
+    if (parsedConfig && !parsedConfig.success) {
+      deps.logger.warn("Invalid publish provider config", {
+        entityType,
+        error: parsedConfig.error.message,
+      });
+      return { success: false };
+    }
+
     if (provider) {
-      deps.providerRegistry.register(entityType, provider, config);
+      deps.providerRegistry.register(entityType, provider, parsedConfig?.data);
       deps.logger.info(`Registered provider for entity type: ${entityType}`, {
         providerName: provider.name,
         executionMode: deps.providerRegistry.getExecutionMode(entityType),

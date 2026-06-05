@@ -520,6 +520,21 @@ Body`,
       expect(plugin.getProviderRegistry().has("blog-post")).toBe(true);
     });
 
+    it("rejects invalid provider config", async () => {
+      const provider: PublishProvider = {
+        name: "test-provider",
+        publish: async () => ({ id: "result" }),
+      };
+
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "blog-post",
+        provider,
+        config: { executionMode: "invalid" },
+      } as never);
+
+      expect(plugin.getProviderRegistry().has("blog-post")).toBe(false);
+    });
+
     it("should not let internal fallback registration override an explicit provider", async () => {
       const explicitProvider: PublishProvider = {
         name: "atproto",
