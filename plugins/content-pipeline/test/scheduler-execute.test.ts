@@ -137,6 +137,45 @@ describe("ContentScheduler - Execute Message Mode", () => {
       expect(publishMock).not.toHaveBeenCalled();
     });
 
+    it("should keep internal message-mode providers on publish:execute fallback", async () => {
+      await scheduler.stop();
+      const publish = mock(async () => ({
+        entity: {
+          id: "newsletter-1",
+          entityType: "newsletter",
+          content: "Body",
+          visibility: "public" as const,
+          metadata: { status: "published" as const },
+          created: "2026-06-04T12:00:00.000Z",
+          updated: "2026-06-04T12:00:00.000Z",
+          contentHash: "hash",
+        },
+        result: { id: "result-1" },
+      }));
+      providerRegistry.register("newsletter", {
+        name: "internal",
+        publish: mock(async () => ({ id: "unused" })),
+      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          publishExecutor: { publish },
+          onExecute: onExecuteMock,
+        }),
+      );
+
+      await queueManager.add("newsletter", "newsletter-1");
+      await scheduler.start();
+      await backend.tick();
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(onExecuteMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "newsletter",
+          entityId: "newsletter-1",
+        }),
+      );
+    });
+
     it("should use publish executor for registered providers when available", async () => {
       await scheduler.stop();
       const publish = mock(async () => ({

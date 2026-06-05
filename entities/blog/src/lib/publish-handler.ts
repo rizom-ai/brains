@@ -22,6 +22,7 @@ export async function registerWithPublishPipeline(
     payload: {
       entityType: "post",
       provider: internalProvider,
+      config: { executionMode: "provider" },
     },
   });
 

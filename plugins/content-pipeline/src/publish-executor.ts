@@ -36,6 +36,7 @@ export interface PublishExecutorDeps {
         ensureForEntity(entity: BaseEntity): Promise<unknown>;
       }
     | undefined;
+  requireProviderExecutionMode?: boolean;
 }
 
 /**
@@ -76,6 +77,15 @@ export class PublishExecutor implements PublishEntityExecutor {
     if (!this.deps.providerRegistry.has(entityType)) {
       return {
         error: `No publish provider registered for ${entityType}. Check that the required credentials are configured.`,
+      };
+    }
+
+    if (
+      this.deps.requireProviderExecutionMode === true &&
+      this.deps.providerRegistry.getExecutionMode(entityType) !== "provider"
+    ) {
+      return {
+        error: `Entity type ${entityType} is not registered for direct provider execution`,
       };
     }
 

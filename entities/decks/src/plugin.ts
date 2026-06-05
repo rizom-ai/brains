@@ -104,6 +104,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
           name: "internal",
           publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
         },
+        config: { executionMode: "provider" },
       },
     });
   }

@@ -223,6 +223,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
       payload: {
         entityType: "project",
         provider,
+        config: { executionMode: "provider" },
       },
     });
   }

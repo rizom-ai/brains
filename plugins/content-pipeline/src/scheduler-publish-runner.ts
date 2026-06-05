@@ -98,7 +98,9 @@ export class PublishScheduleRunner {
     const publishDeps = this.deps.getPublishDeps();
     if (
       publishDeps.publishExecutor &&
-      publishDeps.providerRegistry.has(entry.entityType)
+      publishDeps.providerRegistry.has(entry.entityType) &&
+      publishDeps.providerRegistry.getExecutionMode(entry.entityType) ===
+        "provider"
     ) {
       await executeWithProvider(entry, publishDeps);
     } else if (this.deps.config.messageBus !== undefined) {

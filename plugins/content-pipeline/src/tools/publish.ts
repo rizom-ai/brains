@@ -66,7 +66,12 @@ export function createPublishTool(
   publishExecutor?: PublishEntityExecutor,
 ): Tool<PublishOutput> {
   const executor =
-    publishExecutor ?? new PublishExecutor({ context, providerRegistry });
+    publishExecutor ??
+    new PublishExecutor({
+      context,
+      providerRegistry,
+      requireProviderExecutionMode: true,
+    });
   const tool = createTool(
     pluginId,
     "publish",

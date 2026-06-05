@@ -178,6 +178,33 @@ describe("ContentPipelinePlugin", () => {
       ]);
     });
 
+    it("keeps internal message-mode providers on publish:execute fallback", async () => {
+      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "newsletter",
+        provider: {
+          name: "internal",
+          publish: async () => ({ id: "internal" }),
+        },
+      });
+      const executePayloads: unknown[] = [];
+      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+        executePayloads.push(msg.payload);
+        return { success: true };
+      });
+
+      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
+        entityType: "newsletter",
+        entityId: "newsletter-1",
+      });
+
+      expect(executePayloads).toEqual([
+        expect.objectContaining({
+          entityType: "newsletter",
+          entityId: "newsletter-1",
+        }),
+      ]);
+    });
+
     it("uses registered provider for direct publish messages", async () => {
       const publish = mock(async () => ({ id: "platform-post-1" }));
       await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {

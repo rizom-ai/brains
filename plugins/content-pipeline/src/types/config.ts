@@ -3,7 +3,12 @@ import { z } from "@brains/utils";
 /**
  * Configuration for publish behavior per entity type
  */
+export type PublishExecutionMode = "provider" | "message";
+
 export interface PublishConfig {
+  /** Whether content-pipeline should execute the provider or emit publish:execute. */
+  executionMode?: PublishExecutionMode;
+
   /** Maximum number of retry attempts before marking as failed */
   maxRetries?: number;
 
@@ -21,6 +26,7 @@ export interface PublishConfig {
  * Default configuration values
  */
 export const DEFAULT_PUBLISH_CONFIG: Required<PublishConfig> = {
+  executionMode: "message",
   maxRetries: 3,
   retryBackoffMs: 5000,
   retryBackoffMultiplier: 2,

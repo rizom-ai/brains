@@ -7,12 +7,14 @@
 
 import type { PublishProvider } from "@brains/contracts";
 import { InternalPublishProvider } from "./types/provider";
+import type { PublishConfig, PublishExecutionMode } from "./types/config";
 
 export class ProviderRegistry {
   private static instance: ProviderRegistry | null = null;
 
   // Map of entityType -> provider
   private providers: Map<string, PublishProvider> = new Map();
+  private executionModes: Map<string, PublishExecutionMode> = new Map();
 
   // Default provider for internal publishing (blog, decks, etc.)
   private defaultProvider: PublishProvider = new InternalPublishProvider();
@@ -51,7 +53,11 @@ export class ProviderRegistry {
    * explicit external provider that is already registered for the same entity
    * type, but any explicit provider may replace an internal fallback.
    */
-  public register(entityType: string, provider: PublishProvider): void {
+  public register(
+    entityType: string,
+    provider: PublishProvider,
+    config?: Pick<PublishConfig, "executionMode">,
+  ): void {
     const existingProvider = this.providers.get(entityType);
     if (
       existingProvider &&
@@ -62,6 +68,11 @@ export class ProviderRegistry {
     }
 
     this.providers.set(entityType, provider);
+    this.executionModes.set(
+      entityType,
+      config?.executionMode ??
+        (provider.name === "internal" ? "message" : "provider"),
+    );
   }
 
   /**
@@ -70,6 +81,13 @@ export class ProviderRegistry {
    */
   public get(entityType: string): PublishProvider {
     return this.providers.get(entityType) ?? this.defaultProvider;
+  }
+
+  /**
+   * Get how an entity type should be published.
+   */
+  public getExecutionMode(entityType: string): PublishExecutionMode {
+    return this.executionModes.get(entityType) ?? "message";
   }
 
   /**
@@ -84,6 +102,7 @@ export class ProviderRegistry {
    */
   public unregister(entityType: string): void {
     this.providers.delete(entityType);
+    this.executionModes.delete(entityType);
   }
 
   /**

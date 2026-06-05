@@ -170,13 +170,14 @@ async function handleRegister(
   deps: MessageHandlerDeps,
   payload: PublishRegisterPayload,
 ): Promise<{ success: boolean }> {
-  const { entityType, provider } = payload;
+  const { entityType, provider, config } = payload;
 
   try {
     if (provider) {
-      deps.providerRegistry.register(entityType, provider);
+      deps.providerRegistry.register(entityType, provider, config);
       deps.logger.info(`Registered provider for entity type: ${entityType}`, {
         providerName: provider.name,
+        executionMode: deps.providerRegistry.getExecutionMode(entityType),
       });
     }
     return { success: true };
@@ -305,7 +306,10 @@ async function handleDirect(
       authContext,
     );
 
-    if (deps.providerRegistry.has(entityType)) {
+    if (
+      deps.providerRegistry.has(entityType) &&
+      deps.providerRegistry.getExecutionMode(entityType) === "provider"
+    ) {
       const publishResult = await deps.publishExecutor.publish({
         entityType,
         id: entityId,
