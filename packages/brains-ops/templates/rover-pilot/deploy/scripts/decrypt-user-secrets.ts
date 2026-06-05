@@ -21,6 +21,7 @@ const pilot = parseFlatYaml(readFileSync("pilot.yaml", "utf8"));
 writeGitHubEnv("AI_API_KEY", secrets["aiApiKey"] ?? "");
 writeGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"] ?? "");
 writeGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"] ?? "");
+writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");
 
 writeGitHubOutput(
   "shared_ai_api_key_secret_name",

@@ -151,6 +151,36 @@ Notes:
 - The auth service owns setup email dedupe. It should not resend for the same persisted setup token after restart, but should retry failed delivery and resend after token rotation.
 - `SETUP_EMAIL_FROM` is not marked required because fleets without email setup can omit it, but it is required for users with `setup.delivery: email`.
 
+## AT Protocol smoke/config checklist
+
+Use this when enabling AT Protocol publishing for a single pilot user.
+
+1. Add the public PDS identifier to the user file:
+
+   ```yaml
+   atproto:
+     identifier: rizom-test.bsky.social
+   ```
+
+2. Put the app password in `users/<handle>.secrets.yaml`:
+
+   ```yaml
+   atprotoAppPassword: <app-password>
+   ```
+
+3. Encrypt the per-user secret payload:
+   - `bunx brains-ops secrets:encrypt . <handle>`
+4. Reconcile/deploy the user or cohort:
+   - `bunx brains-ops onboard . <handle>`
+   - or `bunx brains-ops reconcile-cohort . <cohort>`
+5. Verify the generated `users/<handle>/brain.yaml` contains `plugins.atproto.identifier` and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+
+Notes:
+
+- The ATProto identifier is public instance config and belongs in `users/<handle>.yaml`.
+- The ATProto app password is secret and belongs only in the encrypted per-user secret payload.
+- For smoke deployments, pin only the smoke cohort/user to the released brain version that contains ATProto support.
+
 ## Discord bot token checklist
 
 Use this when enabling Discord for a pilot user.

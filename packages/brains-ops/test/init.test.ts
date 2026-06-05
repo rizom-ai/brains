@@ -200,6 +200,8 @@ describe("initPilotRepo", () => {
     expect(envSchema).toContain("# Rover pilot instance env schema");
     expect(envSchema).toContain("single source of truth");
     expect(envSchema).toContain("AI_API_KEY=");
+    expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
+    expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
     expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
     expect(envSchema).toContain("SETUP_EMAIL_FROM=");
     expect(envSchema).toContain("HCLOUD_TOKEN=");
@@ -350,6 +352,17 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
 
+    const decryptUserSecretsScript = await readFile(
+      join(repo, "deploy", "scripts", "decrypt-user-secrets.ts"),
+      "utf8",
+    );
+    expect(decryptUserSecretsScript).toContain(
+      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+    );
+    expect(decryptUserSecretsScript).not.toContain(
+      'writeGitHubEnv("ATPROTO_IDENTIFIER"',
+    );
+
     const resolveScript = await readFile(
       join(repo, "deploy", "scripts", "resolve-user-config.ts"),
       "utf8",
@@ -431,6 +444,8 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
+    expect(deployConfig).toContain("- ATPROTO_APP_PASSWORD");
+    expect(deployConfig).not.toContain("- ATPROTO_IDENTIFIER");
     expect(deployConfig).toContain("- SETUP_EMAIL_API_KEY");
     expect(deployConfig).toContain("- SETUP_EMAIL_FROM");
     expect(deployConfig).not.toContain("MCP_AUTH_TOKEN");
@@ -508,6 +523,56 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).not.toContain("\n  app_port: 80\n");
+  });
+
+  it("reconciles generated ATProto deploy env artifacts on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const envSchemaPath = join(repo, ".env.schema");
+    const deployConfigPath = join(repo, "deploy", "kamal", "deploy.yml");
+    const decryptScriptPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "decrypt-user-secrets.ts",
+    );
+
+    await writeFile(
+      envSchemaPath,
+      (await readFile(envSchemaPath, "utf8")).replace(
+        "\n# AT Protocol publishing/discovery (optional, per-user)\n# Comes from the decrypted users/<handle>.secrets.yaml.age file when configured.\n# @sensitive\nATPROTO_APP_PASSWORD=\n",
+        "\n",
+      ),
+    );
+    await writeFile(
+      deployConfigPath,
+      (await readFile(deployConfigPath, "utf8")).replace(
+        "    - ATPROTO_APP_PASSWORD\n",
+        "",
+      ),
+    );
+    await writeFile(
+      decryptScriptPath,
+      (await readFile(decryptScriptPath, "utf8")).replace(
+        'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+        "",
+      ),
+    );
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(envSchemaPath, "utf8")).toContain(
+      "ATPROTO_APP_PASSWORD=",
+    );
+    expect(await readFile(deployConfigPath, "utf8")).toContain(
+      "- ATPROTO_APP_PASSWORD",
+    );
+    expect(await readFile(decryptScriptPath, "utf8")).toContain(
+      'writeGitHubEnv("ATPROTO_APP_PASSWORD"',
+    );
   });
 
   it("reconciles stale deploy volume mounts on rerun", async () => {

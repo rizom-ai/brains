@@ -205,7 +205,15 @@ export default defineBrain({
     ["stock-photo", stockPhotoPlugin, {}],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
-    ["atproto", atprotoPlugin, undefined],
+    [
+      "atproto",
+      atprotoPlugin,
+      (env): PluginConfig => ({
+        ...(env["ATPROTO_APP_PASSWORD"]
+          ? { appPassword: env["ATPROTO_APP_PASSWORD"] }
+          : {}),
+      }),
+    ],
     [
       "directory-sync",
       directorySync,

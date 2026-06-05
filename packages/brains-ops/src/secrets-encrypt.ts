@@ -17,6 +17,7 @@ const encryptedUserSecretsSchema = z
     gitSyncToken: z.string().min(1).optional(),
     discordBotToken: z.string().min(1).optional(),
     aiApiKey: z.string().min(1).optional(),
+    atprotoAppPassword: z.string().min(1).optional(),
   })
   .strict();
 
@@ -175,11 +176,20 @@ function buildEncryptedUserSecrets(
         "DISCORD_BOT_TOKEN",
       )
     : undefined;
+  const atprotoAppPassword = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    "atprotoAppPassword",
+    "ATPROTO_APP_PASSWORD",
+  );
 
   return encryptedUserSecretsSchema.parse({
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
+    ...(atprotoAppPassword ? { atprotoAppPassword } : {}),
   });
 }
 
@@ -214,13 +224,13 @@ function resolveRequiredSecretValue(
   plaintextKey: keyof EncryptedUserSecrets,
   fallbackEnvKey: string,
 ): string {
-  const value = resolveSecretValue(
+  const value = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
     plaintextSecrets,
     plaintextKey,
     fallbackEnvKey,
-    env,
-    localEnvValues,
-    rootDir,
   );
   if (value === undefined || value.trim().length === 0) {
     throw new Error(
@@ -229,6 +239,24 @@ function resolveRequiredSecretValue(
   }
 
   return value;
+}
+
+function resolveOptionalSecretValue(
+  rootDir: string,
+  env: NodeJS.ProcessEnv,
+  localEnvValues: Record<string, string>,
+  plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  plaintextKey: keyof EncryptedUserSecrets,
+  fallbackEnvKey: string,
+): string | undefined {
+  return resolveSecretValue(
+    plaintextSecrets,
+    plaintextKey,
+    fallbackEnvKey,
+    env,
+    localEnvValues,
+    rootDir,
+  );
 }
 
 function resolveSecretValue(

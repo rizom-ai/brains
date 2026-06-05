@@ -1,6 +1,21 @@
 import { describe, expect, it } from "bun:test";
-import { resolve } from "@brains/app";
+import { parseInstanceOverrides, resolve } from "@brains/app";
 import rover from "../src";
+
+interface WebRouteProvider {
+  getWebRoutes(): Array<{
+    path: string;
+    handler: (request: Request) => Promise<Response> | Response;
+  }>;
+}
+
+function getWebRouteProvider(plugin: unknown): WebRouteProvider | undefined {
+  if (typeof plugin !== "object" || plugin === null) return undefined;
+  if (!("getWebRoutes" in plugin)) return undefined;
+  return typeof plugin.getWebRoutes === "function"
+    ? (plugin as WebRouteProvider)
+    : undefined;
+}
 
 describe("rover presets", () => {
   it("includes ATProto in the core preset", () => {
@@ -8,6 +23,36 @@ describe("rover presets", () => {
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
     expect(pluginIds).toContain("atproto");
+  });
+
+  it("merges ATProto identifier from brain config with app password from env", async () => {
+    const overrides = parseInstanceOverrides(`brain: rover
+domain: smoke.rizom.ai
+preset: core
+plugins:
+  atproto:
+    identifier: rizom-test.bsky.social
+`);
+    const config = resolve(
+      rover,
+      { ATPROTO_APP_PASSWORD: "app-password" },
+      overrides,
+    );
+    const atproto = getWebRouteProvider(
+      config.plugins?.find((plugin) => plugin.id === "atproto"),
+    );
+    const didRoute = atproto
+      ?.getWebRoutes()
+      .find((route) => route.path === "/.well-known/did.json");
+
+    const response = await didRoute?.handler(
+      new Request("https://smoke.rizom.ai/.well-known/did.json"),
+    );
+
+    expect(await response?.json()).toMatchObject({
+      id: "did:web:smoke.rizom.ai",
+      alsoKnownAs: ["at://rizom-test.bsky.social"],
+    });
   });
 
   it("includes document support in the full preset", () => {
