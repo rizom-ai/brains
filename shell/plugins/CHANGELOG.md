@@ -1,5 +1,20 @@
 # @brains/plugins
 
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.108
+  - @brains/contracts@0.2.0-alpha.108
+  - @brains/site-composition@0.2.0-alpha.108
+  - @brains/utils@0.2.0-alpha.108
+  - @brains/conversation-service@0.2.0-alpha.108
+  - @brains/identity-service@0.2.0-alpha.108
+  - @brains/job-queue@0.2.0-alpha.108
+  - @brains/messaging-service@0.2.0-alpha.108
+  - @brains/templates@0.2.0-alpha.108
+
 ## 0.2.0-alpha.107
 
 ### Patch Changes

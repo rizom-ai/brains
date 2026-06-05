@@ -113,6 +113,7 @@
   "changesets": [
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
+    "atproto-discovery-agent-events",
     "atproto-registry-contracts",
     "auth-service-setup-email",
     "bitwarden-deploy-workflow-template",

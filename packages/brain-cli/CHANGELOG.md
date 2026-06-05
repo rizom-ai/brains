@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- [`92ce0bd`](https://github.com/rizom-ai/brains/commit/92ce0bd672d2d2e6fabb206b78a884dbc23e3663) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add ATProto brain-card discovery event contracts, revise `ai.rizom.brain.card` to the nested brain identity plus minimal anchor snapshot shape, serve conventional/configured brain and anchor `did:web` documents, default omitted brain/anchor DIDs from the site host, include ATProto in Rover core, add a bounded `atproto_discover_brain_cards` candidate-read tool, and handle discovered cards by creating reviewable agents or enriching existing approved agents with signed card metadata.
+
 ## 0.2.0-alpha.107
 
 ### Patch Changes

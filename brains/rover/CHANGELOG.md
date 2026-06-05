@@ -1,5 +1,50 @@
 # @brains/rover
 
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- [`92ce0bd`](https://github.com/rizom-ai/brains/commit/92ce0bd672d2d2e6fabb206b78a884dbc23e3663) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add ATProto brain-card discovery event contracts, revise `ai.rizom.brain.card` to the nested brain identity plus minimal anchor snapshot shape, serve conventional/configured brain and anchor `did:web` documents, default omitted brain/anchor DIDs from the site host, include ATProto in Rover core, add a bounded `atproto_discover_brain_cards` candidate-read tool, and handle discovered cards by creating reviewable agents or enriching existing approved agents with signed card metadata.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.108
+  - @brains/assessment@0.2.0-alpha.108
+  - @brains/blog@0.2.0-alpha.108
+  - @brains/decks@0.2.0-alpha.108
+  - @brains/document-plugin@0.2.0-alpha.108
+  - @brains/image-plugin@0.2.0-alpha.108
+  - @brains/link@0.2.0-alpha.108
+  - @brains/note@0.2.0-alpha.108
+  - @brains/portfolio@0.2.0-alpha.108
+  - @brains/prompt@0.2.0-alpha.108
+  - @brains/rizom-ecosystem@0.2.0-alpha.108
+  - @brains/series@0.2.0-alpha.108
+  - @brains/site-info@0.2.0-alpha.108
+  - @brains/social-media@0.2.0-alpha.108
+  - @brains/topics@0.2.0-alpha.108
+  - @brains/wishlist@0.2.0-alpha.108
+  - @brains/a2a@0.2.0-alpha.108
+  - @brains/discord@0.2.0-alpha.108
+  - @brains/mcp@0.2.0-alpha.108
+  - @brains/web-chat@0.2.0-alpha.108
+  - @brains/webserver@0.2.0-alpha.108
+  - @brains/analytics@0.2.0-alpha.108
+  - @brains/atproto@0.2.0-alpha.108
+  - @brains/cms@0.2.0-alpha.108
+  - @brains/content-pipeline@0.2.0-alpha.108
+  - @brains/dashboard@0.2.0-alpha.108
+  - @brains/directory-sync@0.2.0-alpha.108
+  - @brains/email-resend@0.2.0-alpha.108
+  - @brains/newsletter@0.2.0-alpha.108
+  - @brains/notifications@0.2.0-alpha.108
+  - @brains/obsidian-vault@0.2.0-alpha.108
+  - @brains/site-builder-plugin@0.2.0-alpha.108
+  - @brains/stock-photo@0.2.0-alpha.108
+  - @brains/theme-default@0.2.0-alpha.108
+  - @brains/app@0.2.0-alpha.108
+  - @brains/auth-service@0.2.0-alpha.108
+  - @brains/site-default@0.2.0-alpha.108
+
 ## 0.2.0-alpha.107
 
 ### Patch Changes
