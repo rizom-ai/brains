@@ -1761,8 +1761,8 @@ describe("WebChatInterface", () => {
             },
             {
               role: "user",
-              content: "describe that image",
-              parts: [{ type: "text", text: "describe that image" }],
+              content: "describe an image upload",
+              parts: [{ type: "text", text: "describe an image upload" }],
             },
           ],
         }),

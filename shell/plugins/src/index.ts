@@ -264,6 +264,12 @@ export {
   type ToolApprovalCard,
   type ToolResultData,
 } from "./contracts/agent";
+export {
+  resolveUploadFollowUp,
+  type UploadCandidate,
+  type UploadFollowUpResolution,
+  type UploadHistoryMessage,
+} from "./message-interface/upload-continuity";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
 export {
   ConversationSchema,

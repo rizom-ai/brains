@@ -1,0 +1,80 @@
+id: multi-turn-web-chat-image-upload-save-follow-up
+name: Web chat image upload follow-up promotes image
+description: Verifies a bare web-chat image upload is inert, then an explicit save-as-image follow-up calls system_create with the prior upload ref instead of generating a new image.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-image-upload-save
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: drunken-robot.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURVt8+v///xZpnOQAAAABYktHRAH/Ai3eAAAAB3RJTUUH6gYFCTIgGlrY4AAAAAxJREFUCNdjYBjcAAAAoAABYSV9RwAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyNi0wNi0wNVQwOTo1MDozMiswMDowMHY6WhcAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjYtMDYtMDVUMDk6NTA6MzIrMDA6MDAHZ+KrAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDI2LTA2LTA1VDA5OjUwOjMyKzAwOjAwUHLDdAAAAABJRU5ErkJggg==
+        source:
+          kind: web-chat-upload
+          id: upload-00000000-0000-4000-8000-000000000601
+    successCriteria:
+      responseContains:
+        - "drunken-robot.png"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "can you save it as an image"
+    reusePreviousAttachments: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: image
+            upload.kind: web-chat-upload
+            upload.id: upload-00000000-0000-4000-8000-000000000601
+          argsAbsent:
+            - prompt
+            - from
+            - fromUpload
+            - sourceAttachment
+      responseNotContains:
+        - "generating"
+        - "queued"
+        - "Started generating"
+        - "generated"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: image
+        upload.kind: web-chat-upload
+        upload.id: upload-00000000-0000-4000-8000-000000000601
+      argsAbsent:
+        - prompt
+        - from
+        - fromUpload
+        - sourceAttachment
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "generating"
+    - "queued"
+    - "Started generating"
+    - "generated"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 40000
