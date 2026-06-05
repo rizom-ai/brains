@@ -6,6 +6,7 @@ import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { PublishExecutor } from "./publish-executor";
 import { PublishAssetRegistry } from "./publish-assets";
+import { PublishAssetPreflight } from "./publish-asset-preflight";
 import type { ContentScheduler } from "./scheduler";
 import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
@@ -22,6 +23,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   private retryTracker!: RetryTracker;
   private publishExecutor!: PublishExecutor;
   private publishAssetRegistry!: PublishAssetRegistry;
+  private publishAssetPreflight!: PublishAssetPreflight;
   private scheduler!: ContentScheduler;
 
   constructor(config?: Partial<ContentPipelineConfig>) {
@@ -45,9 +47,14 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       baseDelayMs: this.config.retryBaseDelayMs,
     });
     this.publishAssetRegistry = PublishAssetRegistry.createFresh();
+    this.publishAssetPreflight = new PublishAssetPreflight({
+      context,
+      registry: this.publishAssetRegistry,
+    });
     this.publishExecutor = new PublishExecutor({
       context,
       providerRegistry: this.providerRegistry,
+      publishAssetPreflight: this.publishAssetPreflight,
     });
 
     this.scheduler = createScheduler({

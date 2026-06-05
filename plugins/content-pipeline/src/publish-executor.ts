@@ -31,6 +31,11 @@ export interface PublishEntityExecutor {
 export interface PublishExecutorDeps {
   context: ServicePluginContext;
   providerRegistry: ProviderRegistry;
+  publishAssetPreflight?:
+    | {
+        ensureForEntity(entity: BaseEntity): Promise<unknown>;
+      }
+    | undefined;
 }
 
 /**
@@ -89,8 +94,22 @@ export class PublishExecutor implements PublishEntityExecutor {
       entity,
       result,
     );
+    await this.runPublishAssetPreflight(updated);
 
     return { entity: updated as PublishableEntity, result };
+  }
+
+  private async runPublishAssetPreflight(entity: BaseEntity): Promise<void> {
+    if (!this.deps.publishAssetPreflight) return;
+    try {
+      await this.deps.publishAssetPreflight.ensureForEntity(entity);
+    } catch (error) {
+      this.deps.context.logger.warn("Publish asset preflight failed", {
+        entityType: entity.entityType,
+        entityId: entity.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async findPublishableEntity(

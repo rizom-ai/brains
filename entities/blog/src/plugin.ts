@@ -88,6 +88,18 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
       BLOG_OG_IMAGE_ATTACHMENT_TYPE,
       new BlogOgImageAttachmentProvider(context),
     );
+    await context.messaging.send({
+      type: "publish-assets:register",
+      payload: {
+        entityType: "post",
+        attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
+        jobType: "image:image-render-source",
+      },
+    });
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(
         createBlogAtprotoProjection(),

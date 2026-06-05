@@ -43,6 +43,10 @@ export {
   type PublishAssetDefinition,
   type PublishAssetTargetField,
 } from "./publish-assets";
+export {
+  PublishAssetPreflight,
+  type PublishAssetPreflightResult,
+} from "./publish-asset-preflight";
 
 // Tools
 export {
