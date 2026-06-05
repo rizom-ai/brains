@@ -1,0 +1,61 @@
+id: multi-turn-web-chat-image-upload-bare-label-follow-up
+name: Web chat image upload bare label follow-up stays inert
+description: Verifies a short label-only follow-up after a bare image upload asks for clarification instead of generating or saving a new image entity.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-upload
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: drunken-robot.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=
+    successCriteria:
+      responseContains:
+        - "drunken-robot.png"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "drunken"
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseContains:
+        - "drunken"
+      responseNotContains:
+        - "Created"
+        - "generating"
+        - "Saved"
+        - "I created"
+        - "I generated"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "Created"
+    - "generating"
+    - "Saved"
+    - "I created"
+    - "I generated"
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 40000
