@@ -36,7 +36,6 @@ export interface PublishExecutorDeps {
         ensureForEntity(entity: BaseEntity): Promise<unknown>;
       }
     | undefined;
-  requireProviderExecutionMode?: boolean;
 }
 
 /**
@@ -80,15 +79,6 @@ export class PublishExecutor implements PublishEntityExecutor {
       };
     }
 
-    if (
-      this.deps.requireProviderExecutionMode === true &&
-      this.deps.providerRegistry.getExecutionMode(entityType) !== "provider"
-    ) {
-      return {
-        error: `Entity type ${entityType} is not registered for direct provider execution`,
-      };
-    }
-
     const provider = this.deps.providerRegistry.get(entityType);
     const { bodyContent, imageData, documentData } =
       await preparePublishContent(this.deps.context, entity);
@@ -101,11 +91,16 @@ export class PublishExecutor implements PublishEntityExecutor {
     );
     const publishResultIdField =
       this.deps.providerRegistry.getPublishResultIdField(entityType);
+    const publishTimestampField =
+      this.deps.providerRegistry.getPublishTimestampField(entityType);
     const updated = await markEntityPublished(
       this.deps.context,
       entity,
       result,
-      publishResultIdField ? { publishResultIdField } : {},
+      {
+        ...(publishResultIdField ? { publishResultIdField } : {}),
+        ...(publishTimestampField ? { publishTimestampField } : {}),
+      },
     );
     await this.runPublishAssetPreflight(updated);
 

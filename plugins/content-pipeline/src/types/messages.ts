@@ -81,13 +81,6 @@ export interface PublishReportFailurePayload {
  * Message payloads for service → plugin communication
  */
 
-/** Entity is ready to publish - plugin should handle */
-export interface PublishExecutePayload {
-  entityType: string;
-  entityId: string;
-  authContext?: PublishAuthContext;
-}
-
 /** Entity was added to queue */
 export interface PublishQueuedPayload {
   entityType: string;
@@ -139,7 +132,6 @@ export const PUBLISH_MESSAGES = {
   REPORT_FAILURE: "publish:report:failure",
 
   // Service → Plugin
-  EXECUTE: "publish:execute",
   QUEUED: "publish:queued",
   COMPLETED: "publish:completed",
   FAILED: "publish:failed",

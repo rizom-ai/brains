@@ -3,16 +3,19 @@ import { z } from "@brains/utils";
 /**
  * Configuration for publish behavior per entity type
  */
-export const publishExecutionModeSchema = z.enum(["provider", "message"]);
+export const publishExecutionModeSchema = z.enum(["provider"]);
 export type PublishExecutionMode = z.infer<typeof publishExecutionModeSchema>;
 
 export const publishConfigSchema = z
   .object({
-    /** Whether content-pipeline should execute the provider or emit publish:execute. */
+    /** Publishing execution mode. Only provider execution is supported. */
     executionMode: publishExecutionModeSchema.optional(),
 
     /** Optional metadata/frontmatter field for storing provider result IDs. */
     publishResultIdField: z.string().min(1).optional(),
+
+    /** Optional metadata/frontmatter field for storing publish timestamps. */
+    publishTimestampField: z.string().min(1).optional(),
 
     /** Maximum number of retry attempts before marking as failed */
     maxRetries: z.number().optional(),
@@ -33,8 +36,9 @@ export type PublishConfig = z.infer<typeof publishConfigSchema>;
  * Default configuration values
  */
 export const DEFAULT_PUBLISH_CONFIG: Required<PublishConfig> = {
-  executionMode: "message",
+  executionMode: "provider",
   publishResultIdField: "platformId",
+  publishTimestampField: "publishedAt",
   maxRetries: 3,
   retryBackoffMs: 5000,
   retryBackoffMultiplier: 2,

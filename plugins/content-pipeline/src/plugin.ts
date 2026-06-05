@@ -59,7 +59,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       context,
       providerRegistry: this.providerRegistry,
       publishAssetPreflight: this.publishAssetPreflight,
-      requireProviderExecutionMode: true,
     });
 
     this.scheduler = createScheduler({

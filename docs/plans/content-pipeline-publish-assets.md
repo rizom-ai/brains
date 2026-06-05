@@ -9,7 +9,7 @@ This plan moves automatic publish-adjacent media generation out of entity plugin
 Implementation notes:
 
 - Added a shared `PublishExecutor` and `PublishStateUpdater` for provider-mode direct/queued publishing.
-- Added publish execution modes so external providers use the executor while legacy internal side-effect publishers can keep `publish:execute` fallback behavior.
+- Removed legacy `publish:execute` fallback; registered providers publish through the shared executor path.
 - Added `PublishAssetRegistry`, `publish-assets:register`, `PublishAssetPreflight`, and `content-pipeline_ensure-assets`.
 - Blog registers `post/og-image` as an auto-generated publish asset.
 - Publish asset preflight now runs after provider-mode publish and on published entity create/update events.
@@ -41,9 +41,9 @@ However, automatic OG generation needs a better home. The trigger should not liv
 
 There is also existing publish-flow drift that should be cleaned up before publish assets are added:
 
-- The scheduler lives in `content-pipeline`, but blog/deck publish state transitions still happen in entity-plugin `publish:execute` subscribers.
+- The scheduler lives in `content-pipeline`, while legacy blog/deck publish state transitions had lived in entity-plugin `publish:execute` subscribers.
 - Direct publish and queued publish do not clearly share one execution path.
-- Provider-mode publishing and message-mode publishing have different semantics.
+- Provider-mode publishing and legacy message-driven publishing had different semantics.
 - Frontmatter-backed publishable entities need `status` and `publishedAt` updated in both metadata and markdown content.
 - These split paths would make publish-asset hooks fragile or duplicated.
 

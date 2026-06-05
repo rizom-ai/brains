@@ -2,8 +2,7 @@ import { getErrorMessage } from "@brains/utils";
 /**
  * Scheduler publish helpers - extracted from ContentScheduler
  *
- * Contains the publishing execution logic for both message mode
- * and provider mode.
+ * Contains the provider publishing execution logic.
  */
 
 import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
@@ -12,7 +11,6 @@ import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishEntityExecutor } from "./publish-executor";
 import type {
-  PublishExecuteEvent,
   PublishSuccessEvent,
   PublishFailedEvent,
 } from "./types/scheduler";
@@ -24,37 +22,12 @@ export interface PublishDeps {
   messageBus?: IMessageBus | undefined;
   entityService?: ICoreEntityService | undefined;
   publishExecutor?: PublishEntityExecutor | undefined;
-  onExecute?: ((event: PublishExecuteEvent) => void) | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
   onFailed?: ((event: PublishFailedEvent) => void) | undefined;
 }
 
 /**
- * Emit publish:execute message (message mode)
- */
-export async function emitPublishExecute(
-  entry: QueueEntry,
-  deps: Pick<PublishDeps, "messageBus" | "onExecute">,
-): Promise<void> {
-  const event: PublishExecuteEvent = {
-    entityType: entry.entityType,
-    entityId: entry.entityId,
-    authContext: entry.authContext,
-  };
-
-  if (deps.messageBus) {
-    await deps.messageBus.send({
-      type: PUBLISH_MESSAGES.EXECUTE,
-      payload: event,
-      sender: "publish-service",
-    });
-  }
-
-  deps.onExecute?.(event);
-}
-
-/**
- * Execute publishing with provider (provider mode)
+ * Execute publishing with provider.
  */
 export async function executeWithProvider(
   entry: QueueEntry,

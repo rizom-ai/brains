@@ -70,7 +70,6 @@ export function createPublishTool(
     new PublishExecutor({
       context,
       providerRegistry,
-      requireProviderExecutionMode: true,
     });
   const tool = createTool(
     pluginId,

@@ -1,10 +1,6 @@
 import type { QueueEntry } from "./queue-manager";
 import type { ScheduledJob } from "./scheduler-backend";
-import {
-  emitPublishExecute,
-  executeWithProvider,
-  type PublishDeps,
-} from "./scheduler-publish";
+import { executeWithProvider, type PublishDeps } from "./scheduler-publish";
 import type { SchedulerConfig } from "./types/scheduler";
 
 /** Interval for immediate processing (1 second) */
@@ -96,18 +92,7 @@ export class PublishScheduleRunner {
     );
 
     const publishDeps = this.deps.getPublishDeps();
-    if (
-      publishDeps.publishExecutor &&
-      publishDeps.providerRegistry.has(entry.entityType) &&
-      publishDeps.providerRegistry.getExecutionMode(entry.entityType) ===
-        "provider"
-    ) {
-      await executeWithProvider(entry, publishDeps);
-    } else if (this.deps.config.messageBus !== undefined) {
-      await emitPublishExecute(entry, publishDeps);
-    } else {
-      await executeWithProvider(entry, publishDeps);
-    }
+    await executeWithProvider(entry, publishDeps);
   }
 
   private get entitySchedules(): Record<string, string> {

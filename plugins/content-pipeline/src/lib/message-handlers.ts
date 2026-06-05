@@ -318,41 +318,28 @@ async function handleDirect(
       authContext,
     );
 
-    if (
-      deps.providerRegistry.has(entityType) &&
-      deps.providerRegistry.getExecutionMode(entityType) === "provider"
-    ) {
-      const publishResult = await deps.publishExecutor.publish({
-        entityType,
-        id: entityId,
-      });
-      if ("error" in publishResult) {
-        deps.scheduler.failPublish(entityType, entityId, publishResult.error);
-        return { success: false };
-      }
-
-      deps.scheduler.completePublish(
+    if (!deps.providerRegistry.has(entityType)) {
+      deps.scheduler.failPublish(
         entityType,
         entityId,
-        publishResult.result,
+        `No publish provider registered for ${entityType}`,
       );
-      deps.logger.debug(`Direct publish completed: ${entityId}`, {
-        entityType,
-      });
-      return { success: true };
+      return { success: false };
     }
 
-    await context.messaging.send({
-      type: PUBLISH_MESSAGES.EXECUTE,
-      payload: {
-        entityType,
-        entityId,
-        authContext,
-      },
+    const publishResult = await deps.publishExecutor.publish({
+      entityType,
+      id: entityId,
     });
+    if ("error" in publishResult) {
+      deps.scheduler.failPublish(entityType, entityId, publishResult.error);
+      return { success: false };
+    }
 
-    deps.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
-
+    deps.scheduler.completePublish(entityType, entityId, publishResult.result);
+    deps.logger.debug(`Direct publish completed: ${entityId}`, {
+      entityType,
+    });
     return { success: true };
   } catch (error) {
     const errorMessage = getErrorMessage(error);

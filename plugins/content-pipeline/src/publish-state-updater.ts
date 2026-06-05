@@ -7,6 +7,7 @@ const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 export interface MarkPublishedOptions {
   publishedAt?: string;
   publishResultIdField?: string;
+  publishTimestampField?: string;
 }
 
 /**
@@ -25,10 +26,11 @@ export async function markEntityPublished<
   options: MarkPublishedOptions = {},
 ): Promise<BaseEntity<TMetadata & Record<string, unknown>>> {
   const publishedAt = options.publishedAt ?? new Date().toISOString();
+  const publishTimestampField = options.publishTimestampField ?? "publishedAt";
   const metadata = {
     ...entity.metadata,
     status: "published",
-    publishedAt,
+    [publishTimestampField]: publishedAt,
     platformId: result.id,
     ...getPublishResultMetadata(result.id, options.publishResultIdField),
   };
@@ -40,6 +42,7 @@ export async function markEntityPublished<
       publishedAt,
       result.id,
       options.publishResultIdField,
+      publishTimestampField,
     ),
     metadata,
   };
@@ -53,11 +56,12 @@ export function updatePublishFrontmatter(
   publishedAt: string,
   resultId?: string,
   publishResultIdField?: string,
+  publishTimestampField = "publishedAt",
 ): string {
   if (!FRONTMATTER_BLOCK.test(content)) return content;
   const updated = updateFrontmatterField(
     updateFrontmatterField(content, "status", "published"),
-    "publishedAt",
+    publishTimestampField,
     publishedAt,
   );
 

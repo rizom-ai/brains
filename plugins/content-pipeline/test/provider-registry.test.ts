@@ -76,10 +76,10 @@ describe("ProviderRegistry", () => {
       expect(registry.getExecutionMode("social-post")).toBe("provider");
     });
 
-    it("should default internal providers to message execution", () => {
+    it("should default internal providers to provider execution", () => {
       registry.register("newsletter", createMockProvider("internal"));
 
-      expect(registry.getExecutionMode("newsletter")).toBe("message");
+      expect(registry.getExecutionMode("newsletter")).toBe("provider");
     });
 
     it("should use explicit execution mode config", () => {

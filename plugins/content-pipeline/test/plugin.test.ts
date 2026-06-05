@@ -172,9 +172,9 @@ describe("ContentPipelinePlugin", () => {
       expect(queue[0]?.entityId).toBe("post-2");
     });
 
-    it("forwards direct publish authorization context", async () => {
+    it("does not emit publish:execute for direct publish without provider", async () => {
       const executePayloads: unknown[] = [];
-      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+      harness.subscribe("publish:execute", async (msg) => {
         executePayloads.push(msg.payload);
         return { success: true };
       });
@@ -190,45 +190,52 @@ describe("ContentPipelinePlugin", () => {
         },
       });
 
-      expect(executePayloads).toEqual([
-        {
-          entityType: "social-post",
-          entityId: "post-1",
-          authContext: {
-            interfaceType: "test",
-            userId: "anchor-user",
-            userPermissionLevel: "anchor",
-            authorization: "user",
-          },
-        },
-      ]);
+      expect(executePayloads).toEqual([]);
     });
 
-    it("keeps internal message-mode providers on publish:execute fallback", async () => {
+    it("uses internal providers through direct provider execution", async () => {
+      const publish = mock(async () => ({ id: "email-1" }));
       await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
         entityType: "newsletter",
-        provider: {
-          name: "internal",
-          publish: async () => ({ id: "internal" }),
+        provider: { name: "internal", publish },
+        config: {
+          publishResultIdField: "buttondownId",
+          publishTimestampField: "sentAt",
         },
       });
-      const executePayloads: unknown[] = [];
-      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
-        executePayloads.push(msg.payload);
-        return { success: true };
-      });
+      harness.addEntities([
+        {
+          id: "newsletter-1",
+          entityType: "newsletter",
+          visibility: "public",
+          content: `---
+subject: Test Newsletter
+status: draft
+---
+Newsletter body`,
+          metadata: { subject: "Test Newsletter", status: "draft" },
+        },
+      ]);
 
       await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
         entityType: "newsletter",
         entityId: "newsletter-1",
       });
 
-      expect(executePayloads).toEqual([
-        expect.objectContaining({
-          entityType: "newsletter",
-          entityId: "newsletter-1",
-        }),
-      ]);
+      expect(publish).toHaveBeenCalledWith(
+        "Newsletter body",
+        expect.objectContaining({ status: "draft" }),
+        undefined,
+        undefined,
+      );
+      const updated = await harness.getEntityService().getEntity({
+        entityType: "newsletter",
+        id: "newsletter-1",
+      });
+      expect(updated?.metadata["status"]).toBe("published");
+      expect(updated?.metadata["buttondownId"]).toBe("email-1");
+      expect(typeof updated?.metadata["sentAt"]).toBe("string");
+      expect(updated?.content).toContain("sentAt:");
     });
 
     it("uses registered provider for direct publish messages", async () => {
@@ -251,7 +258,7 @@ Post body`,
         },
       ]);
       const executePayloads: unknown[] = [];
-      harness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+      harness.subscribe("publish:execute", async (msg) => {
         executePayloads.push(msg.payload);
         return { success: true };
       });
@@ -354,7 +361,7 @@ Post body`,
       const localPlugin = new ContentPipelinePlugin({});
       await localHarness.installPlugin(localPlugin);
       const executePayloads: unknown[] = [];
-      localHarness.subscribe(PUBLISH_MESSAGES.EXECUTE, async (msg) => {
+      localHarness.subscribe("publish:execute", async (msg) => {
         executePayloads.push(msg.payload);
         return { success: true };
       });
