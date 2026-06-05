@@ -1,5 +1,12 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.110
+
 ## 0.2.0-alpha.109
 
 ### Patch Changes

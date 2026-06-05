@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- [`057b63b`](https://github.com/rizom-ai/brains/commit/057b63be6f8fdd65611f85049b09705e7ac725d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Merge existing encrypted per-user secrets during `brains-ops secrets:encrypt` so adding a new secret no longer requires re-entering unchanged secret values such as an existing Discord bot token.
+
 ## 0.2.0-alpha.109
 
 ### Patch Changes
