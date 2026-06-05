@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. This plan defines first-run Rover onboarding as a lifecycle-triggered playbook that runs inside the existing anchor-only web chat surface.
+Implementation paused for expert review. Initial playbook/entity/runtime/web-chat work exists on `feature/rover-chat-native-onboarding`, but live smoke testing exposed correctness issues in the playbook/agent contract. Do not continue implementation or merge until the revised invariants below are reviewed.
+
+This plan defines first-run Rover onboarding as a lifecycle-triggered playbook that runs inside the existing anchor-only web chat surface.
 
 This supersedes the earlier idea of a dedicated onboarding plugin with inline mission configuration. The revised direction is:
 
@@ -33,6 +35,30 @@ The desired experience is a guided apprenticeship:
 This guidance should be durable and operator-editable. It should therefore live as markdown content, not as a large TypeScript config object.
 
 The workflow itself should be deterministic enough to validate. A playbook is not just a prompt; it is a structured state-machine definition interpreted by the playbooks service with XState.
+
+## Prototype findings requiring review
+
+Live chat testing showed that the current MVP implementation is too permissive and relies too much on the model to follow playbook instructions. The architecture direction is still plausible, but the runtime contract needs hardening.
+
+Observed failures:
+
+1. **Welcome repetition.** The operator says “yes”, but Rover repeats the welcome/orientation prompt instead of reliably advancing or rechecking current state.
+2. **Identity advances too early.** Rover can move from `identity` to `first-knowledge-seed` after partial data such as only a name/role, without creating or updating the anchor profile.
+3. **Wrong entity use in identity.** Rover saved a byline/name as a generic note instead of updating the protected anchor profile.
+4. **Run identity is brittle.** Rover reported that it could not attach `playbook_record_entity` because the run ID was unavailable, despite an active playbook being tied to the web-chat conversation.
+5. **Confirmation requests leak as results.** A `needsConfirmation` tool output can be exposed as a normal tool result, causing visible `Result { toolName: "system_update", ... }` blocks for an action that has not executed yet.
+6. **Confirmation requests are not terminal enough.** The agent/tool loop can keep producing “Confirmation required” after one pending approval; confirmation should stop the turn and wait for the operator.
+7. **State machine only validates transition shape.** XState confirms that `NEXT` is allowed, but does not by itself prove state completion criteria are satisfied.
+
+Required backend invariants before this plan is mergeable:
+
+1. **Confirmation is terminal for an agent turn.** Once any tool returns `needsConfirmation`, the current turn must stop, expose exactly the pending approval card(s), and wait for Approve/Decline.
+2. **Confirmation is not a generic tool result.** A confirmation request must not appear in `toolResults` as a completed `Result` block.
+3. **Playbook transitions need completion gates.** `playbook_send_event` must not allow `NEXT` out of a state with required expected entities unless those entities have been recorded or the event is an explicit bypass such as `SKIP`.
+4. **Active runs must be inferable from conversation context.** Playbook tools that operate on the active run, especially `playbook_record_entity`, should infer `runId` from `ToolContext.channelId` when omitted and exactly one active run exists for that conversation.
+5. **Agent context must include actionable run identity.** Active playbook context should make the current `runId`, state, valid events, and required expected entities hard to miss.
+6. **Rover onboarding seed must model identity as a gated state.** The `identity` state should require an `anchor-profile` record/update before `NEXT`; collecting only a name or saving a note is insufficient.
+7. **Regression tests must be written before fixes.** Each observed failure should have a failing backend test before implementation changes.
 
 ## Goals
 
@@ -335,10 +361,11 @@ playbook_reset_run
 
 Tool behavior:
 
-- `playbook_status` returns the active run, current state, valid events, playbook metadata, raw content, and parsed structured body.
+- `playbook_status` returns the active run, current state, valid events, playbook metadata, raw content, parsed structured body, required expected entities for the current state, and created/recorded entity refs.
 - `playbook_start` creates or resumes a run for a playbook and initializes the XState machine at the playbook initial state.
 - `playbook_send_event` sends a named event to the run's XState machine and persists the resulting state/snapshot. Invalid events return a tool error.
-- `playbook_record_entity` links a run to an entity created/updated through normal entity tools.
+- `playbook_send_event` must enforce playbook completion gates before transition execution. For MVP, `NEXT` out of a state with `expectedEntities.required === true` should fail unless matching entity refs have been recorded for the run. `SKIP` may bypass when the playbook explicitly allows it.
+- `playbook_record_entity` links a run to an entity created/updated through normal entity tools. If `runId` is omitted, it should infer the active run from `ToolContext.channelId` when possible.
 - `playbook_complete` marks the run complete only when the current state is a configured final state, unless explicitly forced by an anchor-only override added later.
 - `playbook_dismiss` hides or postpones a run without deleting progress.
 - `playbook_reset_run` restarts a run for testing or operator-requested reruns.
@@ -371,6 +398,8 @@ Valid events:
   },
 }
 ```
+
+The context content must also include the exact `runId` in plain text, the valid tool calls that should use it, and any required expected entities not yet recorded. The model should not need to infer run identity from provenance metadata alone.
 
 This is the right `shell/ai-service` boundary for MVP: the agent package consumes active workflow context, but it does not own playbook persistence, lifecycle triggers, entity schemas, or transport UI. If playbooks become a core platform contract later, we can formalize a first-class active-workflow context type in shared contracts.
 
@@ -519,12 +548,32 @@ Rover should not inline onboarding states in TypeScript config.
 - Verify the agent asks one question at a time, sends valid playbook events, saves a note/profile, demonstrates reuse, and completes the playbook.
 - Add minimal docs or release notes after behavior is validated.
 
+### Phase 7 — Runtime hardening before merge
+
+This phase is now required based on live smoke-test failures.
+
+- Add failing backend regressions for confirmation terminality:
+  - a `needsConfirmation` result stops the AI/tool loop for the turn;
+  - confirmation requests do not appear as generic `toolResults`;
+  - repeated confirmation attempts after a pending approval are ignored by result extraction.
+- Add failing playbooks plugin regressions for transition gating:
+  - `NEXT` fails when the current state has missing required expected entities;
+  - `SKIP` still works when declared;
+  - `playbook_record_entity` can infer the active run from the conversation/channel context.
+- Harden `plugins/playbooks` transition handling so completion gates are enforced in the plugin, not only in model instructions.
+- Harden active playbook context formatting so `runId`, missing required entities, and valid next events are visible in the model-readable text.
+- Harden `shell/ai-service` confirmation handling so confirmation outputs terminate the turn and are not returned as normal tool results.
+- Re-run live Rover onboarding from a clean test-app data directory and record transcript evidence before marking this phase complete.
+
 ## Validation
 
 - Run targeted tests for `entities/playbook` and `plugins/playbooks`.
+- Run targeted confirmation tests for `@brains/ai-service` when touching confirmation/tool-loop behavior.
 - Run `bun run typecheck` for changed packages and `brains/rover`.
 - Run web-chat UI build if frontend files change.
 - Run Rover test app smoke check with `cd brains/rover && bun start:full` when validating the full chat flow.
+- During smoke testing, start from clean `data/playbooks/runs.json` and a clean conversation DB or fresh test app directory so stale runs do not mask state-machine behavior.
+- Verify with an actual transcript that onboarding does all of the following before completion: advances from welcome once, updates or explicitly skips anchor profile, saves a first seed, records the seed against the active run, demonstrates retrieval, handles transformation confirmation once, and does not emit generic `Result` blocks for pending confirmations.
 - For docs-only edits to this plan, run `bun run docs:check` when links change.
 
 ## Open questions
@@ -535,3 +584,7 @@ Rover should not inline onboarding states in TypeScript config.
 4. Should onboarding be enabled for all Rover presets, or only `default` and `full`?
 5. Should playbook run state later move from JSON files to the proposed operator/runtime database?
 6. Should we persist full XState snapshots immediately, or persist normalized state value/context first and add full snapshots only when needed?
+7. Should completion gates be encoded as declarative guard rules in the playbook body rather than derived from `expectedEntities.required`?
+8. Should playbook tools default to the active conversation run for all run-scoped operations, or only for selected operations like `playbook_record_entity`?
+9. Should confirmation handling be modeled as a first-class stop condition in `shell/ai-service`, or should confirmation-requesting tools throw/short-circuit at the SDK tool wrapper boundary?
+10. Should Rover onboarding split identity collection into smaller machine states to avoid model-driven partial completion?
