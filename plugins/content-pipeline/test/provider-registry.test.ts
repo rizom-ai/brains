@@ -91,6 +91,18 @@ describe("ProviderRegistry", () => {
     });
   });
 
+  describe("getPublishResultIdField", () => {
+    it("should store optional provider result ID field config", () => {
+      registry.register("social-post", createMockProvider("linkedin"), {
+        publishResultIdField: "platformPostId",
+      });
+
+      expect(registry.getPublishResultIdField("social-post")).toBe(
+        "platformPostId",
+      );
+    });
+  });
+
   describe("has", () => {
     it("should return true for registered type", () => {
       const provider = createMockProvider("linkedin");

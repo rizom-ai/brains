@@ -6,6 +6,7 @@ const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
 export interface MarkPublishedOptions {
   publishedAt?: string;
+  publishResultIdField?: string;
 }
 
 /**
@@ -29,11 +30,17 @@ export async function markEntityPublished<
     status: "published",
     publishedAt,
     platformId: result.id,
+    ...getPublishResultMetadata(result.id, options.publishResultIdField),
   };
 
   const updated = {
     ...entity,
-    content: updatePublishFrontmatter(entity.content, publishedAt),
+    content: updatePublishFrontmatter(
+      entity.content,
+      publishedAt,
+      result.id,
+      options.publishResultIdField,
+    ),
     metadata,
   };
 
@@ -44,11 +51,26 @@ export async function markEntityPublished<
 export function updatePublishFrontmatter(
   content: string,
   publishedAt: string,
+  resultId?: string,
+  publishResultIdField?: string,
 ): string {
   if (!FRONTMATTER_BLOCK.test(content)) return content;
-  return updateFrontmatterField(
+  const updated = updateFrontmatterField(
     updateFrontmatterField(content, "status", "published"),
     "publishedAt",
     publishedAt,
   );
+
+  if (!resultId || !publishResultIdField) return updated;
+  return updateFrontmatterField(updated, publishResultIdField, resultId);
+}
+
+function getPublishResultMetadata(
+  resultId: string,
+  publishResultIdField: string | undefined,
+): Record<string, string> {
+  if (!publishResultIdField || publishResultIdField === "platformId") {
+    return {};
+  }
+  return { [publishResultIdField]: resultId };
 }

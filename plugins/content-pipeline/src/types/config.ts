@@ -9,6 +9,9 @@ export interface PublishConfig {
   /** Whether content-pipeline should execute the provider or emit publish:execute. */
   executionMode?: PublishExecutionMode;
 
+  /** Optional metadata/frontmatter field for storing provider result IDs. */
+  publishResultIdField?: string;
+
   /** Maximum number of retry attempts before marking as failed */
   maxRetries?: number;
 
@@ -27,6 +30,7 @@ export interface PublishConfig {
  */
 export const DEFAULT_PUBLISH_CONFIG: Required<PublishConfig> = {
   executionMode: "message",
+  publishResultIdField: "platformId",
   maxRetries: 3,
   retryBackoffMs: 5000,
   retryBackoffMultiplier: 2,

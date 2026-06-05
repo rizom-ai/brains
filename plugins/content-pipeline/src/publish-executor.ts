@@ -99,10 +99,13 @@ export class PublishExecutor implements PublishEntityExecutor {
       imageData,
       documentData,
     );
+    const publishResultIdField =
+      this.deps.providerRegistry.getPublishResultIdField(entityType);
     const updated = await markEntityPublished(
       this.deps.context,
       entity,
       result,
+      publishResultIdField ? { publishResultIdField } : {},
     );
     await this.runPublishAssetPreflight(updated);
 

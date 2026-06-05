@@ -55,6 +55,9 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
         "provider.name",
         "linkedin",
       );
+      expect(registerMessage?.payload).toMatchObject({
+        config: { publishResultIdField: "platformPostId" },
+      });
     });
 
     it("should not send publish:register if no providers configured", async () => {

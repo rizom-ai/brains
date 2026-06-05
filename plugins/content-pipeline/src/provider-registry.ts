@@ -15,6 +15,7 @@ export class ProviderRegistry {
   // Map of entityType -> provider
   private providers: Map<string, PublishProvider> = new Map();
   private executionModes: Map<string, PublishExecutionMode> = new Map();
+  private publishResultIdFields: Map<string, string> = new Map();
 
   // Default provider for internal publishing (blog, decks, etc.)
   private defaultProvider: PublishProvider = new InternalPublishProvider();
@@ -56,7 +57,7 @@ export class ProviderRegistry {
   public register(
     entityType: string,
     provider: PublishProvider,
-    config?: Pick<PublishConfig, "executionMode">,
+    config?: Pick<PublishConfig, "executionMode" | "publishResultIdField">,
   ): void {
     const existingProvider = this.providers.get(entityType);
     if (
@@ -73,6 +74,12 @@ export class ProviderRegistry {
       config?.executionMode ??
         (provider.name === "internal" ? "message" : "provider"),
     );
+
+    if (config?.publishResultIdField) {
+      this.publishResultIdFields.set(entityType, config.publishResultIdField);
+    } else {
+      this.publishResultIdFields.delete(entityType);
+    }
   }
 
   /**
@@ -91,6 +98,13 @@ export class ProviderRegistry {
   }
 
   /**
+   * Get the optional field for provider result IDs.
+   */
+  public getPublishResultIdField(entityType: string): string | undefined {
+    return this.publishResultIdFields.get(entityType);
+  }
+
+  /**
    * Check if a provider is registered for an entity type
    */
   public has(entityType: string): boolean {
@@ -103,6 +117,7 @@ export class ProviderRegistry {
   public unregister(entityType: string): void {
     this.providers.delete(entityType);
     this.executionModes.delete(entityType);
+    this.publishResultIdFields.delete(entityType);
   }
 
   /**
