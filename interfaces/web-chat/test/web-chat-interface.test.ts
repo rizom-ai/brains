@@ -358,6 +358,77 @@ describe("WebChatInterface", () => {
     expect(html).not.toContain("Fraunces");
   });
 
+  it("returns playbook lifecycle starters for operators", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    harness.subscribe("playbooks:lifecycle-starters", async (message) => {
+      expect(message.payload).toEqual({
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "anchor",
+      });
+      return {
+        success: true,
+        data: {
+          starters: [
+            {
+              id: "onboarding",
+              title: "Set up Rover",
+              description: "Learn Rover by doing real setup work.",
+              playbookId: "rover-onboarding",
+              lifecycle: "onboarding",
+              starterPrompt: "Start the Rover onboarding playbook.",
+            },
+          ],
+        },
+      };
+    });
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      starters: [
+        {
+          id: "onboarding",
+          title: "Set up Rover",
+          description: "Learn Rover by doing real setup work.",
+          playbookId: "rover-onboarding",
+          lifecycle: "onboarding",
+          starterPrompt: "Start the Rover onboarding playbook.",
+        },
+      ],
+    });
+  });
+
+  it("returns no playbook lifecycle starters when none are registered", async () => {
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ starters: [] });
+  });
+
+  it("rejects playbook bootstrap requests from non-operators", async () => {
+    const plugin = new WebChatInterface();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/bootstrap", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/bootstrap"),
+    );
+
+    expect(response?.status).toBe(403);
+  });
+
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
