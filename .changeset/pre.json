@@ -115,6 +115,7 @@
     "align-preview-domain-routing",
     "atproto-discovery-agent-events",
     "atproto-registry-contracts",
+    "atproto-smoke-credentials-release",
     "auth-service-setup-email",
     "bitwarden-deploy-workflow-template",
     "bitwarden-secrets-push",
