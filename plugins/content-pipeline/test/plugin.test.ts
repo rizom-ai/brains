@@ -11,6 +11,32 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 
+const createMockJobQueueService = (
+  enqueue: (job: unknown) => Promise<string>,
+): never =>
+  ({
+    enqueue,
+    complete: async () => {},
+    fail: async () => {},
+    getStatus: async () => null,
+    getStats: async () => ({
+      pending: 0,
+      processing: 0,
+      failed: 0,
+      completed: 0,
+      total: 0,
+    }),
+    cleanup: async () => 0,
+    registerHandler: () => {},
+    unregisterHandler: () => {},
+    unregisterPluginHandlers: () => {},
+    getRegisteredTypes: () => [],
+    getHandler: () => undefined,
+    update: async () => {},
+    getActiveJobs: async () => [],
+    getStatusByEntityId: async () => null,
+  }) as never;
+
 describe("ContentPipelinePlugin", () => {
   let harness: PluginTestHarness<ContentPipelinePlugin>;
   let plugin: ContentPipelinePlugin;
@@ -250,6 +276,72 @@ Post body`,
       expect(updated?.content).toContain("status: published");
     });
 
+    it("queues missing publish assets after provider-mode direct publish", async () => {
+      const localHarness = createPluginHarness({
+        dataDir: "/tmp/test-datadir-direct-publish-assets",
+      });
+      const enqueue = mock(async () => "job-1");
+      localHarness.getMockShell().getJobQueueService = (): never =>
+        createMockJobQueueService(enqueue);
+      const localPlugin = new ContentPipelinePlugin({});
+      await localHarness.installPlugin(localPlugin);
+      localHarness
+        .getMockShell()
+        .getAttachmentRegistry()
+        .register("post", "og-image", {
+          resolve: () => undefined,
+        });
+      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+        entityType: "post",
+        attachmentType: "og-image",
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
+        jobType: "image:image-render-source",
+      });
+      await localHarness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+        entityType: "post",
+        provider: {
+          name: "test-provider",
+          publish: async () => ({ id: "p1" }),
+        },
+      });
+      localHarness.addEntities([
+        {
+          id: "post-1",
+          entityType: "post",
+          visibility: "public",
+          content: `---
+title: Test Post
+status: draft
+---
+Post body`,
+          metadata: { status: "draft", slug: "post-1" },
+        },
+      ]);
+
+      await localHarness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
+        entityType: "post",
+        entityId: "post-1",
+      });
+
+      expect(enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "image:image-render-source",
+          data: expect.objectContaining({
+            sourceEntityType: "post",
+            sourceEntityId: "post-1",
+            targetImageField: "ogImageId",
+          }),
+          options: expect.objectContaining({
+            deduplication: "skip",
+          }),
+        }),
+      );
+      await localPlugin.shutdown?.();
+    });
+
     it("requires publish permission for direct publish messages", async () => {
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-direct-permissions",
@@ -366,28 +458,7 @@ Post body`,
       });
       const enqueue = mock(async () => "job-1");
       localHarness.getMockShell().getJobQueueService = (): never =>
-        ({
-          enqueue,
-          complete: async () => {},
-          fail: async () => {},
-          getStatus: async () => null,
-          getStats: async () => ({
-            pending: 0,
-            processing: 0,
-            failed: 0,
-            completed: 0,
-            total: 0,
-          }),
-          cleanup: async () => 0,
-          registerHandler: () => {},
-          unregisterHandler: () => {},
-          unregisterPluginHandlers: () => {},
-          getRegisteredTypes: () => [],
-          getHandler: () => undefined,
-          update: async () => {},
-          getActiveJobs: async () => [],
-          getStatusByEntityId: async () => null,
-        }) as never;
+        createMockJobQueueService(enqueue);
       const localPlugin = new ContentPipelinePlugin({});
       await localHarness.installPlugin(localPlugin);
       localHarness

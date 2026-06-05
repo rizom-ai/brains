@@ -2,11 +2,17 @@
 
 ## Status
 
-Proposed follow-up to the generic media rendering work and the OG image / printable PDF work.
+Implemented on branch `feat/content-pipeline-publish-assets`.
 
 This plan moves automatic publish-adjacent media generation out of entity plugins and site building, and into the content pipeline as a reusable "publish assets" stage.
 
-Planning update: include a prerequisite content-pipeline consolidation slice before adding publish assets. The scheduler should stay in this plugin, but publish execution/state transitions should be owned consistently by the content pipeline rather than split between the scheduler, direct publish tool, and entity-plugin `publish:execute` handlers.
+Implementation notes:
+
+- Added a shared `PublishExecutor` and `PublishStateUpdater` for provider-mode direct/queued publishing.
+- Added publish execution modes so external providers use the executor while legacy internal side-effect publishers can keep `publish:execute` fallback behavior.
+- Added `PublishAssetRegistry`, `publish-assets:register`, `PublishAssetPreflight`, and `content-pipeline_ensure-assets`.
+- Blog registers `post/og-image` as an auto-generated publish asset.
+- Publish asset preflight now runs after provider-mode publish and on published entity create/update events.
 
 ## Problem
 
@@ -263,10 +269,15 @@ Integration/eval smoke:
 - Run reconciliation against seeded published posts and verify missing OG images are generated.
 - Rebuild preview site after generation and verify absolute `og:image` / `twitter:image` metadata.
 
+## Decisions for v1
+
+- Publish assets do not block publish completion; they are generated asynchronously.
+- Existing target fields are skipped; stale/regeneration policy is deferred.
+- Source plugins register publish asset policy over the content-pipeline message API.
+- Printable PDFs remain user-requested durable attachments for now.
+- Entity transition observation is included for published `entity:created` / `entity:updated` events.
+
 ## Open questions
 
-- Should required publish assets ever block publish completion, or should v1 always complete publish while assets generate asynchronously?
 - Should stale OG images be regenerated automatically on content changes, or only reported as replaceable?
-- Should publish assets be configured by each source plugin, by content pipeline config, or both?
 - Should printable PDFs ever be publish assets, or remain purely user-requested durable attachments?
-- Should entity transition observation be required in v1, or is the centralized publish executor hook enough for the first slice?
