@@ -77,6 +77,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
       publishAssetRegistry: this.publishAssetRegistry,
+      publishAssetPreflight: this.publishAssetPreflight,
       scheduler: this.scheduler,
       logger: this.logger,
     });

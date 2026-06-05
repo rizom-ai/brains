@@ -1,9 +1,13 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
 import type { ContentScheduler } from "../scheduler";
+import {
+  publishableMetadataSchema,
+  type PublishableMetadata,
+} from "../schemas/publishable";
 import {
   PUBLISH_MESSAGES,
   GENERATE_MESSAGES,
@@ -27,6 +31,7 @@ import type { ProviderRegistry } from "../provider-registry";
 import type { PublishEntityExecutor } from "../publish-executor";
 import type { PublishAssetRegistry } from "../publish-assets";
 import { publishAssetDefinitionSchema } from "../publish-assets";
+import type { PublishAssetPreflight } from "../publish-asset-preflight";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
@@ -34,6 +39,7 @@ export interface MessageHandlerDeps {
   retryTracker: RetryTracker;
   publishExecutor: PublishEntityExecutor;
   publishAssetRegistry: PublishAssetRegistry;
+  publishAssetPreflight: PublishAssetPreflight;
   scheduler: ContentScheduler;
   logger: Logger;
 }
@@ -48,6 +54,7 @@ export function subscribeToMessages(
   subscribeToPublishMessages(context, deps);
   subscribeToGenerationMessages(context, deps);
   subscribeToPublishAssetMessages(context, deps);
+  subscribeToEntityChangeMessages(context, deps);
 }
 
 function subscribeToPublishMessages(
@@ -132,6 +139,33 @@ function subscribeToPublishAssetMessages(
   deps.logger.debug("Subscribed to publish asset messages");
 }
 
+interface EntityChangePayload {
+  entityType: string;
+  entityId: string;
+  entity?: BaseEntity;
+}
+
+function subscribeToEntityChangeMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
+  const handler = async (msg: {
+    payload: EntityChangePayload;
+  }): Promise<{ success: boolean }> =>
+    handleEntityChange(context, deps, msg.payload);
+
+  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+    "entity:created",
+    handler,
+  );
+  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+    "entity:updated",
+    handler,
+  );
+
+  deps.logger.debug("Subscribed to entity change messages for publish assets");
+}
+
 async function handleRegister(
   deps: MessageHandlerDeps,
   payload: PublishRegisterPayload,
@@ -172,6 +206,46 @@ async function handlePublishAssetRegister(
     mediaEntityType: parsed.data.mediaEntityType,
   });
   return { success: true };
+}
+
+async function handleEntityChange(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+  payload: EntityChangePayload,
+): Promise<{ success: boolean }> {
+  try {
+    if (deps.publishAssetRegistry.list(payload.entityType).length === 0) {
+      return { success: true };
+    }
+
+    const entity =
+      payload.entity ??
+      (await context.entityService.getEntity<BaseEntity>({
+        entityType: payload.entityType,
+        id: payload.entityId,
+      }));
+    if (!isPublishedEntity(entity)) {
+      return { success: true };
+    }
+
+    await deps.publishAssetPreflight.ensureForEntity(entity);
+    return { success: true };
+  } catch (error) {
+    deps.logger.warn("Failed to run publish asset preflight for entity event", {
+      entityType: payload.entityType,
+      entityId: payload.entityId,
+      error: getErrorMessage(error),
+    });
+    return { success: false };
+  }
+}
+
+function isPublishedEntity(
+  entity: BaseEntity | null | undefined,
+): entity is BaseEntity<PublishableMetadata & { status: "published" }> {
+  if (!entity) return false;
+  const parsed = publishableMetadataSchema.safeParse(entity.metadata);
+  return parsed.success && parsed.data.status === "published";
 }
 
 async function handleQueue(

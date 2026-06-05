@@ -332,6 +332,79 @@ Post body`,
         mediaEntityType: "image",
       });
     });
+
+    it("runs publish asset preflight for published entity changes", async () => {
+      const localHarness = createPluginHarness({
+        dataDir: "/tmp/test-datadir-publish-asset-events",
+      });
+      const enqueue = mock(async () => "job-1");
+      localHarness.getMockShell().getJobQueueService = (): never =>
+        ({
+          enqueue,
+          complete: async () => {},
+          fail: async () => {},
+          getStatus: async () => null,
+          getStats: async () => ({
+            pending: 0,
+            processing: 0,
+            failed: 0,
+            completed: 0,
+            total: 0,
+          }),
+          cleanup: async () => 0,
+          registerHandler: () => {},
+          unregisterHandler: () => {},
+          unregisterPluginHandlers: () => {},
+          getRegisteredTypes: () => [],
+          getHandler: () => undefined,
+          update: async () => {},
+          getActiveJobs: async () => [],
+          getStatusByEntityId: async () => null,
+        }) as never;
+      const localPlugin = new ContentPipelinePlugin({});
+      await localHarness.installPlugin(localPlugin);
+      localHarness
+        .getMockShell()
+        .getAttachmentRegistry()
+        .register("post", "og-image", {
+          resolve: () => undefined,
+        });
+      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+        entityType: "post",
+        attachmentType: "og-image",
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
+        jobType: "image:image-render-source",
+      });
+
+      await localHarness.sendMessage("entity:updated", {
+        entityType: "post",
+        entityId: "post-1",
+        entity: {
+          id: "post-1",
+          entityType: "post",
+          visibility: "public",
+          content: `---
+title: Test Post
+status: published
+---
+Body`,
+          metadata: { status: "published", slug: "post-1" },
+          created: "2026-06-04T12:00:00.000Z",
+          updated: "2026-06-04T12:00:00.000Z",
+          contentHash: "hash",
+        },
+      });
+
+      expect(enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "image:image-render-source",
+        }),
+      );
+      await localPlugin.shutdown?.();
+    });
   });
 
   describe("provider registration", () => {
