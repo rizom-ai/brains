@@ -1,6 +1,25 @@
-import type { ServicePluginContext, Tool, ToolResponse } from "@brains/plugins";
+import {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextRequestSchema,
+  type AgentContextItem,
+  type AgentContextResponse,
+} from "@brains/contracts";
+import {
+  playbookAdapter,
+  type PlaybookBody,
+  type PlaybookEntity as RegisteredPlaybookEntity,
+  type PlaybookState,
+  type PlaybookTransition,
+} from "@brains/playbook";
+import type {
+  ServicePluginContext,
+  Tool,
+  ToolContext,
+  ToolResponse,
+} from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
 import { z } from "@brains/utils";
+import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";
 import {
   PlaybookRunStore,
@@ -66,10 +85,10 @@ const startInputSchema = {
   conversationId: z.string().min(1).optional(),
 };
 
-const progressInputSchema = {
+const sendEventInputSchema = {
   runId: z.string().min(1),
-  currentPhase: z.string().min(1).optional(),
-  notes: z.record(z.string(), z.unknown()).optional(),
+  event: z.string().min(1),
+  context: z.record(z.string(), z.unknown()).optional(),
 };
 
 const recordEntityInputSchema = {
@@ -91,6 +110,11 @@ export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
 export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
 export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 
+export interface ParsedPlaybook {
+  entity: PlaybookEntity;
+  body: PlaybookBody;
+}
+
 export interface PlaybookStarter {
   id: string;
   title: string;
@@ -104,6 +128,9 @@ export interface PlaybookStatusResponse {
   runs: PlaybookRun[];
   activeRun?: PlaybookRun | undefined;
   playbook?: PlaybookEntity | undefined;
+  body?: PlaybookBody | undefined;
+  currentState?: PlaybookState | undefined;
+  validEvents?: PlaybookTransition[] | undefined;
   lifecycle: Record<string, LifecyclePlaybookConfig>;
 }
 
@@ -137,6 +164,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       const starters = await this.resolveLifecycleStarters(input);
       return { success: true, data: { starters } };
     });
+
+    context.messaging.subscribe<unknown, AgentContextResponse>(
+      AGENT_CONTEXT_REQUEST_CHANNEL,
+      async (message) => {
+        const request = agentContextRequestSchema.parse(message.payload);
+        const item = await this.buildAgentContextItem(request.conversationId);
+        return { success: true, data: { items: item ? [item] : [] } };
+      },
+    );
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -144,7 +180,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_status",
         description:
-          "Get playbook lifecycle config, active runs, and optionally the resolved playbook content for a run/playbook/lifecycle.",
+          "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body.",
         inputSchema: statusInputSchema,
         visibility: "anchor",
         handler: async (input: unknown): Promise<ToolResponse> => {
@@ -158,8 +194,14 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         description: "Start or resume a playbook run.",
         inputSchema: startInputSchema,
         visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
+        handler: async (
+          input: unknown,
+          toolContext: ToolContext,
+        ): Promise<ToolResponse> => {
           const parsed = z.object(startInputSchema).parse(input);
+          const conversationId = parsed.conversationId ?? toolContext.channelId;
+          const playbook = await this.requirePlaybook(parsed.playbookId);
+          this.assertValidPlaybookBody(playbook.body);
           const existing = await this.store.findActiveByPlaybook(
             parsed.playbookId,
           );
@@ -168,39 +210,43 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                 ...existing,
                 status: "active",
                 ...(parsed.lifecycle ? { lifecycle: parsed.lifecycle } : {}),
-                ...(parsed.conversationId
-                  ? { conversationId: parsed.conversationId }
-                  : {}),
+                ...(conversationId ? { conversationId } : {}),
                 ...(existing.startedAt
                   ? {}
                   : { startedAt: new Date().toISOString() }),
               })
-            : await this.store.upsert(
-                createPlaybookRun({
-                  playbookId: parsed.playbookId,
-                  lifecycle: parsed.lifecycle,
-                  conversationId: parsed.conversationId,
-                }),
-              );
+            : await this.createStartedRun({
+                playbookId: parsed.playbookId,
+                body: playbook.body,
+                lifecycle: parsed.lifecycle,
+                conversationId,
+              });
           const data = await this.getStatus({ runId: run.id });
           return { success: true, data };
         },
       },
       {
-        name: "playbook_record_progress",
+        name: "playbook_send_event",
         description:
-          "Record current phase and transient notes for a playbook run.",
-        inputSchema: progressInputSchema,
+          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error.",
+        inputSchema: sendEventInputSchema,
         visibility: "anchor",
         handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(progressInputSchema).parse(input);
+          const parsed = z.object(sendEventInputSchema).parse(input);
           const run = await this.requireRun(parsed.runId);
+          const playbook = await this.requirePlaybook(run.playbookId);
+          const result = this.transitionRun(run, playbook.body, parsed.event);
+          if (!result.success) return result;
+
           const nextRun = await this.store.upsert({
             ...run,
-            ...(parsed.currentPhase
-              ? { currentPhase: parsed.currentPhase }
-              : {}),
-            notes: { ...run.notes, ...(parsed.notes ?? {}) },
+            currentState: result.currentState,
+            completedStates: appendUnique(
+              run.completedStates,
+              run.currentState,
+            ),
+            snapshot: result.snapshot,
+            context: { ...run.context, ...(parsed.context ?? {}) },
           });
           const data = await this.getStatus({ runId: nextRun.id });
           return { success: true, data };
@@ -237,12 +283,20 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       },
       {
         name: "playbook_complete",
-        description: "Mark a playbook run complete.",
+        description:
+          "Mark a playbook run complete when it is in a final state.",
         inputSchema: runInputSchema,
         visibility: "anchor",
         handler: async (input: unknown): Promise<ToolResponse> => {
           const parsed = z.object(runInputSchema).parse(input);
           const run = await this.requireRun(parsed.runId);
+          const playbook = await this.requirePlaybook(run.playbookId);
+          if (!playbook.body.finalStates.includes(run.currentState)) {
+            return {
+              success: false,
+              error: `Cannot complete playbook from non-final state '${run.currentState}'.`,
+            };
+          }
           const nextRun = await this.store.upsert({
             ...run,
             status: "completed",
@@ -284,6 +338,115 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     ];
   }
 
+  private async createStartedRun(input: {
+    playbookId: string;
+    body: PlaybookBody;
+    lifecycle?: string | undefined;
+    conversationId?: string | undefined;
+  }): Promise<PlaybookRun> {
+    const machine = this.buildMachine(input.playbookId, input.body);
+    const actor = createActor(machine);
+    actor.start();
+    const snapshot = actor.getPersistedSnapshot();
+    actor.stop();
+    return this.store.upsert(
+      createPlaybookRun({
+        playbookId: input.playbookId,
+        initialState: input.body.initialState,
+        lifecycle: input.lifecycle,
+        conversationId: input.conversationId,
+        snapshot,
+      }),
+    );
+  }
+
+  private transitionRun(
+    run: PlaybookRun,
+    body: PlaybookBody,
+    event: string,
+  ):
+    | { success: true; currentState: string; snapshot: unknown }
+    | { success: false; error: string } {
+    const machine = this.buildMachine(run.playbookId, body);
+    const actor = createActor(machine, {
+      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
+    });
+    actor.start();
+    const snapshot = actor.getSnapshot();
+    const eventObject = { type: event };
+    if (!snapshot.can(eventObject)) {
+      actor.stop();
+      return {
+        success: false,
+        error: `Invalid playbook event '${event}' from state '${run.currentState}'.`,
+      };
+    }
+
+    actor.send(eventObject);
+    const nextSnapshot = actor.getSnapshot();
+    const persistedSnapshot = actor.getPersistedSnapshot();
+    actor.stop();
+    return {
+      success: true,
+      currentState: String(nextSnapshot.value),
+      snapshot: persistedSnapshot,
+    };
+  }
+
+  private buildMachine(
+    playbookId: string,
+    body: PlaybookBody,
+  ): ReturnType<typeof createMachine> {
+    return createMachine({
+      id: playbookId,
+      initial: body.initialState,
+      states: Object.fromEntries(
+        body.states.map((state) => {
+          const isFinal = body.finalStates.includes(state.id);
+          return [
+            state.id,
+            {
+              ...(isFinal ? { type: "final" as const } : {}),
+              ...(isFinal
+                ? {}
+                : {
+                    on: Object.fromEntries(
+                      state.transitions.map((transition) => [
+                        transition.event,
+                        { target: transition.target },
+                      ]),
+                    ),
+                  }),
+            },
+          ];
+        }),
+      ),
+    });
+  }
+
+  private assertValidPlaybookBody(body: PlaybookBody): void {
+    const stateIds = new Set(body.states.map((state) => state.id));
+    if (!stateIds.has(body.initialState)) {
+      throw new Error(
+        `Playbook initial state '${body.initialState}' is not defined.`,
+      );
+    }
+    for (const finalState of body.finalStates) {
+      if (!stateIds.has(finalState)) {
+        throw new Error(`Playbook final state '${finalState}' is not defined.`);
+      }
+    }
+    for (const state of body.states) {
+      for (const transition of state.transitions) {
+        if (!stateIds.has(transition.target)) {
+          throw new Error(
+            `Playbook transition '${state.id}' -> '${transition.target}' targets an undefined state.`,
+          );
+        }
+      }
+    }
+  }
+
   private async resolveLifecycleStarters(input: {
     lifecycle?: string | undefined;
     interfaceType: string;
@@ -312,7 +475,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       }
 
       const playbook = await this.getPlaybook(lifecycle.playbookId);
-      if (!playbook || playbook.metadata.status !== "active") continue;
+      if (playbook?.entity.metadata.status !== "active") continue;
 
       starters.push({
         id,
@@ -351,35 +514,101 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       (input.lifecycle
         ? this.config.lifecycle[input.lifecycle]?.playbookId
         : undefined);
-    const playbook = playbookId
+    const parsedPlaybook = playbookId
       ? await this.getPlaybook(playbookId)
       : undefined;
+    const currentState =
+      parsedPlaybook && activeRun
+        ? this.getState(parsedPlaybook.body, activeRun.currentState)
+        : undefined;
+    const validEvents = currentState?.transitions ?? [];
 
     return {
       runs,
       ...(activeRun ? { activeRun } : {}),
-      ...(playbook ? { playbook } : {}),
+      ...(parsedPlaybook ? { playbook: parsedPlaybook.entity } : {}),
+      ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
+      ...(currentState ? { currentState } : {}),
+      ...(validEvents.length > 0 ? { validEvents } : {}),
       lifecycle: this.config.lifecycle,
     };
   }
 
   private async getPlaybook(
     playbookId: string,
-  ): Promise<PlaybookEntity | undefined> {
+  ): Promise<ParsedPlaybook | undefined> {
     if (!this.ctx) return undefined;
-    const entity = await this.ctx.entityService.getEntity({
-      entityType: "playbook",
-      id: playbookId,
-      visibilityScope: permissionToVisibilityScope("anchor"),
-    });
+    const entity =
+      await this.ctx.entityService.getEntity<RegisteredPlaybookEntity>({
+        entityType: "playbook",
+        id: playbookId,
+        visibilityScope: permissionToVisibilityScope("anchor"),
+      });
     const parsed = playbookEntitySchema.safeParse(entity);
-    return parsed.success ? parsed.data : undefined;
+    if (!parsed.success) return undefined;
+    const { body } = playbookAdapter.parsePlaybookContent(parsed.data.content);
+    return { entity: parsed.data, body };
+  }
+
+  private async requirePlaybook(playbookId: string): Promise<ParsedPlaybook> {
+    const playbook = await this.getPlaybook(playbookId);
+    if (!playbook) throw new Error(`Playbook not found: ${playbookId}`);
+    return playbook;
   }
 
   private async requireRun(runId: string): Promise<PlaybookRun> {
     const run = await this.store.findById(runId);
     if (!run) throw new Error(`Playbook run not found: ${runId}`);
     return run;
+  }
+
+  private getState(
+    body: PlaybookBody,
+    stateId: string,
+  ): PlaybookState | undefined {
+    return body.states.find((state) => state.id === stateId);
+  }
+
+  private async buildAgentContextItem(
+    conversationId: string,
+  ): Promise<AgentContextItem | undefined> {
+    const run = await this.store.findActiveByConversation(conversationId);
+    if (!run) return undefined;
+    const playbook = await this.getPlaybook(run.playbookId);
+    if (!playbook) return undefined;
+    const state = this.getState(playbook.body, run.currentState);
+    if (!state) return undefined;
+
+    const validEvents = state.transitions
+      .map((transition) =>
+        transition.description
+          ? `- ${transition.event} -> ${transition.target}: ${transition.description}`
+          : `- ${transition.event} -> ${transition.target}`,
+      )
+      .join("\n");
+
+    return {
+      id: run.id,
+      source: "active-playbook",
+      title: `${playbook.entity.metadata.title} — state: ${state.id}`,
+      content: `Current playbook: ${playbook.entity.metadata.title}
+Current state: ${state.id} (${state.title})
+
+State instructions:
+${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
+
+Completion criteria:
+${state.completionCriteria.map((criterion) => `- ${criterion}`).join("\n")}
+
+Valid events:
+${validEvents || "- none"}`,
+      provenance: {
+        playbookId: run.playbookId,
+        runId: run.id,
+        currentState: run.currentState,
+        validEvents: state.transitions.map((transition) => transition.event),
+      },
+    };
   }
 
   private buildInstructions(): string {
@@ -392,19 +621,23 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
 
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When a playbook run is active, use playbook_status before deciding what to do next.
-Follow the playbook's purpose, operating rules, phases, and completion criteria.
-Do not behave like a form. Ask one question at a time unless the playbook says otherwise.
+Follow the playbook's current state instructions, operating rules, and completion criteria.
+Do not set arbitrary current states. Advance by calling playbook_send_event with a valid event.
+Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
 Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts.
-Call playbook_record_progress as phases advance.
 Call playbook_record_entity when a tool-created entity is important to the run.
-Call playbook_complete only after the playbook outcome is achieved or explicitly skipped.
+Call playbook_complete only after the current state is a final state or the tool says completion is allowed.
 Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
 Configured lifecycle playbooks:
 ${lifecycleSummary || "- none"}`;
   }
+}
+
+function appendUnique(values: string[], value: string): string[] {
+  return values.includes(value) ? values : [...values, value];
 }
 
 export function playbooksPlugin(

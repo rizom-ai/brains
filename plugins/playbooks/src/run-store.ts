@@ -24,8 +24,10 @@ export const playbookRunSchema = z
     lifecycle: z.string().min(1).optional(),
     status: playbookRunStatusSchema,
     conversationId: z.string().min(1).optional(),
-    currentPhase: z.string().min(1).optional(),
-    notes: z.record(z.string(), z.unknown()).default({}),
+    currentState: z.string().min(1),
+    completedStates: z.array(z.string().min(1)).default([]),
+    snapshot: z.unknown().optional(),
+    context: z.record(z.string(), z.unknown()).default({}),
     createdEntities: z.array(playbookRunEntityRefSchema).default([]),
     startedAt: z.string().datetime().optional(),
     completedAt: z.string().datetime().optional(),
@@ -70,6 +72,16 @@ export class PlaybookRunStore {
 
   async findByLifecycle(lifecycle: string): Promise<PlaybookRun | undefined> {
     return (await this.list()).find((run) => run.lifecycle === lifecycle);
+  }
+
+  async findActiveByConversation(
+    conversationId: string,
+  ): Promise<PlaybookRun | undefined> {
+    return (await this.list()).find(
+      (run) =>
+        run.conversationId === conversationId &&
+        (run.status === "active" || run.status === "offered"),
+    );
   }
 
   async upsert(run: PlaybookRun): Promise<PlaybookRun> {
@@ -123,9 +135,11 @@ export class PlaybookRunStore {
 
 export function createPlaybookRun(input: {
   playbookId: string;
+  initialState: string;
   lifecycle?: string | undefined;
   conversationId?: string | undefined;
   status?: PlaybookRunStatus | undefined;
+  snapshot?: unknown;
 }): PlaybookRun {
   const now = new Date().toISOString();
   return playbookRunSchema.parse({
@@ -134,7 +148,10 @@ export function createPlaybookRun(input: {
     ...(input.lifecycle ? { lifecycle: input.lifecycle } : {}),
     status: input.status ?? "active",
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),
-    notes: {},
+    currentState: input.initialState,
+    completedStates: [],
+    ...(input.snapshot !== undefined ? { snapshot: input.snapshot } : {}),
+    context: {},
     createdEntities: [],
     ...(input.status === "active" || input.status === undefined
       ? { startedAt: now }

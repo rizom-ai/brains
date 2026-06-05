@@ -32,18 +32,30 @@ export function playbookPlugin(config: Partial<PlaybookConfig> = {}): Plugin {
 
 export { PlaybookAdapter, playbookAdapter } from "./adapters/playbook-adapter";
 export {
+  PlaybookBodyFormatter,
+  playbookBodyFormatter,
+} from "./formatters/playbook-formatter";
+export {
   playbookAudienceSchema,
+  playbookBodySchema,
   playbookCompletionModeSchema,
   playbookConfigSchema,
+  playbookExpectedEntitySchema,
   playbookFrontmatterSchema,
   playbookMetadataSchema,
   playbookSchema,
+  playbookStateSchema,
   playbookStatusSchema,
+  playbookTransitionSchema,
   type PlaybookAudience,
+  type PlaybookBody,
   type PlaybookCompletionMode,
   type PlaybookConfig,
   type PlaybookEntity,
+  type PlaybookExpectedEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
+  type PlaybookState,
   type PlaybookStatus,
+  type PlaybookTransition,
 } from "./schemas/playbook";

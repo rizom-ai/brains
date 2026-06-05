@@ -1,7 +1,9 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import { playbookBodyFormatter } from "../formatters/playbook-formatter";
 import {
   playbookFrontmatterSchema,
   playbookSchema,
+  type PlaybookBody,
   type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
@@ -21,19 +23,22 @@ export class PlaybookAdapter extends BaseEntityAdapter<
 
   public createPlaybookContent(
     frontmatter: PlaybookFrontmatter,
-    body: string,
+    body: PlaybookBody,
   ): string {
-    return this.buildMarkdown(body, frontmatter);
+    return this.buildMarkdown(playbookBodyFormatter.format(body), frontmatter);
   }
 
   public parsePlaybookContent(content: string): {
     frontmatter: PlaybookFrontmatter;
-    body: string;
+    body: PlaybookBody;
+    bodyMarkdown: string;
   } {
     const raw = this.parseFrontMatter(content, playbookFrontmatterSchema);
+    const bodyMarkdown = this.extractBody(content).trim();
     return {
       frontmatter: playbookFrontmatterSchema.parse(raw),
-      body: this.extractBody(content).trim(),
+      body: playbookBodyFormatter.parse(bodyMarkdown),
+      bodyMarkdown,
     };
   }
 

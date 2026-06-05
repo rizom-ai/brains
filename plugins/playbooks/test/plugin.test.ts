@@ -2,11 +2,82 @@ import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "bun:test";
-import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
+import { AGENT_CONTEXT_REQUEST_CHANNEL } from "@brains/contracts";
+import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
+import {
+  createPluginHarness,
+  expectError,
+  expectSuccess,
+} from "@brains/plugins/test";
 import { playbooksPlugin } from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
+}
+
+const playbookBody: PlaybookBody = {
+  purpose: "Teach by doing.",
+  operatingRules: ["Ask one question at a time."],
+  initialState: "welcome",
+  states: [
+    {
+      id: "welcome",
+      title: "Welcome",
+      instructions: ["Explain the playbook."],
+      completionCriteria: ["Operator is ready."],
+      expectedEntities: [],
+      transitions: [
+        { event: "NEXT", target: "seed", description: "Continue." },
+        { event: "SKIP", target: "complete", description: "Skip." },
+      ],
+    },
+    {
+      id: "seed",
+      title: "Seed",
+      instructions: ["Save a first note."],
+      completionCriteria: ["A seed exists."],
+      expectedEntities: [
+        { entityType: "base", purpose: "knowledge-seed", required: false },
+      ],
+      transitions: [{ event: "NEXT", target: "complete" }],
+    },
+    {
+      id: "complete",
+      title: "Complete",
+      instructions: ["Complete the run."],
+      completionCriteria: ["Run is complete."],
+      expectedEntities: [],
+      transitions: [],
+    },
+  ],
+  finalStates: ["complete"],
+  nextPrompts: ["Save this idea as a note..."],
+};
+
+function addPlaybookEntity(
+  harness: ReturnType<typeof createPluginHarness>,
+): void {
+  harness.addEntities([
+    {
+      id: "rover-onboarding",
+      entityType: "playbook",
+      content: playbookAdapter.createPlaybookContent(
+        {
+          title: "Rover Onboarding",
+          status: "active",
+          audience: "anchor",
+          completionMode: "agent-confirmed",
+        },
+        playbookBody,
+      ),
+      metadata: {
+        title: "Rover Onboarding",
+        status: "active",
+        audience: "anchor",
+        completionMode: "agent-confirmed",
+      },
+    },
+  ]);
 }
 
 describe("PlaybooksPlugin", () => {
@@ -27,19 +98,7 @@ describe("PlaybooksPlugin", () => {
         },
       }),
     );
-    harness.addEntities([
-      {
-        id: "rover-onboarding",
-        entityType: "playbook",
-        content: "# Rover Onboarding\n\nTeach by doing.",
-        metadata: {
-          title: "Rover Onboarding",
-          status: "active",
-          audience: "anchor",
-          completionMode: "agent-confirmed",
-        },
-      },
-    ]);
+    addPlaybookEntity(harness);
 
     const response = await harness.sendMessage<
       {
@@ -74,34 +133,55 @@ describe("PlaybooksPlugin", () => {
     });
   });
 
-  it("tracks playbook run progress and completion", async () => {
+  it("tracks playbook transitions, entities, and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin({ storageDir: await tempStorageDir() }),
     );
+    addPlaybookEntity(harness);
 
-    const started = await harness.executeTool("playbook_start", {
-      playbookId: "rover-onboarding",
-      lifecycle: "onboarding",
-      conversationId: "web-1",
-    });
+    const started = await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { channelId: "web-1" },
+    );
     expectSuccess(started);
     const startedData = started.data as {
-      activeRun: { id: string; status: string };
+      activeRun: { id: string; currentState: string };
+      validEvents: Array<{ event: string; target: string }>;
     };
     const runId = startedData.activeRun.id;
+    expect(startedData.activeRun.currentState).toBe("welcome");
+    expect(startedData.validEvents.map((event) => event.event)).toEqual([
+      "NEXT",
+      "SKIP",
+    ]);
 
-    const progressed = await harness.executeTool("playbook_record_progress", {
+    const transitioned = await harness.executeTool("playbook_send_event", {
       runId,
-      currentPhase: "first-knowledge-seed",
-      notes: { seedKind: "note" },
+      event: "NEXT",
+      context: { operatorReady: true },
     });
-    expectSuccess(progressed);
-    const progressedData = progressed.data as {
-      activeRun: { currentPhase: string; notes: Record<string, unknown> };
+    expectSuccess(transitioned);
+    const transitionedData = transitioned.data as {
+      activeRun: {
+        currentState: string;
+        completedStates: string[];
+        context: Record<string, unknown>;
+      };
     };
-    expect(progressedData.activeRun.currentPhase).toBe("first-knowledge-seed");
-    expect(progressedData.activeRun.notes).toEqual({ seedKind: "note" });
+    expect(transitionedData.activeRun.currentState).toBe("seed");
+    expect(transitionedData.activeRun.completedStates).toEqual(["welcome"]);
+    expect(transitionedData.activeRun.context).toEqual({ operatorReady: true });
+
+    const invalid = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "SKIP",
+    });
+    expectError(invalid);
 
     const recorded = await harness.executeTool("playbook_record_entity", {
       runId,
@@ -121,11 +201,62 @@ describe("PlaybooksPlugin", () => {
       },
     ]);
 
+    const tooEarly = await harness.executeTool("playbook_complete", { runId });
+    expectError(tooEarly);
+
+    const finalTransition = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(finalTransition);
+
     const completed = await harness.executeTool("playbook_complete", { runId });
     expectSuccess(completed);
     const completedData = completed.data as {
-      activeRun: { status: string };
+      activeRun: { status: string; currentState: string };
     };
     expect(completedData.activeRun.status).toBe("completed");
+    expect(completedData.activeRun.currentState).toBe("complete");
+  });
+
+  it("injects active playbook state as agent context", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness);
+
+    await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { channelId: "web-agent-context" },
+    );
+
+    const response = await harness.sendMessage<
+      {
+        conversationId: string;
+        message: string;
+        interfaceType: string;
+        channelId: string;
+        channelName: string;
+        userPermissionLevel: "anchor";
+      },
+      { items: Array<{ source: string; content: string }> }
+    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+      conversationId: "web-agent-context",
+      message: "what next?",
+      interfaceType: "web-chat",
+      channelId: "web-agent-context",
+      channelName: "Web Chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.items).toHaveLength(1);
+    expect(response?.items[0]?.source).toBe("active-playbook");
+    expect(response?.items[0]?.content).toContain("Current state: welcome");
+    expect(response?.items[0]?.content).toContain("NEXT -> seed");
   });
 });

@@ -373,6 +373,7 @@
       "name": "@brains/playbook",
       "version": "0.2.0-alpha.107",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1010,8 +1011,11 @@
       "name": "@brains/playbooks",
       "version": "0.2.0-alpha.107",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/playbook": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
+        "xstate": "^5.28.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
