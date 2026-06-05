@@ -1,0 +1,98 @@
+id: multi-turn-rover-onboarding-playbook
+name: Rover Onboarding Playbook Conversation
+description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves a first durable knowledge seed, and completes through the playbook runtime instead of free-form progress updates.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-onboarding
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+
+turns:
+  - userMessage: "Start the Rover onboarding playbook."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Yes, continue. My name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: NEXT
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Save this first idea: resilient software is a climate strategy because systems that fail less waste less energy and operator attention."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+        - toolName: playbook_record_entity
+          shouldBeCalled: true
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: NEXT
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Show me how Rover can reuse that note, then finish the onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: NEXT
+        - toolName: playbook_complete
+          shouldBeCalled: true
+      responseContains:
+        - onboarding
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+    - toolName: playbook_send_event
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+    - toolName: playbook_record_entity
+      shouldBeCalled: true
+    - toolName: playbook_complete
+      shouldBeCalled: true
+  toolCountRange:
+    min: 6
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 16
+  maxTokens: 80000
