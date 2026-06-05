@@ -128,6 +128,56 @@ discord:
     expect(decrypted).not.toContain("atprotoIdentifier:");
   });
 
+  it("merges existing encrypted secrets when adding a new per-user secret", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/smoke.yaml": `handle: smoke
+discord:
+  enabled: true
+`,
+      "cohorts/smoke.yaml": `members:
+  - smoke
+`,
+      "users/smoke.secrets.yaml": "discordBotToken: discord-token\n",
+    });
+
+    await encryptPilotSecrets(root, "smoke");
+    await writeFile(
+      join(root, "users/smoke.secrets.yaml"),
+      "atprotoAppPassword: app-password\n",
+    );
+
+    const result = await encryptPilotSecrets(root, "smoke", {
+      env: { AGE_SECRET_KEY: identity },
+    });
+
+    expect([...result.encryptedKeys].sort()).toEqual([
+      "atprotoAppPassword",
+      "discordBotToken",
+    ]);
+
+    const decrypted = await decryptYamlFile(
+      join(root, "users/smoke.secrets.yaml.age"),
+      identity,
+    );
+    expect(decrypted).toContain("discordBotToken: discord-token");
+    expect(decrypted).toContain("atprotoAppPassword: app-password");
+  });
+
   it("supports dry-run without writing files", async () => {
     const identity = await generateIdentity();
     const agePublicKey = await identityToRecipient(identity);
