@@ -1,7 +1,11 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
-import { createQueueTool, createPublishTool } from "./tools";
+import {
+  createEnsureAssetsTool,
+  createQueueTool,
+  createPublishTool,
+} from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { PublishExecutor } from "./publish-executor";
@@ -105,6 +109,12 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         this.providerRegistry,
         this.publishExecutor,
       ),
+      createEnsureAssetsTool(
+        this.pluginContext,
+        this.id,
+        this.publishAssetRegistry,
+        this.publishAssetPreflight,
+      ),
     ];
   }
 
@@ -112,6 +122,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     return `## Publishing
 - Use \`content-pipeline_queue\` to manage the publish queue — list queued items, add entities to the queue, remove them, or reorder.
 - Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown).
+- Use \`content-pipeline_ensure-assets\` to reconcile missing publish assets such as generated OG images for already-published content.
 - When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
   }
 

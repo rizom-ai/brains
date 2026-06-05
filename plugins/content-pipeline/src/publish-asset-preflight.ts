@@ -29,10 +29,16 @@ export class PublishAssetPreflight {
 
   public async ensureForEntity(
     entity: BaseEntity,
+    options: { attachmentType?: string } = {},
   ): Promise<PublishAssetPreflightResult> {
     const definitions = this.deps.registry
       .list(entity.entityType)
-      .filter((definition) => definition.autoGenerate === true);
+      .filter((definition) => definition.autoGenerate === true)
+      .filter(
+        (definition) =>
+          !options.attachmentType ||
+          definition.attachmentType === options.attachmentType,
+      );
     const result: PublishAssetPreflightResult = {
       checked: definitions.length,
       enqueued: 0,
