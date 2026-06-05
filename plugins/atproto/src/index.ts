@@ -9,6 +9,9 @@ export {
   type PublishEntityResult,
   type PublishPostOptions,
   type PublishPostResult,
+  type DiscoverBrainCardsOptions,
+  type DiscoverBrainCardResult,
+  type DiscoverBrainCardsResult,
 } from "./plugin";
 export {
   atprotoConfigSchema,
@@ -35,10 +38,16 @@ export {
 } from "@brains/atproto-contracts";
 export { buildBrainCardRecord, type BrainCardRecord } from "./records";
 export {
+  anchorDidWebFromHostname,
+  buildConfiguredDidWebDocuments,
+  buildConventionalDidWebDocuments,
   buildDidWebDocument,
+  didWebFromHostname,
+  didWebToDocumentPath,
   didWebToHostname,
   isDidWeb,
   normalizeServiceEndpoint,
+  type ConfiguredDidWebDocument,
   type DidDocument,
   type DidDocumentService,
 } from "./did";
@@ -50,6 +59,8 @@ export {
   type CreateRecordResult,
   type PutRecordInput,
   type PutRecordResult,
+  type GetRecordInput,
+  type GetRecordResult,
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";

@@ -150,6 +150,86 @@ describe("ATProto Zod-backed record schemas", () => {
     ).toMatchObject({ title: "Post", sourceEntityType: "post" });
   });
 
+  it("parses canonical brain cards with brain and minimal anchor identity", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
+
+    expect(
+      schema.parse({
+        $type: "ai.rizom.brain.card",
+        siteUrl: "https://brain.example.com",
+        brain: {
+          did: "did:web:brain.example.com",
+          name: "Test Brain",
+          role: "assistant",
+          purpose: "Help with testing",
+          values: ["reliable"],
+        },
+        anchor: {
+          did: "did:web:brain.example.com:anchor",
+          name: "Test Owner",
+          kind: "professional",
+        },
+        skills: [],
+        model: "test-brain",
+        version: "1.0.0",
+        createdAt: "2026-05-31T10:00:00.000Z",
+      }),
+    ).toMatchObject({
+      brain: { did: "did:web:brain.example.com" },
+      anchor: { did: "did:web:brain.example.com:anchor" },
+    });
+  });
+
+  it("rejects old top-level brain card identity fields", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
+
+    expect(() =>
+      schema.parse({
+        $type: "ai.rizom.brain.card",
+        name: "Old Brain",
+        description: "Old card shape",
+        siteUrl: "https://brain.example.com",
+        skills: [],
+        model: "test-brain",
+        version: "1.0.0",
+        brainDid: "did:web:brain.example.com",
+        anchorDid: "did:web:brain.example.com:anchor",
+        createdAt: "2026-05-31T10:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate endpoint and identity fields on brain cards", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
+
+    expect(() =>
+      schema.parse({
+        $type: "ai.rizom.brain.card",
+        siteUrl: "https://brain.example.com",
+        brain: {
+          did: "did:web:brain.example.com",
+          name: "Test Brain",
+          role: "assistant",
+          purpose: "Help with testing",
+          values: ["reliable"],
+        },
+        anchor: {
+          did: "did:web:brain.example.com:anchor",
+          name: "Test Owner",
+          kind: "professional",
+        },
+        skills: [],
+        model: "test-brain",
+        version: "1.0.0",
+        createdAt: "2026-05-31T10:00:00.000Z",
+        brainDid: "did:web:brain.example.com",
+        anchorDid: "did:web:brain.example.com:anchor",
+        a2aEndpoint: "https://brain.example.com/a2a",
+        agentCardUrl: "https://brain.example.com/.well-known/agent-card.json",
+      }),
+    ).toThrow();
+  });
+
   it("rejects canonical post records that violate known values", () => {
     const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.post"];
 

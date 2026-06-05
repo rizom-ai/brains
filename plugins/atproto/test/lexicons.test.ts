@@ -10,8 +10,21 @@ describe("AT Protocol lexicons", () => {
     expect(lexicon.id).toBe("ai.rizom.brain.card");
     expect(lexicon.defs.main.type).toBe("record");
     expect(lexicon.defs.main.key).toBe("literal:self");
-    expect(lexicon.defs.main.record.required).toEqual(["name", "createdAt"]);
-    expect(properties["brainDid"]).toBeDefined();
-    expect(properties["a2aEndpoint"]).toBeDefined();
+    expect(lexicon.defs.main.record.required).toEqual([
+      "siteUrl",
+      "brain",
+      "anchor",
+      "skills",
+      "model",
+      "version",
+      "createdAt",
+    ]);
+    expect(properties["siteUrl"]).toBeDefined();
+    expect(properties["brain"]).toBeDefined();
+    expect(properties["anchor"]).toBeDefined();
+    expect(properties["skills"]).toBeDefined();
+    expect(properties["brainDid"]).toBeUndefined();
+    expect(properties["anchorDid"]).toBeUndefined();
+    expect(properties["a2aEndpoint"]).toBeUndefined();
   });
 });

@@ -5,15 +5,19 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage, type FetchLike } from "@brains/utils";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
 import { AtprotoPdsClient } from "./pds-client";
-import { buildDidWebDocument } from "./did";
 import {
+  buildConfiguredDidWebDocuments,
+  buildConventionalDidWebDocuments,
+} from "./did";
+import {
+  ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
   validateAtprotoRecord,
@@ -34,6 +38,7 @@ export interface AtprotoPluginDeps {
     appPassword: string;
   }) => AtprotoPdsClientLike;
   projectionRegistry?: AtprotoProjectionRegistry;
+  fetch?: FetchLike;
 }
 
 export interface PublishBrainCardOptions {
@@ -75,6 +80,29 @@ export interface PublishEntityResult<
 
 export type PublishPostResult = PublishEntityResult<AtprotoProjectedPostRecord>;
 
+export interface DiscoverBrainCardsOptions {
+  repos: string[];
+}
+
+export interface DiscoverBrainCardResult {
+  repo: string;
+  status: "discovered" | "skipped";
+  repoDid?: string;
+  uri?: string;
+  cid?: string;
+  error?: string;
+}
+
+export interface DiscoverBrainCardsResult {
+  discovered: number;
+  skipped: number;
+  results: DiscoverBrainCardResult[];
+}
+
+const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
+const BRAIN_CARD_RKEY = "self";
+const MAX_DISCOVERY_REPOS = 50;
+
 export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;
@@ -89,20 +117,37 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
   override getWebRoutes(): WebRouteDefinition[] {
     if (!this.config.enabled) return [];
 
-    const didDocument = buildDidWebDocument(this.config);
-    if (!didDocument) return [];
-
-    return [
-      {
-        path: "/.well-known/did.json",
-        method: "GET",
-        public: true,
-        handler: (): Response =>
-          new Response(JSON.stringify(didDocument), {
-            headers: { "Content-Type": "application/did+json" },
-          }),
-      },
+    const configuredDocuments = buildConfiguredDidWebDocuments(this.config);
+    const conventionalPaths = [
+      ...(!this.config.brainDid ? ["/.well-known/did.json"] : []),
+      ...(!this.config.anchorDid ? ["/anchor/did.json"] : []),
     ];
+    const paths = [
+      ...new Set([
+        ...configuredDocuments.map((entry) => entry.path),
+        ...conventionalPaths,
+      ]),
+    ];
+
+    return paths.map((path) => ({
+      path,
+      method: "GET",
+      public: true,
+      handler: (request: Request): Response => {
+        const hostname = new URL(request.url).hostname;
+        const candidates = [
+          ...buildConfiguredDidWebDocuments(this.config),
+          ...buildConventionalDidWebDocuments(this.config, hostname),
+        ].filter((entry) => entry.path === path);
+        const match =
+          candidates.find((entry) => entry.hostname === hostname) ??
+          candidates[0];
+        if (!match) return new Response("Not found", { status: 404 });
+        return new Response(JSON.stringify(match.document), {
+          headers: { "Content-Type": "application/did+json" },
+        });
+      },
+    }));
   }
 
   async publishBrainCard(
@@ -181,6 +226,89 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     );
   }
 
+  async discoverBrainCards(
+    context: ServicePluginContext,
+    options: DiscoverBrainCardsOptions,
+  ): Promise<DiscoverBrainCardsResult> {
+    const repos = [...new Set(options.repos.map((repo) => repo.trim()))].filter(
+      (repo) => repo.length > 0,
+    );
+    if (repos.length === 0) {
+      throw new Error(
+        "AT Protocol discovery requires at least one repo DID or handle",
+      );
+    }
+    if (repos.length > MAX_DISCOVERY_REPOS) {
+      throw new Error(
+        `AT Protocol discovery accepts at most ${MAX_DISCOVERY_REPOS} repos per batch`,
+      );
+    }
+
+    const seenRecords = new Set<string>();
+    const results: DiscoverBrainCardResult[] = [];
+    for (const repo of repos) {
+      try {
+        const resolved = await this.resolveRepoPdsEndpoint(repo);
+        const client = this.createPublicPdsClient(resolved.pdsEndpoint);
+        if (!client.getRecord) {
+          throw new Error(
+            "AT Protocol PDS client does not support record reads",
+          );
+        }
+        const record = await client.getRecord({
+          repo: resolved.repoDid,
+          collection: BRAIN_CARD_COLLECTION,
+          rkey: BRAIN_CARD_RKEY,
+        });
+        validateAtprotoRecord(brainCardLexicon, record.value);
+        const repoDid = parseAtUriRepo(record.uri) ?? resolved.repoDid;
+        const recordKey = `${repoDid}:${record.uri}:${record.cid}`;
+        if (seenRecords.has(recordKey)) {
+          results.push({
+            repo,
+            status: "skipped",
+            repoDid,
+            uri: record.uri,
+            cid: record.cid,
+            error: "Duplicate brain card in discovery batch",
+          });
+          continue;
+        }
+        seenRecords.add(recordKey);
+        await context.messaging.send({
+          type: ATPROTO_BRAIN_CARD_DISCOVERED,
+          payload: {
+            repoDid,
+            uri: record.uri,
+            cid: record.cid,
+            record: record.value,
+          },
+          broadcast: true,
+        });
+        results.push({
+          repo,
+          status: "discovered",
+          repoDid,
+          uri: record.uri,
+          cid: record.cid,
+        });
+      } catch (error) {
+        results.push({
+          repo,
+          status: "skipped",
+          error: getErrorMessage(error),
+        });
+      }
+    }
+
+    return {
+      discovered: results.filter((result) => result.status === "discovered")
+        .length,
+      skipped: results.filter((result) => result.status === "skipped").length,
+      results,
+    };
+  }
+
   async validatePdsCredentials(): Promise<boolean> {
     const appPassword = this.resolveAppPassword();
     if (!this.config.identifier || !appPassword) return false;
@@ -205,9 +333,10 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     if (!this.config.enabled) return undefined;
     return `## AT Protocol publishing
 - Use \`atproto_validate_credentials\` to check PDS credentials before publishing.
-- Use \`atproto_publish_card\` to publish or dry-run this brain's public capability card.
+- Use \`atproto_publish_card\` to publish or dry-run this brain's public discovery card.
 - Use \`atproto_publish_entity\` to publish any public entity with a registered AT Protocol projection.
 - Use \`atproto_publish_post\` for the blog-post convenience path by \`entityId\` or \`slug\`.
+- Use \`atproto_discover_brain_cards\` to read public \`ai.rizom.brain.card/self\` records from candidate repo DIDs or handles and emit internal discovery events.
 - Prefer \`dryRun: true\` first when publishing new AT Protocol records.
 - Only public posts and public cover images can be published.`;
   }
@@ -325,6 +454,102 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
     return null;
   }
 
+  private createPublicPdsClient(pdsEndpoint: string): AtprotoPdsClientLike {
+    if (this.deps.createPdsClient) {
+      return this.deps.createPdsClient({
+        pdsEndpoint,
+        identifier: this.config.identifier ?? "",
+        appPassword: this.config.appPassword ?? "",
+      });
+    }
+
+    return new AtprotoPdsClient({
+      pdsEndpoint,
+      identifier: this.config.identifier ?? "",
+      appPassword: this.config.appPassword ?? "",
+    });
+  }
+
+  private async resolveRepoPdsEndpoint(repo: string): Promise<{
+    repoDid: string;
+    pdsEndpoint: string;
+  }> {
+    const repoDid = repo.startsWith("did:")
+      ? repo
+      : await this.resolveHandleToDid(repo);
+    if (!repoDid) {
+      throw new Error(`Could not resolve AT Protocol repo: ${repo}`);
+    }
+    const pdsEndpoint = await this.resolveDidToPdsEndpoint(repoDid);
+    if (!pdsEndpoint) {
+      throw new Error(`Could not resolve AT Protocol PDS for repo: ${repoDid}`);
+    }
+    return { repoDid, pdsEndpoint };
+  }
+
+  private async resolveHandleToDid(
+    handle: string,
+  ): Promise<string | undefined> {
+    const url = new URL(
+      "/xrpc/com.atproto.identity.resolveHandle",
+      this.config.pdsEndpoint,
+    );
+    url.searchParams.set("handle", handle);
+    const response = await this.fetch(url.toString());
+    if (!response.ok) return undefined;
+    const body = (await response.json()) as unknown;
+    if (typeof body !== "object" || body === null || !("did" in body)) {
+      return undefined;
+    }
+    return typeof body.did === "string" ? body.did : undefined;
+  }
+
+  private async resolveDidToPdsEndpoint(
+    did: string,
+  ): Promise<string | undefined> {
+    const didDocument = did.startsWith("did:plc:")
+      ? await this.fetchJson(`https://plc.directory/${encodeURIComponent(did)}`)
+      : did.startsWith("did:web:")
+        ? await this.fetchJson(didWebDocumentUrl(did))
+        : undefined;
+    if (typeof didDocument !== "object" || didDocument === null) {
+      return undefined;
+    }
+    const services = (didDocument as { service?: unknown }).service;
+    if (!Array.isArray(services)) return undefined;
+    const pdsService = services.find(
+      (
+        service,
+      ): service is {
+        id?: unknown;
+        type?: unknown;
+        serviceEndpoint?: unknown;
+      } => {
+        return (
+          typeof service === "object" &&
+          service !== null &&
+          ((service as { id?: unknown }).id === "#atproto_pds" ||
+            (service as { type?: unknown }).type ===
+              "AtprotoPersonalDataServer")
+        );
+      },
+    );
+    return typeof pdsService?.serviceEndpoint === "string"
+      ? pdsService.serviceEndpoint
+      : undefined;
+  }
+
+  private async fetchJson(url: string): Promise<unknown> {
+    const response = await this.fetch(url);
+    if (!response.ok) return undefined;
+    return response.json() as Promise<unknown>;
+  }
+
+  private fetch(input: string): Promise<Response> {
+    const fetchFn = this.deps.fetch ?? fetch;
+    return fetchFn(input);
+  }
+
   private createPdsClient(appPassword: string): AtprotoPdsClientLike {
     if (this.deps.createPdsClient) {
       return this.deps.createPdsClient({
@@ -351,6 +576,19 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
 function deriveAtprotoRecordKey(entityId: string): string {
   const sanitized = entityId.replace(/[^A-Za-z0-9._~:-]/g, "_").slice(0, 512);
   return sanitized.length > 0 ? sanitized : "self";
+}
+
+function parseAtUriRepo(uri: string): string | undefined {
+  const match = /^at:\/\/([^/]+)/.exec(uri);
+  return match?.[1];
+}
+
+function didWebDocumentUrl(did: string): string {
+  const parts = did.slice("did:web:".length).split(":").map(decodeURIComponent);
+  const [host, ...pathParts] = parts;
+  if (!host) throw new Error(`Invalid did:web value: ${did}`);
+  if (pathParts.length === 0) return `https://${host}/.well-known/did.json`;
+  return `https://${host}/${pathParts.join("/")}/did.json`;
 }
 
 export function atprotoPlugin(

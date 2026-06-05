@@ -54,7 +54,7 @@ ai.rizom.brain.socialPost — semantic social-post entities (not Bluesky feed po
 ai.rizom.brain.series     — derived public series/grouping entities
 ai.rizom.brain.project    — public portfolio/project entries
 ai.rizom.brain.topic      — public topic/knowledge tags
-ai.rizom.brain.card       — brain capability card (name, role, skills, endpoints)
+ai.rizom.brain.card       — brain discovery card (brain identity, anchor snapshot, skills, site URL)
 ```
 
 Records are JSON with markdown in string fields (same pattern as WhiteWind). Entity metadata maps to record fields. Lexicons are distribution projections of existing brain entities, not replacement entity models. For example, `ai.rizom.brain.post` is the ATProto projection of the existing blog `post` entity (`entities/blog`, entityType `post`). The local entity remains the source of truth. Do not introduce parallel ATProto-only entity models.
@@ -72,12 +72,25 @@ PDS-side validation is not the authoritative contract for Rizom custom records. 
 Separate AT Protocol repo identity from public brain identity:
 
 - **Repo DID** — the DID of the PDS account that owns and signs atproto records. In Bluesky/PDS practice this is usually the account DID (`did:plc` or `did:web`). Records are written into this repo via `com.atproto.repo.*`.
-- **Anchor DID** — the human/operator identity. This may be the same as the repo DID for personal brains, or a DID referenced from records/profile metadata.
-- **Brain DID** — the agent identity. This identifies which brain produced a record and is included in custom record fields such as `brainDid` / `operatedBy`. It does not imply write authority over the PDS repo unless the brain itself owns the PDS account.
+- **Brain DID** — the agent/brain identity. This identifies the specific brain described by a record. It does not imply write authority over the PDS repo unless the brain itself owns the PDS account.
+- **Anchor DID** — the owner/operator identity for a person, team, organization, or collective. One anchor may own/operate multiple brains across multiple domains. Discovery groups related brains by `anchor.did`, not by domain.
 
-Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
+Phase 1 supports the simplest deployable model: one configured PDS login identifier plus optional `repoDid`, `anchorDid`, and `brainDid` metadata. When `repoDid` is omitted, the plugin uses the DID returned from `com.atproto.server.createSession`, avoiding duplicated handle→DID config. When `brainDid` / `anchorDid` are omitted, publishing and DID routes use the site-host conventions `did:web:<site-host>` and `did:web:<site-host>:anchor`. A dedicated PDS account per brain can be added later when a brain needs independent account-level authorship.
 
-For public brain DID documents, prefer `did:web` served from the brain's domain at `/.well-known/did.json`. `did:plc` can be added later if domain-independent portability becomes important.
+Identity architecture target:
+
+- `repoDid` is ATProto provenance: the account/repo that signed and published the record.
+- `brain.did` is the discovered brain identity.
+- `anchor.did` is the owner/operator identity.
+- A single anchor can own many brains: e.g. `anchor.did = did:web:yeehaa.io:anchor` can own `brain.did = did:web:yeehaa.io`, `did:web:rizom.ai`, and `did:web:rover.example.com`.
+- Domain ownership is not inferred from hostname equality. The relationship is explicit in the brain card via `anchor.did`.
+
+For public DID documents, prefer `did:web`:
+
+- If a domain primarily serves one brain, the root DID is conventional for the brain: `did:web:yeehaa.io` served at `https://yeehaa.io/.well-known/did.json`.
+- The anchor is conventionally distinct on the same domain using a path DID: `did:web:yeehaa.io:anchor` served at `https://yeehaa.io/anchor/did.json` — implemented for both conventional defaults and configured `anchorDid` values in the ATProto plugin.
+- If a domain primarily represents the anchor and hosts multiple brains, use path/subdomain DIDs for brains instead.
+- `did:plc` remains appropriate when domain-independent portability is needed.
 
 Key management: secrets live in environment variables or the app's secret configuration, not committed markdown. Rotation is a later identity-service concern.
 
@@ -148,10 +161,10 @@ User-facing result: **"My brain can learn from my Bluesky/ATProto world."**
 
 Users can discover other brains through the network while staying in control. Existing URL-based brain/agent addition remains the right path when the user already knows a brain URL; ATProto discovery adds value by finding unknown peers and enriching known agents from signed cards.
 
-- Brains publish capability cards.
+- Brains publish discovery cards.
 - Other brains see those cards through Jetstream/firehose.
 - Discovered brains appear as reviewable `agent` entries.
-- Known agents can be enriched with signed card metadata, repo DID, brain DID, capabilities, site URL, A2A endpoint, card URI, and CID.
+- Known agents can be enriched with signed card metadata, repo DID, brain DID, anchor DID, public skills, site URL, card URI, and CID.
 - Discovery emits internal brain events so dashboards, notifications, or interfaces can signal new reviewable brains to the user.
 - Users explicitly approve agents before A2A calls are allowed.
 
@@ -204,7 +217,7 @@ Done:
 1. Create `plugins/atproto/` as a `ServicePlugin`
 2. Define initial lexicon JSON for `ai.rizom.brain.card`; Phase 2.6 will move canonical `ai.rizom.brain.*` lexicons into `@brains/atproto-contracts` as the single source of truth
 3. Add plugin config for PDS endpoint, handle/repo DID, optional `anchorDid`, optional `brainDid`, and standard `${ENV_VAR}`-interpolated auth secret references
-4. Implement `did:web` document serving via `getWebRoutes()` at `/.well-known/did.json` when `brainDid` uses `did:web`
+4. Implement `did:web` document serving via `getWebRoutes()`: conventional root brain DID at `/.well-known/did.json` and conventional/configured path-based anchor DID values such as `did:web:example.com:anchor` at `/anchor/did.json`
 5. Authenticate to PDS with app password for the local prototype; keep outbound ATProto OAuth as a follow-up once the first slice works
 6. Add a small PDS client wrapper so tests can mock repo writes without network access
 7. Tests: DID document route, config validation, mocked PDS authentication/client calls
@@ -228,7 +241,8 @@ Live PDS smoke result:
 - Cover-image custom post smoke succeeded: `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/3mmyy53cu342h`, CID `bafyreiflaqk3lggleuo7ug757oj3yyofjnjfocdqg6weudmkovhh5qv2be`.
 - Follow-up verification returned the custom post with `coverImage`.
 - Finding: live PDS rejects unknown custom lexicons when `validate: true`; custom `ai.rizom.brain.*` writes use `validate: false`.
-- 2026-06-02: stale `ai.rizom.brain.card/self` was republished after canonical validation tightened `a2aEndpoint` to require a full URI. Follow-up PDS readback validated against the live `rizom.ai` lexicon with `a2aEndpoint: https://rizom-test.bsky.social/a2a`.
+- 2026-06-02: stale `ai.rizom.brain.card/self` was republished against the then-current discovery-card schema.
+- 2026-06-04: follow-up readback confirmed the live card is now invalid against the nested brain/anchor card schema (`Missing required AT Protocol record field: brain`). It still contains old top-level `name`, `description`, `a2aEndpoint`, and `capabilities`. Republish requires a controlled `siteUrl` domain; the conventional DIDs will be `did:web:<site-host>` and `did:web:<site-host>:anchor`. `rizom-test.bsky.social` is only the PDS handle and must not be used as a `did:web` host.
 - 2026-06-02: generic semantic post smoke via `atproto_publish_entity` upserted `at://did:plc:mut7oy7nctoevokkshes2wpq/ai.rizom.brain.post/rizom-atproto-live-smoke`, CID `bafyreibjm3tazhp2hnryirtpairwcowpzl6pjbzgv7ljdjiqdpputyzquu`; follow-up PDS readback validated against the live `rizom.ai` post lexicon.
 
 Still needed before production:
@@ -358,23 +372,33 @@ Deferred until after Phase 4 discovery so ingestion can use the approved/followe
 
 ### Phase 4: Discovery
 
-Next implementation phase.
+Status: partially implemented. The first implementation slice added bounded candidate repo discovery and agent-directory enrichment without broad inbound ingestion. The card schema has been revised to a signed public **brain + minimal anchor discovery card**, not a mini A2A Agent Card and not an endpoint registry.
 
-Shares the `agent` entity type with the broader agent-directory work. Phase 4 should not duplicate the existing add-brain-by-URL workflow; when a user already knows a brain URL, that remains the direct path. ATProto discovery adds value by discovering unknown peers from the network and by enriching existing agents from signed `ai.rizom.brain.card` records. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain.
+Target `ai.rizom.brain.card` shape:
 
-1. Publish an `ai.rizom.brain.card` record to PDS when configured (name, role, capabilities, public site URL, optional A2A endpoint)
-2. Discover candidate brain cards from Jetstream filtered for `ai.rizom.brain.card`, with explicit limits and filters rather than unbounded ingestion
-3. Validate cards against the canonical `ai.rizom.brain.card` contract before creating or updating anything
-4. Upsert discovered brains as `agent` entities keyed by domain/URL/DID, merging with existing entries by domain where possible
-5. Enrich known agents from signed cards with safe metadata: repo DID, brain DID, card URI/CID, capabilities, site URL, and A2A endpoint
-6. Preserve the approval lifecycle: new firehose entries are `status: discovered`; existing `approved` entries may be enriched but must not be downgraded; discovered entries must not be callable until approved
-7. Emit internal discovery events through the shell message bus after create/update, e.g. `atproto:brain-discovered` for new reviewable agents and `atproto:brain-card-refreshed` for existing-agent enrichment
-8. Keep notification delivery separate from discovery logic: dashboards, notification plugins, Discord/web interfaces, or future UI surfaces may subscribe to those events and decide whether/how to alert the user
+- `siteUrl` — public site/profile URL for the brain. The operational A2A Agent Card is derived conventionally from this at `/.well-known/agent-card.json`.
+- `brain` — required brain identity block: `{ did, name, role, purpose, values }`.
+- `anchor` — required minimal owner/operator snapshot: `{ did, name, kind }`. Use `anchor.did` as the canonical grouping key; keep the snapshot minimal to avoid duplicating a full owner profile across every brain card.
+- `skills` — required public discovery summary of user-facing skills.
+- `model`, `version`, `createdAt`, optional `updatedAt`.
+
+Do not include top-level `a2aEndpoint`, `agentCardUrl`, generic `capabilities`, copied A2A endpoint lists, or a full anchor profile in the ATProto card. A2A owns operational protocol details; the ATProto card owns signed public discovery/identity.
+
+Shares the `agent` entity type with the broader agent-directory work. Phase 4 should not duplicate the existing add-brain-by-URL workflow; when a user already knows a brain URL, that remains the direct path. ATProto discovery adds value by discovering unknown peers from the network and by enriching existing agents from signed `ai.rizom.brain.card` records. Firehose-discovered brains should enter the directory as `discovered` agents, not immediately callable contacts. The durable agent model no longer assumes `discoveredVia`, and A2A no longer auto-creates saved agents on first contact. Firehose discovery should therefore enrich or refresh existing saved entries when they already exist, while otherwise creating reviewable discovered agents keyed by domain/brain DID.
+
+1. Publish an `ai.rizom.brain.card` record to PDS when configured — implemented with nested `brain` identity plus minimal `anchor` snapshot
+2. Discover candidate brain cards from supplied repo DIDs/handles via resolved-PDS `com.atproto.repo.getRecord`, with explicit limits and filters rather than unbounded ingestion — implemented as the first producer slice; Jetstream candidate sourcing remains deferred
+3. Validate cards against the canonical `ai.rizom.brain.card` contract before creating or updating anything — implemented
+4. Upsert discovered brains as `agent` entities keyed by domain/URL/DID, merging with existing entries by domain where possible — implemented by domain for card events
+5. Enrich known agents from signed cards with safe metadata: repo DID, `brain.did`, `anchor.did`, card URI/CID, site URL, and public skills — implemented
+6. Preserve the approval lifecycle: new firehose entries are `status: discovered`; existing `approved` entries may be enriched but must not be downgraded; discovered entries must not be callable until approved — create/enrich behavior implemented; A2A approval-only guard remains covered by existing agent workflow semantics
+7. Emit internal discovery events through the shell message bus after create/update, e.g. `atproto:brain-discovered` for new reviewable agents and `atproto:brain-card-refreshed` for existing-agent enrichment — implemented
+8. Keep notification delivery separate from discovery logic: dashboards, notification plugins, Discord/web interfaces, or future UI surfaces may subscribe to those events and decide whether/how to alert the user — implemented as message-bus-only events
 9. A2A client resolution continues to use only approved saved agents
-10. Add a refresh path for existing agents so known URL-added agents can be upgraded with signed ATProto card metadata
-11. Add configurable discovery filters: allowed domains/DIDs, capability keywords, max cards per run, and dedupe by DID/domain/card URI
-12. Update card when capabilities change (new plugins registered)
-13. Tests: publish card → discover from another brain → create reviewable agent, emit discovery event, enrich existing approved agent without downgrade, refresh URL-added agent from card, emit refresh event, verify discovered agents are refused by A2A until approval
+10. Add a refresh path for existing agents so known URL-added agents can be upgraded with signed ATProto card metadata — implemented for existing agents keyed by domain
+11. Add configurable discovery filters: allowed domains/DIDs, anchor DIDs, skill keywords, max cards per run, and dedupe by brain DID/domain/card URI — max per run and in-batch card dedupe implemented; allow/deny and skill filters remain deferred
+12. Update card when brain identity, anchor identity, model, or skills change
+13. Tests: publish card → discover from another brain → create reviewable agent, emit discovery event, enrich existing approved agent without downgrade, refresh URL-added agent from card, emit refresh event, verify discovered agents are refused by A2A until approval — discovery producer, agent create/enrich, and event tests implemented
 
 ### Phase 5: Feed generators
 
