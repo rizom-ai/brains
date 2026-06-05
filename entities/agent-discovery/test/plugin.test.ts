@@ -362,7 +362,9 @@ describe("AgentDiscoveryPlugin", () => {
         id: "peer.example.com",
         name: "Peer Brain",
         brainName: "Peer Brain",
-        url: "https://peer.example.com",
+        // Stored endpoint carries a path; enrichment must not overwrite it
+        // with the card's bare siteUrl.
+        url: "https://peer.example.com/a2a",
         status: "approved",
       }),
     });
@@ -378,10 +380,18 @@ describe("AgentDiscoveryPlugin", () => {
       id: "peer.example.com",
     });
     expect(agent?.metadata.status).toBe("approved");
+    expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
     expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
     expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
     expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
+    // Body is refreshed from the signed card: the card's public skills and
+    // purpose replace the stale generated body.
+    expect(agent?.content).toContain("Research");
+    expect(agent?.content).not.toContain("Content Creation");
+    expect(agent?.content).toContain(
+      "A peer brain discovered through ATProto.",
+    );
     expect(events).toEqual([
       expect.objectContaining({
         agentId: "peer.example.com",

@@ -86,7 +86,7 @@ export interface DiscoverBrainCardsOptions {
 
 export interface DiscoverBrainCardResult {
   repo: string;
-  status: "discovered" | "skipped" | "error";
+  status: "discovered" | "skipped";
   repoDid?: string;
   uri?: string;
   cid?: string;
@@ -96,7 +96,6 @@ export interface DiscoverBrainCardResult {
 export interface DiscoverBrainCardsResult {
   discovered: number;
   skipped: number;
-  errors: number;
   results: DiscoverBrainCardResult[];
 }
 
@@ -306,7 +305,6 @@ export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
       discovered: results.filter((result) => result.status === "discovered")
         .length,
       skipped: results.filter((result) => result.status === "skipped").length,
-      errors: results.filter((result) => result.status === "error").length,
       results,
     };
   }

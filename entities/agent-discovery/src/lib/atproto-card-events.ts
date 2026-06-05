@@ -3,6 +3,7 @@ import {
   ATPROTO_BRAIN_CARD_REFRESHED,
   ATPROTO_BRAIN_DISCOVERED,
   atprotoBrainCardDiscoveredPayloadSchema,
+  type AtprotoBrainCardRecord,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import type { EntityPluginContext } from "@brains/plugins";
@@ -12,69 +13,12 @@ import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
 
-function readString(
-  record: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = record[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function readRecord(
-  record: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> | undefined {
-  const value = record[key];
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return undefined;
-  }
-  return Object.fromEntries(Object.entries(value));
-}
-
-function readNestedString(
-  record: Record<string, unknown>,
-  key: string,
-  nestedKey: string,
-): string | undefined {
-  const nested = readRecord(record, key);
-  return nested ? readString(nested, nestedKey) : undefined;
-}
-
-function readStringArray(
-  record: Record<string, unknown>,
-  key: string,
-): string[] | undefined {
-  const value = record[key];
-  if (!Array.isArray(value)) return undefined;
-  const strings = value.filter(
-    (item): item is string => typeof item === "string" && item.length > 0,
-  );
-  return strings.length > 0 ? strings : undefined;
-}
-
-function chooseUrl(record: Record<string, unknown>): string | undefined {
-  return readString(record, "siteUrl");
-}
-
-function readSkills(record: Record<string, unknown>): AgentSkill[] {
-  const value = record["skills"];
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) {
-      return [];
-    }
-    const skill = item as Record<string, unknown>;
-    const name = readString(skill, "name");
-    const description = readString(skill, "description");
-    if (!name || !description) return [];
-    return [
-      {
-        name,
-        description,
-        tags: readStringArray(skill, "tags") ?? [],
-      },
-    ];
-  });
+function toAgentSkills(record: AtprotoBrainCardRecord): AgentSkill[] {
+  return record.skills.map((skill) => ({
+    name: skill.name,
+    description: skill.description,
+    tags: skill.tags ?? [],
+  }));
 }
 
 function domainIdFromUrl(url: string): string {
@@ -98,10 +42,10 @@ function buildEventPayload(input: {
   repoDid: string;
   uri: string;
   cid: string;
-  record: Record<string, unknown>;
+  record: AtprotoBrainCardRecord;
 }): AtprotoBrainDiscoveryEventPayload {
-  const brainDid = readNestedString(input.record, "brain", "did");
-  const anchorDid = readNestedString(input.record, "anchor", "did");
+  const brainDid = input.record.brain.did;
+  const anchorDid = input.record.anchor.did;
   return {
     agentId: input.agent.id,
     name: input.agent.metadata.name,
@@ -133,36 +77,45 @@ async function upsertAgentFromCard(
     repoDid: string;
     uri: string;
     cid: string;
-    record: Record<string, unknown>;
+    record: AtprotoBrainCardRecord;
   },
+  now: string = new Date().toISOString(),
 ): Promise<{ agent: AgentEntity; created: boolean }> {
-  const url = chooseUrl(input.record);
-  if (!url) {
-    throw new Error("ATProto brain card requires siteUrl");
-  }
-
-  const agentId = domainIdFromUrl(url);
+  const { record } = input;
+  const agentId = domainIdFromUrl(record.siteUrl);
   const existing = await context.entityService.getEntity<AgentEntity>({
     entityType: "agent",
     id: agentId,
   });
+  const existingParsed = existing
+    ? agentAdapter.parseEntity(existing)
+    : undefined;
+
+  const brainDid = record.brain.did;
+  const anchorDid = record.anchor.did;
+  const cardSkills = toAgentSkills(record);
+
+  // Keep an existing entry's established identity (status, stored endpoint url,
+  // name, kind); only fill those from the card for newly discovered brains.
+  // Enrichment refreshes signed metadata plus the public skills/purpose, not
+  // the agent's endpoint or approval state.
   const status: AgentStatus = existing?.metadata.status ?? "discovered";
-  const brainDid = readNestedString(input.record, "brain", "did");
-  const brainName = readNestedString(input.record, "brain", "name") ?? agentId;
-  const brainPurpose = readNestedString(input.record, "brain", "purpose") ?? "";
-  const anchorDid = readNestedString(input.record, "anchor", "did");
-  const anchorName =
-    readNestedString(input.record, "anchor", "name") ?? brainName;
-  const anchorKind = readNestedString(input.record, "anchor", "kind");
-  const skills = readSkills(input.record);
-  const now = new Date().toISOString();
+  const url = existing?.metadata.url ?? record.siteUrl;
+  const slug = existing?.metadata.slug ?? slugifyUrl(url);
+  const name = existing?.metadata.name ?? record.anchor.name;
+  const kind = existingParsed?.frontmatter.kind ?? record.anchor.kind;
+  const discoveredAt = existing?.metadata.discoveredAt ?? now;
+  const about = record.brain.purpose || existingParsed?.body.about || "";
+  const skills =
+    cardSkills.length > 0 ? cardSkills : (existingParsed?.body.skills ?? []);
+
   const metadata = {
     ...(existing?.metadata ?? {}),
-    name: existing?.metadata.name ?? anchorName,
+    name,
     url,
     status,
-    discoveredAt: existing?.metadata.discoveredAt ?? now,
-    slug: slugifyUrl(url),
+    discoveredAt,
+    slug,
     repoDid: input.repoDid,
     ...(brainDid && { brainDid }),
     ...(anchorDid && { anchorDid }),
@@ -170,32 +123,25 @@ async function upsertAgentFromCard(
     cardCid: input.cid,
   };
 
-  if (existing) {
-    const updated: AgentEntity = {
-      ...existing,
-      metadata,
-      updated: now,
-    };
-    await context.entityService.updateEntity({ entity: updated });
-    return { agent: updated, created: false };
-  }
-
   const content = agentAdapter.createAgentContent({
-    name: anchorName,
-    kind:
-      anchorKind === "team" || anchorKind === "collective"
-        ? anchorKind
-        : "professional",
-    brainName,
+    name,
+    kind,
+    ...(existingParsed?.frontmatter.organization && {
+      organization: existingParsed.frontmatter.organization,
+    }),
+    brainName: record.brain.name,
     url,
     ...(brainDid && { did: brainDid, brainDid }),
     ...(anchorDid && { anchorDid }),
     repoDid: input.repoDid,
     cardUri: input.uri,
     cardCid: input.cid,
+    ...(existingParsed?.frontmatter.a2aEndpoint && {
+      a2aEndpoint: existingParsed.frontmatter.a2aEndpoint,
+    }),
     status,
-    discoveredAt: now,
-    about: brainPurpose,
+    discoveredAt,
+    about,
     skills,
     notes: buildNotes({
       repoDid: input.repoDid,
@@ -203,6 +149,18 @@ async function upsertAgentFromCard(
       cid: input.cid,
     }),
   });
+
+  if (existing) {
+    const updated: AgentEntity = {
+      ...existing,
+      content,
+      metadata,
+      updated: now,
+    };
+    await context.entityService.updateEntity({ entity: updated });
+    return { agent: updated, created: false };
+  }
+
   const agent: AgentEntity = {
     id: agentId,
     entityType: "agent",

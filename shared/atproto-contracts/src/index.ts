@@ -601,16 +601,18 @@ export const atprotoBrainCardDiscoveredPayloadSchema = z
     repoDid: z.string().min(1),
     uri: z.string().min(1),
     cid: z.string().min(1),
-    record: canonicalAtprotoRecordSchemas["ai.rizom.brain.card"],
+    // The card schema validates the full nested card shape, so the parsed
+    // record can be consumed as a typed AtprotoBrainCardRecord rather than an
+    // untyped property bag.
+    record: canonicalAtprotoRecordSchemas[
+      "ai.rizom.brain.card"
+    ] as unknown as z.ZodType<AtprotoBrainCardRecord>,
   })
   .strict();
 
-export interface AtprotoBrainCardDiscoveredPayload {
-  repoDid: string;
-  uri: string;
-  cid: string;
-  record: AtprotoBrainCardRecord;
-}
+export type AtprotoBrainCardDiscoveredPayload = z.infer<
+  typeof atprotoBrainCardDiscoveredPayloadSchema
+>;
 
 export const atprotoBrainDiscoveryEventPayloadSchema = z
   .object({
