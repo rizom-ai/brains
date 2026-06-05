@@ -47,6 +47,17 @@ export {
   PublishAssetPreflight,
   type PublishAssetPreflightResult,
 } from "./publish-asset-preflight";
+export {
+  PublishExecutor,
+  type PublishEntityExecutor,
+  type PublishEntityInput,
+  type PublishEntityResult,
+} from "./publish-executor";
+export {
+  markEntityPublished,
+  updatePublishFrontmatter,
+  type MarkPublishedOptions,
+} from "./publish-state-updater";
 
 // Tools
 export {
