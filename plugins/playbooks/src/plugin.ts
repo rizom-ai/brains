@@ -576,7 +576,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       parsedPlaybook && activeRun
         ? this.getState(parsedPlaybook.body, activeRun.currentState)
         : undefined;
-    const validEvents = currentState?.transitions ?? [];
+    const validEvents =
+      currentState && activeRun && parsedPlaybook
+        ? this.getValidTransitions(activeRun, parsedPlaybook.body, currentState)
+        : (currentState?.transitions ?? []);
 
     return {
       runs,
@@ -684,6 +687,61 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       );
   }
 
+  private getValidTransitions(
+    run: PlaybookRun,
+    body: PlaybookBody,
+    state: PlaybookState,
+  ): PlaybookTransition[] {
+    return state.transitions.filter((transition) =>
+      this.canTransition(run, body, transition.event),
+    );
+  }
+
+  private canTransition(
+    run: PlaybookRun,
+    body: PlaybookBody,
+    event: string,
+  ): boolean {
+    const machine = this.buildMachine(
+      run.playbookId,
+      body,
+      run.createdEntities,
+    );
+    const actor = createActor(machine, {
+      ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
+    });
+    actor.start();
+    const canTransition = actor.getSnapshot().can({ type: event });
+    actor.stop();
+    return canTransition;
+  }
+
+  private getMissingRequiredEntities(
+    state: PlaybookState,
+    createdEntities: PlaybookRunEntityRef[],
+  ): PlaybookState["expectedEntities"] {
+    return state.expectedEntities
+      .filter((expected) => expected.required === true)
+      .filter(
+        (expected) =>
+          !createdEntities.some(
+            (entity) => entity.entityType === expected.entityType,
+          ),
+      );
+  }
+
+  private formatTransition(transition: PlaybookTransition): string {
+    return transition.description
+      ? `- ${transition.event} -> ${transition.target}: ${transition.description}`
+      : `- ${transition.event} -> ${transition.target}`;
+  }
+
+  private formatExpectedEntity(
+    expected: PlaybookState["expectedEntities"][number],
+  ): string {
+    return `- ${expected.entityType} — ${expected.purpose}`;
+  }
+
   private getState(
     body: PlaybookBody,
     stateId: string,
@@ -701,12 +759,35 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const state = this.getState(playbook.body, run.currentState);
     if (!state) return undefined;
 
-    const validEvents = state.transitions
-      .map((transition) =>
-        transition.description
-          ? `- ${transition.event} -> ${transition.target}: ${transition.description}`
-          : `- ${transition.event} -> ${transition.target}`,
-      )
+    const validTransitions = this.getValidTransitions(
+      run,
+      playbook.body,
+      state,
+    );
+    const validTransitionKeys = new Set(
+      validTransitions.map(
+        (transition) => `${transition.event}\u0000${transition.target}`,
+      ),
+    );
+    const blockedTransitions = state.transitions.filter(
+      (transition) =>
+        !validTransitionKeys.has(
+          `${transition.event}\u0000${transition.target}`,
+        ),
+    );
+    const missingRequiredEntities = this.getMissingRequiredEntities(
+      state,
+      run.createdEntities,
+    );
+
+    const validEvents = validTransitions
+      .map((transition) => this.formatTransition(transition))
+      .join("\n");
+    const blockedEvents = blockedTransitions
+      .map((transition) => this.formatTransition(transition))
+      .join("\n");
+    const missingRequired = missingRequiredEntities
+      .map((expected) => this.formatExpectedEntity(expected))
       .join("\n");
 
     return {
@@ -714,7 +795,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       source: "active-playbook",
       title: `${playbook.entity.metadata.title} — state: ${state.id}`,
       content: `Current playbook: ${playbook.entity.metadata.title}
+Run ID: ${run.id}
 Current state: ${state.id} (${state.title})
+
+Use this run ID for run-scoped playbook tools when explicit run identity is needed.
 
 State instructions:
 ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
@@ -722,13 +806,19 @@ ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
 Completion criteria:
 ${state.completionCriteria.map((criterion) => `- ${criterion}`).join("\n")}
 
+Missing required entities:
+${missingRequired || "- none"}
+
 Valid events:
-${validEvents || "- none"}`,
+${validEvents || "- none"}
+
+Blocked events:
+${blockedEvents || "- none"}`,
       provenance: {
         playbookId: run.playbookId,
         runId: run.id,
         currentState: run.currentState,
-        validEvents: state.transitions.map((transition) => transition.event),
+        validEvents: validTransitions.map((transition) => transition.event),
       },
     };
   }

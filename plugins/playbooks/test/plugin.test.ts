@@ -464,20 +464,9 @@ describe("PlaybooksPlugin", () => {
   });
 
   it("injects active playbook state as agent context", async () => {
-    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
-    addPlaybookEntity(harness);
+    const harness = await installHarness();
 
-    await harness.executeTool(
-      "playbook_start",
-      {
-        playbookId: "rover-onboarding",
-        lifecycle: "onboarding",
-      },
-      { channelId: "web-agent-context" },
-    );
+    await startRun(harness, "web-agent-context");
 
     const response = await harness.sendMessage<
       {
@@ -502,5 +491,81 @@ describe("PlaybooksPlugin", () => {
     expect(response?.items[0]?.source).toBe("active-playbook");
     expect(response?.items[0]?.content).toContain("Current state: welcome");
     expect(response?.items[0]?.content).toContain("NEXT -> seed");
+  });
+
+  it("injects actionable run identity and missing requirements as agent context", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          completionCriteria: ["Operator agrees."],
+          expectedEntities: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          completionCriteria: ["Anchor profile is created or updated."],
+          expectedEntities: [
+            {
+              entityType: "anchor-profile",
+              purpose: "operator identity",
+              required: true,
+            },
+          ],
+          transitions: [
+            { event: "NEXT", target: "seed" },
+            { event: "SKIP", target: "seed" },
+          ],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const runId = await startRun(harness, "web-actionable-context");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const response = await harness.sendMessage<
+      {
+        conversationId: string;
+        message: string;
+        interfaceType: string;
+        channelId: string;
+        channelName: string;
+        userPermissionLevel: "anchor";
+      },
+      { items: Array<{ source: string; content: string }> }
+    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+      conversationId: "web-actionable-context",
+      message: "what next?",
+      interfaceType: "web-chat",
+      channelId: "web-actionable-context",
+      channelName: "Web Chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.items).toHaveLength(1);
+    const content = response?.items[0]?.content ?? "";
+    expect(content).toContain(`Run ID: ${runId}`);
+    expect(content).toContain("Missing required entities:");
+    expect(content).toContain("anchor-profile — operator identity");
+    expect(content).toContain("Valid events:");
+    expect(content).toContain("SKIP -> seed");
+    expect(content).toContain("Blocked events:");
+    expect(content).toContain("NEXT -> seed");
   });
 });
