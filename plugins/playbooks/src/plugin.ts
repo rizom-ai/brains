@@ -92,7 +92,7 @@ const sendEventInputSchema = {
 };
 
 const recordEntityInputSchema = {
-  runId: z.string().min(1),
+  runId: z.string().min(1).optional(),
   entityType: z.string().min(1),
   entityId: z.string().min(1),
   purpose: z.string().min(1).optional(),
@@ -258,9 +258,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Record an entity created or updated as an important result of a playbook run.",
         inputSchema: recordEntityInputSchema,
         visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
+        handler: async (
+          input: unknown,
+          toolContext: ToolContext,
+        ): Promise<ToolResponse> => {
           const parsed = z.object(recordEntityInputSchema).parse(input);
-          const run = await this.requireRun(parsed.runId);
+          const run = await this.requireScopedRun({
+            runId: parsed.runId,
+            channelId: toolContext.channelId,
+          });
           const ref: PlaybookRunEntityRef = {
             entityType: parsed.entityType,
             entityId: parsed.entityId,
@@ -344,7 +350,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     lifecycle?: string | undefined;
     conversationId?: string | undefined;
   }): Promise<PlaybookRun> {
-    const machine = this.buildMachine(input.playbookId, input.body);
+    const machine = this.buildMachine(input.playbookId, input.body, []);
     const actor = createActor(machine);
     actor.start();
     const snapshot = actor.getPersistedSnapshot();
@@ -367,7 +373,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ):
     | { success: true; currentState: string; snapshot: unknown }
     | { success: false; error: string } {
-    const machine = this.buildMachine(run.playbookId, body);
+    const machine = this.buildMachine(
+      run.playbookId,
+      body,
+      run.createdEntities,
+    );
     const actor = createActor(machine, {
       ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
     });
@@ -396,6 +406,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private buildMachine(
     playbookId: string,
     body: PlaybookBody,
+    createdEntities: PlaybookRunEntityRef[],
   ): ReturnType<typeof createMachine> {
     return createMachine({
       id: playbookId,
@@ -413,7 +424,21 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                     on: Object.fromEntries(
                       state.transitions.map((transition) => [
                         transition.event,
-                        { target: transition.target },
+                        {
+                          target: transition.target,
+                          ...(this.transitionRequiresRecordedEntities(
+                            state,
+                            transition.event,
+                          )
+                            ? {
+                                guard: (): boolean =>
+                                  this.hasRequiredEntities(
+                                    state,
+                                    createdEntities,
+                                  ),
+                              }
+                            : {}),
+                        },
                       ]),
                     ),
                   }),
@@ -560,6 +585,46 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const run = await this.store.findById(runId);
     if (!run) throw new Error(`Playbook run not found: ${runId}`);
     return run;
+  }
+
+  private async requireScopedRun(input: {
+    runId?: string | undefined;
+    channelId?: string | undefined;
+  }): Promise<PlaybookRun> {
+    if (input.runId) return this.requireRun(input.runId);
+    if (!input.channelId) {
+      throw new Error("Missing runId and no active conversation channel.");
+    }
+    const run = await this.store.findActiveByConversation(input.channelId);
+    if (!run) {
+      throw new Error(
+        `No active playbook run for conversation '${input.channelId}'.`,
+      );
+    }
+    return run;
+  }
+
+  private transitionRequiresRecordedEntities(
+    state: PlaybookState,
+    event: string,
+  ): boolean {
+    return (
+      event === "NEXT" &&
+      state.expectedEntities.some((expected) => expected.required === true)
+    );
+  }
+
+  private hasRequiredEntities(
+    state: PlaybookState,
+    createdEntities: PlaybookRunEntityRef[],
+  ): boolean {
+    return state.expectedEntities
+      .filter((expected) => expected.required === true)
+      .every((expected) =>
+        createdEntities.some(
+          (entity) => entity.entityType === expected.entityType,
+        ),
+      );
   }
 
   private getState(

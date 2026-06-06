@@ -15,47 +15,50 @@ async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
 }
 
+const welcomeState: PlaybookBody["states"][number] = {
+  id: "welcome",
+  title: "Welcome",
+  instructions: ["Explain the playbook."],
+  completionCriteria: ["Operator is ready."],
+  expectedEntities: [],
+  transitions: [
+    { event: "NEXT", target: "seed", description: "Continue." },
+    { event: "SKIP", target: "complete", description: "Skip." },
+  ],
+};
+
+const seedState: PlaybookBody["states"][number] = {
+  id: "seed",
+  title: "Seed",
+  instructions: ["Save a first note."],
+  completionCriteria: ["A seed exists."],
+  expectedEntities: [
+    { entityType: "base", purpose: "knowledge-seed", required: false },
+  ],
+  transitions: [{ event: "NEXT", target: "complete" }],
+};
+
+const completeState: PlaybookBody["states"][number] = {
+  id: "complete",
+  title: "Complete",
+  instructions: ["Complete the run."],
+  completionCriteria: ["Run is complete."],
+  expectedEntities: [],
+  transitions: [],
+};
+
 const playbookBody: PlaybookBody = {
   purpose: "Teach by doing.",
   operatingRules: ["Ask one question at a time."],
   initialState: "welcome",
-  states: [
-    {
-      id: "welcome",
-      title: "Welcome",
-      instructions: ["Explain the playbook."],
-      completionCriteria: ["Operator is ready."],
-      expectedEntities: [],
-      transitions: [
-        { event: "NEXT", target: "seed", description: "Continue." },
-        { event: "SKIP", target: "complete", description: "Skip." },
-      ],
-    },
-    {
-      id: "seed",
-      title: "Seed",
-      instructions: ["Save a first note."],
-      completionCriteria: ["A seed exists."],
-      expectedEntities: [
-        { entityType: "base", purpose: "knowledge-seed", required: false },
-      ],
-      transitions: [{ event: "NEXT", target: "complete" }],
-    },
-    {
-      id: "complete",
-      title: "Complete",
-      instructions: ["Complete the run."],
-      completionCriteria: ["Run is complete."],
-      expectedEntities: [],
-      transitions: [],
-    },
-  ],
+  states: [welcomeState, seedState, completeState],
   finalStates: ["complete"],
   nextPrompts: ["Save this idea as a note..."],
 };
 
 function addPlaybookEntity(
   harness: ReturnType<typeof createPluginHarness>,
+  body: PlaybookBody = playbookBody,
 ): void {
   harness.addEntities([
     {
@@ -68,7 +71,7 @@ function addPlaybookEntity(
           audience: "anchor",
           completionMode: "agent-confirmed",
         },
-        playbookBody,
+        body,
       ),
       metadata: {
         title: "Rover Onboarding",
@@ -217,6 +220,186 @@ describe("PlaybooksPlugin", () => {
     };
     expect(completedData.activeRun.status).toBe("completed");
     expect(completedData.activeRun.currentState).toBe("complete");
+  });
+
+  it("blocks NEXT when required expected entities have not been recorded", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          completionCriteria: ["Operator agrees."],
+          expectedEntities: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          completionCriteria: ["Anchor profile is created or updated."],
+          expectedEntities: [
+            {
+              entityType: "anchor-profile",
+              purpose: "operator identity",
+              required: true,
+            },
+          ],
+          transitions: [
+            { event: "NEXT", target: "seed" },
+            { event: "SKIP", target: "seed" },
+          ],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const started = await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { channelId: "web-required-entity" },
+    );
+    expectSuccess(started);
+    const runId = (started.data as { activeRun: { id: string } }).activeRun.id;
+
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const blocked = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectError(blocked);
+
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "SKIP",
+      }),
+    );
+  });
+
+  it("allows NEXT after required expected entities have been recorded", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          completionCriteria: ["Operator agrees."],
+          expectedEntities: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          completionCriteria: ["Anchor profile is created or updated."],
+          expectedEntities: [
+            {
+              entityType: "anchor-profile",
+              purpose: "operator identity",
+              required: true,
+            },
+          ],
+          transitions: [{ event: "NEXT", target: "seed" }],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const started = await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { channelId: "web-required-entity-recorded" },
+    );
+    expectSuccess(started);
+    const runId = (started.data as { activeRun: { id: string } }).activeRun.id;
+
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+    expectSuccess(
+      await harness.executeTool("playbook_record_entity", {
+        runId,
+        entityType: "anchor-profile",
+        entityId: "anchor-profile",
+      }),
+    );
+
+    const advanced = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+    expectSuccess(advanced);
+    expect(
+      (advanced.data as { activeRun: { currentState: string } }).activeRun
+        .currentState,
+    ).toBe("seed");
+  });
+
+  it("records entities against the active conversation playbook when runId is omitted", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness);
+
+    await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { channelId: "web-record-active" },
+    );
+
+    const recorded = await harness.executeTool(
+      "playbook_record_entity",
+      {
+        entityType: "base",
+        entityId: "woodchuckers-are-evil-creatures",
+        purpose: "knowledge-seed",
+      },
+      { channelId: "web-record-active" },
+    );
+
+    expectSuccess(recorded);
+    const recordedData = recorded.data as {
+      activeRun: { createdEntities: unknown[] };
+    };
+    expect(recordedData.activeRun.createdEntities).toEqual([
+      {
+        entityType: "base",
+        entityId: "woodchuckers-are-evil-creatures",
+        purpose: "knowledge-seed",
+      },
+    ]);
   });
 
   it("injects active playbook state as agent context", async () => {
