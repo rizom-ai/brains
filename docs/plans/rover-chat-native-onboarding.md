@@ -472,8 +472,9 @@ Load-bearing; revisit only with a documented reason.
 2. **Gates are prose, judged by an LLM, on the transition path** — authors write
    sentences, not a query DSL; a judge is the only general way to evaluate arbitrary
    prose against evidence. Bounded by: `NEXT`-only, cached, citation-and-claim-guarded
-   (closes fabrication and citation-inconsistency false-positives; the sincere-mislabel
-   residual stays until the compiler), override-escape (against false-negatives),
+   (closes fabrication and citation-inconsistency false-positives; the
+   irrelevant-but-honestly-labeled citation residual stays until the compiler),
+   override-escape (against false-negatives),
    and stub-tested enforcement. No `check`/`EvidenceQuery`/ID apparatus. The live
    judge is deterministic-first's escape valve, not the final design — see
    [Verifier evolution](#verifier-evolution-deferred).
