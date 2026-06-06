@@ -148,37 +148,50 @@ welcome
 ### welcome
 
 Title: Welcome and orientation
+
 Instructions:
 
 - Explain Rover briefly as a personal knowledge and publishing brain.
 - Ask whether to continue.
-  Transitions:
+
+Transitions:
+
 - NEXT -> identity
 - SKIP -> complete
 
 ### identity
 
 Title: Identity setup
+
 Instructions:
 
 - Ask one question at a time about name, role, audience, expertise, tone.
 - Summarize, then create or update the anchor profile with existing tools.
-  Done when:
+
+Done when:
+
 - The anchor profile has been created or updated.
-  Transitions:
+
+Transitions:
+
 - NEXT -> first-knowledge-seed
 - SKIP -> first-knowledge-seed
 
 ### first-knowledge-seed
 
 Title: First knowledge seed
+
 Instructions:
 
 - Ask for one rough idea, note, link, or fragment; save it as the right entity.
 - Explain how Rover can retrieve and repurpose it later.
-  Done when:
+
+Done when:
+
 - A first knowledge seed has been saved.
-  Transitions:
+
+Transitions:
+
 - NEXT -> retrieval-demo
 
 ## Final States
