@@ -385,6 +385,72 @@ describe("system_create tool", () => {
     });
   });
 
+  it("should pass upload markdown transforms to registered create interceptors", async () => {
+    let capturedInput: CreateInput | undefined;
+    services = createMockSystemServices({
+      conversationService: {
+        getMessages: async () => [
+          {
+            id: "message-1",
+            conversationId: "web-conversation-1",
+            role: "user",
+            content: "",
+            metadata: {
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "brief.pdf",
+                  mediaType: "application/pdf",
+                  source: {
+                    kind: "web-chat-upload",
+                    id: "upload-00000000-0000-4000-8000-000000000304",
+                  },
+                },
+              ],
+            },
+            created: new Date().toISOString(),
+          },
+        ],
+      } as unknown as MockServices["conversationService"],
+    });
+    tools = createSystemTools(services);
+    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief-note" },
+        },
+      };
+    });
+
+    const result = await exec(
+      {
+        entityType: "base",
+        upload: {
+          kind: "web-chat-upload",
+          id: "upload-00000000-0000-4000-8000-000000000304",
+        },
+        transform: "extract-markdown",
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "brief-note" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "base",
+      from: {
+        kind: "web-chat-upload",
+        id: "upload-00000000-0000-4000-8000-000000000304",
+      },
+      transform: "extract-markdown",
+    });
+  });
+
   it("should use conversationId for upload access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
     services = createMockSystemServices({
@@ -943,13 +1009,14 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url, upload, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
+  it("should expose top-level url, upload, transform, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
     expect(tool.inputSchema).not.toHaveProperty("from");
     expect(tool.inputSchema).toHaveProperty("upload");
+    expect(tool.inputSchema).toHaveProperty("transform");
     expect(tool.inputSchema).toHaveProperty("sourceAttachment");
     expect(tool.inputSchema).not.toHaveProperty("fromUpload");
     expect(tool.inputSchema).toHaveProperty("replace");

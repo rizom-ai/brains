@@ -223,6 +223,8 @@ export interface CreateFromUploadInput {
 
 export type CreateFromInput = CreateFromAttachmentInput | CreateFromUploadInput;
 
+export type CreateTransform = "extract-markdown";
+
 export interface CreateInput {
   entityType: string;
   prompt?: string;
@@ -230,6 +232,7 @@ export interface CreateInput {
   content?: string;
   url?: string;
   from?: CreateFromInput;
+  transform?: CreateTransform;
   replace?: boolean;
   targetEntityType?: string;
   targetEntityId?: string;

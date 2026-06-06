@@ -167,6 +167,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         (input.sourceAttachment
           ? { kind: "entity-attachment", ...input.sourceAttachment }
           : undefined);
+      const transform = input.transform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -223,6 +224,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(content && { content }),
         ...(url && { url }),
         ...(from && { from }),
+        ...(transform && { transform }),
         ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),

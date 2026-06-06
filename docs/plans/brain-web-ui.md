@@ -221,12 +221,14 @@ and images promote to `image` through explicit `system_create({ entityType:
 conversation before forwarding it to the entity plugin, and the receiving plugin
 validates media type and ref existence before persisting. Markdown
 import/extraction is a separate explicit flow: "turn this PDF into a note"
-should resolve the upload, extract text with a deterministic PDF extraction
-library (`pdfjs-dist`), optionally use the LLM only
-for cleanup/structuring, then create a markdown entity such as `base`/note (or a
-future explicit docs target). Derived entities (such as decks generated from a
-PDF) should be created from an explicit user instruction that consumes the upload
-as context. Bare upload handoff must not create, update, or delete entities.
+resolves the upload, extracts text with deterministic PDF extraction in
+`@brains/document` (`pdfjs-dist`), then creates a markdown entity such as
+`base`/note using `system_create({ entityType: "base", upload, transform:
+"extract-markdown" })`. Any future LLM pass should be limited to cleanup or
+summarization after deterministic extraction. Derived entities (such as decks
+generated from a PDF) should be created from an explicit user instruction that
+consumes the upload as context. Bare upload handoff must not create, update, or
+delete entities.
 
 Follow-up turns in the same conversation should consume recent upload refs
 without forcing the operator to reattach the file. For example, after a bare
@@ -301,11 +303,12 @@ Remaining upload work:
   attachment reuse, clarification resolution, and "save uploaded file" promotion
   across interfaces;
 
-- add an explicit markdown import/extraction contract for text/PDF uploads,
-  likely `system_create({ entityType: "base" | "doc", upload: { kind:
-"web-chat-upload", id }, transform: "extract-markdown" })`; PDF extraction
-  should use `pdfjs-dist` behind a small service/job boundary, with any LLM pass
-  limited to cleanup or summarization after deterministic extraction;
+- continue hardening the explicit markdown import/extraction contract for
+  text/PDF uploads. The first slice supports
+  `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
+transform: "extract-markdown" })` and deterministic PDF extraction in
+  `@brains/document`; future work can add job-backed extraction for large PDFs
+  and optional cleanup/summarization after deterministic extraction;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
   user asks to promote them.

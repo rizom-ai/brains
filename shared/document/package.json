@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@brains/entity-service": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "pdfjs-dist": "^5.4.394"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

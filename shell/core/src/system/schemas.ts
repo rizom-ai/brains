@@ -65,6 +65,12 @@ export const createInputSchema = z.object({
     .describe(
       'Promote a runtime upload. Use only when the current turn shows an exact upload ref, e.g. { kind: "web-chat-upload", id: "upload-..." }. Omit for ordinary direct creates that use content, prompt, or url.',
     ),
+  transform: z
+    .literal("extract-markdown")
+    .optional()
+    .describe(
+      "Use with upload to extract markdown/text from an uploaded text or PDF file into a markdown entity such as base. Do not use for raw file promotion to document/image.",
+    ),
   sourceAttachment: createSourceAttachmentInputSchema
     .optional()
     .describe(
