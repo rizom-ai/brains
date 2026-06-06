@@ -335,7 +335,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable image saves from uploaded images, copy the exact upload object shown in the current turn's "Available runtime upload refs" hint only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely.`;
+    return `For durable raw image saves/promotions from uploaded images, call system_create with entityType: "image", the exact upload object shown in the current turn or conversation "Available runtime upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely.`;
   }
 
   protected override createGenerationHandler(

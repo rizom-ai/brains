@@ -32,7 +32,6 @@ turns:
         max: 0
 
   - userMessage: "can you save it as an image"
-    reusePreviousAttachments: true
     successCriteria:
       expectedTools:
         - toolName: system_create

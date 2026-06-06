@@ -1706,7 +1706,7 @@ describe("WebChatInterface", () => {
     ]);
   });
 
-  it("asks which prior upload to use when a follow-up reference is ambiguous", async () => {
+  it("makes prior uploads available on a follow-up without guessing intent", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = operatorPlugin();
@@ -1768,12 +1768,27 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
-    const body = await response?.text();
+    await response?.text();
 
     expect(response?.status).toBe(200);
-    expect(agent.chatCalls).toHaveLength(0);
-    expect(body).toContain("first-robot.png");
-    expect(body).toContain("second-robot.png");
+    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "first-robot.png",
+        mediaType: "image/png",
+        data: firstImage,
+        sizeBytes: firstImage.byteLength,
+        source: { kind: "web-chat-upload", id: firstUpload.ref.id },
+      },
+      {
+        kind: "file",
+        filename: "second-robot.png",
+        mediaType: "image/png",
+        data: secondImage,
+        sizeBytes: secondImage.byteLength,
+        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
+      },
+    ]);
   });
 
   it("rejects invalid durable upload refs", async () => {

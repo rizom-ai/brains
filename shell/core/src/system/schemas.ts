@@ -63,7 +63,7 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Promote a runtime upload. Use only when the current turn shows an exact upload ref, e.g. { kind: "web-chat-upload", id: "upload-..." }. Omit for ordinary direct creates that use content, prompt, or url.',
+      'Promote a runtime upload. Use only when this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, or url.',
     ),
   transform: z
     .literal("extract-markdown")

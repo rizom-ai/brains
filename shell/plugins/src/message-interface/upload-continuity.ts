@@ -9,8 +9,7 @@ export interface UploadHistoryMessage {
   text: string;
 }
 
-type UploadIntent = "image" | "pdf" | "upload";
-type UploadReference = "current" | "first" | "last" | "ambiguous";
+type UploadReference = "first" | "last" | "ambiguous";
 
 export type UploadFollowUpResolution<TCandidate extends UploadCandidate> =
   | {
@@ -30,17 +29,11 @@ export function resolveUploadFollowUp<
   history: UploadHistoryMessage[];
   candidates: TCandidate[];
 }): UploadFollowUpResolution<TCandidate> | null {
+  if (input.candidates.length === 0) return null;
+
   const clarification = getUploadClarificationContext(input.history);
-  const intent = inferUploadIntent(input.message) ?? clarification?.intent;
-  if (!intent) return null;
-
-  const candidates = input.candidates.filter((candidate) =>
-    matchesUploadIntent(candidate, intent),
-  );
-  if (candidates.length === 0) return null;
-
   const actionMessage = clarification?.message ?? input.message;
-  const namedCandidates = candidates.filter((candidate) =>
+  const namedCandidates = input.candidates.filter((candidate) =>
     messageNamesUpload(input.message, candidate.filename),
   );
   if (namedCandidates.length === 1) {
@@ -56,16 +49,16 @@ export function resolveUploadFollowUp<
 
   const selected = selectUploadCandidate({
     reference: inferUploadReference(input.message),
-    candidates,
+    candidates: input.candidates,
   });
   if (selected) return { kind: "selected", actionMessage, candidate: selected };
 
-  return { kind: "clarify", candidates };
+  return { kind: "clarify", candidates: input.candidates };
 }
 
 function getUploadClarificationContext(
   history: UploadHistoryMessage[],
-): { message: string; intent: UploadIntent } | null {
+): { message: string } | null {
   const assistantIndex = findLastIndex(history, (message) =>
     isUploadClarificationMessage(message.text),
   );
@@ -79,8 +72,7 @@ function getUploadClarificationContext(
   if (priorUserIndex === -1) return null;
 
   const priorUser = priorMessages[priorUserIndex] as UploadHistoryMessage;
-  const intent = inferUploadIntent(priorUser.text);
-  return intent ? { message: priorUser.text, intent } : null;
+  return { message: priorUser.text };
 }
 
 function findLastIndex<T>(
@@ -97,33 +89,10 @@ function isUploadClarificationMessage(message: string): boolean {
   return /which (?:uploaded file|upload) should i use\?/i.test(message);
 }
 
-function inferUploadIntent(message: string): UploadIntent | null {
-  const normalized = message.toLowerCase();
-  const hasAction =
-    /\b(describe|summari[sz]e|read|analy[sz]e|inspect|review|explain|save|import|promote|store)\b/.test(
-      normalized,
-    ) || /\b(?:what(?:'s| is)|tell me)\b/.test(normalized);
-  if (!hasAction) return null;
-
-  if (
-    /\b(image|picture|photo|pic|screenshot)\b/.test(normalized) ||
-    /\.(?:png|jpe?g|webp|gif)\b/.test(normalized)
-  ) {
-    return "image";
-  }
-  if (/\bpdf\b/.test(normalized) || /\.pdf\b/.test(normalized)) return "pdf";
-  if (/\b(file|attachment|upload|it|that|this)\b/.test(normalized)) {
-    return "upload";
-  }
-
-  return null;
-}
-
 function inferUploadReference(message: string): UploadReference {
   const normalized = message.toLowerCase();
   if (/\b(first|oldest|earliest)\b/.test(normalized)) return "first";
   if (/\b(latest|newest|most recent|last)\b/.test(normalized)) return "last";
-  if (/\b(it|that|this)\b/.test(normalized)) return "current";
   return "ambiguous";
 }
 
@@ -134,7 +103,6 @@ function selectUploadCandidate<TCandidate extends UploadCandidate>(input: {
   if (input.candidates.length === 0) return null;
 
   switch (input.reference) {
-    case "current":
     case "last":
       return input.candidates.at(-1) ?? null;
     case "first":
@@ -144,18 +112,6 @@ function selectUploadCandidate<TCandidate extends UploadCandidate>(input: {
         ? (input.candidates[0] ?? null)
         : null;
   }
-}
-
-function matchesUploadIntent(
-  candidate: UploadCandidate,
-  intent: UploadIntent,
-): boolean {
-  if (intent === "upload") return true;
-  if (intent === "image") return candidate.mediaType.startsWith("image/");
-  return (
-    candidate.mediaType === "application/pdf" ||
-    candidate.filename.toLowerCase().endsWith(".pdf")
-  );
 }
 
 function messageNamesUpload(message: string, filename: string): boolean {

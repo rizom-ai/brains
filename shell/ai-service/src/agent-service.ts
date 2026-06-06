@@ -33,6 +33,7 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
+  collectUploadRefsFromMessages,
 } from "./conversation-messages";
 import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
@@ -401,7 +402,10 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    const modelMessage = buildMessageWithAttachments(message, attachments);
+    const uploadRefs = collectUploadRefsFromMessages(historyMessages);
+    const modelMessage = buildMessageWithAttachments(message, attachments, {
+      uploadRefs,
+    });
     const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
@@ -432,7 +436,8 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
-      ...(attachments.some((attachment) => attachment.source !== undefined)
+      ...(attachments.some((attachment) => attachment.source !== undefined) ||
+      uploadRefs.length > 0
         ? { enableCreateUpload: true }
         : {}),
       ...(hasSourceAttachmentIntent(message)

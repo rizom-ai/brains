@@ -32,8 +32,6 @@ turns:
     successCriteria:
       toolCountRange:
         max: 0
-      responseContains:
-        - "drunken"
       responseNotContains:
         - "Created"
         - "generating"

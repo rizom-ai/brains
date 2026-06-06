@@ -2,7 +2,6 @@ import {
   type ChatAttachment,
   type IConversationsNamespace,
   type RuntimeUploadStore,
-  resolveUploadFollowUp,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { parseStoredMessageMetadata } from "./message-handlers";
@@ -193,73 +192,28 @@ async function resolveDeferredUploadReference(
 
   if (attachments.length === 0) return null;
 
-  const selectableCandidates = attachments.flatMap((attachment) => {
-    const id = attachment.source?.id;
-    return id
-      ? [
-          {
-            id,
-            filename: attachment.filename,
-            mediaType: attachment.mediaType,
-            attachment,
-          },
-        ]
-      : [];
-  });
-
-  const resolution = resolveUploadFollowUp({
-    message,
-    history: buildUploadHistory(request, lastUserMessage),
-    candidates: selectableCandidates,
-  });
-  if (resolution === null) return null;
-
-  if (resolution.kind === "selected") {
-    return {
-      message: resolution.actionMessage,
-      attachments: [resolution.candidate.attachment],
-    };
-  }
-
-  return buildUploadClarificationResponse(
-    resolution.candidates.map((candidate) => candidate.attachment),
-  );
-}
-
-function buildUploadClarificationResponse(
-  candidates: ChatAttachment[],
-): Pick<ParsedUserInput, "attachments" | "responseText"> {
   return {
-    attachments: [],
-    responseText: `Which uploaded file should I use? ${candidates
-      .map((candidate) => `\`${candidate.filename}\``)
-      .join(", ")}`,
+    message,
+    attachments: selectPriorUploads(message, attachments),
   };
 }
 
-function buildUploadHistory(
-  request: ChatRequest,
-  lastUserMessage: ChatRequest["messages"][number],
-): Array<{ role: string; text: string }> {
-  const lastUserIndex = request.messages.indexOf(lastUserMessage);
-  return request.messages
-    .slice(0, lastUserIndex === -1 ? request.messages.length : lastUserIndex)
-    .map((message) => ({
-      role: message.role,
-      text: getChatRequestMessageText(message),
-    }));
-}
-
-function getChatRequestMessageText(
-  message: ChatRequest["messages"][number],
-): string {
-  const textParts = (message.parts ?? []).flatMap((part) => {
-    const parsedText = textPartSchema.safeParse(part);
-    return parsedText.success ? [parsedText.data.text] : [];
-  });
-  return textParts.length > 0
-    ? textParts.join("\n\n")
-    : (message.content ?? "");
+function selectPriorUploads(
+  message: string,
+  attachments: ChatAttachment[],
+): ChatAttachment[] {
+  const normalized = message.toLowerCase();
+  const named = attachments.filter((attachment) =>
+    normalized.includes(attachment.filename.toLowerCase()),
+  );
+  if (named.length > 0) return named;
+  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
+    return attachments.slice(0, 1);
+  }
+  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
+    return attachments.slice(-1);
+  }
+  return attachments;
 }
 
 async function collectPriorUploadIds(

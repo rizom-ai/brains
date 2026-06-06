@@ -33,7 +33,6 @@ turns:
         max: 0
 
   - userMessage: "turn it into a note"
-    reusePreviousAttachments: true
     successCriteria:
       expectedTools:
         - toolName: system_create

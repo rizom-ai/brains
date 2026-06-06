@@ -28,6 +28,7 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
 function parseMessageMetadata(
   metadata: Message["metadata"],
 ): Record<string, unknown> | null {
+  if (isRecord(metadata)) return metadata;
   if (typeof metadata !== "string") return null;
   try {
     const parsed = JSON.parse(metadata) as unknown;
@@ -51,9 +52,53 @@ export function buildModelMessages(
   ];
 }
 
+export interface ConversationUploadRef {
+  filename: string;
+  mediaType: string;
+  source: {
+    kind: string;
+    id: string;
+  };
+}
+
+export function collectUploadRefsFromMessages(
+  messages: Message[],
+): ConversationUploadRef[] {
+  const refs: ConversationUploadRef[] = [];
+  const seen = new Set<string>();
+  for (const message of messages) {
+    const metadata = parseMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      const kind = source["kind"];
+      const id = source["id"];
+      const filename = attachment["filename"];
+      const mediaType = attachment["mediaType"];
+      if (
+        typeof kind !== "string" ||
+        typeof id !== "string" ||
+        typeof filename !== "string" ||
+        typeof mediaType !== "string"
+      ) {
+        continue;
+      }
+      const key = `${kind}:${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      refs.push({ filename, mediaType, source: { kind, id } });
+    }
+  }
+  return refs;
+}
+
 export function buildMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
+  options: { uploadRefs?: ConversationUploadRef[] } = {},
 ): UserContent {
   const nativeAttachments = attachments ?? [];
   const textAttachments = nativeAttachments
@@ -62,7 +107,7 @@ export function buildMessageWithAttachments(
   const text = [
     message,
     ...textAttachments,
-    formatUploadRefs(nativeAttachments),
+    formatUploadRefs(nativeAttachments, options.uploadRefs ?? []),
   ]
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
@@ -90,16 +135,49 @@ function formatTextAttachment(
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
 }
 
-function formatUploadRefs(attachments: ChatAttachment[]): string {
-  const lines = attachments.flatMap((attachment) => {
-    if (attachment.source === undefined) return [];
+function formatUploadRefs(
+  attachments: ChatAttachment[],
+  uploadRefs: ConversationUploadRef[],
+): string {
+  const refs = [
+    ...uploadRefs,
+    ...attachments.flatMap((attachment) =>
+      attachment.source === undefined
+        ? []
+        : [
+            {
+              filename: attachment.filename,
+              mediaType: attachment.mediaType,
+              source: attachment.source,
+            },
+          ],
+    ),
+  ];
+  const seen = new Set<string>();
+  const lines = refs.flatMap((ref) => {
+    const key = `${ref.source.kind}:${ref.source.id}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
     return [
-      `- ${attachment.filename}: upload { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }`,
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }${formatUploadRefUsage(ref.mediaType)}`,
     ];
   });
   return lines.length > 0
-    ? `Available runtime upload refs for attached files. To save, import, or promote one of these files, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> }.\n${lines.join("\n")}`
+    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
     : "";
+}
+
+function formatUploadRefUsage(mediaType: string): string {
+  if (mediaType === "application/pdf") {
+    return '; raw promotion call: system_create({ entityType: "document", upload }) with no transform';
+  }
+  if (mediaType.startsWith("image/")) {
+    return '; raw promotion call: system_create({ entityType: "image", upload }) with no transform';
+  }
+  if (mediaType.startsWith("text/") || mediaType === "application/json") {
+    return '; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })';
+  }
+  return "";
 }
 
 export function buildAgentContextInstructions(

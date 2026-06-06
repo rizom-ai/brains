@@ -13,9 +13,9 @@ function upload(
 }
 
 describe("upload follow-up continuity", () => {
-  it("selects the latest matching upload for a current-attachment save reference", () => {
+  it("selects the latest upload for an explicit positional reference", () => {
     const resolution = resolveUploadFollowUp({
-      message: "save it as an image",
+      message: "the latest one",
       history: [],
       candidates: [
         upload("upload-first", "flirty-robot.png"),
@@ -25,7 +25,7 @@ describe("upload follow-up continuity", () => {
 
     expect(resolution).toEqual({
       kind: "selected",
-      actionMessage: "save it as an image",
+      actionMessage: "the latest one",
       candidate: upload("upload-second", "drunken-robot.png"),
     });
   });
@@ -53,9 +53,9 @@ describe("upload follow-up continuity", () => {
     });
   });
 
-  it("asks for clarification when a multi-upload reference has no current or positional target", () => {
+  it("asks for clarification when a multi-upload reference has no deterministic selector", () => {
     const resolution = resolveUploadFollowUp({
-      message: "describe an image upload",
+      message: "please use an upload",
       history: [],
       candidates: [
         upload("upload-first", "flirty-robot.png"),
