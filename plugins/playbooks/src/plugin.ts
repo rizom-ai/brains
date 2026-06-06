@@ -18,14 +18,16 @@ import type {
   ToolResponse,
 } from "@brains/plugins";
 import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { createPrefixedId, z } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { createActor, createMachine } from "xstate";
 import packageJson from "../package.json";
 import {
   PlaybookRunStore,
   createPlaybookRun,
+  type PlaybookGateVerdict,
   type PlaybookRun,
-  type PlaybookRunEntityRef,
+  type PlaybookRunEvidence,
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
@@ -93,14 +95,6 @@ const sendEventInputSchema = {
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
-const recordEntityInputSchema = {
-  runId: z.string().min(1).optional(),
-  conversationId: z.string().min(1).optional(),
-  entityType: z.string().min(1),
-  entityId: z.string().min(1),
-  purpose: z.string().min(1).optional(),
-};
-
 const runInputSchema = {
   runId: z.string().min(1),
 };
@@ -141,13 +135,42 @@ export interface LifecycleStartersResponse {
   starters: PlaybookStarter[];
 }
 
+export interface VerifyGateInput {
+  run: PlaybookRun;
+  state: PlaybookState;
+  stateId: string;
+  conditions: string[];
+  evidence: PlaybookRunEvidence[];
+  evidenceWatermark: string;
+}
+
+export type PendingPlaybookGateVerdict = Omit<
+  PlaybookGateVerdict,
+  "evaluatedAt"
+> & {
+  evaluatedAt?: string | undefined;
+};
+
+export interface PlaybookGateVerifier {
+  verify(input: VerifyGateInput): Promise<PendingPlaybookGateVerdict[]>;
+}
+
+export interface PlaybooksPluginDeps {
+  verifier?: PlaybookGateVerifier | undefined;
+}
+
 export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private store: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
+  private readonly verifier: PlaybookGateVerifier;
 
-  constructor(config: Partial<PlaybooksConfig> = {}) {
+  constructor(
+    config: Partial<PlaybooksConfig> = {},
+    deps: PlaybooksPluginDeps = {},
+  ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
     this.store = new PlaybookRunStore(this.config.storageDir);
+    this.verifier = deps.verifier ?? defaultGateVerifier;
   }
 
   protected override async onRegister(
@@ -175,6 +198,21 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         const item = await this.buildAgentContextItem(request.conversationId);
         return { success: true, data: { items: item ? [item] : [] } };
       },
+    );
+
+    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
+      "entity:created",
+      async (message) => ({
+        success: true,
+        data: await this.recordEntityEventEvidence("created", message.payload),
+      }),
+    );
+    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
+      "entity:updated",
+      async (message) => ({
+        success: true,
+        data: await this.recordEntityEventEvidence("updated", message.payload),
+      }),
     );
   }
 
@@ -256,7 +294,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           });
           if (!run.success) return run;
           const playbook = await this.requirePlaybook(run.data.playbookId);
-          const result = this.transitionRun(
+          const result = await this.transitionRun(
             run.data,
             playbook.body,
             parsed.event,
@@ -271,44 +309,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
               run.data.currentState,
             ),
             snapshot: result.snapshot,
+            gateVerdicts: result.gateVerdicts,
             context: { ...run.data.context, ...(parsed.context ?? {}) },
-          });
-          const data = await this.getStatus({ runId: nextRun.id });
-          return { success: true, data };
-        },
-      },
-      {
-        name: "playbook_record_entity",
-        description:
-          "Record an entity created or updated as an important result of a playbook run.",
-        inputSchema: recordEntityInputSchema,
-        visibility: "anchor",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = z.object(recordEntityInputSchema).parse(input);
-          const run = await this.resolveScopedRunResponse({
-            runId: parsed.runId,
-            conversationId: parsed.conversationId,
-            channelId: toolContext.channelId,
-          });
-          if (!run.success) return run;
-          const ref: PlaybookRunEntityRef = {
-            entityType: parsed.entityType,
-            entityId: parsed.entityId,
-            ...(parsed.purpose ? { purpose: parsed.purpose } : {}),
-          };
-          const alreadyRecorded = run.data.createdEntities.some(
-            (entity) =>
-              entity.entityType === ref.entityType &&
-              entity.entityId === ref.entityId,
-          );
-          const nextRun = await this.store.upsert({
-            ...run.data,
-            createdEntities: alreadyRecorded
-              ? run.data.createdEntities
-              : [...run.data.createdEntities, ref],
           });
           const data = await this.getStatus({ runId: nextRun.id });
           return { success: true, data };
@@ -377,34 +379,49 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     lifecycle?: string | undefined;
     conversationId?: string | undefined;
   }): Promise<PlaybookRun> {
-    const machine = this.buildMachine(input.playbookId, input.body, []);
+    const run = createPlaybookRun({
+      playbookId: input.playbookId,
+      initialState: input.body.initialState,
+      lifecycle: input.lifecycle,
+      conversationId: input.conversationId,
+    });
+    const machine = this.buildMachine(input.playbookId, input.body, run);
     const actor = createActor(machine);
     actor.start();
     const snapshot = actor.getPersistedSnapshot();
     actor.stop();
-    return this.store.upsert(
-      createPlaybookRun({
-        playbookId: input.playbookId,
-        initialState: input.body.initialState,
-        lifecycle: input.lifecycle,
-        conversationId: input.conversationId,
-        snapshot,
-      }),
-    );
+    return this.store.upsert({ ...run, snapshot });
   }
 
-  private transitionRun(
+  private async transitionRun(
     run: PlaybookRun,
     body: PlaybookBody,
     event: string,
-  ):
-    | { success: true; currentState: string; snapshot: unknown }
-    | { success: false; error: string } {
-    const machine = this.buildMachine(
-      run.playbookId,
-      body,
-      run.createdEntities,
-    );
+  ): Promise<
+    | {
+        success: true;
+        currentState: string;
+        snapshot: unknown;
+        gateVerdicts: PlaybookGateVerdict[];
+      }
+    | { success: false; error: string }
+  > {
+    const state = this.getState(body, run.currentState);
+    if (!state) {
+      return {
+        success: false,
+        error: `Playbook state not found: ${run.currentState}`,
+      };
+    }
+
+    const gateResult = await this.prepareGateVerdicts(run, state, event);
+    if (!gateResult.success) return gateResult;
+
+    const candidateRun: PlaybookRun = {
+      ...run,
+      gateVerdicts: gateResult.gateVerdicts,
+    };
+    const machine = this.buildMachine(run.playbookId, body, candidateRun);
     const actor = createActor(machine, {
       ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
     });
@@ -427,13 +444,136 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       success: true,
       currentState: String(nextSnapshot.value),
       snapshot: persistedSnapshot,
+      gateVerdicts: gateResult.gateVerdicts,
     };
+  }
+
+  private async prepareGateVerdicts(
+    run: PlaybookRun,
+    state: PlaybookState,
+    event: string,
+  ): Promise<
+    | { success: true; gateVerdicts: PlaybookGateVerdict[] }
+    | { success: false; error: string }
+  > {
+    if (!this.transitionRequiresGateVerdict(state, event)) {
+      return { success: true, gateVerdicts: run.gateVerdicts };
+    }
+
+    const evidence = this.evidenceForState(run, state.id);
+    const evidenceWatermark = computeEvidenceWatermark(evidence);
+    const cached = state.doneWhen.map((condition) =>
+      run.gateVerdicts.find(
+        (verdict) =>
+          verdict.stateId === state.id &&
+          verdict.conditionHash === conditionHash(condition) &&
+          verdict.evidenceWatermark === evidenceWatermark &&
+          verdict.satisfied,
+      ),
+    );
+    if (cached.every((verdict) => verdict !== undefined)) {
+      return { success: true, gateVerdicts: run.gateVerdicts };
+    }
+
+    let pendingVerdicts: PendingPlaybookGateVerdict[];
+    try {
+      pendingVerdicts = await this.verifier.verify({
+        run,
+        state,
+        stateId: state.id,
+        conditions: state.doneWhen,
+        evidence,
+        evidenceWatermark,
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: `Playbook verifier failed: ${errorMessage(error)}`,
+      };
+    }
+
+    const evaluatedAt = new Date().toISOString();
+    const validated = state.doneWhen.map((condition) =>
+      this.validateGateVerdict(
+        pendingVerdicts.find((verdict) => verdict.condition === condition),
+        {
+          condition,
+          stateId: state.id,
+          evidence,
+          evidenceWatermark,
+          evaluatedAt,
+        },
+      ),
+    );
+    const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, validated);
+    return { success: true, gateVerdicts: nextVerdicts };
+  }
+
+  private validateGateVerdict(
+    verdict: PendingPlaybookGateVerdict | undefined,
+    input: {
+      condition: string;
+      stateId: string;
+      evidence: PlaybookRunEvidence[];
+      evidenceWatermark: string;
+      evaluatedAt: string;
+    },
+  ): PlaybookGateVerdict {
+    const base: PlaybookGateVerdict = {
+      stateId: input.stateId,
+      condition: input.condition,
+      conditionHash: conditionHash(input.condition),
+      evidenceWatermark: input.evidenceWatermark,
+      satisfied: verdict?.satisfied ?? false,
+      source: verdict?.source ?? "llm-judge",
+      evidenceIds: verdict?.evidenceIds ?? [],
+      claims: verdict?.claims ?? [],
+      ...(verdict?.missing ? { missing: verdict.missing } : {}),
+      ...(verdict?.reasoning ? { reasoning: verdict.reasoning } : {}),
+      evaluatedAt: verdict?.evaluatedAt ?? input.evaluatedAt,
+    };
+
+    if (!base.satisfied) return base;
+    const evidenceById = new Map(input.evidence.map((row) => [row.id, row]));
+    if (base.evidenceIds.length === 0) {
+      return markVerdictUnsatisfied(
+        base,
+        "Satisfied verdict cited no evidence.",
+      );
+    }
+    if (base.evidenceIds.some((id) => !evidenceById.has(id))) {
+      return markVerdictUnsatisfied(
+        base,
+        "Satisfied verdict cited missing evidence.",
+      );
+    }
+    if (
+      base.claims.some((claim) => {
+        const row = evidenceById.get(claim.evidenceId);
+        return !row || !evidenceSupportsClaim(row, claim);
+      })
+    ) {
+      return markVerdictUnsatisfied(
+        base,
+        "Satisfied verdict made an unsupported typed evidence claim.",
+      );
+    }
+    return base;
+  }
+
+  private evidenceForState(
+    run: PlaybookRun,
+    stateId: string,
+  ): PlaybookRunEvidence[] {
+    return run.evidence.filter(
+      (evidence) => !evidence.stateId || evidence.stateId === stateId,
+    );
   }
 
   private buildMachine(
     playbookId: string,
     body: PlaybookBody,
-    createdEntities: PlaybookRunEntityRef[],
+    run: PlaybookRun,
   ): ReturnType<typeof createMachine> {
     return createMachine({
       id: playbookId,
@@ -453,16 +593,13 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                         transition.event,
                         {
                           target: transition.target,
-                          ...(this.transitionRequiresRecordedEntities(
+                          ...(this.transitionRequiresGateVerdict(
                             state,
                             transition.event,
                           )
                             ? {
                                 guard: (): boolean =>
-                                  this.hasRequiredEntities(
-                                    state,
-                                    createdEntities,
-                                  ),
+                                  this.hasSatisfiedGateVerdicts(state, run),
                               }
                             : {}),
                         },
@@ -592,6 +729,42 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     };
   }
 
+  private async recordEntityEventEvidence(
+    operation: "created" | "updated",
+    payload: Record<string, unknown>,
+  ): Promise<{ recorded: boolean }> {
+    const entityType = stringFromPayload(payload, "entityType");
+    const entityId = stringFromPayload(payload, "entityId");
+    if (!entityType || !entityId) return { recorded: false };
+
+    const explicitRunId = stringFromPayload(payload, "runId");
+    const conversationId = stringFromPayload(payload, "conversationId");
+    const run = explicitRunId
+      ? await this.store.findById(explicitRunId)
+      : conversationId
+        ? await this.store.findActiveByConversation(conversationId)
+        : undefined;
+    if (run?.status !== "active") return { recorded: false };
+
+    const evidence: PlaybookRunEvidence = {
+      id: createPrefixedId("playbook_evidence"),
+      kind: "entity_event",
+      stateId: run.currentState,
+      observedAt: new Date().toISOString(),
+      data: {
+        entityType,
+        entityId,
+        operation,
+        ...(conversationId ? { conversationId } : {}),
+        ...(stringFromPayload(payload, "toolCallId")
+          ? { toolCallId: stringFromPayload(payload, "toolCallId") }
+          : {}),
+      },
+    };
+    await this.store.upsert({ ...run, evidence: [...run.evidence, evidence] });
+    return { recorded: true };
+  }
+
   private async getPlaybook(
     playbookId: string,
   ): Promise<ParsedPlaybook | undefined> {
@@ -664,27 +837,29 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return run;
   }
 
-  private transitionRequiresRecordedEntities(
+  private transitionRequiresGateVerdict(
     state: PlaybookState,
     event: string,
   ): boolean {
-    return (
-      event === "NEXT" &&
-      state.expectedEntities.some((expected) => expected.required === true)
-    );
+    return event === "NEXT" && state.doneWhen.length > 0;
   }
 
-  private hasRequiredEntities(
+  private hasSatisfiedGateVerdicts(
     state: PlaybookState,
-    createdEntities: PlaybookRunEntityRef[],
+    run: PlaybookRun,
   ): boolean {
-    return state.expectedEntities
-      .filter((expected) => expected.required === true)
-      .every((expected) =>
-        createdEntities.some(
-          (entity) => entity.entityType === expected.entityType,
-        ),
-      );
+    const evidenceWatermark = computeEvidenceWatermark(
+      this.evidenceForState(run, state.id),
+    );
+    return state.doneWhen.every((condition) =>
+      run.gateVerdicts.some(
+        (verdict) =>
+          verdict.stateId === state.id &&
+          verdict.conditionHash === conditionHash(condition) &&
+          verdict.evidenceWatermark === evidenceWatermark &&
+          verdict.satisfied,
+      ),
+    );
   }
 
   private getValidTransitions(
@@ -702,11 +877,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     body: PlaybookBody,
     event: string,
   ): boolean {
-    const machine = this.buildMachine(
-      run.playbookId,
-      body,
-      run.createdEntities,
-    );
+    const machine = this.buildMachine(run.playbookId, body, run);
     const actor = createActor(machine, {
       ...(run.snapshot ? { snapshot: run.snapshot as never } : {}),
     });
@@ -716,30 +887,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return canTransition;
   }
 
-  private getMissingRequiredEntities(
-    state: PlaybookState,
-    createdEntities: PlaybookRunEntityRef[],
-  ): PlaybookState["expectedEntities"] {
-    return state.expectedEntities
-      .filter((expected) => expected.required === true)
-      .filter(
-        (expected) =>
-          !createdEntities.some(
-            (entity) => entity.entityType === expected.entityType,
-          ),
-      );
-  }
-
   private formatTransition(transition: PlaybookTransition): string {
     return transition.description
       ? `- ${transition.event} -> ${transition.target}: ${transition.description}`
       : `- ${transition.event} -> ${transition.target}`;
-  }
-
-  private formatExpectedEntity(
-    expected: PlaybookState["expectedEntities"][number],
-  ): string {
-    return `- ${expected.entityType} — ${expected.purpose}`;
   }
 
   private getState(
@@ -747,6 +898,27 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     stateId: string,
   ): PlaybookState | undefined {
     return body.states.find((state) => state.id === stateId);
+  }
+
+  private formatVerifierStatus(run: PlaybookRun, state: PlaybookState): string {
+    if (state.doneWhen.length === 0) return "- no gated Done When conditions";
+    const evidenceWatermark = computeEvidenceWatermark(
+      this.evidenceForState(run, state.id),
+    );
+    return state.doneWhen
+      .map((condition) => {
+        const verdict = run.gateVerdicts.find(
+          (candidate) =>
+            candidate.stateId === state.id &&
+            candidate.conditionHash === conditionHash(condition) &&
+            candidate.evidenceWatermark === evidenceWatermark,
+        );
+        if (!verdict) return `- Not yet satisfied: ${condition}`;
+        if (verdict.satisfied) return `- Satisfied: ${condition}`;
+        const missing = verdict.missing?.join("; ") ?? "missing evidence";
+        return `- Not yet satisfied: ${condition} (${missing})`;
+      })
+      .join("\n");
   }
 
   private async buildAgentContextItem(
@@ -775,20 +947,16 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           `${transition.event}\u0000${transition.target}`,
         ),
     );
-    const missingRequiredEntities = this.getMissingRequiredEntities(
-      state,
-      run.createdEntities,
-    );
-
     const validEvents = validTransitions
       .map((transition) => this.formatTransition(transition))
       .join("\n");
     const blockedEvents = blockedTransitions
       .map((transition) => this.formatTransition(transition))
       .join("\n");
-    const missingRequired = missingRequiredEntities
-      .map((expected) => this.formatExpectedEntity(expected))
+    const doneWhen = state.doneWhen
+      .map((condition) => `- ${condition}`)
       .join("\n");
+    const verifierStatus = this.formatVerifierStatus(run, state);
 
     return {
       id: run.id,
@@ -803,11 +971,11 @@ Use this run ID for run-scoped playbook tools when explicit run identity is need
 State instructions:
 ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
 
-Completion criteria:
-${state.completionCriteria.map((criterion) => `- ${criterion}`).join("\n")}
+Done when:
+${doneWhen || "- none"}
 
-Missing required entities:
-${missingRequired || "- none"}
+Verifier status:
+${verifierStatus}
 
 Valid events:
 ${validEvents || "- none"}
@@ -833,13 +1001,12 @@ ${blockedEvents || "- none"}`,
 
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When a playbook run is active, use playbook_status before deciding what to do next.
-Follow the playbook's current state instructions, operating rules, and completion criteria.
-Do not set arbitrary current states. Advance by calling playbook_send_event with a valid event.
+Follow the playbook's current state instructions, operating rules, and Done When conditions.
+Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime verifier decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
-Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts.
-Call playbook_record_entity when a tool-created entity is important to the run.
+Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts. Runtime evidence from those actions is attached to the active run automatically where supported.
 Call playbook_complete only after the current state is a final state or the tool says completion is allowed.
 Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
@@ -856,8 +1023,81 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function conditionHash(condition: string): string {
+  return computeContentHash(condition);
+}
+
+function computeEvidenceWatermark(evidence: PlaybookRunEvidence[]): string {
+  return computeContentHash(
+    JSON.stringify(
+      evidence.map((row) => ({ id: row.id, observedAt: row.observedAt })),
+    ),
+  );
+}
+
+function markVerdictUnsatisfied(
+  verdict: PlaybookGateVerdict,
+  missing: string,
+): PlaybookGateVerdict {
+  return {
+    ...verdict,
+    satisfied: false,
+    missing: [...(verdict.missing ?? []), missing],
+  };
+}
+
+function evidenceSupportsClaim(
+  evidence: PlaybookRunEvidence,
+  claim: PlaybookGateVerdict["claims"][number],
+): boolean {
+  if (evidence.kind !== claim.kind) return false;
+  return Object.entries(claim.data).every(
+    ([key, value]) => evidence.data[key] === value,
+  );
+}
+
+function upsertGateVerdicts(
+  existing: PlaybookGateVerdict[],
+  next: PlaybookGateVerdict[],
+): PlaybookGateVerdict[] {
+  const nextKeys = new Set(next.map(gateVerdictKey));
+  return [
+    ...existing.filter((verdict) => !nextKeys.has(gateVerdictKey(verdict))),
+    ...next,
+  ];
+}
+
+function gateVerdictKey(verdict: PlaybookGateVerdict): string {
+  return `${verdict.stateId}\u0000${verdict.conditionHash}\u0000${verdict.evidenceWatermark}`;
+}
+
+function stringFromPayload(
+  payload: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = payload[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+const defaultGateVerifier: PlaybookGateVerifier = {
+  async verify({ conditions, stateId, evidenceWatermark }) {
+    return conditions.map((condition) => ({
+      stateId,
+      condition,
+      conditionHash: conditionHash(condition),
+      evidenceWatermark,
+      satisfied: false,
+      source: "llm-judge",
+      evidenceIds: [],
+      claims: [],
+      missing: ["No playbook gate verifier is configured."],
+    }));
+  },
+};
+
 export function playbooksPlugin(
   config: Partial<PlaybooksConfig> = {},
+  deps: PlaybooksPluginDeps = {},
 ): PlaybooksPlugin {
-  return new PlaybooksPlugin(config);
+  return new PlaybooksPlugin(config, deps);
 }

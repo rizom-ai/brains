@@ -19,8 +19,8 @@ Teach the operator how Rover works by doing useful setup work. This is a guided 
 - Use existing tools to save useful information as durable entities.
 - After meaningful tool actions, explain what Rover just did and why it matters.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
-- Use playbook_send_event to advance states only after completion criteria are met.
-- Use playbook_record_entity when a created or updated entity is important to this onboarding run.
+- Use playbook_send_event to advance states only after Done When conditions are satisfied.
+- Runtime evidence from entity creation and updates is attached to the active run automatically where supported.
 - Use playbook_complete only after the run reaches a final state.
 
 ## Initial State
@@ -45,11 +45,7 @@ Welcome and orientation
 - Explain that Rover helps capture knowledge, retrieve it later, connect it to themes, and transform it into publishable work.
 - Ask whether the operator wants to continue.
 
-#### Completion Criteria
-
-- The operator agrees to continue, skips, or postpones.
-
-#### Expected Entity Refs
+#### Done When
 
 #### Transitions
 
@@ -99,25 +95,9 @@ Identity setup
 - Create or update the anchor profile with existing entity tools.
 - Explain that Rover uses identity to shape answers, site content, and publishing workflows.
 
-#### Completion Criteria
+#### Done When
 
-- The anchor profile is created or updated, or the operator explicitly skips this state.
-
-#### Expected Entity Refs
-
-##### Expected Entity Ref 1
-
-###### Entity Type
-
-anchor-profile
-
-###### Purpose
-
-operator identity and positioning
-
-###### Required
-
-true
+- The anchor profile has been created or updated.
 
 #### Transitions
 
@@ -166,39 +146,9 @@ First knowledge seed
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
 
-#### Completion Criteria
+#### Done When
 
-- A note or link is created, or an existing seed entity is identified.
-
-#### Expected Entity Refs
-
-##### Expected Entity Ref 1
-
-###### Entity Type
-
-base
-
-###### Purpose
-
-first durable note
-
-###### Required
-
-false
-
-##### Expected Entity Ref 2
-
-###### Entity Type
-
-link
-
-###### Purpose
-
-first durable link
-
-###### Required
-
-false
+- A first knowledge seed has been saved.
 
 #### Transitions
 
@@ -232,11 +182,9 @@ Retrieval demonstration
 - Retrieve or reference the saved entity through normal agent/tool behavior.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 
-#### Completion Criteria
+#### Done When
 
 - Rover answers using the saved seed or demonstrates that it can find or reference it.
-
-#### Expected Entity Refs
 
 #### Transitions
 
@@ -271,11 +219,9 @@ Transformation demonstration
 - Explain how Rover helps move from raw thinking to public output without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
-#### Completion Criteria
+#### Done When
 
 - A transformation is shown in chat, or an optional draft entity is created.
-
-#### Expected Entity Refs
 
 #### Transitions
 
@@ -309,11 +255,9 @@ Wrap up
 - Remind the operator they can keep using chat to save, retrieve, transform, and manage knowledge.
 - Send NEXT when the wrap-up is done.
 
-#### Completion Criteria
+#### Done When
 
 - The operator has received next prompts and understands how to continue.
-
-#### Expected Entity Refs
 
 #### Transitions
 
@@ -345,11 +289,9 @@ Complete
 
 - Mark the playbook run complete.
 
-#### Completion Criteria
+#### Done When
 
 - Onboarding is complete.
-
-#### Expected Entity Refs
 
 #### Transitions
 

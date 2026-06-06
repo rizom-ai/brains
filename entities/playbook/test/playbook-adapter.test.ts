@@ -10,8 +10,7 @@ const body = {
       id: "welcome",
       title: "Welcome",
       instructions: ["Explain the playbook."],
-      completionCriteria: ["Operator is ready."],
-      expectedEntities: [],
+      doneWhen: ["Operator is ready."],
       transitions: [
         {
           event: "NEXT",
@@ -24,8 +23,7 @@ const body = {
       id: "complete",
       title: "Complete",
       instructions: ["Complete the run."],
-      completionCriteria: ["Run is complete."],
-      expectedEntities: [],
+      doneWhen: ["Run is complete."],
       transitions: [],
     },
   ],

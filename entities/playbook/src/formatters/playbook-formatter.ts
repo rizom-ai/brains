@@ -1,14 +1,6 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { playbookBodySchema, type PlaybookBody } from "../schemas/playbook";
 
-function formatBoolean(value: unknown): string {
-  return value === true ? "true" : "false";
-}
-
-function parseBoolean(value: string): boolean {
-  return value.trim().toLowerCase() === "true";
-}
-
 export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBody> {
   constructor() {
     super(playbookBodySchema, {
@@ -37,27 +29,10 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
               itemType: "string",
             },
             {
-              key: "completionCriteria",
-              label: "Completion Criteria",
+              key: "doneWhen",
+              label: "Done When",
               type: "array",
               itemType: "string",
-            },
-            {
-              key: "expectedEntities",
-              label: "Expected Entity Refs",
-              type: "array",
-              itemType: "object",
-              itemMappings: [
-                { key: "entityType", label: "Entity Type", type: "string" },
-                { key: "purpose", label: "Purpose", type: "string" },
-                {
-                  key: "required",
-                  label: "Required",
-                  type: "custom",
-                  formatter: formatBoolean,
-                  parser: parseBoolean,
-                },
-              ],
             },
             {
               key: "transitions",

@@ -8,12 +8,6 @@ export const playbookCompletionModeSchema = z.enum([
   "manual",
 ]);
 
-export const playbookExpectedEntitySchema = z.object({
-  entityType: z.string().min(1),
-  purpose: z.string().min(1),
-  required: z.boolean().default(false),
-});
-
 export const playbookTransitionSchema = z.object({
   event: z.string().min(1),
   target: z.string().min(1),
@@ -24,8 +18,7 @@ export const playbookStateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   instructions: z.array(z.string().min(1)).default([]),
-  completionCriteria: z.array(z.string().min(1)).default([]),
-  expectedEntities: z.array(playbookExpectedEntitySchema).default([]),
+  doneWhen: z.array(z.string().min(1)).default([]),
   transitions: z.array(playbookTransitionSchema).default([]),
 });
 
@@ -65,9 +58,6 @@ export type PlaybookStatus = z.infer<typeof playbookStatusSchema>;
 export type PlaybookAudience = z.infer<typeof playbookAudienceSchema>;
 export type PlaybookCompletionMode = z.infer<
   typeof playbookCompletionModeSchema
->;
-export type PlaybookExpectedEntity = z.infer<
-  typeof playbookExpectedEntitySchema
 >;
 export type PlaybookTransition = z.infer<typeof playbookTransitionSchema>;
 export type PlaybookState = z.infer<typeof playbookStateSchema>;

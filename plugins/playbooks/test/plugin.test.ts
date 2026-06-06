@@ -9,7 +9,7 @@ import {
   expectError,
   expectSuccess,
 } from "@brains/plugins/test";
-import { playbooksPlugin } from "../src";
+import { playbooksPlugin, type PlaybookGateVerifier } from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
@@ -19,8 +19,7 @@ const welcomeState: PlaybookBody["states"][number] = {
   id: "welcome",
   title: "Welcome",
   instructions: ["Explain the playbook."],
-  completionCriteria: ["Operator is ready."],
-  expectedEntities: [],
+  doneWhen: [],
   transitions: [
     { event: "NEXT", target: "seed", description: "Continue." },
     { event: "SKIP", target: "complete", description: "Skip." },
@@ -31,10 +30,7 @@ const seedState: PlaybookBody["states"][number] = {
   id: "seed",
   title: "Seed",
   instructions: ["Save a first note."],
-  completionCriteria: ["A seed exists."],
-  expectedEntities: [
-    { entityType: "base", purpose: "knowledge-seed", required: false },
-  ],
+  doneWhen: [],
   transitions: [{ event: "NEXT", target: "complete" }],
 };
 
@@ -42,8 +38,7 @@ const completeState: PlaybookBody["states"][number] = {
   id: "complete",
   title: "Complete",
   instructions: ["Complete the run."],
-  completionCriteria: ["Run is complete."],
-  expectedEntities: [],
+  doneWhen: ["Run is complete."],
   transitions: [],
 };
 
@@ -84,6 +79,12 @@ function addPlaybookEntity(
       },
     },
   ]);
+}
+
+function gateVerifier(verify: PlaybookGateVerifier["verify"]): {
+  verifier: PlaybookGateVerifier;
+} {
+  return { verifier: { verify } };
 }
 
 async function installHarness(): Promise<PluginHarness> {
@@ -165,7 +166,7 @@ describe("PlaybooksPlugin", () => {
     });
   });
 
-  it("tracks playbook transitions, entities, and completion", async () => {
+  it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin({ storageDir: await tempStorageDir() }),
@@ -215,24 +216,6 @@ describe("PlaybooksPlugin", () => {
     });
     expectError(invalid);
 
-    const recorded = await harness.executeTool("playbook_record_entity", {
-      runId,
-      entityType: "base",
-      entityId: "first-note",
-      purpose: "knowledge-seed",
-    });
-    expectSuccess(recorded);
-    const recordedData = recorded.data as {
-      activeRun: { createdEntities: unknown[] };
-    };
-    expect(recordedData.activeRun.createdEntities).toEqual([
-      {
-        entityType: "base",
-        entityId: "first-note",
-        purpose: "knowledge-seed",
-      },
-    ]);
-
     const tooEarly = await harness.executeTool("playbook_complete", { runId });
     expectError(tooEarly);
 
@@ -251,10 +234,25 @@ describe("PlaybooksPlugin", () => {
     expect(completedData.activeRun.currentState).toBe("complete");
   });
 
-  it("blocks NEXT when required expected entities have not been recorded", async () => {
+  it("blocks gated NEXT when the verifier returns an unsatisfied verdict", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        gateVerifier(async ({ conditions, stateId, evidenceWatermark }) =>
+          conditions.map((condition) => ({
+            stateId,
+            condition,
+            conditionHash: condition,
+            evidenceWatermark,
+            satisfied: false,
+            source: "llm-judge",
+            evidenceIds: [],
+            claims: [],
+            missing: ["No matching evidence."],
+          })),
+        ),
+      ),
     );
     addPlaybookEntity(harness, {
       ...playbookBody,
@@ -263,22 +261,14 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
-          completionCriteria: ["Operator agrees."],
-          expectedEntities: [],
+          doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
         {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
-          completionCriteria: ["Anchor profile is created or updated."],
-          expectedEntities: [
-            {
-              entityType: "anchor-profile",
-              purpose: "operator identity",
-              required: true,
-            },
-          ],
+          doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
             { event: "SKIP", target: "seed" },
@@ -289,17 +279,7 @@ describe("PlaybooksPlugin", () => {
       ],
     });
 
-    const started = await harness.executeTool(
-      "playbook_start",
-      {
-        playbookId: "rover-onboarding",
-        lifecycle: "onboarding",
-      },
-      { channelId: "web-required-entity" },
-    );
-    expectSuccess(started);
-    const runId = (started.data as { activeRun: { id: string } }).activeRun.id;
-
+    const runId = await startRun(harness, "web-unsatisfied-gate");
     expectSuccess(
       await harness.executeTool("playbook_send_event", {
         runId,
@@ -307,12 +287,12 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const blocked = await harness.executeTool("playbook_send_event", {
-      runId,
-      event: "NEXT",
-    });
-    expectError(blocked);
-
+    expectError(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
     expectSuccess(
       await harness.executeTool("playbook_send_event", {
         runId,
@@ -321,10 +301,31 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("allows NEXT after required expected entities have been recorded", async () => {
+  it("downgrades satisfied verdicts whose typed claims are unsupported by cited evidence", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        gateVerifier(
+          async ({ conditions, stateId, evidence, evidenceWatermark }) =>
+            conditions.map((condition) => ({
+              stateId,
+              condition,
+              conditionHash: condition,
+              evidenceWatermark,
+              satisfied: true,
+              source: "llm-judge",
+              evidenceIds: [evidence[0]?.id ?? "missing"],
+              claims: [
+                {
+                  evidenceId: evidence[0]?.id ?? "missing",
+                  kind: "entity_event",
+                  data: { entityType: "anchor-profile", operation: "updated" },
+                },
+              ],
+            })),
+        ),
+      ),
     );
     addPlaybookEntity(harness, {
       ...playbookBody,
@@ -333,22 +334,14 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
-          completionCriteria: ["Operator agrees."],
-          expectedEntities: [],
+          doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
         {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
-          completionCriteria: ["Anchor profile is created or updated."],
-          expectedEntities: [
-            {
-              entityType: "anchor-profile",
-              purpose: "operator identity",
-              required: true,
-            },
-          ],
+          doneWhen: ["The anchor profile has been created or updated."],
           transitions: [{ event: "NEXT", target: "seed" }],
         },
         seedState,
@@ -356,40 +349,25 @@ describe("PlaybooksPlugin", () => {
       ],
     });
 
-    const started = await harness.executeTool(
-      "playbook_start",
-      {
-        playbookId: "rover-onboarding",
-        lifecycle: "onboarding",
-      },
-      { channelId: "web-required-entity-recorded" },
-    );
-    expectSuccess(started);
-    const runId = (started.data as { activeRun: { id: string } }).activeRun.id;
-
+    const runId = await startRun(harness, "web-unsupported-claim");
     expectSuccess(
       await harness.executeTool("playbook_send_event", {
         runId,
         event: "NEXT",
       }),
     );
-    expectSuccess(
-      await harness.executeTool("playbook_record_entity", {
-        runId,
-        entityType: "anchor-profile",
-        entityId: "anchor-profile",
-      }),
+    await harness.sendMessage(
+      "entity:created",
+      { runId, entityType: "base", entityId: "first-note" },
+      "test",
+      true,
     );
 
-    const advanced = await harness.executeTool("playbook_send_event", {
+    const blocked = await harness.executeTool("playbook_send_event", {
       runId,
       event: "NEXT",
     });
-    expectSuccess(advanced);
-    expect(
-      (advanced.data as { activeRun: { currentState: string } }).activeRun
-        .currentState,
-    ).toBe("seed");
+    expectError(blocked);
   });
 
   it("resolves run-scoped tools from the active conversation playbook when runId is omitted", async () => {
@@ -417,28 +395,6 @@ describe("PlaybooksPlugin", () => {
       (transitioned.data as { activeRun: { currentState: string } }).activeRun
         .currentState,
     ).toBe("seed");
-
-    const recorded = await harness.executeTool(
-      "playbook_record_entity",
-      {
-        entityType: "base",
-        entityId: "woodchuckers-are-evil-creatures",
-        purpose: "knowledge-seed",
-      },
-      { channelId: "web-scoped-tools" },
-    );
-
-    expectSuccess(recorded);
-    const recordedData = recorded.data as {
-      activeRun: { createdEntities: unknown[] };
-    };
-    expect(recordedData.activeRun.createdEntities).toEqual([
-      {
-        entityType: "base",
-        entityId: "woodchuckers-are-evil-creatures",
-        purpose: "knowledge-seed",
-      },
-    ]);
   });
 
   it("errors when run-scoped tools cannot infer exactly one active conversation playbook", async () => {
@@ -493,7 +449,7 @@ describe("PlaybooksPlugin", () => {
     expect(response?.items[0]?.content).toContain("NEXT -> seed");
   });
 
-  it("injects actionable run identity and missing requirements as agent context", async () => {
+  it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin({ storageDir: await tempStorageDir() }),
@@ -505,22 +461,14 @@ describe("PlaybooksPlugin", () => {
           id: "welcome",
           title: "Welcome",
           instructions: ["Ask whether to continue."],
-          completionCriteria: ["Operator agrees."],
-          expectedEntities: [],
+          doneWhen: [],
           transitions: [{ event: "NEXT", target: "identity" }],
         },
         {
           id: "identity",
           title: "Identity",
           instructions: ["Create or update the anchor profile."],
-          completionCriteria: ["Anchor profile is created or updated."],
-          expectedEntities: [
-            {
-              entityType: "anchor-profile",
-              purpose: "operator identity",
-              required: true,
-            },
-          ],
+          doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
             { event: "SKIP", target: "seed" },
@@ -561,8 +509,12 @@ describe("PlaybooksPlugin", () => {
     expect(response?.items).toHaveLength(1);
     const content = response?.items[0]?.content ?? "";
     expect(content).toContain(`Run ID: ${runId}`);
-    expect(content).toContain("Missing required entities:");
-    expect(content).toContain("anchor-profile — operator identity");
+    expect(content).toContain("Done when:");
+    expect(content).toContain(
+      "The anchor profile has been created or updated.",
+    );
+    expect(content).toContain("Verifier status:");
+    expect(content).toContain("Not yet satisfied");
     expect(content).toContain("Valid events:");
     expect(content).toContain("SKIP -> seed");
     expect(content).toContain("Blocked events:");

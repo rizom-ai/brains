@@ -9,11 +9,37 @@ export const playbookRunStatusSchema = z.enum([
   "dismissed",
 ]);
 
-export const playbookRunEntityRefSchema = z
+export const playbookRunEvidenceSchema = z
   .object({
-    entityType: z.string().min(1),
-    entityId: z.string().min(1),
-    purpose: z.string().min(1).optional(),
+    id: z.string().min(1),
+    kind: z.enum(["entity_event", "override"]),
+    stateId: z.string().min(1).optional(),
+    observedAt: z.string().datetime(),
+    data: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
+export const playbookGateVerdictClaimSchema = z
+  .object({
+    evidenceId: z.string().min(1),
+    kind: z.string().min(1),
+    data: z.record(z.string(), z.unknown()).default({}),
+  })
+  .strict();
+
+export const playbookGateVerdictSchema = z
+  .object({
+    stateId: z.string().min(1),
+    condition: z.string().min(1),
+    conditionHash: z.string().min(1),
+    evidenceWatermark: z.string(),
+    satisfied: z.boolean(),
+    source: z.enum(["llm-judge", "override", "compiled-check"]),
+    evidenceIds: z.array(z.string().min(1)).default([]),
+    claims: z.array(playbookGateVerdictClaimSchema).default([]),
+    missing: z.array(z.string().min(1)).optional(),
+    reasoning: z.string().min(1).optional(),
+    evaluatedAt: z.string().datetime(),
   })
   .strict();
 
@@ -28,7 +54,8 @@ export const playbookRunSchema = z
     completedStates: z.array(z.string().min(1)).default([]),
     snapshot: z.unknown().optional(),
     context: z.record(z.string(), z.unknown()).default({}),
-    createdEntities: z.array(playbookRunEntityRefSchema).default([]),
+    evidence: z.array(playbookRunEvidenceSchema).default([]),
+    gateVerdicts: z.array(playbookGateVerdictSchema).default([]),
     startedAt: z.string().datetime().optional(),
     completedAt: z.string().datetime().optional(),
     updatedAt: z.string().datetime(),
@@ -43,7 +70,11 @@ export const playbookRunsFileSchema = z
 
 export type PlaybookRun = z.infer<typeof playbookRunSchema>;
 export type PlaybookRunStatus = z.infer<typeof playbookRunStatusSchema>;
-export type PlaybookRunEntityRef = z.infer<typeof playbookRunEntityRefSchema>;
+export type PlaybookRunEvidence = z.infer<typeof playbookRunEvidenceSchema>;
+export type PlaybookGateVerdict = z.infer<typeof playbookGateVerdictSchema>;
+export type PlaybookGateVerdictClaim = z.infer<
+  typeof playbookGateVerdictClaimSchema
+>;
 
 export class PlaybookRunStore {
   private readonly filePath: string;
@@ -158,7 +189,8 @@ export function createPlaybookRun(input: {
     completedStates: [],
     ...(input.snapshot !== undefined ? { snapshot: input.snapshot } : {}),
     context: {},
-    createdEntities: [],
+    evidence: [],
+    gateVerdicts: [],
     ...(input.status === "active" || input.status === undefined
       ? { startedAt: now }
       : {}),
