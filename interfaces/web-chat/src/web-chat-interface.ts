@@ -2593,16 +2593,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     const conversationId = parsed.data.id ?? this.createId("web");
-    const userInput = await this.extractLastUserInput(
-      parsed.data,
-      conversationId,
-    );
+    const approvalResponses = this.extractLatestApprovalResponses(parsed.data);
+
+    const userInput =
+      approvalResponses.length === 0
+        ? await this.extractLastUserInput(parsed.data, conversationId)
+        : { message: "", attachments: [] };
     if (userInput instanceof Response) return userInput;
     const { message, attachments, responseText } = userInput;
     const hasUserInput = message.length > 0 || attachments.length > 0;
-    const approvalResponses = hasUserInput
-      ? []
-      : this.extractLatestApprovalResponses(parsed.data);
     if (!hasUserInput && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
     }
