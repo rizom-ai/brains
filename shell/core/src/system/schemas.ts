@@ -45,9 +45,23 @@ const createFromAttachmentInputSchema = z.object({
 });
 
 export const createInputSchema = z.object({
-  entityType: z.string().describe("Entity type to create"),
-  title: z.string().optional().describe("Title for the entity"),
-  prompt: z.string().optional().describe("Prompt for AI generation"),
+  entityType: z
+    .string()
+    .describe(
+      "Entity type to create. Do not use system_create for status-only requests such as making an existing post a draft; use system_update instead.",
+    ),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      "Title for a new entity. Do not invent placeholder titles like 'Draft Post' unless the user explicitly asked to create a new post.",
+    ),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "Prompt for AI generation of a new entity. Do not use for status changes like 'make one draft' or 'change it to draft'.",
+    ),
   content: z.string().optional().describe("Direct content to store"),
   url: z
     .string()
