@@ -451,6 +451,37 @@ describe("system_create tool", () => {
     });
   });
 
+  it("should treat empty transform strings as omitted for direct creates", async () => {
+    let capturedInput: CreateInput | undefined;
+    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "operating-notes" },
+        },
+      };
+    });
+
+    const result = await exec({
+      entityType: "base",
+      title: "Operating Notes",
+      content: "# Operating Notes\n\n- Store it as-is.",
+      transform: "",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "operating-notes" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "base",
+      title: "Operating Notes",
+      content: "# Operating Notes\n\n- Store it as-is.",
+    });
+  });
+
   it("should use conversationId for upload access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
     services = createMockSystemServices({

@@ -167,9 +167,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         (input.sourceAttachment
           ? { kind: "entity-attachment", ...input.sourceAttachment }
           : undefined);
+      const requestedTransform = normalizeOptionalString(input.transform);
       if (
-        input.transform !== undefined &&
-        input.transform !== "extract-markdown"
+        requestedTransform !== undefined &&
+        requestedTransform !== "extract-markdown"
       ) {
         return {
           success: false,
@@ -177,7 +178,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
         };
       }
-      const transform: CreateInput["transform"] = input.transform;
+      const transform: CreateInput["transform"] = requestedTransform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
