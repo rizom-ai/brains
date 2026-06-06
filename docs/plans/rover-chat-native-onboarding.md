@@ -56,14 +56,23 @@ declared, is ungated.
 
 Two guards make this safe:
 
-- **A `satisfied` verdict must cite real, relevant evidence.** The runtime rejects
-  any `satisfied: true` that cites no evidence, cites an ID not in the run's
-  evidence table, or makes a typed claim that the cited row does not support. For
-  example, "the anchor profile has been created or updated" must cite an
-  `entity_event` row whose `entityType` is `anchor-profile` and whose operation is
-  `created` or `updated`; a note-created row is not enough. Unsupported claims are
-  recorded as unsatisfied. This prevents both fabricated evidence and the
-  wrong-entity false positive from failure 2.
+- **A `satisfied` verdict must cite real evidence, and its typed claims must match
+  the cited rows.** The judge asserts, per citation, what the row _is_ (e.g.
+  `{ kind: entity_event, data: { entityType: anchor-profile, operation: updated } }`),
+  and the runtime rejects any `satisfied: true` that cites no evidence, cites an ID
+  not in the run's evidence table, or makes a claim the cited row does not support
+  (it claims `anchor-profile` but the row is a `note`). Such verdicts are recorded as
+  unsatisfied. This validates the claim against the **row**, not against the prose —
+  so it closes two of the three false-positive forms: fabrication, and
+  citation-inconsistency (the judge mislabeling what it cited). It does **not** close
+  the third: the judge citing an irrelevant row and labeling it _honestly_ (cites the
+  note, claims `note`, still marks the profile gate done) — the runtime can't know a
+  note is irrelevant to "anchor profile created" because it never parsed the prose.
+  That residual is the irreducible cost of pure-prose gates; it is closed only by the
+  deferred compiler (which binds a gate to an expected type) or the strict
+  observable-gate stance — see [Verifier evolution](#verifier-evolution-deferred). In
+  practice it requires a blunter judge error (deeming an obviously-irrelevant row
+  sufficient) than the citation-inconsistency it does catch.
 - **An anchor override exists for the other direction.** If the judge is
   unavailable or stuck-unsure, a gated run must not trap the operator with `SKIP`
   as the only exit. `playbook_override_event` (anchor-only, confirmation-required,
@@ -463,7 +472,8 @@ Load-bearing; revisit only with a documented reason.
 2. **Gates are prose, judged by an LLM, on the transition path** — authors write
    sentences, not a query DSL; a judge is the only general way to evaluate arbitrary
    prose against evidence. Bounded by: `NEXT`-only, cached, citation-and-claim-guarded
-   (invariant against false-positives), override-escape (against false-negatives),
+   (closes fabrication and citation-inconsistency false-positives; the sincere-mislabel
+   residual stays until the compiler), override-escape (against false-negatives),
    and stub-tested enforcement. No `check`/`EvidenceQuery`/ID apparatus. The live
    judge is deterministic-first's escape valve, not the final design — see
    [Verifier evolution](#verifier-evolution-deferred).
