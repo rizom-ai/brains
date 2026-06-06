@@ -13,6 +13,8 @@ const updateEntityRequestSchema = z
           .object({
             conversationId: z.string().optional(),
             channelId: z.string().optional(),
+            runId: z.string().optional(),
+            toolCallId: z.string().optional(),
           })
           .optional(),
       })
@@ -147,7 +149,7 @@ describe("system_update tool", () => {
     });
   }
 
-  it("passes separate conversation and channel provenance to confirmed entity updates", async () => {
+  it("passes separate conversation, channel, run, and tool call provenance to confirmed entity updates", async () => {
     const tool = tools.find((candidate) => candidate.name === "system_update");
     if (!tool) throw new Error("system_update not found");
 
@@ -164,6 +166,8 @@ describe("system_update tool", () => {
         userId: "test",
         conversationId: "conversation-1",
         channelId: "channel-1",
+        runId: "run-1",
+        toolCallId: "call-1",
         userPermissionLevel: "anchor",
       },
     );
@@ -175,6 +179,8 @@ describe("system_update tool", () => {
     expect(request.options?.eventContext).toEqual({
       conversationId: "conversation-1",
       channelId: "channel-1",
+      runId: "run-1",
+      toolCallId: "call-1",
     });
   });
 

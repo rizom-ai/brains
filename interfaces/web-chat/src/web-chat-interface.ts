@@ -2509,14 +2509,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   protected override async handleToolActivityEvent(
     event: ToolActivityEvent,
   ): Promise<void> {
-    if (
-      event.interfaceType !== webChatInterfaceType ||
-      typeof event.channelId !== "string"
-    ) {
+    if (event.interfaceType !== webChatInterfaceType) {
       return;
     }
 
-    const stream = this.getActiveStream(event.channelId);
+    const stream = this.getActiveStream(event.conversationId);
     if (!stream) return;
 
     stream.writer.write({

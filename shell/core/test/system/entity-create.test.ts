@@ -20,6 +20,8 @@ const createEntityRequestSchema = z
           .object({
             conversationId: z.string().optional(),
             channelId: z.string().optional(),
+            runId: z.string().optional(),
+            toolCallId: z.string().optional(),
           })
           .optional(),
       })
@@ -262,6 +264,8 @@ describe("system_create tool", () => {
       conversationId?: string;
       channelId?: string;
       channelName?: string;
+      runId?: string;
+      toolCallId?: string;
       userPermissionLevel?: UserPermissionLevel;
     },
   ): Promise<ToolResponse> {
@@ -275,13 +279,15 @@ describe("system_create tool", () => {
         : {}),
       ...(context?.channelId ? { channelId: context.channelId } : {}),
       ...(context?.channelName ? { channelName: context.channelName } : {}),
+      ...(context?.runId ? { runId: context.runId } : {}),
+      ...(context?.toolCallId ? { toolCallId: context.toolCallId } : {}),
       ...(context?.userPermissionLevel
         ? { userPermissionLevel: context.userPermissionLevel }
         : {}),
     });
   }
 
-  it("passes separate conversation and channel provenance to entity creation", async () => {
+  it("passes separate conversation, channel, run, and tool call provenance to entity creation", async () => {
     const result = await exec(
       {
         entityType: "base",
@@ -291,6 +297,8 @@ describe("system_create tool", () => {
       {
         conversationId: "conversation-1",
         channelId: "channel-1",
+        runId: "run-1",
+        toolCallId: "call-1",
       },
     );
 
@@ -301,6 +309,8 @@ describe("system_create tool", () => {
     expect(request.options?.eventContext).toEqual({
       conversationId: "conversation-1",
       channelId: "channel-1",
+      runId: "run-1",
+      toolCallId: "call-1",
     });
   });
 

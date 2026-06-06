@@ -28,6 +28,8 @@ export interface ToolContext {
   conversationId?: string; // Durable conversation/session id when available
   channelId?: string; // Transport channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
+  runId?: string; // Runtime workflow/playbook run context when available
+  toolCallId?: string; // AI SDK tool call id when invoked by an agent
   /** Caller's permission level. Tools that read/write entities use this to derive
    *  the content-visibility scope they are allowed to see. */
   userPermissionLevel?: UserPermissionLevel;
@@ -43,6 +45,8 @@ export const ToolContextRoutingSchema = z.object({
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
+  runId: z.string().optional(),
+  toolCallId: z.string().optional(),
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),
 });
 

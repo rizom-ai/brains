@@ -595,7 +595,6 @@ describe("WebChatInterface", () => {
           toolName: "search_notes",
           conversationId,
           interfaceType: "web-chat",
-          channelId: conversationId,
         });
         return {
           text: "Search complete.",

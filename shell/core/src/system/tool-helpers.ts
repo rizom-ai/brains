@@ -95,6 +95,8 @@ export function buildEntityMutationEventContext(
       ? { conversationId: context.conversationId }
       : {}),
     ...(context.channelId ? { channelId: context.channelId } : {}),
+    ...(context.runId ? { runId: context.runId } : {}),
+    ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
   };
   return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }

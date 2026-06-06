@@ -63,6 +63,8 @@ export interface ToolContext {
   conversationId?: string;
   channelId?: string;
   channelName?: string;
+  runId?: string;
+  toolCallId?: string;
   userPermissionLevel?: UserPermissionLevel;
 }
 
