@@ -73,6 +73,8 @@ export function extractToolResults(
       }
     }
 
+    let stepRequestedConfirmation = false;
+
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
@@ -95,11 +97,8 @@ export function extractToolResults(
           args: confirmationParsed.data.args,
         };
         pendingConfirmations.push(confirmation);
+        stepRequestedConfirmation = true;
 
-        toolResults.push({
-          toolName: tr.toolName,
-          ...(args !== undefined ? { args } : {}),
-        });
         cards.push({
           kind: "tool-approval",
           id: approvalId,
@@ -196,6 +195,8 @@ export function extractToolResults(
 
       toolResults.push(toolResult);
     }
+
+    if (stepRequestedConfirmation) break;
   }
 
   return {

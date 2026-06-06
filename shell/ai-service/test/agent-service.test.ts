@@ -1105,6 +1105,7 @@ describe("AgentService", () => {
         },
       ]);
       expect(response.text).toBe("Confirmation required.");
+      expect(response.toolResults).toEqual([]);
       expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         2,

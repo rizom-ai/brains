@@ -9,7 +9,7 @@
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
 import { z } from "@brains/utils";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
-import type { Tool } from "@brains/mcp-service";
+import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { BrainAgent, BrainAgentFactory } from "./agent-types";
@@ -32,6 +32,19 @@ export const brainCallOptionsSchema = z.object({
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
+
+export function confirmationRequested(input: {
+  steps: Array<{
+    toolResults?: Array<{ output?: unknown } & Record<string, unknown>>;
+  }>;
+}): boolean {
+  const latestStep = input.steps.at(-1);
+  return (
+    latestStep?.toolResults?.some(
+      (result) => toolConfirmationSchema.safeParse(result.output).success,
+    ) ?? false
+  );
+}
 
 /**
  * Configuration for creating a BrainAgent
@@ -139,7 +152,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
-      stopWhen: stepCountIs(config.stepLimit ?? 10),
+      stopWhen: [confirmationRequested, stepCountIs(config.stepLimit ?? 10)],
     });
   };
 }
