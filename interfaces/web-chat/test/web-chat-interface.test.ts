@@ -1890,6 +1890,77 @@ describe("WebChatInterface", () => {
     expect(body).toContain("call-1");
   });
 
+  it("handles approval responses when full message history includes prior user input", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Completed: Delete note?",
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "delete_note",
+          input: { noteId: "123" },
+          summary: "Delete note?",
+          state: "output-available",
+          output: { success: true },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "user-message-1",
+              role: "user",
+              parts: [{ type: "text", text: "Delete it" }],
+            },
+            {
+              id: "assistant-message-1",
+              role: "assistant",
+              parts: [
+                { type: "text", text: "Confirmation required." },
+                {
+                  type: "dynamic-tool",
+                  toolCallId: "call-1",
+                  toolName: "delete_note",
+                  state: "approval-responded",
+                  input: { noteId: "123" },
+                  approval: {
+                    id: "approval:call-1",
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(agent.confirmCalls).toEqual([
+      {
+        conversationId: "test-conversation",
+        confirmed: true,
+        approvalId: "approval:call-1",
+      },
+    ]);
+    expect(body).toContain("tool-output-available");
+    expect(body).toContain("call-1");
+  });
+
   it("handles multiple AI SDK approval responses through one chat request", async () => {
     const agent = createSpyAgentService(undefined, {
       text: "Completed approval.",

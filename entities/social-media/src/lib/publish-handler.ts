@@ -28,6 +28,7 @@ export function registerWithPublishPipeline(
       payload: {
         entityType: "social-post",
         provider: provider,
+        config: { publishResultIdField: "platformPostId" },
       },
     });
 

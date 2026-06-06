@@ -48,6 +48,8 @@ export { Header } from "./Header";
 export type { HeaderProps } from "./Header";
 export { Logo, logoVariants } from "./Logo";
 export type { LogoProps } from "./Logo";
+export { OgCard, OG_CARD_CSS, splitWordmark } from "./OgCard";
+export type { OgCardProps, WordmarkParts } from "./OgCard";
 
 // Prose
 export { ProseContent } from "./ProseContent";

@@ -1,9 +1,16 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
-import { createQueueTool, createPublishTool } from "./tools";
+import {
+  createEnsureAssetsTool,
+  createQueueTool,
+  createPublishTool,
+} from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
+import { PublishExecutor } from "./publish-executor";
+import { PublishAssetRegistry } from "./publish-assets";
+import { PublishAssetPreflight } from "./publish-asset-preflight";
 import type { ContentScheduler } from "./scheduler";
 import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
@@ -18,6 +25,9 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
+  private publishExecutor!: PublishExecutor;
+  private publishAssetRegistry!: PublishAssetRegistry;
+  private publishAssetPreflight!: PublishAssetPreflight;
   private scheduler!: ContentScheduler;
 
   constructor(config?: Partial<ContentPipelineConfig>) {
@@ -40,6 +50,16 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       maxRetries: this.config.maxRetries,
       baseDelayMs: this.config.retryBaseDelayMs,
     });
+    this.publishAssetRegistry = PublishAssetRegistry.createFresh();
+    this.publishAssetPreflight = new PublishAssetPreflight({
+      context,
+      registry: this.publishAssetRegistry,
+    });
+    this.publishExecutor = new PublishExecutor({
+      context,
+      providerRegistry: this.providerRegistry,
+      publishAssetPreflight: this.publishAssetPreflight,
+    });
 
     this.scheduler = createScheduler({
       context,
@@ -47,6 +67,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      publishExecutor: this.publishExecutor,
       logger: this.logger,
     });
 
@@ -54,6 +75,9 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      publishExecutor: this.publishExecutor,
+      publishAssetRegistry: this.publishAssetRegistry,
+      publishAssetPreflight: this.publishAssetPreflight,
       scheduler: this.scheduler,
       logger: this.logger,
     });
@@ -80,7 +104,18 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 
     return [
       createQueueTool(this.pluginContext, this.id, this.queueManager),
-      createPublishTool(this.pluginContext, this.id, this.providerRegistry),
+      createPublishTool(
+        this.pluginContext,
+        this.id,
+        this.providerRegistry,
+        this.publishExecutor,
+      ),
+      createEnsureAssetsTool(
+        this.pluginContext,
+        this.id,
+        this.publishAssetRegistry,
+        this.publishAssetPreflight,
+      ),
     ];
   }
 
@@ -88,6 +123,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     return `## Publishing
 - Use \`content-pipeline_queue\` to manage the publish queue — list queued items, add entities to the queue, remove them, or reorder.
 - Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown).
+- Use \`content-pipeline_ensure-assets\` to reconcile missing publish assets such as generated OG images for already-published content.
 - When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
   }
 
@@ -103,6 +139,10 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     return this.retryTracker;
   }
 
+  public getPublishAssetRegistry(): PublishAssetRegistry {
+    return this.publishAssetRegistry;
+  }
+
   public getScheduler(): ContentScheduler {
     return this.scheduler;
   }
@@ -112,6 +152,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     QueueManager.resetInstance();
     ProviderRegistry.resetInstance();
     RetryTracker.resetInstance();
+    PublishAssetRegistry.resetInstance();
   }
 }
 

@@ -6,6 +6,7 @@ import packageJson from "../package.json";
 import {
   isStaleDeployMounts,
   renderDockerfile,
+  stripDeployVolumes,
   renderKamalDeploy,
   renderPreDeployHook,
 } from "@brains/deploy-support";
@@ -105,6 +106,44 @@ function isStalePilotDeployYml(current: string): boolean {
   return isStaleDeployMounts(current, "rover", normalizePilotDeploySecretList);
 }
 
+function isStalePilotDeploySecrets(current: string): boolean {
+  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
+
+  const normalizedCurrent = stripDeployVolumes(
+    normalizePilotDeploySecretList(current),
+  );
+  const normalizedTemplate = stripDeployVolumes(
+    normalizePilotDeploySecretList(renderKamalDeploy({ serviceName: "rover" })),
+  );
+
+  return normalizedCurrent === normalizedTemplate;
+}
+
+function isStalePilotEnvSchema(current: string, template: string): boolean {
+  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
+
+  const legacyTemplate = template.replace(
+    /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
+    "\n",
+  );
+
+  return current === legacyTemplate;
+}
+
+function isStaleDecryptUserSecretsScript(
+  current: string,
+  template: string,
+): boolean {
+  if (current.includes("ATPROTO_APP_PASSWORD")) return false;
+
+  const legacyTemplate = template.replace(
+    'writeGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"] ?? "");\n',
+    "",
+  );
+
+  return current === legacyTemplate;
+}
+
 function isStaleResolveDeployHandlesScript(current: string): boolean {
   return (
     current.includes('if (eventName !== "push") {') &&
@@ -165,8 +204,12 @@ async function writeStarterFileIfMissing(
   const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
   const matchesLegacyContent = legacyContents.includes(current);
   const matchesLegacyPredicate =
+    (relativePath === ".env.schema" &&
+      isStalePilotEnvSchema(current, content)) ||
     (relativePath === "deploy/kamal/deploy.yml" &&
-      isStalePilotDeployYml(current)) ||
+      (isStalePilotDeployYml(current) || isStalePilotDeploySecrets(current))) ||
+    (relativePath === "deploy/scripts/decrypt-user-secrets.ts" &&
+      isStaleDecryptUserSecretsScript(current, content)) ||
     (relativePath === "deploy/scripts/resolve-deploy-handles.ts" &&
       isStaleResolveDeployHandlesScript(current));
   if (!matchesLegacyContent && !matchesLegacyPredicate) {

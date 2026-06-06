@@ -3,24 +3,42 @@ import { z } from "@brains/utils";
 /**
  * Configuration for publish behavior per entity type
  */
-export interface PublishConfig {
-  /** Maximum number of retry attempts before marking as failed */
-  maxRetries?: number;
+export const publishExecutionModeSchema = z.enum(["provider"]);
+export type PublishExecutionMode = z.infer<typeof publishExecutionModeSchema>;
 
-  /** Initial backoff delay in milliseconds between retries */
-  retryBackoffMs?: number;
+export const publishConfigSchema = z
+  .object({
+    /** Publishing execution mode. Only provider execution is supported. */
+    executionMode: publishExecutionModeSchema.optional(),
 
-  /** Multiplier for exponential backoff (e.g., 2 = double delay each retry) */
-  retryBackoffMultiplier?: number;
+    /** Optional metadata/frontmatter field for storing provider result IDs. */
+    publishResultIdField: z.string().min(1).optional(),
 
-  /** Whether this entity type is enabled for publishing */
-  enabled?: boolean;
-}
+    /** Optional metadata/frontmatter field for storing publish timestamps. */
+    publishTimestampField: z.string().min(1).optional(),
+
+    /** Maximum number of retry attempts before marking as failed */
+    maxRetries: z.number().optional(),
+
+    /** Initial backoff delay in milliseconds between retries */
+    retryBackoffMs: z.number().optional(),
+
+    /** Multiplier for exponential backoff (e.g., 2 = double delay each retry) */
+    retryBackoffMultiplier: z.number().optional(),
+
+    /** Whether this entity type is enabled for publishing */
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+export type PublishConfig = z.infer<typeof publishConfigSchema>;
 
 /**
  * Default configuration values
  */
 export const DEFAULT_PUBLISH_CONFIG: Required<PublishConfig> = {
+  executionMode: "provider",
+  publishResultIdField: "platformId",
+  publishTimestampField: "publishedAt",
   maxRetries: 3,
   retryBackoffMs: 5000,
   retryBackoffMultiplier: 2,

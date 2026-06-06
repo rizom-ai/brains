@@ -16,14 +16,14 @@ const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 export async function resolveImage(
   imageId: string,
   entityService: ICoreEntityService,
-): Promise<ResolvedImage | null> {
+): Promise<ResolvedImage | undefined> {
   const image = await entityService.getEntity<Image>({
     entityType: "image",
     id: imageId,
   });
 
   if (!image) {
-    return null;
+    return undefined;
   }
 
   return {
@@ -44,21 +44,34 @@ export async function resolveImage(
  * @param entity - The entity to extract coverImageId from
  * @returns The coverImageId string, or undefined if not found
  */
-export function extractCoverImageId(entity: {
-  content: string;
-}): string | undefined {
+function extractFrontmatterStringField(
+  entity: { content: string },
+  field: string,
+): string | undefined {
   const match = FRONTMATTER_BLOCK.exec(entity.content);
   if (!match?.[1]) return undefined;
   try {
     const parsed = fromYaml<unknown>(match[1]);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      const value = (parsed as Record<string, unknown>)["coverImageId"];
+      const value = (parsed as Record<string, unknown>)[field];
       return typeof value === "string" ? value : undefined;
     }
   } catch {
     return undefined;
   }
   return undefined;
+}
+
+export function extractCoverImageId(entity: {
+  content: string;
+}): string | undefined {
+  return extractFrontmatterStringField(entity, "coverImageId");
+}
+
+export function extractOgImageId(entity: {
+  content: string;
+}): string | undefined {
+  return extractFrontmatterStringField(entity, "ogImageId");
 }
 
 export function setCoverImageId<T extends { content: string }>(
@@ -68,6 +81,16 @@ export function setCoverImageId<T extends { content: string }>(
   return {
     ...entity,
     content: updateFrontmatterField(entity.content, "coverImageId", imageId),
+  };
+}
+
+export function setOgImageId<T extends { content: string }>(
+  entity: T,
+  imageId: string | null,
+): T {
+  return {
+    ...entity,
+    content: updateFrontmatterField(entity.content, "ogImageId", imageId),
   };
 }
 
@@ -91,6 +114,5 @@ export async function resolveEntityCoverImage(
     return undefined;
   }
 
-  const resolved = await resolveImage(coverImageId, entityService);
-  return resolved ?? undefined;
+  return resolveImage(coverImageId, entityService);
 }

@@ -24,6 +24,7 @@ export const projectFrontmatterSchema = z.object({
   description: z.string(), // 1-2 sentence summary for cards
   year: z.number(), // Year project began, used for ordering
   coverImageId: z.string().optional(), // References an image entity by ID
+  ogImageId: z.string().optional(), // References an image entity for social previews
   url: z.string().url().optional(), // Link to live project
 });
 
@@ -84,6 +85,7 @@ export const projectWithDataSchema = projectSchema.extend({
   body: z.string(),
   structuredContent: projectContentSchema.optional(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
+  ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
 });
 
 export type ProjectWithData = z.infer<typeof projectWithDataSchema>;
@@ -96,6 +98,7 @@ export const enrichedProjectSchema = projectWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });
@@ -108,6 +111,7 @@ export const templateProjectSchema = projectWithDataSchema.extend({
   url: z.string(),
   typeLabel: z.string(),
   coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });

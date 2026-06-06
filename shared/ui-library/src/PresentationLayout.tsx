@@ -1,10 +1,29 @@
 import type { JSX } from "preact";
+import { Head } from "./Head";
 import { useMarkdownToHtml } from "./ImageRendererProvider";
 import { convertMermaidBlocks } from "./presentation-html";
 import { parseSlideDirectives, splitColumns } from "./presentation-utils";
 
 export interface PresentationLayoutProps {
   markdown: string;
+  deck?:
+    | {
+        frontmatter?:
+          | {
+              title?: string | undefined;
+              description?: string | undefined;
+            }
+          | undefined;
+        metadata?:
+          | {
+              title?: string | undefined;
+              description?: string | undefined;
+            }
+          | undefined;
+        ogImageUrl?: string | undefined;
+        coverImageUrl?: string | undefined;
+      }
+    | undefined;
 }
 
 /**
@@ -14,6 +33,7 @@ export interface PresentationLayoutProps {
  */
 export const PresentationLayout = ({
   markdown,
+  deck,
 }: PresentationLayoutProps): JSX.Element => {
   const toHtml = useMarkdownToHtml();
 
@@ -45,6 +65,10 @@ export const PresentationLayout = ({
   const hasMermaid = processedSlides.some((s) =>
     s.htmlContent.includes('class="mermaid"'),
   );
+  const title = deck?.frontmatter?.title ?? deck?.metadata?.title;
+  const description =
+    deck?.frontmatter?.description ?? deck?.metadata?.description;
+  const ogImage = deck?.ogImageUrl ?? deck?.coverImageUrl;
 
   const renderedSlides = processedSlides.map(
     ({ attributes, htmlContent }, index) => (
@@ -58,6 +82,14 @@ export const PresentationLayout = ({
 
   return (
     <section className="presentation-section">
+      {title && (
+        <Head
+          title={title}
+          {...(description ? { description } : {})}
+          {...(ogImage ? { ogImage } : {})}
+          ogType="article"
+        />
+      )}
       {/* Reveal.js core CSS only (no theme) */}
       <link
         rel="stylesheet"

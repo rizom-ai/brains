@@ -1,5 +1,6 @@
 import type {
   CreateExecutionContext,
+  CreateFromAttachmentInput,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
@@ -11,6 +12,7 @@ import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
+import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
 import {
   getDistillableEntityContent,
   isImageDataUrl,
@@ -48,6 +50,16 @@ function getImageGenerationPrompt(input: CreateInput): string | undefined {
   return undefined;
 }
 
+function getPredictedSourceImageId(input: {
+  sourceEntityType: string;
+  sourceEntityId: string;
+  attachmentType: string;
+}): string {
+  const prefix =
+    input.attachmentType === "og-image" ? "og" : input.attachmentType;
+  return slugify(`${prefix}-${input.sourceEntityType}-${input.sourceEntityId}`);
+}
+
 function getPredictedImageId(input: {
   prompt: string;
   title?: string;
@@ -78,7 +90,26 @@ function isSupportedImageMediaType(mediaType: string): boolean {
   );
 }
 
-function buildPredictedImageAttachment(imageId: string): {
+async function getSourceDedupKey(
+  context: EntityPluginContext,
+  input: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
+  },
+): Promise<string> {
+  const base = `${input.attachmentType}:${input.sourceEntityType}:${input.sourceEntityId}:resolved-attachment`;
+  const source = await context.entityService.getEntity({
+    entityType: input.sourceEntityType,
+    id: input.sourceEntityId,
+  });
+  return source ? `${base}:${source.contentHash}` : base;
+}
+
+function buildPredictedImageAttachment(
+  imageId: string,
+  attachmentType = "generated",
+): {
   mediaType: "image/png";
   url: string;
   downloadUrl: string;
@@ -86,7 +117,7 @@ function buildPredictedImageAttachment(imageId: string): {
   source: {
     entityType: "image";
     entityId: string;
-    attachmentType: "generated";
+    attachmentType: string;
   };
 } {
   const encodedId = encodeURIComponent(imageId);
@@ -98,7 +129,7 @@ function buildPredictedImageAttachment(imageId: string): {
     source: {
       entityType: "image",
       entityId: imageId,
-      attachmentType: "generated",
+      attachmentType,
     },
   };
 }
@@ -167,6 +198,11 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     const targetEntityId = normalizeText(input.targetEntityId);
     const imageTargetTitle =
       targetEntityType === this.entityType ? targetEntityId : undefined;
+
+    const from = input.from;
+    if (from?.kind === "entity-attachment") {
+      return this.enqueueSourceImageRender({ ...input, from }, context);
+    }
 
     if (!targetEntityType || !targetEntityId || imageTargetTitle) {
       if (!prompt) return { kind: "continue", input };
@@ -334,6 +370,92 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
   }
 
+  private async enqueueSourceImageRender(
+    input: CreateInput & { from: CreateFromAttachmentInput },
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    const sourceEntityType = normalizeText(input.from.sourceEntityType);
+    const sourceEntityId = normalizeText(input.from.sourceEntityId);
+    const attachmentType = normalizeText(input.from.attachmentType);
+    if (!sourceEntityType || !sourceEntityId || !attachmentType) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error:
+            "Image source requires sourceEntityType, sourceEntityId, and attachmentType",
+        },
+      };
+    }
+
+    const source = await resolveEntityOrError(
+      context.entityService,
+      sourceEntityType,
+      sourceEntityId,
+      this.logger,
+      "Source entity",
+    );
+    if (!source.ok) {
+      return {
+        kind: "handled",
+        result: { success: false, error: source.error },
+      };
+    }
+
+    const targetEntityType = normalizeText(input.targetEntityType);
+    const targetEntityId = normalizeText(input.targetEntityId);
+    let resolvedTargetId: string | undefined;
+    if (targetEntityType && targetEntityId) {
+      const target = await resolveEntityOrError(
+        context.entityService,
+        targetEntityType,
+        targetEntityId,
+        this.logger,
+        "Target entity",
+      );
+      if (!target.ok) {
+        return {
+          kind: "handled",
+          result: { success: false, error: target.error },
+        };
+      }
+      resolvedTargetId = target.entity.id;
+    }
+
+    const sourceInput = {
+      sourceEntityType,
+      sourceEntityId: source.entity.id,
+      attachmentType,
+    };
+    const dedupKey = await getSourceDedupKey(context, sourceInput);
+    const imageId = getPredictedSourceImageId(sourceInput);
+    const jobId = await context.jobs.enqueue({
+      type: "image-render-source",
+      data: {
+        ...sourceInput,
+        imageId,
+        dedupKey,
+        ...(input.replace === true && { replace: true }),
+        ...(targetEntityType && { targetEntityType }),
+        ...(resolvedTargetId && { targetEntityId: resolvedTargetId }),
+        ...(attachmentType === "og-image" && { targetImageField: "ogImageId" }),
+      },
+    });
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: imageId,
+          status: "generating",
+          jobId,
+          attachment: buildPredictedImageAttachment(imageId, attachmentType),
+        },
+      },
+    };
+  }
+
   protected override async getInstructions(): Promise<string> {
     return `For durable raw image saves/promotions from uploaded images, call system_create with entityType: "image", the exact upload object shown in the current turn or conversation "Available runtime upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely.`;
   }
@@ -353,6 +475,10 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   ): Promise<void> {
     const handler = new ImageGenerationJobHandler(context, this.logger);
     context.jobs.registerHandler("image-generate", handler);
+    context.jobs.registerHandler(
+      "image-render-source",
+      new SourceImageRenderJobHandler(context, this.logger),
+    );
   }
 }
 

@@ -45,6 +45,7 @@ export const deckFrontmatterSchema = z.object({
   publishedAt: z.string().datetime().optional(),
   event: z.string().optional(),
   coverImageId: z.string().optional(), // References an image entity by ID
+  ogImageId: z.string().optional(), // References an image entity for social previews
 });
 
 export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
@@ -96,6 +97,7 @@ export type DeckEntity = z.infer<typeof deckSchema>;
 export const deckWithDataSchema = deckSchema.extend({
   frontmatter: deckFrontmatterSchema,
   body: z.string(),
+  ogImageUrl: z.string().optional(),
 });
 
 export type DeckWithData = z.infer<typeof deckWithDataSchema>;
@@ -110,6 +112,7 @@ export const enrichedDeckSchema = deckWithDataSchema.extend({
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });

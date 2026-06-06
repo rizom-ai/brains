@@ -52,6 +52,10 @@ export interface ResolvedSetupDelivery {
   email: string;
 }
 
+export interface ResolvedAtprotoConfig {
+  identifier: string;
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -65,6 +69,7 @@ export interface ResolvedUserIdentity {
   effectiveAiApiKey: string;
   effectiveGitSyncToken: string;
   setup?: ResolvedSetupDelivery;
+  atproto?: ResolvedAtprotoConfig;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
@@ -160,6 +165,7 @@ export async function loadPilotRegistry(
           cohort.data.gitSyncTokenOverride ??
           pilot.gitSyncToken,
         ...(userFile.data.setup ? { setup: userFile.data.setup } : {}),
+        ...(userFile.data.atproto ? { atproto: userFile.data.atproto } : {}),
         anchorProfile: resolveAnchorProfile(
           userFile.data.handle,
           userFile.data.anchorProfile,

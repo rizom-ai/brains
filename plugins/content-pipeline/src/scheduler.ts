@@ -5,11 +5,8 @@ import { getErrorMessage } from "@brains/utils";
  * Implements Component Interface Standardization pattern.
  * Uses a pluggable backend for scheduling (defaults to croner).
  *
- * Two modes:
- * 1. Provider mode (default): Calls provider.publish() directly
- * 2. Message mode: Emits publish:execute message for plugins to handle
- *
- * Also supports generation scheduling for automatic draft creation.
+ * Publishes queued entities through registered providers and supports
+ * generation scheduling for automatic draft creation.
  */
 
 import type { PublishResult } from "@brains/contracts";
@@ -28,7 +25,6 @@ import { GenerationScheduleRunner } from "./scheduler-generation-runner";
 // Re-export all types from types/scheduler for backward compatibility
 export type {
   SchedulerConfig,
-  PublishExecuteEvent,
   GenerateExecuteEvent,
   GenerationConditionResult,
   PublishSuccessEvent,
@@ -106,7 +102,7 @@ export class ContentScheduler {
   }
 
   // -------------------------------------------------------------------
-  // Public publish reporting (message mode)
+  // Public publish reporting
   // -------------------------------------------------------------------
 
   public completePublish(
@@ -165,7 +161,7 @@ export class ContentScheduler {
       retryTracker: this.config.retryTracker,
       messageBus: this.config.messageBus,
       entityService: this.config.entityService,
-      onExecute: this.config.onExecute,
+      publishExecutor: this.config.publishExecutor,
       onPublish: this.config.onPublish,
       onFailed: this.config.onFailed,
     };

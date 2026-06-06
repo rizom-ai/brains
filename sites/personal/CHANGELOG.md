@@ -1,5 +1,95 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.111
+  - @brains/site-info@0.2.0-alpha.111
+  - @brains/site-composition@0.2.0-alpha.111
+  - @brains/site-engine@0.2.0-alpha.111
+  - @brains/ui-library@0.2.0-alpha.111
+  - @brains/utils@0.2.0-alpha.111
+  - @brains/identity-service@0.2.0-alpha.111
+  - @brains/plugins@0.2.0-alpha.111
+  - @brains/templates@0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.110
+  - @brains/site-info@0.2.0-alpha.110
+  - @brains/site-composition@0.2.0-alpha.110
+  - @brains/site-engine@0.2.0-alpha.110
+  - @brains/ui-library@0.2.0-alpha.110
+  - @brains/utils@0.2.0-alpha.110
+  - @brains/identity-service@0.2.0-alpha.110
+  - @brains/plugins@0.2.0-alpha.110
+  - @brains/templates@0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.109
+  - @brains/site-info@0.2.0-alpha.109
+  - @brains/site-composition@0.2.0-alpha.109
+  - @brains/site-engine@0.2.0-alpha.109
+  - @brains/ui-library@0.2.0-alpha.109
+  - @brains/utils@0.2.0-alpha.109
+  - @brains/identity-service@0.2.0-alpha.109
+  - @brains/plugins@0.2.0-alpha.109
+  - @brains/templates@0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.108
+  - @brains/site-info@0.2.0-alpha.108
+  - @brains/site-composition@0.2.0-alpha.108
+  - @brains/site-engine@0.2.0-alpha.108
+  - @brains/ui-library@0.2.0-alpha.108
+  - @brains/utils@0.2.0-alpha.108
+  - @brains/identity-service@0.2.0-alpha.108
+  - @brains/plugins@0.2.0-alpha.108
+  - @brains/templates@0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.107
+  - @brains/site-info@0.2.0-alpha.107
+  - @brains/site-composition@0.2.0-alpha.107
+  - @brains/site-engine@0.2.0-alpha.107
+  - @brains/ui-library@0.2.0-alpha.107
+  - @brains/utils@0.2.0-alpha.107
+  - @brains/identity-service@0.2.0-alpha.107
+  - @brains/plugins@0.2.0-alpha.107
+  - @brains/templates@0.2.0-alpha.107
+
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.106
+  - @brains/site-info@0.2.0-alpha.106
+  - @brains/site-composition@0.2.0-alpha.106
+  - @brains/site-engine@0.2.0-alpha.106
+  - @brains/ui-library@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/identity-service@0.2.0-alpha.106
+  - @brains/plugins@0.2.0-alpha.106
+  - @brains/templates@0.2.0-alpha.106
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes

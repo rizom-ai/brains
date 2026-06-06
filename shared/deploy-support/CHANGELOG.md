@@ -1,5 +1,49 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- [`b2c3550`](https://github.com/rizom-ai/brains/commit/b2c355029c06de6368e70d1832be39c084a276a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release ATProto smoke credential wiring after the previous alpha version bump: Rover reads the app password from `ATPROTO_APP_PASSWORD`, rover-pilot user config owns the public ATProto identifier, and ops encrypts/deploys only the per-user ATProto app password.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.107
+
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.106
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes

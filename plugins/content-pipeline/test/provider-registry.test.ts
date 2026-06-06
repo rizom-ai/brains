@@ -69,6 +69,40 @@ describe("ProviderRegistry", () => {
     });
   });
 
+  describe("getExecutionMode", () => {
+    it("should default external providers to provider execution", () => {
+      registry.register("social-post", createMockProvider("linkedin"));
+
+      expect(registry.getExecutionMode("social-post")).toBe("provider");
+    });
+
+    it("should default internal providers to provider execution", () => {
+      registry.register("newsletter", createMockProvider("internal"));
+
+      expect(registry.getExecutionMode("newsletter")).toBe("provider");
+    });
+
+    it("should use explicit execution mode config", () => {
+      registry.register("post", createMockProvider("internal"), {
+        executionMode: "provider",
+      });
+
+      expect(registry.getExecutionMode("post")).toBe("provider");
+    });
+  });
+
+  describe("getPublishResultIdField", () => {
+    it("should store optional provider result ID field config", () => {
+      registry.register("social-post", createMockProvider("linkedin"), {
+        publishResultIdField: "platformPostId",
+      });
+
+      expect(registry.getPublishResultIdField("social-post")).toBe(
+        "platformPostId",
+      );
+    });
+  });
+
   describe("has", () => {
     it("should return true for registered type", () => {
       const provider = createMockProvider("linkedin");

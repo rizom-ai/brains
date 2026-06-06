@@ -276,6 +276,53 @@ Outcome for ${title}`;
       expect(result.prevProject).toBeNull();
       expect(result.nextProject?.id).toBe("proj-1");
     });
+
+    it("should render project detail data even when body headings are not structured", async () => {
+      const targetProject = createTestEntity<Project>("project", {
+        id: "city-pulse",
+        content: `---
+title: CityPulse
+slug: city-pulse
+status: published
+description: Real-time urban data dashboard
+year: 2025
+ogImageId: og-project-city-pulse
+---
+# CityPulse
+
+A public dashboard for urban sensor data.
+
+## The problem
+
+Sensor data was scattered across vendor silos.
+
+## What we built
+
+A normalized public data API and dashboard.`,
+        metadata: {
+          title: "CityPulse",
+          slug: "city-pulse",
+          status: "published",
+          year: 2025,
+        },
+      });
+
+      spyOn(mockEntityService, "listEntities")
+        .mockResolvedValueOnce([targetProject])
+        .mockResolvedValueOnce([targetProject]);
+
+      const result = await datasource.fetch(
+        { entityType: "project", query: { id: "city-pulse" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.project.id).toBe("city-pulse");
+      expect(result.project.structuredContent).toBeUndefined();
+      expect(result.project.frontmatter.ogImageId).toBe(
+        "og-project-city-pulse",
+      );
+    });
   });
 
   describe("metadata", () => {

@@ -1,7 +1,7 @@
 {
   "name": "@brains/atproto",
   "private": true,
-  "version": "0.2.0-alpha.105",
+  "version": "0.2.0-alpha.111",
   "description": "AT Protocol integration for identity, publishing, discovery, and feeds",
   "type": "module",
   "exports": {

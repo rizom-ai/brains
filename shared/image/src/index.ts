@@ -20,6 +20,8 @@ export {
   resolveEntityCoverImage,
   extractCoverImageId,
   setCoverImageId,
+  extractOgImageId,
+  setOgImageId,
 } from "./lib/image-resolver";
 
 // Markdown image utilities

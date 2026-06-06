@@ -1,12 +1,17 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
 import type { ContentScheduler } from "../scheduler";
 import {
+  publishableMetadataSchema,
+  type PublishableMetadata,
+} from "../schemas/publishable";
+import {
   PUBLISH_MESSAGES,
   GENERATE_MESSAGES,
+  PUBLISH_ASSET_MESSAGES,
   SYSTEM_PUBLISH_AUTH_CONTEXT,
 } from "../types/messages";
 import type {
@@ -20,13 +25,22 @@ import type {
   PublishReportFailurePayload,
   GenerateCompletedPayload,
   GenerateFailedPayload,
+  PublishAssetRegisterPayload,
 } from "../types/messages";
 import type { ProviderRegistry } from "../provider-registry";
+import type { PublishEntityExecutor } from "../publish-executor";
+import type { PublishAssetRegistry } from "../publish-assets";
+import { publishAssetDefinitionSchema } from "../publish-assets";
+import type { PublishAssetPreflight } from "../publish-asset-preflight";
+import { publishConfigSchema } from "../types/config";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
+  publishExecutor: PublishEntityExecutor;
+  publishAssetRegistry: PublishAssetRegistry;
+  publishAssetPreflight: PublishAssetPreflight;
   scheduler: ContentScheduler;
   logger: Logger;
 }
@@ -40,6 +54,8 @@ export function subscribeToMessages(
 ): void {
   subscribeToPublishMessages(context, deps);
   subscribeToGenerationMessages(context, deps);
+  subscribeToPublishAssetMessages(context, deps);
+  subscribeToEntityChangeMessages(context, deps);
 }
 
 function subscribeToPublishMessages(
@@ -110,17 +126,70 @@ function subscribeToGenerationMessages(
   deps.logger.debug("Subscribed to generation messages");
 }
 
+function subscribeToPublishAssetMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
+  context.messaging.subscribe<
+    PublishAssetRegisterPayload,
+    { success: boolean }
+  >(PUBLISH_ASSET_MESSAGES.REGISTER, async (msg) =>
+    handlePublishAssetRegister(deps, msg.payload),
+  );
+
+  deps.logger.debug("Subscribed to publish asset messages");
+}
+
+interface EntityChangePayload {
+  entityType: string;
+  entityId: string;
+  entity?: BaseEntity;
+}
+
+function subscribeToEntityChangeMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
+  const handler = async (msg: {
+    payload: EntityChangePayload;
+  }): Promise<{ success: boolean }> =>
+    handleEntityChange(context, deps, msg.payload);
+
+  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+    "entity:created",
+    handler,
+  );
+  context.messaging.subscribe<EntityChangePayload, { success: boolean }>(
+    "entity:updated",
+    handler,
+  );
+
+  deps.logger.debug("Subscribed to entity change messages for publish assets");
+}
+
 async function handleRegister(
   deps: MessageHandlerDeps,
   payload: PublishRegisterPayload,
 ): Promise<{ success: boolean }> {
-  const { entityType, provider } = payload;
+  const { entityType, provider, config } = payload;
 
   try {
+    const parsedConfig = config
+      ? publishConfigSchema.safeParse(config)
+      : undefined;
+    if (parsedConfig && !parsedConfig.success) {
+      deps.logger.warn("Invalid publish provider config", {
+        entityType,
+        error: parsedConfig.error.message,
+      });
+      return { success: false };
+    }
+
     if (provider) {
-      deps.providerRegistry.register(entityType, provider);
+      deps.providerRegistry.register(entityType, provider, parsedConfig?.data);
       deps.logger.info(`Registered provider for entity type: ${entityType}`, {
         providerName: provider.name,
+        executionMode: deps.providerRegistry.getExecutionMode(entityType),
       });
     }
     return { success: true };
@@ -129,6 +198,67 @@ async function handleRegister(
     deps.logger.error(`Failed to register provider: ${errorMessage}`);
     return { success: false };
   }
+}
+
+async function handlePublishAssetRegister(
+  deps: MessageHandlerDeps,
+  payload: PublishAssetRegisterPayload,
+): Promise<{ success: boolean }> {
+  const parsed = publishAssetDefinitionSchema.safeParse(payload);
+  if (!parsed.success) {
+    deps.logger.warn("Invalid publish asset registration", {
+      error: parsed.error.message,
+    });
+    return { success: false };
+  }
+
+  deps.publishAssetRegistry.register(parsed.data);
+  deps.logger.info("Registered publish asset", {
+    entityType: parsed.data.entityType,
+    attachmentType: parsed.data.attachmentType,
+    mediaEntityType: parsed.data.mediaEntityType,
+  });
+  return { success: true };
+}
+
+async function handleEntityChange(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+  payload: EntityChangePayload,
+): Promise<{ success: boolean }> {
+  try {
+    if (deps.publishAssetRegistry.list(payload.entityType).length === 0) {
+      return { success: true };
+    }
+
+    const entity =
+      payload.entity ??
+      (await context.entityService.getEntity<BaseEntity>({
+        entityType: payload.entityType,
+        id: payload.entityId,
+      }));
+    if (!isPublishedEntity(entity)) {
+      return { success: true };
+    }
+
+    await deps.publishAssetPreflight.ensureForEntity(entity);
+    return { success: true };
+  } catch (error) {
+    deps.logger.warn("Failed to run publish asset preflight for entity event", {
+      entityType: payload.entityType,
+      entityId: payload.entityId,
+      error: getErrorMessage(error),
+    });
+    return { success: false };
+  }
+}
+
+function isPublishedEntity(
+  entity: BaseEntity | null | undefined,
+): entity is BaseEntity<PublishableMetadata & { status: "published" }> {
+  if (!entity) return false;
+  const parsed = publishableMetadataSchema.safeParse(entity.metadata);
+  return parsed.success && parsed.data.status === "published";
 }
 
 async function handleQueue(
@@ -188,17 +318,28 @@ async function handleDirect(
       authContext,
     );
 
-    await context.messaging.send({
-      type: PUBLISH_MESSAGES.EXECUTE,
-      payload: {
+    if (!deps.providerRegistry.has(entityType)) {
+      deps.scheduler.failPublish(
         entityType,
         entityId,
-        authContext,
-      },
+        `No publish provider registered for ${entityType}`,
+      );
+      return { success: false };
+    }
+
+    const publishResult = await deps.publishExecutor.publish({
+      entityType,
+      id: entityId,
     });
+    if ("error" in publishResult) {
+      deps.scheduler.failPublish(entityType, entityId, publishResult.error);
+      return { success: false };
+    }
 
-    deps.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
-
+    deps.scheduler.completePublish(entityType, entityId, publishResult.result);
+    deps.logger.debug(`Direct publish completed: ${entityId}`, {
+      entityType,
+    });
     return { success: true };
   } catch (error) {
     const errorMessage = getErrorMessage(error);

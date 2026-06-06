@@ -1,5 +1,87 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.111
+  - @brains/atproto-contracts@0.2.0-alpha.111
+  - @brains/content-formatters@0.2.0-alpha.111
+  - @brains/contracts@0.2.0-alpha.111
+  - @brains/ui-library@0.2.0-alpha.111
+  - @brains/utils@0.2.0-alpha.111
+  - @brains/plugins@0.2.0-alpha.111
+  - @brains/templates@0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.110
+  - @brains/atproto-contracts@0.2.0-alpha.110
+  - @brains/content-formatters@0.2.0-alpha.110
+  - @brains/contracts@0.2.0-alpha.110
+  - @brains/ui-library@0.2.0-alpha.110
+  - @brains/utils@0.2.0-alpha.110
+  - @brains/plugins@0.2.0-alpha.110
+  - @brains/templates@0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.109
+  - @brains/atproto-contracts@0.2.0-alpha.109
+  - @brains/content-formatters@0.2.0-alpha.109
+  - @brains/contracts@0.2.0-alpha.109
+  - @brains/ui-library@0.2.0-alpha.109
+  - @brains/utils@0.2.0-alpha.109
+  - @brains/plugins@0.2.0-alpha.109
+  - @brains/templates@0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.108
+  - @brains/atproto-contracts@0.2.0-alpha.108
+  - @brains/content-formatters@0.2.0-alpha.108
+  - @brains/contracts@0.2.0-alpha.108
+  - @brains/ui-library@0.2.0-alpha.108
+  - @brains/utils@0.2.0-alpha.108
+  - @brains/plugins@0.2.0-alpha.108
+  - @brains/templates@0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.107
+  - @brains/content-formatters@0.2.0-alpha.107
+  - @brains/contracts@0.2.0-alpha.107
+  - @brains/ui-library@0.2.0-alpha.107
+  - @brains/utils@0.2.0-alpha.107
+  - @brains/plugins@0.2.0-alpha.107
+  - @brains/templates@0.2.0-alpha.107
+
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.106
+  - @brains/content-formatters@0.2.0-alpha.106
+  - @brains/contracts@0.2.0-alpha.106
+  - @brains/ui-library@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+  - @brains/plugins@0.2.0-alpha.106
+  - @brains/templates@0.2.0-alpha.106
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes

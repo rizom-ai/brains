@@ -5,7 +5,6 @@ import type {
   JobHandler,
   DataSource,
   Template,
-  ToolContext,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
@@ -74,9 +73,6 @@ export class NewsletterPlugin extends EntityPlugin<
     // Publish pipeline registration (deferred to system:plugins:ready)
     this.deferPublishRegistration(context);
 
-    // Publish execute handler
-    this.subscribeToPublishExecute(context);
-
     // Generate execute handler (from content-pipeline)
     this.subscribeToGenerateExecute(context);
 
@@ -109,7 +105,27 @@ export class NewsletterPlugin extends EntityPlugin<
   private deferPublishRegistration(context: EntityPluginContext): void {
     const provider: PublishProvider = {
       name: "internal",
-      publish: async () => ({ id: "internal" }),
+      publish: async (content, metadata) => {
+        const subject =
+          typeof metadata["subject"] === "string" ? metadata["subject"] : "";
+        const sendResult = await context.messaging.send<
+          { entityId: string; subject: string; content: string },
+          { emailId?: string }
+        >({
+          type: "buttondown:send",
+          payload: {
+            entityId: "",
+            subject,
+            content,
+          },
+        });
+
+        const buttondownId =
+          !("noop" in sendResult) && sendResult.data?.emailId
+            ? sendResult.data.emailId
+            : "internal";
+        return { id: buttondownId };
+      },
     };
 
     context.messaging.subscribe("system:plugins:ready", async () => {
@@ -118,106 +134,13 @@ export class NewsletterPlugin extends EntityPlugin<
         payload: {
           entityType: "newsletter",
           provider,
+          config: {
+            publishResultIdField: "buttondownId",
+            publishTimestampField: "sentAt",
+          },
         },
       });
       return { success: true };
-    });
-  }
-
-  private subscribeToPublishExecute(context: EntityPluginContext): void {
-    context.messaging.subscribe<
-      {
-        entityType: string;
-        entityId: string;
-        authContext?: {
-          userPermissionLevel?: ToolContext["userPermissionLevel"];
-        };
-      },
-      { success: boolean }
-    >("publish:execute", async (msg) => {
-      const { entityType, entityId, authContext } = msg.payload;
-      if (entityType !== "newsletter") return { success: true };
-
-      try {
-        context.permissions.assertEntityActionAllowed(
-          entityType,
-          "publish",
-          authContext ?? { userPermissionLevel: "anchor" },
-        );
-        const newsletter = await context.entityService.getEntity<Newsletter>({
-          entityType: "newsletter",
-          id: entityId,
-        });
-        if (!newsletter) {
-          await context.messaging.send({
-            type: "publish:report:failure",
-            payload: {
-              entityType,
-              entityId,
-              error: `Newsletter not found: ${entityId}`,
-            },
-          });
-          return { success: true };
-        }
-
-        if (newsletter.metadata.status === "published") {
-          return { success: true };
-        }
-
-        // Send to buttondown if available
-        const sendResult = await context.messaging.send<
-          { entityId: string; subject: string; content: string },
-          { emailId?: string }
-        >({
-          type: "buttondown:send",
-          payload: {
-            entityId,
-            subject: newsletter.metadata.subject,
-            content: newsletter.content,
-          },
-        });
-
-        const sentAt = new Date().toISOString();
-        const buttondownId =
-          !("noop" in sendResult) && sendResult.data
-            ? sendResult.data.emailId
-            : undefined;
-
-        await context.entityService.updateEntity({
-          entity: {
-            ...newsletter,
-            metadata: {
-              ...newsletter.metadata,
-              status: "published",
-              sentAt,
-              buttondownId,
-            },
-          },
-        });
-
-        await context.messaging.send({
-          type: "publish:report:success",
-          payload: {
-            entityType,
-            entityId,
-            sentAt,
-          },
-        });
-
-        this.logger.info(`Published newsletter: ${entityId}`);
-        return { success: true };
-      } catch (error) {
-        const errorMessage = getErrorMessage(error);
-        await context.messaging.send({
-          type: "publish:report:failure",
-          payload: {
-            entityType,
-            entityId,
-            error: errorMessage,
-          },
-        });
-        return { success: true };
-      }
     });
   }
 

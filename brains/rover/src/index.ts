@@ -33,6 +33,7 @@ import { stockPhotoPlugin } from "@brains/stock-photo";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
+import { atprotoPlugin } from "@brains/atproto";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import { join } from "path";
@@ -59,6 +60,7 @@ const core = [
   "wishlist",
   "topics",
   "directory-sync",
+  "atproto",
   "agents",
   "assessment",
   "auth-service",
@@ -203,6 +205,15 @@ export default defineBrain({
     ["stock-photo", stockPhotoPlugin, {}],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
+    [
+      "atproto",
+      atprotoPlugin,
+      (env): PluginConfig => ({
+        ...(env["ATPROTO_APP_PASSWORD"]
+          ? { appPassword: env["ATPROTO_APP_PASSWORD"] }
+          : {}),
+      }),
+    ],
     [
       "directory-sync",
       directorySync,

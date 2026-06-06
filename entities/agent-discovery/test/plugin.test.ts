@@ -1,5 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import {
+  ATPROTO_BRAIN_CARD_DISCOVERED,
+  ATPROTO_BRAIN_CARD_REFRESHED,
+  ATPROTO_BRAIN_DISCOVERED,
+} from "@brains/atproto-contracts";
 import { z } from "@brains/utils";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
@@ -24,6 +29,40 @@ function makeAgentEntity(status: AgentStatus): AgentEntity {
     about: "A saved agent.",
   });
 }
+
+const testBrainCardPayload = {
+  repoDid: "did:plc:peer",
+  uri: "at://did:plc:peer/ai.rizom.brain.card/self",
+  cid: "bafy-peer-card",
+  record: {
+    $type: "ai.rizom.brain.card" as const,
+    siteUrl: "https://peer.example.com",
+    brain: {
+      did: "did:web:peer.example.com",
+      name: "Peer Brain",
+      role: "assistant",
+      purpose: "A peer brain discovered through ATProto.",
+      values: ["collaboration"],
+    },
+    anchor: {
+      did: "did:plc:anchor",
+      name: "Peer Owner",
+      kind: "professional",
+    },
+    model: "ranger",
+    version: "0.2.0-test",
+    skills: [
+      {
+        id: "research",
+        name: "Research",
+        description: "Research topics for collaborators.",
+        tags: ["research"],
+      },
+    ],
+    createdAt: "2026-06-02T12:00:00.000Z",
+    updatedAt: "2026-06-02T12:30:00.000Z",
+  },
+};
 
 describe("AgentDiscoveryPlugin", () => {
   it("should not auto-create agents from a2a call completion events", async () => {
@@ -260,6 +299,108 @@ describe("AgentDiscoveryPlugin", () => {
     // Content is derived from metadata on write via AgentAdapter.toMarkdown
     // (covered in agent-adapter.test.ts). The mock entityService stores
     // content verbatim, so asserting on content here would test the mock.
+
+    harness.reset();
+  });
+
+  it("creates a discovered agent from an ATProto brain card event", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+    const events: unknown[] = [];
+
+    harness.subscribe(ATPROTO_BRAIN_DISCOVERED, async (message) => {
+      events.push(message.payload);
+      return { success: true };
+    });
+
+    await harness.installPlugin(plugin);
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.metadata.status).toBe("discovered");
+    expect(agent?.metadata.url).toBe("https://peer.example.com");
+    expect(agent?.metadata.name).toBe("Peer Owner");
+    expect(agent?.metadata.repoDid).toBe("did:plc:peer");
+    expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
+    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
+    expect(agent?.metadata.cardUri).toBe(testBrainCardPayload.uri);
+    expect(agent?.metadata.a2aEndpoint).toBeUndefined();
+    expect(agent?.content).toContain("Research");
+    expect(events).toEqual([
+      expect.objectContaining({
+        agentId: "peer.example.com",
+        status: "discovered",
+        brainDid: "did:web:peer.example.com",
+        anchorDid: "did:plc:anchor",
+        cardUri: testBrainCardPayload.uri,
+      }),
+    ]);
+
+    harness.reset();
+  });
+
+  it("enriches an approved agent from an ATProto brain card without downgrading it", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+    const events: unknown[] = [];
+
+    harness.subscribe(ATPROTO_BRAIN_CARD_REFRESHED, async (message) => {
+      events.push(message.payload);
+      return { success: true };
+    });
+
+    await harness.installPlugin(plugin);
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example.com",
+        name: "Peer Brain",
+        brainName: "Peer Brain",
+        // Stored endpoint carries a path; enrichment must not overwrite it
+        // with the card's bare siteUrl.
+        url: "https://peer.example.com/a2a",
+        status: "approved",
+      }),
+    });
+
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const agent = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "peer.example.com",
+    });
+    expect(agent?.metadata.status).toBe("approved");
+    expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
+    expect(agent?.metadata.repoDid).toBe("did:plc:peer");
+    expect(agent?.metadata.brainDid).toBe("did:web:peer.example.com");
+    expect(agent?.metadata.anchorDid).toBe("did:plc:anchor");
+    expect(agent?.metadata.cardCid).toBe("bafy-peer-card");
+    // Body is refreshed from the signed card: the card's public skills and
+    // purpose replace the stale generated body.
+    expect(agent?.content).toContain("Research");
+    expect(agent?.content).not.toContain("Content Creation");
+    expect(agent?.content).toContain(
+      "A peer brain discovered through ATProto.",
+    );
+    expect(events).toEqual([
+      expect.objectContaining({
+        agentId: "peer.example.com",
+        status: "approved",
+        brainDid: "did:web:peer.example.com",
+        anchorDid: "did:plc:anchor",
+        cardUri: testBrainCardPayload.uri,
+      }),
+    ]);
 
     harness.reset();
   });

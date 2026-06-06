@@ -31,6 +31,12 @@ export const agentFrontmatterSchema = anchorProfileBodySchema
     brainName: z.string().describe("Name of the brain instance"),
     url: z.string().url().describe("Brain endpoint URL"),
     did: z.string().optional().describe("Decentralized identifier (public)"),
+    repoDid: z.string().optional().describe("ATProto repo DID"),
+    brainDid: z.string().optional().describe("ATProto brain DID"),
+    anchorDid: z.string().optional().describe("ATProto anchor DID"),
+    cardUri: z.string().optional().describe("ATProto brain card URI"),
+    cardCid: z.string().optional().describe("ATProto brain card CID"),
+    a2aEndpoint: z.string().url().optional().describe("A2A endpoint URL"),
 
     // Relationship
     status: agentStatusSchema,
@@ -54,6 +60,12 @@ export const agentMetadataSchema = agentFrontmatterSchema
   .extend({
     discoveredAt: z.string().datetime().optional(),
     slug: z.string(),
+    repoDid: z.string().optional(),
+    brainDid: z.string().optional(),
+    anchorDid: z.string().optional(),
+    cardUri: z.string().optional(),
+    cardCid: z.string().optional(),
+    a2aEndpoint: z.string().url().optional(),
   });
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;

@@ -2,14 +2,15 @@
 
 AT Protocol integration for Rizom brains.
 
-This package currently covers the Phase 1 foundation plus the first outbound publishing slice:
+This package currently covers AT Protocol identity, outbound publishing, and the first discovery slice:
 
 - `ServicePlugin` package skeleton
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
-- app-password PDS client wrapper for mocked authentication, record creation, and blob upload tests
+- app-password PDS client wrapper for mocked authentication, record reads/writes, and blob upload tests
 - brain card publishing as `ai.rizom.brain.card`
 - projection registry so entity plugins can register mappers against canonical ATProto contracts without centralizing entity records here
+- candidate brain-card discovery via public `com.atproto.repo.getRecord` reads and internal message-bus events
 
 ## Configuration
 
@@ -20,8 +21,9 @@ atprotoPlugin({
   pdsEndpoint: "https://bsky.social",
   identifier: "example.com",
   repoDid: "did:plc:...",
+  // Optional; defaults from site domain when omitted.
   brainDid: "did:web:example.com",
-  anchorDid: "did:plc:...",
+  anchorDid: "did:web:example.com:anchor",
   appPassword: "${ATPROTO_APP_PASSWORD}",
 });
 ```
@@ -34,8 +36,9 @@ plugins:
     pdsEndpoint: https://bsky.social
     identifier: example.com
     repoDid: did:plc:...
+    # Optional; defaults from domain/siteUrl when omitted.
     brainDid: did:web:example.com
-    anchorDid: did:plc:...
+    anchorDid: did:web:example.com:anchor
     appPassword: ${ATPROTO_APP_PASSWORD}
 ```
 
@@ -52,10 +55,9 @@ Secrets should be supplied through environment variables or app secret configura
 - `pdsEndpoint`: PDS service endpoint. Defaults to `https://bsky.social`.
 - `identifier`: PDS login identifier, usually a handle or account DID.
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
-- `brainDid`: optional public brain DID. If this is `did:web:*`, the plugin exposes `/.well-known/did.json`.
-- `anchorDid`: optional human/operator DID included in custom records.
+- `brainDid`: public brain DID. Defaults to `did:web:<site-host>` when omitted. If configured as `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
+- `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
-- `appPasswordEnv`: legacy/alternate environment variable indirection. Prefer `appPassword: ${ATPROTO_APP_PASSWORD}` for normal brain instance config.
 
 ## Tools
 
@@ -71,7 +73,7 @@ Input:
 
 ### `atproto_publish_card`
 
-Upserts this brain's capability card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
+Upserts this brain's public discovery card to the configured PDS as `ai.rizom.brain.card` using rkey `self`.
 
 Input:
 
@@ -80,6 +82,18 @@ Input:
 ```
 
 Use `dryRun: true` to inspect the record without writing to the PDS.
+
+The card is intentionally not a full A2A Agent Card. It is the public ATProto listing for a Rizom brain and requires:
+
+- `siteUrl`
+- `brain`: `{ did, name, role, purpose, values }`
+- `anchor`: `{ did, name, kind }`
+- `skills`
+- `model`
+- `version`
+- `createdAt`
+
+The operational A2A Agent Card is derived conventionally from `siteUrl` at `/.well-known/agent-card.json`.
 
 ### `atproto_publish_entity`
 
@@ -97,6 +111,25 @@ Input:
 ```
 
 Use this for generic projection-backed publishing. The entity plugin owns the record mapper; the canonical lexicon contract comes from `@brains/atproto-contracts`.
+
+### `atproto_discover_brain_cards`
+
+Reads public `ai.rizom.brain.card/self` records from candidate AT Protocol repo DIDs or handles, validates them against the canonical brain-card contract, and emits internal discovery events for the agent-discovery plugin.
+
+Input:
+
+```json
+{
+  "repos": ["did:plc:example", "brain.example.com"]
+}
+```
+
+Notes:
+
+- Discovery is bounded to 50 repos per call.
+- Invalid cards are skipped and reported in the result.
+- Duplicate card URI/CID pairs in the same batch are skipped.
+- New brains enter agent discovery as reviewable `status: discovered` agents; existing approved agents may be enriched but are not downgraded.
 
 ### `atproto_publish_post`
 
@@ -149,12 +182,15 @@ The registry rejects collection/lexicon mismatches. Before dry-run results or PD
 
 ## Manual smoke checklist
 
-Use a test PDS/Bluesky account and an app password.
+Use a test PDS/Bluesky account, an app password, and a controlled public site domain.
 
-1. Configure `identifier`, `repoDid` or handle, `brainDid`, and `appPassword: ${ATPROTO_APP_PASSWORD}`.
+The committed Rover full test app uses the Alex example identity (`domain: alex.example.com`, `identifier: alex.example.com`) so it stays aligned with the eval content. `alex.example.com` is fixture data, not a live PDS handle/domain. For a real live smoke, use the matching deployed Alex domain/account and keep only the app password in the environment.
+
+1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities.
 2. Start a brain with the atproto plugin enabled.
-3. Confirm DID document if using `did:web`:
-   - `GET https://<brain-domain>/.well-known/did.json`
+3. Confirm DID documents if using `did:web`:
+   - brain root DID: `GET https://<brain-domain>/.well-known/did.json`
+   - same-domain anchor path DID: `GET https://<brain-domain>/anchor/did.json`
 4. Dry-run card publishing:
    - `atproto_publish_card { "dryRun": true }`
 5. Validate credentials:
@@ -168,6 +204,8 @@ Use a test PDS/Bluesky account and an app password.
 9. Publish the post record:
    - `atproto_publish_post { "entityId": "<post-id>", "dryRun": false }`
 10. Verify records in the PDS repo.
+11. Discover a known card from another repo:
+    - `atproto_discover_brain_cards { "repos": ["<repo-did-or-handle>"] }`
 
 ## Current limitations
 

@@ -1,5 +1,64 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.111
+  - @brains/site-engine@0.2.0-alpha.111
+  - @brains/ui-library@0.2.0-alpha.111
+  - @brains/utils@0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.110
+  - @brains/site-engine@0.2.0-alpha.110
+  - @brains/ui-library@0.2.0-alpha.110
+  - @brains/utils@0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.109
+  - @brains/site-engine@0.2.0-alpha.109
+  - @brains/ui-library@0.2.0-alpha.109
+  - @brains/utils@0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.108
+  - @brains/site-engine@0.2.0-alpha.108
+  - @brains/ui-library@0.2.0-alpha.108
+  - @brains/utils@0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-renderer@0.2.0-alpha.107
+  - @brains/site-engine@0.2.0-alpha.107
+  - @brains/ui-library@0.2.0-alpha.107
+  - @brains/utils@0.2.0-alpha.107
+
+## 0.2.0-alpha.106
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-engine@0.2.0-alpha.106
+  - @brains/ui-library@0.2.0-alpha.106
+  - @brains/utils@0.2.0-alpha.106
+
 ## 0.2.0-alpha.105
 
 ### Patch Changes

@@ -69,6 +69,7 @@ export function createBuildContext(
         {
           pipelineContext: options.pipelineContext,
           imageBuildService: options.imageBuildService,
+          siteUrl: options.siteMetadata.url,
         },
       );
     },

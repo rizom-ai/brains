@@ -285,14 +285,14 @@ export const BlogPostTemplate = ({
   const readingTime = calculateReadingTime(post.body);
   const seriesPosition = getSeriesPosition(post, seriesPosts);
 
+  const ogImage = post.ogImageUrl ?? post.frontmatter.ogImage;
+
   return (
     <>
       <Head
         title={post.frontmatter.title}
         description={post.frontmatter.excerpt}
-        {...(post.coverImageUrl && {
-          ogImage: post.coverImageUrl,
-        })}
+        {...(ogImage ? { ogImage } : {})}
         ogType="article"
       />
       <article className="blog-post-section bg-theme">

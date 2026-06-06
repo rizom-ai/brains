@@ -6,7 +6,11 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { IMessageBus } from "@brains/plugins";
+import type {
+  BaseEntity,
+  IMessageBus,
+  ICoreEntityService,
+} from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
 // Mock message bus
@@ -27,14 +31,13 @@ function createMockMessageBus(): IMessageBus & {
   };
 }
 
-describe("ContentScheduler - Execute Message Mode", () => {
+describe("ContentScheduler - provider execution", () => {
   let scheduler: ContentScheduler;
   let backend: TestSchedulerBackend;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
   let messageBus: ReturnType<typeof createMockMessageBus>;
-  let onExecuteMock: ReturnType<typeof mock>;
 
   function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
     return {
@@ -54,11 +57,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
     messageBus = createMockMessageBus();
-    onExecuteMock = mock(() => {});
-
-    scheduler = ContentScheduler.createFresh(
-      baseConfig({ onExecute: onExecuteMock }),
-    );
+    scheduler = ContentScheduler.createFresh(baseConfig());
   });
 
   afterEach(async () => {
@@ -66,51 +65,20 @@ describe("ContentScheduler - Execute Message Mode", () => {
     ContentScheduler.resetInstance();
   });
 
-  describe("message-driven publishing", () => {
-    it("should send publish:execute message when processing queue", async () => {
-      await queueManager.add("social-post", "post-1", {
-        interfaceType: "test",
-        userId: "anchor-user",
-        userPermissionLevel: "anchor",
-        authorization: "user",
-      });
-      await scheduler.start();
-
-      // Trigger the interval (processes unscheduled types)
-      await backend.tick();
-
-      // Should have sent execute message
-      const executeMessages = messageBus._sentMessages.filter(
-        (m) => m.type === PUBLISH_MESSAGES.EXECUTE,
-      );
-      expect(executeMessages.length).toBeGreaterThan(0);
-      expect(executeMessages[0]?.payload).toMatchObject({
-        entityType: "social-post",
-        entityId: "post-1",
-        authContext: {
-          interfaceType: "test",
-          userId: "anchor-user",
-          userPermissionLevel: "anchor",
-          authorization: "user",
-        },
-      });
-    });
-
-    it("should call onExecute callback when processing queue", async () => {
+  describe("queued publishing", () => {
+    it("should not emit publish:execute messages", async () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
       await backend.tick();
 
-      expect(onExecuteMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          entityType: "social-post",
-          entityId: "post-1",
-        }),
+      const executeMessages = messageBus._sentMessages.filter(
+        (m) => m.type === "publish:execute",
       );
+      expect(executeMessages.length).toBe(0);
     });
 
-    it("should remove entity from queue after sending execute", async () => {
+    it("should remove entity from queue after processing", async () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
@@ -120,20 +88,79 @@ describe("ContentScheduler - Execute Message Mode", () => {
       expect(queue.length).toBe(0);
     });
 
-    it("should not call provider.publish when messageBus is configured", async () => {
+    it("should call provider.publish when no executor is configured", async () => {
+      await scheduler.stop();
       const publishMock = mock(() => Promise.resolve({ id: "result-1" }));
       providerRegistry.register("social-post", {
         name: "test",
         publish: publishMock,
       });
+      const entity: BaseEntity = {
+        id: "post-1",
+        entityType: "social-post",
+        content: "Body",
+        visibility: "public",
+        metadata: { status: "queued" },
+        created: "2026-06-04T12:00:00.000Z",
+        updated: "2026-06-04T12:00:00.000Z",
+        contentHash: "hash",
+      };
+      const entityService = {
+        getEntity: mock(async () => entity),
+      } as unknown as ICoreEntityService;
+      scheduler = ContentScheduler.createFresh(baseConfig({ entityService }));
 
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
       await backend.tick();
 
-      // Provider should NOT be called when using message-driven mode
-      expect(publishMock).not.toHaveBeenCalled();
+      expect(publishMock).toHaveBeenCalledWith("Body", { status: "queued" });
+    });
+
+    it("should use publish executor for registered providers when available", async () => {
+      await scheduler.stop();
+      const publish = mock(async () => ({
+        entity: {
+          id: "post-1",
+          entityType: "social-post",
+          content: "Body",
+          visibility: "public" as const,
+          metadata: { status: "published" as const },
+          created: "2026-06-04T12:00:00.000Z",
+          updated: "2026-06-04T12:00:00.000Z",
+          contentHash: "hash",
+        },
+        result: { id: "result-1" },
+      }));
+      providerRegistry.register("social-post", {
+        name: "test",
+        publish: mock(async () => ({ id: "unused" })),
+      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          publishExecutor: { publish },
+        }),
+      );
+
+      await queueManager.add("social-post", "post-1");
+      await scheduler.start();
+      await backend.tick();
+
+      expect(publish).toHaveBeenCalledWith({
+        entityType: "social-post",
+        id: "post-1",
+      });
+      expect(
+        messageBus._sentMessages.some(
+          (message) => message.type === "publish:execute",
+        ),
+      ).toBe(false);
+      expect(
+        messageBus._sentMessages.some(
+          (message) => message.type === PUBLISH_MESSAGES.COMPLETED,
+        ),
+      ).toBe(true);
     });
   });
 

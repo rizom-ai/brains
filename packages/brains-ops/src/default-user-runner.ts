@@ -28,6 +28,13 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     "    git:",
     `      repo: ${githubOrg}/${user.contentRepo}`,
     "      authToken: ${GIT_SYNC_TOKEN}",
+    ...(user.atproto
+      ? [
+          "  atproto:",
+          `    identifier: ${user.atproto.identifier}`,
+          "    appPassword: ${ATPROTO_APP_PASSWORD}",
+        ]
+      : []),
   ];
 
   if (user.discordEnabled) {
