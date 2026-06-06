@@ -8,6 +8,7 @@ import {
   type PlaybookFrontmatter,
   type PlaybookMetadata,
 } from "../schemas/playbook";
+import { assertValidPlaybookBody } from "../validation";
 
 export class PlaybookAdapter extends BaseEntityAdapter<
   PlaybookEntity,
@@ -35,9 +36,11 @@ export class PlaybookAdapter extends BaseEntityAdapter<
   } {
     const raw = this.parseFrontMatter(content, playbookFrontmatterSchema);
     const bodyMarkdown = this.extractBody(content).trim();
+    const body = playbookBodyFormatter.parse(bodyMarkdown);
+    assertValidPlaybookBody(body);
     return {
       frontmatter: playbookFrontmatterSchema.parse(raw),
-      body: playbookBodyFormatter.parse(bodyMarkdown),
+      body,
       bodyMarkdown,
     };
   }

@@ -5,7 +5,9 @@ import {
   type AgentContextResponse,
 } from "@brains/contracts";
 import {
+  assertValidPlaybookBody,
   playbookAdapter,
+  validatePlaybookBody,
   type PlaybookBody,
   type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
@@ -101,6 +103,11 @@ const runInputSchema = {
 
 const resetInputSchema = {
   runId: z.string().min(1).optional(),
+};
+
+const validateInputSchema = {
+  playbookId: z.string().min(1).optional(),
+  content: z.string().min(1).optional(),
 };
 
 export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
@@ -252,7 +259,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           const parsed = z.object(startInputSchema).parse(input);
           const conversationId = parsed.conversationId ?? toolContext.channelId;
           const playbook = await this.requirePlaybook(parsed.playbookId);
-          this.assertValidPlaybookBody(playbook.body);
+          assertValidPlaybookBody(playbook.body);
           const existing = await this.store.findActiveByPlaybook(
             parsed.playbookId,
           );
@@ -368,6 +375,22 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           await this.store.reset(parsed.runId);
           const data = await this.getStatus({});
           return { success: true, data };
+        },
+      },
+      {
+        name: "playbook_validate",
+        description:
+          "Validate a playbook definition structurally and return author-facing errors.",
+        inputSchema: validateInputSchema,
+        visibility: "anchor",
+        handler: async (input: unknown): Promise<ToolResponse> => {
+          const parsed = z.object(validateInputSchema).parse(input);
+          try {
+            const data = await this.validatePlaybookInput(parsed);
+            return { success: true, data };
+          } catch (error) {
+            return { success: false, error: errorMessage(error) };
+          }
         },
       },
     ];
@@ -613,27 +636,25 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     });
   }
 
-  private assertValidPlaybookBody(body: PlaybookBody): void {
-    const stateIds = new Set(body.states.map((state) => state.id));
-    if (!stateIds.has(body.initialState)) {
-      throw new Error(
-        `Playbook initial state '${body.initialState}' is not defined.`,
-      );
-    }
-    for (const finalState of body.finalStates) {
-      if (!stateIds.has(finalState)) {
-        throw new Error(`Playbook final state '${finalState}' is not defined.`);
+  private async validatePlaybookInput(input: {
+    playbookId?: string | undefined;
+    content?: string | undefined;
+  }): Promise<{ valid: boolean; errors: string[] }> {
+    if (input.content) {
+      try {
+        const { body } = playbookAdapter.parsePlaybookContent(input.content);
+        return validatePlaybookBody(body);
+      } catch (error) {
+        return { valid: false, errors: splitValidationError(error) };
       }
     }
-    for (const state of body.states) {
-      for (const transition of state.transitions) {
-        if (!stateIds.has(transition.target)) {
-          throw new Error(
-            `Playbook transition '${state.id}' -> '${transition.target}' targets an undefined state.`,
-          );
-        }
-      }
+
+    if (!input.playbookId) {
+      throw new Error("Provide either playbookId or content.");
     }
+
+    const playbook = await this.requirePlaybook(input.playbookId);
+    return validatePlaybookBody(playbook.body);
   }
 
   private async resolveLifecycleStarters(input: {
@@ -1077,6 +1098,13 @@ function stringFromPayload(
 ): string | undefined {
   const value = payload[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function splitValidationError(error: unknown): string[] {
+  return errorMessage(error)
+    .split("\n")
+    .map((message) => message.trim())
+    .filter((message) => message.length > 0);
 }
 
 const defaultGateVerifier: PlaybookGateVerifier = {

@@ -114,6 +114,45 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
+  it("validates playbook structure with author-facing errors", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    const invalidContent = playbookAdapter.createPlaybookContent(
+      {
+        title: "Broken",
+        status: "active",
+        audience: "anchor",
+        completionMode: "agent-confirmed",
+      },
+      {
+        ...playbookBody,
+        states: [
+          {
+            ...welcomeState,
+            transitions: [{ event: "NEXT", target: "missing" }],
+          },
+          seedState,
+          completeState,
+        ],
+      },
+    );
+
+    const response = await harness.executeTool("playbook_validate", {
+      content: invalidContent,
+    });
+    expectSuccess(response);
+    expect(response.data).toEqual({
+      valid: false,
+      errors: [
+        "Playbook transition 'welcome' -> 'missing' targets an undefined state.",
+        "Playbook state 'seed' is unreachable.",
+        "Playbook state 'complete' is unreachable.",
+      ],
+    });
+  });
+
   it("returns lifecycle starters for active anchor web-chat playbooks", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
