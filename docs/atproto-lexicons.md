@@ -18,7 +18,7 @@ https://rizom.ai/atproto/lexicons/ai.rizom.brain.post.json
 
 | NSID                        | Purpose                                                  |
 | --------------------------- | -------------------------------------------------------- |
-| `ai.rizom.brain.card`       | Brain capability card                                    |
+| `ai.rizom.brain.card`       | Brain discovery card with minimal anchor snapshot        |
 | `ai.rizom.brain.post`       | Blog post projection                                     |
 | `ai.rizom.brain.note`       | Knowledge note projection                                |
 | `ai.rizom.brain.link`       | Curated link projection                                  |

@@ -257,26 +257,104 @@ function buildAtprotoObjectSchema(
   return z.object(buildAtprotoObjectShape(property)).passthrough();
 }
 
+function reportUnexpectedFields(
+  value: Record<string, unknown>,
+  allowedFields: Set<string>,
+  ctx: z.RefinementCtx,
+  path: Array<string | number> = [],
+): void {
+  const unexpected = Object.keys(value).filter(
+    (key) => !allowedFields.has(key),
+  );
+  if (unexpected.length === 0) return;
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path,
+    message: `unrecognized field(s): ${unexpected.join(", ")}`,
+  });
+}
+
+function refineBrainCardRecord(
+  value: Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void {
+  reportUnexpectedFields(
+    value,
+    new Set([
+      "$type",
+      "siteUrl",
+      "brain",
+      "anchor",
+      "skills",
+      "model",
+      "version",
+      "createdAt",
+      "updatedAt",
+    ]),
+    ctx,
+  );
+  if (isRecord(value["brain"])) {
+    reportUnexpectedFields(
+      value["brain"],
+      new Set(["did", "name", "role", "purpose", "values"]),
+      ctx,
+      ["brain"],
+    );
+  }
+  if (isRecord(value["anchor"])) {
+    reportUnexpectedFields(
+      value["anchor"],
+      new Set(["did", "name", "kind"]),
+      ctx,
+      ["anchor"],
+    );
+  }
+}
+
 export function buildAtprotoRecordSchema(
   lexicon: AtprotoLexicon,
 ): AtprotoRecordSchema {
-  return z
+  const schema = z
     .object({
       ...buildAtprotoObjectShape(lexicon.defs.main.record),
       $type: z.literal(lexicon.id).optional(),
     })
     .passthrough();
+  return lexicon.id === "ai.rizom.brain.card"
+    ? schema.superRefine(refineBrainCardRecord)
+    : schema;
+}
+
+export interface AtprotoBrainCardSkill extends Record<string, unknown> {
+  id: string;
+  name: string;
+  description: string;
+  tags?: string[];
+  examples?: string[];
+}
+
+export interface AtprotoBrainCardBrain extends Record<string, unknown> {
+  did: string;
+  name: string;
+  role: string;
+  purpose: string;
+  values: string[];
+}
+
+export interface AtprotoBrainCardAnchor extends Record<string, unknown> {
+  did: string;
+  name: string;
+  kind: "professional" | "team" | "collective";
 }
 
 export interface AtprotoBrainCardRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.card";
-  name: string;
-  description?: string;
-  brainDid?: string;
-  anchorDid?: string;
-  siteUrl?: string;
-  a2aEndpoint?: string;
-  capabilities?: string[];
+  siteUrl: string;
+  brain: AtprotoBrainCardBrain;
+  anchor: AtprotoBrainCardAnchor;
+  skills: AtprotoBrainCardSkill[];
+  model: string;
+  version: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -497,6 +575,9 @@ function formatAtprotoSchemaIssue(
   if (issue.code === "custom") {
     return `Invalid AT Protocol record field ${path}: ${issue.message}`;
   }
+  if (issue.code === "unrecognized_keys") {
+    return `Unrecognized AT Protocol record field(s): ${issue.keys.join(", ")}`;
+  }
   return `Invalid AT Protocol record field ${path}: ${issue.message}`;
 }
 
@@ -510,6 +591,46 @@ export function validateAtprotoRecord(
   if (!issue) throw result.error;
   throw new Error(formatAtprotoSchemaIssue(lexicon, record, issue));
 }
+
+export const ATPROTO_BRAIN_CARD_DISCOVERED = "atproto:brain-card-discovered";
+export const ATPROTO_BRAIN_DISCOVERED = "atproto:brain-discovered";
+export const ATPROTO_BRAIN_CARD_REFRESHED = "atproto:brain-card-refreshed";
+
+export const atprotoBrainCardDiscoveredPayloadSchema = z
+  .object({
+    repoDid: z.string().min(1),
+    uri: z.string().min(1),
+    cid: z.string().min(1),
+    // The card schema validates the full nested card shape, so the parsed
+    // record can be consumed as a typed AtprotoBrainCardRecord rather than an
+    // untyped property bag.
+    record: canonicalAtprotoRecordSchemas[
+      "ai.rizom.brain.card"
+    ] as unknown as z.ZodType<AtprotoBrainCardRecord>,
+  })
+  .strict();
+
+export type AtprotoBrainCardDiscoveredPayload = z.infer<
+  typeof atprotoBrainCardDiscoveredPayloadSchema
+>;
+
+export const atprotoBrainDiscoveryEventPayloadSchema = z
+  .object({
+    agentId: z.string().min(1),
+    name: z.string().min(1),
+    url: z.string().url(),
+    status: z.enum(["discovered", "approved"]),
+    repoDid: z.string().min(1).optional(),
+    brainDid: z.string().min(1).optional(),
+    anchorDid: z.string().min(1).optional(),
+    cardUri: z.string().min(1).optional(),
+    cardCid: z.string().min(1).optional(),
+  })
+  .strict();
+
+export type AtprotoBrainDiscoveryEventPayload = z.infer<
+  typeof atprotoBrainDiscoveryEventPayloadSchema
+>;
 
 export interface AtprotoBlobRef {
   $type?: "blob" | undefined;
@@ -550,6 +671,11 @@ export interface AtprotoPdsClientLike {
     rkey: string;
     validate?: boolean;
   }): Promise<{ uri: string; cid: string }>;
+  getRecord?(input: {
+    repo: string;
+    collection: string;
+    rkey: string;
+  }): Promise<{ uri: string; cid: string; value: Record<string, unknown> }>;
   uploadBlob?(input: {
     data: Buffer;
     mimeType: string;

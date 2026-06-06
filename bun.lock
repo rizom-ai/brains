@@ -107,6 +107,7 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
+        "@brains/atproto": "workspace:*",
         "@brains/auth-service": "workspace:*",
         "@brains/blog": "workspace:*",
         "@brains/cms": "workspace:*",
@@ -151,6 +152,7 @@
       "name": "@brains/agent-discovery",
       "version": "0.2.0-alpha.107",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/dashboard": "workspace:*",

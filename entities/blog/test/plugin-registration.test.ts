@@ -27,6 +27,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       "publish:register",
       "publish:report:success",
       "publish:report:failure",
+      "publish-assets:register",
     ]) {
       harness.subscribe(eventType, async (msg) => {
         receivedMessages.push({ type: eventType, payload: msg.payload });
@@ -58,6 +59,23 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       expect(registerMessage?.payload).toMatchObject({
         entityType: "post",
         provider: { name: "internal" },
+      });
+    });
+
+    it("should register post OG images as publish assets", async () => {
+      await harness.installPlugin(new BlogPlugin({}));
+
+      const registerMessage = receivedMessages.find(
+        (m) => m.type === "publish-assets:register",
+      );
+      expect(registerMessage?.payload).toMatchObject({
+        entityType: "post",
+        attachmentType: "og-image",
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
+        jobType: "image:image-render-source",
       });
     });
   });

@@ -39,5 +39,4 @@ const config = defineConfig({
 ## Messages
 
 - `publish:register` - Register a publish provider
-- `publish:execute` - Trigger entity publishing
 - `generate:execute` - Trigger draft generation

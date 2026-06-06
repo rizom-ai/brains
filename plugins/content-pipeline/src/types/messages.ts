@@ -1,6 +1,7 @@
 import type { PublishProvider } from "@brains/contracts";
 import type { ToolContext } from "@brains/plugins";
 import type { PublishConfig } from "./config";
+import type { PublishAssetDefinition } from "../publish-assets";
 
 export interface PublishAuthContext {
   interfaceType?: ToolContext["interfaceType"];
@@ -80,13 +81,6 @@ export interface PublishReportFailurePayload {
  * Message payloads for service → plugin communication
  */
 
-/** Entity is ready to publish - plugin should handle */
-export interface PublishExecutePayload {
-  entityType: string;
-  entityId: string;
-  authContext?: PublishAuthContext;
-}
-
 /** Entity was added to queue */
 export interface PublishQueuedPayload {
   entityType: string;
@@ -138,7 +132,6 @@ export const PUBLISH_MESSAGES = {
   REPORT_FAILURE: "publish:report:failure",
 
   // Service → Plugin
-  EXECUTE: "publish:execute",
   QUEUED: "publish:queued",
   COMPLETED: "publish:completed",
   FAILED: "publish:failed",
@@ -191,4 +184,14 @@ export const GENERATE_MESSAGES = {
   COMPLETED: "generate:completed",
   FAILED: "generate:failed",
   SKIPPED: "generate:skipped",
+} as const;
+
+/** Register a publish asset policy. */
+export type PublishAssetRegisterPayload = PublishAssetDefinition;
+
+/**
+ * Message type constants for publish assets.
+ */
+export const PUBLISH_ASSET_MESSAGES = {
+  REGISTER: "publish-assets:register",
 } as const;

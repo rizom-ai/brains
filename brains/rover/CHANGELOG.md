@@ -1,5 +1,181 @@
 # @brains/rover
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.111
+  - @brains/assessment@0.2.0-alpha.111
+  - @brains/blog@0.2.0-alpha.111
+  - @brains/decks@0.2.0-alpha.111
+  - @brains/document-plugin@0.2.0-alpha.111
+  - @brains/image-plugin@0.2.0-alpha.111
+  - @brains/link@0.2.0-alpha.111
+  - @brains/note@0.2.0-alpha.111
+  - @brains/portfolio@0.2.0-alpha.111
+  - @brains/prompt@0.2.0-alpha.111
+  - @brains/rizom-ecosystem@0.2.0-alpha.111
+  - @brains/series@0.2.0-alpha.111
+  - @brains/site-info@0.2.0-alpha.111
+  - @brains/social-media@0.2.0-alpha.111
+  - @brains/topics@0.2.0-alpha.111
+  - @brains/wishlist@0.2.0-alpha.111
+  - @brains/a2a@0.2.0-alpha.111
+  - @brains/discord@0.2.0-alpha.111
+  - @brains/mcp@0.2.0-alpha.111
+  - @brains/web-chat@0.2.0-alpha.111
+  - @brains/webserver@0.2.0-alpha.111
+  - @brains/analytics@0.2.0-alpha.111
+  - @brains/atproto@0.2.0-alpha.111
+  - @brains/cms@0.2.0-alpha.111
+  - @brains/content-pipeline@0.2.0-alpha.111
+  - @brains/dashboard@0.2.0-alpha.111
+  - @brains/directory-sync@0.2.0-alpha.111
+  - @brains/email-resend@0.2.0-alpha.111
+  - @brains/newsletter@0.2.0-alpha.111
+  - @brains/notifications@0.2.0-alpha.111
+  - @brains/obsidian-vault@0.2.0-alpha.111
+  - @brains/site-builder-plugin@0.2.0-alpha.111
+  - @brains/stock-photo@0.2.0-alpha.111
+  - @brains/theme-default@0.2.0-alpha.111
+  - @brains/app@0.2.0-alpha.111
+  - @brains/auth-service@0.2.0-alpha.111
+  - @brains/site-default@0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.110
+  - @brains/assessment@0.2.0-alpha.110
+  - @brains/blog@0.2.0-alpha.110
+  - @brains/decks@0.2.0-alpha.110
+  - @brains/document-plugin@0.2.0-alpha.110
+  - @brains/image-plugin@0.2.0-alpha.110
+  - @brains/link@0.2.0-alpha.110
+  - @brains/note@0.2.0-alpha.110
+  - @brains/portfolio@0.2.0-alpha.110
+  - @brains/prompt@0.2.0-alpha.110
+  - @brains/rizom-ecosystem@0.2.0-alpha.110
+  - @brains/series@0.2.0-alpha.110
+  - @brains/site-info@0.2.0-alpha.110
+  - @brains/social-media@0.2.0-alpha.110
+  - @brains/topics@0.2.0-alpha.110
+  - @brains/wishlist@0.2.0-alpha.110
+  - @brains/a2a@0.2.0-alpha.110
+  - @brains/discord@0.2.0-alpha.110
+  - @brains/mcp@0.2.0-alpha.110
+  - @brains/web-chat@0.2.0-alpha.110
+  - @brains/webserver@0.2.0-alpha.110
+  - @brains/analytics@0.2.0-alpha.110
+  - @brains/atproto@0.2.0-alpha.110
+  - @brains/cms@0.2.0-alpha.110
+  - @brains/content-pipeline@0.2.0-alpha.110
+  - @brains/dashboard@0.2.0-alpha.110
+  - @brains/directory-sync@0.2.0-alpha.110
+  - @brains/email-resend@0.2.0-alpha.110
+  - @brains/newsletter@0.2.0-alpha.110
+  - @brains/notifications@0.2.0-alpha.110
+  - @brains/obsidian-vault@0.2.0-alpha.110
+  - @brains/site-builder-plugin@0.2.0-alpha.110
+  - @brains/stock-photo@0.2.0-alpha.110
+  - @brains/theme-default@0.2.0-alpha.110
+  - @brains/app@0.2.0-alpha.110
+  - @brains/auth-service@0.2.0-alpha.110
+  - @brains/site-default@0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- [`b2c3550`](https://github.com/rizom-ai/brains/commit/b2c355029c06de6368e70d1832be39c084a276a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release ATProto smoke credential wiring after the previous alpha version bump: Rover reads the app password from `ATPROTO_APP_PASSWORD`, rover-pilot user config owns the public ATProto identifier, and ops encrypts/deploys only the per-user ATProto app password.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.109
+  - @brains/assessment@0.2.0-alpha.109
+  - @brains/blog@0.2.0-alpha.109
+  - @brains/decks@0.2.0-alpha.109
+  - @brains/document-plugin@0.2.0-alpha.109
+  - @brains/image-plugin@0.2.0-alpha.109
+  - @brains/link@0.2.0-alpha.109
+  - @brains/note@0.2.0-alpha.109
+  - @brains/portfolio@0.2.0-alpha.109
+  - @brains/prompt@0.2.0-alpha.109
+  - @brains/rizom-ecosystem@0.2.0-alpha.109
+  - @brains/series@0.2.0-alpha.109
+  - @brains/site-info@0.2.0-alpha.109
+  - @brains/social-media@0.2.0-alpha.109
+  - @brains/topics@0.2.0-alpha.109
+  - @brains/wishlist@0.2.0-alpha.109
+  - @brains/a2a@0.2.0-alpha.109
+  - @brains/discord@0.2.0-alpha.109
+  - @brains/mcp@0.2.0-alpha.109
+  - @brains/web-chat@0.2.0-alpha.109
+  - @brains/webserver@0.2.0-alpha.109
+  - @brains/analytics@0.2.0-alpha.109
+  - @brains/atproto@0.2.0-alpha.109
+  - @brains/cms@0.2.0-alpha.109
+  - @brains/content-pipeline@0.2.0-alpha.109
+  - @brains/dashboard@0.2.0-alpha.109
+  - @brains/directory-sync@0.2.0-alpha.109
+  - @brains/email-resend@0.2.0-alpha.109
+  - @brains/newsletter@0.2.0-alpha.109
+  - @brains/notifications@0.2.0-alpha.109
+  - @brains/obsidian-vault@0.2.0-alpha.109
+  - @brains/site-builder-plugin@0.2.0-alpha.109
+  - @brains/stock-photo@0.2.0-alpha.109
+  - @brains/theme-default@0.2.0-alpha.109
+  - @brains/app@0.2.0-alpha.109
+  - @brains/auth-service@0.2.0-alpha.109
+  - @brains/site-default@0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- [`92ce0bd`](https://github.com/rizom-ai/brains/commit/92ce0bd672d2d2e6fabb206b78a884dbc23e3663) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add ATProto brain-card discovery event contracts, revise `ai.rizom.brain.card` to the nested brain identity plus minimal anchor snapshot shape, serve conventional/configured brain and anchor `did:web` documents, default omitted brain/anchor DIDs from the site host, include ATProto in Rover core, add a bounded `atproto_discover_brain_cards` candidate-read tool, and handle discovered cards by creating reviewable agents or enriching existing approved agents with signed card metadata.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.108
+  - @brains/assessment@0.2.0-alpha.108
+  - @brains/blog@0.2.0-alpha.108
+  - @brains/decks@0.2.0-alpha.108
+  - @brains/document-plugin@0.2.0-alpha.108
+  - @brains/image-plugin@0.2.0-alpha.108
+  - @brains/link@0.2.0-alpha.108
+  - @brains/note@0.2.0-alpha.108
+  - @brains/portfolio@0.2.0-alpha.108
+  - @brains/prompt@0.2.0-alpha.108
+  - @brains/rizom-ecosystem@0.2.0-alpha.108
+  - @brains/series@0.2.0-alpha.108
+  - @brains/site-info@0.2.0-alpha.108
+  - @brains/social-media@0.2.0-alpha.108
+  - @brains/topics@0.2.0-alpha.108
+  - @brains/wishlist@0.2.0-alpha.108
+  - @brains/a2a@0.2.0-alpha.108
+  - @brains/discord@0.2.0-alpha.108
+  - @brains/mcp@0.2.0-alpha.108
+  - @brains/web-chat@0.2.0-alpha.108
+  - @brains/webserver@0.2.0-alpha.108
+  - @brains/analytics@0.2.0-alpha.108
+  - @brains/atproto@0.2.0-alpha.108
+  - @brains/cms@0.2.0-alpha.108
+  - @brains/content-pipeline@0.2.0-alpha.108
+  - @brains/dashboard@0.2.0-alpha.108
+  - @brains/directory-sync@0.2.0-alpha.108
+  - @brains/email-resend@0.2.0-alpha.108
+  - @brains/newsletter@0.2.0-alpha.108
+  - @brains/notifications@0.2.0-alpha.108
+  - @brains/obsidian-vault@0.2.0-alpha.108
+  - @brains/site-builder-plugin@0.2.0-alpha.108
+  - @brains/stock-photo@0.2.0-alpha.108
+  - @brains/theme-default@0.2.0-alpha.108
+  - @brains/app@0.2.0-alpha.108
+  - @brains/auth-service@0.2.0-alpha.108
+  - @brains/site-default@0.2.0-alpha.108
+
 ## 0.2.0-alpha.107
 
 ### Patch Changes

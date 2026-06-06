@@ -6,13 +6,7 @@ import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import type { GenerationCondition } from "./config";
 import type { SchedulerBackend } from "../scheduler-backend";
-import type { PublishAuthContext } from "./messages";
-
-export interface PublishExecuteEvent {
-  entityType: string;
-  entityId: string;
-  authContext: PublishAuthContext;
-}
+import type { PublishEntityExecutor } from "../publish-executor";
 
 export interface GenerateExecuteEvent {
   entityType: string;
@@ -62,13 +56,13 @@ export interface SchedulerConfig {
    * Conditions that must be met before generating drafts.
    */
   generationConditions?: Record<string, GenerationCondition>;
-  /** Optional message bus for message-driven publishing/generation */
+  /** Optional message bus for publish/generation events */
   messageBus?: IMessageBus;
-  /** Entity service for fetching entity content (required for provider mode) */
+  /** Entity service for fetching entity content when no shared executor is configured. */
   entityService?: ICoreEntityService;
-  /** Callback when entity is ready to publish (message mode) */
-  onExecute?: (event: PublishExecuteEvent) => void;
-  /** Callback on successful publish (provider mode) */
+  /** Shared executor for provider publishing and durable publish state updates. */
+  publishExecutor?: PublishEntityExecutor;
+  /** Callback on successful publish */
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */
   onFailed?: (event: PublishFailedEvent) => void;

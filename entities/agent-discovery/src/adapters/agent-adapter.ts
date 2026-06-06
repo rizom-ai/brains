@@ -51,6 +51,12 @@ export interface CreateAgentContentInput {
   brainName: string;
   url: string;
   did?: string;
+  repoDid?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  cardUri?: string;
+  cardCid?: string;
+  a2aEndpoint?: string;
   status: AgentStatus | string;
   discoveredAt: string;
   about: string;
@@ -83,6 +89,14 @@ export class AgentAdapter extends BaseEntityAdapter<
         status: frontmatter.status,
         discoveredAt: frontmatter.discoveredAt,
         slug,
+        ...(frontmatter.repoDid && { repoDid: frontmatter.repoDid }),
+        ...(frontmatter.brainDid && { brainDid: frontmatter.brainDid }),
+        ...(frontmatter.anchorDid && { anchorDid: frontmatter.anchorDid }),
+        ...(frontmatter.cardUri && { cardUri: frontmatter.cardUri }),
+        ...(frontmatter.cardCid && { cardCid: frontmatter.cardCid }),
+        ...(frontmatter.a2aEndpoint && {
+          a2aEndpoint: frontmatter.a2aEndpoint,
+        }),
       },
     };
   }
@@ -95,6 +109,12 @@ export class AgentAdapter extends BaseEntityAdapter<
       brainName: input.brainName,
       url: input.url,
       ...(input.did && { did: input.did }),
+      ...(input.repoDid && { repoDid: input.repoDid }),
+      ...(input.brainDid && { brainDid: input.brainDid }),
+      ...(input.anchorDid && { anchorDid: input.anchorDid }),
+      ...(input.cardUri && { cardUri: input.cardUri }),
+      ...(input.cardCid && { cardCid: input.cardCid }),
+      ...(input.a2aEndpoint && { a2aEndpoint: input.a2aEndpoint }),
       status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,
     };

@@ -1,16 +1,11 @@
-import type {
-  Tool,
-  ToolResult,
-  ServicePluginContext,
-  BaseEntity,
-} from "@brains/plugins";
+import type { Tool, ToolResult, ServicePluginContext } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
-import type { PublishableMetadata } from "../schemas/publishable";
-import { preparePublishContent } from "./publish-content";
-
-type PublishableEntity = BaseEntity<PublishableMetadata>;
+import {
+  PublishExecutor,
+  type PublishEntityExecutor,
+} from "../publish-executor";
 
 /**
  * Input schema for publish-pipeline:publish tool
@@ -68,7 +63,14 @@ export function createPublishTool(
   context: ServicePluginContext,
   pluginId: string,
   providerRegistry: ProviderRegistry,
+  publishExecutor?: PublishEntityExecutor,
 ): Tool<PublishOutput> {
+  const executor =
+    publishExecutor ??
+    new PublishExecutor({
+      context,
+      providerRegistry,
+    });
   const tool = createTool(
     pluginId,
     "publish",
@@ -83,72 +85,15 @@ export function createPublishTool(
         toolContext,
       );
 
-      // Validate that at least one identifier is provided
-      if (!id && !slug) {
+      const publishResult = await executor.publish({ entityType, id, slug });
+      if ("error" in publishResult) {
         return {
           success: false,
-          error: "Either 'id' or 'slug' must be provided",
+          error: publishResult.error,
         };
       }
 
-      const entity = await findPublishableEntity(context, entityType, id, slug);
-
-      if (!entity) {
-        const identifier = id ?? slug;
-        return {
-          success: false,
-          error: `Entity not found: ${entityType}:${identifier}`,
-        };
-      }
-
-      if (entity.visibility !== "public") {
-        return {
-          success: false,
-          error: `Cannot publish ${entityType}:${entity.id} to a public provider because visibility is ${entity.visibility}`,
-        };
-      }
-
-      // Check if already published
-      if (entity.metadata.status === "published") {
-        return {
-          success: false,
-          error: "Entity is already published",
-        };
-      }
-
-      // Get the provider for this entity type
-      if (!providerRegistry.has(entityType)) {
-        return {
-          success: false,
-          error: `No publish provider registered for ${entityType}. Check that the required credentials are configured.`,
-        };
-      }
-      const provider = providerRegistry.get(entityType);
-
-      const { bodyContent, imageData, documentData } =
-        await preparePublishContent(context, entity);
-
-      // Publish using the provider
-      const result = await provider.publish(
-        bodyContent,
-        entity.metadata,
-        imageData,
-        documentData,
-      );
-
-      // Update entity status
-      await context.entityService.updateEntity({
-        entity: {
-          ...entity,
-          metadata: {
-            ...entity.metadata,
-            status: "published",
-            publishedAt: new Date().toISOString(),
-            platformId: result.id,
-          },
-        },
-      });
-
+      const { entity, result } = publishResult;
       return {
         success: true,
         data: {
@@ -166,29 +111,4 @@ export function createPublishTool(
     ...tool,
     outputSchema: publishOutputSchema,
   } as Tool<PublishOutput>;
-}
-
-async function findPublishableEntity(
-  context: ServicePluginContext,
-  entityType: string,
-  id?: string,
-  slug?: string,
-): Promise<PublishableEntity | null> {
-  if (id) {
-    return context.entityService.getEntity<PublishableEntity>({
-      entityType,
-      id,
-    });
-  }
-
-  if (!slug) return null;
-
-  const entities = await context.entityService.listEntities<PublishableEntity>({
-    entityType,
-    options: {
-      filter: { metadata: { slug } },
-      limit: 1,
-    },
-  });
-  return entities[0] ?? null;
 }

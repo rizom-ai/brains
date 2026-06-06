@@ -268,6 +268,8 @@ describe("brain init", () => {
       expect(envSchema).not.toContain("OP_TOKEN=");
       expect(envSchema).not.toContain("secret backend bootstrap");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
+      expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
+      expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
       expect(envSchema).toContain("SETUP_EMAIL_TO=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
       expect(envSchema).toContain("SETUP_EMAIL_FROM=");
@@ -284,6 +286,8 @@ describe("brain init", () => {
       expect(envSchema).toContain("AI_API_KEY=");
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
       expect(envSchema).toContain("CMS_CONTENT_REPO_PAT=");
+      expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
+      expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
     });
@@ -767,6 +771,8 @@ describe("brain init", () => {
       expect(deploy).not.toMatch(/^healthcheck:/m);
       expect(deploy).toContain("builder:");
       expect(deploy).toContain("arch: amd64");
+      expect(deploy).toContain("- ATPROTO_APP_PASSWORD");
+      expect(deploy).not.toContain("- ATPROTO_IDENTIFIER");
       expect(deploy).toContain("- SETUP_EMAIL_TO");
       expect(deploy).toContain("- SETUP_EMAIL_API_KEY");
       expect(deploy).toContain("- SETUP_EMAIL_FROM");

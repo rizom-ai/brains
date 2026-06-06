@@ -8,7 +8,7 @@ import {
   type AtprotoPdsClientLike,
 } from "../src";
 
-function createContext(): ServicePluginContext {
+function createShellWithA2A(): ReturnType<typeof createMockShell> {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.registerEndpoint({
     pluginId: "a2a",
@@ -26,7 +26,11 @@ function createContext(): ServicePluginContext {
     priority: 20,
     visibility: "public",
   });
-  return createServicePluginContext(shell, "atproto");
+  return shell;
+}
+
+function createContext(): ServicePluginContext {
+  return createServicePluginContext(createShellWithA2A(), "atproto");
 }
 
 describe("AT Protocol brain card publishing", () => {
@@ -66,17 +70,64 @@ describe("AT Protocol brain card publishing", () => {
     expect(result.uri).toBeUndefined();
     expect(result.record).toMatchObject({
       $type: "ai.rizom.brain.card",
-      name: "Test Brain",
-      description: "Testing purposes",
-      brainDid: "did:web:brain.example.com",
-      anchorDid: "did:plc:anchor",
+      brain: {
+        did: "did:web:brain.example.com",
+        name: "Test Brain",
+        role: "Test Assistant",
+        purpose: "Testing purposes",
+        values: ["reliability", "accuracy"],
+      },
+      anchor: {
+        did: "did:plc:anchor",
+        name: "Test Owner",
+        kind: "professional",
+      },
       siteUrl: "https://brain.example.com/",
-      a2aEndpoint: "https://brain.example.com/a2a",
+      skills: [],
+      model: "test-brain",
     });
-    expect(result.record.capabilities).toContain("model:test-brain");
-    expect(result.record.capabilities).toContain("endpoint:A2A");
-    expect(result.record.capabilities).toContain("interaction:Chat");
+    expect("brainDid" in result.record).toBe(false);
+    expect("anchorDid" in result.record).toBe(false);
+    expect(result.record.version).toBeDefined();
     expect(createRecord).not.toHaveBeenCalled();
+  });
+
+  it("defaults brain and anchor DIDs from the siteUrl host", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+    });
+
+    const result = await plugin.publishBrainCard(createContext(), {
+      dryRun: true,
+    });
+
+    expect(result.record.brain.did).toBe("did:web:brain.example.com");
+    expect(result.record.anchor.did).toBe("did:web:brain.example.com:anchor");
+  });
+
+  it("rejects did:web brain identities that do not match siteUrl host", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      brainDid: "did:web:other.example.com",
+      anchorDid: "did:plc:anchor",
+    });
+
+    let error: unknown;
+    try {
+      await plugin.publishBrainCard(createContext(), { dryRun: true });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toHaveProperty(
+      "message",
+      "AT Protocol brain card did:web host must match siteUrl host",
+    );
   });
 
   it("upserts the brain card to the configured PDS repo", async () => {
@@ -100,6 +151,7 @@ describe("AT Protocol brain card publishing", () => {
         identifier: "brain.example.com",
         appPassword: "secret",
         brainDid: "did:web:brain.example.com",
+        anchorDid: "did:plc:anchor",
       },
       {
         createPdsClient: (): AtprotoPdsClientLike => ({
@@ -132,12 +184,9 @@ describe("AT Protocol brain card publishing", () => {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
+      anchorDid: "did:plc:anchor",
     });
-    const capabilities = await plugin.register(
-      createMockShell({
-        domain: "brain.example.com",
-      }),
-    );
+    const capabilities = await plugin.register(createShellWithA2A());
 
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "atproto_publish_card",
@@ -152,7 +201,19 @@ describe("AT Protocol brain card publishing", () => {
       success: true,
       data: {
         dryRun: true,
-        record: { $type: "ai.rizom.brain.card", name: "Test Brain" },
+        record: {
+          $type: "ai.rizom.brain.card",
+          brain: {
+            did: "did:web:brain.example.com",
+            name: "Test Brain",
+          },
+          anchor: {
+            did: "did:plc:anchor",
+            name: "Test Owner",
+            kind: "professional",
+          },
+          siteUrl: "https://brain.example.com/",
+        },
       },
     });
   });

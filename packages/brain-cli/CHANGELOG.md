@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- [`61d6fb4`](https://github.com/rizom-ai/brains/commit/61d6fb44d3b3efaef89c8c4de9736e13f0486d2f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Consolidate content-pipeline publishing through provider-mode execution and add publish asset reconciliation for generated assets such as blog OG images. Published posts now enqueue missing publish assets after publish or published entity updates, and the content pipeline exposes an ensure-assets tool for backfills.
+
+## 0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- [`b2c3550`](https://github.com/rizom-ai/brains/commit/b2c355029c06de6368e70d1832be39c084a276a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release ATProto smoke credential wiring after the previous alpha version bump: Rover reads the app password from `ATPROTO_APP_PASSWORD`, rover-pilot user config owns the public ATProto identifier, and ops encrypts/deploys only the per-user ATProto app password.
+
+## 0.2.0-alpha.108
+
+### Patch Changes
+
+- [`92ce0bd`](https://github.com/rizom-ai/brains/commit/92ce0bd672d2d2e6fabb206b78a884dbc23e3663) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add ATProto brain-card discovery event contracts, revise `ai.rizom.brain.card` to the nested brain identity plus minimal anchor snapshot shape, serve conventional/configured brain and anchor `did:web` documents, default omitted brain/anchor DIDs from the site host, include ATProto in Rover core, add a bounded `atproto_discover_brain_cards` candidate-read tool, and handle discovered cards by creating reviewable agents or enriching existing approved agents with signed card metadata.
+
 ## 0.2.0-alpha.107
 
 ### Patch Changes

@@ -36,6 +36,28 @@ export {
   type SchedulerBackend,
   type ScheduledJob,
 } from "./scheduler-backend";
+export {
+  PublishAssetRegistry,
+  publishAssetDefinitionSchema,
+  publishAssetTargetFieldSchema,
+  type PublishAssetDefinition,
+  type PublishAssetTargetField,
+} from "./publish-assets";
+export {
+  PublishAssetPreflight,
+  type PublishAssetPreflightResult,
+} from "./publish-asset-preflight";
+export {
+  PublishExecutor,
+  type PublishEntityExecutor,
+  type PublishEntityInput,
+  type PublishEntityResult,
+} from "./publish-executor";
+export {
+  markEntityPublished,
+  updatePublishFrontmatter,
+  type MarkPublishedOptions,
+} from "./publish-state-updater";
 
 // Tools
 export {
@@ -51,6 +73,11 @@ export {
   publishOutputSchema,
   type PublishInput,
   type PublishOutput,
+  createEnsureAssetsTool,
+  ensureAssetsInputSchema,
+  ensureAssetsOutputSchema,
+  type EnsureAssetsInput,
+  type EnsureAssetsOutput,
 } from "./tools";
 
 // Plugin

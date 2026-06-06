@@ -137,6 +137,24 @@ discord:
     );
   });
 
+  it("renders ATProto identifier config into generated brain config", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/alice.yaml": `handle: alice
+atproto:
+  identifier: rizom-test.bsky.social
+discord:
+  enabled: false
+`,
+    });
+
+    await onboardUser(root, "alice");
+
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
+    );
+  });
+
   it("renders discord anchor user IDs into generated brain config", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
