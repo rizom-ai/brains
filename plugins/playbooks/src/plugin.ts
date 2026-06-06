@@ -117,6 +117,7 @@ export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
   body: PlaybookBody;
+  version: string;
 }
 
 export interface PlaybookStarter {
@@ -275,6 +276,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
               })
             : await this.createStartedRun({
                 playbookId: parsed.playbookId,
+                playbookVersion: playbook.version,
                 body: playbook.body,
                 lifecycle: parsed.lifecycle,
                 conversationId,
@@ -301,6 +303,12 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           });
           if (!run.success) return run;
           const playbook = await this.requirePlaybook(run.data.playbookId);
+          if (run.data.playbookVersion !== playbook.version) {
+            return {
+              success: false,
+              error: `Playbook definition changed for '${run.data.playbookId}'. Run version ${run.data.playbookVersion} does not match current version ${playbook.version}.`,
+            };
+          }
           const result = await this.transitionRun(
             run.data,
             playbook.body,
@@ -398,12 +406,14 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
 
   private async createStartedRun(input: {
     playbookId: string;
+    playbookVersion: string;
     body: PlaybookBody;
     lifecycle?: string | undefined;
     conversationId?: string | undefined;
   }): Promise<PlaybookRun> {
     const run = createPlaybookRun({
       playbookId: input.playbookId,
+      playbookVersion: input.playbookVersion,
       initialState: input.body.initialState,
       lifecycle: input.lifecycle,
       conversationId: input.conversationId,
@@ -799,7 +809,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
     const { body } = playbookAdapter.parsePlaybookContent(parsed.data.content);
-    return { entity: parsed.data, body };
+    return {
+      entity: parsed.data,
+      body,
+      version: computeContentHash(parsed.data.content),
+    };
   }
 
   private async requirePlaybook(playbookId: string): Promise<ParsedPlaybook> {

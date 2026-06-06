@@ -47,6 +47,7 @@ export const playbookRunSchema = z
   .object({
     id: z.string().min(1),
     playbookId: z.string().min(1),
+    playbookVersion: z.string().min(1),
     lifecycle: z.string().min(1).optional(),
     status: playbookRunStatusSchema,
     conversationId: z.string().min(1).optional(),
@@ -172,6 +173,7 @@ export class PlaybookRunStore {
 
 export function createPlaybookRun(input: {
   playbookId: string;
+  playbookVersion: string;
   initialState: string;
   lifecycle?: string | undefined;
   conversationId?: string | undefined;
@@ -182,6 +184,7 @@ export function createPlaybookRun(input: {
   return playbookRunSchema.parse({
     id: createPrefixedId("playbook_run"),
     playbookId: input.playbookId,
+    playbookVersion: input.playbookVersion,
     ...(input.lifecycle ? { lifecycle: input.lifecycle } : {}),
     status: input.status ?? "active",
     ...(input.conversationId ? { conversationId: input.conversationId } : {}),

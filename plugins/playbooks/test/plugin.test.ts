@@ -205,6 +205,24 @@ describe("PlaybooksPlugin", () => {
     });
   });
 
+  it("fails loudly when a run's pinned playbook version no longer matches content", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-stale-playbook");
+
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      operatingRules: ["Changed after run start."],
+    });
+
+    const stale = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+
+    expectError(stale);
+    expect(stale.error).toContain("Playbook definition changed");
+  });
+
   it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
