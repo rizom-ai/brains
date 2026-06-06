@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.111
+
+### Patch Changes
+
+- [`61d6fb4`](https://github.com/rizom-ai/brains/commit/61d6fb44d3b3efaef89c8c4de9736e13f0486d2f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Consolidate content-pipeline publishing through provider-mode execution and add publish asset reconciliation for generated assets such as blog OG images. Published posts now enqueue missing publish assets after publish or published entity updates, and the content pipeline exposes an ensure-assets tool for backfills.
+
 ## 0.2.0-alpha.110
 
 ## 0.2.0-alpha.109
