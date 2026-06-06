@@ -74,7 +74,7 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     );
 
     // Publish pipeline and RSS subscriptions
-    await registerWithPublishPipeline(context, this.logger);
+    registerWithPublishPipeline(context, this.logger);
     subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildCompleted(context, this.logger);
     registerEvalHandlers(context);
@@ -88,18 +88,7 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
       BLOG_OG_IMAGE_ATTACHMENT_TYPE,
       new BlogOgImageAttachmentProvider(context),
     );
-    await context.messaging.send({
-      type: "publish-assets:register",
-      payload: {
-        entityType: "post",
-        attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-        mediaEntityType: "image",
-        targetEntityField: { location: "frontmatter", field: "ogImageId" },
-        requiredWhen: { status: "published" },
-        autoGenerate: true,
-        jobType: "image:image-render-source",
-      },
-    });
+    this.deferPublishAssetRegistration(context);
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(
         createBlogAtprotoProjection(),
@@ -108,6 +97,24 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
     );
+  }
+
+  private deferPublishAssetRegistration(context: EntityPluginContext): void {
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send({
+        type: "publish-assets:register",
+        payload: {
+          entityType: "post",
+          attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+          mediaEntityType: "image",
+          targetEntityField: { location: "frontmatter", field: "ogImageId" },
+          requiredWhen: { status: "published" },
+          autoGenerate: true,
+          jobType: "image:image-render-source",
+        },
+      });
+      return { success: true };
+    });
   }
 
   protected override async onShutdown(): Promise<void> {
