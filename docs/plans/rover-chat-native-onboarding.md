@@ -49,18 +49,21 @@ sentence the author writes and reads. No IDs, no tags, no query syntax.
 
 On `NEXT`, the runtime asks an **LLM judge** (a separate call, not the chat turn)
 to read those sentences against the **evidence the run has collected** and return
-a structured verdict: per-condition `satisfied`, cited evidence IDs, and a
-plain-language "what's missing." The verdict feeds an XState guard, so the machine
-stays the transition authority. `SKIP`, where declared, is ungated.
+a structured verdict: per-condition `satisfied`, cited evidence IDs, typed claims
+about those evidence rows, and a plain-language "what's missing." The verdict feeds
+an XState guard, so the machine stays the transition authority. `SKIP`, where
+declared, is ungated.
 
 Two guards make this safe:
 
-- **A `satisfied` verdict must cite real evidence.** The runtime rejects any
-  `satisfied: true` that cites no evidence, or an ID not in the run's evidence
-  table, and records it as unsatisfied. This is what prevents wrongful advance
-  (failure 2): the judge can mis-rank which evidence counts, but it can never
-  fabricate satisfaction from nothing. For an entity-presence gate, "cite a real
-  row" _is_ the check.
+- **A `satisfied` verdict must cite real, relevant evidence.** The runtime rejects
+  any `satisfied: true` that cites no evidence, cites an ID not in the run's
+  evidence table, or makes a typed claim that the cited row does not support. For
+  example, "the anchor profile has been created or updated" must cite an
+  `entity_event` row whose `entityType` is `anchor-profile` and whose operation is
+  `created` or `updated`; a note-created row is not enough. Unsupported claims are
+  recorded as unsatisfied. This prevents both fabricated evidence and the
+  wrong-entity false positive from failure 2.
 - **An anchor override exists for the other direction.** If the judge is
   unavailable or stuck-unsure, a gated run must not trap the operator with `SKIP`
   as the only exit. `playbook_override_event` (anchor-only, confirmation-required,
@@ -86,9 +89,10 @@ without reshaping anything — see Deferred.
   by field. A live judge could limp along on prose-ified evidence; a future
   deterministic evaluator cannot. This is the real lock-in.
 - **The verdict is a neutral contract independent of how it was produced.** The
-  XState guard consumes `{ satisfied, evidenceIds, source }` and nothing else; it
-  must not know or care whether a judge, a compiled check, or an override produced
-  it. `source` is open (`"llm-judge" | "override" | "compiled-check"`).
+  XState guard consumes the runtime-validated `{ satisfied, evidenceIds, claims,
+source }` and nothing else; it must not know or care whether a judge, a compiled
+  check, or an override produced it. `source` is open (`"llm-judge" | "override" |
+"compiled-check"`).
 
 Get these two right and the live judge can later be demoted (or eliminated) without
 touching callers, evidence, or guards.
@@ -301,9 +305,16 @@ interface PlaybookRun {
   gateVerdicts: Array<{
     stateId: string;
     condition: string;
+    conditionHash: string;
+    evidenceWatermark: string; // cache key component for the evidence set judged
     satisfied: boolean;
     source: "llm-judge" | "override" | "compiled-check"; // "compiled-check" reserved for the deferred compiler; only "llm-judge"/"override" ship now
     evidenceIds: string[];
+    claims: Array<{
+      evidenceId: string;
+      kind: string;
+      data: Record<string, unknown>;
+    }>;
     missing?: string[];
     reasoning?: string;
     evaluatedAt: string;
@@ -319,7 +330,7 @@ interface PlaybookRun {
 ```text
 playbook_start          start or resume a run; init the machine at initialState
 playbook_status         current state, valid/blocked events, Done When, verdict, missing evidence
-playbook_send_event     send an event; for NEXT, judge the gate, validate citations, then snapshot.can(NEXT)
+playbook_send_event     send an event; for NEXT, judge the gate, validate citations/claims, then snapshot.can(NEXT)
 playbook_override_event  anchor-only, confirmation-required gate bypass (records an override verdict)
 playbook_complete       allowed only at a final state
 playbook_dismiss        hide/postpone without deleting progress
@@ -327,15 +338,25 @@ playbook_reset_run      restart for testing/reruns
 playbook_validate       structural validation (see below), author-facing errors
 ```
 
+For gated `NEXT`, `playbook_send_event` asks the judge, validates every satisfied
+condition's cited evidence and typed claims against the evidence table, stores the
+validated verdict, updates machine context, then relies on `snapshot.can(NEXT)`. A
+cached satisfied verdict is reused only when `playbookVersion + stateId +
+conditionHash + evidenceWatermark` are unchanged. If the judge call fails, times
+out, or returns invalid structured output, `NEXT` blocks and `playbook_status`
+reports the verifier error; only `playbook_override_event` can bypass.
+
 Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from
 `ToolContext.channelId` when `runId`/`conversationId` is omitted, and error if more
 than one active run exists for the conversation — the same inference
 `playbook_start` already does. Entity evidence is collected automatically by event
-subscription; there is no `playbook_record_entity` self-reporting tool.
+subscription; there is no `playbook_record_entity` self-reporting tool. The
+current prototype tool must be removed before merge.
 
 `playbook_validate` (and the same check at parse time) is **structural only**:
 `initialState`/transition targets/`finalStates` exist, no duplicate state IDs, no
-unreachable states, no gated `NEXT` whose state has empty Done When text. Done When
+unreachable states. A `NEXT` transition is gated iff the state has non-empty Done
+When text; omitted/empty Done When means `NEXT` is ungated for that state. Done When
 prose has no syntax to validate.
 
 ## Agent integration
@@ -396,7 +417,7 @@ the model to paraphrase it. Nothing more for MVP.
 3. **Evidence + verifier** — entity `created`/`updated` collector (events carry
    `conversationId` from `ToolContext.channelId`, plus `runId`/`toolCallId` when
    available, so evidence correlates to the run); LLM-judge verifier behind a
-   swappable interface; the citation guard; agent-context injection.
+   swappable interface; citation + typed-claim validation; agent-context injection.
 4. **Confirmation hardening** (`shell/ai-service`) — confirmation is a first-class
    stop condition that terminates the turn and surfaces the approval card; it never
    appears as a generic tool result.
@@ -408,8 +429,10 @@ Tests come before fixes (TDD). Split by what they cover, not by gate type:
 
 - **Plumbing — deterministic, stubbed verifier:** machine blocks `NEXT` on an
   unsatisfied verdict and allows it on a satisfied one; a `satisfied` verdict citing
-  empty/missing evidence is downgraded to blocked; `SKIP` bypasses gating; evidence
-  collection records the right rows; run inference resolves the active run;
+  empty/missing evidence or making an unsupported typed claim is downgraded to
+  blocked; judge failure/timeout/invalid output blocks `NEXT`; cached verdicts are
+  reused only for the same condition/evidence cache key; `SKIP` bypasses gating;
+  evidence collection records the right rows; run inference resolves the active run;
   concurrent transitions don't lose updates; a stale-version transition fails loudly;
   confirmation is terminal and not a generic result.
 - **Judge — eval fixtures** (`@brains/ai-evaluation` patterns, structured-output
@@ -439,15 +462,15 @@ Load-bearing; revisit only with a documented reason.
    a later promotion would churn imports.
 2. **Gates are prose, judged by an LLM, on the transition path** — authors write
    sentences, not a query DSL; a judge is the only general way to evaluate arbitrary
-   prose against evidence. Bounded by: `NEXT`-only, cached, citation-guarded
+   prose against evidence. Bounded by: `NEXT`-only, cached, citation-and-claim-guarded
    (invariant against false-positives), override-escape (against false-negatives),
    and stub-tested enforcement. No `check`/`EvidenceQuery`/ID apparatus. The live
    judge is deterministic-first's escape valve, not the final design — see
    [Verifier evolution](#verifier-evolution-deferred).
 3. **Two verifier contracts are locked now so it can evolve** — evidence is stored as
    structured typed rows (not opaque text), and the verdict is a neutral
-   `{ satisfied, evidenceIds, source }` the guard consumes without knowing how it was
-   produced. These keep the live judge swappable for a later compiled-check evaluator
+   `{ satisfied, evidenceIds, claims, source }` the guard consumes after runtime
+   validation without knowing how it was produced. These keep the live judge swappable for a later compiled-check evaluator
    without touching callers, evidence, or guards.
 4. **Gates are XState guards over verdicts** — `buildMachine` seeds the actor with
    verdict state; the handler is a thin pass-through. The machine, not the handler or
