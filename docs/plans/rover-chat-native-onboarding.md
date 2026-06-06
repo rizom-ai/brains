@@ -66,14 +66,17 @@ Required backend invariants before this plan is mergeable:
 2. **Confirmation is not a generic tool result.** A confirmation request must not appear in `toolResults` as a completed `Result` block. This has landed locally, but remains a merge-blocking invariant.
 3. **Playbook progress is gated by verified evidence, not model assertion.** The generic abstraction is not "required entities". A playbook state declares human-readable **Done When** conditions. The runtime collects evidence while the state is active — e.g. transcript excerpts, tool results, confirmation decisions, entity mutation events, job completions, metric snapshots, webhook events — and evaluates whether the Done When conditions are satisfied. Entity create/update is only the first evidence source needed by Rover onboarding, not the gate model itself.
 4. **The verifier is separate from the chat agent.** The same model turn that is trying to advance the playbook must not self-certify completion. `playbook_send_event(NEXT)` asks a runtime verifier to evaluate the current state's Done When conditions against collected evidence. The verifier may use deterministic checks for objective evidence and an LLM-as-judge/eval-style verifier for semantic conditions, but it must return a structured verdict with cited evidence and missing conditions. It must not invent evidence that was not supplied by runtime sources.
+
+   **Merge-blocking boundary:** only the **deterministic evidence-presence verifier** is merge-blocking. Every gate the Rover onboarding seed declares is an objective "this event was observed" check (anchor-profile created/updated, note/link created), so onboarding ships on deterministic verdicts alone and never calls an LLM on the transition path. The **LLM-as-judge verifier path is designed now but deferred** — it is wired behind a verdict source that no shipping seed uses, so it is not a merge prerequisite. This keeps a working onboarding flow from being blocked on a runtime eval subsystem, while the verifier _interface_ (structured verdict, evidence citations, deterministic-first) is fixed from the start so the LLM path drops in without reshaping callers.
+
 5. **XState remains the transition authority.** Completion verdicts are part of transition validity and must be consumed by machine guards. `NEXT` is blocked unless required Done When conditions have a satisfied verifier verdict. Explicit bypass events such as `SKIP` remain ungated where declared. The handler stays a thin pass-through; it may trigger verification before evaluating the machine, but the machine's `snapshot.can(NEXT)` must reflect the verdict.
 6. **Active runs must be inferable from conversation context, uniformly across run-scoped tools.** Run-scoped playbook tools — at minimum `playbook_record_entity`, `playbook_send_event`, and `playbook_status` — infer `runId` from `ToolContext.channelId` when `runId`/`conversationId` is omitted and exactly one active run exists for that conversation, and error when more than one active run exists. This has landed locally, but remains a merge-blocking invariant.
 7. **Agent context must include actionable run identity and gate state.** Active playbook context should make the current `runId`, state, valid events, blocked events, Done When conditions, verifier verdicts, and missing evidence hard to miss in the model-readable content, not only in provenance metadata. The first version of actionable context has landed locally for entity requirements; it should be reframed around Done When/verifier state before merge.
-8. **Rover onboarding seed must express identity completion as a human-readable Done When gate.** The `identity` state should say, in author-readable form, that the anchor profile has been created or updated before `NEXT`; collecting only a name or saving a note is insufficient. The current local seed marks `anchor-profile` as required through the interim `expectedEntities` field. Before merge, this should either migrate to Done When/verifier syntax or be explicitly documented as compatibility sugar compiled into a Done When gate. `SKIP` remains the explicit bypass to `first-knowledge-seed`.
-9. **Regression tests must be written before fixes.** Each observed failure and each new verifier/evidence invariant should have a failing backend test before implementation changes.
+8. **Rover onboarding seed must express identity completion as a human-readable Done When gate.** The `identity` state should say, in author-readable form, that the anchor profile has been created or updated before `NEXT`; collecting only a name or saving a note is insufficient. `Done when` is the only completion field — there is no `expectedEntities`/`completionCriteria` sugar to migrate (the package ships greenfield with no legacy content; see decision 7). The seed's identity gate is a single deterministic condition: an anchor-profile create/update event observed for this state. `SKIP` remains the explicit bypass to `first-knowledge-seed`.
+9. **Regression tests must be written before fixes, split by verifier determinism.** Each observed failure and each new verifier/evidence invariant gets a failing backend test before implementation changes. Because a verdict can be deterministic or LLM-judged (invariant 4), the test strategy splits: **deterministic evidence gates** (everything onboarding ships) get ordinary failing→passing backend unit tests asserting `NEXT` is blocked with the evidence absent and allowed once the evidence event is recorded — fully deterministic, no model in the loop. The **LLM-judge path** is not unit-tested for a fixed verdict (it is nondeterministic); it is exercised by eval fixtures under `@brains/ai-evaluation` and asserted structurally (verdict shape, that it cannot pass with required evidence absent), not by pinning a specific score. A gate the unit tests can't make deterministic is a signal the gate belongs to the deferred LLM path, not the merge-blocking set.
 10. **Runtime evidence must be event-driven where possible, not model-reported.** `playbook_record_entity` can remain as optional annotation, but it must not be the sole source of proof. The playbooks runtime should subscribe to relevant event channels and/or receive tool/job/metric evidence from runtime services. For Rover onboarding, entity service `entity:created` / `entity:updated` events should become evidence attached to the active run. Future gates such as "LinkedIn engagement increased by 200%" should be satisfied by metric evidence supplied by the relevant plugin, not by entity writes.
-11. **Reuse eval infrastructure deliberately.** Playbook gate verification is effectively a scoped runtime eval: `state + Done When rubric + evidence -> verdict`. Reuse/extract the LLM-judge and criteria-evaluation patterns from `@brains/ai-evaluation` where appropriate, but do not embed the offline eval runner in the playbooks runtime. Create a runtime-safe gate verifier interface with structured output, evidence citations, and deterministic-first behavior.
-12. **Run state must use the shared operational-DB pattern and pin a playbook version.** The current JSON run store (`plugins/playbooks/src/run-store.ts`) is an outlier: every other operational subsystem (`@brains/job-queue`, conversation-service, entity-service) uses SQLite + drizzle + WAL, while the run store does an unlocked read-modify-write over a whole file in `upsert`, so two conversations transitioning concurrently silently lose an update (temp+rename makes each write atomic, not the read-modify-write). Playbook runs must move to the same SQLite/drizzle pattern with proper row updates. Separately, a run persists an XState `snapshot` but the machine is rebuilt from the playbook markdown on every transition (`plugin.ts` `transitionRun` → `buildMachine`) with no version pin, so editing a playbook mid-run drifts the snapshot from the machine and produces stuck/invalid runs. Each run must record the playbook version/content hash it started under, and a transition against a changed definition must fail loudly (or migrate deliberately), never silently.
+11. **Reuse eval infrastructure deliberately.** Playbook gate verification is effectively a scoped runtime eval: `state + Done When rubric + evidence -> verdict`. The existing `@brains/ai-evaluation` `LLMJudge`/`PluginLLMJudge` score _conversation/output quality_ on dimensions against `AgentTestCase`/`QualityScores` schemas — they do not answer "is condition X satisfied by evidence Y." So reuse means **extracting the patterns** (the `IAIService` + structured-output-via-Zod shape, evidence citation, reasoning field), not instantiating those classes against a gate verdict. Do not embed the offline eval runner (`EvaluationService`/`run-evaluations`) in the playbooks runtime. Create a runtime-safe gate verifier interface with structured output, evidence citations, and deterministic-first behavior; the LLM-backed implementation behind it is the deferred path from invariant 4.
+12. **Run state must use the shared operational-DB pattern and pin a playbook version.** The current JSON run store (`plugins/playbooks/src/run-store.ts`) is an outlier: every other operational subsystem (`@brains/job-queue`, conversation-service, entity-service) uses SQLite + drizzle + WAL, while the run store does an unlocked read-modify-write over a whole file in `upsert`, so two conversations transitioning concurrently silently lose an update (temp+rename makes each write atomic, not the read-modify-write). Playbook runs must move to the same SQLite/drizzle pattern with proper row updates. **Evidence and verdicts must be append-only child tables (`playbook_run_evidence`, `playbook_run_verdicts`), not JSON arrays on the run row.** Evidence arrives asynchronously from event subscribers (`entity:created` fires whenever the mutation happens), so appending it as `read-row → push to JSON array → write-row` is the exact lost-update race the migration is meant to kill, reintroduced. Independent `INSERT`s into a child table avoid it; the run row only carries scalar/normalized state. Separately, a run persists an XState `snapshot` but the machine is rebuilt from the playbook markdown on every transition (`plugin.ts` `transitionRun` → `buildMachine`) with no version pin, so editing a playbook mid-run drifts the snapshot from the machine and produces stuck/invalid runs. Each run must record the playbook version/content hash it started under, and a transition against a changed definition must fail loudly (or migrate deliberately), never silently.
 13. **Playbooks must be validated at author/parse time, not only at runtime.** A playbook is operator-editable content, so authoring is the product surface. Referential integrity (`initialState` exists, transition targets exist, `finalStates` exist), duplicate state IDs, malformed Done When/check syntax, and verifier-ineligible gates must fail with author-facing errors. Provide a validation path (`playbook_validate` tool and/or build-time check) so an author never has to discover a broken machine through live chat.
 14. **Onboarding run state must be a deliberate decision in the chat UI.** Onboarding is a stateful multi-turn flow, but the UI currently shows none of that state: the starter card appears once on empty load then vanishes, a dismissed/interrupted run has no resume affordance, and a gate-blocked transition reaches the operator only as model-paraphrased prose rather than "you are in state X; valid next: NEXT/SKIP; missing evidence: Y." This is invisible by omission, not by choice. The plan must decide explicitly what run state is surfaced — at minimum a resume affordance for an interrupted run and a structured signal when a transition is blocked — or record a conscious decision to keep it invisible and why.
 
@@ -185,14 +188,7 @@ interface PlaybookBody {
     id: string;
     title: string;
     instructions: string[];
-    completionCriteria: string[]; // human guidance / explanation
-    doneWhen: string[]; // human-readable runtime gates evaluated against evidence
-    expectedEntities?: Array<{
-      // compatibility sugar compiled into doneWhen/evidence checks
-      entityType: string;
-      purpose: string;
-      required?: boolean;
-    }>;
+    doneWhen: string[]; // the single completion gate: human-readable conditions evaluated against runtime evidence
     transitions: Array<{
       event: string;
       target: string;
@@ -234,10 +230,6 @@ Instructions:
 - Explain Rover briefly as a personal knowledge and publishing brain.
 - Ask whether to continue.
 
-Completion criteria:
-
-- Operator agrees, skips, or postpones.
-
 Done when:
 
 - The operator has agreed to continue, or explicitly chose to skip/postpone.
@@ -257,18 +249,9 @@ Instructions:
 - Summarize before saving.
 - Create or update the anchor profile with existing entity tools.
 
-Completion criteria:
-
-- The anchor profile is created or updated, or the operator explicitly skips this state.
-
 Done when:
 
-- The anchor profile has been created or updated during this state.
-- The operator has confirmed the summarized identity/profile details are accurate.
-
-Compatibility expected entities:
-
-- anchor-profile: operator identity and positioning
+- The anchor profile has been created or updated during this state (anchor-profile create/update event observed as evidence).
 
 Transitions:
 
@@ -285,18 +268,9 @@ Instructions:
 - Save it as the appropriate durable entity.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
 
-Completion criteria:
-
-- A note or link is created, or an existing seed entity is identified.
-
 Done when:
 
-- A first knowledge seed has been saved or identified as existing evidence for this run.
-
-Compatibility expected entities:
-
-- base: first durable note
-- link: first durable link
+- A first knowledge seed has been saved or identified as existing evidence for this run (note/link create event observed).
 
 Transitions:
 
@@ -354,6 +328,8 @@ It should not own durable workflow content; that belongs to the `playbook` entit
 
 Playbook runs are operational state, not synced markdown knowledge. Store them in the shared SQLite/drizzle operational-DB pattern used by `@brains/job-queue`, conversation-service, and entity-service — not a bespoke JSON file (required invariant 12; decision 5). This gives row-level updates instead of an unlocked whole-file read-modify-write, so concurrent transitions across conversations don't lose updates.
 
+The `PlaybookRun` shape below is the **logical** record. Physically it is one run row of scalar/normalized columns plus two append-only child tables — `playbook_run_evidence` and `playbook_run_verdicts` — so async evidence inserts never read-modify-write the run row (required invariant 12). The `evidence[]`, `gateVerdicts[]`, and `linkedEntities[]` fields are joined/indexed views over those child rows, not JSON blobs on the run.
+
 Run record shape:
 
 ```ts
@@ -369,7 +345,7 @@ interface PlaybookRun {
   context: Record<string, unknown>; // normalized state value/context, including gate verdict state; full XState snapshots only when machine shape requires them (decision 6)
   evidence: Array<{
     id: string;
-    kind: string; // e.g. entity_event, tool_result, confirmation, job, metric, transcript
+    kind: string; // e.g. entity_event, tool_result, confirmation, job, metric, transcript, override
     observedAt: string;
     stateId?: string;
     data: Record<string, unknown>;
@@ -378,6 +354,7 @@ interface PlaybookRun {
     stateId: string;
     condition: string;
     satisfied: boolean;
+    source: "deterministic" | "llm-judge" | "override"; // how the verdict was reached
     evidenceIds: string[];
     reasoning?: string;
     missing?: string[];
@@ -419,6 +396,7 @@ Tool behavior:
 - `playbook_start` creates or resumes a run for a playbook and initializes the XState machine at the playbook initial state.
 - `playbook_send_event` sends a named event to the run's XState machine and persists the resulting normalized state. Invalid events return a tool error.
 - `playbook_send_event` enforces completion gates through the machine, not as an ad hoc handler-side completion check. For `NEXT`, the runtime first evaluates unresolved Done When conditions against collected evidence, stores structured verifier verdicts, rebuilds/updates the machine context with those verdicts, and then relies on `snapshot.can(NEXT)` to allow or block. `SKIP` is ungated where declared. See required invariants 3–5.
+- `playbook_send_event` accepts an anchor-only `override: true` that force-passes the current state's gate for one transition. It does not fake evidence: it records an explicit `kind: "override"` evidence row (who, when, reason) and a verdict marked `satisfied: true, source: "override"`, so the bypass is auditable and the machine still advances through a real (overridden) verdict rather than a side channel. This is the escape hatch for a gate stuck because a verifier is unavailable (LLM path down, eval error) or evidence cannot be produced; without it a gated `NEXT` plus a failable verifier leaves `SKIP` as the only exit.
 - Evidence collection is primarily automatic: the plugin records runtime events made during an active run, starting with `entity:created` / `entity:updated`. `playbook_record_entity` is now only an optional explicit annotation (e.g. attaching a `purpose` or linking an entity the operator created earlier); it is never the sole source of proof.
 - `playbook_validate` validates a playbook definition (referential integrity, duplicate state IDs, dangling transition targets, malformed Done When gates, verifier-ineligible gates) and returns structured errors naming the offending state/transition/gate — the author-facing path required by invariant 13. The same validation runs at parse time.
 - Run-scoped tools (`playbook_record_entity`, `playbook_send_event`, `playbook_status`) resolve the run uniformly: when `runId`/`conversationId` is omitted, infer the active run from `ToolContext.channelId` via `findActiveByConversation`, and error if more than one active run exists for that conversation. This matches what `playbook_start` already does and removes the "some tools need an explicit `runId`, others don't" failure mode.
@@ -445,11 +423,9 @@ State instructions:
 
 Done when:
 - The anchor profile has been created or updated during this state.
-- The operator has confirmed the summarized identity/profile details are accurate.
 
 Verifier status:
 - Missing evidence: no anchor-profile create/update event has been observed for this state.
-- Missing evidence: no operator confirmation of the summary has been observed.
 
 Valid events:
 - SKIP -> first-knowledge-seed
@@ -477,7 +453,7 @@ The playbooks plugin should register concise load-bearing instructions:
 ```text
 When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When a playbook run is active, use playbook_status before deciding what to do next.
-Follow the playbook's current state instructions, operating rules, completion criteria, and Done When conditions.
+Follow the playbook's current state instructions, operating rules, and Done When conditions.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime verifier decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
@@ -593,7 +569,7 @@ Rover should not inline onboarding states in TypeScript config.
 ### Phase 3 — Active playbook context, evidence, and gate verification
 
 - Subscribe from `plugins/playbooks` to the agent-context request channel.
-- Inject active run state, current-state instructions, completion criteria, Done When conditions, verifier status, valid events, blocked events, and missing evidence for the current conversation.
+- Inject active run state, current-state instructions, Done When conditions, verifier status, valid events, blocked events, and missing evidence for the current conversation.
 - Add the runtime evidence model and first evidence collectors, starting with `entity:created` / `entity:updated` events during an active run (required invariant 10). Keep `playbook_record_entity` only as an optional annotation.
 - Add a runtime-safe gate verifier interface: `state + Done When + evidence -> structured verdict`. Reuse/extract `@brains/ai-evaluation` LLM-judge/criteria-evaluator patterns where appropriate, but do not embed the offline eval runner (required invariant 11).
 - Keep playbook context/verifier ownership in the playbooks plugin for MVP rather than moving playbook ownership into `shell/ai-service`.
@@ -632,7 +608,7 @@ This phase is now required based on live smoke-test failures.
   - run-scoped tools (`playbook_record_entity`, `playbook_send_event`, `playbook_status`) infer the active run from the conversation/channel context when `runId` is omitted, and error when more than one active run exists.
 - Harden `buildMachine` to emit guarded transitions and seed the actor with verifier verdict state as machine context, so completion gates are enforced inside the machine (see required invariants 3–5) — not in the handler and not only in model instructions.
 - Apply uniform `ToolContext.channelId` run inference across all run-scoped playbook tools, mirroring `playbook_start`.
-- Express the Rover seed's `identity` completion as Done When text requiring the anchor profile to be created/updated, with the current `expectedEntities.required` field treated only as compatibility sugar until the seed format migrates fully.
+- Express the Rover seed's `identity` completion as a single `Done when` condition requiring the anchor profile to be created/updated (anchor-profile create/update event as evidence). Remove the interim `expectedEntities`/`completionCriteria` fields from the seed and body schema entirely — there is no legacy content to stay compatible with (decision 7).
 - Harden active playbook context formatting so `runId`, Done When conditions, verifier status, missing evidence, valid events, and blocked events are visible in the model-readable text (not only provenance).
 - Harden `shell/ai-service` confirmation handling so confirmation outputs terminate the turn (first-class stop condition, decision 9) and are not returned as normal tool results.
 - Note: welcome repetition (observed failure 1) is addressed only as context/instruction hardening; it has no deterministic gate and may retain residual model dependence.
@@ -645,7 +621,7 @@ These follow from required invariants 10–14 and reach beyond the plugin into r
 - Implement the generic runtime evidence store for playbook runs. Add the first evidence collector from `entity:created` / `entity:updated`; enrich/propagate event context as needed so evidence can be correlated to the active conversation/run. Add failing tests first.
 - Implement the runtime gate verifier interface and structured verdict persistence. Add tests showing `NEXT` is blocked by unsatisfied Done When conditions and unblocked when supplied runtime evidence satisfies them, without relying on `playbook_record_entity` self-reporting.
 - Reuse/extract eval infrastructure deliberately: structured LLM judge output, deterministic criteria helpers, failure details, and evidence citations. Add tests that the verifier cannot pass a gate when required evidence is absent.
-- Migrate the run store to SQLite/drizzle with a `playbookVersion` content hash per run; add a concurrent-transition test proving no lost updates, and a test that a transition against a changed playbook definition fails loudly (required invariant 12).
+- Migrate the run store to SQLite/drizzle with a `playbookVersion` content hash per run and append-only `playbook_run_evidence` / `playbook_run_verdicts` child tables; add a concurrent-transition test proving no lost updates (including an async evidence insert landing during a transition), and a test that a transition against a changed playbook definition fails loudly (required invariant 12).
 - Add `playbook_validate` plus parse-time referential-integrity/duplicate-id/Done-When validation with a build-time validation of seed playbooks (required invariant 13).
 - Decide and implement chat-UI run state (required invariant 14): at minimum a resume affordance for an interrupted/dismissed run and a structured signal (not just model prose) when a transition is blocked — or record the conscious decision to keep run state invisible and why.
 
@@ -671,7 +647,9 @@ These were open questions; all are now resolved so implementation has a single d
 4. **Onboarding is enabled only on presets that expose an anchor web-chat surface (`default` and `full`).** Onboarding is anchor-only and web-chat-first (load-bearing decisions 7–8); enabling it on presets without that surface would offer a starter that cannot run.
 5. **Run state uses SQLite + drizzle now, not "later."** Superseded by required invariant 12: align to the existing operational-DB pattern (`@brains/job-queue`, conversation-service, entity-service) rather than the bespoke JSON file. The JSON store is not a stepping stone to keep.
 6. **Persist normalized state value + context + playbook version/hash; add full XState snapshots only when a playbook needs parallel/history states.** A normalized value plus the version pin (required invariant 12) is enough to rebuild and validate the machine for the flat state graphs MVP playbooks use, and it avoids storing an opaque snapshot that silently drifts from an edited definition. Introduce full persisted snapshots only when machine shape requires them.
-7. **Completion gates are XState guards over verifier verdicts, not entity refs.** `buildMachine` derives guards from the structured body, but the guard checks normalized gate/verifier state in machine context. `expectedEntities.required` is only compatibility sugar for a Done When/evidence check; the durable abstraction is `Done When + runtime evidence + verifier verdict` (required invariants 3–5).
+7. **Completion gates are XState guards over verifier verdicts, not entity refs.** `buildMachine` derives guards from the structured body, but the guard checks normalized gate/verifier state in machine context. The durable abstraction is `Done When + runtime evidence + verifier verdict` (required invariants 3–5). There is no `expectedEntities`/`completionCriteria` compatibility layer: the package is greenfield with zero existing playbooks, so carrying sugar for a format with no past is self-inflicted legacy. `Done when` is the single completion field on a state; an entity gate is just a Done When condition whose evidence is an entity create/update event.
 8. **All run-scoped tools infer the active run uniformly** from `ToolContext.channelId` (required invariant 6), not just `playbook_record_entity`.
 9. **Confirmation is a first-class stop condition in `shell/ai-service`, not a tool-wrapper throw.** Required invariant 1 makes confirmation terminate the agent turn; that belongs in the tool-loop/agent-machine as an explicit stop condition that surfaces the pending approval card(s), not as an exception thrown at the SDK tool boundary (which would be caught as a tool error and fed back to the model). The confirmation-requesting tool still returns its `needsConfirmation` payload; the loop is what stops.
 10. **Identity stays one state for now.** The Done When gate + clearer context + runtime evidence/verifier model should fix early advancement without restructuring the machine. Split `identity` into smaller states only if it still over-advances after evidence-backed gates land.
+11. **A gated run always has an anchor escape hatch.** A gated `NEXT` plus a verifier that can fail (LLM path down, eval error) or evidence that cannot be produced must never trap a run with `SKIP` as its only exit. `playbook_send_event` takes an anchor-only `override: true` that force-passes the current gate for one transition by recording an explicit `kind: "override"` evidence row and a `source: "override"` verdict — auditable, not faked evidence. Onboarding ships on deterministic gates so this is rarely hit, but it is a deliberate resilience guarantee, not an omission.
+12. **Only the deterministic verifier is merge-blocking; the LLM-judge path is built behind the interface and deferred.** Every shipping seed gate is an objective evidence-presence check, so onboarding never calls an LLM on the transition path (required invariant 4). The verifier _interface_ (structured verdict, evidence citations, deterministic-first) is fixed now; the LLM-backed implementation lands behind it without reshaping callers and is covered by eval fixtures, not deterministic unit tests (required invariant 9).
