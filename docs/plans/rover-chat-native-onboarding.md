@@ -78,6 +78,21 @@ first knowledge seed was saved") are satisfied by such an event during the state
 The evidence model is just a list of rows, so other sources can be added later
 without reshaping anything — see Deferred.
 
+**Two contracts are fixed now so the verifier can evolve later without a rewrite**
+(see [Verifier evolution](#verifier-evolution-deferred)):
+
+- **Evidence is stored as structured, typed rows, never opaque text.** An entity
+  event is `{ kind: "entity_event", entityType, operation, stateId, … }` — queryable
+  by field. A live judge could limp along on prose-ified evidence; a future
+  deterministic evaluator cannot. This is the real lock-in.
+- **The verdict is a neutral contract independent of how it was produced.** The
+  XState guard consumes `{ satisfied, evidenceIds, source }` and nothing else; it
+  must not know or care whether a judge, a compiled check, or an override produced
+  it. `source` is open (`"llm-judge" | "override" | "compiled-check"`).
+
+Get these two right and the live judge can later be demoted (or eliminated) without
+touching callers, evidence, or guards.
+
 ## Deferred (not built here)
 
 The design leaves room for these; **none are in build scope for this branch.**
@@ -95,6 +110,38 @@ durable job — not reworking the gate model.
 
 Playbooks stays a pure evidence _reactor_: it never schedules or polls; gate
 re-evaluation is triggered by evidence arrival.
+
+### Verifier evolution (deferred)
+
+The live LLM judge that ships now is **deterministic-first's escape valve**, not the
+final design. The intended evolution, enabled by the two locked contracts above:
+
+- **Now:** every gate is read by the live judge on `NEXT` (with the citation guard).
+  It is the only mechanism, and it is fine for onboarding's two gates.
+- **Later (when gates multiply):** a **compile step** uses the LLM _once per gate, at
+  authoring time_, to translate the prose Done When into a structured evidence check
+  (a reviewable schema object, not generated code), cached and keyed by
+  prose-hash + grammar-version, recompiled on edit. At runtime that check is evaluated
+  **deterministically** — no model on the transition path, no mis-attribution, fully
+  unit-testable. The LLM becomes a compile-time translator the author reviews once,
+  rather than a per-run scorer.
+
+Routing is then: a gate with a compiled check → deterministic evaluation; otherwise →
+the live judge. So the judge built now is not throwaway — it is the permanent
+fallback tier the compiler sits in front of.
+
+One product fork is left open and does **not** need deciding now (both reach from the
+same locked contracts):
+
+- **Permissive:** allow genuinely fuzzy gates ("the operator seems engaged") and keep
+  the live judge as a permanent runtime fallback for them.
+- **Strict:** require every gate to be an observable outcome — then every gate
+  compiles, runtime is always deterministic, and "won't compile" is an _authoring
+  error_ ("rephrase as something I can have evidence for"), eliminating the runtime
+  judge entirely.
+
+Building the compiler, the evidence-query grammar, and the compile-review surface is
+out of scope for this branch.
 
 ## Playbook entity
 
@@ -255,7 +302,7 @@ interface PlaybookRun {
     stateId: string;
     condition: string;
     satisfied: boolean;
-    source: "llm-judge" | "override";
+    source: "llm-judge" | "override" | "compiled-check"; // "compiled-check" reserved for the deferred compiler; only "llm-judge"/"override" ship now
     evidenceIds: string[];
     missing?: string[];
     reasoning?: string;
@@ -394,19 +441,26 @@ Load-bearing; revisit only with a documented reason.
    sentences, not a query DSL; a judge is the only general way to evaluate arbitrary
    prose against evidence. Bounded by: `NEXT`-only, cached, citation-guarded
    (invariant against false-positives), override-escape (against false-negatives),
-   and stub-tested enforcement. No `check`/`EvidenceQuery`/ID apparatus.
-3. **Gates are XState guards over verdicts** — `buildMachine` seeds the actor with
+   and stub-tested enforcement. No `check`/`EvidenceQuery`/ID apparatus. The live
+   judge is deterministic-first's escape valve, not the final design — see
+   [Verifier evolution](#verifier-evolution-deferred).
+3. **Two verifier contracts are locked now so it can evolve** — evidence is stored as
+   structured typed rows (not opaque text), and the verdict is a neutral
+   `{ satisfied, evidenceIds, source }` the guard consumes without knowing how it was
+   produced. These keep the live judge swappable for a later compiled-check evaluator
+   without touching callers, evidence, or guards.
+4. **Gates are XState guards over verdicts** — `buildMachine` seeds the actor with
    verdict state; the handler is a thin pass-through. The machine, not the handler or
    model instruction, is the transition authority.
-4. **Confirmation is a stop condition in `shell/ai-service`** — the loop stops and
+5. **Confirmation is a stop condition in `shell/ai-service`** — the loop stops and
    surfaces the approval card; the requesting tool still returns its `needsConfirmation`
    payload. Not a thrown exception at the SDK boundary (which would feed back as a tool
    error).
-5. **Run state is SQLite/drizzle now** — version-pinned, with append-only evidence/
+6. **Run state is SQLite/drizzle now** — version-pinned, with append-only evidence/
    verdict child tables. The JSON store is not a stepping stone.
-6. **One active run per conversation; one lifecycle starter** — run inference depends
+7. **One active run per conversation; one lifecycle starter** — run inference depends
    on it; concurrent runs per conversation are out of scope.
-7. **Identity stays one state** — prose gate + clearer context should fix early
+8. **Identity stays one state** — prose gate + clearer context should fix early
    advancement without splitting the machine; revisit only if it still over-advances.
-8. **Onboarding only on anchor web-chat presets** (`default`, `full`) — it is
+9. **Onboarding only on anchor web-chat presets** (`default`, `full`) — it is
    anchor-only and web-chat-first.
