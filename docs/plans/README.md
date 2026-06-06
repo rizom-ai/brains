@@ -27,14 +27,12 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
 
 ### Auth, users, CMS, and HTTP
 
 - [A2A request signing](./a2a-request-signing.md) — proposed auth hardening
 - [Multi-user and permissions](./multi-user.md) — proposed runtime-user layer
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
-- [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
 - [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos
 
@@ -50,6 +48,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — active prototype; Phase 1/2 outbound publishing is live, the `rizom.ai` registry is verified, and Phase 4 discovery is the next target
+- [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

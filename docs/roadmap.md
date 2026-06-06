@@ -165,19 +165,19 @@ Plans:
 
 A shared team brain has to be installable, maintainable, and recoverable by operators. This is not just “hosting later”; it is the operational layer that makes the Relay story viable if the POC works.
 
-Parts of §4 (passkey onboarding, hosted Rover control, CMS auth) depend on the runtime user model from §3 and cannot land before it. Discord UX and dashboard polish can proceed independently.
+Parts of §4 (hosted Rover control, multi-user CMS/admin behavior) depend on the runtime user model from §3 and cannot land before it. First-passkey bootstrap has already shipped; Discord UX and dashboard polish can proceed independently.
 
 This includes:
 
-- passkey/operator onboarding;
 - safe offboarding and destructive cleanup for pilot fleets;
 - hosted/fleet deploy shape;
 - Discord UX for shared team contexts;
 - dashboard/CMS/admin flows for non-developer operation.
 
+Current passkey/operator onboarding is no longer a standing plan: first-passkey setup, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have shipped. Discord DM delivery can return later as a channel-specific enhancement if hosted onboarding needs it.
+
 Plans:
 
-- [passkey-operator-onboarding.md](./plans/passkey-operator-onboarding.md) — first-passkey setup exists; notification bridge and Discord delivery remain.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
 - [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
@@ -200,7 +200,7 @@ Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
-- [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; Phase 1/2 outbound publishing and Phase 2.6 registry contracts are implemented, with live `rizom.ai` registry enablement still pending.
+- [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
 
 ### 6. Keep the framework sustainable

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. This plan defines the product and implementation shape for Rover onboarding that happens inside the existing anchor-only web chat surface. It complements [Brain web chat surface](./brain-web-ui.md), which owns the shipped `/chat` interface, and is separate from [Passkey Operator Onboarding](./passkey-operator-onboarding.md), which owns first-passkey bootstrap and operator authentication.
+Proposed. This plan defines the product and implementation shape for Rover onboarding that happens inside the existing anchor-only web chat surface. It complements [Brain web chat surface](./brain-web-ui.md), which owns the shipped `/chat` interface, and is separate from the already-shipped first-passkey bootstrap/operator authentication flow.
 
 ## Context
 
