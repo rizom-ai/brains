@@ -30,6 +30,7 @@ export const brainCallOptionsSchema = z.object({
   interfaceType: z.string(),
   agentContextInstructions: z.string().optional(),
   enableCreateUpload: z.boolean().optional(),
+  enableCreateTransform: z.boolean().optional(),
   enableCreateSourceAttachment: z.boolean().optional(),
 });
 
@@ -112,6 +113,7 @@ export function createBrainAgentFactory(
             interfaceType: callOptions.interfaceType,
             userPermissionLevel: callOptions.userPermissionLevel,
             enableCreateUpload: callOptions.enableCreateUpload,
+            enableCreateTransform: callOptions.enableCreateTransform,
             enableCreateSourceAttachment:
               callOptions.enableCreateSourceAttachment,
           },

@@ -95,6 +95,34 @@ export function collectUploadRefsFromMessages(
   return refs;
 }
 
+export type ConversationUploadRefResolution =
+  | { kind: "selected"; refs: ConversationUploadRef[] }
+  | { kind: "clarify"; refs: ConversationUploadRef[] };
+
+export function resolveConversationUploadRefs(
+  message: string,
+  uploadRefs: ConversationUploadRef[],
+): ConversationUploadRefResolution {
+  if (uploadRefs.length <= 1) {
+    return { kind: "selected", refs: uploadRefs };
+  }
+
+  const normalized = message.toLowerCase();
+  const named = uploadRefs.filter((ref) =>
+    normalized.includes(ref.filename.toLowerCase()),
+  );
+  if (named.length > 0) return { kind: "selected", refs: named };
+
+  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
+    return { kind: "selected", refs: uploadRefs.slice(0, 1) };
+  }
+  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
+    return { kind: "selected", refs: uploadRefs.slice(-1) };
+  }
+
+  return { kind: "clarify", refs: uploadRefs };
+}
+
 export function buildMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
@@ -169,10 +197,10 @@ function formatUploadRefs(
 
 function formatUploadRefUsage(mediaType: string): string {
   if (mediaType === "application/pdf") {
-    return '; raw promotion call: system_create({ entityType: "document", upload }) with no transform';
+    return '; raw promotion call: system_create({ entityType: "document", upload }) and omit transform';
   }
   if (mediaType.startsWith("image/")) {
-    return '; raw promotion call: system_create({ entityType: "image", upload }) with no transform';
+    return '; raw promotion call: system_create({ entityType: "image", upload }) and omit transform';
   }
   if (mediaType.startsWith("text/") || mediaType === "application/json") {
     return '; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })';

@@ -14,6 +14,7 @@ describe("convertToSDKTools", () => {
         upload: z
           .object({ kind: z.literal("web-chat-upload"), id: z.string() })
           .optional(),
+        transform: z.string().optional(),
         sourceAttachment: z
           .object({
             sourceEntityType: z.string(),
@@ -40,6 +41,15 @@ describe("convertToSDKTools", () => {
       },
       { emit: mock(() => {}) },
     )["system_create"]?.inputSchema;
+    const withTransform = convertToSDKTools(
+      [tool],
+      {
+        conversationId: "conversation-1",
+        interfaceType: "agent",
+        enableCreateTransform: true,
+      },
+      { emit: mock(() => {}) },
+    )["system_create"]?.inputSchema;
     const withSourceAttachment = convertToSDKTools(
       [tool],
       {
@@ -50,17 +60,28 @@ describe("convertToSDKTools", () => {
       { emit: mock(() => {}) },
     )["system_create"]?.inputSchema;
 
-    if (!withoutSources || !withUpload || !withSourceAttachment) {
+    if (
+      !withoutSources ||
+      !withUpload ||
+      !withTransform ||
+      !withSourceAttachment
+    ) {
       throw new Error("Expected system_create schemas");
     }
     const withoutSourcesShape = (withoutSources as z.ZodObject<z.ZodRawShape>)
       .shape;
     const withUploadShape = (withUpload as z.ZodObject<z.ZodRawShape>).shape;
+    const withTransformShape = (withTransform as z.ZodObject<z.ZodRawShape>)
+      .shape;
     const withSourceAttachmentShape = (
       withSourceAttachment as z.ZodObject<z.ZodRawShape>
     ).shape;
     expect(Object.keys(withoutSourcesShape)).toEqual(["entityType"]);
     expect(Object.keys(withUploadShape)).toEqual(["entityType", "upload"]);
+    expect(Object.keys(withTransformShape)).toEqual([
+      "entityType",
+      "transform",
+    ]);
     expect(Object.keys(withSourceAttachmentShape)).toEqual([
       "entityType",
       "sourceAttachment",

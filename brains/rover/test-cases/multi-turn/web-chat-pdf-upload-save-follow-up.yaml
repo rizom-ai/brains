@@ -42,6 +42,7 @@ turns:
             upload.kind: web-chat-upload
             upload.id: upload-00000000-0000-4000-8000-000000000501
           argsAbsent:
+            - transform
             - from
             - fromUpload
             - sourceAttachment
@@ -62,6 +63,7 @@ successCriteria:
         upload.kind: web-chat-upload
         upload.id: upload-00000000-0000-4000-8000-000000000501
       argsAbsent:
+        - transform
         - from
         - fromUpload
         - sourceAttachment

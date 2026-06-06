@@ -11,6 +11,7 @@ export interface ToolContextInfo {
   interfaceType: string;
   userPermissionLevel?: UserPermissionLevel;
   enableCreateUpload?: boolean | undefined;
+  enableCreateTransform?: boolean | undefined;
   enableCreateSourceAttachment?: boolean | undefined;
 }
 
@@ -20,13 +21,18 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "contentHash",
 ]);
 
-const CREATE_SOURCE_FIELDS = new Set(["upload", "sourceAttachment"]);
+const CREATE_SOURCE_FIELDS = new Set([
+  "upload",
+  "transform",
+  "sourceAttachment",
+]);
 
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
   options: {
     toolName?: string;
     enableCreateUpload?: boolean;
+    enableCreateTransform?: boolean;
     enableCreateSourceAttachment?: boolean;
   } = {},
 ): Tool["inputSchema"] {
@@ -36,6 +42,7 @@ export function toModelVisibleInputSchema(
       if (options.toolName !== "system_create") return true;
       if (!CREATE_SOURCE_FIELDS.has(key)) return true;
       if (key === "upload") return options.enableCreateUpload === true;
+      if (key === "transform") return options.enableCreateTransform === true;
       return options.enableCreateSourceAttachment === true;
     }),
   );
@@ -77,6 +84,9 @@ export function convertToSDKTools(
           toolName: t.name,
           ...(contextInfo.enableCreateUpload !== undefined && {
             enableCreateUpload: contextInfo.enableCreateUpload,
+          }),
+          ...(contextInfo.enableCreateTransform !== undefined && {
+            enableCreateTransform: contextInfo.enableCreateTransform,
           }),
           ...(contextInfo.enableCreateSourceAttachment !== undefined && {
             enableCreateSourceAttachment:
