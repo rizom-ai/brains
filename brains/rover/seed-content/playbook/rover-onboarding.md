@@ -117,7 +117,7 @@ operator identity and positioning
 
 ###### Required
 
-false
+true
 
 #### Transitions
 
