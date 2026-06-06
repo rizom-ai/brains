@@ -17,8 +17,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Relay eval failure recovery](./relay-eval-failure-recovery.md) — triage from the 2026-05-30 eval run
-- [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
 
@@ -30,11 +28,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
 - [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
-
-### Content, sync, and generation
-
-- [OG images and printable PDFs on the media rendering substrate](./og-images-pdf-carousels.md) — proposed follow-up for OG images plus printable post/project/product PDFs
-- [Content pipeline publish assets](./content-pipeline-publish-assets.md) — proposed abstraction for auto-generating publish-adjacent assets such as OG images
 
 ### Auth, users, CMS, and HTTP
 

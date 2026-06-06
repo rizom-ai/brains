@@ -298,7 +298,6 @@ Validation: linked Discord user maps to a brain user; conversation metadata can 
 ## Related plans
 
 - [Multi-user and permissions](./multi-user.md)
-- [Conversation speaker attribution](./conversation-speaker-attribution.md)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md)
 - [Brain web UI](./brain-web-ui.md)
 - [Operator runtime database](./operator-runtime-db.md)
