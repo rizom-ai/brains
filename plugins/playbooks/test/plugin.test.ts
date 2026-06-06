@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "bun:test";
 import { AGENT_CONTEXT_REQUEST_CHANNEL } from "@brains/contracts";
 import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
+import { z } from "@brains/utils";
 import {
   createPluginHarness,
+  expectConfirmation,
   expectError,
   expectSuccess,
 } from "@brains/plugins/test";
@@ -81,6 +83,65 @@ function addPlaybookEntity(
   ]);
 }
 
+const overrideConfirmationArgsSchema = z
+  .object({
+    runId: z.string().min(1),
+    event: z.string().min(1),
+    reason: z.string().min(1),
+    confirmed: z.literal(true),
+  })
+  .strict();
+
+type OverrideConfirmationArgs = z.infer<typeof overrideConfirmationArgsSchema>;
+
+const transitionSchema = z
+  .object({
+    event: z.string().min(1),
+    target: z.string().min(1),
+  })
+  .passthrough();
+
+const runSummarySchema = z
+  .object({
+    id: z.string().min(1),
+    currentState: z.string().min(1),
+    status: z.string().optional(),
+    conversationId: z.string().optional(),
+    completedStates: z.array(z.string()).default([]),
+    context: z.record(z.string(), z.unknown()).default({}),
+    evidence: z.array(z.object({ kind: z.string() }).passthrough()).default([]),
+    gateVerdicts: z
+      .array(
+        z
+          .object({
+            source: z.string(),
+            satisfied: z.boolean(),
+          })
+          .passthrough(),
+      )
+      .default([]),
+  })
+  .passthrough();
+
+const playbookToolDataSchema = z
+  .object({
+    activeRun: runSummarySchema,
+    validEvents: z.array(transitionSchema).default([]),
+  })
+  .passthrough();
+
+function parsePlaybookToolData(
+  input: unknown,
+): z.infer<typeof playbookToolDataSchema> {
+  return playbookToolDataSchema.parse(input);
+}
+
+function parseOverrideConfirmationArgs(
+  input: unknown,
+): OverrideConfirmationArgs {
+  return overrideConfirmationArgsSchema.parse(input);
+}
+
 function gateVerifier(verify: PlaybookGateVerifier["verify"]): {
   verifier: PlaybookGateVerifier;
 } {
@@ -110,7 +171,7 @@ async function startRun(
     { channelId },
   );
   expectSuccess(started);
-  return (started.data as { activeRun: { id: string } }).activeRun.id;
+  return parsePlaybookToolData(started.data).activeRun.id;
 }
 
 describe("PlaybooksPlugin", () => {
@@ -239,10 +300,7 @@ describe("PlaybooksPlugin", () => {
       { channelId: "web-1" },
     );
     expectSuccess(started);
-    const startedData = started.data as {
-      activeRun: { id: string; currentState: string };
-      validEvents: Array<{ event: string; target: string }>;
-    };
+    const startedData = parsePlaybookToolData(started.data);
     const runId = startedData.activeRun.id;
     expect(startedData.activeRun.currentState).toBe("welcome");
     expect(startedData.validEvents.map((event) => event.event)).toEqual([
@@ -256,13 +314,7 @@ describe("PlaybooksPlugin", () => {
       context: { operatorReady: true },
     });
     expectSuccess(transitioned);
-    const transitionedData = transitioned.data as {
-      activeRun: {
-        currentState: string;
-        completedStates: string[];
-        context: Record<string, unknown>;
-      };
-    };
+    const transitionedData = parsePlaybookToolData(transitioned.data);
     expect(transitionedData.activeRun.currentState).toBe("seed");
     expect(transitionedData.activeRun.completedStates).toEqual(["welcome"]);
     expect(transitionedData.activeRun.context).toEqual({ operatorReady: true });
@@ -284,11 +336,70 @@ describe("PlaybooksPlugin", () => {
 
     const completed = await harness.executeTool("playbook_complete", { runId });
     expectSuccess(completed);
-    const completedData = completed.data as {
-      activeRun: { status: string; currentState: string };
-    };
+    const completedData = parsePlaybookToolData(completed.data);
     expect(completedData.activeRun.status).toBe("completed");
     expect(completedData.activeRun.currentState).toBe("complete");
+  });
+
+  it("requires confirmation and records an override verdict before bypassing a gate", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          doneWhen: ["The anchor profile has been created or updated."],
+          transitions: [{ event: "NEXT", target: "seed" }],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const runId = await startRun(harness, "web-override-gate");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const confirmation = await harness.executeTool("playbook_override_event", {
+      runId,
+      event: "NEXT",
+      reason: "Operator explicitly approved bypassing profile setup.",
+    });
+    expectConfirmation(confirmation);
+    expect(confirmation.toolName).toBe("playbook_override_event");
+
+    const overrideArgs = parseOverrideConfirmationArgs(confirmation.args);
+    const overridden = await harness.executeTool(
+      "playbook_override_event",
+      overrideArgs,
+    );
+    expectSuccess(overridden);
+    const activeRun = parsePlaybookToolData(overridden.data).activeRun;
+    expect(activeRun.currentState).toBe("seed");
+    expect(activeRun.evidence.some((row) => row.kind === "override")).toBe(
+      true,
+    );
+    expect(
+      activeRun.gateVerdicts.some(
+        (verdict) => verdict.source === "override" && verdict.satisfied,
+      ),
+    ).toBe(true);
   });
 
   it("blocks gated NEXT when the verifier returns an unsatisfied verdict", async () => {
@@ -437,10 +548,9 @@ describe("PlaybooksPlugin", () => {
       { channelId: "web-scoped-tools" },
     );
     expectSuccess(status);
-    expect(
-      (status.data as { activeRun: { conversationId: string } }).activeRun
-        .conversationId,
-    ).toBe("web-scoped-tools");
+    expect(parsePlaybookToolData(status.data).activeRun.conversationId).toBe(
+      "web-scoped-tools",
+    );
 
     const transitioned = await harness.executeTool(
       "playbook_send_event",
@@ -449,8 +559,7 @@ describe("PlaybooksPlugin", () => {
     );
     expectSuccess(transitioned);
     expect(
-      (transitioned.data as { activeRun: { currentState: string } }).activeRun
-        .currentState,
+      parsePlaybookToolData(transitioned.data).activeRun.currentState,
     ).toBe("seed");
   });
 

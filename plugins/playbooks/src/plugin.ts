@@ -101,6 +101,13 @@ const runInputSchema = {
   runId: z.string().min(1),
 };
 
+const overrideEventInputSchema = {
+  runId: z.string().min(1),
+  event: z.string().min(1),
+  reason: z.string().min(1),
+  confirmed: z.boolean().optional(),
+};
+
 const resetInputSchema = {
   runId: z.string().min(1).optional(),
 };
@@ -332,6 +339,32 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         },
       },
       {
+        name: "playbook_override_event",
+        description:
+          "Confirmation-required escape hatch that records an auditable override verdict before sending a playbook event.",
+        inputSchema: overrideEventInputSchema,
+        visibility: "anchor",
+        handler: async (input: unknown): Promise<ToolResponse> => {
+          const parsed = z.object(overrideEventInputSchema).parse(input);
+          if (!parsed.confirmed) {
+            return {
+              needsConfirmation: true,
+              toolName: "playbook_override_event",
+              summary: `Override playbook event '${parsed.event}'?`,
+              preview: parsed.reason,
+              args: { ...parsed, confirmed: true },
+            };
+          }
+
+          try {
+            const data = await this.overrideEvent(parsed);
+            return { success: true, data };
+          } catch (error) {
+            return { success: false, error: errorMessage(error) };
+          }
+        },
+      },
+      {
         name: "playbook_complete",
         description:
           "Mark a playbook run complete when it is in a final state.",
@@ -402,6 +435,80 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         },
       },
     ];
+  }
+
+  private async overrideEvent(input: {
+    runId: string;
+    event: string;
+    reason: string;
+  }): Promise<PlaybookStatusResponse> {
+    const run = await this.requireRun(input.runId);
+    const playbook = await this.requirePlaybook(run.playbookId);
+    if (run.playbookVersion !== playbook.version) {
+      throw new Error(
+        `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
+      );
+    }
+    const state = this.getState(playbook.body, run.currentState);
+    if (!state)
+      throw new Error(`Playbook state not found: ${run.currentState}`);
+
+    const evidence: PlaybookRunEvidence = {
+      id: createPrefixedId("playbook_evidence"),
+      kind: "override",
+      stateId: state.id,
+      observedAt: new Date().toISOString(),
+      data: {
+        event: input.event,
+        reason: input.reason,
+      },
+    };
+    const evidenceForState = [
+      ...this.evidenceForState(run, state.id),
+      evidence,
+    ];
+    const evidenceWatermark = computeEvidenceWatermark(evidenceForState);
+    const overrideVerdicts: PlaybookGateVerdict[] = state.doneWhen.map(
+      (condition) => ({
+        stateId: state.id,
+        condition,
+        conditionHash: conditionHash(condition),
+        evidenceWatermark,
+        satisfied: true,
+        source: "override",
+        evidenceIds: [evidence.id],
+        claims: [
+          {
+            evidenceId: evidence.id,
+            kind: "override",
+            data: { event: input.event },
+          },
+        ],
+        reasoning: input.reason,
+        evaluatedAt: evidence.observedAt,
+      }),
+    );
+
+    const runWithOverride: PlaybookRun = {
+      ...run,
+      evidence: [...run.evidence, evidence],
+      gateVerdicts: upsertGateVerdicts(run.gateVerdicts, overrideVerdicts),
+    };
+    const result = await this.transitionRun(
+      runWithOverride,
+      playbook.body,
+      input.event,
+    );
+    if (!result.success) throw new Error(result.error);
+
+    const nextRun = await this.store.upsert({
+      ...runWithOverride,
+      currentState: result.currentState,
+      completedStates: appendUnique(run.completedStates, run.currentState),
+      snapshot: result.snapshot,
+      gateVerdicts: result.gateVerdicts,
+    });
+    return this.getStatus({ runId: nextRun.id });
   }
 
   private async createStartedRun(input: {
