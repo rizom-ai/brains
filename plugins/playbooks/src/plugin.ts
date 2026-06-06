@@ -77,6 +77,7 @@ const statusInputSchema = {
   runId: z.string().min(1).optional(),
   playbookId: z.string().min(1).optional(),
   lifecycle: z.string().min(1).optional(),
+  conversationId: z.string().min(1).optional(),
 };
 
 const startInputSchema = {
@@ -86,13 +87,15 @@ const startInputSchema = {
 };
 
 const sendEventInputSchema = {
-  runId: z.string().min(1),
+  runId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).optional(),
   event: z.string().min(1),
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
 const recordEntityInputSchema = {
   runId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).optional(),
   entityType: z.string().min(1),
   entityId: z.string().min(1),
   purpose: z.string().min(1).optional(),
@@ -183,10 +186,20 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body.",
         inputSchema: statusInputSchema,
         visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
+        handler: async (
+          input: unknown,
+          toolContext: ToolContext,
+        ): Promise<ToolResponse> => {
           const parsed = z.object(statusInputSchema).parse(input);
-          const data = await this.getStatus(parsed);
-          return { success: true, data };
+          try {
+            const data = await this.getStatus({
+              ...parsed,
+              conversationId: parsed.conversationId ?? toolContext.channelId,
+            });
+            return { success: true, data };
+          } catch (error) {
+            return { success: false, error: errorMessage(error) };
+          }
         },
       },
       {
@@ -231,22 +244,34 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
+        handler: async (
+          input: unknown,
+          toolContext: ToolContext,
+        ): Promise<ToolResponse> => {
           const parsed = z.object(sendEventInputSchema).parse(input);
-          const run = await this.requireRun(parsed.runId);
-          const playbook = await this.requirePlaybook(run.playbookId);
-          const result = this.transitionRun(run, playbook.body, parsed.event);
+          const run = await this.resolveScopedRunResponse({
+            runId: parsed.runId,
+            conversationId: parsed.conversationId,
+            channelId: toolContext.channelId,
+          });
+          if (!run.success) return run;
+          const playbook = await this.requirePlaybook(run.data.playbookId);
+          const result = this.transitionRun(
+            run.data,
+            playbook.body,
+            parsed.event,
+          );
           if (!result.success) return result;
 
           const nextRun = await this.store.upsert({
-            ...run,
+            ...run.data,
             currentState: result.currentState,
             completedStates: appendUnique(
-              run.completedStates,
-              run.currentState,
+              run.data.completedStates,
+              run.data.currentState,
             ),
             snapshot: result.snapshot,
-            context: { ...run.context, ...(parsed.context ?? {}) },
+            context: { ...run.data.context, ...(parsed.context ?? {}) },
           });
           const data = await this.getStatus({ runId: nextRun.id });
           return { success: true, data };
@@ -263,25 +288,27 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
           const parsed = z.object(recordEntityInputSchema).parse(input);
-          const run = await this.requireScopedRun({
+          const run = await this.resolveScopedRunResponse({
             runId: parsed.runId,
+            conversationId: parsed.conversationId,
             channelId: toolContext.channelId,
           });
+          if (!run.success) return run;
           const ref: PlaybookRunEntityRef = {
             entityType: parsed.entityType,
             entityId: parsed.entityId,
             ...(parsed.purpose ? { purpose: parsed.purpose } : {}),
           };
-          const alreadyRecorded = run.createdEntities.some(
+          const alreadyRecorded = run.data.createdEntities.some(
             (entity) =>
               entity.entityType === ref.entityType &&
               entity.entityId === ref.entityId,
           );
           const nextRun = await this.store.upsert({
-            ...run,
+            ...run.data,
             createdEntities: alreadyRecorded
-              ? run.createdEntities
-              : [...run.createdEntities, ref],
+              ? run.data.createdEntities
+              : [...run.data.createdEntities, ref],
           });
           const data = await this.getStatus({ runId: nextRun.id });
           return { success: true, data };
@@ -521,6 +548,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     runId?: string | undefined;
     playbookId?: string | undefined;
     lifecycle?: string | undefined;
+    conversationId?: string | undefined;
   }): Promise<PlaybookStatusResponse> {
     const runs = await this.store.list();
     const activeRun = input.runId
@@ -529,9 +557,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ? runs.find((run) => run.lifecycle === input.lifecycle)
         : input.playbookId
           ? runs.find((run) => run.playbookId === input.playbookId)
-          : runs.find(
-              (run) => run.status === "active" || run.status === "offered",
-            );
+          : input.conversationId
+            ? await this.requireScopedRun({
+                conversationId: input.conversationId,
+              })
+            : undefined;
 
     const playbookId =
       input.playbookId ??
@@ -587,18 +617,45 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     return run;
   }
 
+  private async resolveScopedRunResponse(input: {
+    runId?: string | undefined;
+    conversationId?: string | undefined;
+    channelId?: string | undefined;
+  }): Promise<
+    { success: true; data: PlaybookRun } | { success: false; error: string }
+  > {
+    try {
+      return { success: true, data: await this.requireScopedRun(input) };
+    } catch (error) {
+      return { success: false, error: errorMessage(error) };
+    }
+  }
+
   private async requireScopedRun(input: {
     runId?: string | undefined;
+    conversationId?: string | undefined;
     channelId?: string | undefined;
   }): Promise<PlaybookRun> {
     if (input.runId) return this.requireRun(input.runId);
-    if (!input.channelId) {
+    const conversationId = input.conversationId ?? input.channelId;
+    if (!conversationId) {
       throw new Error("Missing runId and no active conversation channel.");
     }
-    const run = await this.store.findActiveByConversation(input.channelId);
+    const runs = await this.store.listActiveByConversation(conversationId);
+    if (runs.length === 0) {
+      throw new Error(
+        `No active playbook run for conversation '${conversationId}'.`,
+      );
+    }
+    if (runs.length > 1) {
+      throw new Error(
+        `Multiple active playbook runs for conversation '${conversationId}'. Provide runId explicitly.`,
+      );
+    }
+    const run = runs[0];
     if (!run) {
       throw new Error(
-        `No active playbook run for conversation '${input.channelId}'.`,
+        `No active playbook run for conversation '${conversationId}'.`,
       );
     }
     return run;
@@ -703,6 +760,10 @@ ${lifecycleSummary || "- none"}`;
 
 function appendUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export function playbooksPlugin(

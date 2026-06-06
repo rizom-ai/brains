@@ -56,13 +56,16 @@ const playbookBody: PlaybookBody = {
   nextPrompts: ["Save this idea as a note..."],
 };
 
+type PluginHarness = ReturnType<typeof createPluginHarness>;
+
 function addPlaybookEntity(
-  harness: ReturnType<typeof createPluginHarness>,
+  harness: PluginHarness,
   body: PlaybookBody = playbookBody,
+  id = "rover-onboarding",
 ): void {
   harness.addEntities([
     {
-      id: "rover-onboarding",
+      id,
       entityType: "playbook",
       content: playbookAdapter.createPlaybookContent(
         {
@@ -81,6 +84,32 @@ function addPlaybookEntity(
       },
     },
   ]);
+}
+
+async function installHarness(): Promise<PluginHarness> {
+  const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+  await harness.installPlugin(
+    playbooksPlugin({ storageDir: await tempStorageDir() }),
+  );
+  addPlaybookEntity(harness);
+  return harness;
+}
+
+async function startRun(
+  harness: PluginHarness,
+  channelId: string,
+  playbookId = "rover-onboarding",
+): Promise<string> {
+  const started = await harness.executeTool(
+    "playbook_start",
+    {
+      playbookId,
+      lifecycle: "onboarding",
+    },
+    { channelId },
+  );
+  expectSuccess(started);
+  return (started.data as { activeRun: { id: string } }).activeRun.id;
 }
 
 describe("PlaybooksPlugin", () => {
@@ -363,21 +392,31 @@ describe("PlaybooksPlugin", () => {
     ).toBe("seed");
   });
 
-  it("records entities against the active conversation playbook when runId is omitted", async () => {
-    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
-    addPlaybookEntity(harness);
+  it("resolves run-scoped tools from the active conversation playbook when runId is omitted", async () => {
+    const harness = await installHarness();
+    await startRun(harness, "web-scoped-tools");
 
-    await harness.executeTool(
-      "playbook_start",
-      {
-        playbookId: "rover-onboarding",
-        lifecycle: "onboarding",
-      },
-      { channelId: "web-record-active" },
+    const status = await harness.executeTool(
+      "playbook_status",
+      {},
+      { channelId: "web-scoped-tools" },
     );
+    expectSuccess(status);
+    expect(
+      (status.data as { activeRun: { conversationId: string } }).activeRun
+        .conversationId,
+    ).toBe("web-scoped-tools");
+
+    const transitioned = await harness.executeTool(
+      "playbook_send_event",
+      { event: "NEXT", context: { operatorReady: true } },
+      { channelId: "web-scoped-tools" },
+    );
+    expectSuccess(transitioned);
+    expect(
+      (transitioned.data as { activeRun: { currentState: string } }).activeRun
+        .currentState,
+    ).toBe("seed");
 
     const recorded = await harness.executeTool(
       "playbook_record_entity",
@@ -386,7 +425,7 @@ describe("PlaybooksPlugin", () => {
         entityId: "woodchuckers-are-evil-creatures",
         purpose: "knowledge-seed",
       },
-      { channelId: "web-record-active" },
+      { channelId: "web-scoped-tools" },
     );
 
     expectSuccess(recorded);
@@ -400,6 +439,28 @@ describe("PlaybooksPlugin", () => {
         purpose: "knowledge-seed",
       },
     ]);
+  });
+
+  it("errors when run-scoped tools cannot infer exactly one active conversation playbook", async () => {
+    const harness = await installHarness();
+
+    const missing = await harness.executeTool(
+      "playbook_status",
+      {},
+      { channelId: "web-no-run" },
+    );
+    expectError(missing);
+
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding-alt");
+    await startRun(harness, "web-ambiguous-run");
+    await startRun(harness, "web-ambiguous-run", "rover-onboarding-alt");
+
+    const ambiguous = await harness.executeTool(
+      "playbook_send_event",
+      { event: "NEXT" },
+      { channelId: "web-ambiguous-run" },
+    );
+    expectError(ambiguous);
   });
 
   it("injects active playbook state as agent context", async () => {

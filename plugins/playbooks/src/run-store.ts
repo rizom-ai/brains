@@ -77,7 +77,13 @@ export class PlaybookRunStore {
   async findActiveByConversation(
     conversationId: string,
   ): Promise<PlaybookRun | undefined> {
-    return (await this.list()).find(
+    return (await this.listActiveByConversation(conversationId))[0];
+  }
+
+  async listActiveByConversation(
+    conversationId: string,
+  ): Promise<PlaybookRun[]> {
+    return (await this.list()).filter(
       (run) =>
         run.conversationId === conversationId &&
         (run.status === "active" || run.status === "offered"),
