@@ -94,7 +94,7 @@ Three parallel sub-tracks:
 
 **Primary: bundled web chat UI.** Rover (and every brain) currently has no in-browser way to actually chat with the brain — the options are CLI, Discord setup, or MCP through a desktop assistant. None of these is a credible "try it" path for new users. A bundled web chat surface closes that gap and is the most leveraged Rover hardening investment. See [brain-web-ui.md](./plans/brain-web-ui.md).
 
-**Planned: media/OG follow-through.** PDF carousels, LinkedIn document publishing, and durable media artifacts landed in this cycle. Remaining work is the OG image substrate and a unified media generation lifecycle. Cap this at a defined slice — media work has its own gravity and will pull attention from friction work if unchecked.
+**Completed: media/OG follow-through.** PDF carousels, printable PDFs, generated OG images, and content-pipeline publish assets landed in this cycle. Future media tweaks should be handled as normal bugs/enhancements rather than a standing plan.
 
 **Reactive: user-testing friction.** Real users on `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants surface friction the Relay POC won't. Operating model:
 
@@ -109,7 +109,6 @@ Both tracks share the same weekly review with Relay POC observations: what hit u
 Supporting plans:
 
 - [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
-- [og-images-pdf-carousels.md](./plans/og-images-pdf-carousels.md) — extend the media rendering substrate to generated OG images.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
 
@@ -127,6 +126,7 @@ Current state:
 
 - Relay POC scaffolding exists: presets, prompts, eval scaffold, and assessment coverage.
 - Conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval.
+- Speaker attribution first pass is implemented: messages preserve actor/source metadata, summaries track participants, and identity-link follow-ups are covered by the runtime-user/auth DB plans.
 - Shared-space trust first slice is implemented: configured spaces can grant collaborator/trusted access, with Discord channel context and bot/guest exclusions.
 - Speaker attribution first pass is implemented; deeper identity-link management remains deferred.
 
@@ -141,7 +141,6 @@ Until then, Relay remains an internal experiment owned by `rizom-foundation`.
 Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
-- [conversation-speaker-attribution.md](./plans/conversation-speaker-attribution.md) — implemented attribution first pass; identity-link follow-ups remain.
 
 ### 3. Make shared Relay trustworthy enough to matter
 
