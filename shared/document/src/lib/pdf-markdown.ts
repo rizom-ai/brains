@@ -1,3 +1,6 @@
+// Extracts the PDF's text content as flat paragraphs (one block per page),
+// not structured markdown — there is no heading/list/table detection. The
+// caller wraps the result in title frontmatter, hence "markdown".
 export async function extractPdfMarkdown(content: Buffer): Promise<string> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const document = await pdfjs.getDocument({

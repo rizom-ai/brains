@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import type { CreateInterceptionResult } from "@brains/plugins";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -60,14 +59,14 @@ describe("NotePlugin", () => {
         .getCreateInterceptor("base");
       if (!interceptor) throw new Error("base create interceptor not found");
 
-      const result = (await interceptor(
+      const result = await interceptor(
         {
           entityType: "base",
           from: { kind: "web-chat-upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },
-      )) as CreateInterceptionResult;
+      );
 
       expect(result.kind).toBe("handled");
       if (result.kind !== "handled") return;
@@ -80,6 +79,45 @@ describe("NotePlugin", () => {
       });
       expect(entity?.content).toContain("Useful extracted text.");
       expect(entity?.metadata).toMatchObject({ title: "research-notes" });
+    });
+
+    it("imports an uploaded JSON file as a markdown note", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000703",
+      });
+      const upload = await uploadStore.save({
+        filename: "config-export.json",
+        mediaType: "application/json",
+        content: Buffer.from('{\n  "key": "useful value"\n}', "utf8"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("base");
+      if (!interceptor) throw new Error("base create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "base",
+          from: { kind: "web-chat-upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", userId: "operator" },
+      );
+
+      expect(result.kind).toBe("handled");
+      if (result.kind !== "handled") return;
+      if (!result.result.success) throw new Error(result.result.error);
+      expect(result.result.data.entityId).toBe("config-export");
+
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "base",
+        id: "config-export",
+      });
+      expect(entity?.content).toContain("useful value");
+      expect(entity?.metadata).toMatchObject({ title: "config-export" });
     });
 
     it("imports an uploaded PDF as extracted markdown", async () => {
@@ -99,14 +137,14 @@ describe("NotePlugin", () => {
         .getCreateInterceptor("base");
       if (!interceptor) throw new Error("base create interceptor not found");
 
-      const result = (await interceptor(
+      const result = await interceptor(
         {
           entityType: "base",
           from: { kind: "web-chat-upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },
-      )) as CreateInterceptionResult;
+      );
 
       expect(result.kind).toBe("handled");
       if (result.kind !== "handled") return;

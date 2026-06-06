@@ -6,6 +6,7 @@ const textUploadMediaTypes = new Set([
   "text/plain",
   "text/markdown",
   "text/x-markdown",
+  "application/json",
 ]);
 
 export interface MarkdownImportResult {
@@ -47,7 +48,7 @@ async function readUploadMarkdown(
   }
 
   throw new Error(
-    "Only text and PDF uploads can be imported as markdown notes",
+    "Only text, JSON, and PDF uploads can be imported as markdown notes",
   );
 }
 
