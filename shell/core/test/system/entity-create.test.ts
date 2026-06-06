@@ -12,6 +12,21 @@ import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
+const createEntityRequestSchema = z
+  .object({
+    options: z
+      .object({
+        eventContext: z
+          .object({
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),
   targetEntityId: z.string(),
@@ -244,6 +259,7 @@ describe("system_create tool", () => {
     context?: {
       interfaceType?: string;
       userId?: string;
+      conversationId?: string;
       channelId?: string;
       channelName?: string;
       userPermissionLevel?: UserPermissionLevel;
@@ -254,6 +270,9 @@ describe("system_create tool", () => {
     return tool.handler(input, {
       interfaceType: context?.interfaceType ?? "test",
       userId: context?.userId ?? "test",
+      ...(context?.conversationId
+        ? { conversationId: context.conversationId }
+        : {}),
       ...(context?.channelId ? { channelId: context.channelId } : {}),
       ...(context?.channelName ? { channelName: context.channelName } : {}),
       ...(context?.userPermissionLevel
@@ -261,6 +280,29 @@ describe("system_create tool", () => {
         : {}),
     });
   }
+
+  it("passes separate conversation and channel provenance to entity creation", async () => {
+    const result = await exec(
+      {
+        entityType: "base",
+        title: "Provenance Note",
+        content: "remember this",
+      },
+      {
+        conversationId: "conversation-1",
+        channelId: "channel-1",
+      },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    const request = createEntityRequestSchema.parse(
+      services.getLastCreateRequest(),
+    );
+    expect(request.options?.eventContext).toEqual({
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+    });
+  });
 
   it("should pass normalized input and execution context to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;

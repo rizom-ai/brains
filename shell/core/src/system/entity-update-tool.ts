@@ -12,6 +12,7 @@ import { updateInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
+  buildEntityMutationEventContext,
   createSystemTool,
   getEntityDisplayLabel,
   normalizeUpdateInput,
@@ -277,7 +278,11 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         }
 
         try {
-          await entityService.updateEntity({ entity: updated });
+          const eventContext = buildEntityMutationEventContext(context);
+          await entityService.updateEntity({
+            entity: updated,
+            ...(eventContext ? { options: { eventContext } } : {}),
+          });
         } catch (error) {
           return {
             success: false,

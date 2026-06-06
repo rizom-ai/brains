@@ -1,4 +1,7 @@
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationEventContext,
+} from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type {
   EntityAction,
@@ -82,6 +85,18 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     },
     visibility,
   };
+}
+
+export function buildEntityMutationEventContext(
+  context: ToolContext,
+): EntityMutationEventContext | undefined {
+  const eventContext: EntityMutationEventContext = {
+    ...(context.conversationId
+      ? { conversationId: context.conversationId }
+      : {}),
+    ...(context.channelId ? { channelId: context.channelId } : {}),
+  };
+  return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }
 
 export function sanitizeEntity<T extends BaseEntity>(entity: T): T {

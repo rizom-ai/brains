@@ -321,6 +321,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     context?: {
       interfaceType?: string;
       userId?: string;
+      conversationId?: string;
       channelId?: string;
       userPermissionLevel?: "anchor" | "trusted" | "public";
     },
@@ -342,6 +343,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     const toolContext: {
       interfaceType: string;
       userId: string;
+      conversationId?: string;
       channelId?: string;
       userPermissionLevel: "anchor" | "trusted" | "public";
     } = {
@@ -349,6 +351,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       userId: context?.userId ?? "test-user",
       userPermissionLevel: context?.userPermissionLevel ?? "anchor",
     };
+    if (context?.conversationId) {
+      toolContext.conversationId = context.conversationId;
+    }
     if (context?.channelId) {
       toolContext.channelId = context.channelId;
     }

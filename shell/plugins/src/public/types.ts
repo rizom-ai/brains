@@ -60,6 +60,7 @@ export interface ToolContext {
   }) => Promise<void>;
   interfaceType?: string;
   userId?: string;
+  conversationId?: string;
   channelId?: string;
   channelName?: string;
   userPermissionLevel?: UserPermissionLevel;

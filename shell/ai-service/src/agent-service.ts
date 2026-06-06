@@ -232,8 +232,8 @@ export class AgentService implements IAgentService {
   ): Promise<AgentResponse> {
     const userPermissionLevel = context?.userPermissionLevel ?? "public";
     const interfaceType = context?.interfaceType ?? "agent";
-    const channelId = context?.channelId ?? conversationId;
-    const channelName = context?.channelName ?? channelId;
+    const channelId = context?.channelId;
+    const channelName = context?.channelName ?? channelId ?? conversationId;
 
     this.logger.debug("Processing chat message", {
       conversationId,
@@ -342,12 +342,19 @@ export class AgentService implements IAgentService {
       attachments,
     } = input;
 
-    // Ensure conversation exists
+    // Ensure conversation exists. Conversation-service currently requires a
+    // channelId for storage compatibility; do not reuse this fallback for tool
+    // provenance, where absent channelId must remain absent.
+    const storageChannelId = channelId ?? conversationId;
     await this.conversationService.startConversation({
       sessionId: conversationId,
       interfaceType,
-      channelId,
-      metadata: { channelName, interfaceType, channelId },
+      channelId: storageChannelId,
+      metadata: {
+        channelName,
+        interfaceType,
+        channelId: storageChannelId,
+      },
     });
 
     if (message.trim().length === 0 && attachments.length > 0) {
@@ -492,7 +499,7 @@ export class AgentService implements IAgentService {
     conversationId: string;
     message: string;
     interfaceType: string;
-    channelId: string;
+    channelId: string | undefined;
     channelName: string;
     userPermissionLevel: ChatContext["userPermissionLevel"];
   }): Promise<AgentContextItem[] | undefined> {
@@ -544,7 +551,8 @@ export class AgentService implements IAgentService {
     const context: ToolContext = {
       interfaceType,
       userId: "agent-user",
-      channelId,
+      conversationId,
+      ...(channelId ? { channelId } : {}),
       channelName,
       userPermissionLevel,
     };
@@ -658,11 +666,11 @@ export class AgentService implements IAgentService {
   }
 
   private buildAssistantSource(
-    channelId: string,
+    channelId: string | undefined,
     channelName: string,
   ): ConversationMessageSource {
     return {
-      channelId,
+      ...(channelId ? { channelId } : {}),
       channelName,
     };
   }

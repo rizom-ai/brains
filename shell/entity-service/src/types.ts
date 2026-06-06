@@ -25,9 +25,17 @@ export interface EmbeddingJobData {
 /**
  * Options for entity mutation operations (create, update, upsert)
  */
+export interface EntityMutationEventContext {
+  conversationId?: string;
+  channelId?: string;
+  runId?: string;
+  toolCallId?: string;
+}
+
 export interface EntityJobOptions {
   priority?: number;
   maxRetries?: number;
+  eventContext?: EntityMutationEventContext;
 }
 
 const canonicalContentVisibilitySchema = z.enum([

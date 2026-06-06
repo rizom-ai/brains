@@ -4,6 +4,7 @@ import type {
   BaseEntity,
   EmbeddingJobData,
   EntityJobOptions,
+  EntityMutationEventContext,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityEventBus,
@@ -165,6 +166,8 @@ export class EntityMutations {
         ...validatedEntity,
         id: finalId,
       },
+      undefined,
+      options?.eventContext,
     );
 
     return this.enqueueEmbeddingJob({
@@ -285,6 +288,7 @@ export class EntityMutations {
       // such as a changed `seriesName` without a full resync. Already loaded
       // above for the no-op check, so this adds no extra read.
       existingEntity?.metadata,
+      options?.eventContext,
     );
 
     return this.enqueueEmbeddingJob({
@@ -438,6 +442,7 @@ export class EntityMutations {
     entityId: string,
     entity?: BaseEntity,
     previousMetadata?: BaseEntity["metadata"],
+    eventContext?: EntityMutationEventContext,
   ): Promise<void> {
     if (!this.messageBus) {
       return;
@@ -445,7 +450,18 @@ export class EntityMutations {
 
     this.logger.debug(`Emitting ${event} for ${entityType}:${entityId}`);
 
-    const payload: Record<string, unknown> = { entityType, entityId };
+    const payload: Record<string, unknown> = {
+      entityType,
+      entityId,
+      ...(eventContext?.conversationId
+        ? { conversationId: eventContext.conversationId }
+        : {}),
+      ...(eventContext?.channelId ? { channelId: eventContext.channelId } : {}),
+      ...(eventContext?.runId ? { runId: eventContext.runId } : {}),
+      ...(eventContext?.toolCallId
+        ? { toolCallId: eventContext.toolCallId }
+        : {}),
+    };
     if (entity) {
       payload["entity"] = entity;
     }

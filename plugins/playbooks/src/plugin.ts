@@ -247,7 +247,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           try {
             const data = await this.getStatus({
               ...parsed,
-              conversationId: parsed.conversationId ?? toolContext.channelId,
+              conversationId:
+                parsed.conversationId ?? toolContext.conversationId,
             });
             return { success: true, data };
           } catch (error) {
@@ -265,7 +266,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
           const parsed = z.object(startInputSchema).parse(input);
-          const conversationId = parsed.conversationId ?? toolContext.channelId;
+          const conversationId =
+            parsed.conversationId ?? toolContext.conversationId;
           const playbook = await this.requirePlaybook(parsed.playbookId);
           assertValidPlaybookBody(playbook.body);
           const existing = await this.store.findActiveByPlaybook(
@@ -305,8 +307,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           const parsed = z.object(sendEventInputSchema).parse(input);
           const run = await this.resolveScopedRunResponse({
             runId: parsed.runId,
-            conversationId: parsed.conversationId,
-            channelId: toolContext.channelId,
+            conversationId: parsed.conversationId ?? toolContext.conversationId,
           });
           if (!run.success) return run;
           const playbook = await this.requirePlaybook(run.data.playbookId);
@@ -938,7 +939,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private async resolveScopedRunResponse(input: {
     runId?: string | undefined;
     conversationId?: string | undefined;
-    channelId?: string | undefined;
   }): Promise<
     { success: true; data: PlaybookRun } | { success: false; error: string }
   > {
@@ -952,12 +952,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private async requireScopedRun(input: {
     runId?: string | undefined;
     conversationId?: string | undefined;
-    channelId?: string | undefined;
   }): Promise<PlaybookRun> {
     if (input.runId) return this.requireRun(input.runId);
-    const conversationId = input.conversationId ?? input.channelId;
+    const conversationId = input.conversationId;
     if (!conversationId) {
-      throw new Error("Missing runId and no active conversation channel.");
+      throw new Error("Missing runId and no active conversation id.");
     }
     const runs = await this.store.listActiveByConversation(conversationId);
     if (runs.length === 0) {

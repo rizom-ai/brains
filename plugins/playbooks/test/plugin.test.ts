@@ -159,7 +159,7 @@ async function installHarness(): Promise<PluginHarness> {
 
 async function startRun(
   harness: PluginHarness,
-  channelId: string,
+  conversationId: string,
   playbookId = "rover-onboarding",
 ): Promise<string> {
   const started = await harness.executeTool(
@@ -168,7 +168,7 @@ async function startRun(
       playbookId,
       lifecycle: "onboarding",
     },
-    { channelId },
+    { conversationId },
   );
   expectSuccess(started);
   return parsePlaybookToolData(started.data).activeRun.id;
@@ -297,7 +297,7 @@ describe("PlaybooksPlugin", () => {
         playbookId: "rover-onboarding",
         lifecycle: "onboarding",
       },
-      { channelId: "web-1" },
+      { conversationId: "web-1" },
     );
     expectSuccess(started);
     const startedData = parsePlaybookToolData(started.data);
@@ -545,7 +545,7 @@ describe("PlaybooksPlugin", () => {
     const status = await harness.executeTool(
       "playbook_status",
       {},
-      { channelId: "web-scoped-tools" },
+      { conversationId: "web-scoped-tools" },
     );
     expectSuccess(status);
     expect(parsePlaybookToolData(status.data).activeRun.conversationId).toBe(
@@ -555,7 +555,7 @@ describe("PlaybooksPlugin", () => {
     const transitioned = await harness.executeTool(
       "playbook_send_event",
       { event: "NEXT", context: { operatorReady: true } },
-      { channelId: "web-scoped-tools" },
+      { conversationId: "web-scoped-tools" },
     );
     expectSuccess(transitioned);
     expect(
@@ -569,7 +569,7 @@ describe("PlaybooksPlugin", () => {
     const missing = await harness.executeTool(
       "playbook_status",
       {},
-      { channelId: "web-no-run" },
+      { conversationId: "web-no-run" },
     );
     expectError(missing);
 
@@ -580,7 +580,7 @@ describe("PlaybooksPlugin", () => {
     const ambiguous = await harness.executeTool(
       "playbook_send_event",
       { event: "NEXT" },
-      { channelId: "web-ambiguous-run" },
+      { conversationId: "web-ambiguous-run" },
     );
     expectError(ambiguous);
   });

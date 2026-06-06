@@ -18,7 +18,7 @@ export interface AgentMachineContext {
   conversationId: string;
   message: string;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
@@ -39,7 +39,7 @@ export type AgentMachineEvent =
       message: string;
       conversationId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -56,7 +56,7 @@ export interface ProcessMessageInput {
   conversationId: string;
   message: string;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
   actor: ConversationMessageActor | null;
@@ -71,7 +71,7 @@ export interface ExecuteActionInput {
   conversationId: string;
   pendingConfirmation: PendingConfirmation;
   interfaceType: string;
-  channelId: string;
+  channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
 }
@@ -179,7 +179,7 @@ export const agentMachine = setup({
     conversationId: "",
     message: "",
     interfaceType: "agent",
-    channelId: "",
+    channelId: undefined,
     channelName: "",
     userPermissionLevel: "public" as UserPermissionLevel,
     actor: null,

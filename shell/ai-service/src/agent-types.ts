@@ -106,8 +106,8 @@ export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
-  channelId?: string; // Channel/room identifier for conversation tracking
-  channelName?: string; // Human-readable name for the channel/room
+  channelId?: string; // Transport channel/room identifier when distinct from conversationId
+  channelName?: string; // Human-readable name for the transport channel/room
   actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
   source?: ConversationMessageSource; // Platform-specific source provenance
   attachments?: ChatAttachment[] | undefined; // Native same-turn attachments supplied by the interface

@@ -57,7 +57,7 @@ describe("convertToSDKTools", () => {
       expect.objectContaining({
         interfaceType: "agent",
         userId: "agent-user",
-        channelId: "conversation-1",
+        conversationId: "conversation-1",
         userPermissionLevel: "public",
       }),
     );

@@ -15,6 +15,7 @@ import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
+  buildEntityMutationEventContext,
   createSystemTool,
   hasStructuredFrontmatter,
   normalizeOptionalString,
@@ -152,6 +153,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         }
       }
 
+      const eventContext = buildEntityMutationEventContext(toolContext);
+
       let createInput: CreateInput = {
         entityType: input.entityType,
         ...(prompt && { prompt }),
@@ -271,7 +274,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         try {
           const result = await entityService.createEntity({
             entity: stub,
-            options: { deduplicateId: true },
+            options: {
+              deduplicateId: true,
+              ...(eventContext ? { eventContext } : {}),
+            },
           });
           resolvedEntityId = result.entityId;
         } catch (error) {
@@ -336,6 +342,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   markdown: createInput.content,
                 },
+                ...(eventContext ? { options: { eventContext } } : {}),
               })
             : await entityService.createEntity({
                 entity: {
@@ -346,6 +353,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },
+                ...(eventContext ? { options: { eventContext } } : {}),
               });
         if (coverImage) {
           await enqueueCoverImageGeneration(

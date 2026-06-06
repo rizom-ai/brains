@@ -3128,7 +3128,6 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
         {
           userPermissionLevel: input.permissionLevel,
           interfaceType: webChatInterfaceType,
-          channelId: input.conversationId,
           channelName: "Web Chat",
           attachments: input.attachments,
         },

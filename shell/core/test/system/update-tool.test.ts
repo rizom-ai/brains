@@ -3,6 +3,22 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { PermissionService } from "@brains/templates";
+import { z } from "@brains/utils";
+
+const updateEntityRequestSchema = z
+  .object({
+    options: z
+      .object({
+        eventContext: z
+          .object({
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
 
 describe("system_update tool", () => {
   let tools: Tool[];
@@ -130,6 +146,37 @@ describe("system_update tool", () => {
       userPermissionLevel,
     });
   }
+
+  it("passes separate conversation and channel provenance to confirmed entity updates", async () => {
+    const tool = tools.find((candidate) => candidate.name === "system_update");
+    if (!tool) throw new Error("system_update not found");
+
+    const result = await tool.handler(
+      {
+        entityType: "agent",
+        id: "old-agent.io",
+        fields: { status: "approved" },
+        confirmed: true,
+        contentHash: "hash-1",
+      },
+      {
+        interfaceType: "test",
+        userId: "test",
+        conversationId: "conversation-1",
+        channelId: "channel-1",
+        userPermissionLevel: "anchor",
+      },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    const request = updateEntityRequestSchema.parse(
+      services.getLastUpdateRequest(),
+    );
+    expect(request.options?.eventContext).toEqual({
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+    });
+  });
 
   it("uses non-title metadata as the display label in update confirmations", async () => {
     const result = await exec({

@@ -355,10 +355,10 @@ conditionHash + evidenceWatermark` are unchanged. If the judge call fails, times
 out, or returns invalid structured output, `NEXT` blocks and `playbook_status`
 reports the verifier error; only `playbook_override_event` can bypass.
 
-Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from
-`ToolContext.channelId` when `runId`/`conversationId` is omitted, and error if more
-than one active run exists for the conversation — the same inference
-`playbook_start` already does. Entity evidence is collected automatically by event
+Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from an
+explicit `conversationId` or `ToolContext.conversationId` when `runId` is omitted,
+and error if more than one active run exists for the conversation — the same
+inference `playbook_start` already does. Entity evidence is collected automatically by event
 subscription; there is no `playbook_record_entity` self-reporting tool. The
 current prototype tool must be removed before merge.
 
@@ -424,9 +424,10 @@ the model to paraphrase it. Nothing more for MVP.
    `playbook_send_event`, `playbook_override_event`, `playbook_validate`; agent
    instructions; lifecycle starter handler.
 3. **Evidence + verifier** — entity `created`/`updated` collector (events carry
-   `conversationId` from `ToolContext.channelId`, plus `runId`/`toolCallId` when
-   available, so evidence correlates to the run); LLM-judge verifier behind a
-   swappable interface; citation + typed-claim validation; agent-context injection.
+   neutral mutation provenance: `conversationId` when known, `channelId` separately,
+   plus `runId`/`toolCallId` when available, so evidence correlates to the run
+   without treating transport channels as conversations); LLM-judge verifier behind
+   a swappable interface; citation + typed-claim validation; agent-context injection.
 4. **Confirmation hardening** (`shell/ai-service`) — confirmation is a first-class
    stop condition that terminates the turn and surfaces the approval card; it never
    appears as a generic tool result.

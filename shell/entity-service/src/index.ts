@@ -50,6 +50,7 @@ export type {
   EntityDbConfig,
   EntityTypeConfig,
   EntityJobOptions,
+  EntityMutationEventContext,
   EntityEventBus,
   ContentVisibility,
   RawContentVisibility,
