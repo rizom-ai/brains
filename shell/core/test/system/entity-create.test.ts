@@ -451,6 +451,80 @@ describe("system_create tool", () => {
     });
   });
 
+  it("should reject extract-markdown transform without an upload ref", async () => {
+    const result = await exec({
+      entityType: "base",
+      content: "# Notes\n\nStore this directly.",
+      transform: "extract-markdown",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+    });
+  });
+
+  it("should reject extract-markdown transform for raw document upload promotion", async () => {
+    services = createMockSystemServices({
+      conversationService: {
+        getMessages: async () => [
+          {
+            id: "message-1",
+            conversationId: "web-conversation-1",
+            role: "user",
+            content: "",
+            metadata: {
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "brief.pdf",
+                  mediaType: "application/pdf",
+                  source: {
+                    kind: "web-chat-upload",
+                    id: "upload-00000000-0000-4000-8000-000000000305",
+                  },
+                },
+              ],
+            },
+            created: new Date().toISOString(),
+          },
+        ],
+      } as unknown as MockServices["conversationService"],
+    });
+    tools = createSystemTools(services);
+    let interceptorCalled = false;
+    services.entityRegistry.registerCreateInterceptor("document", async () => {
+      interceptorCalled = true;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
+
+    const result = await exec(
+      {
+        entityType: "document",
+        upload: {
+          kind: "web-chat-upload",
+          id: "upload-00000000-0000-4000-8000-000000000305",
+        },
+        transform: "extract-markdown",
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+    });
+    expect(interceptorCalled).toBe(false);
+  });
+
   it("should treat empty transform strings as omitted for direct creates", async () => {
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor("base", async (input) => {

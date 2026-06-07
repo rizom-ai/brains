@@ -178,6 +178,16 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
         };
       }
+      if (
+        requestedTransform === "extract-markdown" &&
+        (!uploadRef || input.entityType !== "base")
+      ) {
+        return {
+          success: false,
+          error:
+            'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+        };
+      }
       const transform: CreateInput["transform"] = requestedTransform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
