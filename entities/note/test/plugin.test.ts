@@ -2,6 +2,8 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import type { JobHandler } from "@brains/plugins";
+import { ProgressReporter } from "@brains/utils";
 
 const primerPdfBase64 =
   "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==";
@@ -10,9 +12,27 @@ describe("NotePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let plugin: NotePlugin;
   let capabilities: PluginCapabilities;
+  let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
+  let registeredHandlers: Map<string, JobHandler>;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+    enqueuedJobs = [];
+    registeredHandlers = new Map();
+
+    const shell = harness.getMockShell();
+    const originalJobQueue = shell.getJobQueueService();
+    shell.getJobQueueService = (): typeof originalJobQueue => ({
+      ...originalJobQueue,
+      enqueue: async (request): Promise<string> => {
+        enqueuedJobs.push(request);
+        return "queued-note-job";
+      },
+      registerHandler: (type, handler): void => {
+        registeredHandlers.set(type, handler);
+      },
+      getHandler: (type) => registeredHandlers.get(type),
+    });
 
     plugin = new NotePlugin({});
     capabilities = await harness.installPlugin(plugin);
@@ -38,8 +58,18 @@ describe("NotePlugin", () => {
     });
   });
 
+  async function runQueuedUploadImport(): Promise<void> {
+    const handler = registeredHandlers.get("note:upload-import");
+    if (!handler) throw new Error("note:upload-import handler not registered");
+    const job = enqueuedJobs[0];
+    if (!job) throw new Error("upload import job not queued");
+    const reporter = ProgressReporter.from(async () => {});
+    if (!reporter) throw new Error("progress reporter not created");
+    await handler.process(job.data, "queued-note-job", reporter);
+  }
+
   describe("upload markdown imports", () => {
-    it("imports an uploaded text file as a markdown note", async () => {
+    it("queues an uploaded text file import as a markdown note", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
         namespace: "web-chat",
         refKind: "web-chat-upload",
@@ -71,9 +101,26 @@ describe("NotePlugin", () => {
       expect(result.kind).toBe("handled");
       if (result.kind !== "handled") return;
       if (!result.result.success) throw new Error(result.result.error);
-      expect(result.result.data.entityId).toBe("research-notes");
+      expect(result.result.data).toEqual({
+        entityId: "research-notes",
+        status: "generating",
+        jobId: "queued-note-job",
+      });
+      expect(enqueuedJobs).toHaveLength(1);
+      expect(enqueuedJobs[0]).toMatchObject({
+        type: "note:upload-import",
+        data: { uploadId: upload.id },
+      });
 
-      const entity = await harness.getEntityService().getEntity({
+      let entity = await harness.getEntityService().getEntity({
+        entityType: "base",
+        id: "research-notes",
+      });
+      expect(entity).toBeNull();
+
+      await runQueuedUploadImport();
+
+      entity = await harness.getEntityService().getEntity({
         entityType: "base",
         id: "research-notes",
       });
@@ -110,7 +157,13 @@ describe("NotePlugin", () => {
       expect(result.kind).toBe("handled");
       if (result.kind !== "handled") return;
       if (!result.result.success) throw new Error(result.result.error);
-      expect(result.result.data.entityId).toBe("config-export");
+      expect(result.result.data).toEqual({
+        entityId: "config-export",
+        status: "generating",
+        jobId: "queued-note-job",
+      });
+
+      await runQueuedUploadImport();
 
       const entity = await harness.getEntityService().getEntity({
         entityType: "base",
@@ -153,6 +206,7 @@ describe("NotePlugin", () => {
         error:
           "Only text, JSON, and PDF uploads can be imported as markdown notes",
       });
+      expect(enqueuedJobs).toHaveLength(0);
       const entity = await harness.getEntityService().getEntity({
         entityType: "base",
         id: "robot",
@@ -189,7 +243,13 @@ describe("NotePlugin", () => {
       expect(result.kind).toBe("handled");
       if (result.kind !== "handled") return;
       if (!result.result.success) throw new Error(result.result.error);
-      expect(result.result.data.entityId).toBe("distributed-systems-primer");
+      expect(result.result.data).toEqual({
+        entityId: "distributed-systems-primer",
+        status: "generating",
+        jobId: "queued-note-job",
+      });
+
+      await runQueuedUploadImport();
 
       const entity = await harness.getEntityService().getEntity({
         entityType: "base",

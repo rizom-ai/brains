@@ -13,10 +13,16 @@ import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
+import { UploadPromotionJobHandler } from "./handlers/upload-promotion-handler";
 import {
   getDistillableEntityContent,
   isImageDataUrl,
 } from "./lib/distillable-content";
+import {
+  getUploadImageIdentity,
+  isSupportedImageMediaType,
+  webChatUploadsScope,
+} from "./lib/upload-promotion";
 import packageJson from "../package.json";
 
 const imageConfigSchema = z.object({
@@ -27,12 +33,6 @@ const imageConfigSchema = z.object({
 });
 
 type ImageConfig = z.infer<typeof imageConfigSchema>;
-
-const webChatUploadsScope = {
-  namespace: "web-chat",
-  refKind: "web-chat-upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -71,23 +71,6 @@ function getPredictedImageId(input: {
       ? `cover-${input.targetEntityId}`
       : input.prompt.slice(0, 60).trim());
   return slugify(title);
-}
-
-function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
-}
-
-function getUploadTitle(input: CreateInput, filename: string): string {
-  const title = normalizeText(input.title);
-  if (title) return title;
-  const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
-  return withoutExt || filename;
-}
-
-function isSupportedImageMediaType(mediaType: string): boolean {
-  return ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
-    mediaType,
-  );
 }
 
 async function getSourceDedupKey(
@@ -303,11 +286,12 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
-    let upload;
+    const uploadId = uploadRef.id;
+    let uploadRecord;
     try {
-      upload = await context.uploads
+      uploadRecord = await context.uploads
         .scoped(webChatUploadsScope)
-        .read(uploadRef.id);
+        .readRecord(uploadId);
     } catch {
       return {
         kind: "handled",
@@ -315,7 +299,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
-    if (!isSupportedImageMediaType(upload.record.mediaType)) {
+    if (!isSupportedImageMediaType(uploadRecord.mediaType)) {
       return {
         kind: "handled",
         result: {
@@ -325,32 +309,28 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
-    const title = getUploadTitle(input, upload.record.filename);
-    const id = slugify(title);
-    if (!id) {
+    let identity;
+    try {
+      identity = getUploadImageIdentity({
+        filename: uploadRecord.filename,
+        ...(input.title !== undefined ? { title: input.title } : {}),
+      });
+    } catch (error) {
       return {
         kind: "handled",
         result: {
           success: false,
-          error:
-            "Could not derive an image id from the uploaded filename. Provide a title.",
+          error: error instanceof Error ? error.message : String(error),
         },
       };
     }
 
-    const now = new Date().toISOString();
-    const imageEntity = imageAdapter.createImageEntity({
-      dataUrl: toDataUrl(upload.record.mediaType, upload.content),
-      title,
-    });
-    const result = await context.entityService.createEntity({
-      entity: {
-        id,
-        ...imageEntity,
-        created: now,
-        updated: now,
+    const jobId = await context.jobs.enqueue({
+      type: "upload-promote",
+      data: {
+        uploadId,
+        ...(input.title !== undefined ? { title: input.title } : {}),
       },
-      options: { deduplicateId: true },
     });
 
     return {
@@ -358,12 +338,13 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       result: {
         success: true,
         data: {
-          entityId: result.entityId,
-          status: "created",
+          entityId: identity.id,
+          status: "generating",
+          jobId,
           attachment: buildUploadedImageAttachment({
-            mediaType: upload.record.mediaType,
-            entityId: result.entityId,
-            filename: upload.record.filename,
+            mediaType: uploadRecord.mediaType,
+            entityId: identity.id,
+            filename: uploadRecord.filename,
           }),
         },
       },
@@ -478,6 +459,13 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     context.jobs.registerHandler(
       "image-render-source",
       new SourceImageRenderJobHandler(context, this.logger),
+    );
+    context.jobs.registerHandler(
+      "upload-promote",
+      new UploadPromotionJobHandler(
+        this.logger.child("UploadPromotionJobHandler"),
+        context,
+      ),
     );
   }
 }

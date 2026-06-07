@@ -1,14 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
+import type { JobHandler } from "@brains/plugins";
+import { ProgressReporter } from "@brains/utils";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let plugin: ImagePlugin;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
+  let registeredHandlers: Map<string, JobHandler>;
 
   beforeEach(async () => {
     enqueuedJobs = [];
+    registeredHandlers = new Map();
     harness = createPluginHarness({ dataDir: "/tmp/test-image" });
     const shell = harness.getMockShell();
     const jobQueue = shell.getJobQueueService();
@@ -18,6 +22,10 @@ describe("ImagePlugin", () => {
         enqueuedJobs.push(request);
         return "queued-image-job";
       },
+      registerHandler: (type, handler): void => {
+        registeredHandlers.set(type, handler);
+      },
+      getHandler: (type) => registeredHandlers.get(type),
     });
     plugin = new ImagePlugin();
     await harness.installPlugin(plugin);
@@ -48,7 +56,17 @@ describe("ImagePlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
-  it("should promote an uploaded image into a durable image entity", async () => {
+  async function runQueuedUploadPromotion(): Promise<void> {
+    const handler = registeredHandlers.get("image:upload-promote");
+    if (!handler) throw new Error("image:upload-promote handler missing");
+    const job = enqueuedJobs[0];
+    if (!job) throw new Error("upload promotion job not queued");
+    const reporter = ProgressReporter.from(async () => {});
+    if (!reporter) throw new Error("progress reporter not created");
+    await handler.process(job.data, "queued-image-job", reporter);
+  }
+
+  it("queues uploaded image promotion into a durable image entity", async () => {
     const store = harness
       .getMockShell()
       .getRuntimeUploadRegistry()
@@ -90,7 +108,8 @@ describe("ImagePlugin", () => {
         success: true,
         data: {
           entityId: "robot",
-          status: "created",
+          status: "generating",
+          jobId: "queued-image-job",
           attachment: {
             mediaType: "image/png",
             url: "/api/chat/attachments/image?id=robot",
@@ -105,7 +124,20 @@ describe("ImagePlugin", () => {
         },
       },
     });
-    const entity = await harness.getEntityService().getEntity({
+    expect(enqueuedJobs[0]).toMatchObject({
+      type: "image:upload-promote",
+      data: { uploadId: record.ref.id, title: "Robot" },
+    });
+
+    let entity = await harness.getEntityService().getEntity({
+      entityType: "image",
+      id: "robot",
+    });
+    expect(entity).toBeNull();
+
+    await runQueuedUploadPromotion();
+
+    entity = await harness.getEntityService().getEntity({
       entityType: "image",
       id: "robot",
     });
@@ -157,6 +189,7 @@ describe("ImagePlugin", () => {
         error: "Only image uploads can be promoted to image entities",
       },
     });
+    expect(enqueuedJobs).toHaveLength(0);
   });
 
   it("should enqueue prompt-based image generation via interceptor", async () => {

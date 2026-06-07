@@ -16,7 +16,11 @@ import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
 import { NoteGenerationJobHandler } from "./handlers/noteGenerationJobHandler";
-import { extractMarkdownFromUpload } from "./lib/upload-markdown-import";
+import { UploadMarkdownImportJobHandler } from "./handlers/uploadMarkdownImportJobHandler";
+import {
+  getMarkdownImportIdentity,
+  isSupportedMarkdownUploadMediaType,
+} from "./lib/upload-markdown-import";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
@@ -56,11 +60,12 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
       };
     }
 
-    let upload;
+    const uploadId = input.from.id;
+    let uploadRecord;
     try {
-      upload = await context.uploads
+      uploadRecord = await context.uploads
         .scoped(webChatUploadsScope)
-        .read(input.from.id);
+        .readRecord(uploadId);
     } catch {
       return {
         kind: "handled",
@@ -69,29 +74,34 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
     }
 
     try {
-      const imported = await extractMarkdownFromUpload({
-        upload,
+      if (!isSupportedMarkdownUploadMediaType(uploadRecord.mediaType)) {
+        return {
+          kind: "handled",
+          result: {
+            success: false,
+            error:
+              "Only text, JSON, and PDF uploads can be imported as markdown notes",
+          },
+        };
+      }
+
+      const identity = getMarkdownImportIdentity({
+        filename: uploadRecord.filename,
         ...(input.title !== undefined ? { title: input.title } : {}),
       });
-      const now = new Date().toISOString();
-      const entity = noteAdapter.fromMarkdown(imported.content);
-      const result = await context.entityService.createEntity({
-        entity: {
-          id: imported.id,
-          entityType: "base",
-          content: imported.content,
-          metadata: { title: imported.title, ...entity.metadata },
-          created: now,
-          updated: now,
+      const jobId = await context.jobs.enqueue({
+        type: "upload-import",
+        data: {
+          uploadId,
+          ...(input.title !== undefined ? { title: input.title } : {}),
         },
-        options: { deduplicateId: true },
       });
 
       return {
         kind: "handled",
         result: {
           success: true,
-          data: { entityId: result.entityId, status: "created" },
+          data: { entityId: identity.id, status: "generating", jobId },
         },
       };
     } catch (error) {
@@ -124,6 +134,14 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    context.jobs.registerHandler(
+      "upload-import",
+      new UploadMarkdownImportJobHandler(
+        this.logger.child("UploadMarkdownImportJobHandler"),
+        context,
+      ),
+    );
+
     context.eval.registerHandler("generateNote", async (input: unknown) => {
       const parsed = z.object({ prompt: z.string() }).parse(input);
       return context.ai.generate<{ title: string; body: string }>({

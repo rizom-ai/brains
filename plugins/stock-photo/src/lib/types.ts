@@ -44,6 +44,8 @@ export interface SelectResult {
     sourceUrl: string;
   };
   coverSet?: true;
+  jobId?: string;
+  status?: "generating";
 }
 
 /**
