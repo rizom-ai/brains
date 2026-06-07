@@ -224,11 +224,13 @@ import/extraction is a separate explicit flow: "turn this PDF into a note"
 resolves the upload, extracts text with deterministic PDF extraction in
 `@brains/document` (`pdfjs-dist`), then creates a markdown entity such as
 `base`/note using `system_create({ entityType: "base", upload, transform:
-"extract-markdown" })`. Any future LLM pass should be limited to cleanup or
-summarization after deterministic extraction. Derived entities (such as decks
-generated from a PDF) should be created from an explicit user instruction that
-consumes the upload as context. Bare upload handoff must not create, update, or
-delete entities.
+"extract-markdown" })`. `system_create` enforces that `extract-markdown` is
+only valid with `entityType: "base"` and an upload ref; raw PDF/image promotion
+to `document` or `image` must omit `transform`. Any future LLM pass should be
+limited to cleanup or summarization after deterministic extraction. Derived
+entities (such as decks generated from a PDF) should be created from an explicit
+user instruction that consumes the upload as context. Bare upload handoff must
+not create, update, or delete entities.
 
 Follow-up turns in the same conversation should consume recent upload refs
 without forcing the operator to reattach the file. For example, after a bare
@@ -282,11 +284,12 @@ Regression paths preserved by the shared layer:
 Remaining upload work:
 
 - continue hardening the explicit markdown import/extraction contract for
-  text/PDF uploads. The first slice supports
+  text/PDF uploads. The first slices support
   `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
-transform: "extract-markdown" })` and deterministic PDF extraction in
-  `@brains/document`; future work can add job-backed extraction for large PDFs
-  and optional cleanup/summarization after deterministic extraction;
+transform: "extract-markdown" })`, deterministic PDF extraction in
+  `@brains/document`, and core validation that rejects `extract-markdown`
+  without a `base` upload import; future work can add job-backed extraction for
+  large PDFs and optional cleanup/summarization after deterministic extraction;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
   user asks to promote them.
