@@ -175,6 +175,18 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
+  it("keeps conversation routing out of model-visible playbook tool schemas", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+
+    for (const tool of capabilities.tools) {
+      if (!tool.name.startsWith("playbook_")) continue;
+      expect(Object.keys(tool.inputSchema)).not.toContain("conversationId");
+    }
+  });
+
   it("validates playbook structure with author-facing errors", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
@@ -561,6 +573,22 @@ describe("PlaybooksPlugin", () => {
     expect(
       parsePlaybookToolData(transitioned.data).activeRun.currentState,
     ).toBe("seed");
+  });
+
+  it("ignores spoofed conversationId tool args and uses tool context for run inference", async () => {
+    const harness = await installHarness();
+    await startRun(harness, "real-conversation");
+
+    const status = await harness.executeTool(
+      "playbook_status",
+      { conversationId: "fake-conversation" },
+      { conversationId: "real-conversation" },
+    );
+
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.conversationId).toBe(
+      "real-conversation",
+    );
   });
 
   it("errors when run-scoped tools cannot infer exactly one active conversation playbook", async () => {

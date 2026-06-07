@@ -116,9 +116,10 @@ durable job — not reworking the gate model.
 - Metric-over-time gates (e.g. "LinkedIn traffic +200%").
 - Long-lived runs that pause and re-evaluate when async evidence arrives later.
 - Run deadlines / timeouts.
-- Shell-owned runtime persistence for playbook runs (e.g. normalized evidence/verdict
-  tables). This must be designed as shell infrastructure, not plugin-private SQLite
-  and not a one-off migration hook for playbooks.
+- Shell-owned runtime persistence for playbook runs (normalized run/evidence/verdict
+  tables). Designed as shell infrastructure in [Operator runtime database](./operator-runtime-db.md),
+  where playbook runs are a named consumer of the shell runtime-state service — not
+  plugin-private SQLite and not a one-off migration hook for playbooks.
 - Durable delayed jobs in `@brains/job-queue`, and any scheduler (content-pipeline's
   `SchedulerBackend` is in-memory/config-driven; if recurring pulls are ever needed
   it should be extracted to a shared package and owned by the producing plugin, never
@@ -311,9 +312,11 @@ Known JSON limits, accepted for this branch:
 - Queries scan the file.
 - Schema migration is Zod/default based.
 
-Long-term storage is deferred until there is a shell-owned runtime persistence design.
-Do **not** add plugin-private SQLite, plugin-specific migration packaging, or a generic
-migration abstraction only for playbooks.
+Long-term storage is the shell-owned runtime-state service designed in
+[Operator runtime database](./operator-runtime-db.md); migrating `runs.json` onto it (as
+normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables) is
+deferred until that service exists. Do **not** add plugin-private SQLite, plugin-specific
+migration packaging, or a generic migration abstraction only for playbooks in the meantime.
 
 ```ts
 interface PlaybookRun {
@@ -376,10 +379,11 @@ conditionHash + evidenceWatermark` are unchanged. If the judge call fails, times
 out, or returns invalid structured output, `NEXT` blocks and `playbook_status`
 reports the verifier error; only `playbook_override_event` can bypass.
 
-Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from an
-explicit `conversationId` or `ToolContext.conversationId` when `runId` is omitted,
-and error if more than one active run exists for the conversation — the same
-inference `playbook_start` already does. Entity evidence is collected automatically by event
+Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from
+`ToolContext.conversationId` when `runId` is omitted, and error if no active run or
+more than one active run exists for that conversation. Agent-facing playbook tool
+inputs do **not** accept `conversationId`; routing/provenance is runtime context, not
+model-authored content. Entity evidence is collected automatically by event
 subscription; there is no `playbook_record_entity` self-reporting tool.
 
 `playbook_validate` (and the same check at parse time) is **structural only**:
@@ -512,9 +516,12 @@ Load-bearing; revisit only with a documented reason.
    payload. Not a thrown exception at the SDK boundary (which would feed back as a tool
    error).
 6. **Run state stays JSON for this branch** — version-pinned, with serialized
-   in-process writes and explicit preservation of evidence/verdict arrays. SQLite is
-   deferred until a shell-owned runtime persistence design exists; plugins must not own
-   private DB infrastructure for this.
+   in-process writes and explicit preservation of evidence/verdict arrays. The long-term
+   home is the shell runtime-state service in [Operator runtime database](./operator-runtime-db.md),
+   where playbook runs are a named consumer; migrating onto it is deferred and plugins must
+   not own private DB infrastructure in the meantime. A persistence need is not a reason to
+   promote playbooks into shell — the storage primitive is shell, the domain logic stays
+   in the plugin.
 7. **One active run per conversation; one lifecycle starter** — run inference depends
    on it; concurrent runs per conversation are out of scope.
 8. **Identity stays one state** — prose gate + clearer context should fix early

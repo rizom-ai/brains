@@ -81,18 +81,15 @@ const statusInputSchema = {
   runId: z.string().min(1).optional(),
   playbookId: z.string().min(1).optional(),
   lifecycle: z.string().min(1).optional(),
-  conversationId: z.string().min(1).optional(),
 };
 
 const startInputSchema = {
   playbookId: z.string().min(1),
   lifecycle: z.string().min(1).optional(),
-  conversationId: z.string().min(1).optional(),
 };
 
 const sendEventInputSchema = {
   runId: z.string().min(1).optional(),
-  conversationId: z.string().min(1).optional(),
   event: z.string().min(1),
   context: z.record(z.string(), z.unknown()).optional(),
 };
@@ -247,8 +244,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           try {
             const data = await this.getStatus({
               ...parsed,
-              conversationId:
-                parsed.conversationId ?? toolContext.conversationId,
+              conversationId: toolContext.conversationId,
             });
             return { success: true, data };
           } catch (error) {
@@ -266,8 +262,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
           const parsed = z.object(startInputSchema).parse(input);
-          const conversationId =
-            parsed.conversationId ?? toolContext.conversationId;
+          const conversationId = toolContext.conversationId;
           const playbook = await this.requirePlaybook(parsed.playbookId);
           assertValidPlaybookBody(playbook.body);
           const existing = await this.store.findActiveByPlaybook(
@@ -307,7 +302,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           const parsed = z.object(sendEventInputSchema).parse(input);
           const run = await this.resolveScopedRunResponse({
             runId: parsed.runId,
-            conversationId: parsed.conversationId ?? toolContext.conversationId,
+            conversationId: toolContext.conversationId,
           });
           if (!run.success) return run;
           const playbook = await this.requirePlaybook(run.data.playbookId);
