@@ -120,6 +120,46 @@ describe("NotePlugin", () => {
       expect(entity?.metadata).toMatchObject({ title: "config-export" });
     });
 
+    it("rejects unsupported uploaded media for markdown import", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000704",
+      });
+      const upload = await uploadStore.save({
+        filename: "robot.png",
+        mediaType: "image/png",
+        content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("base");
+      if (!interceptor) throw new Error("base create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "base",
+          from: { kind: "web-chat-upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        { interfaceType: "web-chat", userId: "operator" },
+      );
+
+      expect(result.kind).toBe("handled");
+      if (result.kind !== "handled") return;
+      expect(result.result).toEqual({
+        success: false,
+        error:
+          "Only text, JSON, and PDF uploads can be imported as markdown notes",
+      });
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "base",
+        id: "robot",
+      });
+      expect(entity).toBeNull();
+    });
+
     it("imports an uploaded PDF as extracted markdown", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
         namespace: "web-chat",
