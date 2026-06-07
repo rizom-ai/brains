@@ -157,6 +157,7 @@ export interface JobProgressContext {
   progressToken?: string | number | undefined;
   operationTarget?: string | undefined;
   interfaceType?: string | undefined;
+  conversationId?: string | undefined;
   channelId?: string | undefined;
 }
 

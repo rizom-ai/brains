@@ -2487,15 +2487,12 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     event: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {
-    const channelId = event.metadata.channelId;
-    if (
-      event.metadata.interfaceType !== webChatInterfaceType ||
-      typeof channelId !== "string"
-    ) {
+    if (event.metadata.interfaceType !== webChatInterfaceType) {
       return;
     }
 
-    const stream = this.getActiveStream(channelId);
+    const streamId = event.metadata.conversationId ?? event.metadata.channelId;
+    const stream = this.getActiveStream(streamId ?? null);
     if (!stream) return;
 
     stream.writer.write({

@@ -542,7 +542,7 @@ describe("WebChatInterface", () => {
             operationType: "batch_processing",
             operationTarget: "/tmp/brain-data",
             interfaceType: "web-chat",
-            channelId: conversationId,
+            conversationId,
           },
         });
         return {
@@ -635,14 +635,13 @@ describe("WebChatInterface", () => {
     expect(body).toContain("Using search_notes…");
   });
 
-  it("ignores tool activity outside the active web-chat channel", async () => {
+  it("ignores tool activity outside the active web-chat conversation", async () => {
     const agent: IAgentService = {
       chat: async () => {
         await harness.sendMessage("tool:invoking", {
           toolName: "background_tool",
           conversationId: "other-conversation",
           interfaceType: "web-chat",
-          channelId: "other-conversation",
         });
         return {
           text: "No visible tool status.",
@@ -682,7 +681,7 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("tool-invoking");
   });
 
-  it("ignores progress notifications outside the active web-chat channel", async () => {
+  it("ignores progress notifications outside the active web-chat conversation", async () => {
     const agent: IAgentService = {
       chat: async () => {
         await harness.sendMessage("job-progress", {
@@ -694,7 +693,7 @@ describe("WebChatInterface", () => {
             operationType: "batch_processing",
             operationTarget: "/tmp/background",
             interfaceType: "web-chat",
-            channelId: "other-conversation",
+            conversationId: "other-conversation",
           },
         });
         return {
