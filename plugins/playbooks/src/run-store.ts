@@ -79,12 +79,14 @@ export type PlaybookGateVerdictClaim = z.infer<
 
 export class PlaybookRunStore {
   private readonly filePath: string;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(storageDir: string) {
     this.filePath = join(storageDir, "runs.json");
   }
 
   async list(): Promise<PlaybookRun[]> {
+    await this.waitForWrites();
     return (await this.readFile()).runs;
   }
 
@@ -123,33 +125,87 @@ export class PlaybookRunStore {
   }
 
   async upsert(run: PlaybookRun): Promise<PlaybookRun> {
-    const file = await this.readFile();
-    const nextRun = playbookRunSchema.parse({
-      ...run,
-      updatedAt: new Date().toISOString(),
+    return this.enqueueMutation(async () => {
+      const file = await this.readFile();
+      const existing = file.runs.find((candidate) => candidate.id === run.id);
+      const nextRun = playbookRunSchema.parse({
+        ...run,
+        evidence: mergeEvidence(existing?.evidence ?? [], run.evidence),
+        gateVerdicts: mergeGateVerdicts(
+          existing?.gateVerdicts ?? [],
+          run.gateVerdicts,
+        ),
+        updatedAt: new Date().toISOString(),
+      });
+      const existingIndex = file.runs.findIndex(
+        (candidate) => candidate.id === run.id,
+      );
+      const runs =
+        existingIndex === -1
+          ? [...file.runs, nextRun]
+          : file.runs.map((candidate, index) =>
+              index === existingIndex ? nextRun : candidate,
+            );
+      await this.writeFile({ runs });
+      return nextRun;
     });
-    const existingIndex = file.runs.findIndex(
-      (existing) => existing.id === run.id,
-    );
-    const runs =
-      existingIndex === -1
-        ? [...file.runs, nextRun]
-        : file.runs.map((existing, index) =>
-            index === existingIndex ? nextRun : existing,
-          );
-    await this.writeFile({ runs });
-    return nextRun;
+  }
+
+  async appendEvidence(
+    runId: string,
+    evidence: PlaybookRunEvidence,
+  ): Promise<PlaybookRun> {
+    return this.enqueueMutation(async () => {
+      const file = await this.readFile();
+      const existingIndex = file.runs.findIndex((run) => run.id === runId);
+      const existing = file.runs[existingIndex];
+      if (existingIndex === -1 || !existing) {
+        throw new Error(`Playbook run not found: ${runId}`);
+      }
+      const nextRun = playbookRunSchema.parse({
+        ...existing,
+        evidence: mergeEvidence(existing.evidence, [evidence]),
+        updatedAt: new Date().toISOString(),
+      });
+      await this.writeFile({
+        runs: file.runs.map((run, index) =>
+          index === existingIndex ? nextRun : run,
+        ),
+      });
+      return nextRun;
+    });
   }
 
   async reset(runId?: string): Promise<void> {
-    if (!runId) {
-      await this.writeFile({ runs: [] });
-      return;
-    }
-    const file = await this.readFile();
-    await this.writeFile({
-      runs: file.runs.filter((run) => run.id !== runId),
+    await this.enqueueMutation(async () => {
+      if (!runId) {
+        await this.writeFile({ runs: [] });
+        return;
+      }
+      const file = await this.readFile();
+      await this.writeFile({
+        runs: file.runs.filter((run) => run.id !== runId),
+      });
     });
+  }
+
+  private async enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.writeQueue;
+    let release: () => void = () => {};
+    this.writeQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
+  }
+
+  private async waitForWrites(): Promise<void> {
+    await this.writeQueue;
   }
 
   private async readFile(): Promise<{ runs: PlaybookRun[] }> {
@@ -199,6 +255,37 @@ export function createPlaybookRun(input: {
       : {}),
     updatedAt: now,
   });
+}
+
+function mergeEvidence(
+  existing: PlaybookRunEvidence[],
+  incoming: PlaybookRunEvidence[],
+): PlaybookRunEvidence[] {
+  const merged = new Map<string, PlaybookRunEvidence>();
+  for (const evidence of [...existing, ...incoming]) {
+    merged.set(evidence.id, evidence);
+  }
+  return Array.from(merged.values());
+}
+
+function mergeGateVerdicts(
+  existing: PlaybookGateVerdict[],
+  incoming: PlaybookGateVerdict[],
+): PlaybookGateVerdict[] {
+  const merged = new Map<string, PlaybookGateVerdict>();
+  for (const verdict of [...existing, ...incoming]) {
+    merged.set(gateVerdictKey(verdict), verdict);
+  }
+  return Array.from(merged.values());
+}
+
+function gateVerdictKey(verdict: PlaybookGateVerdict): string {
+  return [
+    verdict.stateId,
+    verdict.conditionHash,
+    verdict.evidenceWatermark,
+    verdict.source,
+  ].join("\u0000");
 }
 
 function isMissingFileError(error: unknown): boolean {

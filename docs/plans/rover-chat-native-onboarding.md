@@ -116,6 +116,9 @@ durable job — not reworking the gate model.
 - Metric-over-time gates (e.g. "LinkedIn traffic +200%").
 - Long-lived runs that pause and re-evaluate when async evidence arrives later.
 - Run deadlines / timeouts.
+- Shell-owned runtime persistence for playbook runs (e.g. normalized evidence/verdict
+  tables). This must be designed as shell infrastructure, not plugin-private SQLite
+  and not a one-off migration hook for playbooks.
 - Durable delayed jobs in `@brains/job-queue`, and any scheduler (content-pipeline's
   `SchedulerBackend` is in-memory/config-driven; if recurring pulls are ever needed
   it should be extracted to a shared package and owned by the producing plugin, never
@@ -270,7 +273,7 @@ gate and re-judges it — intended, since the words _are_ the meaning of "done."
 plugins/playbooks/
   src/index.ts
   src/plugin.ts
-  src/db/        # drizzle schema + run repository (SQLite)
+  src/run-store.ts  # JSON MVP run repository
   test/
 ```
 
@@ -282,16 +285,35 @@ durable content — that's the `playbook` entity.
 
 ### Run store
 
-Operational state, in SQLite/drizzle (the pattern used by job-queue,
-conversation-service, entity-service) — replacing the current JSON store, which
-does an unlocked whole-file read-modify-write and loses concurrent updates.
+Operational state ships in the existing JSON run store for this branch. This is a
+conscious MVP tradeoff, not the final storage architecture.
 
-- One run **row** (scalar/normalized state) + two **append-only child tables**:
-  `playbook_run_evidence`, `playbook_run_verdicts`. Evidence arrives async from
-  event subscribers, so it must be independent `INSERT`s, never a JSON array
-  rewritten on the run row (that reintroduces the lost-update race).
+Why JSON is acceptable now: onboarding has low run volume, single-process writes are
+the expected deployment shape, and this branch is still proving the playbook/gate
+runtime. The immediate fix is to make the JSON store safer, not to invent plugin-owned
+SQLite or a new shell runtime database under deadline.
+
+Required now:
+
+- Keep the JSON file scoped to playbook runtime state (`runs.json`), not durable
+  content.
+- Serialize writes through a store-level queue so overlapping tool/event handlers do
+  not interleave read-modify-write cycles inside one process.
+- Preserve evidence and verdict arrays across run updates; appending evidence/verdicts
+  must not overwrite state changes made by another queued update.
 - Each run pins the playbook **version (content hash)** it started under; a
   transition against a changed definition fails loudly rather than drifting.
+
+Known JSON limits, accepted for this branch:
+
+- No cross-process write safety.
+- Evidence/verdict auditability is enforced by code conventions, not storage shape.
+- Queries scan the file.
+- Schema migration is Zod/default based.
+
+Long-term storage is deferred until there is a shell-owned runtime persistence design.
+Do **not** add plugin-private SQLite, plugin-specific migration packaging, or a generic
+migration abstraction only for playbooks.
 
 ```ts
 interface PlaybookRun {
@@ -303,7 +325,6 @@ interface PlaybookRun {
   conversationId?: string; // at most one active run per conversation
   currentState: string;
   completedStates: string[];
-  // evidence[] and gateVerdicts[] are views over the child tables:
   evidence: Array<{
     id: string;
     kind: "entity_event" | "override";
@@ -419,8 +440,8 @@ the model to paraphrase it. Nothing more for MVP.
 
 1. **Playbook entity** — `@brains/playbook` package: schema, formatter, markdown
    adapter, structural parse-time validation, Rover seed content.
-2. **Runtime plugin** — `@brains/playbooks`: XState build with gate guards; SQLite
-   run store (version pin, evidence/verdict child tables); tools incl.
+2. **Runtime plugin** — `@brains/playbooks`: XState build with gate guards; JSON
+   run store (version pin, serialized writes, evidence/verdict preservation); tools incl.
    `playbook_send_event`, `playbook_override_event`, `playbook_validate`; agent
    instructions; lifecycle starter handler.
 3. **Evidence + verifier** — entity `created`/`updated` collector (events carry
@@ -443,7 +464,7 @@ Tests come before fixes (TDD). Split by what they cover, not by gate type:
   blocked; judge failure/timeout/invalid output blocks `NEXT`; cached verdicts are
   reused only for the same condition/evidence cache key; `SKIP` bypasses gating;
   evidence collection records the right rows; run inference resolves the active run;
-  concurrent transitions don't lose updates; a stale-version transition fails loudly;
+  overlapping in-process updates don't lose evidence/verdict/state changes; a stale-version transition fails loudly;
   confirmation is terminal and not a generic result.
 - **Judge — eval fixtures** (`@brains/ai-evaluation` patterns, structured-output
   judge; do not embed the offline eval runner): asserted structurally (verdict shape;
@@ -491,8 +512,10 @@ Load-bearing; revisit only with a documented reason.
    surfaces the approval card; the requesting tool still returns its `needsConfirmation`
    payload. Not a thrown exception at the SDK boundary (which would feed back as a tool
    error).
-6. **Run state is SQLite/drizzle now** — version-pinned, with append-only evidence/
-   verdict child tables. The JSON store is not a stepping stone.
+6. **Run state stays JSON for this branch** — version-pinned, with serialized
+   in-process writes and explicit preservation of evidence/verdict arrays. SQLite is
+   deferred until a shell-owned runtime persistence design exists; plugins must not own
+   private DB infrastructure for this.
 7. **One active run per conversation; one lifecycle starter** — run inference depends
    on it; concurrent runs per conversation are out of scope.
 8. **Identity stays one state** — prose gate + clearer context should fix early

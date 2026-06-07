@@ -900,7 +900,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           : {}),
       },
     };
-    await this.store.upsert({ ...run, evidence: [...run.evidence, evidence] });
+    await this.store.appendEvidence(run.id, evidence);
     return { recorded: true };
   }
 
