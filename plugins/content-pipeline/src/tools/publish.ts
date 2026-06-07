@@ -67,6 +67,50 @@ export const publishOutputSchema = z.union([
 
 export type PublishOutput = z.infer<typeof publishOutputSchema>;
 
+const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
+const MAX_PENDING_CONFIRMATIONS = 1000;
+
+/**
+ * In-memory store of outstanding publish confirmation tokens.
+ *
+ * Tokens are consumed on a confirmed call, but abandoned confirmations would
+ * otherwise accumulate forever, so entries expire after a TTL and the store is
+ * capped (oldest evicted first) as a backstop.
+ */
+class PendingConfirmationTokens {
+  private readonly tokens = new Map<string, number>();
+
+  public add(token: string): void {
+    this.prune();
+    if (this.tokens.size >= MAX_PENDING_CONFIRMATIONS) {
+      const oldest = this.tokens.keys().next().value;
+      if (oldest !== undefined) this.tokens.delete(oldest);
+    }
+    this.tokens.set(token, Date.now() + CONFIRMATION_TTL_MS);
+  }
+
+  public has(token: string): boolean {
+    const expiresAt = this.tokens.get(token);
+    if (expiresAt === undefined) return false;
+    if (expiresAt <= Date.now()) {
+      this.tokens.delete(token);
+      return false;
+    }
+    return true;
+  }
+
+  public delete(token: string): void {
+    this.tokens.delete(token);
+  }
+
+  private prune(): void {
+    const now = Date.now();
+    for (const [token, expiresAt] of this.tokens) {
+      if (expiresAt <= now) this.tokens.delete(token);
+    }
+  }
+}
+
 /**
  * Create the publish-pipeline:publish tool
  *
@@ -89,7 +133,7 @@ export function createPublishTool(
       context,
       providerRegistry,
     });
-  const pendingConfirmationTokens = new Set<string>();
+  const pendingConfirmationTokens = new PendingConfirmationTokens();
   const toolName = `${pluginId}_publish`;
 
   return {
@@ -124,13 +168,11 @@ export function createPublishTool(
         };
       }
 
-      const validation = await validatePublishCandidate(
-        context,
-        providerRegistry,
+      const validation = await executor.resolveCandidate({
         entityType,
         id,
         slug,
-      );
+      });
       if ("error" in validation)
         return { success: false, error: validation.error };
 
@@ -198,69 +240,11 @@ export function createPublishTool(
   } as Tool<PublishOutput>;
 }
 
-async function validatePublishCandidate(
-  context: ServicePluginContext,
-  providerRegistry: ProviderRegistry,
-  entityType: string,
-  id?: string,
-  slug?: string,
-): Promise<{ entity: BaseEntity } | { error: string }> {
-  if (!id && !slug) {
-    return { error: "Either 'id' or 'slug' must be provided" };
-  }
-
-  const entity = await findEntity(context, entityType, id, slug);
-  if (!entity) {
-    const identifier = id ?? slug;
-    return { error: `Entity not found: ${entityType}:${identifier}` };
-  }
-
-  if (entity.visibility !== "public") {
-    return {
-      error: `Cannot publish ${entityType}:${entity.id} to a public provider because visibility is ${entity.visibility}`,
-    };
-  }
-
-  if (entity.metadata["status"] === "published") {
-    return { error: "Entity is already published" };
-  }
-
-  if (!providerRegistry.has(entityType)) {
-    return {
-      error: `No publish provider registered for ${entityType}. Check that the required credentials are configured.`,
-    };
-  }
-
-  return { entity };
-}
-
-async function findEntity(
-  context: ServicePluginContext,
-  entityType: string,
-  id?: string,
-  slug?: string,
-): Promise<BaseEntity | null> {
-  if (id) {
-    return context.entityService.getEntity({ entityType, id });
-  }
-
-  if (!slug) return null;
-
-  const entities = await context.entityService.listEntities({
-    entityType,
-    options: {
-      filter: { metadata: { slug } },
-      limit: 1,
-    },
-  });
-  return entities[0] ?? null;
-}
-
 function createPublishConfirmation(
   toolName: string,
   input: PublishInput,
   entity: BaseEntity,
-  pendingConfirmationTokens: Set<string>,
+  pendingConfirmationTokens: PendingConfirmationTokens,
 ): ToolResponse {
   const confirmationToken = crypto.randomUUID();
   pendingConfirmationTokens.add(confirmationToken);

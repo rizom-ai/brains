@@ -443,7 +443,6 @@ async function handleReportFailure(
     entityType,
     error,
     retryCount: retryInfo?.retryCount,
-    willRetry: retryInfo?.willRetry,
   });
 
   return { success: true };

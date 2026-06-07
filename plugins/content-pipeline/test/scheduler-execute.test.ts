@@ -6,11 +6,7 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type {
-  BaseEntity,
-  IMessageBus,
-  ICoreEntityService,
-} from "@brains/plugins";
+import type { IMessageBus } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
 // Mock message bus
@@ -55,7 +51,7 @@ describe("ContentScheduler - provider execution", () => {
     backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
-    retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
+    retryTracker = RetryTracker.createFresh();
     messageBus = createMockMessageBus();
     scheduler = ContentScheduler.createFresh(baseConfig());
   });
@@ -86,36 +82,6 @@ describe("ContentScheduler - provider execution", () => {
 
       const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(0);
-    });
-
-    it("should call provider.publish when no executor is configured", async () => {
-      await scheduler.stop();
-      const publishMock = mock(() => Promise.resolve({ id: "result-1" }));
-      providerRegistry.register("social-post", {
-        name: "test",
-        publish: publishMock,
-      });
-      const entity: BaseEntity = {
-        id: "post-1",
-        entityType: "social-post",
-        content: "Body",
-        visibility: "public",
-        metadata: { status: "queued" },
-        created: "2026-06-04T12:00:00.000Z",
-        updated: "2026-06-04T12:00:00.000Z",
-        contentHash: "hash",
-      };
-      const entityService = {
-        getEntity: mock(async () => entity),
-      } as unknown as ICoreEntityService;
-      scheduler = ContentScheduler.createFresh(baseConfig({ entityService }));
-
-      await queueManager.add("social-post", "post-1");
-      await scheduler.start();
-
-      await backend.tick();
-
-      expect(publishMock).toHaveBeenCalledWith("Body", { status: "queued" });
     });
 
     it("should use publish executor for registered providers when available", async () => {
@@ -220,7 +186,7 @@ describe("ContentScheduler - provider execution", () => {
       expect(retryInfo?.lastError).toBe("Network error");
     });
 
-    it("should indicate willRetry when under max retries", async () => {
+    it("should always report willRetry=false (publishing is at-most-once)", async () => {
       messageBus._sentMessages.length = 0;
 
       scheduler.failPublish("social-post", "post-1", "Error 1");
@@ -229,23 +195,6 @@ describe("ContentScheduler - provider execution", () => {
         (m) => m.type === PUBLISH_MESSAGES.FAILED,
       );
       expect((failedMessage?.payload as { willRetry: boolean }).willRetry).toBe(
-        true,
-      );
-    });
-
-    it("should indicate willRetry=false when max retries exceeded", async () => {
-      messageBus._sentMessages.length = 0;
-
-      // Exhaust retries
-      scheduler.failPublish("social-post", "post-1", "Error 1");
-      scheduler.failPublish("social-post", "post-1", "Error 2");
-      scheduler.failPublish("social-post", "post-1", "Error 3");
-
-      const failedMessages = messageBus._sentMessages.filter(
-        (m) => m.type === PUBLISH_MESSAGES.FAILED,
-      );
-      const lastMessage = failedMessages[failedMessages.length - 1];
-      expect((lastMessage?.payload as { willRetry: boolean }).willRetry).toBe(
         false,
       );
     });

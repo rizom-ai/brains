@@ -5,15 +5,23 @@ describe("RetryTracker", () => {
   let tracker: RetryTracker;
 
   beforeEach(() => {
-    tracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 1000 });
+    tracker = RetryTracker.createFresh();
   });
 
   describe("recordFailure", () => {
-    it("should increment retry count", () => {
+    it("should increment failure count", () => {
       tracker.recordFailure("entity-1", "Network error");
 
       const info = tracker.getRetryInfo("entity-1");
       expect(info?.retryCount).toBe(1);
+    });
+
+    it("should accumulate failure count across repeated failures", () => {
+      tracker.recordFailure("entity-1", "Error 1");
+      tracker.recordFailure("entity-1", "Error 2");
+
+      const info = tracker.getRetryInfo("entity-1");
+      expect(info?.retryCount).toBe(2);
     });
 
     it("should store last error", () => {
@@ -22,68 +30,10 @@ describe("RetryTracker", () => {
       const info = tracker.getRetryInfo("entity-1");
       expect(info?.lastError).toBe("Network error");
     });
-
-    it("should calculate next retry time with exponential backoff", () => {
-      const beforeFirst = Date.now();
-      tracker.recordFailure("entity-1", "Error 1");
-      const info1 = tracker.getRetryInfo("entity-1");
-
-      // First retry: baseDelay * 2^0 = 1000ms
-      expect(info1?.nextRetryAt).toBeGreaterThanOrEqual(beforeFirst + 1000);
-
-      tracker.recordFailure("entity-1", "Error 2");
-      const info2 = tracker.getRetryInfo("entity-1");
-
-      // Second retry: baseDelay * 2^1 = 2000ms
-      expect(info2?.nextRetryAt).toBeGreaterThan(info1?.nextRetryAt ?? 0);
-    });
-  });
-
-  describe("shouldRetry", () => {
-    it("should return true when under max retries", () => {
-      tracker.recordFailure("entity-1", "Error");
-
-      expect(tracker.shouldRetry("entity-1")).toBe(true);
-    });
-
-    it("should return false when max retries exceeded", () => {
-      tracker.recordFailure("entity-1", "Error 1");
-      tracker.recordFailure("entity-1", "Error 2");
-      tracker.recordFailure("entity-1", "Error 3");
-
-      expect(tracker.shouldRetry("entity-1")).toBe(false);
-    });
-
-    it("should return false for unknown entity", () => {
-      expect(tracker.shouldRetry("unknown")).toBe(false);
-    });
-  });
-
-  describe("isReadyForRetry", () => {
-    it("should return false if retry time not reached", () => {
-      tracker.recordFailure("entity-1", "Error");
-
-      expect(tracker.isReadyForRetry("entity-1")).toBe(false);
-    });
-
-    it("should return true if retry time has passed", async () => {
-      // Use shorter delay for testing
-      tracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
-      tracker.recordFailure("entity-1", "Error");
-
-      // Wait for delay to pass
-      await new Promise((resolve) => setTimeout(resolve, 20));
-
-      expect(tracker.isReadyForRetry("entity-1")).toBe(true);
-    });
-
-    it("should return false for unknown entity", () => {
-      expect(tracker.isReadyForRetry("unknown")).toBe(false);
-    });
   });
 
   describe("clearRetries", () => {
-    it("should remove retry info for entity", () => {
+    it("should remove failure info for entity", () => {
       tracker.recordFailure("entity-1", "Error");
 
       tracker.clearRetries("entity-1");
@@ -97,18 +47,16 @@ describe("RetryTracker", () => {
       expect(tracker.getRetryInfo("unknown")).toBeNull();
     });
 
-    it("should return complete retry info", () => {
+    it("should return failure info", () => {
       tracker.recordFailure("entity-1", "Network error");
 
       const info = tracker.getRetryInfo("entity-1");
 
-      expect(info).toMatchObject({
+      expect(info).toEqual({
         entityId: "entity-1",
         retryCount: 1,
         lastError: "Network error",
-        willRetry: true,
       });
-      expect(info?.nextRetryAt).toBeDefined();
     });
   });
 

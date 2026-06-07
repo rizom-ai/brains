@@ -5,9 +5,8 @@ import { getErrorMessage } from "@brains/utils";
  * Contains the provider publishing execution logic.
  */
 
-import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
+import type { IMessageBus } from "@brains/plugins";
 import type { QueueEntry } from "./queue-manager";
-import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishEntityExecutor } from "./publish-executor";
 import type {
@@ -17,89 +16,35 @@ import type {
 import { PUBLISH_MESSAGES } from "./types/messages";
 
 export interface PublishDeps {
-  providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   messageBus?: IMessageBus | undefined;
-  entityService?: ICoreEntityService | undefined;
-  publishExecutor?: PublishEntityExecutor | undefined;
+  publishExecutor?: Pick<PublishEntityExecutor, "publish"> | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
   onFailed?: ((event: PublishFailedEvent) => void) | undefined;
 }
 
 /**
- * Execute publishing with provider.
+ * Execute publishing for a queued entry through the shared publish executor.
  */
 export async function executeWithProvider(
   entry: QueueEntry,
   deps: Pick<
     PublishDeps,
-    | "providerRegistry"
-    | "retryTracker"
-    | "entityService"
-    | "publishExecutor"
-    | "messageBus"
-    | "onPublish"
-    | "onFailed"
+    "retryTracker" | "publishExecutor" | "messageBus" | "onPublish" | "onFailed"
   >,
 ): Promise<void> {
-  if (deps.publishExecutor) {
-    await executeWithPublishExecutor(entry, deps);
-    return;
-  }
-
-  const provider = deps.providerRegistry.get(entry.entityType);
-
-  if (!deps.entityService) {
+  if (!deps.publishExecutor) {
     deps.onFailed?.({
       entityType: entry.entityType,
       entityId: entry.entityId,
-      error: "EntityService not available for provider mode",
+      error: "Publish executor not configured",
       retryCount: 0,
       willRetry: false,
     });
     return;
   }
 
-  const entity = await deps.entityService.getEntity({
-    entityType: entry.entityType,
-    id: entry.entityId,
-  });
-
-  if (!entity) {
-    deps.onFailed?.({
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-      error: `Entity not found: ${entry.entityType}/${entry.entityId}`,
-      retryCount: 0,
-      willRetry: false,
-    });
-    return;
-  }
-
-  try {
-    const result = await provider.publish(entity.content, entity.metadata);
-
-    deps.retryTracker.clearRetries(entry.entityId);
-
-    deps.onPublish?.({
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-      result,
-    });
-  } catch (error) {
-    const errorMessage = getErrorMessage(error);
-
-    deps.retryTracker.recordFailure(entry.entityId, errorMessage);
-    const retryInfo = deps.retryTracker.getRetryInfo(entry.entityId);
-
-    deps.onFailed?.({
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-      error: errorMessage,
-      retryCount: retryInfo?.retryCount ?? 1,
-      willRetry: retryInfo?.willRetry ?? false,
-    });
-  }
+  await executeWithPublishExecutor(entry, deps);
 }
 
 async function executeWithPublishExecutor(
@@ -153,7 +98,7 @@ async function executeWithPublishExecutor(
       entityId: entry.entityId,
       error: errorMessage,
       retryCount: retryInfo?.retryCount ?? 1,
-      willRetry: retryInfo?.willRetry ?? false,
+      willRetry: false,
     });
   }
 }
@@ -197,7 +142,7 @@ export function sendPublishFailed(
     entityId,
     error,
     retryCount: retryInfo?.retryCount ?? 1,
-    willRetry: retryInfo?.willRetry ?? false,
+    willRetry: false,
   };
 
   if (deps.messageBus) {

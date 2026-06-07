@@ -46,10 +46,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 
     this.queueManager = QueueManager.createFresh();
     this.providerRegistry = ProviderRegistry.createFresh();
-    this.retryTracker = RetryTracker.createFresh({
-      maxRetries: this.config.maxRetries,
-      baseDelayMs: this.config.retryBaseDelayMs,
-    });
+    this.retryTracker = RetryTracker.createFresh();
     this.publishAssetRegistry = PublishAssetRegistry.createFresh();
     this.publishAssetPreflight = new PublishAssetPreflight({
       context,
