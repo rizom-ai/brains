@@ -221,9 +221,9 @@ and images promote to `image` through explicit `system_create({ entityType:
 conversation before forwarding it to the entity plugin, and the receiving plugin
 validates media type and ref existence before persisting. Markdown
 import/extraction is a separate explicit flow: "turn this PDF into a note"
-resolves the upload, extracts text with deterministic PDF extraction in
-`@brains/document` (`pdfjs-dist`), then creates a markdown entity such as
-`base`/note using `system_create({ entityType: "base", upload, transform:
+resolves the upload, extracts text with deterministic, size/page-bounded PDF
+extraction in `@brains/document` (`pdfjs-dist`), then creates a markdown entity
+such as `base`/note using `system_create({ entityType: "base", upload, transform:
 "extract-markdown" })`. `system_create` enforces that `extract-markdown` is
 only valid with `entityType: "base"` and an upload ref; raw PDF/image promotion
 to `document` or `image` must omit `transform`. Any future LLM pass should be
@@ -286,10 +286,11 @@ Remaining upload work:
 - continue hardening the explicit markdown import/extraction contract for
   text/PDF uploads. The first slices support
   `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
-transform: "extract-markdown" })`, deterministic PDF extraction in
-  `@brains/document`, and core validation that rejects `extract-markdown`
-  without a `base` upload import; future work can add job-backed extraction for
-  large PDFs and optional cleanup/summarization after deterministic extraction;
+transform: "extract-markdown" })`, deterministic size/page-bounded PDF
+  extraction in `@brains/document`, and core validation that rejects
+  `extract-markdown` without a `base` upload import; future work can add
+  job-backed extraction for large PDFs and optional cleanup/summarization after
+  deterministic extraction;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
   user asks to promote them.

@@ -20,4 +20,9 @@ export {
   parseDocumentDataUrl,
   type ParsedDocumentDataUrl,
 } from "./lib/document-utils";
-export { extractPdfMarkdown } from "./lib/pdf-markdown";
+export {
+  defaultPdfMarkdownMaxBytes,
+  defaultPdfMarkdownMaxPages,
+  extractPdfMarkdown,
+  type ExtractPdfMarkdownOptions,
+} from "./lib/pdf-markdown";
