@@ -1032,6 +1032,16 @@ describe("resolve with instance overrides", () => {
         extract: "anchor",
         publish: "anchor",
       },
+      "anchor-profile": {
+        create: "never",
+        update: "anchor",
+        delete: "never",
+      },
+      "brain-character": {
+        create: "never",
+        update: "anchor",
+        delete: "never",
+      },
     });
   });
 
@@ -1163,6 +1173,16 @@ describe("resolve with instance overrides", () => {
         delete: "anchor",
         extract: "anchor",
         publish: "anchor",
+      },
+      "anchor-profile": {
+        create: "never",
+        update: "anchor",
+        delete: "never",
+      },
+      "brain-character": {
+        create: "never",
+        update: "anchor",
+        delete: "never",
       },
       summary: { create: "anchor", update: "trusted", delete: "anchor" },
     });

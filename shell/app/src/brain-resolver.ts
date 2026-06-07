@@ -42,6 +42,16 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
     extract: "anchor",
     publish: "anchor",
   },
+  "anchor-profile": {
+    create: "never",
+    update: "anchor",
+    delete: "never",
+  },
+  "brain-character": {
+    create: "never",
+    update: "anchor",
+    delete: "never",
+  },
 };
 
 /**
