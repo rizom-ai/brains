@@ -57,6 +57,10 @@ export type CanonicalIdentityResolver = Pick<
   "enrichActor"
 >;
 
+export type UploadAttachmentResolver = (
+  source: ChatAttachmentSource,
+) => Promise<ChatAttachment | null | undefined>;
+
 export interface AgentConfig {
   /** Maximum iterations before stopping (SDK defaults to 1) */
   stepLimit?: number;
@@ -72,6 +76,8 @@ export interface AgentConfig {
   agentContextProvider?: (
     request: AgentContextRequest,
   ) => Promise<AgentContextItem[]>;
+  /** Optional resolver for prior runtime uploads stored in conversation metadata. */
+  uploadAttachmentResolver?: UploadAttachmentResolver;
 }
 
 /**

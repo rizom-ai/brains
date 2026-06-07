@@ -122,6 +122,7 @@ export function createShellServices(options: {
     aiService,
     mcpService,
     conversationService,
+    runtimeUploadRegistry,
     disposables,
   });
 

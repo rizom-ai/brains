@@ -20,6 +20,7 @@ import type {
   IAgentService,
   StructuredChatCard,
   ToolResultData,
+  UploadAttachmentResolver,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 import {
@@ -33,8 +34,7 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
-  collectUploadRefsFromMessages,
-  resolveConversationUploadRefs,
+  resolveConversationUploadContinuity,
 } from "./conversation-messages";
 import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
@@ -97,6 +97,7 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
+  private uploadAttachmentResolver: UploadAttachmentResolver | undefined;
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -190,6 +191,7 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
+    this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
   /**
@@ -398,21 +400,13 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
-    const contextItems = await this.fetchAgentContext({
-      conversationId,
+    const uploadContinuity = await resolveConversationUploadContinuity({
       message,
-      interfaceType,
-      channelId,
-      channelName,
-      userPermissionLevel,
+      currentAttachments: attachments,
+      historyMessages,
+      uploadAttachmentResolver: this.uploadAttachmentResolver,
     });
-
-    const uploadRefs = collectUploadRefsFromMessages(historyMessages);
-    const uploadRefResolution =
-      attachments.length === 0
-        ? resolveConversationUploadRefs(message, uploadRefs)
-        : { kind: "selected" as const, refs: uploadRefs };
-    if (uploadRefResolution.kind === "clarify") {
+    if (uploadContinuity.kind === "clarify") {
       await this.conversationService.addMessage({
         conversationId,
         role: "user",
@@ -422,7 +416,7 @@ export class AgentService implements IAgentService {
         ),
       });
 
-      const responseText = `Which uploaded file should I use? ${uploadRefResolution.refs
+      const responseText = `Which uploaded file should I use? ${uploadContinuity.refs
         .map((ref) => `\`${ref.filename}\``)
         .join(", ")}`;
       await this.conversationService.addMessage({
@@ -444,9 +438,24 @@ export class AgentService implements IAgentService {
       };
     }
 
-    const modelMessage = buildMessageWithAttachments(message, attachments, {
-      uploadRefs: uploadRefResolution.refs,
+    const effectiveMessage = uploadContinuity.message;
+    const effectiveAttachments = uploadContinuity.attachments;
+    const contextItems = await this.fetchAgentContext({
+      conversationId,
+      message: effectiveMessage,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
     });
+
+    const modelMessage = buildMessageWithAttachments(
+      effectiveMessage,
+      effectiveAttachments,
+      {
+        uploadRefs: uploadContinuity.refs,
+      },
+    );
     const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
@@ -464,9 +473,9 @@ export class AgentService implements IAgentService {
     await this.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: message,
+      content: effectiveMessage,
       ...this.withMessageMetadata(
-        this.buildMessageMetadata(actor, source, attachments),
+        this.buildMessageMetadata(actor, source, effectiveAttachments),
       ),
     });
 
@@ -477,14 +486,15 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
-      ...(attachments.some((attachment) => attachment.source !== undefined) ||
-      uploadRefResolution.refs.length > 0
+      ...(effectiveAttachments.some(
+        (attachment) => attachment.source !== undefined,
+      ) || uploadContinuity.refs.length > 0
         ? { enableCreateUpload: true }
         : {}),
-      ...(hasUploadMarkdownTransformIntent(message)
+      ...(hasUploadMarkdownTransformIntent(effectiveMessage)
         ? { enableCreateTransform: true }
         : {}),
-      ...(hasSourceAttachmentIntent(message)
+      ...(hasSourceAttachmentIntent(effectiveMessage)
         ? { enableCreateSourceAttachment: true }
         : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),

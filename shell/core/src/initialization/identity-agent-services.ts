@@ -2,6 +2,8 @@ import {
   AgentService,
   createBrainActorId,
   createBrainAgentFactory,
+  type ChatAttachment,
+  type ChatAttachmentSource,
   type IAgentService,
   type IAIService,
 } from "@brains/ai-service";
@@ -18,6 +20,10 @@ import {
   CanonicalIdentityService,
 } from "@brains/identity-service";
 import type { IMCPService } from "@brains/mcp-service";
+import type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRegistry,
+} from "@brains/plugins";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import type { ShellConfig } from "../config";
@@ -39,6 +45,7 @@ export interface IdentityAndAgentServiceOptions {
   aiService: IAIService;
   mcpService: IMCPService;
   conversationService: IConversationService;
+  runtimeUploadRegistry: RuntimeUploadRegistry;
   disposables: Array<() => void>;
 }
 
@@ -78,6 +85,69 @@ function subscribeToEntityCacheInvalidation(
   );
 }
 
+async function resolveRuntimeUploadAttachment(
+  source: ChatAttachmentSource,
+  runtimeUploadRegistry: RuntimeUploadRegistry,
+  logger: Logger,
+): Promise<ChatAttachment | null> {
+  const namespace = getRuntimeUploadNamespace(source.kind);
+  if (!namespace) return null;
+
+  try {
+    const store = runtimeUploadRegistry.scoped({
+      namespace,
+      refKind: source.kind,
+      routePath: "",
+    });
+    return toChatAttachment(await store.read(source.id), source);
+  } catch (error) {
+    logger.debug("Skipped unavailable prior runtime upload", {
+      uploadKind: source.kind,
+      uploadId: source.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+function getRuntimeUploadNamespace(refKind: string): string | null {
+  const suffix = "-upload";
+  if (!refKind.endsWith(suffix)) return null;
+  const namespace = refKind.slice(0, -suffix.length);
+  return namespace.length > 0 ? namespace : null;
+}
+
+function toChatAttachment(
+  resolved: ResolvedRuntimeUpload,
+  source: ChatAttachmentSource,
+): ChatAttachment {
+  const { record, content } = resolved;
+  if (isTextUpload(record.mediaType)) {
+    return {
+      kind: "text",
+      filename: record.filename,
+      mediaType: record.mediaType,
+      content: new TextDecoder("utf-8").decode(content).replace(/^\uFEFF/, ""),
+      sizeBytes: record.sizeBytes,
+      source,
+    };
+  }
+
+  return {
+    kind: "file",
+    filename: record.filename,
+    mediaType: record.mediaType,
+    data: new Uint8Array(content),
+    sizeBytes: record.sizeBytes,
+    source,
+  };
+}
+
+function isTextUpload(mediaType: string): boolean {
+  const normalized = mediaType.toLowerCase();
+  return normalized.startsWith("text/") || normalized === "application/json";
+}
+
 export function initializeIdentityAndAgentServices(
   options: IdentityAndAgentServiceOptions,
 ): IdentityAndAgentServices {
@@ -89,6 +159,7 @@ export function initializeIdentityAndAgentServices(
     aiService,
     mcpService,
     conversationService,
+    runtimeUploadRegistry,
     disposables,
   } = options;
 
@@ -135,6 +206,8 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      uploadAttachmentResolver: (source) =>
+        resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {
         const response = await messageBus.send({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,

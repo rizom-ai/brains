@@ -258,50 +258,28 @@ interfaces/plugins. The ref kind remains a compatibility detail for the current
 web-chat upload route; user-visible copy should say "uploaded file" or "chat
 upload", not expose implementation-specific ref names.
 
-Existing web-chat deferred reuse covers some common paths (exact filename
-references, positional references such as "the most recent image", and stored
-upload metadata after session reload), but this should be treated as an interim
-slice until the shared attachment-continuity layer replaces interface-local
-intent and disambiguation logic.
+Deferred upload/attachment continuity now lives in the shared agent/message
+layer instead of `interfaces/web-chat`. Web chat resolves only current-turn HTTP
+and AI SDK upload parts. `AgentService` collects prior upload refs from stored
+conversation metadata, performs transport-neutral filename/position selection,
+asks a clarification when multiple uploads are ambiguous, resolves selected
+runtime uploads back into native model attachments when available, and carries
+the original request through selector-only clarification answers such as "the
+latest one".
 
-Current known regression to preserve through the extraction:
+Regression paths preserved by the shared layer:
 
-- Scenario: the operator uploads an image, receives the bare-upload
-  acknowledgement, then says "can you save it as an image".
-- Expected: the latest relevant uploaded image is selected as chat context and
-  the model/tool path promotes the original upload with
-  `system_create({ entityType: "image", upload: { ... } })`.
-- Forbidden: generating a new image job from the uploaded filename/title or from
-  surrounding chat text. Saving/importing/promoting an upload must never fall
-  back to prompt-based image generation when an upload ref is available or a
-  clarification is still unresolved.
-- Related clarification case: if the assistant has asked "Which upload should I
-  use?", a positional answer such as "the latest one" / "the last one" must be
-  resolved to a concrete prior upload ref (or re-ask) before model invocation.
-  Raw clarification text must not be sent to the model as a standalone request.
-- Regression proof: `brains/rover/test-cases/multi-turn/web-chat-image-upload-save-follow-up.yaml`
-  covers the save-as-image path and asserts `upload` is present and `prompt` is
-  absent on `system_create`.
-
-Extraction-first plan:
-
-1. Extract upload/attachment continuity out of `interfaces/web-chat/src/web-chat-interface.ts`.
-   The 3000+ LOC interface should not own intent regexes, candidate ordering,
-   same-conversation attachment recovery, or clarification semantics.
-2. Put transport-neutral continuity in a shared message/agent layer with focused
-   tests for candidate ordering, latest/current selection, and clarification
-   resolution.
-3. Rewire web-chat to call the shared layer while retaining only HTTP/UI upload
-   plumbing locally.
-4. After extraction, fix the regression in the shared layer and rerun the Rover
-   upload evals plus targeted interface tests.
+- after a bare image upload acknowledgement, "can you save it as an image" keeps
+  the uploaded image available as chat context and the model-visible upload ref
+  for `system_create({ entityType: "image", upload })` promotion;
+- saving/importing/promoting an upload must never fall back to prompt-based
+  generation while an upload ref is selected or a clarification is unresolved;
+- if the assistant has asked "Which uploaded file should I use?", a positional
+  answer such as "the latest one" / "the last one" is resolved to the concrete
+  prior upload and the original user intent is sent to the model, not the raw
+  selector text.
 
 Remaining upload work:
-
-- move deferred upload/attachment continuity out of `interfaces/web-chat` and
-  into a shared message/agent layer, with transport-neutral tests proving latest
-  attachment reuse, clarification resolution, and "save uploaded file" promotion
-  across interfaces;
 
 - continue hardening the explicit markdown import/extraction contract for
   text/PDF uploads. The first slice supports

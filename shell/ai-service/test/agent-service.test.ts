@@ -365,6 +365,164 @@ describe("AgentService", () => {
       );
     });
 
+    it("resolves prior upload refs into native file attachments before model invocation", async () => {
+      const imageBytes = new Uint8Array([137, 80, 78, 71]);
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "robot.png",
+                  mediaType: "image/png",
+                  sizeBytes: imageBytes.byteLength,
+                  source: { kind: "web-chat-upload", id: "upload-123" },
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          uploadAttachmentResolver: async (source) => ({
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source,
+          }),
+        },
+      );
+
+      await service.chat("describe the latest image", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: 'describe the latest image\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; raw promotion call: system_create({ entityType: "image", upload }) and omit transform',
+          },
+          {
+            type: "file",
+            data: imageBytes,
+            mediaType: "image/png",
+            filename: "robot.png",
+          },
+        ],
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          role: "user",
+          content: "describe the latest image",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                sizeBytes: imageBytes.byteLength,
+                source: { kind: "web-chat-upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it("keeps upload clarification answers from reaching the model as standalone prompts", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-first-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "first-robot.png",
+                  mediaType: "image/png",
+                  source: { kind: "web-chat-upload", id: "upload-first" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-second-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "second-robot.png",
+                  mediaType: "image/png",
+                  source: { kind: "web-chat-upload", id: "upload-second" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-request",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "save it as an image",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+          {
+            id: "msg-clarify",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content:
+              "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("the latest one", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      const lastMessage = messages.at(-1);
+      expect(lastMessage?.role).toBe("user");
+      expect(lastMessage?.content).toContain("save it as an image");
+      expect(lastMessage?.content).not.toContain("the latest one");
+      expect(lastMessage?.content).toContain('id: "upload-second"');
+    });
+
     it("asks for intent when the user submits only a native file attachment", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

@@ -1,7 +1,11 @@
 import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
-import type { ChatAttachment } from "./agent-types";
+import type {
+  ChatAttachment,
+  ChatAttachmentSource,
+  UploadAttachmentResolver,
+} from "./agent-types";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -99,6 +103,19 @@ export type ConversationUploadRefResolution =
   | { kind: "selected"; refs: ConversationUploadRef[] }
   | { kind: "clarify"; refs: ConversationUploadRef[] };
 
+export interface ConversationUploadContinuitySelection {
+  kind: "selected";
+  message: string;
+  refs: ConversationUploadRef[];
+  attachments: ChatAttachment[];
+}
+
+export type ConversationUploadContinuityResolution =
+  | ConversationUploadContinuitySelection
+  | { kind: "clarify"; refs: ConversationUploadRef[] };
+
+const uploadClarificationPrefix = "Which uploaded file should I use?";
+
 export function resolveConversationUploadRefs(
   message: string,
   uploadRefs: ConversationUploadRef[],
@@ -121,6 +138,118 @@ export function resolveConversationUploadRefs(
   }
 
   return { kind: "clarify", refs: uploadRefs };
+}
+
+export async function resolveConversationUploadContinuity(params: {
+  message: string;
+  currentAttachments: ChatAttachment[];
+  historyMessages: Message[];
+  uploadAttachmentResolver?: UploadAttachmentResolver | undefined;
+}): Promise<ConversationUploadContinuityResolution> {
+  const uploadRefs = collectUploadRefsFromMessages(params.historyMessages);
+  const resolution =
+    params.currentAttachments.length === 0
+      ? resolveConversationUploadRefs(params.message, uploadRefs)
+      : { kind: "selected" as const, refs: uploadRefs };
+
+  if (resolution.kind === "clarify") return resolution;
+
+  const message = getEffectiveUploadContinuityMessage(
+    params.message,
+    params.historyMessages,
+    resolution.refs,
+  );
+  const attachments =
+    params.currentAttachments.length > 0
+      ? params.currentAttachments
+      : await resolveUploadRefAttachments(
+          resolution.refs,
+          params.uploadAttachmentResolver,
+        );
+
+  return {
+    kind: "selected",
+    message,
+    refs: resolution.refs,
+    attachments,
+  };
+}
+
+function getEffectiveUploadContinuityMessage(
+  message: string,
+  historyMessages: Message[],
+  selectedRefs: ConversationUploadRef[],
+): string {
+  if (!isUploadSelectionOnly(message, selectedRefs)) return message;
+
+  const pendingRequest = getPendingUploadClarificationRequest(historyMessages);
+  return pendingRequest ?? message;
+}
+
+function getPendingUploadClarificationRequest(
+  historyMessages: Message[],
+): string | null {
+  for (let index = historyMessages.length - 1; index >= 1; index -= 1) {
+    const assistantMessage = historyMessages[index];
+    if (
+      assistantMessage?.role !== "assistant" ||
+      !assistantMessage.content.startsWith(uploadClarificationPrefix)
+    ) {
+      continue;
+    }
+
+    for (
+      let previousIndex = index - 1;
+      previousIndex >= 0;
+      previousIndex -= 1
+    ) {
+      const userMessage = historyMessages[previousIndex];
+      if (userMessage?.role !== "user") continue;
+      return userMessage.content.trim().length > 0 ? userMessage.content : null;
+    }
+  }
+  return null;
+}
+
+function isUploadSelectionOnly(
+  message: string,
+  selectedRefs: ConversationUploadRef[],
+): boolean {
+  const normalized = message
+    .trim()
+    .toLowerCase()
+    .replace(/[.!?]+$/g, "");
+  if (normalized.length === 0) return false;
+
+  if (
+    /^(?:the\s+)?(?:latest|newest|most recent|last|first|oldest|earliest)(?:\s+(?:one|file|upload|image|picture|document|pdf))?$/.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+
+  return selectedRefs.some((ref) => normalized === ref.filename.toLowerCase());
+}
+
+async function resolveUploadRefAttachments(
+  uploadRefs: ConversationUploadRef[],
+  resolver: UploadAttachmentResolver | undefined,
+): Promise<ChatAttachment[]> {
+  if (!resolver) return [];
+
+  const attachments: ChatAttachment[] = [];
+  for (const ref of uploadRefs) {
+    const attachment = await resolver(toUploadAttachmentSource(ref));
+    if (attachment) attachments.push(attachment);
+  }
+  return attachments;
+}
+
+function toUploadAttachmentSource(
+  ref: ConversationUploadRef,
+): ChatAttachmentSource {
+  return { kind: ref.source.kind, id: ref.source.id };
 }
 
 export function buildMessageWithAttachments(

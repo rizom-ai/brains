@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   buildMessageWithAttachments,
   collectUploadRefsFromMessages,
+  resolveConversationUploadContinuity,
   resolveConversationUploadRefs,
 } from "../src/conversation-messages";
 
@@ -85,6 +86,118 @@ describe("resolveConversationUploadRefs", () => {
     expect(resolveConversationUploadRefs("save it", uploadRefs)).toEqual({
       kind: "clarify",
       refs: uploadRefs,
+    });
+  });
+});
+
+describe("resolveConversationUploadContinuity", () => {
+  const uploadRefs = [
+    {
+      filename: "first-robot.png",
+      mediaType: "image/png",
+      source: {
+        kind: "web-chat-upload",
+        id: "upload-first",
+      },
+    },
+    {
+      filename: "second-robot.png",
+      mediaType: "image/png",
+      source: {
+        kind: "web-chat-upload",
+        id: "upload-second",
+      },
+    },
+  ];
+
+  const secondUploadRef = uploadRefs[1];
+  if (!secondUploadRef) throw new Error("Expected second upload fixture");
+
+  const historyMessages = uploadRefs.map((ref, index) => ({
+    id: `message-${index}`,
+    conversationId: "conversation-1",
+    role: "user" as const,
+    content: "",
+    metadata: JSON.stringify({
+      attachments: [
+        {
+          kind: "file",
+          filename: ref.filename,
+          mediaType: ref.mediaType,
+          source: ref.source,
+        },
+      ],
+    }),
+    timestamp: new Date().toISOString(),
+  }));
+
+  it("resolves selected prior upload refs into native attachments in the shared layer", async () => {
+    const result = await resolveConversationUploadContinuity({
+      message: "describe the latest image",
+      currentAttachments: [],
+      historyMessages,
+      uploadAttachmentResolver: async (source) => ({
+        kind: "file",
+        filename:
+          source.id === "upload-second"
+            ? "second-robot.png"
+            : "first-robot.png",
+        mediaType: "image/png",
+        data: new Uint8Array([1, 2, 3]),
+        sizeBytes: 3,
+        source,
+      }),
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "describe the latest image",
+      refs: [secondUploadRef],
+      attachments: [
+        {
+          kind: "file",
+          filename: "second-robot.png",
+          mediaType: "image/png",
+          data: new Uint8Array([1, 2, 3]),
+          sizeBytes: 3,
+          source: { kind: "web-chat-upload", id: "upload-second" },
+        },
+      ],
+    });
+  });
+
+  it("carries the original intent through an upload clarification answer", async () => {
+    const result = await resolveConversationUploadContinuity({
+      message: "the latest one",
+      currentAttachments: [],
+      historyMessages: [
+        ...historyMessages,
+        {
+          id: "message-request",
+          conversationId: "conversation-1",
+          role: "user",
+          content: "save it as an image",
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "message-clarify",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content:
+            "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      uploadAttachmentResolver: async () => null,
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save it as an image",
+      refs: [secondUploadRef],
+      attachments: [],
     });
   });
 });
