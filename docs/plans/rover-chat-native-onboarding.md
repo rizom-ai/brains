@@ -380,8 +380,7 @@ Run-scoped tools (`playbook_send_event`, `playbook_status`) infer the run from a
 explicit `conversationId` or `ToolContext.conversationId` when `runId` is omitted,
 and error if more than one active run exists for the conversation — the same
 inference `playbook_start` already does. Entity evidence is collected automatically by event
-subscription; there is no `playbook_record_entity` self-reporting tool. The
-current prototype tool must be removed before merge.
+subscription; there is no `playbook_record_entity` self-reporting tool.
 
 `playbook_validate` (and the same check at parse time) is **structural only**:
 `initialState`/transition targets/`finalStates` exist, no duplicate state IDs, no

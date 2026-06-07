@@ -1,6 +1,6 @@
 id: multi-turn-rover-onboarding-playbook
 name: Rover Onboarding Playbook Conversation
-description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves a first durable knowledge seed, and completes through the playbook runtime instead of free-form progress updates.
+description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves a first durable knowledge seed with automatic runtime evidence, and completes through the playbook runtime instead of free-form progress updates.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -44,8 +44,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
-        - toolName: playbook_record_entity
-          shouldBeCalled: true
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
@@ -81,12 +79,10 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
-    - toolName: playbook_record_entity
-      shouldBeCalled: true
     - toolName: playbook_complete
       shouldBeCalled: true
   toolCountRange:
-    min: 6
+    min: 5
   responseNotContains:
     - "I cannot"
     - "I don't have access"
