@@ -1,6 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
 import { executeWithProvider } from "../src/scheduler-publish";
-import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import type { QueueEntry } from "../src/queue-manager";
 import { SYSTEM_PUBLISH_AUTH_CONTEXT } from "../src/types/messages";
@@ -17,16 +16,7 @@ function createEntry(): QueueEntry {
 
 describe("scheduler publish execution", () => {
   it("uses the shared publish executor when provided", async () => {
-    const providerRegistry = ProviderRegistry.createFresh();
-    const providerPublish = mock(async () => ({ id: "provider-result" }));
-    providerRegistry.register("post", {
-      name: "test",
-      publish: providerPublish,
-    });
-    const retryTracker = RetryTracker.createFresh({
-      maxRetries: 3,
-      baseDelayMs: 10,
-    });
+    const retryTracker = RetryTracker.createFresh();
     const onPublish = mock(() => {});
     const publish = mock(async () => ({
       entity: {
@@ -43,14 +33,12 @@ describe("scheduler publish execution", () => {
     }));
 
     await executeWithProvider(createEntry(), {
-      providerRegistry,
       retryTracker,
       publishExecutor: { publish },
       onPublish,
     });
 
     expect(publish).toHaveBeenCalledWith({ entityType: "post", id: "post-1" });
-    expect(providerPublish).not.toHaveBeenCalled();
     expect(onPublish).toHaveBeenCalledWith({
       entityType: "post",
       entityId: "post-1",
@@ -59,15 +47,10 @@ describe("scheduler publish execution", () => {
   });
 
   it("reports publish executor validation errors without retrying", async () => {
-    const providerRegistry = ProviderRegistry.createFresh();
-    const retryTracker = RetryTracker.createFresh({
-      maxRetries: 3,
-      baseDelayMs: 10,
-    });
+    const retryTracker = RetryTracker.createFresh();
     const onFailed = mock(() => {});
 
     await executeWithProvider(createEntry(), {
-      providerRegistry,
       retryTracker,
       publishExecutor: {
         publish: mock(async () => ({ error: "Entity is already published" })),
