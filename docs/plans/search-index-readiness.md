@@ -1,109 +1,160 @@
-# Plan: Search index readiness for playbook gates
+# Plan: Search index readiness
 
 ## Problem
 
-`entityService.search()` currently requires an embedding row. Entities without embeddings are invisible, even if they exist and are present in FTS. This can falsely block playbook gates and any other runtime that depends on KB search.
+A playbook gate's judge received no KB excerpts and correctly returned `met: false` from
+incomplete material. The trigger: the precompiled Rover eval DB has the `anchor-profile`
+entity and FTS rows but **zero embeddings**, and `entityService.search()` inner-joins
+embeddings (`entity-search.ts:230`), with FTS only a re-rank boost on the vector-matched
+set (`entity-search.ts:208-211`). So a pre-existing seed fact was invisible to retrieval.
 
-This surfaced while adding focused playbook `GoalCheck` evals: the Rover eval content has an `anchor-profile` entity and FTS rows, but the precompiled eval DB has zero embeddings. Because search inner-joins `entities` with `embeddings`, the judge saw no KB excerpts and correctly returned `met: false` from incomplete material.
+The real defect is not that search is wrong. It is that the **semantic index was
+incomplete and was queried before it was ready**. Embeddings are our retrieval contract;
+the fix is to keep that index complete and to not depend on it before it is ready — not to
+teach search to answer from outside it.
 
-This is not a playbooks fallback problem. It is a KB search/index-readiness contract problem.
+## Principle
 
-## Required behavior
+`search()` answers **only** from the semantic index, and stays that way. We make the index
+**complete** (backfill) and we **wait for readiness** before depending on it.
 
-Search should distinguish:
+### The rejected path (and why)
 
-- **entity absent**: no entity/content exists.
-- **entity present but embeddings pending/missing**: entity exists and may match lexically.
-- **semantic search ready**: embeddings exist and vector search can rank it.
+Loosening `search()` to also return FTS-only / unembedded rows would redefine search
+product-wide to answer from outside the semantic index, in order to mask a transient
+startup state — and it would erase the signal that an entity is unembedded (a real problem
+we want surfaced, not hidden). Rejected. The `innerJoin` stays.
 
-A user starting onboarding before embeddings finish should not have an existing KB fact disappear from the gate checker just because the semantic index is incomplete.
+The one case that seems to need it — a fact created seconds ago, embedding still pending,
+checked by a gate — does **not** need a search escape hatch. The playbook records
+entity-event **evidence** directly into the run, so freshly-created facts reach the judge
+through the evidence channel; pre-existing seed KB reaches it through the (complete, ready)
+semantic index. Two channels, clean split, no lexical fallback required.
 
-## Phase 1 — Diagnose and lock with tests
+## How it functions
 
-Add entity-service tests proving the current bug:
+Invariant: every embeddable entity has a **current** embedding
+(`embedding.content_hash == entity.contentHash`). Build it; wait for it; never query around it.
 
-1. Entity exists in DB + FTS, no embedding row.
-2. `search("Alex Chen")` should return it.
-3. Search should still respect:
-   - `visibilityScope`
-   - `types`
-   - `excludeTypes`
-   - `includeUngenerated`
-   - `limit/offset`
+### 1. Completeness — boot backfill
 
-This test should fail first.
+The write path already does the right thing per-entity: create/update persists the entity
+immediately, then enqueues a `shell:embedding` job (`entity-mutations.ts:513`), skipped when
+`entityConfig.embeddable === false` (`:497`); the handler is staleness-aware — it skips when
+the content hash has drifted — and emits `entity:embedding:ready` on success
+(`embeddingJobHandler.ts:129,179`).
 
-## Phase 2 — Fix search semantics
+What is missing is the **bulk/seed** case. Add a generic entity-service backfill that runs
+during shell initialization, **after entity types are registered** (so `embeddable` config
+is known): scan embeddable entities and enqueue the same `shell:embedding` job for each where
+no embedding row exists **or** `embedding.content_hash != entity.contentHash`. Backfill must
+use stable per-entity/content dedupe keys such as
+`embedding:${entityType}:${entityId}:${contentHash}` and must not enqueue duplicates for
+already pending/processing equivalent work. No eval-specific and no playbook-specific logic —
+this is an entity-service operation.
 
-Change `EntitySearch.search()` so it does not inner-join embeddings as the only path.
+Result: a KB loaded from seed content (the eval DB, or a fresh import) converges to fully
+embedded on its own.
 
-Preferred shape:
+### 2. Readiness — a first-class primitive
 
-- Run vector search for embedded entities.
-- Run FTS/lexical search for matching entities, including unembedded ones.
-- Merge/dedupe results.
-- Score:
-  - vector + FTS matches highest;
-  - vector-only next;
-  - FTS-only valid but lower/confidence-marked by score.
-- Keep filters identical across both paths.
+The index is ready when both conditions hold:
 
-No playbooks-specific logic.
+1. there are no pending/processing embedding jobs; and
+2. the missing/stale embeddable entity count is zero.
 
-## Phase 3 — Backfill missing/stale embeddings
+The job-queue exposes active jobs via `getActiveJobs(["shell:embedding"])` and queue stats via
+`getStats().{pending, processing}` (`job-queue/src/types.ts:150-166`), but active-job emptiness
+is not sufficient by itself: failed jobs, skipped backfill, or a stale prebuilt pair can leave
+no active work while embeddings are still missing.
 
-Add generic entity-service backfill:
+Add `entityService.awaitIndexReady({ timeoutMs })` / `isIndexReady()` over the job queue plus
+a missing/stale scan — **bounded**, returning diagnostics (active job types/counts,
+missing/stale counts, and recent failures if available) on timeout, never waiting forever.
+Entity-service owns the question "is my semantic index ready"; the job-queue is the mechanism.
+(`entity:embedding:ready` is available if a reactive variant is ever preferred over polling.)
 
-- After DB init and entity type registration, enqueue embedding jobs for embeddable entities where:
-  - no embedding row exists, or
-  - embedding `content_hash !== entity.contentHash`.
-- Respect entity type config `embeddable: false`.
-- Use job deduplication so boot does not create duplicate embedding storms.
+### 3. Readiness at the point of use
 
-Add tests:
+Booting does **not** block on readiness — that would couple uptime to the embedding service
+and stall cold starts. Instead, the consumers that depend on the index check it when they run:
 
-- missing embedding queues job;
-- stale embedding queues job;
-- current embedding does not queue;
-- non-embeddable type is skipped.
+- **Turn gate (generic, central chat boundary).** A chat turn is one round of agent chat
+  (`IAgentService.chat`) — the unit every interface (web-chat, Discord, CLI, MCP) drives, not
+  a playbook concept. Put the readiness check at one central boundary around agent chat
+  (for example the public agent service / `IAgentService.chat` entrypoint), not separately in
+  each concrete interface, so all interfaces and eval paths get the same behavior. If the
+  index is still warming, return a graceful "still getting set up, one moment" and let the
+  client retry, rather than answering from a half-built index. This protects **all**
+  retrieval-backed chat (plain Q&A included), not just playbook gates. The warming window is
+  short — seed-scale embedding is seconds, and a warm restart is ready immediately.
+- **Three-state gate outcome (playbooks).** Inside a turn, a gate resolves to one of three
+  states, never two: **not-ready** → hold/retry (do not run the judge yet), **not-met** →
+  block honestly, **met** → advance. Flow: `if (!indexReady) hold; else judge`. This keeps
+  `GoalCheck` pure — the judge only ever sees ready material — and keeps readiness out of the
+  judge. not-ready must never collapse into not-met.
 
-## Phase 4 — Eval DB isolation
+Only the three-state gate logic is playbooks-specific. The readiness primitive and the turn
+gate are generic KB/chat infrastructure.
 
-Fix eval boot:
+### 4. Search unchanged
 
-- Override `embeddingDatabase` to a temp path alongside:
-  - entity DB;
-  - jobs DB;
-  - conversation DB.
-- If eval content includes `embeddings.db`, copy it.
-- If not, rely on Phase 2 search fallback plus Phase 3 backfill.
+`search()` keeps the embeddings `innerJoin`. The absent / pending / ready distinction the
+first draft wanted to express _inside search results_ lives in the readiness primitive (2)
+instead — it is a readiness signal, not a change to what search returns.
 
-Add test for `bootEvalApp` config shape if practical.
+## Wiring
 
-## Phase 5 — Readiness for evals
+- **Eval runner**: after `bootEvalApp` and any startup sync/import/backfill work has had a
+  chance to enqueue embeddings, `awaitIndexReady` before running test cases; on timeout, fail
+  with diagnostics in verbose output.
+- **Eval DB builder — prebuild a consistent (entities + embeddings) pair.** Today the builder
+  saves `brain.db` only, so evals boot with entities but no matching embeddings and must
+  regenerate them every run (embedding-API cost, latency, and timing nondeterminism on every
+  boot). The builder should instead: build entities → run backfill → `awaitIndexReady` (wait
+  for the embedding jobs) → checkpoint the embedding DB → save **both** `brain.db` and
+  `embeddings.db` into `eval-content/` as a pinned pair. The copy-on-boot path already exists
+  (`eval-environment.ts:75`); the gap is the builder _producing_ the embeddings file. This
+  makes eval boot fast, offline, and deterministic — the prebuilt pair is the **primary path**,
+  and runtime backfill + readiness become the **safety net** for a missing or stale pair
+  (entity content changed without a rebuild → `content_hash` mismatch → re-embed → wait).
+  Limitation to note, not solve here: `content_hash` tracks content drift, not embedding-model
+  drift — a model change requires rebuilding the pair and is out of scope.
+- **Production**: boot does **not** block. Backfill at boot keeps steady-state KBs fully
+  embedded (it finds nothing to do once converged); the **turn gate** holds chat with a
+  warming response during the brief cold-index window. Readiness gating here is **required and
+  graceful**, not optional — without it, first-boot onboarding gates and general retrieval
+  chat would answer from a cold index.
 
-Before running eval test cases, wait for startup/indexing work to settle enough for deterministic search.
+## Phases (thin vertical, tests folded in)
 
-Add a bounded wait in eval runner:
+1. **Readiness primitive.** `entityService.awaitIndexReady` / `isIndexReady` over
+   `getActiveJobs(["shell:embedding"])` plus a missing/stale embeddable scan. _Unit:_ ready
+   when no active jobs and no missing/stale embeddings; not-ready while a job is pending;
+   not-ready when no jobs are active but missing/stale rows remain; bounded timeout returns
+   diagnostics.
+2. **Boot backfill.** Enqueue `shell:embedding` jobs for missing/stale embeddable entities
+   after type registration; respect `embeddable: false`; dedupe by stable per-entity/content
+   keys. _Unit:_ missing → queued; stale (hash mismatch) → queued; current → skipped;
+   non-embeddable → skipped; pending/processing equivalent work is not duplicated.
+3. **Point-of-use gating.** Turn gate at the central chat boundary:
+   `if (!isIndexReady())` return the warming response. Three-state gate outcome in playbooks:
+   not-ready → hold, not-met → block, met → advance. _Unit:_ turn held while warming and runs
+   once ready; gate holds (never calls the judge) while not ready; gate blocks on not-met;
+   advances on met.
+4. **Eval determinism.** Eval runner: backfill + `awaitIndexReady` post-boot, pre-cases, with
+   timeout diagnostics. Eval DB builder: wait + checkpoint + save the `brain.db`/`embeddings.db`
+   pair. _Test:_ a prebuilt pair boots ready with no regeneration; an eval DB missing
+   `embeddings.db` self-heals via backfill and search returns the seed entity.
+5. **Restore focused GoalCheck evals.** KB satisfies goal → `met: true`; KB lacks goal →
+   `met: false`. Then retry the Rover onboarding product eval.
 
-- poll active jobs;
-- wait until no pending/processing jobs for indexing/import-critical job types, or timeout with diagnostic;
-- include diagnostics in verbose output if timeout.
+## Do not
 
-Do not wait forever.
-
-## Phase 6 — Restore focused GoalCheck evals
-
-Only after search/index readiness is fixed:
-
-- Add focused playbooks plugin evals:
-  - KB satisfies goal → `met: true`;
-  - KB lacks goal → `met: false`.
-- Then retry the Rover onboarding product eval.
-
-## Do not do
-
-- Do not add playbooks-specific KB fallback.
-- Do not dump arbitrary entities into GoalCheck material.
-- Do not make gates pass because indexing is pending.
+- Do not add a lexical/FTS retrieval path to `search()` to mask missing embeddings.
+- Do not add playbooks-specific KB fallback, or dump arbitrary entities into GoalCheck material.
+- Do not let indexing state distort a gate verdict — not-ready is its own state: never fake
+  `met`, and never report not-met because the index is still warming.
+- Do not block process boot on readiness — gate at the point of use (turn / gate), never at startup.
 - Do not hardcode `anchor-profile` or Rover onboarding semantics.
+- Do not wait forever for readiness — bounded, with diagnostics.

@@ -48,8 +48,9 @@ Phase 3 has landed: the code now carries one gate model, a generic `Judge` capab
 and a production `GoalCheck` backed by `context.judge` (see
 [Where the real check comes from](#where-the-real-check-comes-from)). Focused GoalCheck eval
 coverage and the Rover onboarding product eval are blocked on
-[Search index readiness for playbook gates](./search-index-readiness.md): `entityService.search()`
-currently hides KB entities that lack embeddings, so a judge can receive incomplete material.
+[Search index readiness](./search-index-readiness.md): the semantic index can be incomplete or
+not-yet-ready when a gate runs (seed KB unembedded), so a judge can receive incomplete material.
+The fix is index completeness + readiness, not a change to search semantics.
 
 ## What this is
 
