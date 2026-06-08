@@ -103,6 +103,14 @@ boundary calls it — so it must be O(1), not a full missing/stale scan. Model r
 background readiness task: after initialization registers entity types and backfill has had a
 chance to enqueue work, run `awaitIndexReady()` in the background and set the latch (or degraded
 latch) when complete. Without that setter path, the central turn gate could hold chat forever.
+
+`awaitIndexReady` is one bounded primitive with **two timeout policies by caller**. The eval
+runner and builder treat a timeout as a hard failure — determinism demands it. The production
+background task must **not**: a single timeout (slow or briefly-unavailable embedder at cold
+start) would leave the latch unset and hold all chat indefinitely — the exact failure this task
+exists to prevent. So the background task re-runs with bounded backoff until it reaches ready or
+ready-degraded, rather than giving up after one timeout.
+
 The latch is one-way for the normal lifecycle — a later background write being embedded in
 steady state does **not** flip chat back to not-ready (that is the async-write design; the new
 fact reaches gates via evidence and search via eventual consistency). Only an operation that
@@ -157,10 +165,11 @@ instead — it is a readiness signal, not a change to what search returns.
   drift — a model change requires rebuilding the pair and is out of scope.
 - **Production**: boot does **not** block. Backfill at boot keeps steady-state KBs fully
   embedded (it finds nothing to do once converged); a background readiness task runs after
-  init/backfill, sets the ready or ready-degraded latch, and exposes diagnostics for terminal
-  failures. The **turn gate** holds chat with a warming response during the brief cold-index
-  window. Readiness gating here is **required and graceful**, not optional — without it,
-  first-boot onboarding gates and general retrieval chat would answer from a cold index.
+  init/backfill and **retries `awaitIndexReady` with bounded backoff** (it does not hard-fail
+  on timeout like the eval runner does), setting the ready or ready-degraded latch and exposing
+  diagnostics for terminal failures. The **turn gate** holds chat with a warming response during
+  the brief cold-index window. Readiness gating here is **required and graceful**, not optional —
+  without it, first-boot onboarding gates and general retrieval chat would answer from a cold index.
 
 ## Phases (thin vertical, tests folded in)
 
