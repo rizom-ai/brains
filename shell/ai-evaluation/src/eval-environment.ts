@@ -53,6 +53,7 @@ export async function bootEvalApp(options: BootEvalAppOptions): Promise<App> {
       database: { url: `file:${evalDbBase}.db` },
       jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
       conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
+      embeddingDatabase: { url: `file:${evalDbBase}-embeddings.db` },
       embedding: { cacheDir: `${evalDbBase}-cache` },
       evalHandlerRegistry,
       dataDir: `${evalDbBase}-data`,
@@ -69,6 +70,13 @@ function cloneEvaluationData(evalDbBase: string): void {
 
   if (existsSync(`${sourceDataDir}/brain.db`)) {
     copyFileSync(`${sourceDataDir}/brain.db`, `${evalDbBase}.db`);
+  }
+
+  if (existsSync(`${sourceDataDir}/embeddings.db`)) {
+    copyFileSync(
+      `${sourceDataDir}/embeddings.db`,
+      `${evalDbBase}-embeddings.db`,
+    );
   }
 
   if (existsSync(sourceBrainData)) {
@@ -91,6 +99,11 @@ function copyEvaluationContent(
   const evalDb = resolvePath(contentDir, "brain.db");
   if (existsSync(evalDb)) {
     copyFileSync(evalDb, `${evalDbBase}.db`);
+  }
+
+  const evalEmbeddingDb = resolvePath(contentDir, "embeddings.db");
+  if (existsSync(evalEmbeddingDb)) {
+    copyFileSync(evalEmbeddingDb, `${evalDbBase}-embeddings.db`);
   }
 }
 
