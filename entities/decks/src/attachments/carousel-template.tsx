@@ -251,7 +251,7 @@ function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
             .deck-carousel-content em {
               font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
               font-style: italic;
-              color: var(--carousel-heading);
+              color: var(--carousel-accent);
             }
 
             .deck-carousel-footer {

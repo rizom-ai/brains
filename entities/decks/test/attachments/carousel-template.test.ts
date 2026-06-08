@@ -160,6 +160,22 @@ describe("deck carousel template", () => {
     expect(html).toContain('[data-theme="light"] .deck-carousel-pdf');
   });
 
+  it("styles italic emphasis with the carousel accent color", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Accent",
+        slides: [{ markdown: "This is *important*." }],
+      },
+      siteConfig: { title: "Accent", themeMode: "dark" },
+    });
+
+    expect(html).toContain("<em>important</em>");
+    expect(html).toContain(".deck-carousel-content em");
+    expect(html).toContain("color: var(--carousel-accent);");
+  });
+
   it("uses opaque slide backgrounds for LinkedIn PDF compatibility", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,
