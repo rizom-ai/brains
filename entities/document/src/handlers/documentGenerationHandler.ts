@@ -153,9 +153,17 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 
     const dedupKey = await this.getDedupKey(data);
     const documentId = getDocumentId(data, dedupKey);
+    const hasRequestedDocumentIdentity =
+      data.documentId !== undefined || data.filename !== undefined;
     if (data.replace !== true) {
-      const existing = await this.findDocumentByDedupKey(dedupKey);
-      if (existing) {
+      const existing = await this.findDocumentByDedupKey(
+        dedupKey,
+        hasRequestedDocumentIdentity ? documentId : undefined,
+      );
+      if (
+        existing &&
+        (!hasRequestedDocumentIdentity || existing.id === documentId)
+      ) {
         if (data.targetEntityType && data.targetEntityId) {
           await this.attachDocumentToTarget(
             data.targetEntityType,
@@ -307,6 +315,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 
   private async findDocumentByDedupKey(
     dedupKey: string,
+    preferredDocumentId?: string,
   ): Promise<DocumentEntity | undefined> {
     const documents =
       await this.context.entityService.listEntities<DocumentEntity>({
@@ -318,9 +327,13 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         dedupKey,
         count: documents.length,
         ids: documents.map((d) => d.id),
+        preferredDocumentId,
       });
     }
-    return documents[0];
+    return (
+      documents.find((document) => document.id === preferredDocumentId) ??
+      documents[0]
+    );
   }
 
   private async attachDocumentToTarget(
