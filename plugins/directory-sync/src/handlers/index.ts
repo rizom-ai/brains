@@ -1,6 +1,8 @@
 export { DirectoryExportJobHandler } from "./directoryExportJobHandler";
 export { DirectoryImportJobHandler } from "./directoryImportJobHandler";
 export { DirectorySyncJobHandler } from "./directorySyncJobHandler";
+export { DirectorySyncRequestJobHandler } from "./directorySyncRequestJobHandler";
+export type { DirectorySyncRequestJobResult } from "./directorySyncRequestJobHandler";
 export { DirectoryDeleteJobHandler } from "./directoryDeleteJobHandler";
 export { DirectoryCleanupJobHandler } from "./directoryCleanupJobHandler";
 export { CoverImageConversionJobHandler } from "./image-conversion-handler";

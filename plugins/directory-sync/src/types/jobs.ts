@@ -13,6 +13,19 @@ export const directorySyncJobSchema = z.object({
 export type DirectorySyncJobData = z.infer<typeof directorySyncJobSchema>;
 
 /**
+ * Schema for a tool-initiated git pull + sync batch request.
+ */
+export const directorySyncRequestJobSchema = z.object({
+  source: z.string().min(1),
+  interfaceType: z.string().optional(),
+  channelId: z.string().optional(),
+});
+
+export type DirectorySyncRequestJobData = z.infer<
+  typeof directorySyncRequestJobSchema
+>;
+
+/**
  * Schema for directory import job data
  */
 export const directoryImportJobSchema = z.object({
@@ -78,6 +91,7 @@ export type InlineImageConversionJobData = z.infer<
  */
 export type JobRequest =
   | { type: "directory-sync"; data: DirectorySyncJobData }
+  | { type: "sync-request"; data: DirectorySyncRequestJobData }
   | { type: "directory-import"; data: DirectoryImportJobData }
   | { type: "directory-export"; data: DirectoryExportJobData }
   | { type: "directory-delete"; data: DirectoryDeleteJobData }
