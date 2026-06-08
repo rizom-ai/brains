@@ -47,9 +47,6 @@ turns:
             - fromUpload
             - sourceAttachment
       responseNotContains:
-        - "generating"
-        - "queued"
-        - "Started generating"
         - "generated"
 
 successCriteria:
@@ -71,9 +68,6 @@ successCriteria:
     - toolName: system_delete
       shouldBeCalled: false
   responseNotContains:
-    - "generating"
-    - "queued"
-    - "Started generating"
     - "generated"
 
 efficiency:

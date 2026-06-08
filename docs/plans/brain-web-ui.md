@@ -219,15 +219,17 @@ and images promote to `image` through explicit `system_create({ entityType:
 "document" | "image", upload: { kind: "web-chat-upload", id } })` calls.
 `system_create` validates that the upload ref appears in the current
 conversation before forwarding it to the entity plugin, and the receiving plugin
-validates media type and ref existence before persisting. Markdown
+validates media type and ref existence before queuing/persisting. Markdown
 import/extraction is a separate explicit flow: "turn this PDF into a note"
-resolves the upload, extracts text with deterministic, size/page-bounded PDF
-extraction in `@brains/document` (`pdfjs-dist`), then creates a markdown entity
-such as `base`/note using `system_create({ entityType: "base", upload, transform:
-"extract-markdown" })`. `system_create` enforces that `extract-markdown` is
-only valid with `entityType: "base"` and an upload ref; raw PDF/image promotion
-to `document` or `image` must omit `transform`. Any future LLM pass should be
-limited to cleanup or summarization after deterministic extraction. Derived
+selects the upload and calls `system_create({ entityType: "base", upload,
+transform: "extract-markdown" })`. The note plugin validates the upload record
+cheaply, returns the predicted note id plus `jobId`/`status: "generating"`, and
+performs deterministic, size/page-bounded PDF extraction in `@brains/document`
+(`pdfjs-dist`) inside the queued import job before creating the markdown entity.
+`system_create` enforces that `extract-markdown` is only valid with
+`entityType: "base"` and an upload ref; raw PDF/image promotion to `document` or
+`image` must omit `transform`. Any future LLM pass should be limited to cleanup
+or summarization after deterministic extraction. Derived
 entities (such as decks generated from a PDF) should be created from an explicit
 user instruction that consumes the upload as context. Bare upload handoff must
 not create, update, or delete entities.
@@ -265,9 +267,10 @@ layer instead of `interfaces/web-chat`. Web chat resolves only current-turn HTTP
 and AI SDK upload parts. `AgentService` collects prior upload refs from stored
 conversation metadata, performs transport-neutral filename/position selection,
 asks a clarification when multiple uploads are ambiguous, resolves selected
-runtime uploads back into native model attachments when available, and carries
-the original request through selector-only clarification answers such as "the
-latest one".
+runtime uploads back into native model attachments when the follow-up needs file
+content, keeps save/import/promote tool actions ref-only, and carries the
+original request through selector-only clarification answers such as "the latest
+one".
 
 Regression paths preserved by the shared layer:
 
@@ -283,17 +286,15 @@ Regression paths preserved by the shared layer:
 
 Remaining upload work:
 
-- continue hardening the explicit markdown import/extraction contract for
-  text/PDF uploads. The first slices support
+- continue hardening optional cleanup/summarization after deterministic
+  extraction, without weakening the explicit
   `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
-transform: "extract-markdown" })`, deterministic size/page-bounded PDF
-  extraction in `@brains/document`, and core validation that rejects
-  `extract-markdown` without a `base` upload import; future work can add
-  job-backed extraction for large PDFs and optional cleanup/summarization after
-  deterministic extraction;
+transform: "extract-markdown" })` contract;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
-  user asks to promote them.
+  user asks to promote them. Note imports, image promotions, and stock-photo
+  selections are now job-backed and return `jobId`/`status: "generating"` rather
+  than blocking the chat turn.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 

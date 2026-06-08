@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 
 describe("TestRunner", () => {
   let mockAgentService: IAgentService;
@@ -134,6 +135,78 @@ describe("TestRunner", () => {
           },
         ],
       });
+    });
+
+    it("should seed source-backed eval attachments into runtime upload storage", async () => {
+      const savedUploads: unknown[] = [];
+      const scopedCalls: unknown[] = [];
+      const runtimeUploads: IRuntimeUploadsNamespace = {
+        scoped: (options) => {
+          scopedCalls.push(options);
+          return {
+            save: async (input: unknown) => {
+              savedUploads.push(input);
+              return {
+                id: options.createId?.() ?? "upload-fallback",
+                ref: {
+                  kind: options.refKind,
+                  id: options.createId?.() ?? "upload-fallback",
+                },
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                sizeBytes: 7,
+                createdAt: new Date().toISOString(),
+              };
+            },
+          } as ReturnType<IRuntimeUploadsNamespace["scoped"]>;
+        },
+      };
+      testRunner = TestRunner.createFresh(
+        mockAgentService,
+        undefined,
+        runtimeUploads,
+      );
+      const testCase: TestCase = {
+        id: "test-runtime-upload-seed",
+        name: "Runtime Upload Seed Test",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "",
+            attachments: [
+              {
+                kind: "text",
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                content: "# Notes",
+                source: {
+                  kind: "web-chat-upload",
+                  id: "upload-00000000-0000-4000-8000-000000000999",
+                },
+              },
+            ],
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      expect(scopedCalls).toEqual([
+        {
+          namespace: "web-chat",
+          refKind: "web-chat-upload",
+          routePath: "",
+          createId: expect.any(Function),
+        },
+      ]);
+      expect(savedUploads).toEqual([
+        {
+          filename: "notes.md",
+          mediaType: "text/markdown",
+          content: Buffer.from("# Notes", "utf8"),
+        },
+      ]);
     });
 
     it("should reuse previous attachments when a turn asks for them", async () => {

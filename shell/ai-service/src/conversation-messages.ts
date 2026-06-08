@@ -116,6 +116,12 @@ export type ConversationUploadContinuityResolution =
 
 const uploadClarificationPrefix = "Which uploaded file should I use?";
 
+function isUploadToolActionIntent(message: string): boolean {
+  return /\b(save|promote|extract(?:ion)?|import|turn\s+(?:it|that|this)?\s*into|make\s+(?:it|that|this)?\s*(?:a|an)?\s*(?:note|document|image|pdf|markdown))\b/i.test(
+    message,
+  );
+}
+
 export function resolveConversationUploadRefs(
   message: string,
   uploadRefs: ConversationUploadRef[],
@@ -162,10 +168,12 @@ export async function resolveConversationUploadContinuity(params: {
   const attachments =
     params.currentAttachments.length > 0
       ? params.currentAttachments
-      : await resolveUploadRefAttachments(
-          resolution.refs,
-          params.uploadAttachmentResolver,
-        );
+      : isUploadToolActionIntent(message)
+        ? []
+        : await resolveUploadRefAttachments(
+            resolution.refs,
+            params.uploadAttachmentResolver,
+          );
 
   return {
     kind: "selected",
@@ -320,7 +328,7 @@ function formatUploadRefs(
     ];
   });
   return lines.length > 0
-    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
+    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
     : "";
 }
 

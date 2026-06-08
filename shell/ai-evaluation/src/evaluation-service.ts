@@ -1,4 +1,5 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 
 import type {
   IEvaluationService,
@@ -47,6 +48,7 @@ export interface EvaluationServiceConfig {
   testCasesDirectory: string | string[];
   reporters?: IReporter[];
   evalHandlerRegistry: EvalHandlerRegistry;
+  runtimeUploads?: IRuntimeUploadsNamespace;
 }
 
 /**
@@ -58,6 +60,7 @@ export class EvaluationService implements IEvaluationService {
   private readonly loader: ITestCaseLoader;
   private readonly reporters: IReporter[];
   private readonly evalHandlerRegistry: EvalHandlerRegistry;
+  private readonly runtimeUploads: IRuntimeUploadsNamespace | undefined;
 
   constructor(config: EvaluationServiceConfig) {
     this.agentService = config.agentService;
@@ -68,6 +71,7 @@ export class EvaluationService implements IEvaluationService {
     });
     this.reporters = config.reporters ?? [];
     this.evalHandlerRegistry = config.evalHandlerRegistry;
+    this.runtimeUploads = config.runtimeUploads;
   }
 
   /**
@@ -167,6 +171,7 @@ export class EvaluationService implements IEvaluationService {
     const testRunner = TestRunner.createFresh(
       this.agentService,
       this.createLLMJudge(options),
+      this.runtimeUploads,
     );
     const runnerOptions = this.getRunnerOptions(options);
 

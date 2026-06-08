@@ -119,6 +119,9 @@ async function runSingleModelIteration(
   const summary = await options.runEvaluationsCollect({
     agentService,
     aiService: judgeAiService,
+    ...(!options.remoteUrl
+      ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
+      : {}),
     testCasesDir: options.testCasesDirs,
     skipLLMJudge: options.skipLLMJudge,
     verbose: options.verbose,

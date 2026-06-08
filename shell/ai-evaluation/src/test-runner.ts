@@ -3,6 +3,7 @@ import type {
   ChatContext,
   AgentResponse,
 } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
@@ -23,16 +24,36 @@ import {
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
+const uploadRefKindSuffix = "-upload";
+
+function getRuntimeUploadNamespace(refKind: string): string | null {
+  if (!refKind.endsWith(uploadRefKindSuffix)) return null;
+  const namespace = refKind.slice(0, -uploadRefKindSuffix.length);
+  return namespace.length > 0 ? namespace : null;
+}
+
+function toAttachmentContent(attachment: EvalAttachment): Buffer {
+  return attachment.kind === "text"
+    ? Buffer.from(attachment.content, "utf8")
+    : Buffer.from(attachment.dataBase64, "base64");
+}
+
 /**
  * Runs individual test cases against an agent service
  */
 export class TestRunner implements ITestRunner {
   private readonly agentService: IAgentService;
   private readonly llmJudge: ILLMJudge | null;
+  private readonly runtimeUploads: IRuntimeUploadsNamespace | null;
 
-  constructor(agentService: IAgentService, llmJudge?: ILLMJudge) {
+  constructor(
+    agentService: IAgentService,
+    llmJudge?: ILLMJudge,
+    runtimeUploads?: IRuntimeUploadsNamespace,
+  ) {
     this.agentService = agentService;
     this.llmJudge = llmJudge ?? null;
+    this.runtimeUploads = runtimeUploads ?? null;
   }
 
   /**
@@ -55,7 +76,10 @@ export class TestRunner implements ITestRunner {
       const turn = testCase.turns[i];
       if (!turn) continue;
       const attachments = this.buildTurnAttachments(turn, previousAttachments);
-      if (turn.attachments !== undefined) previousAttachments = attachments;
+      if (turn.attachments !== undefined) {
+        await this.seedRuntimeUploads(turn.attachments);
+        previousAttachments = attachments;
+      }
 
       collector.startTurn();
       let response: AgentResponse;
@@ -236,6 +260,32 @@ export class TestRunner implements ITestRunner {
     };
   }
 
+  private async seedRuntimeUploads(
+    attachments: EvalAttachment[],
+  ): Promise<void> {
+    if (!this.runtimeUploads) return;
+
+    for (const attachment of attachments) {
+      const source = attachment.source;
+      if (!source) continue;
+      const namespace = getRuntimeUploadNamespace(source.kind);
+      if (!namespace) continue;
+
+      await this.runtimeUploads
+        .scoped({
+          namespace,
+          refKind: source.kind,
+          routePath: "",
+          createId: () => source.id,
+        })
+        .save({
+          filename: attachment.filename,
+          mediaType: attachment.mediaType,
+          content: toAttachmentContent(attachment),
+        });
+    }
+  }
+
   private withTurnAttachments(
     context: ChatContext,
     attachments: ChatAttachment[],
@@ -249,7 +299,8 @@ export class TestRunner implements ITestRunner {
   static createFresh(
     agentService: IAgentService,
     llmJudge?: ILLMJudge,
+    runtimeUploads?: IRuntimeUploadsNamespace,
   ): TestRunner {
-    return new TestRunner(agentService, llmJudge);
+    return new TestRunner(agentService, llmJudge, runtimeUploads);
   }
 }
