@@ -43,9 +43,11 @@ compiled-check` sources. These belonged to the previous design and are supersede
   “anchor profile”; if deterministic evaluation is ever needed, add the deferred
   compile/query layer generically behind `GoalCheck`.
 
-The next implementation slice should be phase 2 below: introduce `GoalCheck`, wire a
-stubbed check into gated `NEXT`, and delete the obsolete verifier/override machinery in
-that same slice so the code stops carrying two gate models.
+Phase 3 has landed: the code now carries one gate model, a generic `Judge` capability in
+`@brains/ai-service`, a narrow `context.judge` plugin capability, eval judges that reuse it,
+and a production `GoalCheck` backed by `context.judge` (see
+[Where the real check comes from](#where-the-real-check-comes-from)). What remains is focused
+GoalCheck eval coverage and the Rover onboarding product eval.
 
 ## What this is
 
@@ -81,15 +83,21 @@ The check sits behind a small interface:
 ```ts
 interface GoalCheck {
   evaluate(input: {
-    goal: string[];
-    kb: KbView;
-    evidence: Evidence[];
+    run: PlaybookRun; // run scope/context, runtime-derived
+    state: PlaybookState; // the gated state (title/instructions frame the judgment)
+    goal: string[]; // the state's Done When, prose
+    evidence: Evidence[]; // the run's collected evidence
   }): Promise<{
     met: boolean;
     reason: string;
   }>;
 }
 ```
+
+The KB is deliberately **not** a parameter: the production check reads it through the
+`entityService` it holds (built from `context`), so the interface carries only
+runtime-derived values the gate logic has at the call site. That is also what keeps the
+stub trivial — it ignores its input and returns a fixed verdict, with no `KbView` to fake.
 
 Two implementations, and the split is the whole testing strategy:
 
@@ -105,6 +113,47 @@ stub-tested for enforcement, eval-tested for judgment. No typed-claim apparatus,
 DSL, no query language — the goal is a sentence. If the check errors or is unavailable,
 `NEXT` blocks and `playbook_status` reports it; a `SKIP` (where the state declares one)
 is the escape.
+
+### Where the real check comes from
+
+The real check is an instance of a pattern the codebase already has but had buried:
+**model-as-judge** — _(an instruction describing the judgment) + (material) + (a verdict
+schema) → a validated verdict_, built on `generateObject`. The eval `LLMJudge`
+(`@brains/ai-evaluation`) is one instance (verdict = quality scores); a `GoalCheck` is the
+same shape (verdict = `{ met, reason }`).
+
+So the missing abstraction is a first-class **`Judge`**, and the load-bearing move is to
+distinguish it from generation:
+
+- **Generation** (`generateText` / `generateObject`) authors open-ended content. It stays
+  out of service plugins — that is model-_authored_ output, the "don't trust model-authored
+  content as truth" hazard.
+- **Judgment** answers a _bounded_ question against _supplied_ material and returns a
+  _caller-fixed, schema-constrained_ verdict. The model only fills in the schema; the
+  runtime (an XState guard) reads one boolean out. This is the safe half.
+
+"Service plugins are AI-free" really meant "no open generation, no model-authored truth." A
+`Judge` does not violate that, so the boundary is **refined, not broken**: service plugins
+still get no generation, but they do get a judge.
+
+Concretely:
+
+- `Judge` lives in `@brains/ai-service` — `judge({ instruction, material, schema }) →
+verdict`, generic over the verdict type, built on `generateObject`. Generic; it knows
+  nothing about playbooks.
+- It is surfaced to plugins as a **narrow `judge` capability on the plugin context** — not
+  `generateObject`. This is the uniform mechanism every other capability already uses
+  (`entityService`, `messaging`, …), so there is no special injection at all.
+- The eval `LLMJudge` is refactored to consume it — the proof the abstraction is real, not
+  a speculative wrapper.
+
+The plugin then backs its `GoalCheck` with `context.judge` at `onRegister` (when the shell
+and AI service already exist): format goal + KB + run-evidence as the judge's material,
+judge against the `{ met, reason }` schema. `GoalCheck` stays as the plugin's internal port
+**only** so unit tests can stub it via `deps.goalCheck`; production no longer needs the
+blocking default. There is no composition-root adapter, no pre-shell factory wiring, and no
+lazy global — that whole class of plumbing, the trap the first attempts kept falling into,
+disappears once judgment is a context capability rather than something smuggled in.
 
 ## Playbook entity (`@brains/playbook`)
 
@@ -346,10 +395,14 @@ version pin, run inference, agent-context) is reused.
    `doneWhen` to `string[]`. _Unit:_ with a stub — met→advances, not-met→blocks,
    check-error→blocks; ungated still advances. No model. (Removes the bulk of the ~53
    judge/claims references in `plugin.ts`.)
-3. **Real goal check (eval).** Implement the model-backed `GoalCheck`: goal + KB +
-   evidence → `{ met, reason }`. _Eval:_ on a KB that satisfies a goal it returns met; on
-   one that doesn't, not-met — asserted structurally (shape; doesn't claim met when the
-   outcome is absent), not by pinning a score.
+3. **Real goal check (eval).** Introduce a generic `Judge` in `@brains/ai-service`
+   (`judge({ instruction, material, schema }) → verdict` over `generateObject`), surface it
+   as a narrow `judge` capability on the plugin context, and refactor the eval `LLMJudge` to
+   consume it. Back the plugin's `GoalCheck` with `context.judge` (goal + KB + evidence →
+   `{ met, reason }`), replacing the blocking default. _Eval:_ on a KB that satisfies a goal
+   it returns met; on one that doesn't, not-met — asserted structurally (shape; doesn't
+   claim met when the outcome is absent), not by pinning a score. The eval-judge refactor
+   keeps its existing tests green.
 4. **Evidence into the check (unit).** Feed the run's collected entity-event evidence to
    the check alongside the KB, so a goal can reference what happened during the run.
    _Unit:_ the check receives the right evidence rows for the state.
@@ -369,8 +422,9 @@ Load-bearing; revisit only with a documented reason.
    it any valid way and the author writes a sentence, not a DSL. A scoped, model-backed
    `GoalCheck` evaluates it on `NEXT`. The judge is bounded to gate checks: `NEXT`-only,
    behind the interface, stub-tested for enforcement, eval-tested for judgment.
-3. **The goal check is behind an interface** — `GoalCheck.evaluate(goal, kb, evidence)`
-   returns `{ met, reason }`; the XState guard consumes that and nothing else, so the
+3. **The goal check is behind an interface** — `GoalCheck.evaluate({ run, state, goal,
+evidence })` returns `{ met, reason }` (the check reads the KB itself via `entityService`,
+   so it is not a parameter); the XState guard consumes that and nothing else, so the
    implementation can later be cached or compiled (see
    [Gate evaluation evolution](#gate-evaluation-evolution-deferred)) without touching
    callers.
@@ -386,3 +440,15 @@ Load-bearing; revisit only with a documented reason.
    storage primitive is shell, the domain logic stays in the plugin.
 7. **One active run per conversation; one lifecycle starter** — run inference depends
    on it; concurrent runs per conversation are out of scope.
+8. **Judgment is a first-class capability, distinct from generation** — a generic `Judge`
+   (`@brains/ai-service`, shared with the eval `LLMJudge`) is surfaced as a narrow `judge`
+   capability on the plugin context; the plugin backs `GoalCheck` with `context.judge`. This
+   refines the "service plugins are AI-free" rule to "no open generation, judgment allowed":
+   generation authors untrusted content and stays out, while a bounded, schema-constrained
+   verdict consumed by an XState guard is safe to expose. `GoalCheck` remains an internal
+   port only for stub-testing. Chosen over a model call inside the plugin (smuggles
+   generation into an AI-free boundary), a composition-root adapter injected via
+   `deps.goalCheck` (needs a pre-shell injection seam that does not exist — plumbing for its
+   own sake), or housing it in `shell/ai-service` (inverts the dependency and leaks a
+   plugin's domain into a generic service). See
+   [Where the real check comes from](#where-the-real-check-comes-from).
