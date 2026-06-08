@@ -30,6 +30,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
 - [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
+- [Search index readiness for playbook gates](./search-index-readiness.md) — proposed; fix KB search semantics and embedding readiness before GoalCheck/onboarding evals
 
 ### Content, sync, and generation
 
