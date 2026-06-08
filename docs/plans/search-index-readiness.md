@@ -47,11 +47,23 @@ the content hash has drifted — and emits `entity:embedding:ready` on success
 What is missing is the **bulk/seed** case. Add a generic entity-service backfill that runs
 during shell initialization, **after entity types are registered** (so `embeddable` config
 is known): scan embeddable entities and enqueue the same `shell:embedding` job for each where
-no embedding row exists **or** `embedding.content_hash != entity.contentHash`. Backfill must
-use stable per-entity/content dedupe keys such as
-`embedding:${entityType}:${entityId}:${contentHash}` and must not enqueue duplicates for
-already pending/processing equivalent work. No eval-specific and no playbook-specific logic —
-this is an entity-service operation.
+no embedding row exists **or** `embedding.content_hash != entity.contentHash`. No
+eval-specific and no playbook-specific logic — this is an entity-service operation.
+
+Dedup is the load-bearing detail, and it belongs at the **shared** enqueue seam, not on
+backfill alone. The write path currently does **not** dedupe — `enqueueEmbeddingJob` mints a
+fresh `rootJobId` and enqueues unconditionally (`entity-mutations.ts:510-525`); redundant jobs
+are safe today only because the handler skips drifted hashes and `storeEmbedding` upserts, so
+they waste API calls rather than corrupt the index. Backfill would amplify that into a storm.
+The queue already supports keyed dedup (`JobDeduplicator`, `deduplicationStrategy` /
+`deduplicationKey`); the embedding path just never opted in. Add the dedup key at
+`enqueueEmbeddingJob` — keyed per entity + content (e.g.
+`embedding:${entityType}:${entityId}:${contentHash}`) — so the write path **and** backfill both
+collapse duplicate / in-flight work. Use `deduplication: "coalesce"`, because the current queue
+semantics dedupe pending **and processing** jobs for `coalesce`, while `skip` only dedupes
+pending jobs. Do not rely on `getStatusByEntityId` as the correctness primitive: it filters only
+by `data.id`, not `entityType` or `contentHash`, and can collide across entity types or stale
+content. The explicit `deduplicationKey` is the contract.
 
 Result: a KB loaded from seed content (the eval DB, or a fresh import) converges to fully
 embedded on its own.
@@ -73,6 +85,29 @@ a missing/stale scan — **bounded**, returning diagnostics (active job types/co
 missing/stale counts, and recent failures if available) on timeout, never waiting forever.
 Entity-service owns the question "is my semantic index ready"; the job-queue is the mechanism.
 (`entity:embedding:ready` is available if a reactive variant is ever preferred over polling.)
+
+**Failed-terminal handling.** An embedding job that has exhausted its retries is _terminal_,
+not pending — it must not count toward the missing/stale total, or one poison entity (content
+that always fails to embed) would keep the index "not ready" forever and, via the turn gate,
+hold **all** chat indefinitely. So readiness has a degraded-success state: no active jobs and no
+missing/stale embeddable entities _except those whose embedding job has terminally failed_ means
+`ready: true, degraded: true`, with `failedEmbeddings` diagnostics. Chat can proceed, but ops and
+eval diagnostics can see that retrieval is incomplete for specific poisoned entities. A terminal
+failure must never be silently folded into "still warming" or hidden as normal readiness.
+
+**Latched per-turn check.** `isIndexReady()` sits on the hot path — every turn at the central
+boundary calls it — so it must be O(1), not a full missing/stale scan. Model readiness as a
+**sticky latch** meaning "the initial index build completed": the expensive scan lives in
+`awaitIndexReady` (startup, eval boot, builder), which sets the latch once achieved, and
+`isIndexReady()` just reads it. Because boot itself does not block, production still needs a
+background readiness task: after initialization registers entity types and backfill has had a
+chance to enqueue work, run `awaitIndexReady()` in the background and set the latch (or degraded
+latch) when complete. Without that setter path, the central turn gate could hold chat forever.
+The latch is one-way for the normal lifecycle — a later background write being embedded in
+steady state does **not** flip chat back to not-ready (that is the async-write design; the new
+fact reaches gates via evidence and search via eventual consistency). Only an operation that
+genuinely invalidates the index (bulk re-import / reindex) resets the latch and re-runs
+`awaitIndexReady`.
 
 ### 3. Readiness at the point of use
 
@@ -121,22 +156,30 @@ instead — it is a readiness signal, not a change to what search returns.
   Limitation to note, not solve here: `content_hash` tracks content drift, not embedding-model
   drift — a model change requires rebuilding the pair and is out of scope.
 - **Production**: boot does **not** block. Backfill at boot keeps steady-state KBs fully
-  embedded (it finds nothing to do once converged); the **turn gate** holds chat with a
-  warming response during the brief cold-index window. Readiness gating here is **required and
-  graceful**, not optional — without it, first-boot onboarding gates and general retrieval
-  chat would answer from a cold index.
+  embedded (it finds nothing to do once converged); a background readiness task runs after
+  init/backfill, sets the ready or ready-degraded latch, and exposes diagnostics for terminal
+  failures. The **turn gate** holds chat with a warming response during the brief cold-index
+  window. Readiness gating here is **required and graceful**, not optional — without it,
+  first-boot onboarding gates and general retrieval chat would answer from a cold index.
 
 ## Phases (thin vertical, tests folded in)
 
 1. **Readiness primitive.** `entityService.awaitIndexReady` / `isIndexReady` over
-   `getActiveJobs(["shell:embedding"])` plus a missing/stale embeddable scan. _Unit:_ ready
-   when no active jobs and no missing/stale embeddings; not-ready while a job is pending;
-   not-ready when no jobs are active but missing/stale rows remain; bounded timeout returns
-   diagnostics.
+   `getActiveJobs(["shell:embedding"])` plus a missing/stale embeddable scan; terminal
+   (retry-exhausted) failures are excluded from the missing count and surfaced as
+   `ready: true, degraded: true` diagnostics; `isIndexReady()` is backed by a sticky latch set
+   by `awaitIndexReady()` / the production background readiness task. _Unit:_ ready when no
+   active jobs and no missing/stale; not-ready while a job is pending; not-ready when no jobs
+   are active but missing/stale rows remain; **ready-degraded despite a terminally-failed
+   entity** (counted as degraded, not pending); `isIndexReady()` stays ready after a
+   steady-state write enqueues a new job; bounded timeout returns diagnostics.
 2. **Boot backfill.** Enqueue `shell:embedding` jobs for missing/stale embeddable entities
-   after type registration; respect `embeddable: false`; dedupe by stable per-entity/content
-   keys. _Unit:_ missing → queued; stale (hash mismatch) → queued; current → skipped;
-   non-embeddable → skipped; pending/processing equivalent work is not duplicated.
+   after type registration; respect `embeddable: false`. Add `deduplication: "coalesce"` and a
+   stable per-entity/content `deduplicationKey` at the shared `enqueueEmbeddingJob` seam so the
+   write path and backfill both collapse pending/processing duplicates — backfill does not get
+   its own dedup path and does not use `getStatusByEntityId` for correctness. _Unit:_ missing →
+   queued; stale (hash mismatch) → queued; current → skipped; non-embeddable → skipped; a
+   second enqueue for in-flight equivalent work is collapsed, not duplicated.
 3. **Point-of-use gating.** Turn gate at the central chat boundary:
    `if (!isIndexReady())` return the warming response. Three-state gate outcome in playbooks:
    not-ready → hold, not-met → block, met → advance. _Unit:_ turn held while warming and runs
