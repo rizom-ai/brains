@@ -117,6 +117,8 @@ const playbookToolDataSchema = z
     runs: z.array(runSummarySchema).default([]),
     activeRun: runSummarySchema,
     validEvents: z.array(transitionSchema).default([]),
+    blockedEvents: z.array(transitionSchema).default([]),
+    guidance: z.string().optional(),
   })
   .passthrough();
 
@@ -345,6 +347,65 @@ describe("PlaybooksPlugin", () => {
     const completedData = parsePlaybookToolData(finalTransition.data);
     expect(completedData.activeRun.status).toBe("completed");
     expect(completedData.activeRun.currentState).toBe("complete");
+  });
+
+  it("reports blocked gated NEXT with concise status guidance", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        goalCheck(async () => ({
+          met: false,
+          reason: "No matching evidence.",
+        })),
+      ),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          doneWhen: ["The anchor profile has been created or updated."],
+          transitions: [
+            { event: "NEXT", target: "seed" },
+            { event: "SKIP", target: "seed" },
+          ],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const runId = await startRun(harness, "web-status-guidance");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+    expectError(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    const data = parsePlaybookToolData(status.data);
+    expect(data.validEvents.map((event) => event.event)).toEqual(["SKIP"]);
+    expect(data.blockedEvents.map((event) => event.event)).toEqual(["NEXT"]);
+    expect(data.guidance).toContain("Current state: identity");
+    expect(data.guidance).toContain("No matching evidence.");
   });
 
   it("blocks gated NEXT when the goal check returns not met", async () => {

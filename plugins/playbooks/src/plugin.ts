@@ -119,6 +119,8 @@ export interface PlaybookStatusResponse {
   body?: PlaybookBody | undefined;
   currentState?: PlaybookState | undefined;
   validEvents?: PlaybookTransition[] | undefined;
+  blockedEvents?: PlaybookTransition[] | undefined;
+  guidance?: string | undefined;
   lifecycle: Record<string, LifecyclePlaybookConfig>;
 }
 
@@ -294,7 +296,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             playbook.body,
             parsed.event,
           );
-          if (!result.success) return result;
+          if (!result.success) {
+            if (result.gateVerdicts) {
+              await this.store.upsert({
+                ...run.data,
+                gateVerdicts: result.gateVerdicts,
+              });
+            }
+            return { success: false, error: result.error };
+          }
 
           const reachedFinalState = playbook.body.finalStates.includes(
             result.currentState,
@@ -356,7 +366,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         snapshot: unknown;
         gateVerdicts: PlaybookGateVerdict[];
       }
-    | { success: false; error: string }
+    | { success: false; error: string; gateVerdicts?: PlaybookGateVerdict[] }
   > {
     const state = this.getState(body, run.currentState);
     if (!state) {
@@ -385,6 +395,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       return {
         success: false,
         error: `Invalid playbook event '${event}' from state '${run.currentState}'.`,
+        gateVerdicts: gateResult.gateVerdicts,
       };
     }
 
@@ -399,6 +410,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       return {
         success: false,
         error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
+        gateVerdicts: gateResult.gateVerdicts,
       };
     }
     const persistedSnapshot = actor.getPersistedSnapshot();
@@ -594,6 +606,18 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       currentState && activeRun && parsedPlaybook
         ? this.getValidTransitions(activeRun, parsedPlaybook.body, currentState)
         : (currentState?.transitions ?? []);
+    const blockedEvents =
+      currentState && activeRun && parsedPlaybook
+        ? this.getBlockedTransitions(
+            activeRun,
+            parsedPlaybook.body,
+            currentState,
+          )
+        : [];
+    const guidance =
+      currentState && activeRun && parsedPlaybook
+        ? this.buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
+        : undefined;
 
     return {
       runs: input.conversationId ? conversationRuns : runs,
@@ -602,8 +626,49 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
       ...(currentState ? { currentState } : {}),
       ...(validEvents.length > 0 ? { validEvents } : {}),
+      ...(blockedEvents.length > 0 ? { blockedEvents } : {}),
+      ...(guidance ? { guidance } : {}),
       lifecycle: this.config.lifecycle,
     };
+  }
+
+  private buildStateGuidance(
+    run: PlaybookRun,
+    body: PlaybookBody,
+    state: PlaybookState,
+  ): string {
+    const validTransitions = this.getValidTransitions(run, body, state);
+    const blockedTransitions = this.getBlockedTransitions(run, body, state);
+    const verdict = run.gateVerdicts.find(
+      (candidate) =>
+        candidate.stateId === state.id &&
+        sameGoal(candidate.goal, state.doneWhen),
+    );
+    return [
+      `Current state: ${state.id} (${state.title})`,
+      "Instructions:",
+      ...state.instructions.map((instruction) => `- ${instruction}`),
+      "Done When:",
+      ...(state.doneWhen.length > 0
+        ? state.doneWhen.map((condition) => `- ${condition}`)
+        : ["- none"]),
+      "Goal status:",
+      verdict
+        ? `- ${verdict.met ? "Met" : "Not yet met"}: ${verdict.reason}`
+        : "- Not checked yet.",
+      "Valid events:",
+      ...(validTransitions.length > 0
+        ? validTransitions.map((transition) =>
+            this.formatTransition(transition),
+          )
+        : ["- none"]),
+      "Blocked events:",
+      ...(blockedTransitions.length > 0
+        ? blockedTransitions.map((transition) =>
+            this.formatTransition(transition),
+          )
+        : ["- none"]),
+    ].join("\n");
   }
 
   private async recordEntityEventEvidence(
@@ -742,6 +807,22 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ): PlaybookTransition[] {
     return state.transitions.filter((transition) =>
       this.canTransition(run, body, transition.event),
+    );
+  }
+
+  private getBlockedTransitions(
+    run: PlaybookRun,
+    body: PlaybookBody,
+    state: PlaybookState,
+  ): PlaybookTransition[] {
+    const validKeys = new Set(
+      this.getValidTransitions(run, body, state).map(
+        (transition) => `${transition.event}\u0000${transition.target}`,
+      ),
+    );
+    return state.transitions.filter(
+      (transition) =>
+        !validKeys.has(`${transition.event}\u0000${transition.target}`),
     );
   }
 
