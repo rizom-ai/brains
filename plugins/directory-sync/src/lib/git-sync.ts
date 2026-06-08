@@ -11,7 +11,11 @@ import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
 import { GitOperationLock } from "./git-lock";
-import { getAuthenticatedGitUrl, resolveGitRemoteUrl } from "./git-options";
+import {
+  DEFAULT_GIT_TIMEOUT_MS,
+  getAuthenticatedGitUrl,
+  resolveGitRemoteUrl,
+} from "./git-options";
 import type { GitSyncOptions } from "./git-options";
 import { pullGitChanges } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
@@ -34,6 +38,7 @@ export class GitSync implements IGitSync {
   private readonly authorEmail: string | undefined;
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
+  private readonly timeoutMs: number;
   private readonly lock = new GitOperationLock();
 
   /**
@@ -52,11 +57,16 @@ export class GitSync implements IGitSync {
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
   }
 
   private get git(): SimpleGit {
     this._git ??= simpleGit(this.dataDir);
     return this._git;
+  }
+
+  private get net(): { baseDir: string; timeoutMs: number } {
+    return { baseDir: this.dataDir, timeoutMs: this.timeoutMs };
   }
 
   /**
@@ -94,11 +104,11 @@ export class GitSync implements IGitSync {
   }
 
   async push(): Promise<void> {
-    await pushGitChanges(this.git, this.logger, this.branch);
+    await pushGitChanges(this.logger, this.branch, this.net);
   }
 
   async pull(): Promise<PullResult> {
-    return pullGitChanges(this.git, this.logger, this.branch);
+    return pullGitChanges(this.git, this.logger, this.branch, this.net);
   }
 
   async log(filePath: string, limit?: number): Promise<GitLogEntry[]> {

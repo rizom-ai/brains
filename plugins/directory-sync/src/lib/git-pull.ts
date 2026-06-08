@@ -3,6 +3,8 @@ import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
+import { GitStallError, runGitWithStallTimeout } from "./git-stall";
+import type { GitNetwork } from "./git-stall";
 
 /**
  * Pull changes from remote. Returns the list of changed file paths.
@@ -12,6 +14,7 @@ export async function pullGitChanges(
   git: SimpleGit,
   logger: Logger,
   branch: string,
+  net: GitNetwork,
 ): Promise<PullResult> {
   logger.debug("Pulling from origin", { branch });
 
@@ -28,16 +31,20 @@ export async function pullGitChanges(
   const headBefore = await git.revparse(["HEAD"]);
 
   try {
-    await git.pull("origin", branch, {
-      "--no-rebase": null,
-      "--allow-unrelated-histories": null,
-      "--strategy=recursive": null,
-      "-Xtheirs": null,
-    });
+    // The network fetch runs on a throwaway, stall-guarded instance so an
+    // unresponsive remote can't hang the caller and wedge the git lock.
+    await runGitWithStallTimeout(net, (g) =>
+      g.pull("origin", branch, {
+        "--no-rebase": null,
+        "--allow-unrelated-histories": null,
+        "--strategy=recursive": null,
+        "-Xtheirs": null,
+      }),
+    );
 
     return await getChangedFilesSince(git, headBefore);
   } catch (pullError) {
-    return handlePullError(git, logger, branch, pullError);
+    return handlePullError(git, logger, branch, net, pullError);
   }
 }
 
@@ -45,8 +52,13 @@ async function handlePullError(
   git: SimpleGit,
   logger: Logger,
   branch: string,
+  net: GitNetwork,
   pullError: unknown,
 ): Promise<PullResult> {
+  if (pullError instanceof GitStallError) {
+    throw pullError;
+  }
+
   const msg = getErrorMessage(pullError);
 
   if (msg.includes("CONFLICT")) {
@@ -54,7 +66,7 @@ async function handlePullError(
   }
 
   if (msg.includes("couldn't find remote ref")) {
-    return bootstrapRemoteBranch(git, logger, branch);
+    return bootstrapRemoteBranch(git, logger, branch, net);
   }
 
   throw new Error(`Failed to pull: ${msg}`);
@@ -97,6 +109,7 @@ async function bootstrapRemoteBranch(
   git: SimpleGit,
   logger: Logger,
   branch: string,
+  net: GitNetwork,
 ): Promise<PullResult> {
   // Remote is empty (no branches) — bootstrap it by committing any
   // pending local changes and pushing to create the remote branch.
@@ -113,6 +126,6 @@ async function bootstrapRemoteBranch(
       throw commitError;
     }
   }
-  await pushGitChanges(git, logger, branch);
+  await pushGitChanges(logger, branch, net);
   return { files: [] };
 }
