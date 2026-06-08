@@ -1,5 +1,12 @@
 # @brains/theme-default
 
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.113
+
 ## 0.2.0-alpha.112
 
 ### Patch Changes

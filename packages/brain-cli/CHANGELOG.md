@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- [`7f9c3b1`](https://github.com/rizom-ai/brains/commit/7f9c3b191ee9d3979ec1bd922ef20664050bb783) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align PDF carousel inline emphasis with HTML deck styling by rendering italic markdown emphasis in the deck accent color.
+
 ## 0.2.0-alpha.112
 
 ### Patch Changes
