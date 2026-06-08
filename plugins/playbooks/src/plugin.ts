@@ -240,9 +240,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           const conversationId = toolContext.conversationId;
           const playbook = await this.requirePlaybook(parsed.playbookId);
           assertValidPlaybookBody(playbook.body);
-          const existing = await this.store.findActiveByPlaybook(
-            parsed.playbookId,
-          );
+          const existing = conversationId
+            ? (await this.store.listActiveByConversation(conversationId)).find(
+                (run) => run.playbookId === parsed.playbookId,
+              )
+            : await this.store.findActiveByPlaybook(parsed.playbookId);
           const run = existing
             ? await this.store.upsert({
                 ...existing,
@@ -552,17 +554,28 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     conversationId?: string | undefined;
   }): Promise<PlaybookStatusResponse> {
     const runs = await this.store.list();
+    const conversationRuns = input.conversationId
+      ? runs.filter(
+          (run) =>
+            run.conversationId === input.conversationId &&
+            (run.status === "active" || run.status === "offered"),
+        )
+      : [];
     const activeRun = input.runId
       ? runs.find((run) => run.id === input.runId)
-      : input.lifecycle
-        ? runs.find((run) => run.lifecycle === input.lifecycle)
-        : input.playbookId
-          ? runs.find((run) => run.playbookId === input.playbookId)
+      : input.conversationId && input.lifecycle
+        ? conversationRuns.find((run) => run.lifecycle === input.lifecycle)
+        : input.conversationId && input.playbookId
+          ? conversationRuns.find((run) => run.playbookId === input.playbookId)
           : input.conversationId
             ? await this.requireScopedRun({
                 conversationId: input.conversationId,
               })
-            : undefined;
+            : input.lifecycle
+              ? runs.find((run) => run.lifecycle === input.lifecycle)
+              : input.playbookId
+                ? runs.find((run) => run.playbookId === input.playbookId)
+                : undefined;
 
     const playbookId =
       input.playbookId ??
@@ -583,7 +596,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         : (currentState?.transitions ?? []);
 
     return {
-      runs,
+      runs: input.conversationId ? conversationRuns : runs,
       ...(activeRun ? { activeRun } : {}),
       ...(parsedPlaybook ? { playbook: parsedPlaybook.entity } : {}),
       ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),

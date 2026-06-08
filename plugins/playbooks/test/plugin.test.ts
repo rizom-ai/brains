@@ -114,6 +114,7 @@ const runSummarySchema = z
 
 const playbookToolDataSchema = z
   .object({
+    runs: z.array(runSummarySchema).default([]),
     activeRun: runSummarySchema,
     validEvents: z.array(transitionSchema).default([]),
   })
@@ -256,6 +257,43 @@ describe("PlaybooksPlugin", () => {
 
     expectError(stale);
     expect(stale.error).toContain("Playbook definition changed");
+  });
+
+  it("starts and reports runs within the current conversation", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness);
+
+    const first = await harness.executeTool(
+      "playbook_start",
+      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      { conversationId: "conversation-one" },
+    );
+    expectSuccess(first);
+    const firstRun = parsePlaybookToolData(first.data).activeRun;
+    expect(firstRun.conversationId).toBe("conversation-one");
+
+    const second = await harness.executeTool(
+      "playbook_start",
+      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      { conversationId: "conversation-two" },
+    );
+    expectSuccess(second);
+    const secondRun = parsePlaybookToolData(second.data).activeRun;
+    expect(secondRun.conversationId).toBe("conversation-two");
+    expect(secondRun.id).not.toBe(firstRun.id);
+
+    const status = await harness.executeTool(
+      "playbook_status",
+      { lifecycle: "onboarding" },
+      { conversationId: "conversation-two" },
+    );
+    expectSuccess(status);
+    const statusData = parsePlaybookToolData(status.data);
+    expect(statusData.activeRun.id).toBe(secondRun.id);
+    expect(statusData.runs).toHaveLength(1);
   });
 
   it("tracks playbook transitions and completion", async () => {
