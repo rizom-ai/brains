@@ -12,33 +12,19 @@ export const playbookRunStatusSchema = z.enum([
 export const playbookRunEvidenceSchema = z
   .object({
     id: z.string().min(1),
-    kind: z.enum(["entity_event", "override"]),
+    kind: z.enum(["entity_event"]),
     stateId: z.string().min(1).optional(),
     observedAt: z.string().datetime(),
     data: z.record(z.string(), z.unknown()),
   })
   .strict();
 
-export const playbookGateVerdictClaimSchema = z
-  .object({
-    evidenceId: z.string().min(1),
-    kind: z.string().min(1),
-    data: z.record(z.string(), z.unknown()).default({}),
-  })
-  .strict();
-
 export const playbookGateVerdictSchema = z
   .object({
     stateId: z.string().min(1),
-    condition: z.string().min(1),
-    conditionHash: z.string().min(1),
-    evidenceWatermark: z.string(),
-    satisfied: z.boolean(),
-    source: z.enum(["llm-judge", "override", "compiled-check"]),
-    evidenceIds: z.array(z.string().min(1)).default([]),
-    claims: z.array(playbookGateVerdictClaimSchema).default([]),
-    missing: z.array(z.string().min(1)).optional(),
-    reasoning: z.string().min(1).optional(),
+    goal: z.array(z.string().min(1)),
+    met: z.boolean(),
+    reason: z.string().min(1),
     evaluatedAt: z.string().datetime(),
   })
   .strict();
@@ -73,9 +59,6 @@ export type PlaybookRun = z.infer<typeof playbookRunSchema>;
 export type PlaybookRunStatus = z.infer<typeof playbookRunStatusSchema>;
 export type PlaybookRunEvidence = z.infer<typeof playbookRunEvidenceSchema>;
 export type PlaybookGateVerdict = z.infer<typeof playbookGateVerdictSchema>;
-export type PlaybookGateVerdictClaim = z.infer<
-  typeof playbookGateVerdictClaimSchema
->;
 
 export class PlaybookRunStore {
   private readonly filePath: string;
@@ -280,12 +263,7 @@ function mergeGateVerdicts(
 }
 
 function gateVerdictKey(verdict: PlaybookGateVerdict): string {
-  return [
-    verdict.stateId,
-    verdict.conditionHash,
-    verdict.evidenceWatermark,
-    verdict.source,
-  ].join("\u0000");
+  return [verdict.stateId, ...verdict.goal].join("\u0000");
 }
 
 function isMissingFileError(error: unknown): boolean {

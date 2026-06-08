@@ -7,7 +7,6 @@ import {
 import {
   assertValidPlaybookBody,
   playbookAdapter,
-  validatePlaybookBody,
   type PlaybookBody,
   type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
@@ -94,26 +93,6 @@ const sendEventInputSchema = {
   context: z.record(z.string(), z.unknown()).optional(),
 };
 
-const runInputSchema = {
-  runId: z.string().min(1),
-};
-
-const overrideEventInputSchema = {
-  runId: z.string().min(1),
-  event: z.string().min(1),
-  reason: z.string().min(1),
-  confirmed: z.boolean().optional(),
-};
-
-const resetInputSchema = {
-  runId: z.string().min(1).optional(),
-};
-
-const validateInputSchema = {
-  playbookId: z.string().min(1).optional(),
-  content: z.string().min(1).optional(),
-};
-
 export type LifecyclePlaybookConfig = z.infer<typeof lifecycleConfigSchema>;
 export type PlaybooksConfig = z.infer<typeof playbooksConfigSchema>;
 export type PlaybookEntity = z.infer<typeof playbookEntitySchema>;
@@ -147,34 +126,30 @@ export interface LifecycleStartersResponse {
   starters: PlaybookStarter[];
 }
 
-export interface VerifyGateInput {
+export interface GoalCheckInput {
   run: PlaybookRun;
   state: PlaybookState;
-  stateId: string;
-  conditions: string[];
+  goal: string[];
   evidence: PlaybookRunEvidence[];
-  evidenceWatermark: string;
 }
 
-export type PendingPlaybookGateVerdict = Omit<
-  PlaybookGateVerdict,
-  "evaluatedAt"
-> & {
-  evaluatedAt?: string | undefined;
-};
+export interface GoalCheckResult {
+  met: boolean;
+  reason: string;
+}
 
-export interface PlaybookGateVerifier {
-  verify(input: VerifyGateInput): Promise<PendingPlaybookGateVerdict[]>;
+export interface GoalCheck {
+  evaluate(input: GoalCheckInput): Promise<GoalCheckResult>;
 }
 
 export interface PlaybooksPluginDeps {
-  verifier?: PlaybookGateVerifier | undefined;
+  goalCheck?: GoalCheck | undefined;
 }
 
 export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private store: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
-  private readonly verifier: PlaybookGateVerifier;
+  private readonly goalCheck: GoalCheck;
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -182,7 +157,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
     this.store = new PlaybookRunStore(this.config.storageDir);
-    this.verifier = deps.verifier ?? defaultGateVerifier;
+    this.goalCheck = deps.goalCheck ?? defaultGoalCheck;
   }
 
   protected override async onRegister(
@@ -319,6 +294,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           );
           if (!result.success) return result;
 
+          const reachedFinalState = playbook.body.finalStates.includes(
+            result.currentState,
+          );
           const nextRun = await this.store.upsert({
             ...run.data,
             currentState: result.currentState,
@@ -329,182 +307,18 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             snapshot: result.snapshot,
             gateVerdicts: result.gateVerdicts,
             context: { ...run.data.context, ...(parsed.context ?? {}) },
+            ...(reachedFinalState
+              ? {
+                  status: "completed" as const,
+                  completedAt: new Date().toISOString(),
+                }
+              : {}),
           });
           const data = await this.getStatus({ runId: nextRun.id });
           return { success: true, data };
-        },
-      },
-      {
-        name: "playbook_override_event",
-        description:
-          "Confirmation-required escape hatch that records an auditable override verdict before sending a playbook event.",
-        inputSchema: overrideEventInputSchema,
-        visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(overrideEventInputSchema).parse(input);
-          if (!parsed.confirmed) {
-            return {
-              needsConfirmation: true,
-              toolName: "playbook_override_event",
-              summary: `Override playbook event '${parsed.event}'?`,
-              preview: parsed.reason,
-              args: { ...parsed, confirmed: true },
-            };
-          }
-
-          try {
-            const data = await this.overrideEvent(parsed);
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: errorMessage(error) };
-          }
-        },
-      },
-      {
-        name: "playbook_complete",
-        description:
-          "Mark a playbook run complete when it is in a final state.",
-        inputSchema: runInputSchema,
-        visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(runInputSchema).parse(input);
-          const run = await this.requireRun(parsed.runId);
-          const playbook = await this.requirePlaybook(run.playbookId);
-          if (!playbook.body.finalStates.includes(run.currentState)) {
-            return {
-              success: false,
-              error: `Cannot complete playbook from non-final state '${run.currentState}'.`,
-            };
-          }
-          const nextRun = await this.store.upsert({
-            ...run,
-            status: "completed",
-            completedAt: new Date().toISOString(),
-          });
-          const data = await this.getStatus({ runId: nextRun.id });
-          return { success: true, data };
-        },
-      },
-      {
-        name: "playbook_dismiss",
-        description: "Dismiss a playbook run without deleting progress.",
-        inputSchema: runInputSchema,
-        visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(runInputSchema).parse(input);
-          const run = await this.requireRun(parsed.runId);
-          const nextRun = await this.store.upsert({
-            ...run,
-            status: "dismissed",
-          });
-          const data = await this.getStatus({ runId: nextRun.id });
-          return { success: true, data };
-        },
-      },
-      {
-        name: "playbook_reset_run",
-        description:
-          "Reset one playbook run, or all runs when no runId is supplied.",
-        inputSchema: resetInputSchema,
-        visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(resetInputSchema).parse(input);
-          await this.store.reset(parsed.runId);
-          const data = await this.getStatus({});
-          return { success: true, data };
-        },
-      },
-      {
-        name: "playbook_validate",
-        description:
-          "Validate a playbook definition structurally and return author-facing errors.",
-        inputSchema: validateInputSchema,
-        visibility: "anchor",
-        handler: async (input: unknown): Promise<ToolResponse> => {
-          const parsed = z.object(validateInputSchema).parse(input);
-          try {
-            const data = await this.validatePlaybookInput(parsed);
-            return { success: true, data };
-          } catch (error) {
-            return { success: false, error: errorMessage(error) };
-          }
         },
       },
     ];
-  }
-
-  private async overrideEvent(input: {
-    runId: string;
-    event: string;
-    reason: string;
-  }): Promise<PlaybookStatusResponse> {
-    const run = await this.requireRun(input.runId);
-    const playbook = await this.requirePlaybook(run.playbookId);
-    if (run.playbookVersion !== playbook.version) {
-      throw new Error(
-        `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
-      );
-    }
-    const state = this.getState(playbook.body, run.currentState);
-    if (!state)
-      throw new Error(`Playbook state not found: ${run.currentState}`);
-
-    const evidence: PlaybookRunEvidence = {
-      id: createPrefixedId("playbook_evidence"),
-      kind: "override",
-      stateId: state.id,
-      observedAt: new Date().toISOString(),
-      data: {
-        event: input.event,
-        reason: input.reason,
-      },
-    };
-    const evidenceForState = [
-      ...this.evidenceForState(run, state.id),
-      evidence,
-    ];
-    const evidenceWatermark = computeEvidenceWatermark(evidenceForState);
-    const overrideVerdicts: PlaybookGateVerdict[] = state.doneWhen.map(
-      (condition) => ({
-        stateId: state.id,
-        condition,
-        conditionHash: conditionHash(condition),
-        evidenceWatermark,
-        satisfied: true,
-        source: "override",
-        evidenceIds: [evidence.id],
-        claims: [
-          {
-            evidenceId: evidence.id,
-            kind: "override",
-            data: { event: input.event },
-          },
-        ],
-        reasoning: input.reason,
-        evaluatedAt: evidence.observedAt,
-      }),
-    );
-
-    const runWithOverride: PlaybookRun = {
-      ...run,
-      evidence: [...run.evidence, evidence],
-      gateVerdicts: upsertGateVerdicts(run.gateVerdicts, overrideVerdicts),
-    };
-    const result = await this.transitionRun(
-      runWithOverride,
-      playbook.body,
-      input.event,
-    );
-    if (!result.success) throw new Error(result.error);
-
-    const nextRun = await this.store.upsert({
-      ...runWithOverride,
-      currentState: result.currentState,
-      completedStates: appendUnique(run.completedStates, run.currentState),
-      snapshot: result.snapshot,
-      gateVerdicts: result.gateVerdicts,
-    });
-    return this.getStatus({ runId: nextRun.id });
   }
 
   private async createStartedRun(input: {
@@ -574,11 +388,22 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
 
     actor.send(eventObject);
     const nextSnapshot = actor.getSnapshot();
+    const nextState = String(nextSnapshot.value);
+    const expectedTarget = state.transitions.find(
+      (transition) => transition.event === event,
+    )?.target;
+    if (expectedTarget && nextState !== expectedTarget) {
+      actor.stop();
+      return {
+        success: false,
+        error: `Playbook event '${event}' is blocked from state '${run.currentState}'. Complete the state's Done When conditions before sending this event.`,
+      };
+    }
     const persistedSnapshot = actor.getPersistedSnapshot();
     actor.stop();
     return {
       success: true,
-      currentState: String(nextSnapshot.value),
+      currentState: nextState,
       snapshot: persistedSnapshot,
       gateVerdicts: gateResult.gateVerdicts,
     };
@@ -597,104 +422,30 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     }
 
     const evidence = this.evidenceForState(run, state.id);
-    const evidenceWatermark = computeEvidenceWatermark(evidence);
-    const cached = state.doneWhen.map((condition) =>
-      run.gateVerdicts.find(
-        (verdict) =>
-          verdict.stateId === state.id &&
-          verdict.conditionHash === conditionHash(condition) &&
-          verdict.evidenceWatermark === evidenceWatermark &&
-          verdict.satisfied,
-      ),
-    );
-    if (cached.every((verdict) => verdict !== undefined)) {
-      return { success: true, gateVerdicts: run.gateVerdicts };
-    }
-
-    let pendingVerdicts: PendingPlaybookGateVerdict[];
+    let result: GoalCheckResult;
     try {
-      pendingVerdicts = await this.verifier.verify({
+      result = await this.goalCheck.evaluate({
         run,
         state,
-        stateId: state.id,
-        conditions: state.doneWhen,
+        goal: state.doneWhen,
         evidence,
-        evidenceWatermark,
       });
     } catch (error) {
       return {
         success: false,
-        error: `Playbook verifier failed: ${errorMessage(error)}`,
+        error: `Playbook goal check failed: ${errorMessage(error)}`,
       };
     }
 
-    const evaluatedAt = new Date().toISOString();
-    const validated = state.doneWhen.map((condition) =>
-      this.validateGateVerdict(
-        pendingVerdicts.find((verdict) => verdict.condition === condition),
-        {
-          condition,
-          stateId: state.id,
-          evidence,
-          evidenceWatermark,
-          evaluatedAt,
-        },
-      ),
-    );
-    const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, validated);
-    return { success: true, gateVerdicts: nextVerdicts };
-  }
-
-  private validateGateVerdict(
-    verdict: PendingPlaybookGateVerdict | undefined,
-    input: {
-      condition: string;
-      stateId: string;
-      evidence: PlaybookRunEvidence[];
-      evidenceWatermark: string;
-      evaluatedAt: string;
-    },
-  ): PlaybookGateVerdict {
-    const base: PlaybookGateVerdict = {
-      stateId: input.stateId,
-      condition: input.condition,
-      conditionHash: conditionHash(input.condition),
-      evidenceWatermark: input.evidenceWatermark,
-      satisfied: verdict?.satisfied ?? false,
-      source: verdict?.source ?? "llm-judge",
-      evidenceIds: verdict?.evidenceIds ?? [],
-      claims: verdict?.claims ?? [],
-      ...(verdict?.missing ? { missing: verdict.missing } : {}),
-      ...(verdict?.reasoning ? { reasoning: verdict.reasoning } : {}),
-      evaluatedAt: verdict?.evaluatedAt ?? input.evaluatedAt,
+    const gateVerdict: PlaybookGateVerdict = {
+      stateId: state.id,
+      goal: state.doneWhen,
+      met: result.met,
+      reason: result.reason,
+      evaluatedAt: new Date().toISOString(),
     };
-
-    if (!base.satisfied) return base;
-    const evidenceById = new Map(input.evidence.map((row) => [row.id, row]));
-    if (base.evidenceIds.length === 0) {
-      return markVerdictUnsatisfied(
-        base,
-        "Satisfied verdict cited no evidence.",
-      );
-    }
-    if (base.evidenceIds.some((id) => !evidenceById.has(id))) {
-      return markVerdictUnsatisfied(
-        base,
-        "Satisfied verdict cited missing evidence.",
-      );
-    }
-    if (
-      base.claims.some((claim) => {
-        const row = evidenceById.get(claim.evidenceId);
-        return !row || !evidenceSupportsClaim(row, claim);
-      })
-    ) {
-      return markVerdictUnsatisfied(
-        base,
-        "Satisfied verdict made an unsupported typed evidence claim.",
-      );
-    }
-    return base;
+    const nextVerdicts = upsertGateVerdicts(run.gateVerdicts, [gateVerdict]);
+    return { success: true, gateVerdicts: nextVerdicts };
   }
 
   private evidenceForState(
@@ -747,27 +498,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         }),
       ),
     });
-  }
-
-  private async validatePlaybookInput(input: {
-    playbookId?: string | undefined;
-    content?: string | undefined;
-  }): Promise<{ valid: boolean; errors: string[] }> {
-    if (input.content) {
-      try {
-        const { body } = playbookAdapter.parsePlaybookContent(input.content);
-        return validatePlaybookBody(body);
-      } catch (error) {
-        return { valid: false, errors: splitValidationError(error) };
-      }
-    }
-
-    if (!input.playbookId) {
-      throw new Error("Provide either playbookId or content.");
-    }
-
-    const playbook = await this.requirePlaybook(input.playbookId);
-    return validatePlaybookBody(playbook.body);
   }
 
   private async resolveLifecycleStarters(input: {
@@ -984,17 +714,11 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     state: PlaybookState,
     run: PlaybookRun,
   ): boolean {
-    const evidenceWatermark = computeEvidenceWatermark(
-      this.evidenceForState(run, state.id),
-    );
-    return state.doneWhen.every((condition) =>
-      run.gateVerdicts.some(
-        (verdict) =>
-          verdict.stateId === state.id &&
-          verdict.conditionHash === conditionHash(condition) &&
-          verdict.evidenceWatermark === evidenceWatermark &&
-          verdict.satisfied,
-      ),
+    return run.gateVerdicts.some(
+      (verdict) =>
+        verdict.stateId === state.id &&
+        sameGoal(verdict.goal, state.doneWhen) &&
+        verdict.met,
     );
   }
 
@@ -1038,23 +762,17 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
 
   private formatVerifierStatus(run: PlaybookRun, state: PlaybookState): string {
     if (state.doneWhen.length === 0) return "- no gated Done When conditions";
-    const evidenceWatermark = computeEvidenceWatermark(
-      this.evidenceForState(run, state.id),
+    const verdict = run.gateVerdicts.find(
+      (candidate) =>
+        candidate.stateId === state.id &&
+        sameGoal(candidate.goal, state.doneWhen),
     );
-    return state.doneWhen
-      .map((condition) => {
-        const verdict = run.gateVerdicts.find(
-          (candidate) =>
-            candidate.stateId === state.id &&
-            candidate.conditionHash === conditionHash(condition) &&
-            candidate.evidenceWatermark === evidenceWatermark,
-        );
-        if (!verdict) return `- Not yet satisfied: ${condition}`;
-        if (verdict.satisfied) return `- Satisfied: ${condition}`;
-        const missing = verdict.missing?.join("; ") ?? "missing evidence";
-        return `- Not yet satisfied: ${condition} (${missing})`;
-      })
-      .join("\n");
+    if (!verdict) {
+      return `- Not yet met: ${state.doneWhen.join("; ")}`;
+    }
+    return verdict.met
+      ? `- Met: ${verdict.reason}`
+      : `- Not yet met: ${verdict.reason}`;
   }
 
   private async buildAgentContextItem(
@@ -1092,7 +810,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const doneWhen = state.doneWhen
       .map((condition) => `- ${condition}`)
       .join("\n");
-    const verifierStatus = this.formatVerifierStatus(run, state);
+    const goalStatus = this.formatVerifierStatus(run, state);
 
     return {
       id: run.id,
@@ -1110,8 +828,8 @@ ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
 Done when:
 ${doneWhen || "- none"}
 
-Verifier status:
-${verifierStatus}
+Goal status:
+${goalStatus}
 
 Valid events:
 ${validEvents || "- none"}
@@ -1138,12 +856,11 @@ ${blockedEvents || "- none"}`,
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When a playbook run is active, use playbook_status before deciding what to do next.
 Follow the playbook's current state instructions, operating rules, and Done When conditions.
-Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime verifier decides whether gated transitions are allowed.
+Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
 Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts. Runtime evidence from those actions is attached to the active run automatically where supported.
-Call playbook_complete only after the current state is a final state or the tool says completion is allowed.
 Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
 Configured lifecycle playbooks:
@@ -1159,36 +876,10 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function conditionHash(condition: string): string {
-  return computeContentHash(condition);
-}
-
-function computeEvidenceWatermark(evidence: PlaybookRunEvidence[]): string {
-  return computeContentHash(
-    JSON.stringify(
-      evidence.map((row) => ({ id: row.id, observedAt: row.observedAt })),
-    ),
-  );
-}
-
-function markVerdictUnsatisfied(
-  verdict: PlaybookGateVerdict,
-  missing: string,
-): PlaybookGateVerdict {
-  return {
-    ...verdict,
-    satisfied: false,
-    missing: [...(verdict.missing ?? []), missing],
-  };
-}
-
-function evidenceSupportsClaim(
-  evidence: PlaybookRunEvidence,
-  claim: PlaybookGateVerdict["claims"][number],
-): boolean {
-  if (evidence.kind !== claim.kind) return false;
-  return Object.entries(claim.data).every(
-    ([key, value]) => evidence.data[key] === value,
+function sameGoal(left: string[], right: string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
   );
 }
 
@@ -1204,7 +895,7 @@ function upsertGateVerdicts(
 }
 
 function gateVerdictKey(verdict: PlaybookGateVerdict): string {
-  return `${verdict.stateId}\u0000${verdict.conditionHash}\u0000${verdict.evidenceWatermark}`;
+  return [verdict.stateId, ...verdict.goal].join("\u0000");
 }
 
 function stringFromPayload(
@@ -1215,26 +906,12 @@ function stringFromPayload(
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function splitValidationError(error: unknown): string[] {
-  return errorMessage(error)
-    .split("\n")
-    .map((message) => message.trim())
-    .filter((message) => message.length > 0);
-}
-
-const defaultGateVerifier: PlaybookGateVerifier = {
-  async verify({ conditions, stateId, evidenceWatermark }) {
-    return conditions.map((condition) => ({
-      stateId,
-      condition,
-      conditionHash: conditionHash(condition),
-      evidenceWatermark,
-      satisfied: false,
-      source: "llm-judge",
-      evidenceIds: [],
-      claims: [],
-      missing: ["No playbook gate verifier is configured."],
-    }));
+const defaultGoalCheck: GoalCheck = {
+  async evaluate() {
+    return {
+      met: false,
+      reason: "No playbook goal check is configured.",
+    };
   },
 };
 

@@ -7,11 +7,10 @@ import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
 import { z } from "@brains/utils";
 import {
   createPluginHarness,
-  expectConfirmation,
   expectError,
   expectSuccess,
 } from "@brains/plugins/test";
-import { playbooksPlugin, type PlaybookGateVerifier } from "../src";
+import { playbooksPlugin, type GoalCheck } from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
@@ -83,17 +82,6 @@ function addPlaybookEntity(
   ]);
 }
 
-const overrideConfirmationArgsSchema = z
-  .object({
-    runId: z.string().min(1),
-    event: z.string().min(1),
-    reason: z.string().min(1),
-    confirmed: z.literal(true),
-  })
-  .strict();
-
-type OverrideConfirmationArgs = z.infer<typeof overrideConfirmationArgsSchema>;
-
 const transitionSchema = z
   .object({
     event: z.string().min(1),
@@ -114,8 +102,9 @@ const runSummarySchema = z
       .array(
         z
           .object({
-            source: z.string(),
-            satisfied: z.boolean(),
+            goal: z.array(z.string()),
+            met: z.boolean(),
+            reason: z.string(),
           })
           .passthrough(),
       )
@@ -136,16 +125,10 @@ function parsePlaybookToolData(
   return playbookToolDataSchema.parse(input);
 }
 
-function parseOverrideConfirmationArgs(
-  input: unknown,
-): OverrideConfirmationArgs {
-  return overrideConfirmationArgsSchema.parse(input);
-}
-
-function gateVerifier(verify: PlaybookGateVerifier["verify"]): {
-  verifier: PlaybookGateVerifier;
+function goalCheck(evaluate: GoalCheck["evaluate"]): {
+  goalCheck: GoalCheck;
 } {
-  return { verifier: { verify } };
+  return { goalCheck: { evaluate } };
 }
 
 async function installHarness(): Promise<PluginHarness> {
@@ -187,43 +170,22 @@ describe("PlaybooksPlugin", () => {
     }
   });
 
-  it("validates playbook structure with author-facing errors", async () => {
+  it("exposes only the small model-facing playbook tool surface", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
+    const capabilities = await harness.installPlugin(
       playbooksPlugin({ storageDir: await tempStorageDir() }),
     );
-    const invalidContent = playbookAdapter.createPlaybookContent(
-      {
-        title: "Broken",
-        status: "active",
-        audience: "anchor",
-        completionMode: "agent-confirmed",
-      },
-      {
-        ...playbookBody,
-        states: [
-          {
-            ...welcomeState,
-            transitions: [{ event: "NEXT", target: "missing" }],
-          },
-          seedState,
-          completeState,
-        ],
-      },
-    );
 
-    const response = await harness.executeTool("playbook_validate", {
-      content: invalidContent,
-    });
-    expectSuccess(response);
-    expect(response.data).toEqual({
-      valid: false,
-      errors: [
-        "Playbook transition 'welcome' -> 'missing' targets an undefined state.",
-        "Playbook state 'seed' is unreachable.",
-        "Playbook state 'complete' is unreachable.",
-      ],
-    });
+    const toolNames = capabilities.tools
+      .map((tool) => tool.name)
+      .filter((name) => name.startsWith("playbook_"))
+      .sort();
+
+    expect(toolNames).toEqual([
+      "playbook_send_event",
+      "playbook_start",
+      "playbook_status",
+    ]);
   });
 
   it("returns lifecycle starters for active anchor web-chat playbooks", async () => {
@@ -337,101 +299,25 @@ describe("PlaybooksPlugin", () => {
     });
     expectError(invalid);
 
-    const tooEarly = await harness.executeTool("playbook_complete", { runId });
-    expectError(tooEarly);
-
     const finalTransition = await harness.executeTool("playbook_send_event", {
       runId,
       event: "NEXT",
     });
     expectSuccess(finalTransition);
-
-    const completed = await harness.executeTool("playbook_complete", { runId });
-    expectSuccess(completed);
-    const completedData = parsePlaybookToolData(completed.data);
+    const completedData = parsePlaybookToolData(finalTransition.data);
     expect(completedData.activeRun.status).toBe("completed");
     expect(completedData.activeRun.currentState).toBe("complete");
   });
 
-  it("requires confirmation and records an override verdict before bypassing a gate", async () => {
-    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
-    addPlaybookEntity(harness, {
-      ...playbookBody,
-      states: [
-        {
-          id: "welcome",
-          title: "Welcome",
-          instructions: ["Ask whether to continue."],
-          doneWhen: [],
-          transitions: [{ event: "NEXT", target: "identity" }],
-        },
-        {
-          id: "identity",
-          title: "Identity",
-          instructions: ["Create or update the anchor profile."],
-          doneWhen: ["The anchor profile has been created or updated."],
-          transitions: [{ event: "NEXT", target: "seed" }],
-        },
-        seedState,
-        completeState,
-      ],
-    });
-
-    const runId = await startRun(harness, "web-override-gate");
-    expectSuccess(
-      await harness.executeTool("playbook_send_event", {
-        runId,
-        event: "NEXT",
-      }),
-    );
-
-    const confirmation = await harness.executeTool("playbook_override_event", {
-      runId,
-      event: "NEXT",
-      reason: "Operator explicitly approved bypassing profile setup.",
-    });
-    expectConfirmation(confirmation);
-    expect(confirmation.toolName).toBe("playbook_override_event");
-
-    const overrideArgs = parseOverrideConfirmationArgs(confirmation.args);
-    const overridden = await harness.executeTool(
-      "playbook_override_event",
-      overrideArgs,
-    );
-    expectSuccess(overridden);
-    const activeRun = parsePlaybookToolData(overridden.data).activeRun;
-    expect(activeRun.currentState).toBe("seed");
-    expect(activeRun.evidence.some((row) => row.kind === "override")).toBe(
-      true,
-    );
-    expect(
-      activeRun.gateVerdicts.some(
-        (verdict) => verdict.source === "override" && verdict.satisfied,
-      ),
-    ).toBe(true);
-  });
-
-  it("blocks gated NEXT when the verifier returns an unsatisfied verdict", async () => {
+  it("blocks gated NEXT when the goal check returns not met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin(
         { storageDir: await tempStorageDir() },
-        gateVerifier(async ({ conditions, stateId, evidenceWatermark }) =>
-          conditions.map((condition) => ({
-            stateId,
-            condition,
-            conditionHash: condition,
-            evidenceWatermark,
-            satisfied: false,
-            source: "llm-judge",
-            evidenceIds: [],
-            claims: [],
-            missing: ["No matching evidence."],
-          })),
-        ),
+        goalCheck(async () => ({
+          met: false,
+          reason: "No matching evidence.",
+        })),
       ),
     );
     addPlaybookEntity(harness, {
@@ -481,30 +367,15 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("downgrades satisfied verdicts whose typed claims are unsupported by cited evidence", async () => {
+  it("advances gated NEXT when the goal check returns met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin(
         { storageDir: await tempStorageDir() },
-        gateVerifier(
-          async ({ conditions, stateId, evidence, evidenceWatermark }) =>
-            conditions.map((condition) => ({
-              stateId,
-              condition,
-              conditionHash: condition,
-              evidenceWatermark,
-              satisfied: true,
-              source: "llm-judge",
-              evidenceIds: [evidence[0]?.id ?? "missing"],
-              claims: [
-                {
-                  evidenceId: evidence[0]?.id ?? "missing",
-                  kind: "entity_event",
-                  data: { entityType: "anchor-profile", operation: "updated" },
-                },
-              ],
-            })),
-        ),
+        goalCheck(async () => ({
+          met: true,
+          reason: "The profile exists in the KB.",
+        })),
       ),
     );
     addPlaybookEntity(harness, {
@@ -529,25 +400,28 @@ describe("PlaybooksPlugin", () => {
       ],
     });
 
-    const runId = await startRun(harness, "web-unsupported-claim");
+    const runId = await startRun(harness, "web-met-gate");
     expectSuccess(
       await harness.executeTool("playbook_send_event", {
         runId,
         event: "NEXT",
       }),
     );
-    await harness.sendMessage(
-      "entity:created",
-      { runId, entityType: "base", entityId: "first-note" },
-      "test",
-      true,
-    );
 
-    const blocked = await harness.executeTool("playbook_send_event", {
+    const advanced = await harness.executeTool("playbook_send_event", {
       runId,
       event: "NEXT",
     });
-    expectError(blocked);
+    expectSuccess(advanced);
+    const activeRun = parsePlaybookToolData(advanced.data).activeRun;
+    expect(activeRun.currentState).toBe("seed");
+    expect(activeRun.gateVerdicts).toContainEqual(
+      expect.objectContaining({
+        goal: ["The anchor profile has been created or updated."],
+        met: true,
+        reason: "The profile exists in the KB.",
+      }),
+    );
   });
 
   it("resolves run-scoped tools from the active conversation playbook when runId is omitted", async () => {
@@ -707,8 +581,8 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain(
       "The anchor profile has been created or updated.",
     );
-    expect(content).toContain("Verifier status:");
-    expect(content).toContain("Not yet satisfied");
+    expect(content).toContain("Goal status:");
+    expect(content).toContain("Not yet met");
     expect(content).toContain("Valid events:");
     expect(content).toContain("SKIP -> seed");
     expect(content).toContain("Blocked events:");

@@ -26,19 +26,9 @@ function evidence(id: string): PlaybookRunEvidence {
 function verdict(): PlaybookGateVerdict {
   return {
     stateId: "seed",
-    condition: "A note exists.",
-    conditionHash: "condition-hash-1",
-    evidenceWatermark: "2026-06-07T12:00:00.000Z",
-    satisfied: true,
-    source: "compiled-check",
-    evidenceIds: ["evidence-1"],
-    claims: [
-      {
-        evidenceId: "evidence-1",
-        kind: "entity_event",
-        data: { entityType: "note" },
-      },
-    ],
+    goal: ["A note exists."],
+    met: true,
+    reason: "A note exists in the run evidence.",
     evaluatedAt: new Date("2026-06-07T12:01:00.000Z").toISOString(),
   };
 }
@@ -76,7 +66,7 @@ describe("PlaybookRunStore", () => {
     expect(updated.evidence).toEqual([evidence("evidence-1")]);
   });
 
-  it("preserves existing verifier verdicts when a stale run snapshot updates state", async () => {
+  it("preserves existing gate results when a stale run snapshot updates state", async () => {
     const store = new PlaybookRunStore(await tempStorageDir());
     const run = createPlaybookRun({
       playbookId: "rover-onboarding",
