@@ -1,4 +1,4 @@
-import { extractCoverImageId } from "@brains/image";
+import { extractCoverImageId, extractOgImageId } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage, pluralize, z } from "@brains/utils";
@@ -36,6 +36,7 @@ export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
   listUrl: string;
   listLabel: string;
   coverImageUrl?: string;
+  ogImageUrl?: string;
   coverImageWidth?: number;
   coverImageHeight?: number;
   coverImageSrcset?: string;
@@ -46,6 +47,7 @@ export interface ContentEnrichmentOptions {
   pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
   urlGenerator?: EntityUrlGenerator | undefined;
+  siteUrl?: string | undefined;
 }
 
 /**
@@ -112,35 +114,10 @@ export async function enrichWithUrls(
 
   // Resolve cover image: prefer pre-optimized build image, fall back to data URL
   const coverImageId = extractCoverImageId(entity);
-  const preResolved = coverImageId
-    ? options.imageBuildService?.get(coverImageId)
-    : undefined;
+  const coverImageFields = await resolveImageFields(coverImageId, options);
 
-  let coverImageFields: Partial<EnrichedEntity> = {};
-  if (preResolved) {
-    coverImageFields = {
-      coverImageUrl: preResolved.src,
-      coverImageWidth: preResolved.width,
-      coverImageHeight: preResolved.height,
-      ...(preResolved.srcset && {
-        coverImageSrcset: preResolved.srcset,
-        coverImageSizes: preResolved.sizes,
-      }),
-    };
-  } else {
-    // Fallback: resolve directly (returns data URL — post-processing will extract)
-    const coverImage = await resolveCoverImage(
-      coverImageId,
-      options.pipelineContext.services.entityService,
-    );
-    if (coverImage) {
-      coverImageFields = {
-        coverImageUrl: coverImage.url,
-        ...(coverImage.width && { coverImageWidth: coverImage.width }),
-        ...(coverImage.height && { coverImageHeight: coverImage.height }),
-      };
-    }
-  }
+  const ogImageId = extractOgImageId(entity) ?? coverImageId;
+  const ogImage = await resolveImageForHead(ogImageId, options);
 
   const enrichedEntity: EnrichedEntity = {
     ...enriched,
@@ -150,9 +127,67 @@ export async function enrichWithUrls(
     listUrl,
     listLabel,
     ...coverImageFields,
+    ...(ogImage && { ogImageUrl: ogImage }),
   };
 
   return enrichedEntity;
+}
+
+async function resolveImageFields(
+  imageId: string | undefined,
+  options: ContentEnrichmentOptions,
+): Promise<Partial<EnrichedEntity>> {
+  const preResolved = imageId
+    ? options.imageBuildService?.get(imageId)
+    : undefined;
+  if (preResolved) {
+    return {
+      coverImageUrl: preResolved.src,
+      coverImageWidth: preResolved.width,
+      coverImageHeight: preResolved.height,
+      ...(preResolved.srcset && {
+        coverImageSrcset: preResolved.srcset,
+        coverImageSizes: preResolved.sizes,
+      }),
+    };
+  }
+
+  const image = await resolveCoverImage(
+    imageId,
+    options.pipelineContext.services.entityService,
+  );
+  if (!image) return {};
+  return {
+    coverImageUrl: image.url,
+    ...(image.width && { coverImageWidth: image.width }),
+    ...(image.height && { coverImageHeight: image.height }),
+  };
+}
+
+async function resolveImageForHead(
+  imageId: string | undefined,
+  options: ContentEnrichmentOptions,
+): Promise<string | undefined> {
+  if (!imageId) return undefined;
+  const preResolved = options.imageBuildService?.get(imageId);
+  if (preResolved) return toAbsoluteUrl(preResolved.src, options.siteUrl);
+
+  const image = await resolveCoverImage(
+    imageId,
+    options.pipelineContext.services.entityService,
+  );
+  if (!image) return undefined;
+  // A data: URL is unusable as an og:image/twitter:image — social crawlers
+  // reject it — so omit the head image rather than emit broken metadata. The
+  // pre-resolved branch above returns a real optimized file URL.
+  if (image.url.startsWith("data:")) return undefined;
+  return toAbsoluteUrl(image.url, options.siteUrl);
+}
+
+function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
+  if (!siteUrl) return url;
+  return `${siteUrl.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
 }
 
 async function resolveCoverImage(
@@ -208,6 +243,10 @@ export async function collectAllImageIds(
         const coverImageId = extractCoverImageId(entity);
         if (coverImageId) {
           imageIds.add(coverImageId);
+        }
+        const ogImageId = extractOgImageId(entity);
+        if (ogImageId) {
+          imageIds.add(ogImageId);
         }
       }
     }

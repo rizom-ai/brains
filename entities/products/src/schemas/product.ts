@@ -30,6 +30,7 @@ export const productFrontmatterSchema = z.object({
   name: z.string(),
   availability: productAvailabilitySchema,
   order: z.number(),
+  ogImageId: z.string().optional(), // References an image entity for social previews
 });
 
 export type ProductFrontmatter = z.infer<typeof productFrontmatterSchema>;
@@ -85,6 +86,7 @@ export const productWithDataSchema = productSchema.extend({
   frontmatter: productFrontmatterSchema,
   body: productBodySchema,
   labels: z.record(z.string(), z.string()),
+  ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
 });
 
 export type ProductWithData = z.infer<typeof productWithDataSchema>;
@@ -98,6 +100,7 @@ export const enrichedProductSchema = productWithDataSchema.extend({
   typeLabel: z.string().optional(),
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
+  ogImageUrl: z.string().optional(),
 });
 
 export type EnrichedProduct = z.infer<typeof enrichedProductSchema>;

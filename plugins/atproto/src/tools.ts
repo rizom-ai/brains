@@ -27,6 +27,14 @@ const publishEntityInputSchema = {
     .describe("Optional topic labels to include in the AT Protocol record"),
 };
 
+const discoverBrainCardsInputSchema = {
+  repos: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(50)
+    .describe("Candidate AT Protocol repo DIDs or handles to inspect"),
+};
+
 const publishPostInputSchema = {
   entityId: z
     .string()
@@ -53,6 +61,7 @@ export function createAtprotoTools(
     createPublishCardTool(pluginId, plugin, context),
     createPublishEntityTool(pluginId, plugin, context),
     createPublishPostTool(pluginId, plugin, context),
+    createDiscoverBrainCardsTool(pluginId, plugin, context),
   ];
 }
 
@@ -80,7 +89,7 @@ function createPublishCardTool(
   return {
     name: `${pluginId}_publish_card`,
     description:
-      "Publish this brain's AT Protocol capability card to the configured PDS, or dry-run the record payload.",
+      "Publish this brain's AT Protocol discovery card to the configured PDS, or dry-run the record payload.",
     inputSchema: publishCardInputSchema,
     handler: async (input): Promise<ToolResponse> => {
       const parsed = z.object(publishCardInputSchema).safeParse(input);
@@ -145,6 +154,40 @@ function createPublishEntityTool(
         return {
           success: false,
           error: error instanceof Error ? error.message : "Publish failed",
+        };
+      }
+    },
+  };
+}
+
+function createDiscoverBrainCardsTool(
+  pluginId: string,
+  plugin: AtprotoPlugin,
+  context: ServicePluginContext,
+): Tool {
+  return {
+    name: `${pluginId}_discover_brain_cards`,
+    description:
+      "Read public ai.rizom.brain.card/self records from candidate AT Protocol repo DIDs or handles and emit internal discovery events.",
+    inputSchema: discoverBrainCardsInputSchema,
+    handler: async (input): Promise<ToolResponse> => {
+      const parsed = z.object(discoverBrainCardsInputSchema).safeParse(input);
+      if (!parsed.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parsed.error.message}`,
+        };
+      }
+
+      try {
+        const result = await plugin.discoverBrainCards(context, {
+          repos: parsed.data.repos,
+        });
+        return { success: true, data: result };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Discovery failed",
         };
       }
     },

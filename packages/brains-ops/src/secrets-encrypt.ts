@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { access, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-import { Encrypter, armor } from "age-encryption";
+import { Decrypter, Encrypter, armor } from "age-encryption";
 import {
   readLocalEnvValues,
   resolveLocalEnvValue,
@@ -10,6 +10,7 @@ import {
 } from "@brains/deploy-support";
 import { toYaml, z } from "@brains/utils";
 
+import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 
 const encryptedUserSecretsSchema = z
@@ -17,6 +18,7 @@ const encryptedUserSecretsSchema = z
     gitSyncToken: z.string().min(1).optional(),
     discordBotToken: z.string().min(1).optional(),
     aiApiKey: z.string().min(1).optional(),
+    atprotoAppPassword: z.string().min(1).optional(),
   })
   .strict();
 
@@ -50,6 +52,12 @@ export async function encryptPilotSecrets(
   const encryptedDisplayPath = normalizePath(relative(rootDir, encryptedPath));
   const plaintextDisplayPath = normalizePath(relative(rootDir, plaintextPath));
   const plaintextSecrets = readPlaintextUserSecrets(plaintextPath);
+  const existingSecrets = await readExistingEncryptedUserSecrets(
+    encryptedPath,
+    rootDir,
+    env,
+    localEnvValues,
+  );
   const deletedPlaintext = await fileExists(plaintextPath);
   const secretResolutionOptions = {
     sharedAiApiKeySelector: registry.pilot.aiApiKey,
@@ -66,6 +74,7 @@ export async function encryptPilotSecrets(
       env,
       localEnvValues,
       plaintextSecrets,
+      existingSecrets,
       secretResolutionOptions,
     );
   } catch (error) {
@@ -139,6 +148,7 @@ function buildEncryptedUserSecrets(
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
   plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  existingSecrets: Partial<EncryptedUserSecrets> | undefined,
   options: {
     sharedAiApiKeySelector: string;
     sharedGitSyncTokenSelector: string;
@@ -152,6 +162,7 @@ function buildEncryptedUserSecrets(
     env,
     localEnvValues,
     plaintextSecrets,
+    existingSecrets,
     "aiApiKey",
     options.effectiveAiApiKeySelector,
     options.sharedAiApiKeySelector,
@@ -161,6 +172,7 @@ function buildEncryptedUserSecrets(
     env,
     localEnvValues,
     plaintextSecrets,
+    existingSecrets,
     "gitSyncToken",
     options.effectiveGitSyncTokenSelector,
     options.sharedGitSyncTokenSelector,
@@ -171,15 +183,26 @@ function buildEncryptedUserSecrets(
         env,
         localEnvValues,
         plaintextSecrets,
+        existingSecrets,
         "discordBotToken",
         "DISCORD_BOT_TOKEN",
       )
     : undefined;
+  const atprotoAppPassword = resolveOptionalSecretValue(
+    rootDir,
+    env,
+    localEnvValues,
+    plaintextSecrets,
+    existingSecrets,
+    "atprotoAppPassword",
+    "ATPROTO_APP_PASSWORD",
+  );
 
   return encryptedUserSecretsSchema.parse({
     ...(aiApiKey ? { aiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
+    ...(atprotoAppPassword ? { atprotoAppPassword } : {}),
   });
 }
 
@@ -188,6 +211,7 @@ function resolveOverrideSecretValue(
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
   plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  existingSecrets: Partial<EncryptedUserSecrets> | undefined,
   plaintextKey: keyof EncryptedUserSecrets,
   effectiveSelector: string,
   sharedSelector: string,
@@ -201,6 +225,7 @@ function resolveOverrideSecretValue(
     env,
     localEnvValues,
     plaintextSecrets,
+    existingSecrets,
     plaintextKey,
     effectiveSelector,
   );
@@ -211,16 +236,18 @@ function resolveRequiredSecretValue(
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
   plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  existingSecrets: Partial<EncryptedUserSecrets> | undefined,
   plaintextKey: keyof EncryptedUserSecrets,
   fallbackEnvKey: string,
 ): string {
-  const value = resolveSecretValue(
-    plaintextSecrets,
-    plaintextKey,
-    fallbackEnvKey,
+  const value = resolveOptionalSecretValue(
+    rootDir,
     env,
     localEnvValues,
-    rootDir,
+    plaintextSecrets,
+    existingSecrets,
+    plaintextKey,
+    fallbackEnvKey,
   );
   if (value === undefined || value.trim().length === 0) {
     throw new Error(
@@ -231,8 +258,29 @@ function resolveRequiredSecretValue(
   return value;
 }
 
+function resolveOptionalSecretValue(
+  rootDir: string,
+  env: NodeJS.ProcessEnv,
+  localEnvValues: Record<string, string>,
+  plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  existingSecrets: Partial<EncryptedUserSecrets> | undefined,
+  plaintextKey: keyof EncryptedUserSecrets,
+  fallbackEnvKey: string,
+): string | undefined {
+  return resolveSecretValue(
+    plaintextSecrets,
+    existingSecrets,
+    plaintextKey,
+    fallbackEnvKey,
+    env,
+    localEnvValues,
+    rootDir,
+  );
+}
+
 function resolveSecretValue(
   plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
+  existingSecrets: Partial<EncryptedUserSecrets> | undefined,
   plaintextKey: keyof EncryptedUserSecrets,
   fallbackEnvKey: string,
   env: NodeJS.ProcessEnv,
@@ -254,23 +302,89 @@ function resolveSecretValue(
   }
 
   const value = resolveLocalEnvValue(fallbackEnvKey, env, localEnvValues);
-  if (value === undefined || value.trim().length === 0) {
-    return undefined;
+  if (value !== undefined && value.trim().length > 0) {
+    return value;
   }
 
-  return value;
+  const existingValue = existingSecrets?.[plaintextKey];
+  if (existingValue !== undefined && existingValue.trim().length > 0) {
+    return existingValue;
+  }
+
+  return undefined;
 }
 
 function readPlaintextUserSecrets(
   plaintextPath: string,
 ): Partial<EncryptedUserSecrets> | undefined {
   try {
-    return encryptedUserSecretsSchema
-      .partial()
-      .parse(parseFlatYaml(readFileSync(plaintextPath, "utf8")));
+    return parseUserSecrets(readFileSync(plaintextPath, "utf8"));
   } catch {
     return undefined;
   }
+}
+
+async function readExistingEncryptedUserSecrets(
+  encryptedPath: string,
+  rootDir: string,
+  env: NodeJS.ProcessEnv,
+  localEnvValues: Record<string, string>,
+): Promise<Partial<EncryptedUserSecrets> | undefined> {
+  if (!(await fileExists(encryptedPath))) {
+    return undefined;
+  }
+
+  const identity = readAgeIdentity(rootDir, env, localEnvValues);
+  if (!identity) {
+    return undefined;
+  }
+
+  try {
+    const armored = readFileSync(encryptedPath, "utf8");
+    const decoded = armor.decode(armored);
+    const decrypter = new Decrypter();
+    decrypter.addIdentity(identity);
+    const plaintext = await decrypter.decrypt(decoded, "text");
+    return parseUserSecrets(plaintext);
+  } catch {
+    return undefined;
+  }
+}
+
+function readAgeIdentity(
+  rootDir: string,
+  env: NodeJS.ProcessEnv,
+  localEnvValues: Record<string, string>,
+): string | undefined {
+  const filePath = resolveLocalEnvValue(
+    "AGE_SECRET_KEY_FILE",
+    env,
+    localEnvValues,
+  );
+  if (filePath && filePath.trim().length > 0) {
+    return extractAgeIdentity(
+      readFileSync(resolveLocalPath(filePath, rootDir), "utf8"),
+    );
+  }
+
+  const value = resolveLocalEnvValue("AGE_SECRET_KEY", env, localEnvValues);
+  if (value && value.trim().length > 0) {
+    return extractAgeIdentity(value);
+  }
+
+  try {
+    return extractAgeIdentity(
+      readFileSync(join(rootDir, ".brains-ops", "age", "identity.txt"), "utf8"),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+function parseUserSecrets(
+  contents: string,
+): Partial<EncryptedUserSecrets> | undefined {
+  return encryptedUserSecretsSchema.partial().parse(parseFlatYaml(contents));
 }
 
 function parseFlatYaml(contents: string): Record<string, string> {

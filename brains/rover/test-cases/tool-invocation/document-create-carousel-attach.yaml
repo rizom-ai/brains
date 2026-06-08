@@ -20,9 +20,9 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "document"
-        from.sourceEntityType: "deck"
-        from.sourceEntityId: "distributed-systems-primer"
-        from.attachmentType: "carousel"
+        sourceAttachment.sourceEntityType: "deck"
+        sourceAttachment.sourceEntityId: "distributed-systems-primer"
+        sourceAttachment.attachmentType: "carousel"
         targetEntityType: "social-post"
         targetEntityId: "publish-policy-draft"
   responseNotContains:

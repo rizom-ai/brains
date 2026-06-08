@@ -1,0 +1,92 @@
+id: multi-turn-web-chat-multiple-upload-filename-selection
+name: Web chat multiple upload follow-up selects named filename
+description: Verifies a follow-up that names one prior upload uses that upload ref, not another prior upload.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-multiple-upload-filename
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - pdf
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: alpha-guide.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCnhyZWYKMCAzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTExCiUlRU9GCg==
+        source:
+          kind: web-chat-upload
+          id: upload-00000000-0000-4000-8000-000000000911
+    successCriteria:
+      responseContains:
+        - "alpha-guide.pdf"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: beta-guide.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCnhyZWYKMCAzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTExCiUlRU9GCg==
+        source:
+          kind: web-chat-upload
+          id: upload-00000000-0000-4000-8000-000000000912
+    successCriteria:
+      responseContains:
+        - "beta-guide.pdf"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "save alpha-guide.pdf as a document"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: document
+            upload.kind: web-chat-upload
+            upload.id: upload-00000000-0000-4000-8000-000000000911
+          argsAbsent:
+            - transform
+            - from
+            - fromUpload
+            - sourceAttachment
+      responseNotContains:
+        - "beta-guide.pdf"
+        - "deck"
+        - "re-upload"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: document
+        upload.kind: web-chat-upload
+        upload.id: upload-00000000-0000-4000-8000-000000000911
+      argsAbsent:
+        - transform
+        - from
+        - fromUpload
+        - sourceAttachment
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "deck"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 40000

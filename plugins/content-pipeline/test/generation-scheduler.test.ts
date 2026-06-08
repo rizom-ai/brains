@@ -53,7 +53,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
     backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
-    retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
+    retryTracker = RetryTracker.createFresh();
     mockLogger = createMockLogger();
     messageBus = createMockMessageBus();
     onGenerateMock = mock(() => {});

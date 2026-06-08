@@ -1,7 +1,7 @@
 {
   "name": "@brains/note",
   "private": true,
-  "version": "0.2.0-alpha.106",
+  "version": "0.2.0-alpha.111",
   "description": "Personal knowledge capture with markdown-first workflow",
   "type": "module",
   "exports": {
@@ -17,6 +17,7 @@
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/document": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

@@ -38,16 +38,35 @@ const coverImageInputSchema = z.union([
   z.literal(false).describe("Do not generate a cover image"),
 ]);
 
-const createFromAttachmentInputSchema = z.object({
+const createSourceAttachmentInputSchema = z.object({
   sourceEntityType: z.string().min(1).describe("Source entity type"),
   sourceEntityId: z.string().min(1).describe("Source entity ID"),
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
+const createUploadInputSchema = z.object({
+  kind: z.literal("web-chat-upload").describe("Runtime upload ref kind"),
+  id: z.string().min(1).describe("Runtime upload ID"),
+});
+
 export const createInputSchema = z.object({
-  entityType: z.string().describe("Entity type to create"),
-  title: z.string().optional().describe("Title for the entity"),
-  prompt: z.string().optional().describe("Prompt for AI generation"),
+  entityType: z
+    .string()
+    .describe(
+      "Entity type to create. Do not use system_create for status-only requests such as making an existing post a draft; use system_update instead.",
+    ),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      "Title for a new entity. Do not invent placeholder titles like 'Draft Post' unless the user explicitly asked to create a new post.",
+    ),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "Prompt for AI generation of a new entity. Do not use for status changes like 'make one draft' or 'change it to draft'.",
+    ),
   content: z.string().optional().describe("Direct content to store"),
   url: z
     .string()
@@ -55,10 +74,21 @@ export const createInputSchema = z.object({
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
-  from: createFromAttachmentInputSchema
+  upload: createUploadInputSchema
     .optional()
     .describe(
-      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+      'Promote a runtime upload. Use only when this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, or url.',
+    ),
+  transform: z
+    .string()
+    .optional()
+    .describe(
+      'Optional upload transform. Set to exactly "extract-markdown" only with upload and entityType base to extract markdown/text from an uploaded text or PDF file into a markdown note. Omit for raw file promotion to document/image; never include transform with entityType document or image.',
+    ),
+  sourceAttachment: createSourceAttachmentInputSchema
+    .optional()
+    .describe(
+      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
   replace: z
     .boolean()

@@ -1,16 +1,15 @@
 import type {
-  Tool,
-  ToolResult,
-  ServicePluginContext,
   BaseEntity,
+  Tool,
+  ToolResponse,
+  ServicePluginContext,
 } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
-import type { PublishableMetadata } from "../schemas/publishable";
-import { preparePublishContent } from "./publish-content";
-
-type PublishableEntity = BaseEntity<PublishableMetadata>;
+import {
+  PublishExecutor,
+  type PublishEntityExecutor,
+} from "../publish-executor";
 
 /**
  * Input schema for publish-pipeline:publish tool
@@ -21,6 +20,9 @@ export const publishInputSchema = z.object({
     .describe("Entity type to publish (e.g., social-post, post, deck)"),
   id: z.string().optional().describe("Entity ID to publish"),
   slug: z.string().optional().describe("Entity slug to publish"),
+  confirmed: z.boolean().optional(),
+  confirmationToken: z.string().optional(),
+  contentHash: z.string().optional(),
 });
 
 export type PublishInput = z.infer<typeof publishInputSchema>;
@@ -47,12 +49,67 @@ export const publishErrorSchema = z.object({
   code: z.string().optional(),
 });
 
+export const publishConfirmationSchema = z.object({
+  success: z.literal(false).optional(),
+  error: z.string().optional(),
+  needsConfirmation: z.literal(true),
+  toolName: z.string(),
+  summary: z.string(),
+  preview: z.string().optional(),
+  args: z.unknown(),
+});
+
 export const publishOutputSchema = z.union([
   publishSuccessSchema,
   publishErrorSchema,
+  publishConfirmationSchema,
 ]);
 
 export type PublishOutput = z.infer<typeof publishOutputSchema>;
+
+const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
+const MAX_PENDING_CONFIRMATIONS = 1000;
+
+/**
+ * In-memory store of outstanding publish confirmation tokens.
+ *
+ * Tokens are consumed on a confirmed call, but abandoned confirmations would
+ * otherwise accumulate forever, so entries expire after a TTL and the store is
+ * capped (oldest evicted first) as a backstop.
+ */
+class PendingConfirmationTokens {
+  private readonly tokens = new Map<string, number>();
+
+  public add(token: string): void {
+    this.prune();
+    if (this.tokens.size >= MAX_PENDING_CONFIRMATIONS) {
+      const oldest = this.tokens.keys().next().value;
+      if (oldest !== undefined) this.tokens.delete(oldest);
+    }
+    this.tokens.set(token, Date.now() + CONFIRMATION_TTL_MS);
+  }
+
+  public has(token: string): boolean {
+    const expiresAt = this.tokens.get(token);
+    if (expiresAt === undefined) return false;
+    if (expiresAt <= Date.now()) {
+      this.tokens.delete(token);
+      return false;
+    }
+    return true;
+  }
+
+  public delete(token: string): void {
+    this.tokens.delete(token);
+  }
+
+  private prune(): void {
+    const now = Date.now();
+    for (const [token, expiresAt] of this.tokens) {
+      if (expiresAt <= now) this.tokens.delete(token);
+    }
+  }
+}
 
 /**
  * Create the publish-pipeline:publish tool
@@ -68,127 +125,156 @@ export function createPublishTool(
   context: ServicePluginContext,
   pluginId: string,
   providerRegistry: ProviderRegistry,
+  publishExecutor?: PublishEntityExecutor,
 ): Tool<PublishOutput> {
-  const tool = createTool(
-    pluginId,
-    "publish",
-    "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
-    publishInputSchema,
-    async (input, toolContext): Promise<ToolResult> => {
-      const { entityType, id, slug } = input;
-
-      context.permissions.assertEntityActionAllowed(
-        entityType,
-        "publish",
-        toolContext,
-      );
-
-      // Validate that at least one identifier is provided
-      if (!id && !slug) {
-        return {
-          success: false,
-          error: "Either 'id' or 'slug' must be provided",
-        };
-      }
-
-      const entity = await findPublishableEntity(context, entityType, id, slug);
-
-      if (!entity) {
-        const identifier = id ?? slug;
-        return {
-          success: false,
-          error: `Entity not found: ${entityType}:${identifier}`,
-        };
-      }
-
-      if (entity.visibility !== "public") {
-        return {
-          success: false,
-          error: `Cannot publish ${entityType}:${entity.id} to a public provider because visibility is ${entity.visibility}`,
-        };
-      }
-
-      // Check if already published
-      if (entity.metadata.status === "published") {
-        return {
-          success: false,
-          error: "Entity is already published",
-        };
-      }
-
-      // Get the provider for this entity type
-      if (!providerRegistry.has(entityType)) {
-        return {
-          success: false,
-          error: `No publish provider registered for ${entityType}. Check that the required credentials are configured.`,
-        };
-      }
-      const provider = providerRegistry.get(entityType);
-
-      const { bodyContent, imageData, documentData } =
-        await preparePublishContent(context, entity);
-
-      // Publish using the provider
-      const result = await provider.publish(
-        bodyContent,
-        entity.metadata,
-        imageData,
-        documentData,
-      );
-
-      // Update entity status
-      await context.entityService.updateEntity({
-        entity: {
-          ...entity,
-          metadata: {
-            ...entity.metadata,
-            status: "published",
-            publishedAt: new Date().toISOString(),
-            platformId: result.id,
-          },
-        },
-      });
-
-      return {
-        success: true,
-        data: {
-          entityType,
-          entityId: entity.id,
-          platformId: result.id,
-          url: result.url,
-        },
-        message: `Published ${entityType}:${entity.id}`,
-      };
-    },
-  );
+  const executor =
+    publishExecutor ??
+    new PublishExecutor({
+      context,
+      providerRegistry,
+    });
+  const pendingConfirmationTokens = new PendingConfirmationTokens();
+  const toolName = `${pluginId}_publish`;
 
   return {
-    ...tool,
+    name: toolName,
+    description:
+      "Publish an entity directly to its platform. Call this when the user asks to publish; the tool will request confirmation itself. Works with any registered entity type (social-post, post, deck, etc.)",
+    inputSchema: publishInputSchema.shape,
     outputSchema: publishOutputSchema,
+    visibility: "anchor",
+    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
+      const parsed = publishInputSchema.safeParse(rawInput);
+      if (!parsed.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+        };
+      }
+
+      const input = parsed.data;
+      const { entityType, id, slug } = input;
+
+      try {
+        context.permissions.assertEntityActionAllowed(
+          entityType,
+          "publish",
+          toolContext,
+        );
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      const validation = await executor.resolveCandidate({
+        entityType,
+        id,
+        slug,
+      });
+      if ("error" in validation)
+        return { success: false, error: validation.error };
+
+      const { entity } = validation;
+      if (input.confirmed) {
+        const token = input.confirmationToken;
+        if (!token || !pendingConfirmationTokens.has(token)) {
+          return createPublishConfirmation(
+            toolName,
+            input,
+            entity,
+            pendingConfirmationTokens,
+          );
+        }
+        pendingConfirmationTokens.delete(token);
+
+        if (input.contentHash && input.contentHash !== entity.contentHash) {
+          return {
+            success: false,
+            error: `Cannot publish ${entityType}:${entity.id} because it changed after confirmation. Review it and try again.`,
+          };
+        }
+
+        let publishResult: Awaited<
+          ReturnType<PublishEntityExecutor["publish"]>
+        >;
+        try {
+          publishResult = await executor.publish({
+            entityType,
+            id: entity.id,
+          });
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+        if ("error" in publishResult) {
+          return {
+            success: false,
+            error: publishResult.error,
+          };
+        }
+
+        const { entity: publishedEntity, result } = publishResult;
+        return {
+          success: true,
+          data: {
+            entityType,
+            entityId: publishedEntity.id,
+            platformId: result.id,
+            url: result.url,
+          },
+          message: `Published ${entityType}:${publishedEntity.id}`,
+        };
+      }
+
+      return createPublishConfirmation(
+        toolName,
+        input,
+        entity,
+        pendingConfirmationTokens,
+      );
+    },
   } as Tool<PublishOutput>;
 }
 
-async function findPublishableEntity(
-  context: ServicePluginContext,
-  entityType: string,
-  id?: string,
-  slug?: string,
-): Promise<PublishableEntity | null> {
-  if (id) {
-    return context.entityService.getEntity<PublishableEntity>({
-      entityType,
-      id,
-    });
-  }
+function createPublishConfirmation(
+  toolName: string,
+  input: PublishInput,
+  entity: BaseEntity,
+  pendingConfirmationTokens: PendingConfirmationTokens,
+): ToolResponse {
+  const confirmationToken = crypto.randomUUID();
+  pendingConfirmationTokens.add(confirmationToken);
+  const label = getEntityLabel(entity);
 
-  if (!slug) return null;
-
-  const entities = await context.entityService.listEntities<PublishableEntity>({
-    entityType,
-    options: {
-      filter: { metadata: { slug } },
-      limit: 1,
+  return {
+    needsConfirmation: true,
+    toolName,
+    summary: `Publish "${label}"?`,
+    preview: `This will publish ${entity.entityType}:${entity.id} to its registered public publish provider.`,
+    args: {
+      ...input,
+      id: entity.id,
+      slug: undefined,
+      confirmed: true,
+      confirmationToken,
+      contentHash: entity.contentHash,
     },
-  });
-  return entities[0] ?? null;
+  };
+}
+
+function getEntityLabel(entity: BaseEntity): string {
+  const title = entity.metadata["title"];
+  if (typeof title === "string" && title.length > 0) return title;
+
+  const subject = entity.metadata["subject"];
+  if (typeof subject === "string" && subject.length > 0) return subject;
+
+  const slug = entity.metadata["slug"];
+  if (typeof slug === "string" && slug.length > 0) return slug;
+
+  return entity.id;
 }

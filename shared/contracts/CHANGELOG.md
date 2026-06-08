@@ -1,5 +1,15 @@
 # @brains/contracts
 
+## 0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+## 0.2.0-alpha.109
+
+## 0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
 ## 0.2.0-alpha.106
 
 ## 0.2.0-alpha.105

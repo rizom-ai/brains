@@ -105,19 +105,80 @@ function validateCoverImageSupport(
   };
 }
 
+function parseMessageMetadata(
+  metadata: unknown,
+): Record<string, unknown> | null {
+  if (typeof metadata === "string") {
+    try {
+      const parsed = JSON.parse(metadata) as unknown;
+      return isRecord(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isRecord(metadata) ? metadata : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function isUploadRefInConversation(
+  services: SystemServices,
+  input: { kind: string; id: string },
+  conversationId: string | undefined,
+): Promise<boolean> {
+  if (!conversationId) return false;
+  const messages = await services.conversationService.getMessages(
+    conversationId,
+    { limit: 100 },
+  );
+  for (const message of messages) {
+    const metadata = parseMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      if (source["kind"] === input.kind && source["id"] === input.id) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, or from for source attachment saves.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for runtime upload promotion, or sourceAttachment for source attachment saves.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
       const content = normalizeOptionalString(input.content);
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
-      const from = input.from;
+      const uploadRef = input.upload;
+      const from: CreateInput["from"] =
+        uploadRef ??
+        (input.sourceAttachment
+          ? { kind: "entity-attachment", ...input.sourceAttachment }
+          : undefined);
+      const requestedTransform = normalizeOptionalString(input.transform);
+      if (
+        requestedTransform !== undefined &&
+        requestedTransform !== "extract-markdown"
+      ) {
+        return {
+          success: false,
+          error:
+            'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
+        };
+      }
+      const transform: CreateInput["transform"] = requestedTransform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -134,8 +195,23 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), or 'from' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (runtime upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
+
+      if (uploadRef) {
+        const hasAccess = await isUploadRefInConversation(
+          services,
+          uploadRef,
+          toolContext.conversationId ?? toolContext.channelId,
+        );
+        if (!hasAccess) {
+          return {
+            success: false,
+            error:
+              "Upload ref is not accessible in this conversation or no longer exists.",
+          };
+        }
+      }
 
       if (content && hasVisibilityFrontmatter(content)) {
         const requestedVisibility = extractVisibilityFromMarkdown(content);
@@ -159,6 +235,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         ...(content && { content }),
         ...(url && { url }),
         ...(from && { from }),
+        ...(transform && { transform }),
         ...(replace && { replace }),
         ...(targetEntityType && { targetEntityType }),
         ...(targetEntityId && { targetEntityId }),
@@ -239,7 +316,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
         };
       }
 

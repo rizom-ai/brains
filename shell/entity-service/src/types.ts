@@ -210,10 +210,20 @@ export interface CreateCoverImageInput {
 }
 
 export interface CreateFromAttachmentInput {
+  kind: "entity-attachment";
   sourceEntityType: string;
   sourceEntityId: string;
   attachmentType: string;
 }
+
+export interface CreateFromUploadInput {
+  kind: "web-chat-upload";
+  id: string;
+}
+
+export type CreateFromInput = CreateFromAttachmentInput | CreateFromUploadInput;
+
+export type CreateTransform = "extract-markdown";
 
 export interface CreateInput {
   entityType: string;
@@ -221,7 +231,8 @@ export interface CreateInput {
   title?: string;
   content?: string;
   url?: string;
-  from?: CreateFromAttachmentInput;
+  from?: CreateFromInput;
+  transform?: CreateTransform;
   replace?: boolean;
   targetEntityType?: string;
   targetEntityId?: string;

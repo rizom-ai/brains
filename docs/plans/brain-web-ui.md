@@ -213,31 +213,102 @@ filenames or MIME types; native file uploads are restricted to supported
 image/PDF MIME types with signature checks and a 5MB max.
 
 Upload refs are chat-context attachments by default. They should not become
-content entities unless the operator explicitly asks to save or import them:
-PDFs promote to `document`, images promote to `image`, and derived entities
-(such as decks generated from a PDF) should be created from an explicit user
-instruction that consumes the upload as context. Bare upload handoff must not
-create, update, or delete entities.
+content entities unless the operator explicitly asks to save or import them.
+Raw-file promotion preserves the original artifact: PDFs promote to `document`
+and images promote to `image` through explicit `system_create({ entityType:
+"document" | "image", upload: { kind: "web-chat-upload", id } })` calls.
+`system_create` validates that the upload ref appears in the current
+conversation before forwarding it to the entity plugin, and the receiving plugin
+validates media type and ref existence before persisting. Markdown
+import/extraction is a separate explicit flow: "turn this PDF into a note"
+resolves the upload, extracts text with deterministic PDF extraction in
+`@brains/document` (`pdfjs-dist`), then creates a markdown entity such as
+`base`/note using `system_create({ entityType: "base", upload, transform:
+"extract-markdown" })`. Any future LLM pass should be limited to cleanup or
+summarization after deterministic extraction. Derived entities (such as decks
+generated from a PDF) should be created from an explicit user instruction that
+consumes the upload as context. Bare upload handoff must not create, update, or
+delete entities.
 
-Follow-up turns in the same conversation can consume recent upload refs without
-forcing the operator to reattach the file. For example, after a bare image upload
-acknowledgement, "describe that picture" resolves the previous upload ref,
-attaches the stored image bytes to that model turn, and answers from the image
-content. If more than one recent upload could match the user's reference, the
-assistant asks which one. This deferred consumption remains context-only:
-describing or summarizing a prior upload must not promote it to an entity unless
-the operator also asks to save/import it.
+Follow-up turns in the same conversation should consume recent upload refs
+without forcing the operator to reattach the file. For example, after a bare
+image upload acknowledgement, "describe that picture" should resolve the
+previous upload ref, attach the stored image bytes to that model turn, and answer
+from the image content. If the operator asks to save/import/promote an uploaded
+image or PDF, the selected upload must be promoted via `system_create(...,
+upload: ...)`; the assistant must not fall back to generated image/document jobs
+from the filename or surrounding chat text.
+
+This deferred upload/attachment continuity is not a web-chat behavior. It should
+live in the shared message/agent layer so web-chat, Discord, chat-repl, Telegram,
+and future transports all resolve recent attachments the same way. Interfaces
+should remain responsible for transport-specific parsing, validation, upload
+storage routes, and converting inbound files to `ChatAttachment[]`; the shared
+agent/conversation layer should own recent attachment context, selected-upload
+continuity, and any clarification state needed before model invocation. A
+clarification answer such as "the latest one" must be resolved to a concrete
+upload ref (or re-ask) before the model sees the turn; raw selection text should
+not be allowed to trigger unrelated generation.
+
+Runtime upload storage now lives behind the shared plugin-context upload
+registry/service. Web chat scopes that service to `web-chat` and keeps the same
+`web-chat-upload` ref contract and `/api/chat/uploads` routes, while runtime
+path normalization (`brain-data` → sibling `data`) is centralized for future
+interfaces/plugins. The ref kind remains a compatibility detail for the current
+web-chat upload route; user-visible copy should say "uploaded file" or "chat
+upload", not expose implementation-specific ref names.
+
+Existing web-chat deferred reuse covers some common paths (exact filename
+references, positional references such as "the most recent image", and stored
+upload metadata after session reload), but this should be treated as an interim
+slice until the shared attachment-continuity layer replaces interface-local
+intent and disambiguation logic.
+
+Current known regression to preserve through the extraction:
+
+- Scenario: the operator uploads an image, receives the bare-upload
+  acknowledgement, then says "can you save it as an image".
+- Expected: the latest relevant uploaded image is selected as chat context and
+  the model/tool path promotes the original upload with
+  `system_create({ entityType: "image", upload: { ... } })`.
+- Forbidden: generating a new image job from the uploaded filename/title or from
+  surrounding chat text. Saving/importing/promoting an upload must never fall
+  back to prompt-based image generation when an upload ref is available or a
+  clarification is still unresolved.
+- Related clarification case: if the assistant has asked "Which upload should I
+  use?", a positional answer such as "the latest one" / "the last one" must be
+  resolved to a concrete prior upload ref (or re-ask) before model invocation.
+  Raw clarification text must not be sent to the model as a standalone request.
+- Regression proof: `brains/rover/test-cases/multi-turn/web-chat-image-upload-save-follow-up.yaml`
+  covers the save-as-image path and asserts `upload` is present and `prompt` is
+  absent on `system_create`.
+
+Extraction-first plan:
+
+1. Extract upload/attachment continuity out of `interfaces/web-chat/src/web-chat-interface.ts`.
+   The 3000+ LOC interface should not own intent regexes, candidate ordering,
+   same-conversation attachment recovery, or clarification semantics.
+2. Put transport-neutral continuity in a shared message/agent layer with focused
+   tests for candidate ordering, latest/current selection, and clarification
+   resolution.
+3. Rewire web-chat to call the shared layer while retaining only HTTP/UI upload
+   plumbing locally.
+4. After extraction, fix the regression in the shared layer and rerun the Rover
+   upload evals plus targeted interface tests.
 
 Remaining upload work:
 
-- expose runtime upload storage through a shared upload registry/service rather
-  than a web-chat-only helper;
-- harden deferred upload reuse with broader reference matching and any needed
-  cross-client/reload coverage beyond the initial single-match and ambiguous
-  multi-upload tests;
-- add an explicit promotion contract, likely `system_create({ entityType:
-"document" | "image", fromUpload: { kind: "web-chat-upload", id } })`, with
-  conversation/operator scoping so only accessible uploads can be promoted;
+- move deferred upload/attachment continuity out of `interfaces/web-chat` and
+  into a shared message/agent layer, with transport-neutral tests proving latest
+  attachment reuse, clarification resolution, and "save uploaded file" promotion
+  across interfaces;
+
+- continue hardening the explicit markdown import/extraction contract for
+  text/PDF uploads. The first slice supports
+  `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
+transform: "extract-markdown" })` and deterministic PDF extraction in
+  `@brains/document`; future work can add job-backed extraction for large PDFs
+  and optional cleanup/summarization after deterministic extraction;
 - keep upload promotion separate from generated artifact cards: generated
   artifacts stay on `data-attachment`, while uploads stay input refs until a
   user asks to promote them.

@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.106",
+  "version": "0.2.0-alpha.111",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
@@ -25,6 +25,7 @@
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
+    "@brains/atproto": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/chat": "workspace:*",

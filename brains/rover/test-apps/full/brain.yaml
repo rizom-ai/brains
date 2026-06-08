@@ -1,5 +1,6 @@
 brain: rover
 preset: full
+domain: alex.example.com
 
 plugins:
   directory-sync:
@@ -9,8 +10,3 @@ plugins:
     git:
       repo: rizom-ai/rover-test-content
       gitUrl: file:///tmp/rover-full-test-content.git
-  atproto:
-    package: "@brains/atproto"
-    config:
-      identifier: rizom-test.bsky.social
-      appPassword: ${ATPROTO_APP_PASSWORD}

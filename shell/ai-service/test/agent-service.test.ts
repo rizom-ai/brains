@@ -333,7 +333,10 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: [
-          { type: "text", text: "Describe this image" },
+          {
+            type: "text",
+            text: 'Describe this image\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; raw promotion call: system_create({ entityType: "image", upload }) and omit transform',
+          },
           {
             type: "file",
             data: imageBytes,
@@ -447,7 +450,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content:
-          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes',
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- durable-notes.md: upload { kind: "web-chat-upload", id: "upload-123" }; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })',
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,

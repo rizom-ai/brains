@@ -34,6 +34,18 @@ export interface PutRecordInput extends CreateRecordInput {
 
 export type PutRecordResult = CreateRecordResult;
 
+export interface GetRecordInput {
+  repo: string;
+  collection: string;
+  rkey: string;
+}
+
+export interface GetRecordResult {
+  uri: string;
+  cid: string;
+  value: Record<string, unknown>;
+}
+
 export interface AtprotoBlobRef {
   $type?: "blob";
   ref: { $link: string };
@@ -151,6 +163,20 @@ export class AtprotoPdsClient {
     );
 
     return parseJsonResponse<PutRecordResult>(response);
+  }
+
+  async getRecord(input: GetRecordInput): Promise<GetRecordResult> {
+    const params = new URLSearchParams({
+      repo: input.repo,
+      collection: input.collection,
+      rkey: input.rkey,
+    });
+    const response = await this.fetchFn(
+      `${this.pdsEndpoint}/xrpc/com.atproto.repo.getRecord?${params.toString()}`,
+      { method: "GET" },
+    );
+
+    return parseJsonResponse<GetRecordResult>(response);
   }
 
   async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {

@@ -150,6 +150,41 @@ describe("AtprotoPdsClient", () => {
     );
   });
 
+  it("gets records without creating an authenticated session", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: FetchLike = (input, init) => {
+      const url = String(input);
+      calls.push({ url, init });
+      return Promise.resolve(
+        jsonResponse({
+          uri: "at://did:plc:repo/ai.rizom.brain.card/self",
+          cid: "cid",
+          value: { name: "Brain", createdAt: "2026-05-28T00:00:00.000Z" },
+        }),
+      );
+    };
+
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "",
+      appPassword: "",
+      fetch: fetchMock,
+    });
+
+    const result = await client.getRecord({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.card",
+      rkey: "self",
+    });
+
+    expect(result.uri).toBe("at://did:plc:repo/ai.rizom.brain.card/self");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe(
+      "https://pds.example.com/xrpc/com.atproto.repo.getRecord?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.card&rkey=self",
+    );
+    expect(calls[0]?.init?.method).toBe("GET");
+  });
+
   it("uploads blobs with an authenticated session", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: FetchLike = (input, init) => {

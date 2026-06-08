@@ -33,6 +33,8 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
+  collectUploadRefsFromMessages,
+  resolveConversationUploadRefs,
 } from "./conversation-messages";
 import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
@@ -64,6 +66,16 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
       ? `\`${filenames[0]}\``
       : filenames.map((filename) => `\`${filename}\``).join(", ");
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
+}
+
+function hasSourceAttachmentIntent(message: string): boolean {
+  return /\b(carousel|printable|source attachment|attach(?:ed)? document|attach(?:ed)? pdf)\b/i.test(
+    message,
+  );
+}
+
+function hasUploadMarkdownTransformIntent(message: string): boolean {
+  return /\b(note|markdown|extract(?:ion)?|text)\b/i.test(message);
 }
 
 /**
@@ -395,7 +407,46 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    const modelMessage = buildMessageWithAttachments(message, attachments);
+    const uploadRefs = collectUploadRefsFromMessages(historyMessages);
+    const uploadRefResolution =
+      attachments.length === 0
+        ? resolveConversationUploadRefs(message, uploadRefs)
+        : { kind: "selected" as const, refs: uploadRefs };
+    if (uploadRefResolution.kind === "clarify") {
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(actor, source, attachments),
+        ),
+      });
+
+      const responseText = `Which uploaded file should I use? ${uploadRefResolution.refs
+        .map((ref) => `\`${ref.filename}\``)
+        .join(", ")}`;
+      await this.conversationService.addMessage({
+        conversationId,
+        role: "assistant",
+        content: responseText,
+        ...this.withMessageMetadata(
+          this.buildMessageMetadata(
+            this.getAssistantActor(),
+            this.buildAssistantSource(channelId, channelName),
+          ),
+        ),
+      });
+
+      return {
+        text: responseText,
+        toolResults: [],
+        usage: emptyUsage,
+      };
+    }
+
+    const modelMessage = buildMessageWithAttachments(message, attachments, {
+      uploadRefs: uploadRefResolution.refs,
+    });
     const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
@@ -426,6 +477,16 @@ export class AgentService implements IAgentService {
       channelId,
       channelName,
       interfaceType,
+      ...(attachments.some((attachment) => attachment.source !== undefined) ||
+      uploadRefResolution.refs.length > 0
+        ? { enableCreateUpload: true }
+        : {}),
+      ...(hasUploadMarkdownTransformIntent(message)
+        ? { enableCreateTransform: true }
+        : {}),
+      ...(hasSourceAttachmentIntent(message)
+        ? { enableCreateSourceAttachment: true }
+        : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 
@@ -544,6 +605,7 @@ export class AgentService implements IAgentService {
     const context: ToolContext = {
       interfaceType,
       userId: "agent-user",
+      conversationId,
       channelId,
       channelName,
       userPermissionLevel,

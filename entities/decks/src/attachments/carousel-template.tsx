@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { useMarkdownToHtml } from "@brains/ui-library";
+import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
 import { z } from "@brains/utils";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
@@ -29,33 +29,6 @@ export const deckCarouselTemplate: MediaPageTemplate = {
     pdf: renderDeckCarouselPdf,
   },
 };
-
-interface WordmarkParts {
-  primary: string;
-  secondary: string | undefined;
-}
-
-// Split a brand label into the editorial masthead pattern `<primary>.<secondary>`
-// matching the rizom.ai wordmark. Prefers an existing dot ("rizom.ai"), falls back
-// to first-space ("Alex Chen" → "alex.chen"), or single-part when neither.
-function splitWordmark(label: string): WordmarkParts {
-  const trimmed = label.trim();
-  const dot = trimmed.lastIndexOf(".");
-  if (dot > 0 && dot < trimmed.length - 1) {
-    return {
-      primary: trimmed.slice(0, dot).toLowerCase(),
-      secondary: trimmed.slice(dot + 1).toLowerCase(),
-    };
-  }
-  const space = trimmed.indexOf(" ");
-  if (space > 0) {
-    return {
-      primary: trimmed.slice(0, space).toLowerCase(),
-      secondary: trimmed.slice(space + 1).toLowerCase(),
-    };
-  }
-  return { primary: trimmed.toLowerCase(), secondary: undefined };
-}
 
 function renderDeckCarouselPdf(props: Record<string, unknown>): JSX.Element {
   const { title, brandLabel, eyebrow, slides } =

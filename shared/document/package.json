@@ -1,6 +1,6 @@
 {
   "name": "@brains/document",
-  "version": "0.2.0-alpha.106",
+  "version": "0.2.0-alpha.111",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@brains/entity-service": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "pdfjs-dist": "^5.4.394"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

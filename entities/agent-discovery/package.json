@@ -1,7 +1,7 @@
 {
   "name": "@brains/agent-discovery",
   "private": true,
-  "version": "0.2.0-alpha.106",
+  "version": "0.2.0-alpha.111",
   "description": "Agent discovery — brain+anchor contacts and skills",
   "type": "module",
   "exports": {
@@ -14,6 +14,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/dashboard": "workspace:*",

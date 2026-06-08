@@ -1,0 +1,59 @@
+id: rover-publishing-no-create-on-make-one-draft
+name: Do not create a new post for ambiguous make-one-draft follow-up
+description: >-
+  Regression for a publish-flow conversation where the user asks whether draft
+  posts exist, then says "make one draft". The agent must not create a fresh
+  draft post; it should resolve or ask which existing published post to change.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - rover
+  - publishing
+  - follow-up-targeting
+  - regression
+
+turns:
+  - userMessage: >-
+      Do I have any draft blog posts?
+    successCriteria:
+      expectedTools:
+        - toolName: system_list
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            status: draft
+
+  - userMessage: >-
+      Can you make one draft?
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+        - toolName: system_update
+          shouldBeCalled: false
+      responseNotContains:
+        - "started creating a new draft post"
+        - "started a new draft"
+        - "fresh one"
+        - "untitled-draft-post"
+        - "need to create a new draft post"
+        - "need to create"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "started creating a new draft post"
+    - "started a new draft"
+    - "fresh one"
+    - "untitled-draft-post"
+    - "need to create a new draft post"
+    - "need to create"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

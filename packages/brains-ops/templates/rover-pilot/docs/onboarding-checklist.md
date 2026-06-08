@@ -13,6 +13,7 @@
    - the command creates `users/<handle>.yaml`, `users/<handle>.secrets.yaml`, and the cohort membership without duplicating existing entries.
 5. Edit the generated user file if the anchor profile needs richer metadata.
    - For browser/CMS-first onboarding, add `setup.delivery: email` and `setup.email` to the user file.
+   - For ATProto publishing, add `atproto.identifier` to the user file; put only `atprotoAppPassword` in the per-user secrets file.
    - Ensure `SETUP_EMAIL_API_KEY` and `SETUP_EMAIL_FROM` exist as GitHub Secrets before deploying any email-setup user.
 6. Run `bunx brains-ops render <repo>`.
 7. Run `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`.

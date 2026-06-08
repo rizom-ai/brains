@@ -27,7 +27,11 @@ import type {
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
-import type { AttachmentRegistry, PluginManager } from "@brains/plugins";
+import type {
+  AttachmentRegistry,
+  PluginManager,
+  RuntimeUploadRegistry,
+} from "@brains/plugins";
 import type { IJobProgressMonitor, Logger } from "@brains/utils";
 
 export interface ShellServices {
@@ -56,6 +60,7 @@ export interface ShellServices {
   canonicalIdentityService: CanonicalIdentityService;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
+  runtimeUploadRegistry: RuntimeUploadRegistry;
 }
 
 export interface ShellDependencies {
@@ -79,4 +84,5 @@ export interface ShellDependencies {
   templateRegistry?: TemplateRegistry;
   dataSourceRegistry?: DataSourceRegistry;
   attachmentRegistry?: AttachmentRegistry;
+  runtimeUploadRegistry?: RuntimeUploadRegistry;
 }

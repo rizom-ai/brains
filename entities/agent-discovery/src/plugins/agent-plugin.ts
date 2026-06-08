@@ -14,6 +14,7 @@ import { AgentDataSource } from "../datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "../handlers/agent-generation-handler";
 import { interceptAgentUrlCreate } from "../lib/agent-create-interceptor";
 import { registerAgentNetworkDashboardWidget } from "../lib/agent-dashboard";
+import { registerAtprotoBrainCardHandlers } from "../lib/atproto-card-events";
 import { AGENT_DISCOVERY_PLUGIN_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { getAgentDiscoveryInstructions } from "../lib/agent-instructions";
 import { getTemplates } from "../lib/register-templates";
@@ -59,6 +60,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    registerAtprotoBrainCardHandlers(context);
     registerAgentNetworkDashboardWidget(context, this.id);
   }
 

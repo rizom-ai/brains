@@ -150,6 +150,38 @@ discord:
     });
   });
 
+  it("loads user-level ATProto identifier metadata", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.14
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: default
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/smoke.yaml": `handle: smoke
+atproto:
+  identifier: rizom-test.bsky.social
+discord:
+  enabled: false
+`,
+      "cohorts/smoke.yaml": `members:
+  - smoke
+`,
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.users[0]?.atproto).toEqual({
+      identifier: "rizom-test.bsky.social",
+    });
+  });
+
   it("fails when user belongs to no cohort", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1

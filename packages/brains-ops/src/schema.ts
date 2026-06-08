@@ -56,6 +56,12 @@ const setupDeliverySchema = z
   })
   .strict();
 
+const atprotoSchema = z
+  .object({
+    identifier: z.string().min(1),
+  })
+  .strict();
+
 export const userSchema = z
   .object({
     handle: handleSchema,
@@ -68,6 +74,7 @@ export const userSchema = z
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
     setup: setupDeliverySchema.optional(),
+    atproto: atprotoSchema.optional(),
     anchorProfile: anchorProfileSchema.optional(),
   })
   .strict();

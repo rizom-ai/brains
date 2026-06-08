@@ -2,13 +2,14 @@
 
 ## Status
 
-Parked. No desktop/Electrobun interface exists yet; keep as the native-app direction after build/runtime and local-AI constraints are clearer.
+Parked. No desktop/Electrobun interface exists yet; keep as the native-app direction after build/runtime and local-AI constraints are clearer. The plan covers two modes — **local** (brain runs inside Electrobun) and **remote** (Electrobun is a pure UI client talking over HTTP to a brain hosted elsewhere).
 
 ## Context
 
-The brain is a Bun process. Electrobun's main process runs on Bun. These are the same thing — the brain _is_ the Electrobun main process. No server, no Docker, no deployment. Just a desktop app.
+Two deployment shapes share one app:
 
-Replaces the standalone binary plan with something strictly better: the binary plus a native control panel with CMS.
+- **Local mode.** The brain is a Bun process. Electrobun's main process runs on Bun. These are the same thing — the brain _is_ the Electrobun main process. No server, no Docker, no deployment. Just a desktop app. This is the primary shape and replaces the standalone binary plan with something strictly better: the binary plus a native control panel with CMS.
+- **Remote mode.** The Electrobun process runs the UI only and connects over HTTP to a brain hosted elsewhere (hosted Rover, self-hosted server, or another machine on the LAN). The UI surfaces are the same; the back end is remote.
 
 ## Presets and Interfaces Are Orthogonal
 
@@ -32,11 +33,15 @@ Presets control **what the brain can do** (plugins). Interfaces control **how yo
 ### Typical combinations
 
 ```yaml
-# Desktop app — minimal brain with native UI
+# Desktop app, local mode — minimal brain with native UI
 preset: core
 
-# Desktop app — full brain
+# Desktop app, local mode — full brain
 preset: full
+
+# Desktop app, remote mode — UI only, talks to a remote brain
+remote:
+  url: https://brain.example.com
 
 # Headless CLI — servers, automation
 preset: core
@@ -47,7 +52,9 @@ preset: full
 domain: yeehaa.io
 ```
 
-## Architecture
+In remote mode `preset` and plugin config are omitted; the local app runs no plugins. The presence of `remote.url` selects remote mode at startup. Mixing `preset` and `remote` in the same `brain.yaml` is a config-time error.
+
+## Architecture — local mode
 
 ```
 Electrobun App (~12MB)
@@ -63,9 +70,55 @@ Electrobun App (~12MB)
       └── Chat — talk to brain without external client
 ```
 
-## CMS in the Desktop App
+## Architecture — remote mode
 
-Currently CMS requires a deployed webserver + GitHub OAuth. In the desktop app, CMS works directly against the local brain-data directory — no OAuth, no server, no deploy.
+```
+Electrobun App (~12MB)
+  ├── Main process (Bun) = UI shell only
+  │   ├── HTTP client to https://<brain-host>
+  │   ├── Operator session cookie (passkey-issued)
+  │   └── No shell, no plugins, no MCP stdio
+  └── Native UI (system webview)
+      ├── Tray icon — remote reachability + last sync
+      ├── Dashboard — reads /dashboard/* on the remote brain
+      ├── Config — reads remote config; write support is self-host only
+      ├── CMS — Sveltia against the remote brain's /cms route
+      └── Chat — the remote brain's existing web-chat surface
+```
+
+### How startup picks a mode
+
+`brain.yaml` at the platform-standard path decides:
+
+- `preset: ...` (with optional plugin config) → **local mode**.
+- `remote: { url: ... }` and no `preset` → **remote mode**.
+
+Mode is fixed for the lifetime of the process. Switching modes means editing `brain.yaml` and restarting.
+
+### What changes per UI surface
+
+| Surface   | Local mode                                 | Remote mode                                                                                            |
+| --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Dashboard | RPC into local shell                       | HTTP to `/dashboard/*` on the remote brain                                                             |
+| Chat      | Native chat via local agent service        | Reuses the remote brain's web-chat surface (`brain-web-ui.md`)                                         |
+| CMS       | Sveltia against local brain-data, no OAuth | Sveltia against the remote brain's `/cms` route, using whatever CMS login the remote brain has enabled |
+| Config    | Reads/writes local `brain.yaml`            | Reads remote config; write support is restricted to self-hosted brains and may be deferred             |
+| Tray icon | Local process health, start/stop           | Remote reachability + last sync status                                                                 |
+
+### Auth (remote mode)
+
+Reuse `shell/auth-service` passkey login. On first connect, the webview navigates to `https://<brain-host>/login`, completes the passkey assertion, and stores the operator session cookie. All subsequent dashboard/chat/CMS calls reuse that cookie. No separate desktop-only credential — revoking the operator session on the remote brain revokes the desktop app.
+
+### Non-goals (remote mode)
+
+- Editing remote `brain.yaml` for hosted Rover users. Self-hosted may be considered later.
+- Running plugins or MCP stdio locally while connected to a remote brain.
+- Multiple simultaneous remote connections in one app instance.
+- Offline edits that sync back when reconnected.
+
+## CMS in the Desktop App (local mode)
+
+Currently CMS requires a deployed webserver + GitHub OAuth. In local mode, CMS works directly against the local brain-data directory — no OAuth, no server, no deploy. Remote mode does not get this trick: it routes through the remote brain's existing `/cms` and that brain's configured CMS login.
 
 Sveltia CMS is a client-side SPA. Point it at the local git repo instead of the GitHub API and it runs entirely offline. The Electrobun webview loads the CMS, the brain watches for file changes via directory-sync.
 
@@ -142,13 +195,15 @@ Electrobun differential updates (bsdiff — as small as 14KB). Brain-data stays 
 
 ## Relationship to Other Plans
 
-| Plan              | Relationship                                                    |
-| ----------------- | --------------------------------------------------------------- |
-| Standalone binary | **Replaced** — Electrobun is the binary + UI + CMS              |
-| Media sidecar     | Still needed — ONNX/Sharp in separate process                   |
-| Chat SDK          | Complements — Chat SDK for Discord/Slack, Electrobun for native |
-| Kamal deploy      | Web tier only                                                   |
-| Hosted rovers     | K8s, headless — no Electrobun                                   |
+| Plan              | Relationship                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Standalone binary | **Replaced** — Electrobun is the binary + UI + CMS                                                                |
+| Media sidecar     | Still needed in local mode — ONNX/Sharp in separate process                                                       |
+| Chat SDK          | Complements — Chat SDK for Discord/Slack, Electrobun for native                                                   |
+| Kamal deploy      | Web tier only                                                                                                     |
+| Hosted rovers     | Headless backend; Electrobun in **remote mode** is one possible native client for them, no local plugins required |
+| Brain web chat    | Remote-mode chat reuses that surface end-to-end; no native chat client built on top                               |
+| Hosted CMS App    | Remote-mode CMS login on hosted Rover routes through the GitHub App installation tokens plan                      |
 
 ## Prerequisites
 
@@ -198,7 +253,17 @@ Electrobun differential updates (bsdiff — as small as 14KB). Brain-data stays 
 2. Auto-update via differential patches
 3. First-run wizard (name, bio → brain.yaml + seed identity)
 
+### Phase 7: Remote mode
+
+1. `brain.yaml` accepts `remote: { url }` and selects mode at startup.
+2. Webview-driven passkey login persists the operator session cookie.
+3. Dashboard, Chat, and CMS surfaces switch their backend per mode.
+4. Tray icon reports remote reachability and last sync.
+5. Config is read-only in remote mode for the first cut; self-hosted write support deferred.
+
 ## Verification
+
+Local mode:
 
 1. `./rover` runs headless with MCP stdio
 2. App shows tray icon, brain starts in background
@@ -210,3 +275,11 @@ Electrobun differential updates (bsdiff — as small as 14KB). Brain-data stays 
 8. MCP stdio works alongside native UI
 9. Any preset works with or without Electrobun
 10. App binary < 50MB
+
+Remote mode:
+
+11. `brain.yaml` with `remote: { url }` boots the app without starting a local brain runtime.
+12. First connect prompts passkey login in the webview against the remote brain; subsequent launches reuse the session cookie.
+13. Dashboard, Chat, and CMS work end-to-end against a hosted Rover and a self-hosted brain.
+14. Revoking the operator session on the remote brain immediately invalidates the desktop app's access.
+15. Mixing `preset` and `remote` in `brain.yaml` is rejected at startup with a clear error.

@@ -7,12 +7,16 @@
 
 import type { PublishProvider } from "@brains/contracts";
 import { InternalPublishProvider } from "./types/provider";
+import type { PublishConfig, PublishExecutionMode } from "./types/config";
 
 export class ProviderRegistry {
   private static instance: ProviderRegistry | null = null;
 
   // Map of entityType -> provider
   private providers: Map<string, PublishProvider> = new Map();
+  private executionModes: Map<string, PublishExecutionMode> = new Map();
+  private publishResultIdFields: Map<string, string> = new Map();
+  private publishTimestampFields: Map<string, string> = new Map();
 
   // Default provider for internal publishing (blog, decks, etc.)
   private defaultProvider: PublishProvider = new InternalPublishProvider();
@@ -51,7 +55,14 @@ export class ProviderRegistry {
    * explicit external provider that is already registered for the same entity
    * type, but any explicit provider may replace an internal fallback.
    */
-  public register(entityType: string, provider: PublishProvider): void {
+  public register(
+    entityType: string,
+    provider: PublishProvider,
+    config?: Pick<
+      PublishConfig,
+      "executionMode" | "publishResultIdField" | "publishTimestampField"
+    >,
+  ): void {
     const existingProvider = this.providers.get(entityType);
     if (
       existingProvider &&
@@ -62,6 +73,19 @@ export class ProviderRegistry {
     }
 
     this.providers.set(entityType, provider);
+    this.executionModes.set(entityType, config?.executionMode ?? "provider");
+
+    if (config?.publishResultIdField) {
+      this.publishResultIdFields.set(entityType, config.publishResultIdField);
+    } else {
+      this.publishResultIdFields.delete(entityType);
+    }
+
+    if (config?.publishTimestampField) {
+      this.publishTimestampFields.set(entityType, config.publishTimestampField);
+    } else {
+      this.publishTimestampFields.delete(entityType);
+    }
   }
 
   /**
@@ -70,6 +94,27 @@ export class ProviderRegistry {
    */
   public get(entityType: string): PublishProvider {
     return this.providers.get(entityType) ?? this.defaultProvider;
+  }
+
+  /**
+   * Get how an entity type should be published.
+   */
+  public getExecutionMode(entityType: string): PublishExecutionMode {
+    return this.executionModes.get(entityType) ?? "provider";
+  }
+
+  /**
+   * Get the optional field for provider result IDs.
+   */
+  public getPublishResultIdField(entityType: string): string | undefined {
+    return this.publishResultIdFields.get(entityType);
+  }
+
+  /**
+   * Get the optional field for publish timestamps.
+   */
+  public getPublishTimestampField(entityType: string): string | undefined {
+    return this.publishTimestampFields.get(entityType);
   }
 
   /**
@@ -84,6 +129,9 @@ export class ProviderRegistry {
    */
   public unregister(entityType: string): void {
     this.providers.delete(entityType);
+    this.executionModes.delete(entityType);
+    this.publishResultIdFields.delete(entityType);
+    this.publishTimestampFields.delete(entityType);
   }
 
   /**

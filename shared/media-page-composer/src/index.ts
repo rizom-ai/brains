@@ -3,6 +3,8 @@ export {
   startStaticRenderServer,
   writeMediaRenderPage,
 } from "./media-render-page";
+export { renderOgImagePng } from "./og-image";
+export type { RenderOgImagePngOptions, ScreenshotPng } from "./og-image";
 export type {
   MediaPageRenderer,
   MediaPageTemplate,

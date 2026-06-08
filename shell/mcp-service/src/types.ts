@@ -25,6 +25,7 @@ export interface ToolContext {
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId: string; // User who invoked the tool
+  conversationId?: string; // Conversation/session context for conversation-scoped tools
   channelId?: string; // Channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
   /** Caller's permission level. Tools that read/write entities use this to derive
@@ -39,6 +40,7 @@ export interface ToolContext {
 export const ToolContextRoutingSchema = z.object({
   interfaceType: z.string(),
   userId: z.string(),
+  conversationId: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]).optional(),

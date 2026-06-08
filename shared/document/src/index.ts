@@ -20,3 +20,4 @@ export {
   parseDocumentDataUrl,
   type ParsedDocumentDataUrl,
 } from "./lib/document-utils";
+export { extractPdfMarkdown } from "./lib/pdf-markdown";

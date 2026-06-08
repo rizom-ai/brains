@@ -1,6 +1,6 @@
 {
   "name": "@brains/media-page-composer",
-  "version": "0.2.0-alpha.106",
+  "version": "0.2.0-alpha.111",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -17,6 +17,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/media-renderer": "workspace:*",
     "@brains/site-engine": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",

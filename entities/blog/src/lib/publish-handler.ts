@@ -6,10 +6,10 @@ import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import { blogPostAdapter } from "../adapters/blog-post-adapter";
 
-export async function registerWithPublishPipeline(
+export function registerWithPublishPipeline(
   context: EntityPluginContext,
   logger: Logger,
-): Promise<void> {
+): void {
   const internalProvider = {
     name: "internal",
     publish: async (): Promise<{ id: string }> => {
@@ -17,15 +17,19 @@ export async function registerWithPublishPipeline(
     },
   };
 
-  await context.messaging.send({
-    type: "publish:register",
-    payload: {
-      entityType: "post",
-      provider: internalProvider,
-    },
-  });
+  context.messaging.subscribe("system:plugins:ready", async () => {
+    await context.messaging.send({
+      type: "publish:register",
+      payload: {
+        entityType: "post",
+        provider: internalProvider,
+        config: { executionMode: "provider" },
+      },
+    });
 
-  logger.info("Registered post with publish-pipeline");
+    logger.info("Registered post with publish-pipeline");
+    return { success: true };
+  });
 }
 
 export function subscribeToPublishExecute(

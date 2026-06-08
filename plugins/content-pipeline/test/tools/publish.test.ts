@@ -35,6 +35,19 @@ function createMockProvider(name: string): PublishProvider {
   };
 }
 
+async function runConfirmedPublish(
+  tool: ReturnType<typeof createPublishTool>,
+  input: Record<string, unknown>,
+  context: ToolContext = createMockToolContext(),
+): Promise<Awaited<ReturnType<typeof tool.handler>>> {
+  const confirmation = await tool.handler(input, context);
+  expect(confirmation).toHaveProperty("needsConfirmation", true);
+  if (!("needsConfirmation" in confirmation)) {
+    throw new Error("Expected publish confirmation");
+  }
+  return tool.handler(confirmation.args, context);
+}
+
 describe("Publish Pipeline - Publish Tool", () => {
   let context: ServicePluginContext;
   let logger: Logger;
@@ -218,16 +231,27 @@ describe("Publish Pipeline - Publish Tool", () => {
       });
     });
 
-    it("should publish using registered provider", async () => {
+    it("requires confirmation before publishing with registered provider", async () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await tool.handler(
+      const confirmation = await tool.handler(
         { entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
+      expect(confirmation).toHaveProperty("needsConfirmation", true);
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
+      if (!("needsConfirmation" in confirmation)) {
+        throw new Error("Expected publish confirmation");
+      }
+      expect(confirmation.summary).toBe('Publish "draft-post"?');
+
+      const result = await tool.handler(
+        confirmation.args,
+        createMockToolContext(),
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toHaveProperty("platformId", "linkedin-post-123");
@@ -301,10 +325,10 @@ describe("Publish Pipeline - Publish Tool", () => {
       providerRegistry.register("social-post", linkedinProvider);
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await tool.handler(
-        { entityType: "social-post", slug: "draft-post" },
-        createMockToolContext(),
-      );
+      const result = await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        slug: "draft-post",
+      });
 
       expect(result.success).toBe(true);
       expect(linkedinProvider.publish).toHaveBeenCalled();
@@ -315,10 +339,10 @@ describe("Publish Pipeline - Publish Tool", () => {
       providerRegistry.register("social-post", linkedinProvider);
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
-        createMockToolContext(),
-      );
+      await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        id: "draft-post",
+      });
 
       // Verify entity was updated
       const updated = await context.entityService.getEntity({
@@ -355,10 +379,10 @@ This is the actual post content.`,
       });
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      await tool.handler(
-        { entityType: "social-post", id: "frontmatter-post" },
-        createMockToolContext(),
-      );
+      await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        id: "frontmatter-post",
+      });
 
       // Verify provider received only the body content, not frontmatter
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
@@ -407,10 +431,10 @@ Post content with an image.`,
       });
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      await tool.handler(
-        { entityType: "social-post", id: "post-with-image" },
-        createMockToolContext(),
-      );
+      await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        id: "post-with-image",
+      });
 
       // Verify provider received image data
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
@@ -449,10 +473,10 @@ Post content without image.`,
       });
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await tool.handler(
-        { entityType: "social-post", id: "post-missing-image" },
-        createMockToolContext(),
-      );
+      const result = await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        id: "post-missing-image",
+      });
 
       // Should still succeed, just without image
       expect(result.success).toBe(true);
@@ -486,10 +510,10 @@ Post content without image.`,
       });
 
       const tool = createPublishTool(context, pluginId, providerRegistry);
-      const result = await tool.handler(
-        { entityType: "social-post", id: "test-post" },
-        createMockToolContext(),
-      );
+      const result = await runConfirmedPublish(tool, {
+        entityType: "social-post",
+        id: "test-post",
+      });
 
       expect(result.success).toBe(false);
       if (!result.success) {

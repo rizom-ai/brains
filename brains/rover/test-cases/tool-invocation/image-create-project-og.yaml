@@ -1,0 +1,32 @@
+id: tool-invocation-image-create-project-og
+name: Generate Project OG Image
+description: "Verifies system_create renders a project OG/social preview image and targets ogImageId"
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - portfolio
+  - image
+  - media
+  - og-image
+
+turns:
+  - userMessage: "Generate an OG image for project 'city-pulse'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "image"
+        targetEntityType: "project"
+        targetEntityId: "city-pulse"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

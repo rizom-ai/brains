@@ -28,6 +28,7 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
 function parseMessageMetadata(
   metadata: Message["metadata"],
 ): Record<string, unknown> | null {
+  if (isRecord(metadata)) return metadata;
   if (typeof metadata !== "string") return null;
   try {
     const parsed = JSON.parse(metadata) as unknown;
@@ -51,15 +52,91 @@ export function buildModelMessages(
   ];
 }
 
+export interface ConversationUploadRef {
+  filename: string;
+  mediaType: string;
+  source: {
+    kind: string;
+    id: string;
+  };
+}
+
+export function collectUploadRefsFromMessages(
+  messages: Message[],
+): ConversationUploadRef[] {
+  const refs: ConversationUploadRef[] = [];
+  const seen = new Set<string>();
+  for (const message of messages) {
+    const metadata = parseMessageMetadata(message.metadata);
+    const attachments = metadata?.["attachments"];
+    if (!Array.isArray(attachments)) continue;
+    for (const attachment of attachments) {
+      if (!isRecord(attachment)) continue;
+      const source = attachment["source"];
+      if (!isRecord(source)) continue;
+      const kind = source["kind"];
+      const id = source["id"];
+      const filename = attachment["filename"];
+      const mediaType = attachment["mediaType"];
+      if (
+        typeof kind !== "string" ||
+        typeof id !== "string" ||
+        typeof filename !== "string" ||
+        typeof mediaType !== "string"
+      ) {
+        continue;
+      }
+      const key = `${kind}:${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      refs.push({ filename, mediaType, source: { kind, id } });
+    }
+  }
+  return refs;
+}
+
+export type ConversationUploadRefResolution =
+  | { kind: "selected"; refs: ConversationUploadRef[] }
+  | { kind: "clarify"; refs: ConversationUploadRef[] };
+
+export function resolveConversationUploadRefs(
+  message: string,
+  uploadRefs: ConversationUploadRef[],
+): ConversationUploadRefResolution {
+  if (uploadRefs.length <= 1) {
+    return { kind: "selected", refs: uploadRefs };
+  }
+
+  const normalized = message.toLowerCase();
+  const named = uploadRefs.filter((ref) =>
+    normalized.includes(ref.filename.toLowerCase()),
+  );
+  if (named.length > 0) return { kind: "selected", refs: named };
+
+  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
+    return { kind: "selected", refs: uploadRefs.slice(0, 1) };
+  }
+  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
+    return { kind: "selected", refs: uploadRefs.slice(-1) };
+  }
+
+  return { kind: "clarify", refs: uploadRefs };
+}
+
 export function buildMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
+  options: { uploadRefs?: ConversationUploadRef[] } = {},
 ): UserContent {
   const nativeAttachments = attachments ?? [];
   const textAttachments = nativeAttachments
     .filter((attachment) => attachment.kind === "text")
     .map(formatTextAttachment);
-  const text = [message, ...textAttachments]
+  const text = [
+    message,
+    ...textAttachments,
+    formatUploadRefs(nativeAttachments, options.uploadRefs ?? []),
+  ]
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
     .join("\n\n");
@@ -84,6 +161,51 @@ function formatTextAttachment(
   attachment: Extract<ChatAttachment, { kind: "text" }>,
 ): string {
   return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
+}
+
+function formatUploadRefs(
+  attachments: ChatAttachment[],
+  uploadRefs: ConversationUploadRef[],
+): string {
+  const refs = [
+    ...uploadRefs,
+    ...attachments.flatMap((attachment) =>
+      attachment.source === undefined
+        ? []
+        : [
+            {
+              filename: attachment.filename,
+              mediaType: attachment.mediaType,
+              source: attachment.source,
+            },
+          ],
+    ),
+  ];
+  const seen = new Set<string>();
+  const lines = refs.flatMap((ref) => {
+    const key = `${ref.source.kind}:${ref.source.id}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }${formatUploadRefUsage(ref.mediaType)}`,
+    ];
+  });
+  return lines.length > 0
+    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
+    : "";
+}
+
+function formatUploadRefUsage(mediaType: string): string {
+  if (mediaType === "application/pdf") {
+    return '; raw promotion call: system_create({ entityType: "document", upload }) and omit transform';
+  }
+  if (mediaType.startsWith("image/")) {
+    return '; raw promotion call: system_create({ entityType: "image", upload }) and omit transform';
+  }
+  if (mediaType.startsWith("text/") || mediaType === "application/json") {
+    return '; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })';
+  }
+  return "";
 }
 
 export function buildAgentContextInstructions(

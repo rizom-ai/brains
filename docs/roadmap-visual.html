@@ -620,8 +620,8 @@
         {
           id: "passkey_onboarding",
           name: "Passkey/operator onboarding",
-          status: "medium-term",
-          desc: "First-passkey setup URL exists; remaining work is generic operator notification bridge and Discord delivery to configured anchors. Production-grade onboarding ultimately depends on the auth/runtime DB for durable credential storage.",
+          status: "completed",
+          desc: "First-passkey setup, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have shipped. Discord DM delivery can return later as a channel-specific enhancement if hosted onboarding needs it.",
           deps: ["operability", "auth_runtime"],
         },
         {
@@ -651,7 +651,7 @@
           id: "rover_hardening",
           name: "Rover hardening (parallel track)",
           status: "short-term",
-          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Three sub-tracks: (1) primary — bundled web chat UI so a new user can actually try Rover in a browser without CLI/Discord/MCP setup; (2) planned media/OG follow-through — durable attachment generation, OG image substrate; (3) reactive user-testing friction — single capture channel, frequency × severity, small ships, setup/first-run weighted.",
+          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Bundled web chat is now the primary 'try Rover' path; media/OG follow-through has landed; remaining hardening should come from user-testing friction ranked by frequency × severity.",
           deps: ["pdf_carousel", "rover_standalone"],
         },
         {
@@ -671,8 +671,8 @@
         {
           id: "distribution_layers",
           name: "Distribution/discovery layers",
-          status: "long-term",
-          desc: "AT Protocol and similar distribution/discovery layers are parked until they clearly support the shared Relay/Rover ecosystem story.",
+          status: "medium-term",
+          desc: "AT Protocol is active: outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.",
         },
 
         // Framework sustainability — split between concrete cleanup (scheduled

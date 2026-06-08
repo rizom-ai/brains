@@ -30,6 +30,9 @@ successCriteria:
         entityType: social-post
       argsAbsent:
         - prompt
+        - upload
+        - sourceAttachment
+        - from
   toolCountRange:
     min: 1
   responseNotContains:

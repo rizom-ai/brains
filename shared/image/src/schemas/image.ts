@@ -26,6 +26,10 @@ export const imageMetadataSchema = z.object({
   width: z.number(),
   height: z.number(),
   sourceUrl: z.string().url().optional(),
+  sourceEntityType: z.string().optional(),
+  sourceEntityId: z.string().optional(),
+  attachmentType: z.string().optional(),
+  dedupKey: z.string().optional(),
 });
 
 export type ImageMetadata = z.infer<typeof imageMetadataSchema>;

@@ -6,6 +6,7 @@ import type {
   MessageSendRequest,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import type { PublishMediaData } from "@brains/contracts";
 import {
   createMockEntityService,
   type MockEntityServiceReturns,
@@ -38,6 +39,7 @@ export interface MockEntityPluginContextOptions {
     entityService?: MockEntityServiceReturns;
     ai?: MockAIReturns;
     jobsEnqueue?: string;
+    attachmentsResolve?: () => Promise<PublishMediaData | undefined>;
     messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
   };
   listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
@@ -151,6 +153,16 @@ export function createMockEntityPluginContext(
       getActiveJobs: mock(() => Promise.resolve([])),
       getActiveBatches: mock(() => Promise.resolve([])),
       getBatchStatus: mock(() => Promise.resolve(null)),
+    },
+
+    attachments: {
+      register: mock(() => () => {}),
+      resolve: mock(
+        returns.attachmentsResolve ??
+          ((): Promise<PublishMediaData | undefined> =>
+            Promise.resolve(undefined)),
+      ),
+      hasProvider: mock(() => returns.attachmentsResolve !== undefined),
     },
 
     eval: {

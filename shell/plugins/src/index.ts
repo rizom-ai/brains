@@ -45,6 +45,25 @@ export {
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,
 } from "./service/attachment-registry";
+export {
+  RuntimeUploadRegistry,
+  RuntimeUploadStore,
+  RuntimeUploadStoreError,
+  createRuntimeUploadsNamespace,
+  normalizeRuntimeUploadDataDir,
+  runtimeUploadIdPattern,
+  defaultRuntimeUploadRetentionMs,
+  defaultRuntimeUploadMaxCount,
+  type IRuntimeUploadsNamespace,
+  type ResolvedRuntimeUpload,
+  type RuntimeUploadRecord,
+  type RuntimeUploadRef,
+  type RuntimeUploadResponseBody,
+  type RuntimeUploadScopeOptions,
+  type RuntimeUploadStoreErrorCode,
+  type RuntimeUploadStoreOptions,
+  type SaveRuntimeUploadInput,
+} from "./service/upload-registry";
 export type {
   BasePluginContext,
   IMessagingNamespace,
@@ -123,6 +142,9 @@ export {
 export type {
   BaseEntity,
   CreateCoverImageInput,
+  CreateFromAttachmentInput,
+  CreateFromInput,
+  CreateFromUploadInput,
   CreateInput,
   CreateExecutionContext,
   CreateResult,

@@ -1,5 +1,23 @@
 # @brains/ops
 
+## 0.2.0-alpha.111
+
+## 0.2.0-alpha.110
+
+### Patch Changes
+
+- [`057b63b`](https://github.com/rizom-ai/brains/commit/057b63be6f8fdd65611f85049b09705e7ac725d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Merge existing encrypted per-user secrets during `brains-ops secrets:encrypt` so adding a new secret no longer requires re-entering unchanged secret values such as an existing Discord bot token.
+
+## 0.2.0-alpha.109
+
+### Patch Changes
+
+- [`b2c3550`](https://github.com/rizom-ai/brains/commit/b2c355029c06de6368e70d1832be39c084a276a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release ATProto smoke credential wiring after the previous alpha version bump: Rover reads the app password from `ATPROTO_APP_PASSWORD`, rover-pilot user config owns the public ATProto identifier, and ops encrypts/deploys only the per-user ATProto app password.
+
+## 0.2.0-alpha.108
+
+## 0.2.0-alpha.107
+
 ## 0.2.0-alpha.106
 
 ## 0.2.0-alpha.105

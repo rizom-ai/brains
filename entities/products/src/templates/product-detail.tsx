@@ -30,7 +30,11 @@ export const ProductDetailTemplate = ({
 
   return (
     <>
-      <Head title={frontmatter.name} description={body.tagline} />
+      <Head
+        title={frontmatter.name}
+        description={body.tagline}
+        {...(product.ogImageUrl && { ogImage: product.ogImageUrl })}
+      />
 
       {/* Hero — compact dark panel with accent stroke detail */}
       <header className="relative w-full bg-brand-dark overflow-hidden">
