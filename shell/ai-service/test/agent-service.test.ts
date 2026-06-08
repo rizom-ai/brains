@@ -335,7 +335,7 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: 'Describe this image\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; raw promotion call: system_create({ entityType: "image", upload }) and omit transform',
+            text: 'Describe this image\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; mediaType: image/png',
           },
           {
             type: "file",
@@ -365,8 +365,7 @@ describe("AgentService", () => {
       );
     });
 
-    it("resolves prior upload refs into native file attachments before model invocation", async () => {
-      const imageBytes = new Uint8Array([137, 80, 78, 71]);
+    it("passes prior upload refs to the model without selecting or hydrating files", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -381,7 +380,7 @@ describe("AgentService", () => {
                   kind: "file",
                   filename: "robot.png",
                   mediaType: "image/png",
-                  sizeBytes: imageBytes.byteLength,
+                  sizeBytes: 4,
                   source: { kind: "web-chat-upload", id: "upload-123" },
                 },
               ],
@@ -395,17 +394,7 @@ describe("AgentService", () => {
         mockCharacterService,
         mockProfileService,
         logger,
-        {
-          agentFactory: mockAgentFactory,
-          uploadAttachmentResolver: async (source) => ({
-            kind: "file",
-            filename: "robot.png",
-            mediaType: "image/png",
-            data: imageBytes,
-            sizeBytes: imageBytes.byteLength,
-            source,
-          }),
-        },
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("describe the latest image", "test-conversation");
@@ -414,40 +403,84 @@ describe("AgentService", () => {
       const messages = callArgs?.messages ?? [];
       expect(messages.at(-1)).toEqual({
         role: "user",
-        content: [
-          {
-            type: "text",
-            text: 'describe the latest image\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; raw promotion call: system_create({ entityType: "image", upload }) and omit transform',
-          },
-          {
-            type: "file",
-            data: imageBytes,
-            mediaType: "image/png",
-            filename: "robot.png",
-          },
-        ],
+        content:
+          'describe the latest image\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; mediaType: image/png',
       });
-      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          role: "user",
-          content: "describe the latest image",
-          metadata: expect.objectContaining({
-            attachments: [
-              {
-                kind: "file",
-                filename: "robot.png",
-                mediaType: "image/png",
-                sizeBytes: imageBytes.byteLength,
-                source: { kind: "web-chat-upload", id: "upload-123" },
-              },
-            ],
-          }),
-        }),
-      );
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(1, {
+        conversationId: "test-conversation",
+        role: "user",
+        content: "describe the latest image",
+      });
     });
 
-    it("keeps upload clarification answers from reaching the model as standalone prompts", async () => {
+    it("does not ask service-level upload clarification for deck carousel requests", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-pdf-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+                  mediaType: "application/pdf",
+                  source: { kind: "web-chat-upload", id: "upload-pdf" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-image-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "IMG_8963.jpeg",
+                  mediaType: "image/jpeg",
+                  source: { kind: "web-chat-upload", id: "upload-image" },
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Can you generate a preview of the innovation deck carousel for me?",
+        "test-conversation",
+      );
+
+      expect(response.text).not.toContain("Which uploaded file should I use?");
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateUpload).toBe(true);
+      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
+      const lastMessage = callArgs?.messages.at(-1);
+      expect(lastMessage?.role).toBe("user");
+      expect(lastMessage?.content).toContain(
+        "Can you generate a preview of the innovation deck carousel for me?",
+      );
+      expect(lastMessage?.content).toContain('id: "upload-pdf"');
+      expect(lastMessage?.content).toContain('id: "upload-image"');
+    });
+
+    it("lets the agent handle clarification replies instead of rewriting them", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -518,8 +551,8 @@ describe("AgentService", () => {
       const messages = callArgs?.messages ?? [];
       const lastMessage = messages.at(-1);
       expect(lastMessage?.role).toBe("user");
-      expect(lastMessage?.content).toContain("save it as an image");
-      expect(lastMessage?.content).not.toContain("the latest one");
+      expect(lastMessage?.content).toContain("the latest one");
+      expect(lastMessage?.content).toContain('id: "upload-first"');
       expect(lastMessage?.content).toContain('id: "upload-second"');
     });
 
@@ -608,7 +641,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content:
-          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- durable-notes.md: upload { kind: "web-chat-upload", id: "upload-123" }; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })',
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- durable-notes.md: upload { kind: "web-chat-upload", id: "upload-123" }; mediaType: text/markdown',
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,

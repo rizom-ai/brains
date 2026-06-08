@@ -77,7 +77,7 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Promote a runtime upload. Use only when this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, or url.',
+      'Promote a runtime upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
     ),
   transform: z
     .string()
@@ -88,7 +88,7 @@ export const createInputSchema = z.object({
   sourceAttachment: createSourceAttachmentInputSchema
     .optional()
     .describe(
-      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Omit for ordinary direct creates that use content, prompt, or url.",
+      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
   replace: z
     .boolean()

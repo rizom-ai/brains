@@ -161,12 +161,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const content = normalizeOptionalString(input.content);
       const title = normalizeOptionalString(input.title);
       const url = normalizeOptionalString(input.url);
-      const uploadRef = input.upload;
-      const from: CreateInput["from"] =
-        uploadRef ??
-        (input.sourceAttachment
-          ? { kind: "entity-attachment", ...input.sourceAttachment }
-          : undefined);
+      const uploadRef = input.sourceAttachment ? undefined : input.upload;
+      const from: CreateInput["from"] = input.sourceAttachment
+        ? { kind: "entity-attachment", ...input.sourceAttachment }
+        : uploadRef;
       const requestedTransform = normalizeOptionalString(input.transform);
       if (
         requestedTransform !== undefined &&

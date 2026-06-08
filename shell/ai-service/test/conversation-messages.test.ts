@@ -3,7 +3,6 @@ import {
   buildMessageWithAttachments,
   collectUploadRefsFromMessages,
   resolveConversationUploadContinuity,
-  resolveConversationUploadRefs,
 } from "../src/conversation-messages";
 
 describe("collectUploadRefsFromMessages", () => {
@@ -44,74 +43,25 @@ describe("collectUploadRefsFromMessages", () => {
   });
 });
 
-describe("resolveConversationUploadRefs", () => {
-  const uploadRefs = [
-    {
-      filename: "alpha-guide.pdf",
-      mediaType: "application/pdf",
-      source: {
-        kind: "web-chat-upload",
-        id: "upload-alpha",
-      },
-    },
-    {
-      filename: "beta-diagram.png",
-      mediaType: "image/png",
-      source: {
-        kind: "web-chat-upload",
-        id: "upload-beta",
-      },
-    },
-  ];
-
-  it("selects a prior upload by exact filename mention", () => {
-    const alpha = uploadRefs[0];
-    if (!alpha) throw new Error("Expected alpha upload fixture");
-
-    expect(
-      resolveConversationUploadRefs("save alpha-guide.pdf", uploadRefs),
-    ).toEqual({ kind: "selected", refs: [alpha] });
-  });
-
-  it("selects a prior upload by explicit position", () => {
-    const beta = uploadRefs[1];
-    if (!beta) throw new Error("Expected beta upload fixture");
-
-    expect(
-      resolveConversationUploadRefs("use the latest one", uploadRefs),
-    ).toEqual({ kind: "selected", refs: [beta] });
-  });
-
-  it("returns a clarification state for multiple refs without a deterministic selector", () => {
-    expect(resolveConversationUploadRefs("save it", uploadRefs)).toEqual({
-      kind: "clarify",
-      refs: uploadRefs,
-    });
-  });
-});
-
 describe("resolveConversationUploadContinuity", () => {
   const uploadRefs = [
     {
-      filename: "first-robot.png",
-      mediaType: "image/png",
+      filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      mediaType: "application/pdf",
       source: {
         kind: "web-chat-upload",
-        id: "upload-first",
+        id: "upload-pdf",
       },
     },
     {
-      filename: "second-robot.png",
-      mediaType: "image/png",
+      filename: "IMG_8963.jpeg",
+      mediaType: "image/jpeg",
       source: {
         kind: "web-chat-upload",
-        id: "upload-second",
+        id: "upload-image",
       },
     },
   ];
-
-  const secondUploadRef = uploadRefs[1];
-  if (!secondUploadRef) throw new Error("Expected second upload fixture");
 
   const historyMessages = uploadRefs.map((ref, index) => ({
     id: `message-${index}`,
@@ -131,67 +81,26 @@ describe("resolveConversationUploadContinuity", () => {
     timestamp: new Date().toISOString(),
   }));
 
-  it("resolves selected prior upload refs into native attachments in the shared layer", async () => {
-    const result = await resolveConversationUploadContinuity({
-      message: "describe the latest image",
+  it("keeps prior uploads as passive refs instead of asking service-level clarification", () => {
+    const result = resolveConversationUploadContinuity({
+      message:
+        "Can you generate a preview of the innovation deck carousel for me?",
       currentAttachments: [],
       historyMessages,
-      uploadAttachmentResolver: async (source) => ({
-        kind: "file",
-        filename:
-          source.id === "upload-second"
-            ? "second-robot.png"
-            : "first-robot.png",
-        mediaType: "image/png",
-        data: new Uint8Array([1, 2, 3]),
-        sizeBytes: 3,
-        source,
-      }),
     });
 
     expect(result).toEqual({
       kind: "selected",
-      message: "describe the latest image",
-      refs: [secondUploadRef],
-      attachments: [
-        {
-          kind: "file",
-          filename: "second-robot.png",
-          mediaType: "image/png",
-          data: new Uint8Array([1, 2, 3]),
-          sizeBytes: 3,
-          source: { kind: "web-chat-upload", id: "upload-second" },
-        },
-      ],
-    });
-  });
-
-  it("keeps prior upload tool actions ref-only instead of hydrating file bytes", async () => {
-    const result = await resolveConversationUploadContinuity({
-      message: "save second-robot.png as an image",
-      currentAttachments: [],
-      historyMessages,
-      uploadAttachmentResolver: async (source) => ({
-        kind: "file",
-        filename: "second-robot.png",
-        mediaType: "image/png",
-        data: new Uint8Array([1, 2, 3]),
-        sizeBytes: 3,
-        source,
-      }),
-    });
-
-    expect(result).toEqual({
-      kind: "selected",
-      message: "save second-robot.png as an image",
-      refs: [secondUploadRef],
+      message:
+        "Can you generate a preview of the innovation deck carousel for me?",
+      refs: uploadRefs,
       attachments: [],
     });
   });
 
-  it("carries the original intent through an upload clarification answer", async () => {
-    const result = await resolveConversationUploadContinuity({
-      message: "the latest one",
+  it("does not rewrite clarification replies or select files from text", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "neither, generate it from the deck",
       currentAttachments: [],
       historyMessages: [
         ...historyMessages,
@@ -199,7 +108,8 @@ describe("resolveConversationUploadContinuity", () => {
           id: "message-request",
           conversationId: "conversation-1",
           role: "user",
-          content: "save it as an image",
+          content:
+            "Can you generate a preview of the innovation deck carousel for me?",
           metadata: null,
           timestamp: new Date().toISOString(),
         },
@@ -208,19 +118,45 @@ describe("resolveConversationUploadContinuity", () => {
           conversationId: "conversation-1",
           role: "assistant",
           content:
-            "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
+            "Which uploaded file should I use? `file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf`, `IMG_8963.jpeg`",
           metadata: null,
           timestamp: new Date().toISOString(),
         },
       ],
-      uploadAttachmentResolver: async () => null,
     });
 
     expect(result).toEqual({
       kind: "selected",
-      message: "save it as an image",
-      refs: [secondUploadRef],
+      message: "neither, generate it from the deck",
+      refs: uploadRefs,
       attachments: [],
+    });
+  });
+
+  it("passes current attachments through without deriving conversation control flow", () => {
+    const attachment = {
+      kind: "file" as const,
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      data: new Uint8Array([1, 2, 3]),
+      sizeBytes: 3,
+      source: {
+        kind: "web-chat-upload",
+        id: "upload-current",
+      },
+    };
+
+    const result = resolveConversationUploadContinuity({
+      message: "summarize this",
+      currentAttachments: [attachment],
+      historyMessages,
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "summarize this",
+      refs: uploadRefs,
+      attachments: [attachment],
     });
   });
 });
@@ -245,7 +181,7 @@ describe("buildMessageWithAttachments", () => {
     );
 
     expect(content).toBe(
-      'turn it into a note\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- distributed-systems-primer.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; raw promotion call: system_create({ entityType: "document", upload }) and omit transform',
+      'turn it into a note\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- distributed-systems-primer.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
     );
   });
 
@@ -267,7 +203,7 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toEqual([
       {
         type: "text",
-        text: 'save it as a document\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- brief.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; raw promotion call: system_create({ entityType: "document", upload }) and omit transform',
+        text: 'save it as a document\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- brief.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
       },
       {
         type: "file",

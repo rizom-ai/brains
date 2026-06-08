@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-multiple-upload-ambiguous-follow-up
-name: Web chat multiple upload ambiguous follow-up clarifies
-description: Verifies multiple prior web-chat uploads remain inert and an ambiguous follow-up asks which upload to use instead of guessing.
+name: Web chat multiple upload singular follow-up uses latest upload
+description: Verifies multiple prior web-chat uploads remain inert and a singular follow-up acts on the latest upload instead of saving all uploads.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -48,27 +48,39 @@ turns:
 
   - userMessage: "save it"
     successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: image
+            upload.kind: web-chat-upload
+            upload.id: upload-00000000-0000-4000-8000-000000000902
+          argsAbsent:
+            - sourceAttachment
+        - toolName: document_generate
+          shouldBeCalled: false
       toolCountRange:
-        max: 0
-      responseContains:
-        - "which"
+        max: 1
       responseNotContains:
-        - "Created"
-        - "Saved"
-        - "generated"
+        - "alpha-guide.pdf"
+        - "which"
 
 successCriteria:
   expectedTools:
     - toolName: system_create
-      shouldBeCalled: false
-    - toolName: system_update
-      shouldBeCalled: false
-    - toolName: system_delete
+      shouldBeCalled: true
+      argsContain:
+        entityType: image
+        upload.kind: web-chat-upload
+        upload.id: upload-00000000-0000-4000-8000-000000000902
+      argsAbsent:
+        - sourceAttachment
+    - toolName: document_generate
       shouldBeCalled: false
   responseNotContains:
-    - "Created"
-    - "generated"
+    - "alpha-guide.pdf"
+    - "which"
 
 efficiency:
-  maxToolCalls: 0
+  maxToolCalls: 1
   maxTokens: 40000

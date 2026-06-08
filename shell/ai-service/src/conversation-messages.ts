@@ -1,11 +1,7 @@
 import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
-import type {
-  ChatAttachment,
-  ChatAttachmentSource,
-  UploadAttachmentResolver,
-} from "./agent-types";
+import type { ChatAttachment } from "./agent-types";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -99,10 +95,6 @@ export function collectUploadRefsFromMessages(
   return refs;
 }
 
-export type ConversationUploadRefResolution =
-  | { kind: "selected"; refs: ConversationUploadRef[] }
-  | { kind: "clarify"; refs: ConversationUploadRef[] };
-
 export interface ConversationUploadContinuitySelection {
   kind: "selected";
   message: string;
@@ -110,154 +102,17 @@ export interface ConversationUploadContinuitySelection {
   attachments: ChatAttachment[];
 }
 
-export type ConversationUploadContinuityResolution =
-  | ConversationUploadContinuitySelection
-  | { kind: "clarify"; refs: ConversationUploadRef[] };
-
-const uploadClarificationPrefix = "Which uploaded file should I use?";
-
-function isUploadToolActionIntent(message: string): boolean {
-  return /\b(save|promote|extract(?:ion)?|import|turn\s+(?:it|that|this)?\s*into|make\s+(?:it|that|this)?\s*(?:a|an)?\s*(?:note|document|image|pdf|markdown))\b/i.test(
-    message,
-  );
-}
-
-export function resolveConversationUploadRefs(
-  message: string,
-  uploadRefs: ConversationUploadRef[],
-): ConversationUploadRefResolution {
-  if (uploadRefs.length <= 1) {
-    return { kind: "selected", refs: uploadRefs };
-  }
-
-  const normalized = message.toLowerCase();
-  const named = uploadRefs.filter((ref) =>
-    normalized.includes(ref.filename.toLowerCase()),
-  );
-  if (named.length > 0) return { kind: "selected", refs: named };
-
-  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
-    return { kind: "selected", refs: uploadRefs.slice(0, 1) };
-  }
-  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
-    return { kind: "selected", refs: uploadRefs.slice(-1) };
-  }
-
-  return { kind: "clarify", refs: uploadRefs };
-}
-
-export async function resolveConversationUploadContinuity(params: {
+export function resolveConversationUploadContinuity(params: {
   message: string;
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
-  uploadAttachmentResolver?: UploadAttachmentResolver | undefined;
-}): Promise<ConversationUploadContinuityResolution> {
-  const uploadRefs = collectUploadRefsFromMessages(params.historyMessages);
-  const resolution =
-    params.currentAttachments.length === 0
-      ? resolveConversationUploadRefs(params.message, uploadRefs)
-      : { kind: "selected" as const, refs: uploadRefs };
-
-  if (resolution.kind === "clarify") return resolution;
-
-  const message = getEffectiveUploadContinuityMessage(
-    params.message,
-    params.historyMessages,
-    resolution.refs,
-  );
-  const attachments =
-    params.currentAttachments.length > 0
-      ? params.currentAttachments
-      : isUploadToolActionIntent(message)
-        ? []
-        : await resolveUploadRefAttachments(
-            resolution.refs,
-            params.uploadAttachmentResolver,
-          );
-
+}): ConversationUploadContinuitySelection {
   return {
     kind: "selected",
-    message,
-    refs: resolution.refs,
-    attachments,
+    message: params.message,
+    refs: collectUploadRefsFromMessages(params.historyMessages),
+    attachments: params.currentAttachments,
   };
-}
-
-function getEffectiveUploadContinuityMessage(
-  message: string,
-  historyMessages: Message[],
-  selectedRefs: ConversationUploadRef[],
-): string {
-  if (!isUploadSelectionOnly(message, selectedRefs)) return message;
-
-  const pendingRequest = getPendingUploadClarificationRequest(historyMessages);
-  return pendingRequest ?? message;
-}
-
-function getPendingUploadClarificationRequest(
-  historyMessages: Message[],
-): string | null {
-  for (let index = historyMessages.length - 1; index >= 1; index -= 1) {
-    const assistantMessage = historyMessages[index];
-    if (
-      assistantMessage?.role !== "assistant" ||
-      !assistantMessage.content.startsWith(uploadClarificationPrefix)
-    ) {
-      continue;
-    }
-
-    for (
-      let previousIndex = index - 1;
-      previousIndex >= 0;
-      previousIndex -= 1
-    ) {
-      const userMessage = historyMessages[previousIndex];
-      if (userMessage?.role !== "user") continue;
-      return userMessage.content.trim().length > 0 ? userMessage.content : null;
-    }
-  }
-  return null;
-}
-
-function isUploadSelectionOnly(
-  message: string,
-  selectedRefs: ConversationUploadRef[],
-): boolean {
-  const normalized = message
-    .trim()
-    .toLowerCase()
-    .replace(/[.!?]+$/g, "");
-  if (normalized.length === 0) return false;
-
-  if (
-    /^(?:the\s+)?(?:latest|newest|most recent|last|first|oldest|earliest)(?:\s+(?:one|file|upload|image|picture|document|pdf))?$/.test(
-      normalized,
-    )
-  ) {
-    return true;
-  }
-
-  return selectedRefs.some((ref) => normalized === ref.filename.toLowerCase());
-}
-
-async function resolveUploadRefAttachments(
-  uploadRefs: ConversationUploadRef[],
-  resolver: UploadAttachmentResolver | undefined,
-): Promise<ChatAttachment[]> {
-  if (!resolver) return [];
-
-  const attachments: ChatAttachment[] = [];
-  for (const ref of uploadRefs) {
-    const attachment = await resolver(toUploadAttachmentSource(ref));
-    if (attachment) attachments.push(attachment);
-  }
-  return attachments;
-}
-
-function toUploadAttachmentSource(
-  ref: ConversationUploadRef,
-): ChatAttachmentSource {
-  return { kind: ref.source.kind, id: ref.source.id };
 }
 
 export function buildMessageWithAttachments(
@@ -324,25 +179,12 @@ function formatUploadRefs(
     if (seen.has(key)) return [];
     seen.add(key);
     return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }${formatUploadRefUsage(ref.mediaType)}`,
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}`,
     ];
   });
   return lines.length > 0
-    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
+    ? `Available runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user's request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n${lines.join("\n")}`
     : "";
-}
-
-function formatUploadRefUsage(mediaType: string): string {
-  if (mediaType === "application/pdf") {
-    return '; raw promotion call: system_create({ entityType: "document", upload }) and omit transform';
-  }
-  if (mediaType.startsWith("image/")) {
-    return '; raw promotion call: system_create({ entityType: "image", upload }) and omit transform';
-  }
-  if (mediaType.startsWith("text/") || mediaType === "application/json") {
-    return '; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })';
-  }
-  return "";
 }
 
 export function buildAgentContextInstructions(

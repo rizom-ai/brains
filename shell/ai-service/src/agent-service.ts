@@ -20,7 +20,6 @@ import type {
   IAgentService,
   StructuredChatCard,
   ToolResultData,
-  UploadAttachmentResolver,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 import {
@@ -68,16 +67,6 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
 }
 
-function hasSourceAttachmentIntent(message: string): boolean {
-  return /\b(carousel|printable|source attachment|attach(?:ed)? document|attach(?:ed)? pdf)\b/i.test(
-    message,
-  );
-}
-
-function hasUploadMarkdownTransformIntent(message: string): boolean {
-  return /\b(note|markdown|extract(?:ion)?|text)\b/i.test(message);
-}
-
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
@@ -97,7 +86,6 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
-  private uploadAttachmentResolver: UploadAttachmentResolver | undefined;
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -191,7 +179,6 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
-    this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
   /**
@@ -400,43 +387,11 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
-    const uploadContinuity = await resolveConversationUploadContinuity({
+    const uploadContinuity = resolveConversationUploadContinuity({
       message,
       currentAttachments: attachments,
       historyMessages,
-      uploadAttachmentResolver: this.uploadAttachmentResolver,
     });
-    if (uploadContinuity.kind === "clarify") {
-      await this.conversationService.addMessage({
-        conversationId,
-        role: "user",
-        content: message,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(actor, source, attachments),
-        ),
-      });
-
-      const responseText = `Which uploaded file should I use? ${uploadContinuity.refs
-        .map((ref) => `\`${ref.filename}\``)
-        .join(", ")}`;
-      await this.conversationService.addMessage({
-        conversationId,
-        role: "assistant",
-        content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-          ),
-        ),
-      });
-
-      return {
-        text: responseText,
-        toolResults: [],
-        usage: emptyUsage,
-      };
-    }
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = uploadContinuity.attachments;
@@ -480,23 +435,21 @@ export class AgentService implements IAgentService {
     });
 
     // Call agent
+    const hasCurrentUploadAttachments = effectiveAttachments.some(
+      (attachment) => attachment.source !== undefined,
+    );
+    const hasAccessibleUploads =
+      hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
     const callOptions: BrainCallOptions = {
       userPermissionLevel,
       conversationId,
       channelId,
       channelName,
       interfaceType,
-      ...(effectiveAttachments.some(
-        (attachment) => attachment.source !== undefined,
-      ) || uploadContinuity.refs.length > 0
-        ? { enableCreateUpload: true }
+      ...(hasAccessibleUploads
+        ? { enableCreateUpload: true, enableCreateTransform: true }
         : {}),
-      ...(hasUploadMarkdownTransformIntent(effectiveMessage)
-        ? { enableCreateTransform: true }
-        : {}),
-      ...(hasSourceAttachmentIntent(effectiveMessage)
-        ? { enableCreateSourceAttachment: true }
-        : {}),
+      ...(!hasAccessibleUploads ? { enableCreateSourceAttachment: true } : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 

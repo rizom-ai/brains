@@ -322,13 +322,14 @@ describe("system_create tool", () => {
     let capturedInput: CreateInput | undefined;
     services = createMockSystemServices({
       conversationService: {
+        ...services.conversationService,
         getMessages: async () => [
           {
             id: "message-1",
             conversationId: "web-conversation-1",
             role: "user",
             content: "",
-            metadata: {
+            metadata: JSON.stringify({
               attachments: [
                 {
                   kind: "file",
@@ -340,11 +341,11 @@ describe("system_create tool", () => {
                   },
                 },
               ],
-            },
-            created: new Date().toISOString(),
+            }),
+            timestamp: new Date().toISOString(),
           },
         ],
-      } as unknown as MockServices["conversationService"],
+      },
     });
     tools = createSystemTools(services);
     services.entityRegistry.registerCreateInterceptor(
@@ -389,13 +390,14 @@ describe("system_create tool", () => {
     let capturedInput: CreateInput | undefined;
     services = createMockSystemServices({
       conversationService: {
+        ...services.conversationService,
         getMessages: async () => [
           {
             id: "message-1",
             conversationId: "web-conversation-1",
             role: "user",
             content: "",
-            metadata: {
+            metadata: JSON.stringify({
               attachments: [
                 {
                   kind: "file",
@@ -407,11 +409,11 @@ describe("system_create tool", () => {
                   },
                 },
               ],
-            },
-            created: new Date().toISOString(),
+            }),
+            timestamp: new Date().toISOString(),
           },
         ],
-      } as unknown as MockServices["conversationService"],
+      },
     });
     tools = createSystemTools(services);
     services.entityRegistry.registerCreateInterceptor("base", async (input) => {
@@ -468,13 +470,14 @@ describe("system_create tool", () => {
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
     services = createMockSystemServices({
       conversationService: {
+        ...services.conversationService,
         getMessages: async () => [
           {
             id: "message-1",
             conversationId: "web-conversation-1",
             role: "user",
             content: "",
-            metadata: {
+            metadata: JSON.stringify({
               attachments: [
                 {
                   kind: "file",
@@ -486,11 +489,11 @@ describe("system_create tool", () => {
                   },
                 },
               ],
-            },
-            created: new Date().toISOString(),
+            }),
+            timestamp: new Date().toISOString(),
           },
         ],
-      } as unknown as MockServices["conversationService"],
+      },
     });
     tools = createSystemTools(services);
     let interceptorCalled = false;
@@ -560,6 +563,7 @@ describe("system_create tool", () => {
     let capturedInput: CreateInput | undefined;
     services = createMockSystemServices({
       conversationService: {
+        ...services.conversationService,
         getMessages: async (conversationId: string) =>
           conversationId === "web-conversation-1"
             ? [
@@ -568,7 +572,7 @@ describe("system_create tool", () => {
                   conversationId: "web-conversation-1",
                   role: "user",
                   content: "",
-                  metadata: {
+                  metadata: JSON.stringify({
                     attachments: [
                       {
                         kind: "file",
@@ -580,12 +584,12 @@ describe("system_create tool", () => {
                         },
                       },
                     ],
-                  },
-                  created: new Date().toISOString(),
+                  }),
+                  timestamp: new Date().toISOString(),
                 },
               ]
             : [],
-      } as unknown as MockServices["conversationService"],
+      },
     });
     tools = createSystemTools(services);
     services.entityRegistry.registerCreateInterceptor(
@@ -1129,7 +1133,7 @@ A saved research link.`;
     expect(tool.inputSchema).not.toHaveProperty("options");
   });
 
-  it("should accept sourceAttachment as a create source and forward normalized from plus replace to create interceptors", async () => {
+  it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
       "document",
@@ -1151,6 +1155,10 @@ A saved research link.`;
 
     const result = await exec({
       entityType: "document",
+      upload: {
+        kind: "web-chat-upload",
+        id: "upload-00000000-0000-4000-8000-000000000951",
+      },
       sourceAttachment: {
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
