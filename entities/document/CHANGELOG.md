@@ -1,5 +1,18 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- [`c6c7df5`](https://github.com/rizom-ai/brains/commit/c6c7df529c7fe7b23680934ce3dc1b1c1f4ae4f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent generated document artifacts from creating oversized MCP tool names. Document IDs derived from dedup keys are now bounded with a short deterministic hash suffix instead of embedding full content hashes, and the entity-detail MCP resource template no longer enumerates every entity instance as a discoverable resource.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/document@0.2.0-alpha.112
+  - @brains/media-renderer@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

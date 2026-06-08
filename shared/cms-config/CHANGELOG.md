@@ -1,5 +1,13 @@
 # @brains/cms-config
 
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/entity-service@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

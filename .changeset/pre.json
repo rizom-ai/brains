@@ -119,6 +119,7 @@
     "auth-service-setup-email",
     "bitwarden-deploy-workflow-template",
     "bitwarden-secrets-push",
+    "bounded-document-mcp-ids",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
     "brain-oauth-provider",

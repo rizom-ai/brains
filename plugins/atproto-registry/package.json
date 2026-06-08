@@ -1,7 +1,7 @@
 {
   "name": "@brains/atproto-registry",
   "private": true,
-  "version": "0.2.0-alpha.111",
+  "version": "0.2.0-alpha.112",
   "description": "Canonical Rizom AT Protocol lexicon registry",
   "type": "module",
   "exports": {

@@ -1,5 +1,16 @@
 # @brains/app
 
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies [[`c6c7df5`](https://github.com/rizom-ai/brains/commit/c6c7df529c7fe7b23680934ce3dc1b1c1f4ae4f5)]:
+  - @brains/core@0.2.0-alpha.112
+  - @brains/site-composition@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes
