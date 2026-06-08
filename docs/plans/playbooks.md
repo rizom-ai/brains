@@ -46,8 +46,10 @@ compiled-check` sources. These belonged to the previous design and are supersede
 Phase 3 has landed: the code now carries one gate model, a generic `Judge` capability in
 `@brains/ai-service`, a narrow `context.judge` plugin capability, eval judges that reuse it,
 and a production `GoalCheck` backed by `context.judge` (see
-[Where the real check comes from](#where-the-real-check-comes-from)). What remains is focused
-GoalCheck eval coverage and the Rover onboarding product eval.
+[Where the real check comes from](#where-the-real-check-comes-from)). Focused GoalCheck eval
+coverage and the Rover onboarding product eval are blocked on
+[Search index readiness for playbook gates](./search-index-readiness.md): `entityService.search()`
+currently hides KB entities that lack embeddings, so a judge can receive incomplete material.
 
 ## What this is
 
@@ -399,10 +401,10 @@ version pin, run inference, agent-context) is reused.
    (`judge({ instruction, material, schema }) → verdict` over `generateObject`), surface it
    as a narrow `judge` capability on the plugin context, and refactor the eval `LLMJudge` to
    consume it. Back the plugin's `GoalCheck` with `context.judge` (goal + KB + evidence →
-   `{ met, reason }`), replacing the blocking default. _Eval:_ on a KB that satisfies a goal
-   it returns met; on one that doesn't, not-met — asserted structurally (shape; doesn't
-   claim met when the outcome is absent), not by pinning a score. The eval-judge refactor
-   keeps its existing tests green.
+   `{ met, reason }`), replacing the blocking default. _Code landed._ _Eval blocked:_ focused
+   met/not-met GoalCheck evals must wait for
+   [Search index readiness for playbook gates](./search-index-readiness.md), because current
+   search can omit real KB entities when embeddings are missing.
 4. **Evidence into the check (unit).** Feed the run's collected entity-event evidence to
    the check alongside the KB, so a goal can reference what happened during the run.
    _Unit:_ the check receives the right evidence rows for the state.
@@ -410,6 +412,10 @@ version pin, run inference, agent-context) is reused.
    writes, conversation-scoped inference, and agent-context injection; add the missing
    tests rather than rebuild.
 6. **Confirmation stop condition (unit).** `shell/ai-service`; independent, parallelizable.
+7. **Focused GoalCheck evals (eval).** After
+   [Search index readiness for playbook gates](./search-index-readiness.md) lands, add small
+   playbooks plugin evals for KB-satisfied and KB-absent goals, then retry the Rover onboarding
+   product eval.
 
 ## Decisions
 
