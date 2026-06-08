@@ -1,7 +1,7 @@
 import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { AGENT_CONTEXT_REQUEST_CHANNEL } from "@brains/contracts";
 import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
 import { z } from "@brains/utils";
@@ -406,6 +406,115 @@ describe("PlaybooksPlugin", () => {
     expect(data.blockedEvents.map((event) => event.event)).toEqual(["NEXT"]);
     expect(data.guidance).toContain("Current state: identity");
     expect(data.guidance).toContain("No matching evidence.");
+  });
+
+  it("uses context judge for production goal checks when no stub is injected", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const judge = mock(async () => ({
+      verdict: { met: true, reason: "The KB contains the requested outcome." },
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    }));
+    Object.assign(harness.getMockShell(), { judge });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Capture the operator identity."],
+          doneWhen: ["The brain knows who the operator is."],
+          transitions: [{ event: "NEXT", target: "complete" }],
+        },
+        completeState,
+      ],
+    });
+
+    const runId = await startRun(harness, "web-context-judge");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+    const advanced = await harness.executeTool("playbook_send_event", {
+      runId,
+      event: "NEXT",
+    });
+
+    expectSuccess(advanced);
+    expect(parsePlaybookToolData(advanced.data).activeRun.currentState).toBe(
+      "complete",
+    );
+    expect(judge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instruction: expect.stringContaining("playbook goal"),
+        material: expect.stringContaining(
+          "The brain knows who the operator is.",
+        ),
+      }),
+    );
+  });
+
+  it("records judge errors as blocking goal status", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    Object.assign(harness.getMockShell(), {
+      judge: mock(async () => {
+        throw new Error("judge unavailable");
+      }),
+    });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Capture the operator identity."],
+          doneWhen: ["The brain knows who the operator is."],
+          transitions: [{ event: "NEXT", target: "complete" }],
+        },
+        completeState,
+      ],
+    });
+
+    const runId = await startRun(harness, "web-judge-error");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+    expectError(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).guidance).toContain(
+      "judge unavailable",
+    );
   });
 
   it("blocks gated NEXT when the goal check returns not met", async () => {

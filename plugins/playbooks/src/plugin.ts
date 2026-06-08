@@ -140,6 +140,13 @@ export interface GoalCheckResult {
   reason: string;
 }
 
+const goalCheckResultSchema = z
+  .object({
+    met: z.boolean(),
+    reason: z.string().min(1),
+  })
+  .strict();
+
 export interface GoalCheck {
   evaluate(input: GoalCheckInput): Promise<GoalCheckResult>;
 }
@@ -151,7 +158,8 @@ export interface PlaybooksPluginDeps {
 export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private store: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
-  private readonly goalCheck: GoalCheck;
+  private goalCheck: GoalCheck;
+  private readonly injectedGoalCheck: GoalCheck | undefined;
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -159,6 +167,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
     this.store = new PlaybookRunStore(this.config.storageDir);
+    this.injectedGoalCheck = deps.goalCheck;
     this.goalCheck = deps.goalCheck ?? defaultGoalCheck;
   }
 
@@ -168,6 +177,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     await super.onRegister(context);
     this.ctx = context;
     this.store = new PlaybookRunStore(this.config.storageDir);
+    this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
 
     context.registerInstructions(this.buildInstructions());
 
@@ -445,9 +455,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         evidence,
       });
     } catch (error) {
-      return {
-        success: false,
-        error: `Playbook goal check failed: ${errorMessage(error)}`,
+      result = {
+        met: false,
+        reason: `Playbook goal check failed: ${errorMessage(error)}`,
       };
     }
 
@@ -998,6 +1008,108 @@ function stringFromPayload(
 ): string | undefined {
   const value = payload[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
+  return {
+    async evaluate(input): Promise<GoalCheckResult> {
+      const query = input.goal.join("\n");
+      const searchResults = await context.entityService.search({
+        query,
+        options: {
+          limit: 8,
+          excludeTypes: ["playbook"],
+          visibilityScope: permissionToVisibilityScope("anchor"),
+        },
+      });
+      const material = buildGoalCheckMaterial(input, searchResults);
+      const { verdict } = await context.judge({
+        instruction:
+          "Decide whether the playbook goal is satisfied by the supplied KB excerpts and runtime evidence. Return met=true only when the outcome clearly holds. If evidence is missing or ambiguous, return met=false with a short reason.",
+        material,
+        schema: goalCheckResultSchema,
+      });
+      return verdict;
+    },
+  };
+}
+
+function buildGoalCheckMaterial(
+  input: GoalCheckInput,
+  searchResults: Array<{
+    entity: {
+      id: string;
+      entityType: string;
+      content: string;
+      metadata: unknown;
+    };
+    excerpt: string;
+    score: number;
+  }>,
+): string {
+  return [
+    "## Playbook run",
+    `runId: ${input.run.id}`,
+    `playbookId: ${input.run.playbookId}`,
+    `currentState: ${input.state.id} (${input.state.title})`,
+    "",
+    "## State instructions",
+    ...input.state.instructions.map((instruction) => `- ${instruction}`),
+    "",
+    "## Done When goal",
+    ...input.goal.map((goal) => `- ${goal}`),
+    "",
+    "## Runtime evidence",
+    ...(input.evidence.length > 0
+      ? input.evidence.map((evidence, index) =>
+          formatEvidence(index + 1, evidence),
+        )
+      : ["No runtime evidence collected for this state."]),
+    "",
+    "## KB excerpts",
+    ...(searchResults.length > 0
+      ? searchResults.map((result, index) =>
+          formatSearchResult(index + 1, result),
+        )
+      : ["No relevant KB excerpts found."]),
+  ].join("\n");
+}
+
+function formatEvidence(index: number, evidence: PlaybookRunEvidence): string {
+  return `${index}. ${evidence.kind} at ${evidence.observedAt}: ${safeJson(evidence.data)}`;
+}
+
+function formatSearchResult(
+  index: number,
+  result: {
+    entity: {
+      id: string;
+      entityType: string;
+      content: string;
+      metadata: unknown;
+    };
+    excerpt: string;
+    score: number;
+  },
+): string {
+  return [
+    `${index}. ${result.entity.entityType}/${result.entity.id} (score ${result.score})`,
+    `Excerpt: ${result.excerpt}`,
+    `Content: ${truncate(result.entity.content, 1200)}`,
+    `Metadata: ${safeJson(result.entity.metadata)}`,
+  ].join("\n");
+}
+
+function safeJson(value: unknown): string {
+  try {
+    return truncate(JSON.stringify(value), 1200);
+  } catch {
+    return "[unserializable]";
+  }
+}
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 }
 
 const defaultGoalCheck: GoalCheck = {

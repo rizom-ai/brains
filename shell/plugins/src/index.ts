@@ -97,6 +97,7 @@ export type {
   IInsightsRegistry,
   InsightHandler,
   QueryContext,
+  JudgeInput,
   IMCPTransport,
   ToolInfo,
   EvalHandler,

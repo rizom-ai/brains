@@ -56,6 +56,7 @@ import type {
   IAgentService,
   ImageGenerationOptions,
   ImageGenerationResult,
+  JudgeInput,
 } from "@brains/ai-service";
 import { createSilentLogger } from "./mock-logger";
 
@@ -662,6 +663,25 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     generateObject: async <T>(): Promise<{ object: T }> => ({
       object: {} as T,
     }),
+    judge: async <T>(
+      input: JudgeInput<T>,
+    ): Promise<{
+      verdict: T;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+    }> => {
+      const { object } = await shell.generateObject<T>(
+        [input.instruction, input.material].join("\n\n"),
+        input.schema,
+      );
+      return {
+        verdict: object,
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
+    },
     query: async (
       prompt: string,
       context?: QueryContext,
