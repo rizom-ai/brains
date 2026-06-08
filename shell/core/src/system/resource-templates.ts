@@ -65,21 +65,6 @@ export function createSystemResourceTemplates(
       uriTemplate: "entity://{type}/{id}",
       description: "Read a single entity by type and ID",
       mimeType: "text/markdown",
-      list: async (): Promise<Array<{ uri: string; name: string }>> => {
-        const types = entityService.getEntityTypes();
-        const results = await Promise.all(
-          types.map(async (t) => {
-            const entities = await entityService.listEntities({
-              entityType: t,
-            });
-            return entities.map((e) => ({
-              uri: `entity://${t}/${e.id}`,
-              name: `${t}/${e.id}`,
-            }));
-          }),
-        );
-        return results.flat();
-      },
       complete: {
         type: async (value: string): Promise<string[]> => {
           const types = entityService.getEntityTypes();

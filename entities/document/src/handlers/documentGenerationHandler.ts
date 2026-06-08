@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
@@ -21,6 +22,8 @@ import type { PdfRenderOptions } from "@brains/media-renderer";
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_MAX_PAGE_COUNT = 20;
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DOCUMENT_ID_MAX_LENGTH = 80;
+const DOCUMENT_ID_HASH_LENGTH = 10;
 
 export const documentGenerationJobSchemaBase = z.object({
   renderUrl: z.string().url().optional(),
@@ -407,7 +410,26 @@ export function getDocumentId(
     data.replace === true && data.documentId === undefined
       ? `${base}-${Date.now()}`
       : base;
-  return slugify(idBase);
+  return normalizeDocumentId(idBase);
+}
+
+function normalizeDocumentId(base: string): string {
+  const slug =
+    slugify(base.replace(/[/:]+/g, " ")) || `document-${shortHash(base)}`;
+  if (slug.length <= DOCUMENT_ID_MAX_LENGTH) return slug;
+
+  const suffix = `-${shortHash(base)}`;
+  const prefix = slug
+    .slice(0, DOCUMENT_ID_MAX_LENGTH - suffix.length)
+    .replace(/-+$/g, "");
+  return `${prefix}${suffix}`;
+}
+
+function shortHash(value: string): string {
+  return createHash("sha256")
+    .update(value)
+    .digest("hex")
+    .slice(0, DOCUMENT_ID_HASH_LENGTH);
 }
 
 function isDocumentReference(value: unknown): value is { id: string } {

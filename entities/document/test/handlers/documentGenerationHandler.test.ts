@@ -13,7 +13,10 @@ import {
   documentAdapter,
   documentSchema,
 } from "@brains/document";
-import { DocumentGenerationJobHandler } from "../../src/handlers/documentGenerationHandler";
+import {
+  DocumentGenerationJobHandler,
+  getDocumentId,
+} from "../../src/handlers/documentGenerationHandler";
 
 const socialPostStubSchema = baseEntitySchema.extend({
   entityType: z.literal("social-post"),
@@ -367,6 +370,31 @@ describe("DocumentGenerationJobHandler", () => {
       id: "source-hash-doc",
     });
     expect(document?.metadata["dedupKey"]).toContain(source.contentHash);
+  });
+
+  it("bounds generated document ids while keeping content-hash variants distinct", () => {
+    const data = {
+      sourceEntityType: "post",
+      sourceEntityId: "align-the-misaligned",
+      attachmentType: "printable",
+    };
+    const longHashA = "a".repeat(64);
+    const longHashB = "b".repeat(64);
+
+    const idA = getDocumentId(
+      data,
+      `printable:post:align-the-misaligned:resolved-attachment:${longHashA}`,
+    );
+    const idB = getDocumentId(
+      data,
+      `printable:post:align-the-misaligned:resolved-attachment:${longHashB}`,
+    );
+
+    expect(idA.length).toBeLessThanOrEqual(80);
+    expect(idA).toMatch(/^printable-post-align-the-misaligned/);
+    expect(idA).not.toContain(longHashA);
+    expect(idB.length).toBeLessThanOrEqual(80);
+    expect(idB).not.toBe(idA);
   });
 
   it("attaches the generated document to a target social post documents field", async () => {
