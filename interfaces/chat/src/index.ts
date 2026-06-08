@@ -6,6 +6,10 @@ export type {
   DiscordChatAdapterConfig,
 } from "./config";
 export { ThreadRegistry } from "./thread-registry";
+export {
+  createDiscordChatUploadStoreScope,
+  discordChatUploadRefKind,
+} from "./upload-store";
 export { CHAT_PLATFORMS } from "./types";
 export type {
   ChatAdapterMap,

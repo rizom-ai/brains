@@ -1,8 +1,12 @@
 import {
   MessageInterfacePlugin,
   parseConfirmationResponse,
+  type ChatAttachment,
   type InterfacePluginContext,
+  type StructuredChatCard,
   type PermissionLookupContext,
+  type RuntimeUploadStore,
+  type ToolActivityEvent,
 } from "@brains/plugins";
 import type {
   Daemon,
@@ -21,6 +25,7 @@ import {
   type DiscordChatAdapterConfig,
 } from "./config";
 import { ThreadRegistry } from "./thread-registry";
+import { createDiscordChatUploadStoreScope } from "./upload-store";
 import { CHAT_PLATFORMS } from "./types";
 import type {
   ChatAdapterMap,
@@ -35,6 +40,26 @@ const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
+const CHAT_BINARY_UPLOAD_MAX_BYTES = 5_000_000;
+const IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
+const IMAGE_EXTENSIONS = new Map([
+  [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".gif", "image/gif"],
+]);
+
+interface AgentInput {
+  message: string;
+  attachments: ChatAttachment[];
+  notices: string[];
+}
 
 interface ChatSdkApp {
   initialize(): Promise<void>;
@@ -61,6 +86,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private app: ChatSdkApp | undefined;
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingConfirmations = new Map<string, Set<string>>();
+  private readonly recentUploads = new Map<string, ChatAttachment[]>();
+  private readonly toolActivityMessages = new Map<
+    string,
+    { channelId: string; messageId: string }
+  >();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private gatewayAbortController: AbortController | undefined;
   private gatewayLoopPromise: Promise<void> | undefined;
@@ -92,7 +122,52 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           return this.app.webhooks.discord(request);
         },
       },
+      {
+        path: "/api/webhooks/chat/discord/uploads",
+        method: "GET",
+        public: true,
+        handler: async (request: Request): Promise<Response> => {
+          return this.handleDiscordUploadRequest(request);
+        },
+      },
     ];
+  }
+
+  private async handleDiscordUploadRequest(
+    request: Request,
+  ): Promise<Response> {
+    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
+    if (!uploadId) {
+      return new Response("Missing upload id", { status: 400 });
+    }
+
+    try {
+      const uploadStore = this.getDiscordUploadStore();
+      const { record, content } = await uploadStore.read(uploadId);
+      const body = new Uint8Array(content).buffer;
+      return new Response(body, {
+        headers: {
+          "Content-Type": record.mediaType,
+          "Content-Length": String(content.byteLength),
+          "Content-Disposition": `${
+            new URL(request.url).searchParams.has("download")
+              ? "attachment"
+              : "inline"
+          }; filename="${this.escapeHeaderValue(record.filename)}"`,
+        },
+      });
+    } catch {
+      return new Response("Upload not found", { status: 404 });
+    }
+  }
+
+  private getDiscordUploadStore(): RuntimeUploadStore {
+    if (!this.context) throw new Error("Chat interface not registered");
+    return this.context.uploads.scoped(createDiscordChatUploadStoreScope());
+  }
+
+  private escapeHeaderValue(value: string): string {
+    return value.replace(/["\\\r\n]/g, "_");
   }
 
   protected override createDaemon(): Daemon | undefined {
@@ -196,6 +271,67 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     await super.handleProgressEvent(event, context);
   }
 
+  protected override async handleToolActivityEvent(
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    if (event.interfaceType !== this.id) {
+      if (!this.isEnabledPlatform(event.interfaceType)) return;
+    }
+    const channelId = event.channelId;
+    if (!channelId) return;
+
+    const key = this.getToolActivityKey(event);
+    const label = this.formatToolName(event.toolName);
+    if (event.type === "tool:invoking") {
+      const messageId = await this.sendMessageWithId({
+        channelId,
+        message: `⏳ **${label}** running…`,
+      });
+      if (messageId)
+        this.toolActivityMessages.set(key, { channelId, messageId });
+      return;
+    }
+
+    if (event.type === "tool:completed") {
+      await this.updateToolActivityMessage(key, `✅ **${label}** completed.`);
+      return;
+    }
+
+    await this.updateToolActivityMessage(
+      key,
+      `❌ **${label}** failed${event.error ? `: ${event.error}` : "."}`,
+      channelId,
+    );
+  }
+
+  private async updateToolActivityMessage(
+    key: string,
+    message: string,
+    fallbackChannelId?: string,
+  ): Promise<void> {
+    const tracked = this.toolActivityMessages.get(key);
+    if (tracked) {
+      await this.editMessage({
+        channelId: tracked.channelId,
+        messageId: tracked.messageId,
+        newMessage: message,
+      });
+      this.toolActivityMessages.delete(key);
+      return;
+    }
+    if (fallbackChannelId) {
+      this.sendMessageToChannel({ channelId: fallbackChannelId, message });
+    }
+  }
+
+  private getToolActivityKey(event: ToolActivityEvent): string {
+    return `${event.conversationId}:${event.toolName}`;
+  }
+
+  private formatToolName(toolName: string): string {
+    return toolName.replace(/[_-]+/g, " ");
+  }
+
   private isEnabledPlatform(interfaceType: string): boolean {
     return interfaceType === "discord" && Boolean(this.config.adapters.discord);
   }
@@ -282,21 +418,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (message.author.isBot && !message.isMention) return;
     if (!this.isAllowedChannel(thread, platformConfig)) return;
 
-    const agentMessage = await this.buildAgentMessage(
-      platform,
-      thread,
-      message,
-    );
-    if (!agentMessage) return;
-
-    await this.routeToAgent(platform, thread, message, agentMessage);
+    await this.routeToAgent(platform, thread, message);
   }
 
   private async routeToAgent(
     platform: string,
     thread: Thread,
     message: Message,
-    agentMessage: string,
   ): Promise<void> {
     if (!this.context) return;
 
@@ -309,6 +437,20 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       message.author.userId,
       permissionContext,
     );
+    const agentInput = await this.buildAgentInput(
+      platform,
+      thread,
+      message,
+      userPermissionLevel,
+    );
+    const sameTurnUploads = [...agentInput.attachments];
+    await this.attachPriorUploads(
+      conversationId,
+      agentInput,
+      userPermissionLevel,
+    );
+    await this.postUploadNotices(thread, agentInput.notices);
+    if (!agentInput.message && agentInput.attachments.length === 0) return;
 
     this.startProcessingInput(channelId);
     try {
@@ -322,7 +464,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
       if (this.pendingConfirmations.has(conversationId)) {
         await this.handleConfirmationResponse(
-          agentMessage,
+          agentInput.message,
           conversationId,
           thread,
         );
@@ -330,7 +472,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       }
 
       const response = await this.context.agent.chat(
-        agentMessage,
+        agentInput.message,
         conversationId,
         {
           userPermissionLevel,
@@ -338,8 +480,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           channelId,
           channelName: this.getChannelName(thread, message),
           ...this.buildUserMessageMetadata(platform, thread, message),
+          ...(agentInput.attachments.length > 0
+            ? { attachments: agentInput.attachments }
+            : {}),
         },
       );
+
+      this.rememberUploadAttachments(conversationId, sameTurnUploads);
 
       if (
         response.pendingConfirmations &&
@@ -357,7 +504,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
       const messageId = await this.sendMessageWithId({
         channelId,
-        message: response.text,
+        message: this.formatAgentResponseText(response.text, response.cards),
       });
 
       if (messageId && response.toolResults) {
@@ -387,7 +534,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     conversationId: string,
     thread: Thread,
   ): Promise<void> {
-    const parsed = parseConfirmationResponse(message);
+    const approvalIds = this.pendingConfirmations.get(conversationId);
+    const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
       await thread.post(
         "_Please reply with **yes** to confirm or **no/cancel** to abort._",
@@ -395,15 +543,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const approvalIds = this.pendingConfirmations.get(conversationId);
-    if (approvalIds && approvalIds.size > 1) {
+    if (approvalIds && approvalIds.size > 1 && !parsed.approvalId) {
       await thread.post(
-        "_Multiple approvals are pending; please resolve them individually._",
+        `_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: ${[
+          ...approvalIds,
+        ].join(", ")}._`,
       );
       return;
     }
 
-    const approvalId = approvalIds ? [...approvalIds][0] : undefined;
+    const approvalId =
+      parsed.approvalId ?? (approvalIds ? [...approvalIds][0] : undefined);
     if (!approvalId) {
       this.pendingConfirmations.delete(conversationId);
       await thread.post("_No pending approval to resolve._");
@@ -417,8 +567,81 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       approvalId,
     );
     if (response) {
-      await thread.post(response.text);
+      await thread.post(
+        this.formatAgentResponseText(response.text, response.cards),
+      );
     }
+  }
+
+  private parseConfirmationIntent(
+    message: string,
+    approvalIds: Set<string> | undefined,
+  ): { confirmed: boolean; approvalId?: string | undefined } | undefined {
+    const direct = parseConfirmationResponse(message);
+    const approvalId = this.extractApprovalId(message, approvalIds);
+    if (direct) return { ...direct, ...(approvalId ? { approvalId } : {}) };
+
+    const tokenConfirmation = message
+      .split(/\s+/)
+      .map((token) => parseConfirmationResponse(token))
+      .find((parsed) => parsed !== undefined);
+    if (!tokenConfirmation) return undefined;
+    return {
+      ...tokenConfirmation,
+      ...(approvalId ? { approvalId } : {}),
+    };
+  }
+
+  private extractApprovalId(
+    message: string,
+    approvalIds: Set<string> | undefined,
+  ): string | undefined {
+    if (!approvalIds || approvalIds.size === 0) return undefined;
+    const normalized = message.toLowerCase();
+    return [...approvalIds].find((approvalId) =>
+      normalized.includes(approvalId.toLowerCase()),
+    );
+  }
+
+  private formatAgentResponseText(
+    text: string,
+    cards: StructuredChatCard[] | undefined,
+  ): string {
+    if (!cards || cards.length === 0) return text;
+    const cardSummaries = cards.map((card) => this.formatStructuredCard(card));
+    return [text, ...cardSummaries].filter((part) => part.trim()).join("\n\n");
+  }
+
+  private formatStructuredCard(card: StructuredChatCard): string {
+    if (card.kind === "attachment") {
+      const lines = [`**Artifact:** ${card.title}`];
+      if (card.description) lines.push(card.description);
+      if (card.attachment.filename) {
+        lines.push(`File: ${card.attachment.filename}`);
+      }
+      lines.push(`Type: ${card.attachment.mediaType}`);
+      lines.push(`Open: ${card.attachment.url}`);
+      if (card.attachment.downloadUrl) {
+        lines.push(`Download: ${card.attachment.downloadUrl}`);
+      }
+      return lines.join("\n");
+    }
+
+    const lines = [`**Approval:** ${card.summary || card.toolName}`];
+    lines.push(`Status: ${card.state}`);
+    if (card.preview) lines.push(card.preview);
+    const output = this.formatCardOutput(card.output);
+    if (output) lines.push(`Result: ${output}`);
+    if (card.error) lines.push(`Error: ${card.error}`);
+    return lines.join("\n");
+  }
+
+  private formatCardOutput(output: unknown): string | undefined {
+    if (typeof output === "string") return output;
+    if (typeof output === "number" || typeof output === "boolean") {
+      return String(output);
+    }
+    return undefined;
   }
 
   private removePendingApproval(
@@ -467,49 +690,402 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
-  private async buildAgentMessage(
+  private async buildAgentInput(
     platform: string,
     thread: Thread,
     message: Message,
-  ): Promise<string> {
-    let agentMessage = message.text.trim();
-    if (message.attachments.length === 0) return agentMessage;
-    if (!this.context) return agentMessage;
+    userLevel: string,
+  ): Promise<AgentInput> {
+    const agentInput: AgentInput = {
+      message: message.text.trim(),
+      attachments: [],
+      notices: [],
+    };
+    if (message.attachments.length === 0) return agentInput;
+    if (!this.context) return agentInput;
 
-    const userLevel = this.context.permissions.getUserLevel(
-      platform,
-      message.author.userId,
-      this.getPermissionContext(thread, message),
-    );
     const canUpload = userLevel === "anchor" || userLevel === "trusted";
-    if (!canUpload) return agentMessage;
+    if (!canUpload) return agentInput;
 
+    const uploadStore = this.context.uploads.scoped(
+      createDiscordChatUploadStoreScope(),
+    );
     for (const attachment of message.attachments) {
-      const filename = attachment.name;
-      if (!filename) continue;
-      if (!this.isUploadableTextFile(filename, attachment.mimeType)) continue;
-      if (!this.isFileSizeAllowed(attachment.size ?? 0)) continue;
+      const attachmentName = attachment.name;
+      if (!attachmentName) continue;
+      const filename = this.sanitizeUploadFilename(attachmentName);
+      const mediaType = this.normalizeAttachmentMediaType(
+        filename,
+        attachment.mimeType,
+      );
+      const declaredSize = attachment.size ?? 0;
+      const uploadKind = this.getUploadKind(filename, mediaType);
+      if (!uploadKind) {
+        agentInput.notices.push(`Unsupported file upload type: ${filename}`);
+        continue;
+      }
+      if (!this.isDeclaredSizeAllowed(uploadKind, declaredSize)) {
+        agentInput.notices.push(`File upload too large: ${filename}`);
+        continue;
+      }
 
       try {
         const contentBuffer = attachment.fetchData
           ? await attachment.fetchData()
           : undefined;
         if (!contentBuffer) continue;
-        agentMessage +=
-          "\n\n" +
-          this.formatFileUploadMessage(
-            filename,
-            contentBuffer.toString("utf8"),
-          );
+        const content = Buffer.from(contentBuffer);
+        const validationNotice = this.getUploadContentValidationNotice(
+          filename,
+          uploadKind,
+          content,
+        );
+        if (validationNotice) {
+          agentInput.notices.push(validationNotice);
+          continue;
+        }
+        const chatAttachment = await this.createChatAttachmentFromUpload({
+          uploadStore,
+          filename,
+          mediaType,
+          content,
+          uploadKind,
+          metadata: this.buildUploadMetadata(platform, thread, message),
+        });
+        agentInput.attachments.push(chatAttachment);
       } catch (error: unknown) {
         this.logger.error("Failed to read chat attachment", {
           error,
           filename,
         });
+        agentInput.notices.push(`Could not read file upload: ${filename}`);
       }
     }
 
-    return agentMessage.trim();
+    return agentInput;
+  }
+
+  private async createChatAttachmentFromUpload(input: {
+    uploadStore: RuntimeUploadStore;
+    filename: string;
+    mediaType: string;
+    content: Buffer;
+    uploadKind: "text" | "file";
+    metadata: Record<string, unknown>;
+  }): Promise<ChatAttachment> {
+    const record = await input.uploadStore.save({
+      filename: input.filename,
+      mediaType: input.mediaType,
+      content: input.content,
+      metadata: input.metadata,
+    });
+    const source = record.ref;
+    if (input.uploadKind === "text") {
+      return {
+        kind: "text",
+        filename: record.filename,
+        mediaType: record.mediaType,
+        content: input.content.toString("utf8").replace(/^\uFEFF/, ""),
+        sizeBytes: input.content.byteLength,
+        source,
+      };
+    }
+
+    return {
+      kind: "file",
+      filename: record.filename,
+      mediaType: record.mediaType,
+      data: input.content,
+      sizeBytes: input.content.byteLength,
+      source,
+    };
+  }
+
+  private buildUploadMetadata(
+    platform: string,
+    thread: Thread,
+    message: Message,
+  ): Record<string, unknown> {
+    const ids = this.getThreadIdParts(thread.id);
+    return {
+      interfaceType: platform,
+      channelId: thread.id,
+      parentChannelId: thread.channelId,
+      messageId: message.id,
+      uploaderId: message.author.userId,
+      uploaderUsername: message.author.userName,
+      ...(ids.guildId ? { guildId: ids.guildId } : {}),
+      ...(ids.threadId ? { threadId: ids.threadId } : {}),
+    };
+  }
+
+  private async postUploadNotices(
+    thread: Thread,
+    notices: string[],
+  ): Promise<void> {
+    const uniqueNotices = [...new Set(notices)];
+    if (uniqueNotices.length === 0) return;
+    await thread.post(
+      [
+        "Some uploads were skipped:",
+        ...uniqueNotices.map((notice) => `- ${notice}`),
+      ].join("\n"),
+    );
+  }
+
+  private getUploadContentValidationNotice(
+    filename: string,
+    uploadKind: "text" | "file",
+    content: Buffer,
+  ): string | undefined {
+    if (uploadKind === "text") {
+      if (!this.isFileSizeAllowed(content.byteLength)) {
+        return `File upload too large: ${filename}`;
+      }
+      if (!this.isLikelyUtf8Text(content)) {
+        return `Unsupported file upload type: ${filename}`;
+      }
+      return undefined;
+    }
+    if (content.byteLength > CHAT_BINARY_UPLOAD_MAX_BYTES) {
+      return `File upload too large: ${filename}`;
+    }
+    return undefined;
+  }
+
+  private sanitizeUploadFilename(filename: string): string {
+    const leaf = filename.split(/[\\/]/).at(-1)?.trim() ?? "";
+    const cleaned = Array.from(leaf)
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        return code > 31 && code !== 127;
+      })
+      .join("")
+      .slice(0, 160);
+    return cleaned.length > 0 ? cleaned : "upload";
+  }
+
+  private async attachPriorUploads(
+    conversationId: string,
+    agentInput: AgentInput,
+    userLevel: string,
+  ): Promise<void> {
+    if (agentInput.attachments.length > 0) return;
+    if (userLevel !== "anchor" && userLevel !== "trusted") return;
+    const uploads = await this.getRecentUploads(conversationId);
+    if (uploads.length === 0) return;
+    agentInput.attachments = this.selectPriorUploads(
+      agentInput.message,
+      uploads,
+    );
+  }
+
+  private rememberUploadAttachments(
+    conversationId: string,
+    attachments: ChatAttachment[],
+  ): void {
+    if (attachments.length === 0) return;
+    const existing = this.recentUploads.get(conversationId) ?? [];
+    this.recentUploads.set(
+      conversationId,
+      [...existing, ...attachments].slice(-20),
+    );
+  }
+
+  private async getRecentUploads(
+    conversationId: string,
+  ): Promise<ChatAttachment[]> {
+    const existing = this.recentUploads.get(conversationId) ?? [];
+    if (existing.length > 0) return existing;
+    if (!this.context) return [];
+
+    const uploadStore = this.context.uploads.scoped(
+      createDiscordChatUploadStoreScope(),
+    );
+    const restored = await this.loadRecentUploadsFromConversation(
+      conversationId,
+      uploadStore,
+    );
+    if (restored.length > 0) {
+      this.recentUploads.set(conversationId, restored.slice(-20));
+    }
+    return restored;
+  }
+
+  private async loadRecentUploadsFromConversation(
+    conversationId: string,
+    uploadStore: RuntimeUploadStore,
+  ): Promise<ChatAttachment[]> {
+    const messages = await this.context?.conversations
+      .getMessages(conversationId, { limit: 50 })
+      .catch((error: unknown) => {
+        this.logger.debug("Failed to load prior chat uploads", {
+          error,
+          conversationId,
+        });
+        return [];
+      });
+    const uploadIds = this.collectStoredUploadIds(messages ?? []);
+    const uploads: ChatAttachment[] = [];
+    for (const uploadId of uploadIds) {
+      try {
+        const resolved = await uploadStore.read(uploadId);
+        uploads.push(
+          this.createChatAttachmentFromStoredUpload(
+            resolved.record.filename,
+            resolved.record.mediaType,
+            resolved.content,
+            resolved.record.ref,
+          ),
+        );
+      } catch (error: unknown) {
+        this.logger.debug("Failed to restore prior chat upload", {
+          error,
+          uploadId,
+        });
+      }
+    }
+    return uploads;
+  }
+
+  private collectStoredUploadIds(messages: unknown[]): string[] {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (const message of messages) {
+      if (!this.isRecord(message)) continue;
+      if (message["role"] !== "user") continue;
+      const metadata = this.parseStoredMessageMetadata(message["metadata"]);
+      const attachments = metadata?.["attachments"];
+      if (!Array.isArray(attachments)) continue;
+      for (const attachment of attachments) {
+        if (!this.isRecord(attachment)) continue;
+        const source = attachment["source"];
+        if (!this.isRecord(source)) continue;
+        if (source["kind"] !== "discord-chat-upload") continue;
+        const id = source["id"];
+        if (typeof id !== "string" || seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+      }
+    }
+    return ids;
+  }
+
+  private createChatAttachmentFromStoredUpload(
+    filename: string,
+    mediaType: string,
+    content: Buffer,
+    source: { kind: string; id: string },
+  ): ChatAttachment {
+    if (this.isUploadableTextFile(filename, mediaType)) {
+      return {
+        kind: "text",
+        filename,
+        mediaType,
+        content: content.toString("utf8").replace(/^\uFEFF/, ""),
+        sizeBytes: content.byteLength,
+        source,
+      };
+    }
+    return {
+      kind: "file",
+      filename,
+      mediaType,
+      data: content,
+      sizeBytes: content.byteLength,
+      source,
+    };
+  }
+
+  private parseStoredMessageMetadata(
+    metadata: unknown,
+  ): Record<string, unknown> | null {
+    if (typeof metadata === "string") {
+      try {
+        const parsed = JSON.parse(metadata) as unknown;
+        return this.isRecord(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+    return this.isRecord(metadata) ? metadata : null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  private selectPriorUploads(
+    message: string,
+    uploads: ChatAttachment[],
+  ): ChatAttachment[] {
+    const normalized = message.toLowerCase();
+    const named = uploads.filter((upload) =>
+      normalized.includes(upload.filename.toLowerCase()),
+    );
+    if (named.length > 0) return named;
+    if (/\b(first|oldest|earliest)\b/.test(normalized)) {
+      return uploads.slice(0, 1);
+    }
+    if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
+      return uploads.slice(-1);
+    }
+    return uploads;
+  }
+
+  private getUploadKind(
+    filename: string,
+    mediaType: string,
+  ): "text" | "file" | undefined {
+    if (this.isUploadableTextFile(filename, mediaType)) return "text";
+    if (this.isUploadableBinaryFile(filename, mediaType)) return "file";
+    return undefined;
+  }
+
+  private isDeclaredSizeAllowed(
+    uploadKind: "text" | "file",
+    sizeBytes: number,
+  ): boolean {
+    if (sizeBytes <= 0) return true;
+    return uploadKind === "text"
+      ? this.isFileSizeAllowed(sizeBytes)
+      : sizeBytes <= CHAT_BINARY_UPLOAD_MAX_BYTES;
+  }
+
+  private normalizeAttachmentMediaType(
+    filename: string,
+    mediaType: string | undefined,
+  ): string {
+    const trimmed = mediaType?.trim().split(";", 1)[0]?.toLowerCase() ?? "";
+    if (trimmed && trimmed !== "application/octet-stream") return trimmed;
+    const lowerFilename = filename.toLowerCase();
+    for (const [extension, extensionMediaType] of IMAGE_EXTENSIONS) {
+      if (lowerFilename.endsWith(extension)) return extensionMediaType;
+    }
+    if (lowerFilename.endsWith(".pdf")) return "application/pdf";
+    return trimmed || "application/octet-stream";
+  }
+
+  private isUploadableBinaryFile(filename: string, mediaType: string): boolean {
+    if (IMAGE_MIME_TYPES.has(mediaType)) return true;
+    if (mediaType === "application/pdf") return true;
+    const lowerFilename = filename.toLowerCase();
+    return (
+      lowerFilename.endsWith(".pdf") ||
+      [...IMAGE_EXTENSIONS.keys()].some((extension) =>
+        lowerFilename.endsWith(extension),
+      )
+    );
+  }
+
+  private isLikelyUtf8Text(bytes: Uint8Array): boolean {
+    if (bytes.includes(0)) return false;
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private getPlatform(thread: Thread): string {
@@ -614,6 +1190,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.gatewayLoopPromise = undefined;
     this.gatewayAbortController = undefined;
     this.threadRegistry.clear();
+    this.recentUploads.clear();
+    this.toolActivityMessages.clear();
     await this.app?.shutdown();
   }
 

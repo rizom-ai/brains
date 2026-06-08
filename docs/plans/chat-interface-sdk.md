@@ -31,8 +31,12 @@ Implemented on `feat/chat-interface`:
 - Mention, subscribed-thread, unmentioned-channel, and DM routing controls.
 - Allowed-channel gating.
 - URL capture with blocklist support.
-- Trusted/anchor text attachment ingestion for `.txt`/`.md` style files.
-- Confirmation replies with `yes` / `no` / `cancel`.
+- Trusted/anchor text, image, and PDF attachments stored as durable runtime uploads with Discord source metadata and passed to the agent as native attachments.
+- Upload follow-up reuse by explicit filename, first/oldest wording, and most-recent wording, including restart reload from stored conversation metadata.
+- User-visible skipped-upload notices for unsupported, oversized, and spoofed uploads.
+- Structured attachment/artifact and approval cards formatted as Discord-readable text summaries without raw JSON leakage.
+- Live tool activity status messages posted and edited in place for Discord conversations.
+- Confirmation replies with `yes` / `no` / `cancel`, including explicit approval-id selection when multiple approvals are pending.
 - Async job progress and completion edits for tracked Discord responses.
 - Response chunking for Discord message limits.
 - Rover opt-in path: add `chat`, remove `discord`.
@@ -42,18 +46,13 @@ Implemented on `feat/chat-interface`:
 
 ### Uploads and follow-ups
 
-Web chat has durable upload refs, upload download routes, binary/image/PDF support, and follow-up reuse. Discord Chat SDK currently only reads text attachments inline for trusted/anchor users.
+Web chat has upload download routes and restart-safe follow-up reuse. Discord Chat SDK now stores same-turn text, image, and PDF attachments as durable runtime uploads for trusted/anchor users, exposes a stored-upload download route, and supports follow-up reuse by filename/first/recency, including reload from stored conversation/upload metadata.
 
 Required work:
 
 - Reuse or mirror web chat upload validation policy for text, image, and PDF attachments.
-- Store accepted Discord attachments in runtime data, not content `brain-data`.
-- Create durable upload refs with filename, media type, size, source channel/thread, uploader, and timestamp.
-- Pass durable text/image/PDF refs to the agent as native attachments, matching web chat metadata shape where practical.
-- Support follow-up selection by explicit filename.
-- Support follow-up selection of the most recent relevant upload.
-- Preserve upload refs across restart/session reload.
-- Reject unsupported, oversized, spoofed, or binary-as-text uploads with user-visible Discord messages.
+- Validate the Discord upload download route in live hosted/local deployments.
+- Decide whether stored upload routes need signed URLs or operator auth before production use.
 
 Acceptance criteria:
 
@@ -78,14 +77,14 @@ Acceptance criteria:
 
 ### Confirmations and result presentation
 
-Web chat renders structured approval/result cards. Discord currently uses plain text confirmation prompts and responses.
+Web chat renders structured approval/result cards. Discord now formats structured approval cards as readable text and suppresses raw object output; plain yes/no confirmation replies are still used for Discord-native approval responses.
 
 Required work:
 
-- Convert structured approval requests into readable Discord messages.
-- Avoid exposing raw JSON/tool payloads in Discord responses.
+- Convert structured approval requests into readable Discord messages. (Implemented for structured approval cards.)
+- Avoid exposing raw JSON/tool payloads in Discord responses. (Implemented for structured card object output.)
 - Summarize successful and failed confirmed actions using the same display rules web chat uses.
-- Define behavior for multiple simultaneous approvals in one conversation.
+- Define behavior for multiple simultaneous approvals in one conversation. (Implemented: plain yes/no is refused until the reply includes one pending approval id.)
 
 Acceptance criteria:
 
@@ -94,12 +93,12 @@ Acceptance criteria:
 
 ### Progress and tool activity
 
-Web chat streams structured progress and active tool status. Discord currently edits tracked messages for job progress/completion.
+Web chat streams structured progress and active tool status. Discord now edits tracked messages for job progress/completion and posts/edits concise live tool activity status messages.
 
 Required work:
 
-- Map structured progress/tool activity to concise Discord-native updates.
-- Avoid noisy message spam during long jobs.
+- Map structured progress/tool activity to concise Discord-native updates. (Implemented for job progress and tool activity.)
+- Avoid noisy message spam during long jobs. (Tool activity and job progress are edited in place.)
 - Keep final completion/error state visible after message edits.
 - Ignore progress for unrelated channels/conversations.
 
@@ -110,13 +109,13 @@ Acceptance criteria:
 
 ### Generated artifacts
 
-Web chat can display artifact cards and serve generated PDF/image attachments to operators. Discord currently only sends text progress/completion edits.
+Web chat can display artifact cards and serve generated PDF/image attachments to operators. Discord now formats structured attachment/artifact cards as readable text summaries with links, but direct Discord attachment/download proxy behavior still needs live validation/design.
 
 Required work:
 
 - Detect generated artifact metadata from agent/tool results.
-- Post Discord-native artifact summaries with title, type, status, and links or attachments.
-- Serve or attach generated images/PDFs when permission allows.
+- Post Discord-native artifact summaries with title, type, status, and links or attachments. (Text summaries are implemented; attachment/link UX still needs live validation.)
+- Serve or attach generated images/PDFs when permission allows. (Stored upload download route is implemented; generated artifact attachment/proxy behavior still needs design.)
 - Report artifact job status clearly when generation is queued, completed, or failed.
 
 Acceptance criteria:
@@ -153,14 +152,17 @@ Acceptance criteria:
    - Identify reusable upload/artifact display helpers that can move out of web-chat-specific files without creating browser dependencies.
 
 2. **Durable Discord upload refs**
-   - Add runtime upload storage for Discord attachments.
-   - Support text, image, and PDF uploads.
-   - Pass refs to the agent using the same attachment metadata vocabulary as web chat.
+   - Runtime upload storage for Discord attachments is in place.
+   - Text, image, and PDF uploads are supported for trusted/anchor users.
+   - Refs are passed to the agent using the same native attachment metadata vocabulary as web chat.
+   - Skipped-upload notices are in place for unsupported, oversized, and spoofed uploads.
+   - Discord source metadata is stored with runtime upload records.
 
 3. **Follow-up reuse**
-   - Track recent durable uploads by conversation.
-   - Implement filename and most-recent selection.
-   - Add restart coverage.
+   - Recent upload tracking by conversation is in place.
+   - Filename, first/oldest, and most-recent selection are implemented.
+   - Restart reload from stored conversation/upload metadata is implemented.
+   - Remaining: validate the restored context against live Discord restart scenarios.
 
 4. **Confirmation/result formatting**
    - Port web chat's raw-JSON avoidance and result summarization rules into Discord-readable messages.

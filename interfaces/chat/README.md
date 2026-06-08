@@ -1,6 +1,6 @@
 # @brains/chat
 
-Unified Chat SDK interface for Brains.
+Discord Chat SDK interface for Brains.
 
 ## Status
 
@@ -69,8 +69,8 @@ Covered by tests:
 
 - Discord adapter credentials and memory state wiring
 - no Discord adapter or daemon registration when Discord is not configured
-- non-Discord Chat SDK threads ignored until those adapters are enabled
-- platform-scoped permission lookup (`discord:*`, not `chat:*`)
+- non-Discord Chat SDK threads ignored
+- Discord-scoped permission lookup (`discord:*`, not `chat:*`)
 - mentions and subscribed thread routing
 - thread subscription policy when `useThreads` is disabled
 - typing indicator policy when `showTypingIndicator` is disabled
@@ -79,17 +79,22 @@ Covered by tests:
 - allowed-channel gating for chat and URL capture
 - URL capture, disabled URL capture, and blocked domains
 - bot-message filtering unless mentioned, including passive URL capture
-- trusted text-file uploads plus unsupported/oversized upload filtering
-- yes/no/cancel confirmation flow, including unrecognized replies
+- trusted/anchor text, image, and PDF uploads as durable native agent attachments with Discord source metadata
+- prior upload follow-up reuse by filename, first/oldest, or most-recent wording, including restart reload from stored conversation metadata
+- user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads
+- yes/no/cancel confirmation flow, including unrecognized replies and explicit approval-id selection for multiple pending approvals
 - agent error responses
+- structured artifact and approval cards formatted as Discord-readable summaries without raw JSON leakage
+- live tool activity status messages edited in place
 - async job progress and completion edits for tracked responses
 - platform response chunking for Discord's 2000-character limit
 - Discord webhook route delegation
+- stored Discord upload download route
 - abortable direct-mode gateway loop
 
 ## Known gaps before replacing `@brains/discord`
 
 - Chat SDK memory state is used in this first slice. Subscribed/owned-thread behavior does not survive restart yet.
+- Generated artifact summaries are text-only; posting generated files as native Discord attachments is not implemented yet.
 - Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, and webhooks.
 - Shared gateway mode is not implemented here yet.
-- Matrix/Slack are represented in platform contracts but not enabled.

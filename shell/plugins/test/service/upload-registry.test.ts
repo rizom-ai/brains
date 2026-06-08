@@ -58,6 +58,7 @@ describe("RuntimeUploadRegistry", () => {
       filename: "notes.md",
       mediaType: "text/markdown",
       content: Buffer.from("# Notes"),
+      metadata: { interfaceType: "web-chat", channelId: "session-1" },
     });
 
     expect(record).toEqual({
@@ -70,6 +71,7 @@ describe("RuntimeUploadRegistry", () => {
       mediaType: "text/markdown",
       sizeBytes: 7,
       createdAt: "2026-05-30T00:00:00.000Z",
+      metadata: { interfaceType: "web-chat", channelId: "session-1" },
     });
     expect(
       await Bun.file(

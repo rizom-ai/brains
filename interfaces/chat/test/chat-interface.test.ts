@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { ChatContext } from "@brains/plugins";
+import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
 import { chunkMessage } from "@brains/utils";
+import { createDiscordChatUploadStoreScope } from "../src/upload-store";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import type {
   ChatAdapterMap,
@@ -166,6 +167,9 @@ void mock.module("@chat-adapter/state-memory", () => ({
 const { ChatInterface } = await import("../src/chat-interface");
 
 type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
+type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
+  handleToolActivityEvent(event: ToolActivityEvent): Promise<void>;
+};
 
 interface MockSentMessage {
   id: string;
@@ -348,14 +352,14 @@ describe("ChatInterface", () => {
     ).toEqual([]);
   });
 
-  it("ignores non-Discord threads until their adapters are enabled", async () => {
+  it("ignores non-Discord Chat SDK threads", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
-      id: "slack:workspace-123:channel-123:thread-456",
-      channelId: "slack:workspace-123:channel-123",
-      adapter: { name: "slack" },
+      id: "other:workspace-123:channel-123:thread-456",
+      channelId: "other:workspace-123:channel-123",
+      adapter: { name: "other" },
     });
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
@@ -418,7 +422,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
-  it("uses platform-specific permission lookup instead of the chat namespace", async () => {
+  it("uses discord permission lookup instead of the chat namespace", async () => {
     const permissionService = new PermissionService({
       rules: [{ pattern: "discord:*", level: "trusted" }],
     });
@@ -703,7 +707,7 @@ describe("ChatInterface", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
-  it("includes trusted text file uploads in the agent message", async () => {
+  it("passes trusted text file uploads as durable native attachments", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -730,9 +734,37 @@ describe("ChatInterface", () => {
     );
 
     expect(fetchData).toHaveBeenCalledTimes(1);
-    expect(agentService.chat.mock.calls[0]?.[0]).toContain(
-      'User uploaded a file "notes.txt":\n\nfile body',
-    );
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read this");
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+      {
+        kind: "text",
+        filename: "notes.txt",
+        mediaType: "text/plain",
+        content: "file body",
+        sizeBytes: 9,
+        source: {
+          kind: "discord-chat-upload",
+          id: expect.stringMatching(/^upload-/),
+        },
+      },
+    ]);
+    const source =
+      agentService.chat.mock.calls[0]?.[2]?.attachments?.[0]?.source;
+    const uploadStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createDiscordChatUploadStoreScope());
+    const record = await uploadStore.readRecord(source?.id ?? "");
+    expect(record.metadata).toEqual({
+      interfaceType: "discord",
+      channelId: "discord:guild-123:channel-123:thread-456",
+      parentChannelId: "discord:guild-123:channel-123",
+      messageId: "message-123",
+      uploaderId: "user-789",
+      uploaderUsername: "mira",
+      guildId: "guild-123",
+      threadId: "thread-456",
+    });
   });
 
   it("does not download text uploads for public users", async () => {
@@ -760,7 +792,7 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read this");
   });
 
-  it("ignores unsupported and oversized uploads", async () => {
+  it("passes trusted image and PDF uploads as durable native file attachments", async () => {
     harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -769,21 +801,91 @@ describe("ChatInterface", () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const binaryFetchData = mock(() => Promise.resolve(Buffer.from("binary")));
-    const oversizedFetchData = mock(() =>
-      Promise.resolve(Buffer.from("large")),
-    );
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const pdf = Buffer.from("%PDF-1.7");
+    const imageFetchData = mock(() => Promise.resolve(image));
+    const pdfFetchData = mock(() => Promise.resolve(pdf));
 
     await chat?.handlers.mentions[0]?.(
       createThread(),
       createMessage({
+        text: "Use these",
+        attachments: [
+          {
+            name: "diagram.png",
+            mimeType: "image/png",
+            size: image.byteLength,
+            fetchData: imageFetchData,
+          },
+          {
+            name: "brief.pdf",
+            mimeType: "application/pdf",
+            size: pdf.byteLength,
+            fetchData: pdfFetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(imageFetchData).toHaveBeenCalledTimes(1);
+    expect(pdfFetchData).toHaveBeenCalledTimes(1);
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe("Use these");
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "diagram.png",
+        mediaType: "image/png",
+        data: image,
+        sizeBytes: image.byteLength,
+        source: {
+          kind: "discord-chat-upload",
+          id: expect.stringMatching(/^upload-/),
+        },
+      },
+      {
+        kind: "file",
+        filename: "brief.pdf",
+        mediaType: "application/pdf",
+        data: pdf,
+        sizeBytes: pdf.byteLength,
+        source: {
+          kind: "discord-chat-upload",
+          id: expect.stringMatching(/^upload-/),
+        },
+      },
+    ]);
+  });
+
+  it("reports unsupported, oversized, and spoofed uploads", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const unsupportedFetchData = mock(() =>
+      Promise.resolve(Buffer.from("binary")),
+    );
+    const oversizedFetchData = mock(() =>
+      Promise.resolve(Buffer.from("large")),
+    );
+    const spoofedFetchData = mock(() =>
+      Promise.resolve(Buffer.from([0x00, 0x01, 0x02])),
+    );
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
         text: "Read these",
         attachments: [
           {
-            name: "image.png",
-            mimeType: "image/png",
+            name: "archive.bin",
+            mimeType: "application/octet-stream",
             size: 10,
-            fetchData: binaryFetchData,
+            fetchData: unsupportedFetchData,
           },
           {
             name: "huge.txt",
@@ -791,13 +893,312 @@ describe("ChatInterface", () => {
             size: 1024 * 1024 + 1,
             fetchData: oversizedFetchData,
           },
+          {
+            name: "fake-notes.txt",
+            mimeType: "text/plain",
+            size: 3,
+            fetchData: spoofedFetchData,
+          },
         ],
       }),
     );
 
-    expect(binaryFetchData).not.toHaveBeenCalled();
+    expect(unsupportedFetchData).not.toHaveBeenCalled();
     expect(oversizedFetchData).not.toHaveBeenCalled();
+    expect(spoofedFetchData).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenNthCalledWith(
+      1,
+      [
+        "Some uploads were skipped:",
+        "- Unsupported file upload type: archive.bin",
+        "- File upload too large: huge.txt",
+        "- Unsupported file upload type: fake-notes.txt",
+      ].join("\n"),
+    );
     expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read these");
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toBeUndefined();
+  });
+
+  it("reports skipped uploads without calling the agent when no usable input remains", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "",
+        attachments: [
+          {
+            name: "archive.bin",
+            mimeType: "application/octet-stream",
+            size: 10,
+            fetchData: mock(() => Promise.resolve(Buffer.from("binary"))),
+          },
+        ],
+      }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).toHaveBeenCalledWith(
+      "Some uploads were skipped:\n- Unsupported file upload type: archive.bin",
+    );
+  });
+
+  it("reuses the most recent trusted upload on follow-up requests", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const firstImage = Buffer.from([1, 2, 3]);
+    const secondImage = Buffer.from([4, 5, 6]);
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "store this",
+        attachments: [
+          {
+            name: "first-robot.png",
+            mimeType: "image/png",
+            size: firstImage.byteLength,
+            fetchData: mock(() => Promise.resolve(firstImage)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "store this too",
+        isMention: false,
+        attachments: [
+          {
+            name: "second-robot.png",
+            mimeType: "image/png",
+            size: secondImage.byteLength,
+            fetchData: mock(() => Promise.resolve(secondImage)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "describe the most recent image",
+        isMention: false,
+      }),
+    );
+
+    expect(agentService.chat.mock.calls[2]?.[0]).toBe(
+      "describe the most recent image",
+    );
+    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "second-robot.png",
+        mediaType: "image/png",
+        data: secondImage,
+      }),
+    ]);
+  });
+
+  it("reuses the first trusted upload on follow-up requests", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const firstImage = Buffer.from([1, 2, 3]);
+    const secondImage = Buffer.from([4, 5, 6]);
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "store first",
+        attachments: [
+          {
+            name: "first-robot.png",
+            mimeType: "image/png",
+            size: firstImage.byteLength,
+            fetchData: mock(() => Promise.resolve(firstImage)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "store second",
+        isMention: false,
+        attachments: [
+          {
+            name: "second-robot.png",
+            mimeType: "image/png",
+            size: secondImage.byteLength,
+            fetchData: mock(() => Promise.resolve(secondImage)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "describe the first image",
+        isMention: false,
+      }),
+    );
+
+    expect(agentService.chat.mock.calls[2]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "first-robot.png",
+        mediaType: "image/png",
+        data: firstImage,
+      }),
+    ]);
+  });
+
+  it("selects prior trusted uploads by filename on follow-up requests", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const firstImage = Buffer.from([1, 2, 3]);
+    const secondImage = Buffer.from([4, 5, 6]);
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "store these",
+        attachments: [
+          {
+            name: "first-robot.png",
+            mimeType: "image/png",
+            size: firstImage.byteLength,
+            fetchData: mock(() => Promise.resolve(firstImage)),
+          },
+          {
+            name: "second-robot.png",
+            mimeType: "image/png",
+            size: secondImage.byteLength,
+            fetchData: mock(() => Promise.resolve(secondImage)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "describe first-robot.png",
+        isMention: false,
+      }),
+    );
+
+    expect(agentService.chat.mock.calls[1]?.[0]).toBe(
+      "describe first-robot.png",
+    );
+    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "first-robot.png",
+        mediaType: "image/png",
+        data: firstImage,
+      }),
+    ]);
+  });
+
+  it("restores prior uploads from stored conversation metadata after restart", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const image = Buffer.from([7, 8, 9]);
+    const uploadStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createDiscordChatUploadStoreScope());
+    const record = await uploadStore.save({
+      filename: "stored-robot.png",
+      mediaType: "image/png",
+      content: image,
+    });
+    const conversationId = "discord-discord:guild-123:channel-123:thread-456";
+    harness.getMockShell().getConversationService = (): never =>
+      ({
+        startConversation: mock(() => Promise.resolve(conversationId)),
+        addMessage: mock(() => Promise.resolve()),
+        getConversation: mock(() => Promise.resolve(null)),
+        listConversations: mock(() => Promise.resolve([])),
+        searchConversations: mock(() => Promise.resolve([])),
+        getMessages: mock(() =>
+          Promise.resolve([
+            {
+              id: "stored-message-1",
+              conversationId,
+              role: "user",
+              content: "uploaded image",
+              timestamp: new Date().toISOString(),
+              metadata: JSON.stringify({
+                attachments: [
+                  {
+                    kind: "file",
+                    filename: record.filename,
+                    mediaType: record.mediaType,
+                    sizeBytes: record.sizeBytes,
+                    source: record.ref,
+                  },
+                ],
+              }),
+            },
+          ]),
+        ),
+        countMessages: mock(() => Promise.resolve(1)),
+        updateConversationMetadata: mock(() => Promise.resolve(false)),
+        deleteConversation: mock(() => Promise.resolve(false)),
+        close: mock(() => {}),
+      }) as never;
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({ text: "describe stored-robot.png" }),
+    );
+
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe(
+      "describe stored-robot.png",
+    );
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "stored-robot.png",
+        mediaType: "image/png",
+        data: image,
+      }),
+    ]);
   });
 
   it("continues pending confirmations in the same conversation", async () => {
@@ -903,6 +1304,50 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("requires an approval id when multiple confirmations are pending", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-2", isMention: false }),
+    );
+
+    expect(thread.post).toHaveBeenCalledWith(
+      "_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: approval-1, approval-2._",
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-2",
+    );
+  });
+
   it("sends an error message when agent chat fails", async () => {
     agentService.chat.mockRejectedValueOnce(new Error("Agent failed"));
     const plugin = createPlugin();
@@ -913,6 +1358,140 @@ describe("ChatInterface", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
     expect(thread.post).toHaveBeenCalledWith("**Error:** Agent failed");
+  });
+
+  it("formats structured artifact cards as Discord-readable summaries", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Deck carousel",
+          description: "Ready to review.",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "https://brain.test/api/chat/attachments/document?id=deck-1",
+            downloadUrl:
+              "https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+            filename: "deck-carousel.pdf",
+            sizeBytes: 1234,
+          },
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the deck.",
+        "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nOpen: https://brain.test/api/chat/attachments/document?id=deck-1\nDownload: https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+      ].join("\n\n"),
+    );
+  });
+
+  it("formats structured approval cards without raw JSON", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Approval needed.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval-card-1",
+          toolName: "system_publish",
+          summary: "Publish Launch Post",
+          preview: "This will publish the draft post.",
+          state: "approval-requested",
+          input: { entityId: "post-1" },
+        },
+        {
+          kind: "tool-approval",
+          id: "approval-card-2",
+          toolName: "system_publish",
+          summary: "Publish Follow-up",
+          state: "output-available",
+          output: { ok: true, internal: "not for discord" },
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Approval needed.",
+        "**Approval:** Publish Launch Post\nStatus: approval-requested\nThis will publish the draft post.",
+        "**Approval:** Publish Follow-up\nStatus: output-available",
+      ].join("\n\n"),
+    );
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("internal");
+  });
+
+  it("edits Discord tool activity status messages", async () => {
+    const statusMessage = createSentMessage("status-1");
+    const thread = createThread({
+      post: mock((_message: string) => Promise.resolve(statusMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    statusMessage.edit.mockClear();
+
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    await toolInterface.handleToolActivityEvent({
+      type: "tool:invoking",
+      toolName: "system_publish",
+      conversationId: "discord-discord:guild-123:channel-123:thread-456",
+      interfaceType: "discord",
+      channelId: thread.id,
+    });
+    await toolInterface.handleToolActivityEvent({
+      type: "tool:completed",
+      toolName: "system_publish",
+      conversationId: "discord-discord:guild-123:channel-123:thread-456",
+      interfaceType: "discord",
+      channelId: thread.id,
+    });
+
+    expect(thread.post).toHaveBeenCalledWith("⏳ **system publish** running…");
+    expect(statusMessage.edit).toHaveBeenCalledWith(
+      "✅ **system publish** completed.",
+    );
+  });
+
+  it("ignores tool activity outside enabled Discord channels", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+
+    await (
+      plugin as unknown as ChatInterfaceWithToolActivity
+    ).handleToolActivityEvent({
+      type: "tool:invoking",
+      toolName: "system_publish",
+      conversationId: "web-chat-session",
+      interfaceType: "web-chat",
+      channelId: thread.id,
+    });
+
+    expect(thread.post).not.toHaveBeenCalled();
   });
 
   it("edits tracked Discord agent responses for async job progress", async () => {
@@ -1014,6 +1593,66 @@ describe("ChatInterface", () => {
 
     expect(response?.status).toBe(404);
     expect(await response?.text()).toBe("Discord chat webhook not configured");
+  });
+
+  it("serves stored Discord upload refs through the upload route", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const uploadStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createDiscordChatUploadStoreScope());
+    const record = await uploadStore.save({
+      filename: 'deck "draft".pdf',
+      mediaType: "application/pdf",
+      content: Buffer.from("%PDF-1.7"),
+    });
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/discord/uploads" &&
+          candidate.method === "GET",
+      );
+
+    const response = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}&download=1`,
+      ),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response?.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="deck _draft_.pdf"',
+    );
+    expect(await response?.text()).toBe("%PDF-1.7");
+  });
+
+  it("rejects missing or unknown Discord upload refs", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/discord/uploads" &&
+          candidate.method === "GET",
+      );
+
+    const missing = await route?.handler(
+      new Request("https://brain.test/api/webhooks/chat/discord/uploads"),
+    );
+    const unknown = await route?.handler(
+      new Request(
+        "https://brain.test/api/webhooks/chat/discord/uploads?id=upload-00000000-0000-4000-8000-000000000000",
+      ),
+    );
+
+    expect(missing?.status).toBe(400);
+    expect(await missing?.text()).toBe("Missing upload id");
+    expect(unknown?.status).toBe(404);
+    expect(await unknown?.text()).toBe("Upload not found");
   });
 
   it("registers an abortable Discord gateway daemon", async () => {

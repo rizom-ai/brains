@@ -2,7 +2,7 @@
   "name": "@brains/chat",
   "private": true,
   "version": "0.2.0-alpha.78",
-  "description": "Unified Chat SDK interface for Brains",
+  "description": "Discord Chat SDK interface for Brains",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

@@ -1,12 +1,6 @@
-import type { Adapter } from "chat";
+export type ChatPlatform = "discord";
 
-export type ChatPlatform = "discord" | "matrix" | "slack";
-
-export const CHAT_PLATFORMS: readonly ChatPlatform[] = [
-  "discord",
-  "matrix",
-  "slack",
-];
+export const CHAT_PLATFORMS: readonly ChatPlatform[] = ["discord"];
 
 export interface GatewayListenerOptions {
   waitUntil: (task: Promise<unknown>) => void;
@@ -23,8 +17,6 @@ export interface DiscordChatAdapter {
 
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;
-  matrix?: Adapter;
-  slack?: Adapter;
 }
 
 export interface ChatWebhookMap {
