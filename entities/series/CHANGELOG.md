@@ -1,5 +1,18 @@
 # @brains/series
 
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.114
+  - @brains/content-formatters@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/entity-service@0.2.0-alpha.114
+  - @brains/job-queue@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
 ## 0.2.0-alpha.113
 
 ### Patch Changes

@@ -154,6 +154,7 @@
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
+    "fix-document-preview-dedup",
     "fix-shared-host-late-routes",
     "fix-shared-local-env-browser-build",
     "fix-startup-order-singletons",

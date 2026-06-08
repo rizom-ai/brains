@@ -1,5 +1,18 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- [`c7ee710`](https://github.com/rizom-ai/brains/commit/c7ee7108b0ee202ccc772e51aa8310f72cab1893) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ensure generated PDF previews create the requested document id instead of reusing a different deduped artifact, keeping returned attachment URLs valid after jobs complete.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/document@0.2.0-alpha.114
+  - @brains/media-renderer@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+
 ## 0.2.0-alpha.113
 
 ### Patch Changes
