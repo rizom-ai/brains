@@ -481,6 +481,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     if (!this.transitionRequiresGateVerdict(state, event)) {
       return { success: true, gateVerdicts: run.gateVerdicts };
     }
+    if (this.hasSatisfiedGateVerdicts(state, run)) {
+      return { success: true, gateVerdicts: run.gateVerdicts };
+    }
 
     const evidence = this.evidenceForState(run, state.id);
     let result: GoalCheckResult;
@@ -761,14 +764,49 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     if (run.playbookVersion !== playbook?.version) return;
     const state = this.getState(playbook.body, run.currentState);
     if (!state?.doneWhen.length) return;
-    if (!state.transitions.some((transition) => transition.event === "NEXT")) {
+    const nextTransitions = state.transitions.filter(
+      (transition) => transition.event === "NEXT",
+    );
+    if (nextTransitions.length !== 1) return;
+
+    const result = await this.prepareGateVerdicts(run, state, "NEXT");
+    if (!result.success) return;
+
+    const candidateRun = { ...run, gateVerdicts: result.gateVerdicts };
+    if (!this.hasSatisfiedGateVerdicts(state, candidateRun)) {
+      await this.store.upsert(candidateRun);
       return;
     }
 
-    const result = await this.prepareGateVerdicts(run, state, "NEXT");
-    if (result.success) {
-      await this.store.upsert({ ...run, gateVerdicts: result.gateVerdicts });
+    const transitioned = await this.transitionRun(
+      candidateRun,
+      playbook.body,
+      "NEXT",
+    );
+    if (!transitioned.success) {
+      await this.store.upsert(candidateRun);
+      return;
     }
+
+    const reachedFinalState = playbook.body.finalStates.includes(
+      transitioned.currentState,
+    );
+    await this.store.upsert({
+      ...candidateRun,
+      currentState: transitioned.currentState,
+      completedStates: appendUnique(
+        candidateRun.completedStates,
+        candidateRun.currentState,
+      ),
+      snapshot: transitioned.snapshot,
+      gateVerdicts: transitioned.gateVerdicts,
+      ...(reachedFinalState
+        ? {
+            status: "completed" as const,
+            completedAt: new Date().toISOString(),
+          }
+        : {}),
+    });
   }
 
   private hasSatisfiedGateForCurrentState(run: PlaybookRun): boolean {

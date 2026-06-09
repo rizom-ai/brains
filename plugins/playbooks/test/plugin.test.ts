@@ -588,7 +588,7 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("evaluates gated state after runtime evidence is recorded", async () => {
+  it("auto-advances a gated NEXT after runtime evidence satisfies it", async () => {
     const evaluate = mock(async (input) => {
       expect(input.evidence).toHaveLength(1);
       return {
@@ -649,8 +649,8 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(evaluate).toHaveBeenCalledTimes(1);
-    expect(data.validEvents.map((event) => event.event)).toEqual(["NEXT"]);
-    expect(data.blockedEvents).toEqual([]);
+    expect(data.activeRun.currentState).toBe("seed");
+    expect(data.activeRun.completedStates).toEqual(["welcome", "identity"]);
     expect(data.activeRun.gateVerdicts).toContainEqual(
       expect.objectContaining({
         goal: ["The anchor profile has been created or updated."],
