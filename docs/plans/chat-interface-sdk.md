@@ -28,18 +28,17 @@ Acceptance criteria:
 
 ### 2. Upload route security and live validation
 
-Discord uploads currently use runtime upload storage and a download route. The remaining work is deciding and validating the production access model.
+Discord uploads currently use runtime upload storage and a download route. The remaining work is validating the documented production access model.
 
 Required work:
 
 - Validate the Discord stored-upload route in local and hosted deployments.
-- Decide whether stored upload routes need signed URLs, operator auth, or another Discord-safe access pattern before production.
+- Keep generated/protected artifact delivery separate from source-upload refs; use signed or authenticated routes before exposing non-public generated PDFs/images outside operator-only contexts.
 
 Acceptance criteria:
 
 - Trusted/anchor users can upload and reuse text, image, and PDF files in live Discord flows.
 - Public users cannot trigger protected upload download/reuse paths.
-- Production route-auth policy is documented and tested where practical.
 
 ### 3. Restart and session validation
 
@@ -74,21 +73,7 @@ Acceptance criteria:
 - Non-operator/public users cannot fetch protected artifacts.
 - Artifact status is understandable when generation is queued, completed, or failed.
 
-### 5. Permission documentation
-
-Discord depends on Discord user/channel permission lookup rather than browser operator auth.
-
-Required work:
-
-- Document expected Discord permission rules for operator-grade use.
-- Cover anchor/trusted/public behavior for uploads, artifact access, and confirmations.
-
-Acceptance criteria:
-
-- Sensitive flows are gated at least as strictly as web chat equivalents.
-- Operators have clear setup guidance for Discord permissions and allowed channels.
-
-### 6. Live Discord trial
+### 5. Live Discord trial
 
 Run an end-to-end Rover trial with `@brains/chat` replacing `@brains/discord`.
 

@@ -63,6 +63,28 @@ permissions:
 
 When a brain model adopts this package, add `"chat"` to `evalDisable` so live chat sockets/webhooks do not start during evaluation runs.
 
+## Discord permission guidance
+
+Use `discord:*` permission rules for this interface. Operator-grade deployments should prefer:
+
+- `requireMention: true` so ordinary channel chatter is not routed as commands.
+- `allowedChannels` for production channels where the bot may respond or capture URLs.
+- `allowDMs: false` unless direct operator DMs are intentionally supported.
+- `trusted` or `anchor` only for users/channels that may upload source files or resolve prior upload context.
+
+Upload handling is permission-gated before download: public users can still chat, but their Discord attachments are not fetched or passed to the agent. Confirmation safety is enforced by the agent permission layer and by Discord-side approval-id selection when multiple approvals are pending.
+
+## Stored upload route policy
+
+Discord source uploads use runtime upload storage and unguessable `upload-<uuid>` refs. The download route is public because Discord links cannot carry the browser operator session used by web chat. Current guardrails are:
+
+- only trusted/anchor Discord users can create reusable upload refs;
+- public Discord users cannot cause attachments to be fetched or reused;
+- refs are random UUIDs and runtime uploads are pruned by the shared upload registry;
+- route responses serve only stored source uploads, not arbitrary content entities.
+
+Treat generated/protected artifact delivery as a separate production decision: prefer signed or authenticated routes before exposing non-public generated PDFs/images outside operator-only contexts.
+
 ## Current Discord parity coverage
 
 Covered by tests:
