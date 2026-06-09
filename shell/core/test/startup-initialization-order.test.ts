@@ -85,6 +85,25 @@ describe("Startup Initialization Order", () => {
       expect(pluginsRegisteredCallIndex).toBeLessThan(backfillCallIndex);
       expect(backfillCallIndex).toBeLessThan(readyCallIndex);
     });
+
+    it("should start the background index readiness monitor after runtime services", () => {
+      const source = readFileSync(shellBootloaderPath, "utf-8");
+
+      const runtimeServicesCallIndex = source.indexOf(
+        "this.startRuntimeServices()",
+      );
+      const readinessMonitorCallIndex = source.indexOf(
+        "this.startIndexReadinessMonitor()",
+      );
+      const readinessAwaitIndex = source.indexOf(
+        "entityService.awaitIndexReady",
+      );
+
+      expect(runtimeServicesCallIndex).toBeGreaterThan(-1);
+      expect(readinessMonitorCallIndex).toBeGreaterThan(-1);
+      expect(readinessAwaitIndex).toBeGreaterThan(-1);
+      expect(runtimeServicesCallIndex).toBeLessThan(readinessMonitorCallIndex);
+    });
   });
 
   describe("Shell.initialize must NOT call service.initialize() directly", () => {

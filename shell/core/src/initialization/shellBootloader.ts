@@ -2,6 +2,9 @@ import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
+const INDEX_READINESS_TIMEOUT_MS = 30_000;
+const INDEX_READINESS_RETRY_MS = 5_000;
+
 /**
  * Boot mode variants. Mutually exclusive — encoded as a single field so callers
  * can't accidentally combine them.
@@ -104,6 +107,7 @@ export class ShellBootloader {
     }
 
     await this.startRuntimeServices();
+    this.startIndexReadinessMonitor();
 
     this.services.logger.debug("Shell boot complete");
   }
@@ -151,5 +155,50 @@ export class ShellBootloader {
     await this.services.jobQueueWorker.start();
     this.services.jobProgressMonitor.start();
     this.services.batchJobManager.start();
+  }
+
+  private startIndexReadinessMonitor(): void {
+    void this.runIndexReadinessMonitor();
+  }
+
+  private async runIndexReadinessMonitor(): Promise<void> {
+    for (;;) {
+      try {
+        const status = await this.services.entityService.awaitIndexReady({
+          timeoutMs: INDEX_READINESS_TIMEOUT_MS,
+        });
+
+        if (status.ready) {
+          if (status.degraded) {
+            this.services.logger.warn(
+              "Semantic index ready with degraded embeddings",
+              status,
+            );
+          } else {
+            this.services.logger.debug("Semantic index ready", status);
+          }
+          return;
+        }
+
+        this.services.logger.warn(
+          "Semantic index not ready yet; retrying readiness monitor",
+          status,
+        );
+      } catch (error) {
+        this.services.logger.warn(
+          "Semantic index readiness monitor failed; retrying",
+          error,
+        );
+      }
+
+      await this.delayIndexReadinessRetry();
+    }
+  }
+
+  private async delayIndexReadinessRetry(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, INDEX_READINESS_RETRY_MS);
+      timer.unref();
+    });
   }
 }
