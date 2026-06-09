@@ -22,14 +22,13 @@ turns:
         mediaType: image/png
         dataBase64: iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURVt8+v///xZpnOQAAAABYktHRAH/Ai3eAAAAB3RJTUUH6gYFCTIgGlrY4AAAAAxJREFUCNdjYBjcAAAAoAABYSV9RwAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyNi0wNi0wNVQwOTo1MDozMiswMDowMHY6WhcAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjYtMDYtMDVUMDk6NTA6MzIrMDA6MDAHZ+KrAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDI2LTA2LTA1VDA5OjUwOjMyKzAwOjAwUHLDdAAAAABJRU5ErkJggg==
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000601
     successCriteria:
       responseContains:
         - "drunken-robot.png"
         - "What would you like me to do"
       responseNotContains:
-        - "web-chat-upload"
         - "upload-00000000-0000-4000-8000-000000000601"
       toolCountRange:
         max: 0
@@ -41,7 +40,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: image
-            upload.kind: web-chat-upload
+            upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000601
           argsAbsent:
             - prompt
@@ -58,7 +57,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: image
-        upload.kind: web-chat-upload
+        upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000601
       argsAbsent:
         - prompt

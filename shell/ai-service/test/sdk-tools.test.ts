@@ -12,7 +12,7 @@ describe("convertToSDKTools", () => {
       inputSchema: {
         entityType: z.string(),
         upload: z
-          .object({ kind: z.literal("web-chat-upload"), id: z.string() })
+          .object({ kind: z.literal("upload"), id: z.string() })
           .optional(),
         transform: z.string().optional(),
         sourceAttachment: z

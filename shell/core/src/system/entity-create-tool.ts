@@ -154,7 +154,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for runtime upload promotion, or sourceAttachment for source attachment saves.",
+    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
@@ -203,7 +203,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (runtime upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
 
       if (uploadRef) {

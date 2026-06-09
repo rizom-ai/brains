@@ -27,14 +27,13 @@ turns:
           - First observation: upload follow-ups should use explicit refs.
           - Second observation: bare uploads should stay inert.
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000921
     successCriteria:
       responseContains:
         - "field-notes.md"
         - "What would you like me to do"
       responseNotContains:
-        - "web-chat-upload"
         - "upload-00000000-0000-4000-8000-000000000921"
       toolCountRange:
         max: 0
@@ -46,7 +45,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: base
-            upload.kind: web-chat-upload
+            upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000921
             transform: extract-markdown
           argsAbsent:
@@ -64,7 +63,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: base
-        upload.kind: web-chat-upload
+        upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000921
         transform: extract-markdown
       argsAbsent:

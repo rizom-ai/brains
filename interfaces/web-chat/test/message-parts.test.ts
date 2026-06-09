@@ -8,7 +8,7 @@ import {
 function makeUploadResponse(): WebChatUploadResponse {
   return {
     id: "upload-123",
-    ref: { kind: "web-chat-upload", id: "upload-123" },
+    ref: { kind: "upload", id: "upload-123" },
     filename: "notes.md",
     mediaType: "text/markdown",
     sizeBytes: 12,
@@ -41,7 +41,7 @@ describe("web chat message part grouping", () => {
       groupMessageParts([
         {
           type: "data-upload",
-          data: { ref: { kind: "web-chat-upload", id: "upload-123" } },
+          data: { ref: { kind: "upload", id: "upload-123" } },
         },
       ]),
     ).toEqual([]);

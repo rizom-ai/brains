@@ -47,8 +47,8 @@ describe("RuntimeUploadRegistry", () => {
   it("stores scoped upload metadata and content under runtime data", async () => {
     const registry = RuntimeUploadRegistry.createFresh({ dataDir });
     const store = registry.scoped({
-      namespace: "web-chat",
-      refKind: "web-chat-upload",
+      namespace: "upload",
+      refKind: "upload",
       routePath: "/api/chat/uploads",
       createId: (): string => fixedUploadId("000000000001"),
       now: fixedNow,
@@ -63,7 +63,7 @@ describe("RuntimeUploadRegistry", () => {
     expect(record).toEqual({
       id: "upload-00000000-0000-4000-8000-000000000001",
       ref: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000001",
       },
       filename: "notes.md",
@@ -73,7 +73,7 @@ describe("RuntimeUploadRegistry", () => {
     });
     expect(
       await Bun.file(
-        join(dataDir, "web-chat", "uploads", record.id, "content"),
+        join(dataDir, "upload", "uploads", record.id, "content"),
       ).text(),
     ).toBe("# Notes");
     expect(store.toResponseBody(record)).toEqual({
@@ -92,12 +92,12 @@ describe("RuntimeUploadRegistry", () => {
   it("rejects malformed metadata and mismatched ref kinds", async () => {
     const registry = RuntimeUploadRegistry.createFresh({ dataDir });
     const store = registry.scoped({
-      namespace: "web-chat",
-      refKind: "web-chat-upload",
+      namespace: "upload",
+      refKind: "upload",
       routePath: "/api/chat/uploads",
     });
     const uploadId = fixedUploadId("000000000003");
-    const uploadDir = join(dataDir, "web-chat", "uploads", uploadId);
+    const uploadDir = join(dataDir, "upload", "uploads", uploadId);
     await mkdir(uploadDir, { recursive: true });
     await writeFile(join(uploadDir, "content"), "hello");
     await writeFile(

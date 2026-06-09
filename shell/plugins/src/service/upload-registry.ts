@@ -27,9 +27,9 @@ export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
 }
 
 export interface RuntimeUploadScopeOptions {
-  /** Filesystem namespace below the runtime data directory, e.g. "web-chat". */
+  /** Filesystem namespace below the runtime data directory, e.g. "upload". */
   namespace: string;
-  /** Ref discriminator exposed to clients, e.g. "web-chat-upload". */
+  /** Ref discriminator exposed to clients, e.g. "upload". */
   refKind: string;
   /** HTTP route used to resolve stored uploads, e.g. "/api/chat/uploads". */
   routePath: string;

@@ -180,7 +180,7 @@ describe("TestRunner", () => {
                 mediaType: "text/markdown",
                 content: "# Notes",
                 source: {
-                  kind: "web-chat-upload",
+                  kind: "upload",
                   id: "upload-00000000-0000-4000-8000-000000000999",
                 },
               },
@@ -194,8 +194,8 @@ describe("TestRunner", () => {
 
       expect(scopedCalls).toEqual([
         {
-          namespace: "web-chat",
-          refKind: "web-chat-upload",
+          namespace: "upload",
+          refKind: "upload",
           routePath: "",
           createId: expect.any(Function),
         },

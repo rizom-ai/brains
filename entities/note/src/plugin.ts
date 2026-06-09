@@ -25,8 +25,8 @@ import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const webChatUploadsScope = {
-  namespace: "web-chat",
-  refKind: "web-chat-upload",
+  namespace: "upload",
+  refKind: "upload",
   routePath: "/api/chat/uploads",
 } as const;
 

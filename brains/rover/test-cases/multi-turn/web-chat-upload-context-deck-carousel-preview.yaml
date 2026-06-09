@@ -1,11 +1,11 @@
-id: multi-turn-web-chat-upload-context-deck-carousel-preview
+id: multi-turn-web-chat-file-upload-context-deck-carousel-preview
 name: Web chat upload context does not hijack deck carousel preview
 description: Verifies prior uploads remain passive when the user asks for a deck carousel preview from an existing deck.
 type: multi_turn
 setup:
   permissionLevel: anchor
   interfaceType: web-chat
-  channelId: eval-web-chat-upload-context-deck-carousel
+  channelId: eval-web-chat-file-upload-context-deck-carousel
   channelName: Web Chat Eval
 tags:
   - web-chat
@@ -23,14 +23,14 @@ turns:
         mediaType: application/pdf
         dataBase64: JVBERi0xLjcK
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000951
       - kind: file
         filename: IMG_8963.jpeg
         mediaType: image/jpeg
         dataBase64: /9j/4AAQSkZJRg==
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000952
     successCriteria:
       responseContains:

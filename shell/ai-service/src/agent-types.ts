@@ -76,7 +76,7 @@ export interface AgentConfig {
   agentContextProvider?: (
     request: AgentContextRequest,
   ) => Promise<AgentContextItem[]>;
-  /** Optional resolver for prior runtime uploads stored in conversation metadata. */
+  /** Optional resolver for prior uploads stored in conversation metadata. */
   uploadAttachmentResolver?: UploadAttachmentResolver;
 }
 

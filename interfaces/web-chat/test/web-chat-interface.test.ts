@@ -987,7 +987,7 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(201);
     expect(body.id).toStartWith("upload-");
-    expect(body.ref).toEqual({ kind: "web-chat-upload", id: body.id });
+    expect(body.ref).toEqual({ kind: "upload", id: body.id });
     expect(body.filename).toBe("notes.md");
     expect(body.mediaType).toBe("text/markdown");
     expect(body.sizeBytes).toBe(29);
@@ -997,7 +997,7 @@ describe("WebChatInterface", () => {
 
     const uploadDir = join(
       "/tmp/mock-shell-test-data",
-      "web-chat",
+      "upload",
       "uploads",
       body.id,
     );
@@ -1015,7 +1015,7 @@ describe("WebChatInterface", () => {
   });
 
   it("stores multipart uploads in runtime data, not content brain-data", async () => {
-    const root = "/tmp/web-chat-upload-path-test";
+    const root = "/tmp/web-chat-file-upload-path-test";
     await rm(root, { recursive: true, force: true });
     const scopedHarness = createPluginHarness<WebChatInterface>({
       dataDir: join(root, "brain-data"),
@@ -1043,12 +1043,12 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(201);
     expect(
       await Bun.file(
-        join(root, "data", "web-chat", "uploads", body.id, "content"),
+        join(root, "data", "upload", "uploads", body.id, "content"),
       ).text(),
     ).toBe("# Runtime");
     expect(
       await Bun.file(
-        join(root, "brain-data", "web-chat", "uploads", body.id, "content"),
+        join(root, "brain-data", "upload", "uploads", body.id, "content"),
       ).exists(),
     ).toBe(false);
 
@@ -1256,11 +1256,7 @@ describe("WebChatInterface", () => {
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
 
-    const uploadsRoot = join(
-      "/tmp/mock-shell-test-data",
-      "web-chat",
-      "uploads",
-    );
+    const uploadsRoot = join("/tmp/mock-shell-test-data", "upload", "uploads");
     // Seed a stale upload dir (>24h old) that should be swept.
     const staleDir = join(
       uploadsRoot,
@@ -1342,7 +1338,7 @@ describe("WebChatInterface", () => {
         mediaType: "text/markdown",
         content: "# Durable Notes",
         sizeBytes: 15,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
+        source: { kind: "upload", id: upload.ref.id },
       },
     ]);
   });
@@ -1393,7 +1389,7 @@ describe("WebChatInterface", () => {
         mediaType: "image/png",
         data: image,
         sizeBytes: image.byteLength,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
+        source: { kind: "upload", id: upload.ref.id },
       },
     ]);
   });
@@ -1417,7 +1413,7 @@ describe("WebChatInterface", () => {
               parts: [
                 {
                   type: "data-upload",
-                  data: { ref: { kind: "web-chat-upload", id: "../bad" } },
+                  data: { ref: { kind: "upload", id: "../bad" } },
                 },
               ],
             },
@@ -2437,7 +2433,7 @@ describe("WebChatInterface", () => {
                     filename: "notes.md",
                     mediaType: "text/markdown",
                     sizeBytes: 7,
-                    source: { kind: "web-chat-upload", id: "upload-123" },
+                    source: { kind: "upload", id: "upload-123" },
                   },
                 ],
               }),
@@ -2469,7 +2465,7 @@ describe("WebChatInterface", () => {
               mediaType: "text/markdown",
               sizeBytes: 7,
               createdAt: "2026-05-24T00:00:30.000Z",
-              source: { kind: "web-chat-upload", id: "upload-123" },
+              source: { kind: "upload", id: "upload-123" },
             },
           ],
         },

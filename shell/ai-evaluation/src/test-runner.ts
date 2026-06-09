@@ -24,12 +24,8 @@ import {
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
-const uploadRefKindSuffix = "-upload";
-
 function getRuntimeUploadNamespace(refKind: string): string | null {
-  if (!refKind.endsWith(uploadRefKindSuffix)) return null;
-  const namespace = refKind.slice(0, -uploadRefKindSuffix.length);
-  return namespace.length > 0 ? namespace : null;
+  return refKind === "upload" ? "upload" : null;
 }
 
 function toAttachmentContent(attachment: EvalAttachment): Buffer {

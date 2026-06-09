@@ -336,7 +336,7 @@ describe("system_create tool", () => {
                   filename: "brief.pdf",
                   mediaType: "application/pdf",
                   source: {
-                    kind: "web-chat-upload",
+                    kind: "upload",
                     id: "upload-00000000-0000-4000-8000-000000000301",
                   },
                 },
@@ -366,7 +366,7 @@ describe("system_create tool", () => {
       {
         entityType: "document",
         upload: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000301",
         },
       },
@@ -380,7 +380,7 @@ describe("system_create tool", () => {
     expect(capturedInput).toEqual({
       entityType: "document",
       from: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
       },
     });
@@ -404,7 +404,7 @@ describe("system_create tool", () => {
                   filename: "brief.pdf",
                   mediaType: "application/pdf",
                   source: {
-                    kind: "web-chat-upload",
+                    kind: "upload",
                     id: "upload-00000000-0000-4000-8000-000000000304",
                   },
                 },
@@ -431,7 +431,7 @@ describe("system_create tool", () => {
       {
         entityType: "base",
         upload: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000304",
         },
         transform: "extract-markdown",
@@ -446,7 +446,7 @@ describe("system_create tool", () => {
     expect(capturedInput).toEqual({
       entityType: "base",
       from: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000304",
       },
       transform: "extract-markdown",
@@ -484,7 +484,7 @@ describe("system_create tool", () => {
                   filename: "brief.pdf",
                   mediaType: "application/pdf",
                   source: {
-                    kind: "web-chat-upload",
+                    kind: "upload",
                     id: "upload-00000000-0000-4000-8000-000000000305",
                   },
                 },
@@ -512,7 +512,7 @@ describe("system_create tool", () => {
       {
         entityType: "document",
         upload: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000305",
         },
         transform: "extract-markdown",
@@ -579,7 +579,7 @@ describe("system_create tool", () => {
                         filename: "brief.pdf",
                         mediaType: "application/pdf",
                         source: {
-                          kind: "web-chat-upload",
+                          kind: "upload",
                           id: "upload-00000000-0000-4000-8000-000000000303",
                         },
                       },
@@ -610,7 +610,7 @@ describe("system_create tool", () => {
       {
         entityType: "document",
         upload: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000303",
         },
       },
@@ -626,7 +626,7 @@ describe("system_create tool", () => {
       data: { status: "created", entityId: "brief" },
     });
     expect(capturedInput?.from).toEqual({
-      kind: "web-chat-upload",
+      kind: "upload",
       id: "upload-00000000-0000-4000-8000-000000000303",
     });
   });
@@ -636,7 +636,7 @@ describe("system_create tool", () => {
       {
         entityType: "document",
         upload: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000302",
         },
       },
@@ -1156,7 +1156,7 @@ A saved research link.`;
     const result = await exec({
       entityType: "document",
       upload: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000951",
       },
       sourceAttachment: {

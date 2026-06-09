@@ -111,10 +111,7 @@ async function resolveRuntimeUploadAttachment(
 }
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
-  const suffix = "-upload";
-  if (!refKind.endsWith(suffix)) return null;
-  const namespace = refKind.slice(0, -suffix.length);
-  return namespace.length > 0 ? namespace : null;
+  return refKind === "upload" ? "upload" : null;
 }
 
 function toChatAttachment(

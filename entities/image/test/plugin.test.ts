@@ -73,8 +73,8 @@ describe("ImagePlugin", () => {
       .getMockShell()
       .getRuntimeUploadRegistry()
       .scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000201",
       });
@@ -96,7 +96,7 @@ describe("ImagePlugin", () => {
       {
         entityType: "image",
         title: "Robot",
-        from: { kind: "web-chat-upload", id: record.ref.id },
+        from: { kind: "upload", id: record.ref.id },
       },
       {
         interfaceType: "web-chat",
@@ -158,8 +158,8 @@ describe("ImagePlugin", () => {
       .getMockShell()
       .getRuntimeUploadRegistry()
       .scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000202",
       });
@@ -176,7 +176,7 @@ describe("ImagePlugin", () => {
     const result = await interceptor(
       {
         entityType: "image",
-        from: { kind: "web-chat-upload", id: record.ref.id },
+        from: { kind: "upload", id: record.ref.id },
       },
       {
         interfaceType: "web-chat",

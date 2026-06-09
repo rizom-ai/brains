@@ -45,8 +45,8 @@ const createSourceAttachmentInputSchema = z.object({
 });
 
 const createUploadInputSchema = z.object({
-  kind: z.literal("web-chat-upload").describe("Runtime upload ref kind"),
-  id: z.string().min(1).describe("Runtime upload ID"),
+  kind: z.literal("upload").describe("Upload ref kind"),
+  id: z.string().min(1).describe("Upload ID"),
 });
 
 export const createInputSchema = z.object({
@@ -77,7 +77,7 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Promote a runtime upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
+      'Promote an upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
     ),
   transform: z
     .string()

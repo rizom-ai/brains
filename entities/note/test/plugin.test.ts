@@ -73,8 +73,8 @@ describe("NotePlugin", () => {
   describe("upload markdown imports", () => {
     it("queues an uploaded text file import as a markdown note", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000701",
       });
@@ -99,7 +99,7 @@ describe("NotePlugin", () => {
       const result = await interceptor(
         {
           entityType: "base",
-          from: { kind: "web-chat-upload", id: upload.id },
+          from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },
@@ -139,8 +139,8 @@ describe("NotePlugin", () => {
 
     it("imports an uploaded JSON file as a markdown note", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000703",
       });
@@ -157,7 +157,7 @@ describe("NotePlugin", () => {
       const result = await interceptor(
         {
           entityType: "base",
-          from: { kind: "web-chat-upload", id: upload.id },
+          from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },
@@ -184,8 +184,8 @@ describe("NotePlugin", () => {
 
     it("rejects unsupported uploaded media for markdown import", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000704",
       });
@@ -202,7 +202,7 @@ describe("NotePlugin", () => {
       const result = await interceptor(
         {
           entityType: "base",
-          from: { kind: "web-chat-upload", id: upload.id },
+          from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },
@@ -225,8 +225,8 @@ describe("NotePlugin", () => {
 
     it("imports an uploaded PDF as extracted markdown", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000702",
       });
@@ -243,7 +243,7 @@ describe("NotePlugin", () => {
       const result = await interceptor(
         {
           entityType: "base",
-          from: { kind: "web-chat-upload", id: upload.id },
+          from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
         { interfaceType: "web-chat", userId: "operator" },

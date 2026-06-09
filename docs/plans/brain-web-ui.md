@@ -121,9 +121,10 @@ open plan text.
 
 ### 1. Upload/import polish
 
-Durable uploads, upload history rehydration, operator-only upload downloads,
-conversation-scoped upload promotion, note extraction, latest-upload semantics,
-filename selection, and the deck-carousel upload-context regression are shipped.
+Durable uploads, the unified `upload` ref kind, upload history rehydration,
+operator-only upload downloads, conversation-scoped upload promotion, note
+extraction, latest-upload semantics, filename selection, and the deck-carousel
+upload-context regression are shipped.
 
 Remaining upload work:
 

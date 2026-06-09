@@ -225,15 +225,15 @@ function UploadedFilePart({
 }): React.ReactElement {
   const content = (
     <>
-      <span className="web-chat-uploaded-file-kicker">attached</span>
-      <span className="web-chat-uploaded-file-name">{filename}</span>
+      <span className="web-chat-attached-file-kicker">attached</span>
+      <span className="web-chat-attached-file-name">{filename}</span>
     </>
   );
 
   if (url) {
     return (
       <a
-        className="web-chat-uploaded-file"
+        className="web-chat-attached-file"
         data-media-type={mediaType}
         href={url}
       >
@@ -243,7 +243,7 @@ function UploadedFilePart({
   }
 
   return (
-    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+    <span className="web-chat-attached-file" data-media-type={mediaType}>
       {content}
     </span>
   );
@@ -1257,7 +1257,7 @@ export function App(): React.ReactElement {
         ) : null}
 
         {uploadNotice ? (
-          <p className="web-chat-upload-notice" data-tone={uploadNotice.tone}>
+          <p className="web-chat-file-notice" data-tone={uploadNotice.tone}>
             {uploadNotice.message}
           </p>
         ) : null}

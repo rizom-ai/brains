@@ -17,7 +17,7 @@ describe("web chat history messages", () => {
             mediaType: "text/markdown",
             sizeBytes: 7,
             createdAt,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       }),
@@ -30,7 +30,7 @@ describe("web chat history messages", () => {
           type: "data-upload",
           data: {
             id: "upload-123",
-            ref: { kind: "web-chat-upload", id: "upload-123" },
+            ref: { kind: "upload", id: "upload-123" },
             filename: "notes.md",
             mediaType: "text/markdown",
             sizeBytes: 7,

@@ -924,7 +924,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .web-chat-message-bubble ul,
 .web-chat-message-bubble ol { margin: 0 0 0.75rem; padding-left: 1.25rem; }
 .web-chat-message-bubble li { margin-bottom: 0.35rem; }
-.web-chat-uploaded-file {
+.web-chat-attached-file {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -941,8 +941,8 @@ button, textarea, input { font: inherit; color: inherit; }
   text-decoration: none;
   text-transform: uppercase;
 }
-.web-chat-uploaded-file-kicker { color: var(--chat-text-light); }
-.web-chat-uploaded-file-name {
+.web-chat-attached-file-kicker { color: var(--chat-text-light); }
+.web-chat-attached-file-name {
   min-width: 0;
   overflow: hidden;
   color: var(--chat-accent);
@@ -1589,7 +1589,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   line-height: 1.55;
 }
 .web-chat-prompt-textarea::placeholder { color: var(--chat-text-light); }
-.web-chat-upload-notice {
+.web-chat-file-notice {
   margin: 0;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(from var(--chat-accent) r g b / 0.26);
@@ -1602,7 +1602,7 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.web-chat-upload-notice[data-tone="error"] {
+.web-chat-file-notice[data-tone="error"] {
   border-color: rgb(from var(--chat-error) r g b / 0.42);
   background: rgb(from var(--chat-error) r g b / 0.1);
   color: var(--chat-error);

@@ -10,7 +10,7 @@ import {
 let dataDir: string;
 
 beforeEach(async () => {
-  dataDir = await mkdtemp(join(tmpdir(), "web-chat-upload-store-"));
+  dataDir = await mkdtemp(join(tmpdir(), "web-chat-file-upload-store-"));
 });
 
 afterEach(async () => {
@@ -41,7 +41,7 @@ async function expectStoreError(
 }
 
 describe("WebChatUploadStore", () => {
-  it("stores upload metadata and content under the web-chat data directory", async () => {
+  it("stores upload metadata and content under the shared upload data directory", async () => {
     const store = new WebChatUploadStore({
       dataDir,
       createId: (): string => fixedUploadId("000000000001"),
@@ -57,7 +57,7 @@ describe("WebChatUploadStore", () => {
     expect(record).toEqual({
       id: "upload-00000000-0000-4000-8000-000000000001",
       ref: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000001",
       },
       filename: "notes.md",
@@ -67,12 +67,12 @@ describe("WebChatUploadStore", () => {
     });
     expect(
       await Bun.file(
-        join(dataDir, "web-chat", "uploads", record.id, "content"),
+        join(dataDir, "upload", "uploads", record.id, "content"),
       ).text(),
     ).toBe("# Notes");
     expect(
       await Bun.file(
-        join(dataDir, "web-chat", "uploads", record.id, "metadata.json"),
+        join(dataDir, "upload", "uploads", record.id, "metadata.json"),
       ).json(),
     ).toEqual(record);
   });
@@ -82,7 +82,7 @@ describe("WebChatUploadStore", () => {
     const record = {
       id: fixedUploadId("000000000001"),
       ref: {
-        kind: "web-chat-upload" as const,
+        kind: "upload" as const,
         id: fixedUploadId("000000000001"),
       },
       filename: "notes.md",
@@ -129,7 +129,7 @@ describe("WebChatUploadStore", () => {
   it("rejects malformed stored upload metadata", async () => {
     const store = new WebChatUploadStore({ dataDir });
     const uploadId = fixedUploadId("000000000003");
-    const uploadDir = join(dataDir, "web-chat", "uploads", uploadId);
+    const uploadDir = join(dataDir, "upload", "uploads", uploadId);
     await mkdir(uploadDir, { recursive: true });
     await writeFile(join(uploadDir, "content"), "hello");
     await writeFile(
@@ -149,7 +149,7 @@ describe("WebChatUploadStore", () => {
       maxCount: 200,
     });
     const staleId = fixedUploadId("000000000004");
-    const staleDir = join(dataDir, "web-chat", "uploads", staleId);
+    const staleDir = join(dataDir, "upload", "uploads", staleId);
     await mkdir(staleDir, { recursive: true });
     await writeFile(join(staleDir, "content"), "old");
     const staleAge = new Date("2026-05-28T00:00:00.000Z");
@@ -164,7 +164,7 @@ describe("WebChatUploadStore", () => {
     expect(await Bun.file(join(staleDir, "content")).exists()).toBe(false);
     expect(
       await Bun.file(
-        join(dataDir, "web-chat", "uploads", fresh.id, "content"),
+        join(dataDir, "upload", "uploads", fresh.id, "content"),
       ).exists(),
     ).toBe(true);
   });

@@ -20,7 +20,7 @@ describe("collectUploadRefsFromMessages", () => {
               filename: "distributed-systems-primer.pdf",
               mediaType: "application/pdf",
               source: {
-                kind: "web-chat-upload",
+                kind: "upload",
                 id: "upload-00000000-0000-4000-8000-000000000401",
               },
             },
@@ -35,7 +35,7 @@ describe("collectUploadRefsFromMessages", () => {
         filename: "distributed-systems-primer.pdf",
         mediaType: "application/pdf",
         source: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000401",
         },
       },
@@ -49,7 +49,7 @@ describe("resolveConversationUploadContinuity", () => {
       filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
       mediaType: "application/pdf",
       source: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-pdf",
       },
     },
@@ -57,7 +57,7 @@ describe("resolveConversationUploadContinuity", () => {
       filename: "IMG_8963.jpeg",
       mediaType: "image/jpeg",
       source: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-image",
       },
     },
@@ -141,7 +141,7 @@ describe("resolveConversationUploadContinuity", () => {
       data: new Uint8Array([1, 2, 3]),
       sizeBytes: 3,
       source: {
-        kind: "web-chat-upload",
+        kind: "upload",
         id: "upload-current",
       },
     };
@@ -172,7 +172,7 @@ describe("buildMessageWithAttachments", () => {
             filename: "distributed-systems-primer.pdf",
             mediaType: "application/pdf",
             source: {
-              kind: "web-chat-upload",
+              kind: "upload",
               id: "upload-00000000-0000-4000-8000-000000000401",
             },
           },
@@ -181,7 +181,7 @@ describe("buildMessageWithAttachments", () => {
     );
 
     expect(content).toBe(
-      'turn it into a note\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- distributed-systems-primer.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
+      'turn it into a note\n\nAvailable upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- distributed-systems-primer.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
     );
   });
 
@@ -194,7 +194,7 @@ describe("buildMessageWithAttachments", () => {
         data: new Uint8Array([1, 2, 3]),
         sizeBytes: 3,
         source: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000401",
         },
       },
@@ -203,7 +203,7 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toEqual([
       {
         type: "text",
-        text: 'save it as a document\n\nAvailable runtime upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- brief.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
+        text: 'save it as a document\n\nAvailable upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the user asks to extract/import/turn uploaded content into note, markdown, or text.\n- brief.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
       },
       {
         type: "file",

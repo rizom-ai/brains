@@ -75,10 +75,10 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
 function toUploadResponse(
   attachment: WebChatHistoryAttachment,
 ): WebChatUploadResponse | null {
-  if (attachment.source?.kind !== "web-chat-upload") return null;
+  if (attachment.source?.kind !== "upload") return null;
   return {
     id: attachment.source.id,
-    ref: { kind: "web-chat-upload", id: attachment.source.id },
+    ref: { kind: "upload", id: attachment.source.id },
     filename: attachment.filename,
     mediaType: attachment.mediaType,
     sizeBytes: attachment.sizeBytes,

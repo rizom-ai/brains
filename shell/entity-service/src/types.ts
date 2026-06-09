@@ -217,7 +217,7 @@ export interface CreateFromAttachmentInput {
 }
 
 export interface CreateFromUploadInput {
-  kind: "web-chat-upload";
+  kind: "upload";
   id: string;
 }
 

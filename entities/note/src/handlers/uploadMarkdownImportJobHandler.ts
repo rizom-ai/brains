@@ -6,8 +6,8 @@ import { noteAdapter } from "../adapters/note-adapter";
 import { extractMarkdownFromUpload } from "../lib/upload-markdown-import";
 
 const webChatUploadsScope = {
-  namespace: "web-chat",
-  refKind: "web-chat-upload",
+  namespace: "upload",
+  refKind: "upload",
   routePath: "/api/chat/uploads",
 } as const;
 
