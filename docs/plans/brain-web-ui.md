@@ -128,10 +128,13 @@ filename selection, and the deck-carousel upload-context regression are shipped.
 Remaining upload work:
 
 - browser-verify the released upload paths against a running Rover instance;
-- harden optional cleanup/summarization after deterministic extraction without
-  weakening the explicit `extract-markdown` contract;
 - keep user-visible copy saying "uploaded file" or "chat upload", not internal
   ref-kind names.
+
+Upload import transform policy: `extract-markdown` is deterministic extraction,
+not cleanup, rewriting, or summarization. Future cleanup/summarization should be
+a separate explicit transform or follow-up action so markdown import remains
+predictable.
 
 ### 2. Progress/status polish
 

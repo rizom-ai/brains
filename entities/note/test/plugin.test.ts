@@ -78,13 +78,18 @@ describe("NotePlugin", () => {
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000701",
       });
+      const rawMarkdown = [
+        "# Research Notes",
+        "",
+        "Do not summarize this imported source.",
+        "",
+        "- First detailed observation stays intact.",
+        "- Second detailed observation stays intact.",
+      ].join("\n");
       const upload = await uploadStore.save({
         filename: "research-notes.txt",
         mediaType: "text/plain",
-        content: Buffer.from(
-          "# Research Notes\n\nUseful extracted text.",
-          "utf8",
-        ),
+        content: Buffer.from(rawMarkdown, "utf8"),
       });
       const interceptor = harness
         .getEntityRegistry()
@@ -126,7 +131,9 @@ describe("NotePlugin", () => {
         entityType: "base",
         id: "research-notes",
       });
-      expect(entity?.content).toContain("Useful extracted text.");
+      expect(entity?.content).toBe(
+        `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
+      );
       expect(entity?.metadata).toMatchObject({ title: "research-notes" });
     });
 
