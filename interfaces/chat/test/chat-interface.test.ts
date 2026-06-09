@@ -792,6 +792,40 @@ describe("ChatInterface", () => {
     expect(agentService.chat.mock.calls[0]?.[0]).toBe("Read this");
   });
 
+  it("does not download binary uploads for public users", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const imageFetchData = mock(() => Promise.resolve(Buffer.from("image")));
+    const pdfFetchData = mock(() => Promise.resolve(Buffer.from("pdf")));
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({
+        text: "Use these",
+        attachments: [
+          {
+            name: "diagram.png",
+            mimeType: "image/png",
+            size: 5,
+            fetchData: imageFetchData,
+          },
+          {
+            name: "brief.pdf",
+            mimeType: "application/pdf",
+            size: 3,
+            fetchData: pdfFetchData,
+          },
+        ],
+      }),
+    );
+
+    expect(imageFetchData).not.toHaveBeenCalled();
+    expect(pdfFetchData).not.toHaveBeenCalled();
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe("Use these");
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toBeUndefined();
+  });
+
   it("passes trusted image and PDF uploads as durable native file attachments", async () => {
     harness.setPermissionService(
       new PermissionService({
@@ -1557,6 +1591,31 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("reports failed Discord tool activity when no status message is tracked", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+
+    await (
+      plugin as unknown as ChatInterfaceWithToolActivity
+    ).handleToolActivityEvent({
+      type: "tool:failed",
+      toolName: "system_publish",
+      conversationId: "discord-discord:guild-123:channel-123:thread-456",
+      interfaceType: "discord",
+      channelId: thread.id,
+      error: "Publish failed",
+    });
+
+    expect(thread.post).toHaveBeenCalledWith(
+      "❌ **system publish** failed: Publish failed",
+    );
   });
 
   it("edits tracked Discord agent responses for async job progress", async () => {
