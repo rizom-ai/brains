@@ -21,7 +21,7 @@ export async function buildEvalDatabase(
     suffix: "build-db",
   });
 
-  removeStaleBrainDb(evalDbBase);
+  removeStaleBuiltDatabases(evalDbBase);
 
   const app = await bootEvalApp({
     evalDbBase,
@@ -33,13 +33,17 @@ export async function buildEvalDatabase(
   await waitForJobsToDrain(shell.getJobQueueService());
   await verifyDatabaseContents(shell.getEntityService());
   await shell.shutdown();
-  await checkpointDatabase(evalDbBase);
-  copyBuiltDatabase(evalDbBase);
+  await checkpointDatabases(evalDbBase);
+  copyBuiltDatabases(evalDbBase);
 }
 
-function removeStaleBrainDb(evalDbBase: string): void {
-  const staleDb = `${evalDbBase}-data/brain.db`;
-  if (existsSync(staleDb)) rmSync(staleDb);
+function removeStaleBuiltDatabases(evalDbBase: string): void {
+  for (const staleDb of [
+    `${evalDbBase}-data/brain.db`,
+    `${evalDbBase}-data/embeddings.db`,
+  ]) {
+    if (existsSync(staleDb)) rmSync(staleDb);
+  }
 }
 
 async function waitForJobsToDrain(jobQueue: {
@@ -83,21 +87,30 @@ async function verifyDatabaseContents(entityService: {
   }
 }
 
-async function checkpointDatabase(evalDbBase: string): Promise<void> {
+async function checkpointDatabases(evalDbBase: string): Promise<void> {
   const { Database } = await import("bun:sqlite");
-  const db = new Database(`${evalDbBase}.db`);
-  db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-  db.close();
+  for (const dbPath of [`${evalDbBase}.db`, `${evalDbBase}-embeddings.db`]) {
+    const db = new Database(dbPath);
+    db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+    db.close();
+  }
 }
 
-function copyBuiltDatabase(evalDbBase: string): void {
+function copyBuiltDatabases(evalDbBase: string): void {
   const evalContentDir = resolvePath(process.cwd(), "eval-content");
   if (!existsSync(evalContentDir)) {
     console.error("No eval-content directory found");
     process.exit(1);
   }
 
-  const outputPath = resolvePath(evalContentDir, "brain.db");
-  copyFileSync(`${evalDbBase}.db`, outputPath);
-  console.log(`Saved eval database to ${outputPath}`);
+  const databasePairs = [
+    { source: `${evalDbBase}.db`, output: "brain.db" },
+    { source: `${evalDbBase}-embeddings.db`, output: "embeddings.db" },
+  ];
+
+  for (const { source, output } of databasePairs) {
+    const outputPath = resolvePath(evalContentDir, output);
+    copyFileSync(source, outputPath);
+    console.log(`Saved eval database to ${outputPath}`);
+  }
 }
