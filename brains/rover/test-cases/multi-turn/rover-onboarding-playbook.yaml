@@ -71,6 +71,9 @@ turns:
       responseContains:
         - onboarding
       responseNotContains:
+        - "another first"
+        - "share a first"
+        - "save a first idea"
         - "I cannot"
         - "I don't have access"
 

@@ -1012,6 +1012,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const doneWhen = state.doneWhen
       .map((condition) => `- ${condition}`)
       .join("\n");
+    const completedStates = run.completedStates
+      .map((stateId) => `- ${stateId}`)
+      .join("\n");
     const goalStatus = this.formatVerifierStatus(run, state);
 
     return {
@@ -1023,6 +1026,10 @@ Run ID: ${run.id}
 Current state: ${state.id} (${state.title})
 
 Use this run ID for run-scoped playbook tools when explicit run identity is needed.
+Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
+
+Completed states:
+${completedStates || "- none"}
 
 State instructions:
 ${state.instructions.map((instruction) => `- ${instruction}`).join("\n")}
@@ -1057,7 +1064,9 @@ ${blockedEvents || "- none"}`,
 
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When a playbook run is active, use playbook_status before deciding what to do next.
+Treat playbook_status and active-playbook context as the source of truth for the current state and completed states.
 Follow the playbook's current state instructions, operating rules, and Done When conditions.
+Do not redo completed state work or ask for evidence already captured; ask only for what is missing in the current state.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.

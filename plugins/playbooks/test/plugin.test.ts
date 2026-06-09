@@ -868,6 +868,45 @@ describe("PlaybooksPlugin", () => {
     expect(response?.items[0]?.content).toContain("NEXT -> seed");
   });
 
+  it("injects completed-state anti-repetition guidance as agent context", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-agent-context-completed");
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const response = await harness.sendMessage<
+      {
+        conversationId: string;
+        message: string;
+        interfaceType: string;
+        channelId: string;
+        channelName: string;
+        userPermissionLevel: "anchor";
+      },
+      { items: Array<{ source: string; content: string }> }
+    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+      conversationId: "web-agent-context-completed",
+      message: "transform it now",
+      interfaceType: "web-chat",
+      channelId: "web-agent-context-completed",
+      channelName: "Web Chat",
+      userPermissionLevel: "anchor",
+    });
+
+    const content = response?.items[0]?.content ?? "";
+    expect(content).toContain("Current state: seed");
+    expect(content).toContain("Completed states:");
+    expect(content).toContain("- welcome");
+    expect(content).toContain("Do not redo completed states");
+    expect(content).toContain(
+      "ask only for what is missing in the current state",
+    );
+  });
+
   it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(

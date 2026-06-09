@@ -181,10 +181,9 @@ Retrieval demonstration
 - Invite the operator to ask about the saved seed, or offer to demonstrate.
 - Retrieve or reference the saved entity through normal agent/tool behavior.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
+- When the retrieval demo is complete, send NEXT.
 
 #### Done When
-
-- Rover answers using the saved seed or demonstrates that it can find or reference it.
 
 #### Transitions
 
@@ -218,10 +217,9 @@ Transformation demonstration
 - Create a draft entity only after the operator chooses one.
 - Explain how Rover helps move from raw thinking to public output without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
+- When the transformation demo is complete, send NEXT.
 
 #### Done When
-
-- A transformation is shown in chat, or an optional draft entity is created.
 
 #### Transitions
 
@@ -256,8 +254,6 @@ Wrap up
 - Send NEXT when the wrap-up is done.
 
 #### Done When
-
-- The operator has received next prompts and understands how to continue.
 
 #### Transitions
 
