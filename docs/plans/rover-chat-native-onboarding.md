@@ -13,6 +13,52 @@ Related: [Brain web chat surface](./brain-web-ui.md) owns `/chat`;
 [Passkey Operator Onboarding](./passkey-operator-onboarding.md) owns first-passkey
 bootstrap.
 
+## Current smoke-test observations and next fixes
+
+Latest live onboarding smoke test completes end-to-end, but the experience is not
+polished enough to call done. Observed issues:
+
+1. **Manual encouragement needed** — after evidence-producing actions, Rover often
+   waits for "continue" instead of moving to the next state. The runtime already
+   knows the gated `NEXT` is valid; the run should auto-advance when a single
+   satisfied gated `NEXT` exists.
+2. **Response spacing glitches** — assistant text sometimes concatenates words
+   after tool/action boundaries (`Isaved`, `Istarted`, `Ifound`, `Astrong`).
+3. **Confusing confirmation completion labels** — confirmed updates report stale
+   labels such as `Completed: Update "Alex Chen"?` after changing the profile, or
+   generic labels such as `Completed: Update "Untitled"?` after note edits.
+4. **State drift and repetition** — Rover can repeat earlier state work, ask for
+   another first seed after one was saved, or linger in retrieval/seed phases after
+   the user asks for transformation/wrap-up.
+5. **Entity terminology mismatch** — Rover says "note" while generic creation may
+   create a `base` entity. This may be acceptable as user-facing language, but the
+   product decision should be explicit.
+
+Ordered fix plan:
+
+1. **Generic playbooks auto-advance**: when runtime evidence satisfies the current
+   state's single gated `NEXT`, immediately transition to the target state. Keep it
+   conservative: only active runs, only current-state evidence, only one `NEXT`, and
+   only after the goal check returns met.
+2. **Spacing regression**: find the response assembly path that joins tool/action
+   text to model text and normalize boundaries so sentences keep spaces.
+3. **Confirmation labels**: improve update-confirmation completion summaries to use
+   action/object type labels that remain accurate after the mutation.
+4. **Anti-repetition/state drift eval**: add a focused onboarding regression where
+   a first seed is saved and the user asks for transformation; Rover must not ask
+   for another first seed and should progress toward transformation/wrap-up.
+5. **Terminology decision**: decide whether onboarding should create literal `note`
+   entities or keep using generic `base` while calling them "durable notes" in chat.
+
+Validation for this polish slice:
+
+- `plugins/playbooks`: focused test first, then typecheck/tests/lint.
+- `shell/ai-service` or `shell/core` checks if response assembly or confirmation
+  labels are touched.
+- `brains/rover`: typecheck/tests.
+- Focused eval set in requested order:
+  `playbook-goal-check-met,playbook-goal-check-not-met,multi-turn-rover-onboarding-playbook`.
+
 ## What this is
 
 First-run Rover onboarding is a lifecycle-triggered **playbook** that runs inside
