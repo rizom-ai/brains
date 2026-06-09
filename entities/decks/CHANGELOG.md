@@ -1,5 +1,23 @@
 # @brains/decks
 
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- [`bf96062`](https://github.com/rizom-ai/brains/commit/bf96062769b9ce4e066443ce4bd0821ac0f4c0f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reduce PDF carousel slide heading weight so generated deck carousels match the lighter display typography.
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.115
+  - @brains/atproto-contracts@0.2.0-alpha.115
+  - @brains/content-formatters@0.2.0-alpha.115
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/image@0.2.0-alpha.115
+  - @brains/media-page-composer@0.2.0-alpha.115
+  - @brains/media-renderer@0.2.0-alpha.115
+  - @brains/ui-library@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+
 ## 0.2.0-alpha.114
 
 ### Patch Changes

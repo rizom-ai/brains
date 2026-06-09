@@ -1,5 +1,18 @@
 # @brains/products
 
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.115
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/media-page-composer@0.2.0-alpha.115
+  - @brains/media-renderer@0.2.0-alpha.115
+  - @brains/ui-library@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+
 ## 0.2.0-alpha.114
 
 ### Patch Changes
