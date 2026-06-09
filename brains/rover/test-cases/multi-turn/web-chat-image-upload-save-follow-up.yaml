@@ -28,6 +28,9 @@ turns:
       responseContains:
         - "drunken-robot.png"
         - "What would you like me to do"
+      responseNotContains:
+        - "web-chat-upload"
+        - "upload-00000000-0000-4000-8000-000000000601"
       toolCountRange:
         max: 0
 

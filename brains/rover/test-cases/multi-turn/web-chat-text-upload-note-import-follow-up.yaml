@@ -33,6 +33,9 @@ turns:
       responseContains:
         - "field-notes.md"
         - "What would you like me to do"
+      responseNotContains:
+        - "web-chat-upload"
+        - "upload-00000000-0000-4000-8000-000000000921"
       toolCountRange:
         max: 0
 
