@@ -1,7 +1,7 @@
 {
   "name": "@brains/products",
   "private": true,
-  "version": "0.2.0-alpha.115",
+  "version": "0.2.0-alpha.116",
   "description": "Product entity management and overview page for marketing showcase",
   "type": "module",
   "exports": {

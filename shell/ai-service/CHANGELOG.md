@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- [`2688667`](https://github.com/rizom-ai/brains/commit/26886676251bcfab6f4bbeae7e743059746e737e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep raw attachment URLs out of model-visible tool results while preserving full artifact card data for chat UI rendering.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/conversation-service@0.2.0-alpha.116
+  - @brains/entity-service@0.2.0-alpha.116
+  - @brains/identity-service@0.2.0-alpha.116
+  - @brains/mcp-service@0.2.0-alpha.116
+  - @brains/messaging-service@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
 ## 0.2.0-alpha.115
 
 ### Patch Changes

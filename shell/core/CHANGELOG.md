@@ -1,5 +1,17 @@
 # @brains/core
 
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.116
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/image@0.2.0-alpha.116
+  - @brains/site-composition@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
 ## 0.2.0-alpha.115
 
 ### Patch Changes
