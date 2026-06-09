@@ -148,6 +148,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         headers: {
           "Content-Type": record.mediaType,
           "Content-Length": String(content.byteLength),
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
           "Content-Disposition": `${
             new URL(request.url).searchParams.has("download")
               ? "attachment"
@@ -710,8 +712,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       if (display.description) lines.push(display.description);
       if (display.filename) lines.push(`File: ${display.filename}`);
       if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
-      if (display.url) lines.push(`Open: ${display.url}`);
-      if (display.downloadUrl) lines.push(`Download: ${display.downloadUrl}`);
+      if (display.sizeLabel) lines.push(`Size: ${display.sizeLabel}`);
+      const previewUrl = this.resolveDisplayUrl(display.previewUrl);
+      const openUrl = this.resolveDisplayUrl(display.url);
+      const downloadUrl = this.resolveDisplayUrl(display.downloadUrl);
+      if (previewUrl) lines.push(`Preview: ${previewUrl}`);
+      if (openUrl) lines.push(`Open: ${openUrl}`);
+      if (downloadUrl) lines.push(`Download: ${downloadUrl}`);
       return lines.join("\n");
     }
 
@@ -726,6 +733,25 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private formatCardOutput(output: unknown): string | undefined {
     return formatStructuredOutputSummary(output);
+  }
+
+  private getPreferredDisplayBaseUrl(): string | undefined {
+    if (this.context?.preferLocalUrls && this.context.localSiteUrl) {
+      return this.context.localSiteUrl;
+    }
+    return this.context?.siteUrl ?? this.context?.localSiteUrl;
+  }
+
+  private resolveDisplayUrl(url: string | undefined): string | undefined {
+    if (!url) return undefined;
+    try {
+      return new URL(url).toString();
+    } catch {
+      if (!url.startsWith("/")) return url;
+      const baseUrl = this.getPreferredDisplayBaseUrl();
+      if (!baseUrl) return url;
+      return new URL(url, baseUrl).toString();
+    }
   }
 
   private removePendingApproval(

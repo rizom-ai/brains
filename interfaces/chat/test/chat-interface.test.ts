@@ -1519,6 +1519,8 @@ describe("ChatInterface", () => {
             url: "https://brain.test/api/chat/attachments/document?id=deck-1",
             downloadUrl:
               "https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+            previewUrl:
+              "https://brain.test/api/chat/attachments/document?id=deck-1&preview=1",
             filename: "deck-carousel.pdf",
             sizeBytes: 1234,
           },
@@ -1535,7 +1537,85 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nOpen: https://brain.test/api/chat/attachments/document?id=deck-1\nDownload: https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+        "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB\nPreview: https://brain.test/api/chat/attachments/document?id=deck-1&preview=1\nOpen: https://brain.test/api/chat/attachments/document?id=deck-1\nDownload: https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+      ].join("\n\n"),
+    );
+  });
+
+  it("formats relative structured artifact links as absolute Discord-readable URLs", async () => {
+    harness.reset();
+    harness = createPluginHarness<ChatInterfaceInstance>({
+      domain: "brain.test",
+    });
+    harness.setAgentService(agentService);
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the image.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Robot image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=robot-1",
+            downloadUrl: "/api/chat/attachments/image?id=robot-1&download=1",
+            previewUrl: "/api/chat/attachments/image?id=robot-1&preview=1",
+            filename: "robot.png",
+          },
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the image.",
+        "**Artifact:** Robot image\nFile: robot.png\nType: image/png\nPreview: https://brain.test/api/chat/attachments/image?id=robot-1&preview=1\nOpen: https://brain.test/api/chat/attachments/image?id=robot-1\nDownload: https://brain.test/api/chat/attachments/image?id=robot-1&download=1",
+      ].join("\n\n"),
+    );
+  });
+
+  it("prefers local site URLs for relative structured artifact links when configured", async () => {
+    harness.reset();
+    harness = createPluginHarness<ChatInterfaceInstance>({
+      domain: "brain.test",
+      localSiteUrl: "http://localhost:4321",
+      preferLocalUrls: true,
+    });
+    harness.setAgentService(agentService);
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated local preview.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Local robot",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=robot-local",
+            filename: "robot.png",
+          },
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated local preview.",
+        "**Artifact:** Local robot\nFile: robot.png\nType: image/png\nOpen: http://localhost:4321/api/chat/attachments/image?id=robot-local",
       ].join("\n\n"),
     );
   });
@@ -1784,21 +1864,36 @@ describe("ChatInterface", () => {
           candidate.method === "GET",
       );
 
-    const response = await route?.handler(
+    const inlineResponse = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
+      ),
+    );
+    const downloadResponse = await route?.handler(
       new Request(
         `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}&download=1`,
       ),
     );
 
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get("Content-Type")).toBe("application/pdf");
-    expect(response?.headers.get("Content-Disposition")).toBe(
+    expect(inlineResponse?.status).toBe(200);
+    expect(inlineResponse?.headers.get("Content-Type")).toBe("application/pdf");
+    expect(inlineResponse?.headers.get("Cache-Control")).toBe(
+      "private, no-store",
+    );
+    expect(inlineResponse?.headers.get("X-Content-Type-Options")).toBe(
+      "nosniff",
+    );
+    expect(inlineResponse?.headers.get("Content-Disposition")).toBe(
+      'inline; filename="deck _draft_.pdf"',
+    );
+    expect(await inlineResponse?.text()).toBe("%PDF-1.7");
+    expect(downloadResponse?.status).toBe(200);
+    expect(downloadResponse?.headers.get("Content-Disposition")).toBe(
       'attachment; filename="deck _draft_.pdf"',
     );
-    expect(await response?.text()).toBe("%PDF-1.7");
   });
 
-  it("rejects missing or unknown Discord upload refs", async () => {
+  it("rejects missing, malformed, or unknown Discord upload refs", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const route = plugin
@@ -1812,6 +1907,11 @@ describe("ChatInterface", () => {
     const missing = await route?.handler(
       new Request("https://brain.test/api/webhooks/chat/discord/uploads"),
     );
+    const malformed = await route?.handler(
+      new Request(
+        "https://brain.test/api/webhooks/chat/discord/uploads?id=../secret",
+      ),
+    );
     const unknown = await route?.handler(
       new Request(
         "https://brain.test/api/webhooks/chat/discord/uploads?id=upload-00000000-0000-4000-8000-000000000000",
@@ -1820,6 +1920,8 @@ describe("ChatInterface", () => {
 
     expect(missing?.status).toBe(400);
     expect(await missing?.text()).toBe("Missing upload id");
+    expect(malformed?.status).toBe(404);
+    expect(await malformed?.text()).toBe("Upload not found");
     expect(unknown?.status).toBe(404);
     expect(await unknown?.text()).toBe("Upload not found");
   });

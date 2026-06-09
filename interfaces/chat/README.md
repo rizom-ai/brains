@@ -81,7 +81,8 @@ Discord source uploads use runtime upload storage and unguessable `upload-<uuid>
 - only trusted/anchor Discord users can create reusable upload refs;
 - public Discord users cannot cause attachments to be fetched or reused;
 - refs are random UUIDs and runtime uploads are pruned by the shared upload registry;
-- route responses serve only stored source uploads, not arbitrary content entities.
+- route responses serve only stored source uploads, not arbitrary content entities;
+- route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`.
 
 Treat generated/protected artifact delivery as a separate production decision: prefer signed or authenticated routes before exposing non-public generated PDFs/images outside operator-only contexts.
 
@@ -106,7 +107,7 @@ Covered by tests:
 - user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
 - yes/no/cancel confirmation flow with readable pending-approval instructions, restart reload from stored approval cards, unrecognized replies, and explicit approval-id selection for multiple pending approvals
 - agent error responses
-- structured artifact, approval, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage
+- structured artifact, approval, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including absolute artifact links when a site URL is configured
 - live tool activity status messages edited in place, with failed-tool fallback notices
 - async job progress and completion edits for tracked responses
 - platform response chunking for Discord's 2000-character limit
@@ -116,7 +117,7 @@ Covered by tests:
 
 ## Known gaps before replacing `@brains/discord`
 
-- Chat SDK memory state is used in this first slice. Subscribed/owned-thread behavior does not survive restart yet.
-- Generated artifact summaries are text-only; posting generated files as native Discord attachments is not implemented yet.
+- Chat SDK adapter state still uses memory state. If live validation shows subscribed-thread state must survive restart, add a DB-backed Chat SDK state adapter in/near the conversation service rather than local file state or conversation metadata.
+- Generated artifact delivery is link-only; posting generated files as native Discord attachments is not implemented yet.
 - Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, and webhooks.
 - Shared gateway mode is not implemented here yet.

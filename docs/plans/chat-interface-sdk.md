@@ -14,19 +14,7 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 ## Remaining parity work
 
-### 1. Shared parity helpers
-
-Move duplicate workflow rules out of `interfaces/web-chat` and `interfaces/chat` when they can be expressed as transport-neutral helpers.
-
-No obvious shared pure-helper candidates remain. Revisit this section only if future Discord/web-chat parity work reveals duplicated transport-neutral rules.
-
-Acceptance criteria:
-
-- Shared helpers have focused unit tests in `shell/plugins/test/message-interface/`.
-- Web chat and Discord call the same helper for the same workflow rule.
-- Shared helpers return data/decisions, not browser markup or Discord message text.
-
-### 2. Upload route security and live validation
+### 1. Upload route security and live validation
 
 Discord uploads currently use runtime upload storage and a download route. The remaining work is validating the documented production access model.
 
@@ -40,29 +28,44 @@ Acceptance criteria:
 - Trusted/anchor users can upload and reuse text, image, and PDF files in live Discord flows.
 - Public users cannot trigger protected upload download/reuse paths.
 
-### 3. Restart and session validation
+### 2. Restart and session validation
 
 Discord uses channel/DM/thread identity as its session model. The remaining work is live validation and any missing persisted mapping/state discovered during validation.
 
 Required work:
 
-- Validate restart continuation for channel, DM, and subscribed-thread conversations.
+- Validate restart continuation for channel, DM, and subscribed-thread conversations in live Discord.
 - Validate restored upload context after restart.
 - Validate restored pending approvals after restart.
-- Decide whether any additional Discord conversation mapping must be persisted beyond thread/channel-derived conversation IDs.
+- Determine whether Chat SDK adapter state loss affects subscribed-thread follow-ups after restart.
+
+Decision record:
+
+- Durable conversation parity belongs in the existing conversation service: deterministic Discord conversation IDs, stored messages, upload refs, approval cards, and artifact cards.
+- Chat SDK adapter state is separate operational state: subscriptions, locks, queues, lists, and arbitrary SDK cache.
+- Do **not** store Chat SDK adapter state in conversation/message metadata.
+- Do **not** add a local file-state adapter here; it creates a local-only backend that is not the desired production shape.
+- If live validation proves adapter state persistence is required, implement a dedicated DB-backed Chat SDK `StateAdapter` in/near the conversation service using proper tables/transactions, not Redis and not metadata blobs.
 
 Acceptance criteria:
 
 - A Discord conversation can continue after process restart without losing upload context or confusing approvals.
 - Discord thread/channel identity remains the session UX; no browser-style session sidebar is required.
 
-### 4. Generated artifacts
+### 3. Generated artifacts
 
-Discord needs a reliable native path for generated image/PDF artifacts.
+Discord needs a reliable path for generated image/PDF artifacts.
+
+Current behavior:
+
+- Discord renders attachment cards as readable text summaries.
+- Summaries include title, description, filename, media type, size, preview/open/download links when present.
+- Relative artifact links are resolved against the configured site URL, or local site URL when `preferLocalUrls` is enabled.
+- This is still link delivery, not native Discord file upload.
 
 Required work:
 
-- Validate Discord-native artifact summaries with links in live flows.
+- Validate Discord artifact summaries with links in live flows.
 - Decide whether generated images/PDFs should be attached directly, proxied through authenticated/signed routes, or linked only.
 - Ensure artifact retrieval is permission-gated for non-public artifacts.
 - Validate queued/completed/failed artifact job status in Discord.
@@ -73,7 +76,7 @@ Acceptance criteria:
 - Non-operator/public users cannot fetch protected artifacts.
 - Artifact status is understandable when generation is queued, completed, or failed.
 
-### 5. Live Discord trial
+### 4. Live Discord trial
 
 Run an end-to-end Rover trial with `@brains/chat` replacing `@brains/discord`.
 
@@ -118,7 +121,6 @@ Run broader checks only when shared contracts or package exports change.
 This plan is complete when:
 
 - Discord via `@brains/chat` covers the web-chat workflow classes above with Discord-native UX where needed.
-- Shared parity rules live in message-interface helpers instead of being duplicated.
 - Durable upload and conversation state survives restart for supported flows.
 - Protected upload/artifact/confirmation flows are permission-gated.
 - Live Discord validation passes.
