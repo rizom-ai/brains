@@ -29,9 +29,11 @@ export async function buildEvalDatabase(
     evalHandlerRegistry: options.evalHandlerRegistry,
   });
   const shell = app.getShell();
+  const entityService = shell.getEntityService();
 
   await waitForJobsToDrain(shell.getJobQueueService());
-  await verifyDatabaseContents(shell.getEntityService());
+  await waitForIndexReadiness(entityService);
+  await verifyDatabaseContents(entityService);
   await shell.shutdown();
   await checkpointDatabases(evalDbBase);
   copyBuiltDatabases(evalDbBase);
@@ -65,6 +67,29 @@ async function waitForJobsToDrain(jobQueue: {
         .join(" ")}`,
     );
     await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+
+async function waitForIndexReadiness(entityService: {
+  awaitIndexReady(options: { timeoutMs: number }): Promise<{
+    ready: boolean;
+    degraded: boolean;
+    activeEmbeddingJobs: number;
+    missingEmbeddings: number;
+    staleEmbeddings: number;
+    failedEmbeddings: number;
+  }>;
+}): Promise<void> {
+  console.log("Waiting for semantic index readiness...");
+  const status = await entityService.awaitIndexReady({ timeoutMs: 120_000 });
+
+  if (!status.ready) {
+    console.error("Semantic index was not ready:", status);
+    process.exit(1);
+  }
+
+  if (status.degraded) {
+    console.warn("Semantic index ready with degraded embeddings:", status);
   }
 }
 
