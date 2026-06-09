@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -161,6 +162,17 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
+  it("stores runs under shell dataDir by default", async () => {
+    const dataDir = await tempStorageDir();
+    const harness = createPluginHarness({ dataDir });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness);
+
+    await startRun(harness, "conversation-uses-shell-data-dir");
+
+    expect(existsSync(join(dataDir, "playbooks", "runs.json"))).toBe(true);
+  });
+
   it("registers a generic goalCheck eval handler", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     type RegisterEvalHandler = typeof harness.getMockShell extends () => infer T

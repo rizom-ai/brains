@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   agentContextRequestSchema,
@@ -48,7 +49,7 @@ const lifecycleConfigSchema = z
 
 const playbooksConfigSchema = z
   .object({
-    storageDir: z.string().default("./data/playbooks"),
+    storageDir: z.string().optional(),
     lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
   })
   .strict();
@@ -195,7 +196,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     deps: PlaybooksPluginDeps = {},
   ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
-    this.store = new PlaybookRunStore(this.config.storageDir);
+    this.store = new PlaybookRunStore(
+      this.config.storageDir ?? "./data/playbooks",
+    );
     this.injectedGoalCheck = deps.goalCheck;
     this.goalCheck = deps.goalCheck ?? defaultGoalCheck;
   }
@@ -205,7 +208,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ): Promise<void> {
     await super.onRegister(context);
     this.ctx = context;
-    this.store = new PlaybookRunStore(this.config.storageDir);
+    this.store = new PlaybookRunStore(
+      this.config.storageDir ?? join(context.dataDir, "playbooks"),
+    );
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
 
     context.registerInstructions(this.buildInstructions());
