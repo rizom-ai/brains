@@ -36,7 +36,7 @@ Implemented on `feat/chat-interface`:
 - User-visible skipped-upload notices for unsupported, oversized, and spoofed uploads.
 - Structured attachment/artifact and approval cards formatted as Discord-readable text summaries without raw JSON leakage.
 - Live tool activity status messages posted and edited in place for Discord conversations.
-- Confirmation replies with `yes` / `no` / `cancel`, including explicit approval-id selection when multiple approvals are pending.
+- Confirmation replies with `yes` / `no` / `cancel`, readable pending-approval instructions, restart reload from stored approval cards, and explicit approval-id selection when multiple approvals are pending.
 - Async job progress and completion edits for tracked Discord responses.
 - Response chunking for Discord message limits.
 - Rover opt-in path: add `chat`, remove `discord`.
@@ -66,7 +66,7 @@ Web chat has browser session management and persisted conversation history. Disc
 Required work:
 
 - Persist Discord conversation mapping/state needed for continuation after restart.
-- Persist pending confirmation state enough to avoid unsafe orphaned approvals.
+- Persist pending confirmation state enough to avoid unsafe orphaned approvals. (Interface can reload pending ids from stored approval cards; live restart validation still required.)
 - Decide the Discord-native session model: channel, DM, subscribed thread, or owned bot thread.
 - Add restart tests for conversation IDs, upload refs, and pending approvals.
 
@@ -77,7 +77,7 @@ Acceptance criteria:
 
 ### Confirmations and result presentation
 
-Web chat renders structured approval/result cards. Discord now formats structured approval cards as readable text and suppresses raw object output; plain yes/no confirmation replies are still used for Discord-native approval responses.
+Web chat renders structured approval/result cards. Discord now formats structured approval cards and pending-approval instructions as readable text and suppresses raw object output; plain yes/no confirmation replies are still used for Discord-native approval responses.
 
 Required work:
 

@@ -1220,6 +1220,12 @@ describe("ChatInterface", () => {
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Please confirm.",
+        "**Pending approval:** Delete thing\nApproval id: `approval-1`\nReply with **yes** to confirm or **no/cancel** to abort.",
+      ].join("\n\n"),
+    );
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
       createMessage({ text: "yes", isMention: false }),
@@ -1329,6 +1335,12 @@ describe("ChatInterface", () => {
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Please confirm.",
+        "**Pending approvals:**\n- `approval-1` — Publish one\n- `approval-2` — Publish two\nReply with **yes <approval-id>** to confirm one item, or **no <approval-id>** to abort it.",
+      ].join("\n\n"),
+    );
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
       createMessage({ text: "yes", isMention: false }),
@@ -1345,6 +1357,59 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+    );
+  });
+
+  it("restores pending approvals from stored conversation metadata", async () => {
+    const conversationId = "discord-discord:guild-123:channel-123:thread-456";
+    harness.getMockShell().getConversationService = (): never =>
+      ({
+        startConversation: mock(() => Promise.resolve(conversationId)),
+        addMessage: mock(() => Promise.resolve()),
+        getConversation: mock(() => Promise.resolve(null)),
+        listConversations: mock(() => Promise.resolve([])),
+        searchConversations: mock(() => Promise.resolve([])),
+        getMessages: mock(() =>
+          Promise.resolve([
+            {
+              id: "assistant-message-1",
+              conversationId,
+              role: "assistant",
+              content: "Please confirm.",
+              timestamp: new Date().toISOString(),
+              metadata: JSON.stringify({
+                cards: [
+                  {
+                    kind: "tool-approval",
+                    id: "approval-1",
+                    toolName: "system_publish",
+                    summary: "Publish restored post",
+                    state: "approval-requested",
+                  },
+                ],
+              }),
+            },
+          ]),
+        ),
+        countMessages: mock(() => Promise.resolve(1)),
+        updateConversationMetadata: mock(() => Promise.resolve(false)),
+        deleteConversation: mock(() => Promise.resolve(false)),
+        close: mock(() => {}),
+      }) as never;
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(
+      createThread(),
+      createMessage({ text: "yes approval-1" }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      conversationId,
+      true,
+      "approval-1",
     );
   });
 

@@ -3,6 +3,7 @@ import {
   parseConfirmationResponse,
   type ChatAttachment,
   type InterfacePluginContext,
+  type PendingConfirmation,
   type StructuredChatCard,
   type PermissionLookupContext,
   type RuntimeUploadStore,
@@ -462,11 +463,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           );
       }
 
-      if (this.pendingConfirmations.has(conversationId)) {
+      const pendingApprovalIds =
+        await this.getPendingApprovalIds(conversationId);
+      if (pendingApprovalIds.size > 0) {
         await this.handleConfirmationResponse(
           agentInput.message,
           conversationId,
           thread,
+          pendingApprovalIds,
         );
         return;
       }
@@ -504,7 +508,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
       const messageId = await this.sendMessageWithId({
         channelId,
-        message: this.formatAgentResponseText(response.text, response.cards),
+        message: this.formatAgentResponseText(
+          response.text,
+          response.cards,
+          response.pendingConfirmations,
+        ),
       });
 
       if (messageId && response.toolResults) {
@@ -529,12 +537,59 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
+  private async getPendingApprovalIds(
+    conversationId: string,
+  ): Promise<Set<string>> {
+    const existing = this.pendingConfirmations.get(conversationId);
+    if (existing && existing.size > 0) return existing;
+
+    const restored =
+      await this.loadPendingApprovalIdsFromConversation(conversationId);
+    if (restored.size > 0)
+      this.pendingConfirmations.set(conversationId, restored);
+    return restored;
+  }
+
+  private async loadPendingApprovalIdsFromConversation(
+    conversationId: string,
+  ): Promise<Set<string>> {
+    const messages = await this.context?.conversations
+      .getMessages(conversationId, { limit: 50 })
+      .catch((error: unknown) => {
+        this.logger.debug("Failed to load pending chat approvals", {
+          error,
+          conversationId,
+        });
+        return [];
+      });
+    const pending = new Set<string>();
+    for (const message of messages ?? []) {
+      const metadata = this.parseStoredMessageMetadata(message.metadata);
+      const cards = metadata?.["cards"];
+      if (!Array.isArray(cards)) continue;
+      for (const card of cards) {
+        if (!this.isRecord(card) || card["kind"] !== "tool-approval") {
+          continue;
+        }
+        const id = card["id"];
+        if (typeof id !== "string" || id.length === 0) continue;
+        const state = card["state"];
+        if (state === "approval-requested") {
+          pending.add(id);
+        } else if (typeof state === "string") {
+          pending.delete(id);
+        }
+      }
+    }
+    return pending;
+  }
+
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
     thread: Thread,
+    approvalIds: Set<string>,
   ): Promise<void> {
-    const approvalIds = this.pendingConfirmations.get(conversationId);
     const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
       await thread.post(
@@ -543,7 +598,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    if (approvalIds && approvalIds.size > 1 && !parsed.approvalId) {
+    if (approvalIds.size > 1 && !parsed.approvalId) {
       await thread.post(
         `_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: ${[
           ...approvalIds,
@@ -552,8 +607,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const approvalId =
-      parsed.approvalId ?? (approvalIds ? [...approvalIds][0] : undefined);
+    const approvalId = parsed.approvalId ?? [...approvalIds][0];
     if (!approvalId) {
       this.pendingConfirmations.delete(conversationId);
       await thread.post("_No pending approval to resolve._");
@@ -568,7 +622,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     if (response) {
       await thread.post(
-        this.formatAgentResponseText(response.text, response.cards),
+        this.formatAgentResponseText(
+          response.text,
+          response.cards,
+          response.pendingConfirmations,
+        ),
       );
     }
   }
@@ -606,10 +664,41 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private formatAgentResponseText(
     text: string,
     cards: StructuredChatCard[] | undefined,
+    pendingConfirmations?: PendingConfirmation[],
   ): string {
-    if (!cards || cards.length === 0) return text;
-    const cardSummaries = cards.map((card) => this.formatStructuredCard(card));
-    return [text, ...cardSummaries].filter((part) => part.trim()).join("\n\n");
+    const cardSummaries = (cards ?? []).map((card) =>
+      this.formatStructuredCard(card),
+    );
+    const pendingHelp =
+      this.formatPendingConfirmationHelp(pendingConfirmations);
+    return [text, ...cardSummaries, pendingHelp]
+      .filter((part): part is string => Boolean(part?.trim()))
+      .join("\n\n");
+  }
+
+  private formatPendingConfirmationHelp(
+    pendingConfirmations: PendingConfirmation[] | undefined,
+  ): string | undefined {
+    if (!pendingConfirmations || pendingConfirmations.length === 0) {
+      return undefined;
+    }
+    if (pendingConfirmations.length === 1) {
+      const confirmation = pendingConfirmations[0];
+      if (!confirmation) return undefined;
+      return [
+        `**Pending approval:** ${confirmation.summary}`,
+        `Approval id: \`${confirmation.id}\``,
+        "Reply with **yes** to confirm or **no/cancel** to abort.",
+      ].join("\n");
+    }
+
+    return [
+      "**Pending approvals:**",
+      ...pendingConfirmations.map(
+        (confirmation) => `- \`${confirmation.id}\` — ${confirmation.summary}`,
+      ),
+      "Reply with **yes <approval-id>** to confirm one item, or **no <approval-id>** to abort it.",
+    ].join("\n");
   }
 
   private formatStructuredCard(card: StructuredChatCard): string {
