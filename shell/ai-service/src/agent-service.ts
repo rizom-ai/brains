@@ -1,6 +1,10 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import { type IMCPService, type ToolContext } from "@brains/mcp-service";
+import {
+  type IMCPService,
+  type ToolContext,
+  toolSuccessSchema,
+} from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
   ConversationMessageMetadata,
@@ -35,7 +39,11 @@ import {
   buildModelMessages,
   resolveConversationUploadContinuity,
 } from "./conversation-messages";
-import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
+import {
+  buildAttachmentCardFromToolData,
+  extractToolResults,
+  buildEntityMemoryNote,
+} from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { toTokenUsage } from "./generation-options";
 
@@ -56,6 +64,34 @@ function getStringField(value: unknown, field: string): string | undefined {
 
 function isFailedToolOutput(value: unknown): boolean {
   return isRecord(value) && value["success"] === false;
+}
+
+const INTERNAL_CONFIRMATION_FIELDS = new Set([
+  "confirmed",
+  "confirmationToken",
+  "contentHash",
+]);
+
+function toApprovalCardInput(
+  args: unknown,
+): Record<string, unknown> | undefined {
+  if (!isRecord(args)) return undefined;
+  return Object.fromEntries(
+    Object.entries(args).filter(
+      ([key]) => !INTERNAL_CONFIRMATION_FIELDS.has(key),
+    ),
+  );
+}
+
+function shouldEnableCreateSourceAttachment(input: {
+  message: string;
+  hasAccessibleUploads: boolean;
+}): boolean {
+  if (input.hasAccessibleUploads) return false;
+  const message = input.message.toLowerCase();
+  return /\b(carousel|printable|og image|open graph|social preview|preview image|attachment|attach|pdf|document)\b/.test(
+    message,
+  );
 }
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
@@ -271,7 +307,7 @@ export class AgentService implements IAgentService {
   }
 
   /**
-   * Confirm or cancel a pending destructive operation
+   * Confirm or cancel a pending approval-gated action
    */
   public async confirmPendingAction(
     conversationId: string,
@@ -440,6 +476,10 @@ export class AgentService implements IAgentService {
     );
     const hasAccessibleUploads =
       hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
+    const enableCreateSourceAttachment = shouldEnableCreateSourceAttachment({
+      message,
+      hasAccessibleUploads,
+    });
     const callOptions: BrainCallOptions = {
       userPermissionLevel,
       conversationId,
@@ -449,7 +489,9 @@ export class AgentService implements IAgentService {
       ...(hasAccessibleUploads
         ? { enableCreateUpload: true, enableCreateTransform: true }
         : {}),
-      ...(!hasAccessibleUploads ? { enableCreateSourceAttachment: true } : {}),
+      ...(enableCreateSourceAttachment
+        ? { enableCreateSourceAttachment: true }
+        : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 
@@ -590,6 +632,7 @@ export class AgentService implements IAgentService {
         ? { args: pendingConfirmation.args }
         : {}),
     };
+    const approvalInput = toApprovalCardInput(pendingConfirmation.args);
     const approvalCard: StructuredChatCard = {
       kind: "tool-approval",
       id: pendingConfirmation.id,
@@ -597,9 +640,7 @@ export class AgentService implements IAgentService {
         ? { toolCallId: pendingConfirmation.toolCallId }
         : {}),
       toolName: pendingConfirmation.toolName,
-      ...(isRecord(pendingConfirmation.args)
-        ? { input: pendingConfirmation.args }
-        : {}),
+      ...(approvalInput ? { input: approvalInput } : {}),
       summary: pendingConfirmation.summary,
       state: failed ? "output-error" : "output-available",
       output: result,
@@ -607,6 +648,22 @@ export class AgentService implements IAgentService {
         ? { error: getStringField(result, "error") ?? "Action failed" }
         : {}),
     };
+    const successResult = toolSuccessSchema.safeParse(result);
+    const attachmentCard = successResult.success
+      ? buildAttachmentCardFromToolData(successResult.data.data)
+      : undefined;
+    const cards: StructuredChatCard[] = [
+      approvalCard,
+      ...(attachmentCard ? [attachmentCard] : []),
+    ];
+    const entityMemoryNote = successResult.success
+      ? buildEntityMemoryNote([
+          {
+            ...toolResult,
+            data: successResult.data.data,
+          },
+        ])
+      : "";
 
     await this.conversationService.addMessage({
       conversationId,
@@ -617,7 +674,8 @@ export class AgentService implements IAgentService {
           this.getAssistantActor(),
           this.buildAssistantSource(channelId, channelName),
           [],
-          [approvalCard],
+          cards,
+          entityMemoryNote,
         ),
       ),
     });
@@ -625,7 +683,7 @@ export class AgentService implements IAgentService {
     return {
       text: resultText,
       toolResults: [toolResult],
-      cards: [approvalCard],
+      cards,
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }

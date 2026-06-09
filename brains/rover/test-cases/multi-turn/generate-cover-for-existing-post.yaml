@@ -18,6 +18,15 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "social-post"
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "Confirm creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Generate"
+
   - userMessage: "Now generate a cover image for that post"
     successCriteria:
       expectedTools:

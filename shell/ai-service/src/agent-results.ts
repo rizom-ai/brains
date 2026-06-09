@@ -46,6 +46,66 @@ function describeAttachmentMedia(mediaType: string): string {
   return "artifact";
 }
 
+export function buildAttachmentCardFromToolData(
+  data: unknown,
+): StructuredChatCard | undefined {
+  const jobIdParsed = jobIdSchema.safeParse(data);
+  const attachmentParsed = attachmentToolDataSchema.safeParse(data);
+  if (!attachmentParsed.success) return undefined;
+
+  const attachment = attachmentParsed.data.attachment;
+  const attachmentId =
+    attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
+  if (attachmentId === undefined) return undefined;
+
+  const source = attachment.source;
+  const mediaLabel = describeAttachmentMedia(attachment.mediaType);
+  return {
+    kind: "attachment",
+    id: `attachment:${attachmentId}`,
+    ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
+    title: attachment.filename ?? `Generated ${mediaLabel}`,
+    // Only describe the work as queued when there is a job backing it;
+    // an already-materialized attachment arrives without a jobId.
+    ...(jobIdParsed.success
+      ? {
+          description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
+        }
+      : {}),
+    attachment: {
+      mediaType: attachment.mediaType,
+      url: attachment.url,
+      ...(attachment.downloadUrl !== undefined
+        ? { downloadUrl: attachment.downloadUrl }
+        : {}),
+      ...(attachment.previewUrl !== undefined
+        ? { previewUrl: attachment.previewUrl }
+        : {}),
+      ...(attachment.filename !== undefined
+        ? { filename: attachment.filename }
+        : {}),
+      ...(attachment.sizeBytes !== undefined
+        ? { sizeBytes: attachment.sizeBytes }
+        : {}),
+      ...(source !== undefined
+        ? {
+            source: {
+              ...(source.entityType !== undefined
+                ? { entityType: source.entityType }
+                : {}),
+              ...(source.entityId !== undefined
+                ? { entityId: source.entityId }
+                : {}),
+              ...(source.attachmentType !== undefined
+                ? { attachmentType: source.attachmentType }
+                : {}),
+            },
+          }
+        : {}),
+    },
+  };
+}
+
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmations: PendingConfirmation[];
@@ -137,61 +197,10 @@ export function extractToolResults(
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
         }
-        const attachmentParsed = attachmentToolDataSchema.safeParse(
+        const attachmentCard = buildAttachmentCardFromToolData(
           successParsed.data.data,
         );
-        if (attachmentParsed.success) {
-          const attachment = attachmentParsed.data.attachment;
-          const attachmentId =
-            attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
-          if (attachmentId === undefined) continue;
-          const source = attachment.source;
-          const mediaLabel = describeAttachmentMedia(attachment.mediaType);
-          cards.push({
-            kind: "attachment",
-            id: `attachment:${attachmentId}`,
-            ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
-            title: attachment.filename ?? `Generated ${mediaLabel}`,
-            // Only describe the work as queued when there is a job backing it;
-            // an already-materialized attachment arrives without a jobId.
-            ...(jobIdParsed.success
-              ? {
-                  description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
-                }
-              : {}),
-            attachment: {
-              mediaType: attachment.mediaType,
-              url: attachment.url,
-              ...(attachment.downloadUrl !== undefined
-                ? { downloadUrl: attachment.downloadUrl }
-                : {}),
-              ...(attachment.previewUrl !== undefined
-                ? { previewUrl: attachment.previewUrl }
-                : {}),
-              ...(attachment.filename !== undefined
-                ? { filename: attachment.filename }
-                : {}),
-              ...(attachment.sizeBytes !== undefined
-                ? { sizeBytes: attachment.sizeBytes }
-                : {}),
-              ...(source !== undefined
-                ? {
-                    source: {
-                      ...(source.entityType !== undefined
-                        ? { entityType: source.entityType }
-                        : {}),
-                      ...(source.entityId !== undefined
-                        ? { entityId: source.entityId }
-                        : {}),
-                      ...(source.attachmentType !== undefined
-                        ? { attachmentType: source.attachmentType }
-                        : {}),
-                    },
-                  }
-                : {}),
-            },
-          });
-        }
+        if (attachmentCard) cards.push(attachmentCard);
       }
 
       toolResults.push(toolResult);
@@ -207,10 +216,15 @@ export function extractToolResults(
 }
 
 const entityRefDataSchema = z.object({
-  entityId: z.string().min(1),
+  entityId: z.string().min(1).optional(),
+  updated: z.string().min(1).optional(),
+  deleted: z.string().min(1).optional(),
   status: z.string().optional(),
 });
-const entityRefArgsSchema = z.object({ entityType: z.string().optional() });
+const entityRefArgsSchema = z.object({
+  entityType: z.string().optional(),
+  id: z.string().optional(),
+});
 
 /**
  * Build a compact memory note listing the entities a turn created or updated.
@@ -227,14 +241,21 @@ export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
     if (!data.success) continue;
-    const { entityId, status } = data.data;
-    if (seen.has(entityId)) continue;
+    const { status } = data.data;
+    const entityId =
+      data.data.entityId ?? data.data.updated ?? data.data.deleted;
+    if (!entityId || seen.has(entityId)) continue;
     seen.add(entityId);
 
     const args = entityRefArgsSchema.safeParse(tr.args ?? {});
     const entityType = args.success ? args.data.entityType : undefined;
+    const operation = data.data.updated
+      ? "updated"
+      : data.data.deleted
+        ? "deleted"
+        : status;
     const label = entityType ? `${entityType} "${entityId}"` : `"${entityId}"`;
-    refs.push(status ? `${label} (${status})` : label);
+    refs.push(operation ? `${label} (${operation})` : label);
   }
   if (refs.length === 0) return "";
   return `\n\n[Entities affected this turn: ${refs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.]`;

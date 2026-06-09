@@ -120,7 +120,7 @@ export interface ChatContext {
 }
 
 /**
- * Pending confirmation for destructive operations
+ * Pending confirmation for durable write operations or other approval-gated actions
  */
 export interface PendingConfirmation {
   id: string;
@@ -207,7 +207,7 @@ export interface AgentResponse {
   // tool outputs, artifacts, and future rich parts.
   cards?: StructuredChatCard[];
 
-  // Pending confirmations for destructive operations.
+  // Pending confirmations for durable write operations or other approval-gated actions.
   pendingConfirmations?: PendingConfirmation[];
 
   // Token usage for tracking
@@ -235,7 +235,7 @@ export interface IAgentService {
   ): Promise<AgentResponse>;
 
   /**
-   * Confirm a pending destructive operation
+   * Confirm a pending approval-gated action
    * @param conversationId - ID of the conversation
    * @param confirmed - Whether the user confirmed the operation
    * @param approvalId - Explicit approval/action id to resolve

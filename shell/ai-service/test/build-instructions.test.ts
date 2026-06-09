@@ -157,13 +157,26 @@ describe("buildInstructions", () => {
     );
   });
 
-  it("should prohibit self-confirming destructive delete requests", () => {
+  it("should tell the agent to preserve finalized deck content without prompt generation", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "finalized deck markdown with frontmatter and slide separators must go in `content` only",
+    );
+    expect(instructions).toContain(
+      "including `prompt` would request generation",
+    );
+  });
+
+  it("should prohibit self-confirming durable write requests", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
       "never pass `confirmed: true` on the initial user request",
     );
     expect(instructions).toContain(
-      "Never self-confirm a destructive operation",
+      "Creating or generating entities with `system_create`",
+    );
+    expect(instructions).toContain(
+      "Never self-confirm a durable write operation",
     );
   });
 

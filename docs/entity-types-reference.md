@@ -152,7 +152,7 @@ Key frontmatter:
 - `capturedAt`
 - `source`: `{ ref, label }`
 
-Creating a link with `system_create` and a `url` can enqueue the link-capture workflow instead of requiring hand-written frontmatter.
+Creating a link with `system_create` and a `url` uses the standard confirmation flow, then can enqueue the link-capture workflow instead of requiring hand-written frontmatter.
 
 ### `wish`
 
@@ -487,4 +487,4 @@ Parsed body sections include:
 - `skills`
 - `notes`
 
-URL-based creation through `system_create` can fetch the agent card and create an approved saved agent entry.
+URL-based creation through `system_create` uses the standard confirmation flow, then can fetch the agent card and create an approved saved agent entry.

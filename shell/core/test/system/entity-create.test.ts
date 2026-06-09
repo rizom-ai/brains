@@ -8,7 +8,7 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/entity-service";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
@@ -239,20 +239,17 @@ describe("system_create tool", () => {
     tools = createSystemTools(services);
   });
 
-  function exec(
-    input: Record<string, unknown>,
-    context?: {
-      interfaceType?: string;
-      userId?: string;
-      conversationId?: string;
-      channelId?: string;
-      channelName?: string;
-      userPermissionLevel?: UserPermissionLevel;
-    },
-  ): Promise<ToolResponse> {
-    const tool = tools.find((t) => t.name === "system_create");
-    if (!tool) throw new Error("system_create not found");
-    return tool.handler(input, {
+  interface CreateToolTestContext {
+    interfaceType?: string;
+    userId?: string;
+    conversationId?: string;
+    channelId?: string;
+    channelName?: string;
+    userPermissionLevel?: UserPermissionLevel;
+  }
+
+  function buildContext(context?: CreateToolTestContext): ToolContext {
+    return {
       interfaceType: context?.interfaceType ?? "test",
       userId: context?.userId ?? "test",
       ...(context?.conversationId
@@ -263,8 +260,56 @@ describe("system_create tool", () => {
       ...(context?.userPermissionLevel
         ? { userPermissionLevel: context.userPermissionLevel }
         : {}),
-    });
+    };
   }
+
+  function execRaw(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const tool = tools.find((t) => t.name === "system_create");
+    if (!tool) throw new Error("system_create not found");
+    return tool.handler(input, buildContext(context));
+  }
+
+  async function exec(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const result = await execRaw(input, context);
+    if (!("needsConfirmation" in result)) return result;
+    return execRaw(result.args as Record<string, unknown>, context);
+  }
+
+  it("should require confirmation before creating durable entities", async () => {
+    const result = await execRaw({
+      entityType: "base",
+      title: "Confirm Me",
+      content: "Confirm this create.",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_create",
+      summary: 'Create "Confirm Me"?',
+    });
+    expect(result).toHaveProperty("args.confirmed", true);
+  });
+
+  it("should reject confirmed create calls without a pending confirmation token", async () => {
+    const result = await execRaw({
+      entityType: "base",
+      title: "No Token",
+      content: "Do not create directly.",
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "No pending create confirmation found. Please request creation again and confirm the new approval.",
+    });
+  });
 
   it("should pass normalized input and execution context to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;

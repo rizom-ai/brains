@@ -53,13 +53,14 @@ function expectSuccess<TSchema extends z.ZodTypeAny>(
   return schema.parse(response.data);
 }
 
-function expectConfirmation(raw: unknown): void {
+function expectConfirmation(raw: unknown): Record<string, unknown> {
   const response = toolResponseSchema.parse(raw);
   if (!("needsConfirmation" in response)) {
     throw new Error(
       `Expected confirmation response, got: ${JSON.stringify(response)}`,
     );
   }
+  return z.record(z.string(), z.unknown()).parse(response.args);
 }
 
 describe("entity action policy", () => {
@@ -86,12 +87,18 @@ describe("entity action policy", () => {
     return tool;
   };
 
-  it("allows trusted create for default team-authored entity types", async () => {
-    const result = await getTool("system_create").handler(
-      { entityType: "base", title: "Team note", content: "Team note body" },
-      baseContext("trusted"),
+  it("allows trusted create for default team-authored entity types after confirmation", async () => {
+    const confirmArgs = expectConfirmation(
+      await getTool("system_create").handler(
+        { entityType: "base", title: "Team note", content: "Team note body" },
+        baseContext("trusted"),
+      ),
     );
 
+    const result = await getTool("system_create").handler(
+      confirmArgs,
+      baseContext("trusted"),
+    );
     const data = expectSuccess(
       result,
       z.object({ entityId: z.string(), status: z.string() }),
@@ -193,15 +200,21 @@ describe("entity action policy", () => {
       }),
     );
 
-    const result = await getTool("system_create").handler(
-      {
-        entityType: "base",
-        title: "Intercepted Summary",
-        content: "Team note body",
-      },
-      baseContext("trusted"),
+    const confirmArgs = expectConfirmation(
+      await getTool("system_create").handler(
+        {
+          entityType: "base",
+          title: "Intercepted Summary",
+          content: "Team note body",
+        },
+        baseContext("trusted"),
+      ),
     );
 
+    const result = await getTool("system_create").handler(
+      confirmArgs,
+      baseContext("trusted"),
+    );
     const error = expectError(result);
     expect(error).toContain("Creating `summary` requires Owner/anchor");
     expect(services.getEntities().has("intercepted-summary")).toBe(false);

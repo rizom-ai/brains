@@ -46,6 +46,42 @@ function buildCoverImagePrompt(
   return coverImage.prompt ?? `Editorial cover image for: ${title}. `;
 }
 
+function buildCreateConfirmation(input: {
+  entityType: string;
+  title?: string;
+  prompt?: string;
+  content?: string;
+  url?: string;
+  upload?: { kind: string; id: string };
+  sourceAttachment?: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
+  };
+}): { summary: string; preview: string } {
+  const label = input.title ? ` "${input.title}"` : ` ${input.entityType}`;
+  const summary = `${input.prompt ? "Generate" : "Create"}${label}?`;
+  const previewParts = [
+    `Entity type: ${input.entityType}`,
+    ...(input.title ? [`Title: ${input.title}`] : []),
+    ...(input.url ? [`URL: ${input.url}`] : []),
+    ...(input.upload
+      ? [`Upload: ${input.upload.kind}:${input.upload.id}`]
+      : []),
+    ...(input.sourceAttachment
+      ? [
+          `Source attachment: ${input.sourceAttachment.sourceEntityType}/${input.sourceAttachment.sourceEntityId} (${input.sourceAttachment.attachmentType})`,
+        ]
+      : []),
+    ...(input.prompt ? [`Prompt: ${input.prompt}`] : []),
+    ...(input.content
+      ? [`Content preview: ${input.content.slice(0, 500)}`]
+      : []),
+  ];
+
+  return { summary, preview: previewParts.join("\n") };
+}
+
 function buildGenerationStubEntity(
   services: SystemServices,
   input: { entityType: string; id: string; title: string },
@@ -151,10 +187,11 @@ async function isUploadRefInConversation(
 
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
+  const pendingConfirmationTokens = new Set<string>();
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves.",
+    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prompt = normalizeOptionalString(input.prompt);
@@ -269,6 +306,47 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const interceptor = services.entityRegistry.getCreateInterceptor(
         createInput.entityType,
       );
+
+      if (!createInput.content && !createInput.prompt && !interceptor) {
+        return {
+          success: false,
+          error:
+            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+        };
+      }
+
+      if (input.confirmed) {
+        const token = input.confirmationToken;
+        if (!token || !pendingConfirmationTokens.has(token)) {
+          return {
+            success: false,
+            error:
+              "No pending create confirmation found. Please request creation again and confirm the new approval.",
+          };
+        }
+        pendingConfirmationTokens.delete(token);
+      } else {
+        const confirmationToken = crypto.randomUUID();
+        pendingConfirmationTokens.add(confirmationToken);
+        const confirmation = buildCreateConfirmation({
+          entityType: input.entityType,
+          ...(title && { title }),
+          ...(prompt && { prompt }),
+          ...(content && { content }),
+          ...(url && { url }),
+          ...(uploadRef && { upload: uploadRef }),
+          ...(input.sourceAttachment && {
+            sourceAttachment: input.sourceAttachment,
+          }),
+        });
+        return {
+          needsConfirmation: true,
+          toolName: "system_create",
+          summary: confirmation.summary,
+          preview: confirmation.preview,
+          args: { ...input, confirmed: true, confirmationToken },
+        };
+      }
       if (interceptor) {
         const executionContext: CreateExecutionContext = {
           interfaceType: toolContext.interfaceType,

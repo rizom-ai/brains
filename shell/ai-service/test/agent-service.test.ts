@@ -480,6 +480,44 @@ describe("AgentService", () => {
       expect(lastMessage?.content).toContain('id: "upload-image"');
     });
 
+    it("does not expose create sourceAttachment for ordinary direct create requests", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "Save this as a note: hello world",
+        "test-conversation",
+      );
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
+    });
+
+    it("exposes create sourceAttachment for source-derived artifact requests", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "Save the distributed systems deck carousel as a PDF document",
+        "test-conversation",
+      );
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateSourceAttachment).toBe(true);
+    });
+
     it("lets the agent handle clarification replies instead of rewriting them", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
@@ -1376,6 +1414,131 @@ describe("AgentService", () => {
       );
     });
 
+    it("includes attachment cards from confirmed create results", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm image generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_create",
+                input: {
+                  entityType: "image",
+                  prompt: "Generate a mossy robot",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Generate image?",
+                  args: {
+                    entityType: "image",
+                    prompt: "Generate a mossy robot",
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "mossy-robot",
+          status: "generating",
+          jobId: "job-1",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("generate an image", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
+
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "system_create",
+          input: { entityType: "image", prompt: "Generate a mossy robot" },
+          summary: "Generate image?",
+          state: "output-available",
+          output: expect.objectContaining({ success: true }),
+        },
+        {
+          kind: "attachment",
+          id: "attachment:mossy-robot",
+          jobId: "job-1",
+          title: "mossy-robot.png",
+          description:
+            "image generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            entityMemoryNote: expect.stringContaining('image "mossy-robot"'),
+          }),
+        }),
+      );
+    });
+
     it("does not repeat destructive preview text after confirmation", async () => {
       setupConfirmationResponse(
         "Deleted.",
@@ -1555,7 +1718,7 @@ describe("AgentService", () => {
       );
     });
 
-    it("should track pending confirmation for destructive operations", async () => {
+    it("should track pending confirmation for approval-gated actions", async () => {
       setupConfirmationResponse();
 
       const service = AgentService.createFresh(
