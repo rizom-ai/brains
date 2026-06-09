@@ -23,6 +23,8 @@ import type {
   EntityMutationResult,
   StoreEmbeddingData,
   EmbeddingBackfillResult,
+  IndexReadinessOptions,
+  IndexReadinessStatus,
   EntityService as IEntityService,
   EntityEventBus,
   GetEntityRequest,
@@ -92,6 +94,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private contentResolver: ContentResolver;
+  private indexReady = false;
 
   public static getInstance(options: EntityServiceOptions): EntityService {
     EntityService.instance ??= new EntityService(options);
@@ -267,7 +270,54 @@ export class EntityService implements IEntityService {
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    this.indexReady = false;
     return this.entityMutations.backfillMissingEmbeddings();
+  }
+
+  public isIndexReady(): boolean {
+    return this.indexReady;
+  }
+
+  public async awaitIndexReady(
+    options: IndexReadinessOptions,
+  ): Promise<IndexReadinessStatus> {
+    const intervalMs = options.intervalMs ?? 250;
+    const deadline = Date.now() + options.timeoutMs;
+
+    for (;;) {
+      const status = await this.getIndexReadinessStatus();
+      if (status.ready) {
+        this.indexReady = true;
+        return status;
+      }
+
+      if (Date.now() >= deadline) {
+        return status;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+
+  private async getIndexReadinessStatus(): Promise<IndexReadinessStatus> {
+    const [activeJobs, stats] = await Promise.all([
+      this.jobQueueService.getActiveJobs(["shell:embedding"]),
+      this.entityMutations.getEmbeddingIndexStats(),
+    ]);
+    const activeEmbeddingJobs = activeJobs.length;
+    const ready =
+      activeEmbeddingJobs === 0 &&
+      stats.missingEmbeddings === 0 &&
+      stats.staleEmbeddings === 0;
+
+    return {
+      ready,
+      degraded: false,
+      activeEmbeddingJobs,
+      missingEmbeddings: stats.missingEmbeddings,
+      staleEmbeddings: stats.staleEmbeddings,
+      failedEmbeddings: 0,
+    };
   }
 
   // ── Reads ─────────────────────────────────────────────────────────

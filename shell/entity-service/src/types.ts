@@ -605,6 +605,23 @@ export interface EmbeddingBackfillResult {
   skipped: number;
 }
 
+export interface EmbeddingIndexStats {
+  missingEmbeddings: number;
+  staleEmbeddings: number;
+}
+
+export interface IndexReadinessOptions {
+  timeoutMs: number;
+  intervalMs?: number;
+}
+
+export interface IndexReadinessStatus extends EmbeddingIndexStats {
+  ready: boolean;
+  degraded: boolean;
+  activeEmbeddingJobs: number;
+  failedEmbeddings: number;
+}
+
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
@@ -622,6 +639,10 @@ export interface EntityService extends ICoreEntityService {
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
+  isIndexReady(): boolean;
+  awaitIndexReady(
+    options: IndexReadinessOptions,
+  ): Promise<IndexReadinessStatus>;
 
   // Serialization
   serializeEntity(entity: BaseEntity): string;

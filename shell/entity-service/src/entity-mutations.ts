@@ -7,6 +7,7 @@ import type {
   EntityMutationEventContext,
   EntityMutationResult,
   EmbeddingBackfillResult,
+  EmbeddingIndexStats,
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
@@ -46,6 +47,18 @@ function toStableJsonValue(value: unknown): unknown {
 
 function stableJson(value: unknown): string {
   return JSON.stringify(toStableJsonValue(value));
+}
+
+interface EmbeddingBackfillCandidate {
+  id: string;
+  entityType: string;
+  contentHash: string;
+}
+
+interface EmbeddingBackfillCandidates extends EmbeddingIndexStats {
+  tableMissing: boolean;
+  skipped: number;
+  rowsToBackfill: EmbeddingBackfillCandidate[];
 }
 
 export interface EntityMutationDeps {
@@ -383,9 +396,50 @@ export class EntityMutations {
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
-    if (!(await this.hasEntityTable())) {
+    const candidates = await this.getEmbeddingBackfillCandidates();
+
+    if (candidates.tableMissing) {
       this.logger.debug("Skipping embedding backfill; entities table missing");
       return { queued: 0, skipped: 0 };
+    }
+
+    let queued = 0;
+    let skipped = candidates.skipped;
+
+    for (const row of candidates.rowsToBackfill) {
+      const result = await this.enqueueEmbeddingJob({
+        entityId: row.id,
+        entityType: row.entityType,
+        contentHash: row.contentHash,
+        operation: "update",
+      });
+      if (result.jobId) {
+        queued++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return { queued, skipped };
+  }
+
+  public async getEmbeddingIndexStats(): Promise<EmbeddingIndexStats> {
+    const candidates = await this.getEmbeddingBackfillCandidates();
+    return {
+      missingEmbeddings: candidates.missingEmbeddings,
+      staleEmbeddings: candidates.staleEmbeddings,
+    };
+  }
+
+  private async getEmbeddingBackfillCandidates(): Promise<EmbeddingBackfillCandidates> {
+    if (!(await this.hasEntityTable())) {
+      return {
+        tableMissing: true,
+        skipped: 0,
+        rowsToBackfill: [],
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+      };
     }
 
     const entityRows = await this.db
@@ -409,8 +463,10 @@ export class EntityMutations {
       embeddingHashes.set(`${row.entityType}:${row.entityId}`, row.contentHash);
     }
 
-    let queued = 0;
+    const rowsToBackfill: EmbeddingBackfillCandidate[] = [];
     let skipped = 0;
+    let missingEmbeddings = 0;
+    let staleEmbeddings = 0;
 
     for (const row of entityRows) {
       const entityConfig = this.entityRegistry.getEntityTypeConfig(
@@ -422,25 +478,28 @@ export class EntityMutations {
       }
 
       const embeddingHash = embeddingHashes.get(`${row.entityType}:${row.id}`);
-      if (embeddingHash === row.contentHash) {
-        skipped++;
+      if (embeddingHash === undefined) {
+        missingEmbeddings++;
+        rowsToBackfill.push(row);
         continue;
       }
 
-      const result = await this.enqueueEmbeddingJob({
-        entityId: row.id,
-        entityType: row.entityType,
-        contentHash: row.contentHash,
-        operation: "update",
-      });
-      if (result.jobId) {
-        queued++;
-      } else {
-        skipped++;
+      if (embeddingHash !== row.contentHash) {
+        staleEmbeddings++;
+        rowsToBackfill.push(row);
+        continue;
       }
+
+      skipped++;
     }
 
-    return { queued, skipped };
+    return {
+      tableMissing: false,
+      skipped,
+      rowsToBackfill,
+      missingEmbeddings,
+      staleEmbeddings,
+    };
   }
 
   private async hasEntityTable(): Promise<boolean> {
