@@ -22,6 +22,7 @@ import type {
   SearchOptions,
   EntityMutationResult,
   StoreEmbeddingData,
+  EmbeddingBackfillResult,
   EntityService as IEntityService,
   EntityEventBus,
   GetEntityRequest,
@@ -263,6 +264,10 @@ export class EntityService implements IEntityService {
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
     return this.entityMutations.storeEmbedding(data);
+  }
+
+  public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    return this.entityMutations.backfillMissingEmbeddings();
   }
 
   // ── Reads ─────────────────────────────────────────────────────────

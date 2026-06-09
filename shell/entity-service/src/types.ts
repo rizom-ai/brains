@@ -600,6 +600,11 @@ export interface IEntitiesNamespace {
   ): void;
 }
 
+export interface EmbeddingBackfillResult {
+  queued: number;
+  skipped: number;
+}
+
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
@@ -616,6 +621,7 @@ export interface EntityService extends ICoreEntityService {
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
+  backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
 
   // Serialization
   serializeEntity(entity: BaseEntity): string;
