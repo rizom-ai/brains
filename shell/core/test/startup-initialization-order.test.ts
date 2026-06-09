@@ -67,6 +67,24 @@ describe("Startup Initialization Order", () => {
       expect(pluginsRegisteredCallIndex).toBeLessThan(prepareCallIndex);
       expect(prepareCallIndex).toBeLessThan(readyCallIndex);
     });
+
+    it("should backfill embeddings after initial sync and before ready hooks", () => {
+      const source = readFileSync(shellBootloaderPath, "utf-8");
+
+      const pluginsRegisteredCallIndex = source.indexOf(
+        "this.emitPluginsRegistered()",
+      );
+      const backfillCallIndex = source.indexOf(
+        "entityService.backfillMissingEmbeddings()",
+      );
+      const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
+
+      expect(pluginsRegisteredCallIndex).toBeGreaterThan(-1);
+      expect(backfillCallIndex).toBeGreaterThan(-1);
+      expect(readyCallIndex).toBeGreaterThan(-1);
+      expect(pluginsRegisteredCallIndex).toBeLessThan(backfillCallIndex);
+      expect(backfillCallIndex).toBeLessThan(readyCallIndex);
+    });
   });
 
   describe("Shell.initialize must NOT call service.initialize() directly", () => {

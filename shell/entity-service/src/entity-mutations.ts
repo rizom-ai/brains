@@ -383,6 +383,11 @@ export class EntityMutations {
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    if (!(await this.hasEntityTable())) {
+      this.logger.debug("Skipping embedding backfill; entities table missing");
+      return { queued: 0, skipped: 0 };
+    }
+
     const entityRows = await this.db
       .select({
         id: entities.id,
@@ -436,6 +441,13 @@ export class EntityMutations {
     }
 
     return { queued, skipped };
+  }
+
+  private async hasEntityTable(): Promise<boolean> {
+    const rows = await this.db.all<{ name: string }>(
+      sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entities'`,
+    );
+    return rows.length > 0;
   }
 
   /**

@@ -85,6 +85,13 @@ export class ShellBootloader {
       // created while a directory import may still populate existing markdown
       // from brain-data into the entity DB.
       await this.emitPluginsRegistered();
+
+      const backfillResult =
+        await this.services.entityService.backfillMissingEmbeddings();
+      this.services.logger.debug("Queued missing embedding backfill jobs", {
+        queued: backfillResult.queued,
+        skipped: backfillResult.skipped,
+      });
     }
 
     await this.prepareReadyState();
