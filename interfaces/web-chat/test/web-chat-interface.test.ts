@@ -508,8 +508,80 @@ describe("WebChatInterface", () => {
     expect(body).toContain('"operationType":"batch_processing"');
     expect(body).toContain('"operationTarget":"/tmp/brain-data"');
     expect(body).toContain("Finished indexing 24 files");
+    expect(body).toContain('"transient":false');
     expect(body).not.toContain("✅");
     expect(body).not.toContain("**batch processing");
+  });
+
+  it("keeps pending progress transient and failed progress durable", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("job-progress", {
+          id: "import-1",
+          type: "job",
+          status: "pending",
+          message: "Queued upload import",
+          metadata: {
+            rootJobId: "import-1",
+            operationType: "file_operations",
+            operationTarget: "notes.pdf",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        await harness.sendMessage("job-progress", {
+          id: "import-1",
+          type: "job",
+          status: "failed",
+          message: "Upload import failed",
+          metadata: {
+            rootJobId: "import-1",
+            operationType: "file_operations",
+            operationTarget: "notes.pdf",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        return {
+          text: "Import failed.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Import upload" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain('"status":"pending"');
+    expect(body).toContain("Queued upload import");
+    expect(body).toContain('"transient":true');
+    expect(body).toContain('"status":"failed"');
+    expect(body).toContain("Upload import failed");
+    expect(body).toContain('"transient":false');
   });
 
   it("streams active tool activity as transient status parts", async () => {

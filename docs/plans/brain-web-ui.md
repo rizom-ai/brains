@@ -142,9 +142,11 @@ the active roadmap.
 Remaining progress work:
 
 - browser-verify real tool-status and progress flows in Rover;
-- polish failed/completed status copy and rendering based on observed sessions;
-- decide whether completed progress parts should ever persist as transcript
-  history, or remain live-only.
+- polish failed/completed status copy and rendering based on observed sessions.
+
+Progress transcript policy: pending/processing progress parts stay transient;
+terminal completed/failed progress parts persist in transcript history so later
+session loads keep the outcome visible.
 
 ### 3. Artifact attachment coverage
 
