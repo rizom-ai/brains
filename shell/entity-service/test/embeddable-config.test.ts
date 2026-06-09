@@ -44,6 +44,31 @@ describe("EntityTypeConfig embeddable flag", () => {
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalled();
   });
 
+  test("embedding jobs use stable deduplication keys", async () => {
+    const noteData = {
+      id: "dedupe-note",
+      entityType: "note" as const,
+      title: "Test Note",
+      content: "Some text content",
+      tags: [],
+      metadata: {},
+    };
+
+    await ctx.entityService.createEntity({ entity: noteData });
+
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        options: expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: expect.stringMatching(
+            /^embedding:note:dedupe-note:[a-f0-9]{64}$/,
+          ),
+        }),
+      }),
+    );
+  });
+
   test("createEntity skips embedding job when embeddable is false", async () => {
     const imageData = {
       entityType: "image" as const,

@@ -517,6 +517,8 @@ export class EntityMutations {
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
         rootJobId,
+        deduplication: "coalesce",
+        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
         metadata: {
           operationType: "data_processing" as const,
           operationTarget: entityId,
