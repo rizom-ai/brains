@@ -1,4 +1,5 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
+import type { IndexReadinessGate } from "./types";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -27,4 +28,6 @@ export interface RunEvaluationsOptions {
   parallel?: boolean;
   /** Maximum parallel tests (default: 3) */
   maxParallel?: number;
+  /** Semantic index readiness source for local eval runs */
+  indexReadiness?: IndexReadinessGate;
 }

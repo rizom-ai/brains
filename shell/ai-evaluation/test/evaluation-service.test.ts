@@ -7,7 +7,11 @@ import type {
   IAgentService,
   IAIService,
   AgentResponse,
+  AIModelConfig,
+  JudgeInput,
 } from "@brains/ai-service";
+import type { z } from "@brains/utils";
+import type { LanguageModel } from "ai";
 
 import { EvaluationService } from "../src/evaluation-service";
 import { EvalHandlerRegistry } from "../src/eval-handler-registry";
@@ -16,6 +20,35 @@ const createResponse = (text: string): AgentResponse => ({
   text,
   usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
   toolResults: [],
+});
+
+const createAIService = (): IAIService => ({
+  generateText: async () => ({
+    text: "ok",
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  generateObject: async <T>(
+    _systemPrompt: string,
+    _userPrompt: string,
+    schema: z.ZodType<T>,
+  ) => ({
+    object: schema.parse({}),
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  judge: async <T>(input: JudgeInput<T>) => ({
+    verdict: input.schema.parse({}),
+    usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+  }),
+  updateConfig: (_config: Partial<AIModelConfig>): void => {},
+  getConfig: (): AIModelConfig => ({}),
+  getModel: (): LanguageModel => {
+    throw new Error("getModel is not used by these tests");
+  },
+  generateImage: async () => ({
+    base64: "",
+    dataUrl: "data:image/png;base64,",
+  }),
+  canGenerateImages: () => false,
 });
 
 const writeAgentTestCase = async (
@@ -67,7 +100,7 @@ describe("EvaluationService", () => {
 
       const service = EvaluationService.createFresh({
         agentService,
-        aiService: {} as IAIService,
+        aiService: createAIService(),
         testCasesDirectory: testCaseDirectory,
         evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
       });
@@ -87,6 +120,43 @@ describe("EvaluationService", () => {
       expect(summary.results.map((result) => result.testCaseId)).toEqual(
         expectedOrder,
       );
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("waits for the semantic index before running agent tests", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeAgentTestCase(testCaseDirectory, 0);
+
+      const events: string[] = [];
+      const agentService: IAgentService = {
+        chat: mock(async () => {
+          events.push("chat");
+          return createResponse("ok");
+        }),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
+        indexReadiness: {
+          awaitIndexReady: mock(async () => {
+            events.push("ready");
+            return { ready: true, degraded: false };
+          }),
+        },
+      });
+
+      await service.runEvaluations({ skipLLMJudge: true });
+
+      expect(events).toEqual(["ready", "chat"]);
     } finally {
       await rm(testCaseDirectory, { recursive: true, force: true });
     }

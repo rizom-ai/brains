@@ -124,6 +124,7 @@ async function runSingleModelIteration(
     verbose: options.verbose,
     parallel: options.parallel,
     maxParallel: options.maxParallel,
+    ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
     ...(options.tags && { tags: options.tags }),
     ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
     ...(options.testType && { testType: options.testType }),

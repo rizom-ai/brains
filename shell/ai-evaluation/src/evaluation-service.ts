@@ -6,6 +6,7 @@ import type {
   IReporter,
   EvaluationOptions,
   TestRunnerOptions,
+  IndexReadinessGate,
 } from "./types";
 import type {
   TestCase,
@@ -23,6 +24,7 @@ import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 
 const DEFAULT_MAX_PARALLEL = 3;
+const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;
 
 /**
  * Type guard to check if a test case is an agent test case
@@ -47,6 +49,7 @@ export interface EvaluationServiceConfig {
   testCasesDirectory: string | string[];
   reporters?: IReporter[];
   evalHandlerRegistry: EvalHandlerRegistry;
+  indexReadiness?: IndexReadinessGate;
 }
 
 /**
@@ -58,6 +61,7 @@ export class EvaluationService implements IEvaluationService {
   private readonly loader: ITestCaseLoader;
   private readonly reporters: IReporter[];
   private readonly evalHandlerRegistry: EvalHandlerRegistry;
+  private readonly indexReadiness: IndexReadinessGate | undefined;
 
   constructor(config: EvaluationServiceConfig) {
     this.agentService = config.agentService;
@@ -68,6 +72,7 @@ export class EvaluationService implements IEvaluationService {
     });
     this.reporters = config.reporters ?? [];
     this.evalHandlerRegistry = config.evalHandlerRegistry;
+    this.indexReadiness = config.indexReadiness;
   }
 
   /**
@@ -77,6 +82,7 @@ export class EvaluationService implements IEvaluationService {
     options: EvaluationOptions = {},
   ): Promise<EvaluationSummary> {
     const testCases = await this.getFilteredTestCases(options);
+    await this.awaitIndexReadiness(testCases, options);
     const agentTestCases = this.getAgentTestCases(testCases, options);
     const pluginTestCases = this.getPluginTestCases(testCases, options);
 
@@ -118,6 +124,42 @@ export class EvaluationService implements IEvaluationService {
     }
 
     return this.filterByTags(testCases, options.tags);
+  }
+
+  private async awaitIndexReadiness(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<void> {
+    if (testCases.length === 0 || !this.indexReadiness) return;
+
+    const status = await this.indexReadiness.awaitIndexReady({
+      timeoutMs:
+        options.indexReadinessTimeoutMs ?? DEFAULT_INDEX_READINESS_TIMEOUT_MS,
+    });
+
+    if (!status.ready) {
+      throw new Error(
+        `Semantic index was not ready before evaluations: ${this.formatIndexReadinessStatus(status)}`,
+      );
+    }
+
+    if (status.degraded) {
+      console.warn(
+        `Semantic index is ready with degraded embeddings: ${this.formatIndexReadinessStatus(status)}`,
+      );
+    }
+  }
+
+  private formatIndexReadinessStatus(
+    status: Awaited<ReturnType<IndexReadinessGate["awaitIndexReady"]>>,
+  ): string {
+    return JSON.stringify({
+      activeEmbeddingJobs: status.activeEmbeddingJobs ?? 0,
+      missingEmbeddings: status.missingEmbeddings ?? 0,
+      staleEmbeddings: status.staleEmbeddings ?? 0,
+      failedEmbeddings: status.failedEmbeddings ?? 0,
+      degraded: status.degraded,
+    });
   }
 
   private filterByIds(testCases: TestCase[], ids: string[]): TestCase[] {
