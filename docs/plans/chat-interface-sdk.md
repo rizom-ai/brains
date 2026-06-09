@@ -18,9 +18,7 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 Move duplicate workflow rules out of `interfaces/web-chat` and `interfaces/chat` when they can be expressed as transport-neutral helpers.
 
-Next candidates:
-
-- Generated artifact display normalization: title, description, media type, filename, size label, URLs, and job-status labels.
+No obvious shared pure-helper candidates remain. Revisit this section only if future Discord/web-chat parity work reveals duplicated transport-neutral rules.
 
 Acceptance criteria:
 
@@ -65,7 +63,6 @@ Discord needs a reliable native path for generated image/PDF artifacts.
 
 Required work:
 
-- Normalize generated artifact card display through shared helpers where possible.
 - Validate Discord-native artifact summaries with links in live flows.
 - Decide whether generated images/PDFs should be attached directly, proxied through authenticated/signed routes, or linked only.
 - Ensure artifact retrieval is permission-gated for non-public artifacts.

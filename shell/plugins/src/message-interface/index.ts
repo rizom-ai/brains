@@ -28,6 +28,17 @@ export {
 } from "./confirmation-handler";
 
 export {
+  artifactStatusLabel,
+  formatArtifactDisplay,
+  formatByteSize,
+  getArtifactCardState,
+  narrowArtifactJobStatus,
+  type ArtifactCardState,
+  type ArtifactDisplay,
+  type ArtifactJobStatus,
+} from "./artifact-display";
+
+export {
   formatConfirmationResult,
   formatStructuredOutputSummary,
   type ConfirmationDecision,

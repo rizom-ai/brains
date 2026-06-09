@@ -1,6 +1,15 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
 import {
+  artifactStatusLabel as attachmentStatusLabel,
+  formatArtifactDisplay as formatAttachmentDisplay,
+  getArtifactCardState as getAttachmentCardState,
+  narrowArtifactJobStatus as narrowAttachmentJobStatus,
+  type ArtifactCardState as AttachmentCardState,
+  type ArtifactDisplay as AttachmentDisplay,
+  type ArtifactJobStatus as AttachmentJobStatus,
+} from "@brains/plugins/message-interface/artifact-display";
+import {
   formatConfirmationResult as formatSharedConfirmationResult,
   type ConfirmationResultDisplay,
 } from "@brains/plugins/message-interface/confirmation-result";
@@ -12,8 +21,18 @@ import {
   type ToolPart,
 } from "./tool";
 
-export { formatSharedConfirmationResult as formatConfirmationResult };
-export type { ConfirmationResultDisplay };
+export {
+  attachmentStatusLabel,
+  formatAttachmentDisplay,
+  formatSharedConfirmationResult as formatConfirmationResult,
+  getAttachmentCardState,
+};
+export type {
+  AttachmentCardState,
+  AttachmentDisplay,
+  AttachmentJobStatus,
+  ConfirmationResultDisplay,
+};
 
 const TOOL_STATES: readonly ToolPart["state"][] = [
   "approval-requested",
@@ -123,79 +142,6 @@ export function formatNativeToolDisplay(
   );
 }
 
-export interface AttachmentDisplay {
-  jobId?: string;
-  title: string;
-  description?: string;
-  mediaType?: string;
-  filename?: string;
-  sizeLabel?: string;
-  url?: string;
-  downloadUrl?: string;
-  previewUrl?: string;
-}
-
-function formatByteSize(sizeBytes: number | undefined): string | undefined {
-  if (sizeBytes === undefined) return undefined;
-  if (!Number.isFinite(sizeBytes) || sizeBytes < 0) return undefined;
-  if (sizeBytes < 1024) return `${sizeBytes} B`;
-  const units = ["KB", "MB", "GB"] as const;
-  let value = sizeBytes / 1024;
-  for (const unit of units) {
-    if (value < 1024 || unit === "GB") {
-      return `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`;
-    }
-    value /= 1024;
-  }
-  return undefined;
-}
-
-function getNumberValue(data: unknown, key: string): number | undefined {
-  const value = getRecordValue(data, key);
-  return typeof value === "number" ? value : undefined;
-}
-
-export function formatAttachmentDisplay(
-  data: unknown,
-): AttachmentDisplay | null {
-  const attachment = getRecordValue(data, "attachment");
-  if (!isRecord(attachment)) return null;
-
-  const jobId = getStringValue(data, "jobId");
-  const description = getStringValue(data, "description");
-  const mediaType = getStringValue(attachment, "mediaType");
-  const filename = getStringValue(attachment, "filename");
-  const sizeLabel = formatByteSize(getNumberValue(attachment, "sizeBytes"));
-  const url = getStringValue(attachment, "url");
-  const downloadUrl = getStringValue(attachment, "downloadUrl");
-  const previewUrl = getStringValue(attachment, "previewUrl");
-
-  return {
-    ...(jobId !== undefined ? { jobId } : {}),
-    title: getStringValue(data, "title") ?? "Generated artifact",
-    ...(description !== undefined ? { description } : {}),
-    ...(mediaType !== undefined ? { mediaType } : {}),
-    ...(filename !== undefined ? { filename } : {}),
-    ...(sizeLabel !== undefined ? { sizeLabel } : {}),
-    ...(url !== undefined ? { url } : {}),
-    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
-    ...(previewUrl !== undefined ? { previewUrl } : {}),
-  };
-}
-
-export type AttachmentJobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "unknown";
-
-export interface AttachmentCardState {
-  status: AttachmentJobStatus | "ready";
-  label: string;
-  isPending: boolean;
-}
-
 function useAttachmentJobStatus(
   jobId: string | undefined,
 ): AttachmentJobStatus | null {
@@ -263,49 +209,6 @@ function useAttachmentJobStatus(
   }, [jobId]);
 
   return status;
-}
-
-function narrowAttachmentJobStatus(
-  status: string | undefined,
-): AttachmentJobStatus {
-  switch (status) {
-    case "pending":
-    case "processing":
-    case "completed":
-    case "failed":
-      return status;
-    default:
-      return "unknown";
-  }
-}
-
-export function attachmentStatusLabel(
-  status: AttachmentJobStatus | null,
-): string {
-  switch (status) {
-    case "pending":
-      return "queued";
-    case "processing":
-      return "generating";
-    case "completed":
-      return "ready";
-    case "failed":
-      return "failed";
-    case "unknown":
-      return "status unknown";
-    default:
-      return "ready";
-  }
-}
-
-export function getAttachmentCardState(
-  jobStatus: AttachmentJobStatus | null,
-): AttachmentCardState {
-  return {
-    status: jobStatus ?? "ready",
-    label: attachmentStatusLabel(jobStatus),
-    isPending: jobStatus === "pending" || jobStatus === "processing",
-  };
 }
 
 export function AttachmentPart({

@@ -2,6 +2,7 @@ import {
   MessageInterfacePlugin,
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
+  formatArtifactDisplay,
   formatConfirmationResult,
   formatStructuredOutputSummary,
   getMessageUploadKind,
@@ -703,16 +704,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private formatStructuredCard(card: StructuredChatCard): string {
     if (card.kind === "attachment") {
-      const lines = [`**Artifact:** ${card.title}`];
-      if (card.description) lines.push(card.description);
-      if (card.attachment.filename) {
-        lines.push(`File: ${card.attachment.filename}`);
-      }
-      lines.push(`Type: ${card.attachment.mediaType}`);
-      lines.push(`Open: ${card.attachment.url}`);
-      if (card.attachment.downloadUrl) {
-        lines.push(`Download: ${card.attachment.downloadUrl}`);
-      }
+      const display = formatArtifactDisplay(card);
+      if (!display) return "**Artifact:** Generated artifact";
+      const lines = [`**Artifact:** ${display.title}`];
+      if (display.description) lines.push(display.description);
+      if (display.filename) lines.push(`File: ${display.filename}`);
+      if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
+      if (display.url) lines.push(`Open: ${display.url}`);
+      if (display.downloadUrl) lines.push(`Download: ${display.downloadUrl}`);
       return lines.join("\n");
     }
 
