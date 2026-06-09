@@ -1,10 +1,11 @@
 import {
+  parseStoredMessageMetadata,
+  selectReferencedAttachments,
   type ChatAttachment,
   type IConversationsNamespace,
   type RuntimeUploadStore,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { parseStoredMessageMetadata } from "./message-handlers";
 import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
@@ -194,26 +195,8 @@ async function resolveDeferredUploadReference(
 
   return {
     message,
-    attachments: selectPriorUploads(message, attachments),
+    attachments: selectReferencedAttachments(message, attachments),
   };
-}
-
-function selectPriorUploads(
-  message: string,
-  attachments: ChatAttachment[],
-): ChatAttachment[] {
-  const normalized = message.toLowerCase();
-  const named = attachments.filter((attachment) =>
-    normalized.includes(attachment.filename.toLowerCase()),
-  );
-  if (named.length > 0) return named;
-  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
-    return attachments.slice(0, 1);
-  }
-  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
-    return attachments.slice(-1);
-  }
-  return attachments;
 }
 
 async function collectPriorUploadIds(

@@ -81,10 +81,10 @@ Covered by tests:
 - bot-message filtering unless mentioned, including passive URL capture
 - trusted/anchor-only text, image, and PDF uploads as durable native agent attachments with Discord source metadata
 - prior upload follow-up reuse by filename, first/oldest, or most-recent wording, including restart reload from stored conversation metadata
-- user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads
+- user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
 - yes/no/cancel confirmation flow with readable pending-approval instructions, restart reload from stored approval cards, unrecognized replies, and explicit approval-id selection for multiple pending approvals
 - agent error responses
-- structured artifact and approval cards formatted as Discord-readable summaries without raw JSON leakage
+- structured artifact, approval, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage
 - live tool activity status messages edited in place, with failed-tool fallback notices
 - async job progress and completion edits for tracked responses
 - platform response chunking for Discord's 2000-character limit

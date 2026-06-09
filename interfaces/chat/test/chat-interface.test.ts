@@ -995,8 +995,8 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
-    const firstImage = Buffer.from([1, 2, 3]);
-    const secondImage = Buffer.from([4, 5, 6]);
+    const firstImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1]);
+    const secondImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 2]);
 
     await chat?.handlers.mentions[0]?.(
       thread,
@@ -1058,8 +1058,8 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
-    const firstImage = Buffer.from([1, 2, 3]);
-    const secondImage = Buffer.from([4, 5, 6]);
+    const firstImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1]);
+    const secondImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 2]);
 
     await chat?.handlers.mentions[0]?.(
       thread,
@@ -1118,8 +1118,8 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
-    const firstImage = Buffer.from([1, 2, 3]);
-    const secondImage = Buffer.from([4, 5, 6]);
+    const firstImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1]);
+    const secondImage = Buffer.from([0x89, 0x50, 0x4e, 0x47, 2]);
 
     await chat?.handlers.mentions[0]?.(
       thread,
@@ -1270,7 +1270,9 @@ describe("ChatInterface", () => {
       true,
       "approval-1",
     );
-    expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "✅ Approved · Action confirmed.",
+    );
   });
 
   it("cancels pending confirmations in the same conversation", async () => {
@@ -1302,7 +1304,50 @@ describe("ChatInterface", () => {
       false,
       "approval-1",
     );
-    expect(thread.post).toHaveBeenLastCalledWith("Action confirmed.");
+    expect(thread.post).toHaveBeenLastCalledWith("🚫 Declined");
+  });
+
+  it("summarizes failed confirmed actions without raw JSON", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: 'Completed: Delete thing\n\nResult: {\n  "success": false,\n  "error": "Entity not found: base/woodchuck-note"\n}',
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [
+        {
+          toolName: "system_delete",
+          data: {
+            success: false,
+            error: "Entity not found: base/woodchuck-note",
+          },
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "❌ Delete failed · Entity not found: base/woodchuck-note",
+    );
+    expect(thread.post.mock.calls.at(-1)?.[0]).not.toContain('"success"');
   });
 
   it("keeps pending confirmations open after unrecognized replies", async () => {

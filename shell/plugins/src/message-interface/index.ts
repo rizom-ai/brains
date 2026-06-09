@@ -26,3 +26,55 @@ export {
   formatConfirmationPrompt,
   ConfirmationTracker,
 } from "./confirmation-handler";
+
+export {
+  formatConfirmationResult,
+  formatStructuredOutputSummary,
+  type ConfirmationDecision,
+  type ConfirmationResultDisplay,
+  type ConfirmationResultInput,
+  type ConfirmationResultVariant,
+} from "./confirmation-result";
+
+export {
+  defaultMessageUploadFilename,
+  getMessageUploadKind,
+  isLikelyUtf8Text,
+  isMessageUploadDeclaredSizeAllowed,
+  isMessageUploadSizeAllowed,
+  isTextUploadSizeAllowed,
+  isUploadableBinaryFile,
+  isUploadableTextFile,
+  messageBinaryUploadAccept,
+  messageTextUploadAccept,
+  messageTextUploadMaxBytes,
+  messageUploadAccept,
+  messageUploadMaxBytes,
+  normalizeMessageUploadMediaType,
+  normalizeTextUploadMediaType,
+  sanitizeUploadFilename,
+  validateMessageUpload,
+  validateTextUpload,
+  type InvalidUpload,
+  type MessageUploadPolicyErrorCode,
+  type MessageUploadValidationResult,
+  type TextUploadValidationResult,
+  type ValidatedFileUpload,
+  type ValidatedMessageUpload,
+  type ValidatedTextUpload,
+  type ValidateUploadInput,
+} from "./upload-policy";
+
+export {
+  selectReferencedAttachments,
+  type NamedAttachmentReference,
+} from "./upload-selection";
+
+export {
+  collectPendingApprovalIdsFromStoredMessages,
+  collectUploadIdsFromStoredMessages,
+  getStoredAttachmentCards,
+  getStoredMessageAttachments,
+  parseStoredMessageMetadata,
+  type StoredMessageAttachment,
+} from "./stored-message-metadata";

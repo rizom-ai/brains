@@ -1,6 +1,18 @@
 import {
   MessageInterfacePlugin,
+  collectPendingApprovalIdsFromStoredMessages,
+  collectUploadIdsFromStoredMessages,
+  formatConfirmationResult,
+  formatStructuredOutputSummary,
+  getMessageUploadKind,
+  isMessageUploadDeclaredSizeAllowed,
+  isUploadableTextFile,
+  normalizeMessageUploadMediaType,
   parseConfirmationResponse,
+  sanitizeUploadFilename,
+  selectReferencedAttachments,
+  validateMessageUpload,
+  type AgentResponse,
   type ChatAttachment,
   type InterfacePluginContext,
   type PendingConfirmation,
@@ -41,21 +53,6 @@ const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
-const CHAT_BINARY_UPLOAD_MAX_BYTES = 5_000_000;
-const IMAGE_MIME_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
-]);
-const IMAGE_EXTENSIONS = new Map([
-  [".png", "image/png"],
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".webp", "image/webp"],
-  [".gif", "image/gif"],
-]);
-
 interface AgentInput {
   message: string;
   attachments: ChatAttachment[];
@@ -562,26 +559,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         });
         return [];
       });
-    const pending = new Set<string>();
-    for (const message of messages ?? []) {
-      const metadata = this.parseStoredMessageMetadata(message.metadata);
-      const cards = metadata?.["cards"];
-      if (!Array.isArray(cards)) continue;
-      for (const card of cards) {
-        if (!this.isRecord(card) || card["kind"] !== "tool-approval") {
-          continue;
-        }
-        const id = card["id"];
-        if (typeof id !== "string" || id.length === 0) continue;
-        const state = card["state"];
-        if (state === "approval-requested") {
-          pending.add(id);
-        } else if (typeof state === "string") {
-          pending.delete(id);
-        }
-      }
-    }
-    return pending;
+    return collectPendingApprovalIdsFromStoredMessages(messages ?? []);
   }
 
   private async handleConfirmationResponse(
@@ -622,11 +600,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     if (response) {
       await thread.post(
-        this.formatAgentResponseText(
-          response.text,
-          response.cards,
-          response.pendingConfirmations,
-        ),
+        this.formatConfirmationResponseText(response, parsed.confirmed),
       );
     }
   }
@@ -672,6 +646,32 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const pendingHelp =
       this.formatPendingConfirmationHelp(pendingConfirmations);
     return [text, ...cardSummaries, pendingHelp]
+      .filter((part): part is string => Boolean(part?.trim()))
+      .join("\n\n");
+  }
+
+  private formatConfirmationResponseText(
+    response: AgentResponse,
+    confirmed: boolean,
+  ): string {
+    const display = formatConfirmationResult(
+      response,
+      confirmed ? "approved" : "declined",
+    );
+    const icon =
+      display.variant === "error"
+        ? "❌"
+        : display.variant === "declined"
+          ? "🚫"
+          : "✅";
+    const attachmentSummaries = (response.cards ?? [])
+      .filter((card) => card.kind === "attachment")
+      .map((card) => this.formatStructuredCard(card));
+    const pendingHelp = this.formatPendingConfirmationHelp(
+      response.pendingConfirmations,
+    );
+
+    return [`${icon} ${display.label}`, ...attachmentSummaries, pendingHelp]
       .filter((part): part is string => Boolean(part?.trim()))
       .join("\n\n");
   }
@@ -726,11 +726,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private formatCardOutput(output: unknown): string | undefined {
-    if (typeof output === "string") return output;
-    if (typeof output === "number" || typeof output === "boolean") {
-      return String(output);
-    }
-    return undefined;
+    return formatStructuredOutputSummary(output);
   }
 
   private removePendingApproval(
@@ -802,18 +798,18 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     for (const attachment of message.attachments) {
       const attachmentName = attachment.name;
       if (!attachmentName) continue;
-      const filename = this.sanitizeUploadFilename(attachmentName);
-      const mediaType = this.normalizeAttachmentMediaType(
+      const filename = sanitizeUploadFilename(attachmentName, "upload");
+      const mediaType = normalizeMessageUploadMediaType(
         filename,
         attachment.mimeType,
       );
       const declaredSize = attachment.size ?? 0;
-      const uploadKind = this.getUploadKind(filename, mediaType);
+      const uploadKind = getMessageUploadKind(filename, mediaType);
       if (!uploadKind) {
         agentInput.notices.push(`Unsupported file upload type: ${filename}`);
         continue;
       }
-      if (!this.isDeclaredSizeAllowed(uploadKind, declaredSize)) {
+      if (!isMessageUploadDeclaredSizeAllowed(uploadKind, declaredSize)) {
         agentInput.notices.push(`File upload too large: ${filename}`);
         continue;
       }
@@ -824,21 +820,22 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           : undefined;
         if (!contentBuffer) continue;
         const content = Buffer.from(contentBuffer);
-        const validationNotice = this.getUploadContentValidationNotice(
+        const validation = validateMessageUpload({
           filename,
-          uploadKind,
+          mediaType,
           content,
-        );
-        if (validationNotice) {
-          agentInput.notices.push(validationNotice);
+          fallbackFilename: "upload",
+        });
+        if (!validation.ok) {
+          agentInput.notices.push(validation.message);
           continue;
         }
         const chatAttachment = await this.createChatAttachmentFromUpload({
           uploadStore,
-          filename,
-          mediaType,
+          filename: validation.filename,
+          mediaType: validation.mediaType,
           content,
-          uploadKind,
+          uploadKind: validation.kind,
           metadata: this.buildUploadMetadata(platform, thread, message),
         });
         agentInput.attachments.push(chatAttachment);
@@ -922,38 +919,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
   }
 
-  private getUploadContentValidationNotice(
-    filename: string,
-    uploadKind: "text" | "file",
-    content: Buffer,
-  ): string | undefined {
-    if (uploadKind === "text") {
-      if (!this.isFileSizeAllowed(content.byteLength)) {
-        return `File upload too large: ${filename}`;
-      }
-      if (!this.isLikelyUtf8Text(content)) {
-        return `Unsupported file upload type: ${filename}`;
-      }
-      return undefined;
-    }
-    if (content.byteLength > CHAT_BINARY_UPLOAD_MAX_BYTES) {
-      return `File upload too large: ${filename}`;
-    }
-    return undefined;
-  }
-
-  private sanitizeUploadFilename(filename: string): string {
-    const leaf = filename.split(/[\\/]/).at(-1)?.trim() ?? "";
-    const cleaned = Array.from(leaf)
-      .filter((char) => {
-        const code = char.charCodeAt(0);
-        return code > 31 && code !== 127;
-      })
-      .join("")
-      .slice(0, 160);
-    return cleaned.length > 0 ? cleaned : "upload";
-  }
-
   private async attachPriorUploads(
     conversationId: string,
     agentInput: AgentInput,
@@ -963,7 +928,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (userLevel !== "anchor" && userLevel !== "trusted") return;
     const uploads = await this.getRecentUploads(conversationId);
     if (uploads.length === 0) return;
-    agentInput.attachments = this.selectPriorUploads(
+    agentInput.attachments = selectReferencedAttachments(
       agentInput.message,
       uploads,
     );
@@ -1014,7 +979,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         });
         return [];
       });
-    const uploadIds = this.collectStoredUploadIds(messages ?? []);
+    const uploadIds = collectUploadIdsFromStoredMessages(messages ?? [], {
+      sourceKind: "discord-chat-upload",
+      role: "user",
+    });
     const uploads: ChatAttachment[] = [];
     for (const uploadId of uploadIds) {
       try {
@@ -1037,36 +1005,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return uploads;
   }
 
-  private collectStoredUploadIds(messages: unknown[]): string[] {
-    const ids: string[] = [];
-    const seen = new Set<string>();
-    for (const message of messages) {
-      if (!this.isRecord(message)) continue;
-      if (message["role"] !== "user") continue;
-      const metadata = this.parseStoredMessageMetadata(message["metadata"]);
-      const attachments = metadata?.["attachments"];
-      if (!Array.isArray(attachments)) continue;
-      for (const attachment of attachments) {
-        if (!this.isRecord(attachment)) continue;
-        const source = attachment["source"];
-        if (!this.isRecord(source)) continue;
-        if (source["kind"] !== "discord-chat-upload") continue;
-        const id = source["id"];
-        if (typeof id !== "string" || seen.has(id)) continue;
-        seen.add(id);
-        ids.push(id);
-      }
-    }
-    return ids;
-  }
-
   private createChatAttachmentFromStoredUpload(
     filename: string,
     mediaType: string,
     content: Buffer,
     source: { kind: string; id: string },
   ): ChatAttachment {
-    if (this.isUploadableTextFile(filename, mediaType)) {
+    if (isUploadableTextFile(filename, mediaType)) {
       return {
         kind: "text",
         filename,
@@ -1084,97 +1029,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       sizeBytes: content.byteLength,
       source,
     };
-  }
-
-  private parseStoredMessageMetadata(
-    metadata: unknown,
-  ): Record<string, unknown> | null {
-    if (typeof metadata === "string") {
-      try {
-        const parsed = JSON.parse(metadata) as unknown;
-        return this.isRecord(parsed) ? parsed : null;
-      } catch {
-        return null;
-      }
-    }
-    return this.isRecord(metadata) ? metadata : null;
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-
-  private selectPriorUploads(
-    message: string,
-    uploads: ChatAttachment[],
-  ): ChatAttachment[] {
-    const normalized = message.toLowerCase();
-    const named = uploads.filter((upload) =>
-      normalized.includes(upload.filename.toLowerCase()),
-    );
-    if (named.length > 0) return named;
-    if (/\b(first|oldest|earliest)\b/.test(normalized)) {
-      return uploads.slice(0, 1);
-    }
-    if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
-      return uploads.slice(-1);
-    }
-    return uploads;
-  }
-
-  private getUploadKind(
-    filename: string,
-    mediaType: string,
-  ): "text" | "file" | undefined {
-    if (this.isUploadableTextFile(filename, mediaType)) return "text";
-    if (this.isUploadableBinaryFile(filename, mediaType)) return "file";
-    return undefined;
-  }
-
-  private isDeclaredSizeAllowed(
-    uploadKind: "text" | "file",
-    sizeBytes: number,
-  ): boolean {
-    if (sizeBytes <= 0) return true;
-    return uploadKind === "text"
-      ? this.isFileSizeAllowed(sizeBytes)
-      : sizeBytes <= CHAT_BINARY_UPLOAD_MAX_BYTES;
-  }
-
-  private normalizeAttachmentMediaType(
-    filename: string,
-    mediaType: string | undefined,
-  ): string {
-    const trimmed = mediaType?.trim().split(";", 1)[0]?.toLowerCase() ?? "";
-    if (trimmed && trimmed !== "application/octet-stream") return trimmed;
-    const lowerFilename = filename.toLowerCase();
-    for (const [extension, extensionMediaType] of IMAGE_EXTENSIONS) {
-      if (lowerFilename.endsWith(extension)) return extensionMediaType;
-    }
-    if (lowerFilename.endsWith(".pdf")) return "application/pdf";
-    return trimmed || "application/octet-stream";
-  }
-
-  private isUploadableBinaryFile(filename: string, mediaType: string): boolean {
-    if (IMAGE_MIME_TYPES.has(mediaType)) return true;
-    if (mediaType === "application/pdf") return true;
-    const lowerFilename = filename.toLowerCase();
-    return (
-      lowerFilename.endsWith(".pdf") ||
-      [...IMAGE_EXTENSIONS.keys()].some((extension) =>
-        lowerFilename.endsWith(extension),
-      )
-    );
-  }
-
-  private isLikelyUtf8Text(bytes: Uint8Array): boolean {
-    if (bytes.includes(0)) return false;
-    try {
-      new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   private getPlatform(thread: Thread): string {

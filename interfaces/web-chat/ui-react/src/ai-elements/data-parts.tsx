@@ -1,12 +1,19 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
 import {
+  formatConfirmationResult as formatSharedConfirmationResult,
+  type ConfirmationResultDisplay,
+} from "@brains/plugins/message-interface/confirmation-result";
+import {
   Tool,
   ToolContent,
   ToolHeader,
   ToolOutput,
   type ToolPart,
 } from "./tool";
+
+export { formatSharedConfirmationResult as formatConfirmationResult };
+export type { ConfirmationResultDisplay };
 
 const TOOL_STATES: readonly ToolPart["state"][] = [
   "approval-requested",
@@ -25,19 +32,6 @@ function narrowToolState(value: string | undefined): ToolPart["state"] {
   return "input-available";
 }
 
-interface ConfirmationResult {
-  text: string;
-  toolResults?: unknown[];
-  cards?: unknown[];
-}
-
-type ConfirmationResultVariant = "success" | "error" | "declined";
-
-export interface ConfirmationResultDisplay {
-  label: string;
-  variant: ConfirmationResultVariant;
-}
-
 function isRecord(data: unknown): data is Record<string, unknown> {
   return typeof data === "object" && data !== null && !Array.isArray(data);
 }
@@ -50,132 +44,6 @@ function getRecordValue(data: unknown, key: string): unknown {
 function getStringValue(data: unknown, key: string): string | undefined {
   const value = getRecordValue(data, key);
   return typeof value === "string" ? value : undefined;
-}
-
-function getBooleanValue(data: unknown, key: string): boolean | undefined {
-  const value = getRecordValue(data, key);
-  return typeof value === "boolean" ? value : undefined;
-}
-
-function getFirstToolResult(result: ConfirmationResult): unknown {
-  return Array.isArray(result.toolResults) ? result.toolResults[0] : undefined;
-}
-
-function getFirstApprovalCard(result: ConfirmationResult): unknown {
-  if (!Array.isArray(result.cards)) return undefined;
-  return result.cards.find(
-    (card) => getStringValue(card, "kind") === "tool-approval",
-  );
-}
-
-function getToolResultData(toolResult: unknown): unknown {
-  return getRecordValue(toolResult, "data");
-}
-
-function parseResultJson(text: string): unknown {
-  const marker = "\n\nResult:";
-  const markerIndex = text.indexOf(marker);
-  if (markerIndex === -1) return undefined;
-
-  const json = text.slice(markerIndex + marker.length).trim();
-  if (!json) return undefined;
-
-  try {
-    return JSON.parse(json) as unknown;
-  } catch {
-    return undefined;
-  }
-}
-
-function humanizeToolName(toolName: string | undefined): string | undefined {
-  if (!toolName) return undefined;
-  const words = toolName
-    .replace(/^system[_-]/, "")
-    .split(/[_-]+/)
-    .filter(Boolean);
-  if (words.length === 0) return undefined;
-  const label = words.join(" ");
-  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
-}
-
-export function formatConfirmationResult(
-  result: ConfirmationResult,
-  decision: "approved" | "declined" | null,
-): ConfirmationResultDisplay {
-  if (decision === "declined") {
-    return { label: "Declined", variant: "declined" };
-  }
-
-  const approvalCard = getFirstApprovalCard(result);
-  const toolResult = getFirstToolResult(result);
-  const toolLabel = humanizeToolName(
-    getStringValue(approvalCard, "toolName") ??
-      getStringValue(toolResult, "toolName"),
-  );
-  const resultData =
-    getRecordValue(approvalCard, "output") ??
-    getToolResultData(toolResult) ??
-    parseResultJson(result.text);
-  const cardState = getStringValue(approvalCard, "state");
-  const success = getBooleanValue(resultData, "success");
-  const errorMessage =
-    getStringValue(approvalCard, "error") ??
-    getStringValue(resultData, "error") ??
-    getStringValue(resultData, "message");
-
-  if (cardState === "output-error") {
-    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
-      errorMessage ? ` · ${errorMessage}` : ""
-    }`;
-    return { label, variant: "error" };
-  }
-
-  if (cardState === "output-available") {
-    return {
-      label: toolLabel ? `${toolLabel} completed` : "Action completed",
-      variant: "success",
-    };
-  }
-
-  if (success === false) {
-    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
-      errorMessage ? ` · ${errorMessage}` : ""
-    }`;
-    return { label, variant: "error" };
-  }
-
-  if (result.text.startsWith("Error:")) {
-    return {
-      label: `Action failed · ${result.text.replace(/^Error:\s*/, "")}`,
-      variant: "error",
-    };
-  }
-
-  if (result.text.startsWith("Failed:")) {
-    const label = `${toolLabel ? `${toolLabel} failed` : "Action failed"}${
-      errorMessage ? ` · ${errorMessage}` : ""
-    }`;
-    return { label, variant: "error" };
-  }
-
-  if (success === true) {
-    return {
-      label: toolLabel ? `${toolLabel} completed` : "Action completed",
-      variant: "success",
-    };
-  }
-
-  if (result.text.startsWith("Completed:")) {
-    return {
-      label: toolLabel ? `${toolLabel} completed` : "Action completed",
-      variant: "success",
-    };
-  }
-
-  return {
-    label: result.text ? `Approved · ${result.text}` : "Approved",
-    variant: "success",
-  };
 }
 
 export function ToolCallsGroup({
@@ -237,15 +105,8 @@ export function formatNativeToolDisplay(
   }
 
   const toolName = getStringValue(data, "toolName") ?? "tool";
-  if (state === "output-denied") {
-    const toolLabel = humanizeToolName(toolName);
-    return {
-      label: toolLabel ? `${toolLabel} denied` : "Action denied",
-      variant: "declined",
-    };
-  }
 
-  return formatConfirmationResult(
+  return formatSharedConfirmationResult(
     {
       text: getStringValue(data, "title") ?? "",
       cards: [
@@ -592,7 +453,7 @@ export function ConfirmationPart({
 
   const resolved = decision !== null;
   const display = decision
-    ? formatConfirmationResult({ text: "" }, decision)
+    ? formatSharedConfirmationResult({ text: "" }, decision)
     : null;
   const headerLabel = resolved
     ? display?.variant === "error"
