@@ -114,275 +114,89 @@ aligned, and `dist` is included in package `files`.
 
 ## Open follow-ups
 
-### 1. Session refinements
+This section tracks only unfinished Rover/web-chat hardening work. Completed
+session, confirmation, upload, document/image attachment, progress, and live
+status slices are covered by package tests and Rover evals rather than kept as
+open plan text.
 
-Basic explicit sessions are implemented: list recent conversations, switch,
-create new, remember last selected in browser storage. Loading/empty/error
-states, rename, archive, and explicit delete are in place.
+### 1. Default landing route
 
-### 2. Outbound attachments / artifacts
+`/chat` exists and is bundled. The open product call is what a brain's root URL
+should show for a new operator:
 
-Document attachments are shipped end to end: `AgentService` carries attachment
-metadata on results, `WebChatInterface` translates attachment-bearing
-message-interface events into AI SDK UI data parts, and the React island
-renders document previews / download links through `ai-elements/data-parts.tsx`.
+- route directly to `/chat`;
+- keep the dashboard as the root;
+- or show a small chooser between dashboard and chat.
 
-Protocol shape is now explicit: attachment-bearing agent output uses a
-Brain-specific structured card with `kind: "attachment"`, translated by
-`WebChatInterface` into an AI SDK UI `data-attachment` part. This keeps approval
-cards on native AI SDK tool parts while giving brain-owned artifacts a stable
-contract:
+Decide this from the Rover first-run/try-it journey, not from framework
+preference.
 
-- `id`: stable card id
-- optional `jobId`: queued generation job to poll for readiness
-- `title` / optional `description`: display copy
-- `attachment.mediaType`: MIME type
-- `attachment.url`: view/resolve URL
-- optional `attachment.downloadUrl`, `previewUrl`, `filename`, `sizeBytes`
-- optional `attachment.source`: `{ entityType, entityId, attachmentType }`
+### 2. Artifact attachment coverage
 
-Existing PDF document generation now returns predicted attachment metadata for
-chat surfaces, and web-chat serves generated document entities through the
-operator-only `/api/chat/attachments/document?id=...` route. Generated image
-creation now follows the same `data-attachment` card path with predicted image
-metadata and an operator-only `/api/chat/attachments/image?id=...` route for
-view/download. The React island renders `data-attachment` parts as previews /
-download links / generic file cards, and polls `/api/chat/jobs/status?id=...`
-for queued artifacts so links stay disabled until the generation job is ready.
+Document and image artifact cards are shipped. The remaining work is to extend
+the same `data-attachment` contract only when another durable artifact kind
+actually appears, such as exports or preview artifacts that are not saved as
+`document` or `image` entities.
 
-Remaining:
+For new artifact kinds:
 
-- extend the same attachment-data-part path to other durable artifact kinds
-  (PDF non-document outputs, exports, previews) instead of treating each
-  artifact kind as a one-off renderer;
-- confirm download routes for new artifact kinds reuse the existing
-  attachment/media provider contracts rather than a web-chat-only blob path.
+- reuse existing attachment/media provider contracts where possible;
+- avoid web-chat-only blob routes unless no shared provider exists;
+- keep generated artifacts on `data-attachment` and uploads as input refs until
+  the operator explicitly promotes/imports/saves them.
 
-### 3. Default landing route
+### 3. Upload/import polish
 
-`/chat` exists and is bundled. Whether the brain's root URL should land on
-chat, the dashboard, or a small chooser remains a product call.
-
-### 4. Inbound uploads
-
-User → brain uploads are now routed through durable web-chat upload refs. The
-prompt accepts `.md`, `.txt`, and `.markdown` text files up to the shared
-message-interface text-upload size limit, plus supported native model file
-attachments (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.pdf`) up to the
-web-chat file-upload limit. The browser posts files to `/api/chat/uploads`, then
-sends AI SDK `data-upload` parts into `/api/chat`. The server resolves those
-refs into native `AgentService.chat()` attachments: text uploads project into
-the current model turn using the compatibility `User uploaded a file "..."`
-format, while binary file uploads are forwarded as model file parts.
-
-The active chat transcript shows attached filenames on submitted user messages,
-so upload validation/submission success is visible even if the later agent
-response times out. The prompt area also shows transient upload notices for
-client validation, handoff success, and server-side upload validation failures.
-Browser verification confirmed the primary multipart flow: files upload to
-`/api/chat/uploads` first, and `/api/chat` receives durable `data-upload` refs
-rather than inline file content.
-
-Initial durable upload protocol slice exists: operator-only
-`POST /api/chat/uploads` accepts multipart text and supported binary file
-uploads, validates explicit media policies, stores content plus metadata under
-the runtime web-chat upload store (`data/web-chat/uploads` for standard
-instances, not synced `brain-data`), and returns a `web-chat-upload` ref. The
-chat endpoint also accepts AI SDK `data-upload` parts carrying those refs and
-resolves stored content into native `AgentService.chat()` attachments. Legacy
-inline AI SDK `file` parts use the same native attachment path. The agent
-service still projects text attachments into the current model turn using the
-existing text-upload prompt format for compatibility, but sends binary uploads
-as model file parts; the stored user message remains the user's text instead of
-an upload-content blob. Attachment-only turns are treated as a handoff, not an
-instruction: the assistant acknowledges the upload and asks what the operator
-wants to do next without invoking the model or tools. The React prompt now
-uploads selected files first, then sends `data-upload` refs through the AI SDK
-message parts protocol.
-
-Session reloads preserve stored upload metadata as AI SDK `data-upload` parts
-so transcript rendering can continue to show attachment filename pills. Upload
-responses and rehydrated refs include operator-only `/api/chat/uploads?id=...`
-links, and the same route can serve stored uploads back to the browser for
-review/download. Filesystem persistence, metadata/ref validation, URL building,
-and retention pruning now live in a focused `WebChatUploadStore` helper rather
-than in the route handler. Upload media policy is explicit in
-`upload-policy.ts`: text uploads stay `.md`, `.txt`, and `.markdown` / text MIME
-only, 100KB max, UTF-8 text required, and binary payloads rejected even with text
-filenames or MIME types; native file uploads are restricted to supported
-image/PDF MIME types with signature checks and a 5MB max.
-
-Upload refs are chat-context attachments by default. They should not become
-content entities unless the operator explicitly asks to save or import them.
-Raw-file promotion preserves the original artifact: PDFs promote to `document`
-and images promote to `image` through explicit `system_create({ entityType:
-"document" | "image", upload: { kind: "web-chat-upload", id } })` calls.
-`system_create` validates that the upload ref appears in the current
-conversation before forwarding it to the entity plugin, and the receiving plugin
-validates media type and ref existence before queuing/persisting. Markdown
-import/extraction is a separate explicit flow: "turn this PDF into a note"
-selects the upload and calls `system_create({ entityType: "base", upload,
-transform: "extract-markdown" })`. The note plugin validates the upload record
-cheaply, returns the predicted note id plus `jobId`/`status: "generating"`, and
-performs deterministic, size/page-bounded PDF extraction in `@brains/document`
-(`pdfjs-dist`) inside the queued import job before creating the markdown entity.
-`system_create` enforces that `extract-markdown` is only valid with
-`entityType: "base"` and an upload ref; raw PDF/image promotion to `document` or
-`image` must omit `transform`. Any future LLM pass should be limited to cleanup
-or summarization after deterministic extraction. Derived
-entities (such as decks generated from a PDF) should be created from an explicit
-user instruction that consumes the upload as context. Bare upload handoff must
-not create, update, or delete entities.
-
-Follow-up turns in the same conversation should consume recent upload refs
-without forcing the operator to reattach the file. For example, after a bare
-image upload acknowledgement, "describe that picture" should resolve the
-previous upload ref, attach the stored image bytes to that model turn, and answer
-from the image content. If the operator asks to save/import/promote an uploaded
-image or PDF, the selected upload must be promoted via `system_create(...,
-upload: ...)`; the assistant must not fall back to generated image/document jobs
-from the filename or surrounding chat text.
-
-This deferred upload/attachment continuity is not a web-chat behavior. It should
-live in the shared message/agent layer so web-chat, Discord, chat-repl, Telegram,
-and future transports all resolve recent attachments the same way. Interfaces
-should remain responsible for transport-specific parsing, validation, upload
-storage routes, and converting inbound files to `ChatAttachment[]`; the shared
-agent/conversation layer should own recent attachment context, selected-upload
-continuity, and any clarification state needed before model invocation. A
-clarification answer such as "the latest one" must be resolved to a concrete
-upload ref (or re-ask) before the model sees the turn; raw selection text should
-not be allowed to trigger unrelated generation.
-
-Runtime upload storage now lives behind the shared plugin-context upload
-registry/service. Web chat scopes that service to `web-chat` and keeps the same
-`web-chat-upload` ref contract and `/api/chat/uploads` routes, while runtime
-path normalization (`brain-data` → sibling `data`) is centralized for future
-interfaces/plugins. The ref kind remains a compatibility detail for the current
-web-chat upload route; user-visible copy should say "uploaded file" or "chat
-upload", not expose implementation-specific ref names.
-
-Deferred upload/attachment continuity now lives in the shared agent/message
-layer instead of `interfaces/web-chat`. Web chat resolves only current-turn HTTP
-and AI SDK upload parts. `AgentService` collects prior upload refs from stored
-conversation metadata, performs transport-neutral filename/position selection,
-asks a clarification when multiple uploads are ambiguous, resolves selected
-runtime uploads back into native model attachments when the follow-up needs file
-content, keeps save/import/promote tool actions ref-only, and carries the
-original request through selector-only clarification answers such as "the latest
-one".
-
-Regression paths preserved by the shared layer:
-
-- after a bare image upload acknowledgement, "can you save it as an image" keeps
-  the uploaded image available as chat context and the model-visible upload ref
-  for `system_create({ entityType: "image", upload })` promotion;
-- saving/importing/promoting an upload must never fall back to prompt-based
-  generation while an upload ref is selected or a clarification is unresolved;
-- if the assistant has asked "Which uploaded file should I use?", a positional
-  answer such as "the latest one" / "the last one" is resolved to the concrete
-  prior upload and the original user intent is sent to the model, not the raw
-  selector text.
+Durable uploads, upload history rehydration, operator-only upload downloads,
+conversation-scoped upload promotion, note extraction, latest-upload semantics,
+filename selection, and the deck-carousel upload-context regression are shipped.
 
 Remaining upload work:
 
-- continue hardening optional cleanup/summarization after deterministic
-  extraction, without weakening the explicit
-  `system_create({ entityType: "base", upload: { kind: "web-chat-upload", id },
-transform: "extract-markdown" })` contract;
-- keep upload promotion separate from generated artifact cards: generated
-  artifacts stay on `data-attachment`, while uploads stay input refs until a
-  user asks to promote them. Note imports, image promotions, and stock-photo
-  selections are now job-backed and return `jobId`/`status: "generating"` rather
-  than blocking the chat turn.
+- browser-verify the released upload paths against a running Rover instance;
+- harden optional cleanup/summarization after deterministic extraction without
+  weakening the explicit `extract-markdown` contract;
+- keep user-visible copy saying "uploaded file" or "chat upload", not internal
+  ref-kind names.
+
+### 4. Progress/status polish
+
+Structured progress parts, live tool-status parts, active-channel routing, and
+artifact `jobId` polling are shipped. Token-by-token model streaming is not on
+the active roadmap.
+
+Remaining progress work:
+
+- browser-verify real tool-status and progress flows in Rover;
+- polish failed/completed status copy and rendering based on observed sessions;
+- decide whether completed progress parts should ever persist as transcript
+  history, or remain live-only.
 
 ### 5. Richer AI Elements parts (protocol-gated)
 
-Do not add `reasoning`, `sources`, `actions`, `suggestions`, or artifact UI as
-standalone component work. Install the registry component only when the backend
-emits the corresponding structured part or a concrete product surface needs it.
+Do not add `reasoning`, `sources`, `actions`, `suggestions`, or new artifact UI
+as standalone component work. Install or customize a registry component only
+when the backend emits the corresponding structured part or a concrete Rover
+surface needs it.
 
-### 6. Structured progress / job events
-
-Legacy job/progress notifications can still surface as raw text such as
-`✅ batch processing: ... completed`. That is a text-transport concern, not the
-browser chat protocol. `/chat` should not parse, strip, or beautify those strings
-for new events.
-
-Implemented first slice: live web-chat progress events bypass the legacy text
-formatters and cross the interface boundary as AI SDK custom data parts with
-semantic fields instead of formatted display text:
-
-```ts
-{
-  type: "data-progress",
-  id: "progress:job-123",
-  data: {
-    status: "processing" | "completed" | "failed",
-    operationType: "batch_processing",
-    operationTarget: "/brain-data",
-    message: "Finished indexing 24 files",
-    progress: { current: 24, total: 24, percentage: 100 }
-  }
-}
-```
-
-React renders labels/icons/colors from `status` and plain fields; it should not
-regex emoji, markdown, or human-formatted backend strings. Existing historical
-messages may remain plain text, but new live `/chat` progress must bypass legacy
-`formatProgressMessage()` / `formatCompletionMessage()` display strings.
-
-Routing rule: emit a progress part only when the event is explicitly scoped to
-`interfaceType: "web-chat"` and the `channelId` matches an active web-chat
-stream. Background/batch jobs without an active web-chat channel stay silent in
-the transcript. Async artifacts should use attachment/job polling rather than
-injecting late raw completion messages.
-
-Agent tool activity now surfaces while a web-chat turn is in flight.
-`MessageInterfacePlugin` subscribes to existing `tool:invoking`,
-`tool:completed`, and `tool:failed` events, exposes a no-op base hook, and
-`WebChatInterface` translates matching active-channel events into transient
-`data-status` parts such as `Using <toolName>…`. The React island uses those
-status data parts to replace the generic waiting phrase while tools run.
-
-Remaining progress work: decide whether completed progress parts should be
-persisted as transcript history or remain live-only. For artifact readiness,
-keep using attachment `jobId` polling unless a broader durable notification
-model is introduced.
-
-### 7. Responsiveness roadmap
-
-Token-by-token model streaming is intentionally not on the active roadmap. The
-highest-value responsiveness gap was opaque tool/job waits; that is now covered
-by structured progress and live tool-status events without changing the core
-`AgentService.chat()` generate-to-completion contract.
-
-Do not start model-token streaming unless user feedback shows final answer text
-latency is a materially bigger problem than tool/status visibility. If revived,
-open a fresh design first; the known risks are approval safety, abort/cancel
-threading, conversation persistence, usage accounting, and xstate turn
-completion semantics.
-
-Near-term responsiveness work should stay smaller: browser-verify real tool
-status flows, polish status copy/rendering, and tighten failed/completed status
-semantics before changing AI-service streaming contracts.
-
-### 8. Per-release polish pass
+### 6. Per-release polish pass
 
 Whenever the bundled web chat UI changes, run:
 
 ```sh
 bun run --filter @brains/web-chat build
 bun test interfaces/web-chat/test
+bun test interfaces/web-chat/ui-react/src/ai-elements/attachment-part.test.tsx
 bun run --filter @brains/web-chat typecheck
 bun run --filter @brains/web-chat lint
 ```
 
 Browser pass covers: empty state, sign-in required state, sending a message,
 assistant markdown, code blocks and long-message overflow, session
-switching/new-session, tool result collapse/expand, confirmation
-approve/decline, upload pills/download links, live tool status, light/dark mode,
-and mobile drawer/header/action layout.
+switching/new-session, rename/archive/delete, tool result collapse/expand,
+confirmation approve/decline, upload pills/download links, generated attachment
+cards/job polling, live tool status, progress cards, light/dark mode, and mobile
+drawer/header/action layout.
 
 ## Deferred
 
