@@ -161,6 +161,65 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
+  it("registers a generic goalCheck eval handler", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    type RegisterEvalHandler = typeof harness.getMockShell extends () => infer T
+      ? T extends { registerEvalHandler: infer TRegister }
+        ? TRegister
+        : never
+      : never;
+    type EvalHandler = Parameters<RegisterEvalHandler>[2];
+    const handlers = new Map<string, EvalHandler>();
+    harness.getMockShell().registerEvalHandler = (
+      pluginId,
+      handlerId,
+      handler,
+    ): void => {
+      handlers.set(`${pluginId}:${handlerId}`, handler);
+    };
+
+    const evaluate = mock(async () => ({ met: true, reason: "goal met" }));
+    await harness.installPlugin(
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        goalCheck(evaluate),
+      ),
+    );
+
+    const handler = handlers.get("playbooks:goalCheck");
+    expect(handler).toBeDefined();
+    if (!handler) throw new Error("Expected goalCheck eval handler");
+
+    const output = await handler({
+      run: {
+        id: "run-1",
+        playbookId: "rover-onboarding",
+        playbookVersion: "v1",
+        conversationId: "conversation-1",
+        currentState: "profile",
+        status: "active",
+        startedAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        completedStates: [],
+        context: {},
+        evidence: [],
+        gateVerdicts: [],
+      },
+      state: {
+        id: "profile",
+        title: "Profile",
+        instructions: ["Check the profile."],
+        doneWhen: ["The anchor profile is known."],
+        transitions: [],
+      },
+      goal: ["The anchor profile is known."],
+      evidence: [],
+    });
+
+    expect(output).toEqual({ met: true, reason: "goal met" });
+    expect(evaluate).toHaveBeenCalled();
+  });
+
   it("keeps conversation routing out of model-visible playbook tool schemas", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     const capabilities = await harness.installPlugin(

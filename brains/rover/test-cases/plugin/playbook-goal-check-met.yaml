@@ -1,0 +1,37 @@
+id: playbook-goal-check-met
+name: Playbook GoalCheck recognizes seeded anchor profile
+type: plugin
+plugin: playbooks
+handler: goalCheck
+input:
+  run:
+    id: run-goal-met
+    playbookId: rover-onboarding
+    playbookVersion: eval
+    lifecycle: onboarding
+    status: active
+    conversationId: eval-conversation
+    currentState: profile
+    completedStates: []
+    context: {}
+    evidence: []
+    gateVerdicts: []
+    startedAt: "2026-01-01T00:00:00.000Z"
+    updatedAt: "2026-01-01T00:00:00.000Z"
+  state:
+    id: profile
+    title: Profile
+    instructions:
+      - Confirm whether the operator profile is known.
+    doneWhen:
+      - The operator identity is Alex Chen, a professional software architect and writer exploring distributed systems, sustainability, and urban technology.
+    transitions: []
+  goal:
+    - The operator identity is Alex Chen, a professional software architect and writer exploring distributed systems, sustainability, and urban technology.
+  evidence: []
+expectedOutput:
+  validateEach:
+    - path: met
+      equals: true
+    - path: reason
+      exists: true

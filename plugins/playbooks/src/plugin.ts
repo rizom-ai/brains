@@ -26,6 +26,8 @@ import packageJson from "../package.json";
 import {
   PlaybookRunStore,
   createPlaybookRun,
+  playbookRunEvidenceSchema,
+  playbookRunSchema,
   type PlaybookGateVerdict,
   type PlaybookRun,
   type PlaybookRunEvidence,
@@ -147,6 +149,33 @@ const goalCheckResultSchema = z
   })
   .strict();
 
+const goalCheckTransitionSchema = z
+  .object({
+    event: z.string().min(1),
+    target: z.string().min(1),
+    description: z.string().min(1).optional(),
+  })
+  .strict();
+
+const goalCheckStateSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    instructions: z.array(z.string().min(1)),
+    doneWhen: z.array(z.string().min(1)).default([]),
+    transitions: z.array(goalCheckTransitionSchema).default([]),
+  })
+  .passthrough();
+
+const goalCheckInputSchema = z
+  .object({
+    run: playbookRunSchema,
+    state: goalCheckStateSchema,
+    goal: z.array(z.string().min(1)),
+    evidence: z.array(playbookRunEvidenceSchema).default([]),
+  })
+  .strict();
+
 export interface GoalCheck {
   evaluate(input: GoalCheckInput): Promise<GoalCheckResult>;
 }
@@ -180,6 +209,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
 
     context.registerInstructions(this.buildInstructions());
+    context.eval.registerHandler("goalCheck", async (input: unknown) =>
+      this.goalCheck.evaluate(goalCheckInputSchema.parse(input)),
+    );
 
     context.messaging.subscribe<
       z.infer<typeof lifecycleStartersRequestSchema>,
