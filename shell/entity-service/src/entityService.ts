@@ -305,18 +305,19 @@ export class EntityService implements IEntityService {
       this.entityMutations.getEmbeddingIndexStats(),
     ]);
     const activeEmbeddingJobs = activeJobs.length;
-    const ready =
+    const completeWithoutFailures =
       activeEmbeddingJobs === 0 &&
       stats.missingEmbeddings === 0 &&
       stats.staleEmbeddings === 0;
+    const degraded = completeWithoutFailures && stats.failedEmbeddings > 0;
 
     return {
-      ready,
-      degraded: false,
+      ready: completeWithoutFailures,
+      degraded,
       activeEmbeddingJobs,
       missingEmbeddings: stats.missingEmbeddings,
       staleEmbeddings: stats.staleEmbeddings,
-      failedEmbeddings: 0,
+      failedEmbeddings: stats.failedEmbeddings,
     };
   }
 

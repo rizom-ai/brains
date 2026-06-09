@@ -605,9 +605,16 @@ export interface EmbeddingBackfillResult {
   skipped: number;
 }
 
+export interface EmbeddingFailureReference {
+  entityId: string;
+  entityType: string;
+  contentHash: string;
+}
+
 export interface EmbeddingIndexStats {
   missingEmbeddings: number;
   staleEmbeddings: number;
+  failedEmbeddings: number;
 }
 
 export interface IndexReadinessOptions {
@@ -619,7 +626,6 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
   ready: boolean;
   degraded: boolean;
   activeEmbeddingJobs: number;
-  failedEmbeddings: number;
 }
 
 export interface EntityService extends ICoreEntityService {

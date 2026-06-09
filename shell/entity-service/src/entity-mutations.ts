@@ -8,6 +8,7 @@ import type {
   EntityMutationResult,
   EmbeddingBackfillResult,
   EmbeddingIndexStats,
+  EmbeddingFailureReference,
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
@@ -18,9 +19,9 @@ import type {
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
-import type { IJobQueueService } from "@brains/job-queue";
+import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
-import { createId } from "@brains/utils";
+import { createId, z } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
@@ -47,6 +48,31 @@ function toStableJsonValue(value: unknown): unknown {
 
 function stableJson(value: unknown): string {
   return JSON.stringify(toStableJsonValue(value));
+}
+
+const failedEmbeddingJobDataSchema = z.object({
+  id: z.string().min(1),
+  entityType: z.string().min(1),
+  contentHash: z.string().min(1),
+});
+
+function parseEmbeddingFailureReference(
+  job: JobInfo,
+): EmbeddingFailureReference | null {
+  try {
+    const data = failedEmbeddingJobDataSchema.parse(JSON.parse(job.data));
+    return {
+      entityId: data.id,
+      entityType: data.entityType,
+      contentHash: data.contentHash,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function embeddingReferenceKey(reference: EmbeddingFailureReference): string {
+  return `${reference.entityType}:${reference.entityId}:${reference.contentHash}`;
 }
 
 interface EmbeddingBackfillCandidate {
@@ -428,6 +454,7 @@ export class EntityMutations {
     return {
       missingEmbeddings: candidates.missingEmbeddings,
       staleEmbeddings: candidates.staleEmbeddings,
+      failedEmbeddings: candidates.failedEmbeddings,
     };
   }
 
@@ -439,8 +466,11 @@ export class EntityMutations {
         rowsToBackfill: [],
         missingEmbeddings: 0,
         staleEmbeddings: 0,
+        failedEmbeddings: 0,
       };
     }
+
+    const failedEmbeddingKeys = await this.getFailedEmbeddingKeys();
 
     const entityRows = await this.db
       .select({
@@ -467,6 +497,7 @@ export class EntityMutations {
     let skipped = 0;
     let missingEmbeddings = 0;
     let staleEmbeddings = 0;
+    let failedEmbeddings = 0;
 
     for (const row of entityRows) {
       const entityConfig = this.entityRegistry.getEntityTypeConfig(
@@ -477,16 +508,32 @@ export class EntityMutations {
         continue;
       }
 
+      const failureKey = embeddingReferenceKey({
+        entityId: row.id,
+        entityType: row.entityType,
+        contentHash: row.contentHash,
+      });
+      const hasTerminalFailure = failedEmbeddingKeys.has(failureKey);
       const embeddingHash = embeddingHashes.get(`${row.entityType}:${row.id}`);
       if (embeddingHash === undefined) {
-        missingEmbeddings++;
-        rowsToBackfill.push(row);
+        if (hasTerminalFailure) {
+          failedEmbeddings++;
+          skipped++;
+        } else {
+          missingEmbeddings++;
+          rowsToBackfill.push(row);
+        }
         continue;
       }
 
       if (embeddingHash !== row.contentHash) {
-        staleEmbeddings++;
-        rowsToBackfill.push(row);
+        if (hasTerminalFailure) {
+          failedEmbeddings++;
+          skipped++;
+        } else {
+          staleEmbeddings++;
+          rowsToBackfill.push(row);
+        }
         continue;
       }
 
@@ -499,7 +546,24 @@ export class EntityMutations {
       rowsToBackfill,
       missingEmbeddings,
       staleEmbeddings,
+      failedEmbeddings,
     };
+  }
+
+  private async getFailedEmbeddingKeys(): Promise<Set<string>> {
+    const failedJobs = await this.jobQueueService.getFailedJobs([
+      "shell:embedding",
+    ]);
+    const failedEmbeddingKeys = new Set<string>();
+
+    for (const job of failedJobs) {
+      const reference = parseEmbeddingFailureReference(job);
+      if (reference) {
+        failedEmbeddingKeys.add(embeddingReferenceKey(reference));
+      }
+    }
+
+    return failedEmbeddingKeys;
   }
 
   private async hasEntityTable(): Promise<boolean> {

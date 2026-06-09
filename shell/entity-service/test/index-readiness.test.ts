@@ -14,7 +14,7 @@ async function createCurrentEmbeddedNote(
   ctx: EntityServiceTestContext,
   id: string,
 ): Promise<void> {
-  await ctx.entityService.createEntity({
+  const result = await ctx.entityService.createEntity({
     entity: createNoteInput(
       {
         title: id,
@@ -32,6 +32,7 @@ async function createCurrentEmbeddedNote(
     embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
     contentHash: entity.contentHash,
   });
+  await ctx.jobQueueService.complete(result.jobId, { entityId: id });
 }
 
 describe("EntityService index readiness", () => {
@@ -86,6 +87,36 @@ describe("EntityService index readiness", () => {
     expect(status.missingEmbeddings).toBe(1);
     expect(status.staleEmbeddings).toBe(0);
     expect(ctx.entityService.isIndexReady()).toBe(false);
+  });
+
+  test("awaitIndexReady treats terminal embedding failures as ready-degraded", async () => {
+    const result = await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Poison Embedding",
+          content: "This entity failed embedding permanently",
+          tags: [],
+        },
+        "poison-index-note",
+      ),
+      options: { maxRetries: 0 },
+    });
+    await ctx.jobQueueService.fail(
+      result.jobId,
+      new Error("embedding provider rejected content"),
+    );
+
+    const status = await ctx.entityService.awaitIndexReady({
+      timeoutMs: 10,
+      intervalMs: 1,
+    });
+
+    expect(status.ready).toBe(true);
+    expect(status.degraded).toBe(true);
+    expect(status.missingEmbeddings).toBe(0);
+    expect(status.staleEmbeddings).toBe(0);
+    expect(status.failedEmbeddings).toBe(1);
+    expect(ctx.entityService.isIndexReady()).toBe(true);
   });
 
   test("awaitIndexReady reports stale embeddings separately from missing ones", async () => {

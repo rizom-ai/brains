@@ -577,6 +577,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         getHandler: () => undefined,
         update: async () => {},
         getActiveJobs: async () => [],
+        getFailedJobs: async () => [],
         getStatusByEntityId: async () => null,
       }) as unknown as IJobQueueService,
     getRenderService: () =>
