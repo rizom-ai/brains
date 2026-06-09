@@ -57,6 +57,10 @@ export type CanonicalIdentityResolver = Pick<
   "enrichActor"
 >;
 
+export interface AgentIndexReadiness {
+  isIndexReady(): boolean;
+}
+
 export interface AgentConfig {
   /** Maximum iterations before stopping (SDK defaults to 1) */
   stepLimit?: number;
@@ -68,6 +72,8 @@ export interface AgentConfig {
   assistantActorId?: string;
   /** Optional explicit actor -> canonical identity resolver */
   canonicalIdentityResolver?: CanonicalIdentityResolver;
+  /** Optional semantic-index readiness gate for retrieval-backed chat. */
+  indexReadiness?: AgentIndexReadiness;
   /** Optional provider for same-turn retrieved context, e.g. durable memory. */
   agentContextProvider?: (
     request: AgentContextRequest,

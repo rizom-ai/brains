@@ -197,6 +197,29 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalled();
     });
 
+    it("should return a warming response without calling the model when the semantic index is not ready", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          indexReadiness: { isIndexReady: () => false },
+        },
+      );
+
+      const response = await service.chat(
+        "What do you know about me?",
+        "test-conversation",
+      );
+
+      expect(response.text).toContain("knowledge base ready");
+      expect(response.usage.totalTokens).toBe(0);
+      expect(mockGenerate).not.toHaveBeenCalled();
+    });
+
     it("should include user message in messages array", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

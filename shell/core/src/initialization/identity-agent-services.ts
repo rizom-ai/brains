@@ -135,6 +135,7 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      indexReadiness: entityService,
       agentContextProvider: async (request: AgentContextRequest) => {
         const response = await messageBus.send({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,

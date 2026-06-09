@@ -85,6 +85,7 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
+  private indexReadiness: AgentConfig["indexReadiness"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -178,6 +179,7 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
+    this.indexReadiness = config.indexReadiness;
   }
 
   /**
@@ -230,6 +232,13 @@ export class AgentService implements IAgentService {
     conversationId: string,
     context?: ChatContext,
   ): Promise<AgentResponse> {
+    if (this.indexReadiness && !this.indexReadiness.isIndexReady()) {
+      return {
+        text: "I'm still getting the knowledge base ready. Please try again in a moment.",
+        usage: emptyUsage,
+      };
+    }
+
     const userPermissionLevel = context?.userPermissionLevel ?? "public";
     const interfaceType = context?.interfaceType ?? "agent";
     const channelId = context?.channelId;
