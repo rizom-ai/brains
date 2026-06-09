@@ -55,6 +55,9 @@ function toPublicStructuredChatCard(
     toolName: card.toolName,
     ...(card.input !== undefined && { input: card.input }),
     summary: card.summary,
+    ...(card.completionSummary !== undefined && {
+      completionSummary: card.completionSummary,
+    }),
     ...(card.preview !== undefined && { preview: card.preview }),
     state: card.state,
     ...(card.output !== undefined && { output: card.output }),
@@ -72,6 +75,9 @@ function toPublicPendingConfirmation(
     }),
     toolName: confirmation.toolName,
     summary: confirmation.summary,
+    ...(confirmation.completionSummary !== undefined && {
+      completionSummary: confirmation.completionSummary,
+    }),
     ...(confirmation.preview !== undefined && {
       preview: confirmation.preview,
     }),

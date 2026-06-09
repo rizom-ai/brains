@@ -91,6 +91,9 @@ export function extractToolResults(
           ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.completionSummary !== undefined
+            ? { completionSummary: confirmationParsed.data.completionSummary }
+            : {}),
           ...(confirmationParsed.data.preview !== undefined
             ? { preview: confirmationParsed.data.preview }
             : {}),
@@ -106,6 +109,9 @@ export function extractToolResults(
           toolName: confirmationParsed.data.toolName,
           ...(args !== undefined ? { input: args } : {}),
           summary: confirmationParsed.data.summary,
+          ...(confirmationParsed.data.completionSummary !== undefined
+            ? { completionSummary: confirmationParsed.data.completionSummary }
+            : {}),
           ...(confirmationParsed.data.preview !== undefined
             ? { preview: confirmationParsed.data.preview }
             : {}),

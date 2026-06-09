@@ -569,12 +569,14 @@ export class AgentService implements IAgentService {
     const result = await tool.tool.handler(pendingConfirmation.args, context);
     const failed = isFailedToolOutput(result);
     const prefix = failed ? "Failed" : "Completed";
+    const actionLabel =
+      pendingConfirmation.completionSummary ?? pendingConfirmation.summary;
     const errorMessage = failed
       ? (getStringField(result, "error") ?? getStringField(result, "message"))
       : undefined;
     const resultText = errorMessage
-      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
-      : `${prefix}: ${pendingConfirmation.summary}`;
+      ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
+      : `${prefix}: ${actionLabel}`;
     const toolResult: ToolResultData = {
       toolName: pendingConfirmation.toolName,
       data: result,
@@ -593,6 +595,9 @@ export class AgentService implements IAgentService {
         ? { input: pendingConfirmation.args }
         : {}),
       summary: pendingConfirmation.summary,
+      ...(pendingConfirmation.completionSummary !== undefined
+        ? { completionSummary: pendingConfirmation.completionSummary }
+        : {}),
       state: failed ? "output-error" : "output-available",
       output: result,
       ...(failed

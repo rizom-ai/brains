@@ -55,6 +55,7 @@ export const PendingConfirmationSchema = z.object({
   toolCallId: z.string().optional(),
   toolName: z.string(),
   summary: z.string(),
+  completionSummary: z.string().optional(),
   preview: z.string().optional(),
   args: z.unknown(),
 });
@@ -76,6 +77,7 @@ export const ToolApprovalCardSchema = z.object({
   toolName: z.string(),
   input: z.record(z.unknown()).optional(),
   summary: z.string(),
+  completionSummary: z.string().optional(),
   preview: z.string().optional(),
   state: ToolApprovalCardStateSchema,
   output: z.unknown().optional(),

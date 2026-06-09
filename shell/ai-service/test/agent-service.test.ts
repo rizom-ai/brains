@@ -1417,6 +1417,93 @@ describe("AgentService", () => {
       expect(response.text).toBeDefined();
     });
 
+    it("uses stable action labels after confirmed system updates", async () => {
+      mockAgentGenerateResult = {
+        text: "Confirmation required.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-update-profile",
+                toolName: "system_update",
+                input: {
+                  entityType: "anchor-profile",
+                  id: "anchor-profile",
+                  fields: { name: "Tess Tickel" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-update-profile",
+                toolName: "system_update",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: 'Update "Alex Chen"?',
+                  completionSummary: "Updated anchor profile.",
+                  args: {
+                    entityType: "anchor-profile",
+                    id: "anchor-profile",
+                    fields: { name: "Tess Tickel" },
+                    confirmed: true,
+                    contentHash: "old-profile-hash",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const updateTool: Tool = {
+        name: "system_update",
+        description: "Update entity",
+        inputSchema: {
+          entityType: z.string(),
+          id: z.string(),
+          fields: z.record(z.unknown()).optional(),
+          confirmed: z.boolean(),
+          contentHash: z.string(),
+        },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "core", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("update my profile", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update-profile",
+      );
+
+      expect(response.text).toBe("Completed: Updated anchor profile.");
+      expect(updateHandler).toHaveBeenCalledWith(
+        {
+          entityType: "anchor-profile",
+          id: "anchor-profile",
+          fields: { name: "Tess Tickel" },
+          confirmed: true,
+          contentHash: "old-profile-hash",
+        },
+        expect.any(Object),
+      );
+    });
+
     it("keeps multiple pending approvals distinct by approval id", async () => {
       mockAgentGenerateResult = {
         text: "Delete and update requested.",

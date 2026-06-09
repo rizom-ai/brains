@@ -59,7 +59,7 @@ Ordered fix plan:
    for another first seed and should progress toward transformation/wrap-up.
    **Done.**
 4. **Confirmation labels**: improve update-confirmation completion summaries to use
-   action/object type labels that remain accurate after the mutation.
+   action/object type labels that remain accurate after the mutation. **Done.**
 5. **Hide internal state IDs from operator-facing chat**: keep state IDs in agent
    context/tool results, but instruct the agent to translate them into natural
    language when speaking to the operator.

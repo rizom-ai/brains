@@ -15,6 +15,7 @@ import {
   buildEntityMutationEventContext,
   createSystemTool,
   getEntityDisplayLabel,
+  humanizeEntityType,
   normalizeUpdateInput,
 } from "./tool-helpers";
 import { getPublishBoundaryState } from "./entity-publish-policy";
@@ -301,6 +302,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         needsConfirmation: true,
         toolName: "system_update",
         summary: `Update "${label}"?`,
+        completionSummary: `Updated ${humanizeEntityType(entity.entityType)}.`,
         preview: diff,
         args: {
           ...input,

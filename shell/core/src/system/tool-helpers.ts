@@ -166,6 +166,10 @@ export function normalizeUpdateInput(input: {
   return { content: input.content };
 }
 
+export function humanizeEntityType(entityType: string): string {
+  return entityType.replaceAll("-", " ");
+}
+
 export function getEntityDisplayLabel(entity: BaseEntity): string {
   const candidates = [
     entity.metadata["title"],

@@ -127,6 +127,7 @@ export interface PendingConfirmation {
   toolCallId?: string;
   toolName: string;
   summary: string;
+  completionSummary?: string;
   preview?: string;
   args: unknown;
 }
@@ -145,6 +146,7 @@ export interface ToolApprovalCard {
   toolName: string;
   input?: Record<string, unknown>;
   summary: string;
+  completionSummary?: string;
   preview?: string;
   state: ToolApprovalCardState;
   output?: unknown;

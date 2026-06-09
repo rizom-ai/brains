@@ -48,7 +48,10 @@ turns:
   - userMessage: "Approve saving that profile update."
     confirmPendingAction: true
     successCriteria:
+      responseContains:
+        - "Updated anchor profile"
       responseNotContains:
+        - "Completed: Update \""
         - "I cannot"
         - "I don't have access"
 

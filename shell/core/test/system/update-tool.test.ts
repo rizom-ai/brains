@@ -195,6 +195,7 @@ describe("system_update tool", () => {
       needsConfirmation: true,
       toolName: "system_update",
       summary: expect.stringContaining('Update "Notes on Living Systems"?'),
+      completionSummary: "Updated newsletter.",
     });
   });
 

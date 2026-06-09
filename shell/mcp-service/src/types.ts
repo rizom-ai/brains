@@ -91,6 +91,7 @@ export const toolConfirmationSchema = z
     needsConfirmation: z.literal(true),
     toolName: z.string(),
     summary: z.string(),
+    completionSummary: z.string().optional(),
     preview: z.string().optional(),
     args: z.unknown(),
   })
