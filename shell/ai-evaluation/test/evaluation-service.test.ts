@@ -69,6 +69,27 @@ successCriteria:
   );
 };
 
+const writePluginTestCase = async (
+  directory: string,
+  index: number,
+): Promise<void> => {
+  await writeFile(
+    join(directory, `plugin-${index}.yaml`),
+    `id: plugin-${index}
+name: Plugin ${index}
+type: plugin
+plugin: test
+handler: echo
+input:
+  index: ${index}
+expectedOutput:
+  validateEach:
+    - path: ok
+      equals: true
+`,
+  );
+};
+
 describe("EvaluationService", () => {
   it("runs agent tests with a concurrency limit while preserving result order", async () => {
     const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
@@ -119,6 +140,42 @@ describe("EvaluationService", () => {
       expect(maxActiveChats).toBe(2);
       expect(summary.results.map((result) => result.testCaseId)).toEqual(
         expectedOrder,
+      );
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves mixed agent and plugin test order", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeAgentTestCase(testCaseDirectory, 0);
+      await writePluginTestCase(testCaseDirectory, 1);
+
+      const agentService: IAgentService = {
+        chat: mock(async () => createResponse("ok")),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+      const registry = EvalHandlerRegistry.createFresh();
+      registry.register("test", "echo", async () => ({ ok: true }));
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: registry,
+      });
+
+      const requestedOrder = ["plugin-1", "parallel-0"];
+      const summary = await service.runEvaluations({
+        skipLLMJudge: true,
+        testCaseIds: requestedOrder,
+      });
+
+      expect(summary.results.map((result) => result.testCaseId)).toEqual(
+        requestedOrder,
       );
     } finally {
       await rm(testCaseDirectory, { recursive: true, force: true });

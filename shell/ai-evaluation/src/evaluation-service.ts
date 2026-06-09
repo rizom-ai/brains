@@ -83,13 +83,9 @@ export class EvaluationService implements IEvaluationService {
   ): Promise<EvaluationSummary> {
     const testCases = await this.getFilteredTestCases(options);
     await this.awaitIndexReadiness(testCases, options);
-    const agentTestCases = this.getAgentTestCases(testCases, options);
-    const pluginTestCases = this.getPluginTestCases(testCases, options);
-
-    const results = [
-      ...(await this.runAgentTests(agentTestCases, options)),
-      ...(await this.runPluginTests(pluginTestCases, options)),
-    ];
+    const results = options.parallel
+      ? await this.runParallelTests(testCases, options)
+      : await this.runTestsInOrder(testCases, options);
 
     const summary = this.generateSummary(results);
     await this.report(summary);
@@ -163,8 +159,12 @@ export class EvaluationService implements IEvaluationService {
   }
 
   private filterByIds(testCases: TestCase[], ids: string[]): TestCase[] {
-    const idSet = new Set(ids);
-    return testCases.filter((testCase) => idSet.has(testCase.id));
+    const testCaseById = new Map(
+      testCases.map((testCase) => [testCase.id, testCase]),
+    );
+    return ids
+      .map((id) => testCaseById.get(id))
+      .filter((testCase): testCase is TestCase => testCase !== undefined);
   }
 
   private filterByTags(
@@ -195,6 +195,56 @@ export class EvaluationService implements IEvaluationService {
     return options.testType === "agent"
       ? []
       : testCases.filter(isPluginTestCase);
+  }
+
+  private getRunnableTestCases(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): TestCase[] {
+    if (options.testType === "agent") return testCases.filter(isAgentTestCase);
+    if (options.testType === "plugin") {
+      return testCases.filter(isPluginTestCase);
+    }
+    return testCases;
+  }
+
+  private async runTestsInOrder(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    const testRunner = TestRunner.createFresh(
+      this.agentService,
+      this.createLLMJudge(options),
+    );
+    const pluginRunner = PluginRunner.createFresh(
+      this.evalHandlerRegistry,
+      this.createPluginLLMJudge(options),
+    );
+    const runnerOptions = this.getRunnerOptions(options);
+    const results: EvaluationResult[] = [];
+
+    for (const testCase of this.getRunnableTestCases(testCases, options)) {
+      results.push(
+        isAgentTestCase(testCase)
+          ? await testRunner.runTest(testCase, runnerOptions)
+          : await pluginRunner.runTest(testCase, runnerOptions),
+      );
+    }
+
+    return results;
+  }
+
+  private async runParallelTests(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    const agentTestCases = this.getAgentTestCases(testCases, options);
+    const pluginTestCases = this.getPluginTestCases(testCases, options);
+
+    return [
+      ...(await this.runAgentTests(agentTestCases, options)),
+      ...(await this.runPluginTests(pluginTestCases, options)),
+    ];
   }
 
   /**
