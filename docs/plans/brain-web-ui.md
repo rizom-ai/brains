@@ -167,6 +167,12 @@ as standalone component work. Install or customize a registry component only
 when the backend emits the corresponding structured part or a concrete Rover
 surface needs it.
 
+Follow-up discovery work: identify which richer parts Rover actually needs,
+define the backend stream contract first, then add the matching AI Elements UI.
+Likely candidates to evaluate are retrieval sources/citations, suggested
+follow-up actions, and concise reasoning/status summaries after tool-heavy
+turns.
+
 ### 5. Per-release polish pass
 
 Whenever the bundled web chat UI changes, run:
@@ -175,6 +181,7 @@ Whenever the bundled web chat UI changes, run:
 bun run --filter @brains/web-chat build
 bun test interfaces/web-chat/test
 bun test interfaces/web-chat/ui-react/src/ai-elements/attachment-part.test.tsx
+bun test interfaces/web-chat/ui-react/src/progress-part.test.tsx
 bun run --filter @brains/web-chat typecheck
 bun run --filter @brains/web-chat lint
 ```

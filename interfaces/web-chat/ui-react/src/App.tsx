@@ -257,7 +257,7 @@ interface ProgressData {
   progress?: { current: number; total: number; percentage: number };
 }
 
-function isProgressData(data: unknown): data is ProgressData {
+export function isProgressData(data: unknown): data is ProgressData {
   if (typeof data !== "object" || data === null) return false;
   const record = data as Record<string, unknown>;
   return (
@@ -276,7 +276,7 @@ function formatOperationType(operationType: string): string {
     .join(" ");
 }
 
-function progressLabel(status: ProgressData["status"]): string {
+export function progressLabel(status: ProgressData["status"]): string {
   switch (status) {
     case "completed":
       return "completed";
@@ -289,7 +289,11 @@ function progressLabel(status: ProgressData["status"]): string {
   }
 }
 
-function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
+export function ProgressPart({
+  data,
+}: {
+  data: unknown;
+}): React.ReactElement | null {
   if (!isProgressData(data)) return null;
   const operation = formatOperationType(data.operationType);
   const title = data.operationTarget
