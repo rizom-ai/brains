@@ -119,33 +119,7 @@ session, confirmation, upload, document/image attachment, progress, and live
 status slices are covered by package tests and Rover evals rather than kept as
 open plan text.
 
-### 1. Default landing route
-
-`/chat` exists and is bundled. The open product call is what a brain's root URL
-should show for a new operator:
-
-- route directly to `/chat`;
-- keep the dashboard as the root;
-- or show a small chooser between dashboard and chat.
-
-Decide this from the Rover first-run/try-it journey, not from framework
-preference.
-
-### 2. Artifact attachment coverage
-
-Document and image artifact cards are shipped. The remaining work is to extend
-the same `data-attachment` contract only when another durable artifact kind
-actually appears, such as exports or preview artifacts that are not saved as
-`document` or `image` entities.
-
-For new artifact kinds:
-
-- reuse existing attachment/media provider contracts where possible;
-- avoid web-chat-only blob routes unless no shared provider exists;
-- keep generated artifacts on `data-attachment` and uploads as input refs until
-  the operator explicitly promotes/imports/saves them.
-
-### 3. Upload/import polish
+### 1. Upload/import polish
 
 Durable uploads, upload history rehydration, operator-only upload downloads,
 conversation-scoped upload promotion, note extraction, latest-upload semantics,
@@ -159,7 +133,7 @@ Remaining upload work:
 - keep user-visible copy saying "uploaded file" or "chat upload", not internal
   ref-kind names.
 
-### 4. Progress/status polish
+### 2. Progress/status polish
 
 Structured progress parts, live tool-status parts, active-channel routing, and
 artifact `jobId` polling are shipped. Token-by-token model streaming is not on
@@ -172,14 +146,28 @@ Remaining progress work:
 - decide whether completed progress parts should ever persist as transcript
   history, or remain live-only.
 
-### 5. Richer AI Elements parts (protocol-gated)
+### 3. Artifact attachment coverage
+
+Document and image artifact cards are shipped. This is not active work until
+another durable artifact kind actually appears, such as exports or preview
+artifacts that are not saved as `document` or `image` entities.
+
+For new artifact kinds:
+
+- extend the same `data-attachment` contract;
+- reuse existing attachment/media provider contracts where possible;
+- avoid web-chat-only blob routes unless no shared provider exists;
+- keep generated artifacts on `data-attachment` and uploads as input refs until
+  the operator explicitly promotes/imports/saves them.
+
+### 4. Richer AI Elements parts (protocol-gated)
 
 Do not add `reasoning`, `sources`, `actions`, `suggestions`, or new artifact UI
 as standalone component work. Install or customize a registry component only
 when the backend emits the corresponding structured part or a concrete Rover
 surface needs it.
 
-### 6. Per-release polish pass
+### 5. Per-release polish pass
 
 Whenever the bundled web chat UI changes, run:
 
@@ -197,6 +185,15 @@ switching/new-session, rename/archive/delete, tool result collapse/expand,
 confirmation approve/decline, upload pills/download links, generated attachment
 cards/job polling, live tool status, progress cards, light/dark mode, and mobile
 drawer/header/action layout.
+
+### 6. Final landing route decision
+
+Leave this until after the Rover browser hardening pass. `/chat` exists and is
+bundled, but the root URL decision is a final product/navigation choice, not the
+next hardening task.
+
+When the remaining chat flows are verified, decide whether a brain's root URL
+should route directly to `/chat`, keep the dashboard, or show a small chooser.
 
 ## Deferred
 
