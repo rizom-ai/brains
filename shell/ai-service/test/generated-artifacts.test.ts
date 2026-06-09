@@ -1,13 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
-import { MockLanguageModelV3 } from "ai/test";
-import type {
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Usage,
-} from "@ai-sdk/provider";
 import { z } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
-import type { IMessageBus } from "@brains/messaging-service";
 import { MCPService, type Tool } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type {
@@ -15,46 +8,14 @@ import type {
   IAnchorProfileService,
   IBrainCharacterService,
 } from "@brains/identity-service";
-import { createBrainAgentFactory } from "../src/brain-agent";
 import { AgentService } from "../src/agent-service";
+import type { BrainAgentFactory, BrainAgentResult } from "../src/agent-types";
+import { toModelToolOutput } from "../src/sdk-tools";
 
-const usage: LanguageModelV3Usage = {
-  inputTokens: {
-    total: 10,
-    noCache: 10,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 5,
-    text: 5,
-    reasoning: undefined,
-  },
-};
-
-const toolCallResult: LanguageModelV3GenerateResult = {
-  content: [
-    {
-      type: "tool-call",
-      toolCallId: "call-1",
-      toolName: "document_generate",
-      input: JSON.stringify({
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
-        attachmentType: "carousel",
-      }),
-    },
-  ],
-  finishReason: { unified: "tool-calls", raw: "tool_calls" },
-  usage,
-  warnings: [],
-};
-
-const finalTextResult: LanguageModelV3GenerateResult = {
-  content: [{ type: "text", text: "Done — the artifact card is ready." }],
-  finishReason: { unified: "stop", raw: "stop" },
-  usage,
-  warnings: [],
+const usage: BrainAgentResult["usage"] = {
+  inputTokens: 10,
+  outputTokens: 5,
+  totalTokens: 15,
 };
 
 function createConversationService(): IConversationService {
@@ -99,24 +60,9 @@ function createNoopUnsubscribe(): () => void {
   return (): void => undefined;
 }
 
-function createMessageBus(): IMessageBus {
-  return {
-    send: mock(async () => ({ success: true })),
-    subscribe: mock(() => createNoopUnsubscribe()),
-    unsubscribe: mock(() => undefined),
-  };
-}
-
 describe("generated artifact tool loop", () => {
   it("keeps attachment URLs available for cards while hiding them from model-visible tool results", async () => {
-    const modelCalls: LanguageModelV3CallOptions[] = [];
     const storedArtifacts = new Map<string, Buffer>();
-    const model = new MockLanguageModelV3({
-      doGenerate: async (options): Promise<LanguageModelV3GenerateResult> => {
-        modelCalls.push(options);
-        return modelCalls.length === 1 ? toolCallResult : finalTextResult;
-      },
-    });
     const documentGenerate: Tool = {
       name: "document_generate",
       description: "Generate a PDF document artifact",
@@ -149,6 +95,55 @@ describe("generated artifact tool loop", () => {
         };
       }),
     };
+    const toolOutput = await documentGenerate.handler(
+      {
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+      },
+      {
+        interfaceType: "agent",
+        userId: "agent-user",
+        conversationId: "conv-1",
+        channelId: "conv-1",
+      },
+    );
+    const modelVisibleOutput = JSON.stringify(toModelToolOutput(toolOutput));
+    expect(modelVisibleOutput).not.toContain("/api/chat/attachments");
+    expect(modelVisibleOutput).toContain("artifactCard");
+    expect(modelVisibleOutput).toContain("Open and Download controls");
+
+    const agentFactory: BrainAgentFactory = () => ({
+      generate: mock(
+        async (): Promise<BrainAgentResult> => ({
+          text: "Done — the artifact card is ready.",
+          steps: [
+            {
+              toolCalls: [
+                {
+                  toolCallId: "call-1",
+                  toolName: "document_generate",
+                  input: {
+                    sourceEntityType: "deck",
+                    sourceEntityId: "deck-1",
+                    attachmentType: "carousel",
+                  },
+                },
+              ],
+              toolResults: [
+                {
+                  toolCallId: "call-1",
+                  toolName: "document_generate",
+                  output: toolOutput,
+                },
+              ],
+            },
+          ],
+          usage,
+        }),
+      ),
+    });
+
     const logger = createSilentLogger();
     const mcpService = MCPService.createFresh(
       {
@@ -166,10 +161,7 @@ describe("generated artifact tool loop", () => {
       createProfileService(),
       logger,
       {
-        agentFactory: createBrainAgentFactory({
-          model,
-          messageBus: createMessageBus(),
-        }),
+        agentFactory,
       },
     );
 
@@ -201,10 +193,5 @@ describe("generated artifact tool loop", () => {
     expect(storedArtifacts.get("deck-carousel")?.toString()).toBe(
       "%PDF-1.7\n%EOF\n",
     );
-    expect(modelCalls.length).toBe(2);
-    const secondModelPrompt = JSON.stringify(modelCalls[1]?.prompt);
-    expect(secondModelPrompt).not.toContain("/api/chat/attachments");
-    expect(secondModelPrompt).toContain("artifactCard");
-    expect(secondModelPrompt).toContain("Open and Download controls");
   });
 });
