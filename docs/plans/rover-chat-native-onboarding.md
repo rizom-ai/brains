@@ -30,7 +30,17 @@ polished enough to call done. Observed issues:
 3. **Confusing confirmation completion labels** — confirmed updates report stale
    labels such as `Completed: Update "Alex Chen"?` after changing the profile, or
    generic labels such as `Completed: Update "Untitled"?` after note edits.
-4. **Entity terminology mismatch** — Rover says "note" while generic creation may
+4. **Internal state leakage** — Rover sometimes says things like
+   `retrieval-demo step` or `moved the onboarding run to wrap-up`. State IDs are
+   useful runtime context, not user-facing onboarding language.
+5. **Ambiguous continuation drift** — after offering several next actions,
+   `go ahead` can trigger an unrelated operational path such as topic extraction.
+   Rover should either pick the playbook's next explicit action or ask which
+   option the operator means; it should not invent a maintenance task.
+6. **Job-status disagreement handling** — when the operator says local logs show a
+   job succeeded, Rover should inspect runtime/job status if available instead of
+   arguing from the conversation transcript.
+7. **Entity terminology mismatch** — Rover says "note" while generic creation may
    create a `base` entity. This may be acceptable as user-facing language, but the
    product decision should be explicit.
 
@@ -43,13 +53,23 @@ Ordered fix plan:
 2. **Generic playbooks anti-repetition guidance**: strengthen plugin-level
    instructions and active-run context so agents treat `playbook_status`/context as
    source of truth, do not redo completed states, and ask only for the next missing
-   evidence in the current state.
+   evidence in the current state. **Done.**
 3. **Anti-repetition/state drift eval**: add a focused onboarding regression where
    a first seed is saved and the user asks for transformation; Rover must not ask
    for another first seed and should progress toward transformation/wrap-up.
+   **Done.**
 4. **Confirmation labels**: improve update-confirmation completion summaries to use
    action/object type labels that remain accurate after the mutation.
-5. **Terminology decision**: decide whether onboarding should create literal `note`
+5. **Hide internal state IDs from operator-facing chat**: keep state IDs in agent
+   context/tool results, but instruct the agent to translate them into natural
+   language when speaking to the operator.
+6. **Ambiguous continuation handling**: when the user says `go ahead` after a list
+   of options, ask a clarifying question or choose the current playbook state's next
+   explicit demonstration; do not start unrelated maintenance tasks.
+7. **Create confirmation policy decision**: keep routine durable entity creation
+   low-friction by default; require confirmation for publish/send/external effects,
+   deletes, updates, replace/overwrite, or public side-effectful creation.
+8. **Terminology decision**: decide whether onboarding should create literal `note`
    entities or keep using generic `base` while calling them "durable notes" in chat.
 
 Validation for this polish slice:
