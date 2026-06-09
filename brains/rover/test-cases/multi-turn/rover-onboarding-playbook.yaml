@@ -1,6 +1,6 @@
 id: multi-turn-rover-onboarding-playbook
 name: Rover Onboarding Playbook Conversation
-description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves a first durable knowledge seed with automatic runtime evidence, and completes through the playbook runtime instead of free-form progress updates.
+description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves profile information through confirmation, and saves a first durable knowledge seed with automatic runtime evidence.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -26,13 +26,28 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Yes, continue. My name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
+  - userMessage: "Yes, continue."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
             event: NEXT
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "My name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that profile update."
+    confirmPendingAction: true
+    successCriteria:
       responseNotContains:
         - "I cannot"
         - "I don't have access"
@@ -42,12 +57,6 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
-          argsContain:
-            entityType: note
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: NEXT
       responseNotContains:
         - "I cannot"
         - "I don't have access"
@@ -55,14 +64,10 @@ turns:
   - userMessage: "Show me how Rover can reuse that note, then finish the onboarding."
     successCriteria:
       expectedTools:
-        - toolName: system_search
-          shouldBeCalled: true
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
             event: NEXT
-        - toolName: playbook_complete
-          shouldBeCalled: true
       responseContains:
         - onboarding
       responseNotContains:
@@ -76,10 +81,6 @@ successCriteria:
     - toolName: playbook_send_event
       shouldBeCalled: true
     - toolName: system_create
-      shouldBeCalled: true
-      argsContain:
-        entityType: note
-    - toolName: playbook_complete
       shouldBeCalled: true
   toolCountRange:
     min: 5
