@@ -23,6 +23,25 @@ describe("deck carousel template", () => {
     expect(html).toContain("--color-accent");
   });
 
+  it("uses a medium heading weight for carousel slide titles", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Heading Weight",
+        slides: [{ markdown: "# Not Too Heavy" }],
+      },
+      siteConfig: { title: "Heading Weight", themeMode: "dark" },
+    });
+
+    expect(html).toContain(`.deck-carousel-content h1,
+            .deck-carousel-content h2,
+            .deck-carousel-content h3 {
+              color: var(--carousel-heading);
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 500;`);
+  });
+
   it("renders a zero-padded counter per slide showing current and total", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,

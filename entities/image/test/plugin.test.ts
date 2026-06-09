@@ -13,7 +13,9 @@ describe("ImagePlugin", () => {
   beforeEach(async () => {
     enqueuedJobs = [];
     registeredHandlers = new Map();
-    harness = createPluginHarness({ dataDir: "/tmp/test-image" });
+    harness = createPluginHarness({
+      dataDir: `/tmp/test-image-${crypto.randomUUID()}`,
+    });
     const shell = harness.getMockShell();
     const jobQueue = shell.getJobQueueService();
     shell.getJobQueueService = (): typeof jobQueue => ({

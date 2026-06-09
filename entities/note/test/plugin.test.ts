@@ -16,7 +16,9 @@ describe("NotePlugin", () => {
   let registeredHandlers: Map<string, JobHandler>;
 
   beforeEach(async () => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({
+      dataDir: `/tmp/test-datadir-${crypto.randomUUID()}`,
+    });
     enqueuedJobs = [];
     registeredHandlers = new Map();
 
