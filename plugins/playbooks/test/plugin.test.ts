@@ -588,6 +588,78 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  it("evaluates gated state after runtime evidence is recorded", async () => {
+    const evaluate = mock(async (input) => {
+      expect(input.evidence).toHaveLength(1);
+      return {
+        met: true,
+        reason: "The profile update was recorded as runtime evidence.",
+      };
+    });
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        goalCheck(evaluate),
+      ),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Ask whether to continue."],
+          doneWhen: [],
+          transitions: [{ event: "NEXT", target: "identity" }],
+        },
+        {
+          id: "identity",
+          title: "Identity",
+          instructions: ["Create or update the anchor profile."],
+          doneWhen: ["The anchor profile has been created or updated."],
+          transitions: [{ event: "NEXT", target: "seed" }],
+        },
+        seedState,
+        completeState,
+      ],
+    });
+
+    const conversationId = "web-runtime-evidence-gate";
+    const runId = await startRun(harness, conversationId);
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    await harness.sendMessage(
+      "entity:updated",
+      {
+        entityType: "anchor-profile",
+        entityId: "anchor-profile",
+        conversationId,
+      },
+      "entity-service",
+      true,
+    );
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    const data = parsePlaybookToolData(status.data);
+    expect(evaluate).toHaveBeenCalledTimes(1);
+    expect(data.validEvents.map((event) => event.event)).toEqual(["NEXT"]);
+    expect(data.blockedEvents).toEqual([]);
+    expect(data.activeRun.gateVerdicts).toContainEqual(
+      expect.objectContaining({
+        goal: ["The anchor profile has been created or updated."],
+        met: true,
+        reason: "The profile update was recorded as runtime evidence.",
+      }),
+    );
+  });
+
   it("blocks gated NEXT when the goal check returns not met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(

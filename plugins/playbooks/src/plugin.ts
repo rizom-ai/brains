@@ -750,8 +750,31 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           : {}),
       },
     };
-    await this.store.appendEvidence(run.id, evidence);
+    const updatedRun = await this.store.appendEvidence(run.id, evidence);
+    await this.evaluateGateAfterEvidence(updatedRun);
     return { recorded: true };
+  }
+
+  private async evaluateGateAfterEvidence(run: PlaybookRun): Promise<void> {
+    if (this.hasSatisfiedGateForCurrentState(run)) return;
+    const playbook = await this.getPlaybook(run.playbookId);
+    if (run.playbookVersion !== playbook?.version) return;
+    const state = this.getState(playbook.body, run.currentState);
+    if (!state?.doneWhen.length) return;
+    if (!state.transitions.some((transition) => transition.event === "NEXT")) {
+      return;
+    }
+
+    const result = await this.prepareGateVerdicts(run, state, "NEXT");
+    if (result.success) {
+      await this.store.upsert({ ...run, gateVerdicts: result.gateVerdicts });
+    }
+  }
+
+  private hasSatisfiedGateForCurrentState(run: PlaybookRun): boolean {
+    return run.gateVerdicts.some(
+      (verdict) => verdict.stateId === run.currentState && verdict.met,
+    );
   }
 
   private async getPlaybook(
