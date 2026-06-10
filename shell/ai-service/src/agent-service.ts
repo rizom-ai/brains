@@ -1,13 +1,8 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import {
-  type IMCPService,
-  type ToolContext,
-  toolSuccessSchema,
-} from "@brains/mcp-service";
+import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
-  ConversationMessageMetadata,
   ConversationMessageSource,
   IConversationService,
 } from "@brains/conversation-service";
@@ -23,9 +18,7 @@ import type {
   ChatContext,
   IAgentService,
   StructuredChatCard,
-  ToolResultData,
 } from "./agent-types";
-import type { BrainCallOptions } from "./brain-agent";
 import {
   agentMachine,
   emptyUsage,
@@ -40,103 +33,20 @@ import {
   resolveConversationUploadContinuity,
 } from "./conversation-messages";
 import {
-  buildAttachmentCardFromToolData,
   buildSourcesCardFromContextItems,
   extractToolResults,
   buildEntityMemoryNote,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
+import { buildBrainCallOptions } from "./call-options";
+import { buildConfirmedActionResult } from "./confirmed-action";
+import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
 /**
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getStringField(value: unknown, field: string): string | undefined {
-  if (!isRecord(value)) return undefined;
-  const fieldValue = value[field];
-  return typeof fieldValue === "string" ? fieldValue : undefined;
-}
-
-function isFailedToolOutput(value: unknown): boolean {
-  return isRecord(value) && value["success"] === false;
-}
-
-const INTERNAL_CONFIRMATION_FIELDS = new Set([
-  "confirmed",
-  "confirmationToken",
-  "contentHash",
-]);
-
-function toApprovalCardInput(
-  args: unknown,
-): Record<string, unknown> | undefined {
-  if (!isRecord(args)) return undefined;
-  return Object.fromEntries(
-    Object.entries(args).filter(
-      ([key]) => !INTERNAL_CONFIRMATION_FIELDS.has(key),
-    ),
-  );
-}
-
-function getSourceArtifactRequestInfo(message: string): {
-  referencesArtifact: boolean;
-  referencesExistingSource: boolean;
-  durableArtifactRequest: boolean;
-  deckCarouselPreviewOnly: boolean;
-} {
-  const normalized = message.toLowerCase();
-  const referencesArtifact =
-    /\b(carousel|printable|og image|open graph|social preview|preview image|attachment|attach|pdf|document)\b/.test(
-      normalized,
-    );
-  const referencesExistingSource =
-    /\b(deck|post|project|product|existing entity|source attachment|source-derived)\b/.test(
-      normalized,
-    );
-  const durableArtifactRequest =
-    /\b(save|persist|create|attach|regenerate|replace|set)\b/.test(normalized);
-  const deckCarouselPreviewOnly =
-    /\b(deck|slides|presentation)\b/.test(normalized) &&
-    /\bcarousel\b/.test(normalized) &&
-    /\b(preview|render)\b/.test(normalized) &&
-    !durableArtifactRequest;
-
-  return {
-    referencesArtifact,
-    referencesExistingSource,
-    durableArtifactRequest,
-    deckCarouselPreviewOnly,
-  };
-}
-
-function shouldEnableCreateSourceAttachment(input: {
-  message: string;
-  hasAccessibleUploads: boolean;
-}): boolean {
-  const info = getSourceArtifactRequestInfo(input.message);
-
-  if (info.deckCarouselPreviewOnly) return false;
-  if (input.hasAccessibleUploads && !info.referencesExistingSource) {
-    return false;
-  }
-  return info.referencesArtifact;
-}
-
-function shouldDisableDocumentGenerate(message: string): boolean {
-  const info = getSourceArtifactRequestInfo(message);
-  return (
-    info.referencesArtifact &&
-    info.referencesExistingSource &&
-    info.durableArtifactRequest &&
-    !info.deckCarouselPreviewOnly
-  );
-}
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   const filenames = attachments.map((attachment) => attachment.filename);
@@ -436,9 +346,7 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "user",
         content: message,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(actor, source, attachments),
-        ),
+        ...this.messageMetadata({ actor, source, attachments }),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
@@ -446,12 +354,10 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+        }),
       });
 
       return {
@@ -509,9 +415,11 @@ export class AgentService implements IAgentService {
       conversationId,
       role: "user",
       content: effectiveMessage,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(actor, source, effectiveAttachments),
-      ),
+      ...this.messageMetadata({
+        actor,
+        source,
+        attachments: effectiveAttachments,
+      }),
     });
 
     // Call agent
@@ -520,26 +428,16 @@ export class AgentService implements IAgentService {
     );
     const hasAccessibleUploads =
       hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
-    const enableCreateSourceAttachment = shouldEnableCreateSourceAttachment({
+    const callOptions = buildBrainCallOptions({
       message,
       hasAccessibleUploads,
-    });
-    const disableDocumentGenerate = shouldDisableDocumentGenerate(message);
-    const callOptions: BrainCallOptions = {
       userPermissionLevel,
       conversationId,
       channelId,
       channelName,
       interfaceType,
-      ...(hasAccessibleUploads
-        ? { enableCreateUpload: true, enableCreateTransform: true }
-        : {}),
-      ...(enableCreateSourceAttachment
-        ? { enableCreateSourceAttachment: true }
-        : {}),
-      ...(disableDocumentGenerate ? { disableDocumentGenerate: true } : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
-    };
+    });
 
     const result = await this.getAgent().generate({
       messages,
@@ -568,15 +466,12 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-            [],
-            responseCards,
-            entityMemoryNote,
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
+          entityMemoryNote,
+        }),
       });
     }
 
@@ -665,120 +560,43 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const failed = isFailedToolOutput(result);
-    const prefix = failed ? "Failed" : "Completed";
-    const errorMessage = failed
-      ? (getStringField(result, "error") ?? getStringField(result, "message"))
-      : undefined;
-    const resultText = errorMessage
-      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
-      : `${prefix}: ${pendingConfirmation.summary}`;
-    const toolResult: ToolResultData = {
-      toolName: pendingConfirmation.toolName,
-      data: result,
-      ...(isRecord(pendingConfirmation.args)
-        ? { args: pendingConfirmation.args }
-        : {}),
-    };
-    const approvalInput = toApprovalCardInput(pendingConfirmation.args);
-    const approvalCard: StructuredChatCard = {
-      kind: "tool-approval",
-      id: pendingConfirmation.id,
-      ...(pendingConfirmation.toolCallId
-        ? { toolCallId: pendingConfirmation.toolCallId }
-        : {}),
-      toolName: pendingConfirmation.toolName,
-      ...(approvalInput ? { input: approvalInput } : {}),
-      summary: pendingConfirmation.summary,
-      state: failed ? "output-error" : "output-available",
-      output: result,
-      ...(failed
-        ? { error: getStringField(result, "error") ?? "Action failed" }
-        : {}),
-    };
-    const successResult = toolSuccessSchema.safeParse(result);
-    const attachmentCard = successResult.success
-      ? buildAttachmentCardFromToolData(successResult.data.data)
-      : undefined;
-    const cards: StructuredChatCard[] = [
-      approvalCard,
-      ...(attachmentCard ? [attachmentCard] : []),
-    ];
-    const entityMemoryNote = successResult.success
-      ? buildEntityMemoryNote([
-          {
-            ...toolResult,
-            data: successResult.data.data,
-          },
-        ])
-      : "";
+    const outcome = buildConfirmedActionResult(pendingConfirmation, result);
 
     await this.conversationService.addMessage({
       conversationId,
       role: "assistant",
-      content: resultText,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(
-          this.getAssistantActor(),
-          this.buildAssistantSource(channelId, channelName),
-          [],
-          cards,
-          entityMemoryNote,
-        ),
-      ),
+      content: outcome.resultText,
+      ...this.messageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(channelId, channelName),
+        cards: outcome.cards,
+        entityMemoryNote: outcome.entityMemoryNote,
+      }),
     });
 
     return {
-      text: resultText,
-      toolResults: [toolResult],
-      cards,
+      text: outcome.resultText,
+      toolResults: [outcome.toolResult],
+      cards: outcome.cards,
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }
 
-  private buildMessageMetadata(
-    actor: ConversationMessageActor | null,
-    source: ConversationMessageSource | null,
-    attachments: ChatAttachment[] = [],
-    cards: StructuredChatCard[] = [],
-    entityMemoryNote = "",
-  ): ConversationMessageMetadata {
-    const enrichedActor = actor
-      ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
-      : null;
-    return {
-      ...(enrichedActor ? { actor: enrichedActor } : {}),
-      ...(source ? { source } : {}),
-      ...(attachments.length > 0
-        ? {
-            attachments: attachments.map((attachment) =>
-              this.toMessageAttachmentMetadata(attachment),
-            ),
-          }
-        : {}),
-      ...(cards.length > 0 ? { cards } : {}),
-      ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
-    };
-  }
-
-  private toMessageAttachmentMetadata(
-    attachment: ChatAttachment,
-  ): Record<string, unknown> {
-    return {
-      kind: attachment.kind,
-      filename: attachment.filename,
-      mediaType: attachment.mediaType,
-      ...(attachment.sizeBytes !== undefined && {
-        sizeBytes: attachment.sizeBytes,
+  private messageMetadata(params: {
+    actor: ConversationMessageActor | null;
+    source: ConversationMessageSource | null;
+    attachments?: ChatAttachment[];
+    cards?: StructuredChatCard[];
+    entityMemoryNote?: string;
+  }): { metadata: Record<string, unknown> } | Record<string, never> {
+    return withMessageMetadata(
+      buildMessageMetadata({
+        ...params,
+        ...(this.canonicalIdentityResolver
+          ? { canonicalIdentityResolver: this.canonicalIdentityResolver }
+          : {}),
       }),
-      ...(attachment.source !== undefined && { source: attachment.source }),
-    };
-  }
-
-  private withMessageMetadata(
-    metadata: ConversationMessageMetadata,
-  ): { metadata: Record<string, unknown> } | Record<string, never> {
-    return Object.keys(metadata).length > 0 ? { metadata } : {};
+    );
   }
 
   private getAssistantActor(): ConversationMessageActor {

@@ -166,15 +166,33 @@ entity-service; core system-tool tests green and unmodified.
 
 ### Phase 5 — ai-service: split `agent-service.ts`
 
-Extract message building and tool invocation into collaborators
-(`message-builder.ts`, `tool-invocation.ts`); `AgentService` keeps
-orchestration and the XState machine boundary. Stay off
-`provider-clients.ts` (owned by `embedding-service.md` /
-`memory-reduction.md`). Tests for the extracted collaborators precede
-the extraction.
+**Scope corrected after fact-checking (2026-06-10).** The audit's
+proposed extractions already existed on main: message building lives
+in `conversation-messages.ts` and tool-result/card extraction in
+`agent-results.ts`. What actually remained tangled in the 800-line
+service, now extracted with unit tests written first:
 
-Acceptance: `agent-service.ts` under ~400 lines; ai-service suite
-green; no changes to provider wiring.
+- `call-options.ts` — the message-text heuristics
+  (`shouldEnableCreateSourceAttachment`,
+  `shouldDisableDocumentGenerate`) and `buildBrainCallOptions`
+  assembly. Pure functions, previously only reachable through
+  service-level tests.
+- `confirmed-action.ts` — `buildConfirmedActionResult`: the outcome
+  assembly after a confirmed tool execution (completion/failure text,
+  tool result, approval + attachment cards, entity memory note).
+- `message-metadata.ts` — conversation-message metadata building with
+  canonical-identity enrichment. Returns a producer-side
+  `AgentMessageMetadata` type that declares the keys the agent writes
+  (`attachments`, `cards`, `entityMemoryNote`) instead of leaking the
+  storage layer's passthrough index signature.
+
+`AgentService` (621 lines) keeps the singleton/actor lifecycle, the
+XState machine boundary, and `processMessage`/`executeConfirmedAction`
+orchestration — which belongs there. `provider-clients.ts` untouched.
+
+Acceptance (met): extracted collaborators unit-tested; ai-service
+suite green with the pre-existing `agent-service.test.ts` unmodified;
+no changes to provider wiring.
 
 ### Phase 6 (optional) — app: split `brain-resolver.ts`
 
