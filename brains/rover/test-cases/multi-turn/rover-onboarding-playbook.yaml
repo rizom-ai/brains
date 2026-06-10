@@ -26,7 +26,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Yes, continue."
+  - userMessage: "Yes, send the NEXT playbook event and continue to identity setup."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
@@ -34,10 +34,12 @@ turns:
           argsContain:
             event: NEXT
       responseNotContains:
+        - "want to continue"
+        - "continue onboarding"
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "My name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
     successCriteria:
       responseContains:
         - "Confirmation required"
@@ -123,4 +125,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 16
-  maxTokens: 95000
+  maxTokens: 110000

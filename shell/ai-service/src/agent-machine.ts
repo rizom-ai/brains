@@ -327,11 +327,16 @@ export const agentMachine = setup({
         },
         onDone: [
           {
-            guard: ({ context }): boolean =>
-              context.pendingConfirmations.length > 0,
+            guard: ({ context, event }): boolean =>
+              context.pendingConfirmations.length > 0 ||
+              (event.output.pendingConfirmations ?? []).length > 0,
             target: "awaitingConfirmation",
-            actions: assign(({ event }) => ({
+            actions: assign(({ context, event }) => ({
               response: event.output,
+              pendingConfirmations: [
+                ...context.pendingConfirmations,
+                ...(event.output.pendingConfirmations ?? []),
+              ],
               activeConfirmation: null,
             })),
           },

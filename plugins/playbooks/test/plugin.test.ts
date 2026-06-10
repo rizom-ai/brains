@@ -1025,6 +1025,9 @@ describe("PlaybooksPlugin", () => {
       "If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event",
     );
     expect(content).toContain(
+      "After a playbook event advances the run, answer from the new current state rather than repeating the previous state prompt",
+    );
+    expect(content).toContain(
       "Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat",
     );
     expect(content).toContain(

@@ -1261,6 +1261,130 @@ describe("AgentService", () => {
       expect(resolvedCard.preview).toBeUndefined();
     });
 
+    it("runs a follow-up assistant turn after a successful confirmed action", async () => {
+      mockGenerate.mockImplementationOnce(
+        async (_params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+        }) => ({
+          text: "Confirmation required.",
+          steps: [
+            {
+              toolCalls: [
+                {
+                  toolCallId: "call-update-note",
+                  toolName: "update_note",
+                  input: { noteId: "123", title: "New title" },
+                },
+              ],
+              toolResults: [
+                {
+                  toolCallId: "call-update-note",
+                  toolName: "update_note",
+                  output: {
+                    needsConfirmation: true,
+                    toolName: "update_note",
+                    summary: "Update note 'Roadmap'?",
+                    completionSummary: "Updated note.",
+                    args: { noteId: "123", title: "New title" },
+                  },
+                },
+              ],
+            },
+          ],
+          usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+        }),
+      );
+      mockGenerate.mockImplementationOnce(
+        async (params: {
+          messages: ModelMessage[];
+          options: BrainCallOptions;
+        }) => {
+          expect(params.options.disableTools).toBe(true);
+          expect(params.messages.at(-1)).toEqual({
+            role: "user",
+            content:
+              "The operator approved the pending action. The system executed it successfully: Completed: Updated note. Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again.",
+          });
+          return {
+            text: "Updated. Next, I can show you how I retrieve that note when you need it.",
+            steps: [],
+            usage: { inputTokens: 20, outputTokens: 30, totalTokens: 50 },
+          };
+        },
+      );
+
+      const updateHandler = mock(async () => ({ success: true as const }));
+      const updateTool: Tool = {
+        name: "update_note",
+        description: "Update note",
+        inputSchema: { noteId: z.string(), title: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          agentContextProvider: mock(async () => [
+            {
+              id: "active-playbook",
+              source: "playbooks",
+              title: "Active playbook",
+              content:
+                "An active playbook is underway. Current state title: Retrieval demonstration.",
+            },
+          ]),
+        },
+      );
+
+      await service.chat("update my note", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-update-note",
+      );
+
+      expect(mockGenerate).toHaveBeenCalledTimes(2);
+      expect(response.text).toBe(
+        "Completed: Updated note.\n\nUpdated. Next, I can show you how I retrieve that note when you need it.",
+      );
+      expect(response.toolResults).toEqual([
+        {
+          toolName: "update_note",
+          args: { noteId: "123", title: "New title" },
+          data: { success: true },
+        },
+      ]);
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-update-note",
+          toolCallId: "call-update-note",
+          toolName: "update_note",
+          input: { noteId: "123", title: "New title" },
+          summary: "Update note 'Roadmap'?",
+          completionSummary: "Updated note.",
+          state: "output-available",
+          output: { success: true },
+        },
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: response.text,
+        }),
+      );
+    });
+
     it("surfaces and saves the confirmed action failure result", async () => {
       setupConfirmationResponse("Deleted.");
 

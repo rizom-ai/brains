@@ -29,6 +29,7 @@ export const brainCallOptionsSchema = z.object({
   channelName: z.string().optional(),
   interfaceType: z.string(),
   agentContextInstructions: z.string().optional(),
+  disableTools: z.boolean().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -107,10 +108,12 @@ export function createBrainAgentFactory(
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
-        // Get tools available for this permission level
-        const allowedTools = config.getToolsForPermission(
-          callOptions.userPermissionLevel,
-        );
+        // Get tools available for this permission level, unless this bounded
+        // model turn is intentionally text-only (for example, after executing
+        // an already-confirmed action).
+        const allowedTools = callOptions.disableTools
+          ? []
+          : config.getToolsForPermission(callOptions.userPermissionLevel);
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options

@@ -605,25 +605,108 @@ export class AgentService implements IAgentService {
         : {}),
     };
 
+    const response = failed
+      ? undefined
+      : await this.generatePostConfirmationFollowUp({
+          conversationId,
+          resultText,
+          interfaceType,
+          channelId,
+          channelName,
+          userPermissionLevel,
+        });
+    const responseText = response?.text.trim()
+      ? `${resultText}\n\n${response.text}`
+      : resultText;
+    const cards = [approvalCard, ...(response?.cards ?? [])];
+    const toolResults = [toolResult, ...(response?.toolResults ?? [])];
+    const entityMemoryNote = response
+      ? buildEntityMemoryNote(response.toolResults ?? [])
+      : "";
+
     await this.conversationService.addMessage({
       conversationId,
       role: "assistant",
-      content: resultText,
+      content: responseText,
       ...this.withMessageMetadata(
         this.buildMessageMetadata(
           this.getAssistantActor(),
           this.buildAssistantSource(channelId, channelName),
           [],
-          [approvalCard],
+          cards,
+          entityMemoryNote,
         ),
       ),
     });
 
     return {
-      text: resultText,
-      toolResults: [toolResult],
-      cards: [approvalCard],
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      text: responseText,
+      toolResults,
+      cards,
+      ...(response?.pendingConfirmations
+        ? { pendingConfirmations: response.pendingConfirmations }
+        : {}),
+      usage: response?.usage ?? {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+      },
+    };
+  }
+
+  private async generatePostConfirmationFollowUp(params: {
+    conversationId: string;
+    resultText: string;
+    interfaceType: string;
+    channelId: string | undefined;
+    channelName: string;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  }): Promise<AgentResponse | undefined> {
+    if (!this.agentContextProvider) return undefined;
+
+    const followUpPrompt = `The operator approved the pending action. The system executed it successfully: ${params.resultText} Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again.`;
+    const contextItems = await this.fetchAgentContext({
+      conversationId: params.conversationId,
+      message: followUpPrompt,
+      interfaceType: params.interfaceType,
+      channelId: params.channelId,
+      channelName: params.channelName,
+      userPermissionLevel: params.userPermissionLevel,
+    });
+    if (!contextItems || contextItems.length === 0) return undefined;
+
+    const historyMessages = await this.conversationService.getMessages(
+      params.conversationId,
+      { limit: 50 },
+    );
+    const messages = buildModelMessages(historyMessages, followUpPrompt);
+    const agentContextInstructions =
+      buildAgentContextInstructions(contextItems);
+    const result = await this.getAgent().generate({
+      messages,
+      options: {
+        userPermissionLevel: params.userPermissionLevel,
+        conversationId: params.conversationId,
+        channelId: params.channelId,
+        channelName: params.channelName,
+        interfaceType: params.interfaceType,
+        ...(agentContextInstructions ? { agentContextInstructions } : {}),
+        disableTools: true,
+      },
+    });
+
+    const { toolResults, pendingConfirmations, cards } = extractToolResults(
+      result.steps,
+    );
+    return {
+      text:
+        pendingConfirmations.length > 0
+          ? "Confirmation required."
+          : result.text,
+      toolResults,
+      ...(cards.length > 0 ? { cards } : {}),
+      ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
+      usage: toTokenUsage(result.usage),
     };
   }
 

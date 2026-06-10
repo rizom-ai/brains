@@ -3,7 +3,8 @@
 ## Status
 
 On `feature/rover-chat-native-onboarding`; automated onboarding polish
-regressions now pass, and the branch is pending final live smoke before merge.
+regressions pass, including the generic post-confirmation follow-up slice. The
+branch is pending final live smoke before merge.
 This plan is scoped to **shipping Rover onboarding** — not the general playbook
 platform. Anything an onboarding run does not exercise is listed under
 [Deferred](#deferred-not-built-here) and is explicitly out of build scope.
@@ -27,9 +28,9 @@ Latest live smoke is much improved but still needs these patches before merge:
 - Use operator-facing entity labels in confirmations: updating a base note should
   complete as "Updated note," not "Updated base."
 - After note updates during onboarding, proactively give the retrieval/demo next
-  step so the operator does not need to ask "what is next?" This requires a
-  follow-up engine slice because confirmed actions currently return terminal
-  `Completed: ...` messages without a second model turn.
+  step so the operator does not need to ask "what is next?" Successful confirmed
+  actions now trigger a bounded, text-only follow-up model turn when active
+  context exists, instead of stopping at a terminal `Completed: ...` message.
 - After creating a transformed draft, show or offer to review the draft before
   offering wrap-up.
 - Avoid state-machine-ish phrasing such as "transformation stage" in chat.
@@ -88,7 +89,9 @@ Ordered fix plan:
 6. **Proactive next-step guidance**: after meaningful tool actions during an active
    playbook, the agent should refresh/use current playbook status and end the turn
    with the next state's immediate question or action. The operator should not need
-   to ask "what is next?". **Done.**
+   to ask "what is next?". Prompt/context guidance is done, and successful
+   confirmed actions now use a bounded text-only follow-up turn when active context
+   exists. **Done.**
 7. **Ambiguous continuation handling**: when the user says `go ahead` after a list
    of options, ask a clarifying question or choose the current playbook state's next
    explicit demonstration; do not start unrelated maintenance tasks. **Done.**
