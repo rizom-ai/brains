@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { groupMessageParts } from "../ui-react/src/message-parts";
+import {
+  groupMessagePartSections,
+  groupMessageParts,
+} from "../ui-react/src/message-parts";
 import {
   createUploadMessageParts,
   type WebChatUploadResponse,
@@ -68,6 +71,27 @@ describe("web chat message part grouping", () => {
         },
       ]),
     ).toEqual([{ kind: "sources", data: sources }]);
+  });
+
+  it("separates message parts into body, sources, and details sections", () => {
+    const sources = {
+      kind: "sources",
+      id: "sources:tool-results",
+      sources: [{ id: "post-1", source: "post" }],
+    };
+    const toolResult = { toolName: "system_search" };
+
+    expect(
+      groupMessagePartSections([
+        { type: "text", text: "Here is the answer." },
+        { type: "data-tool-result", data: toolResult },
+        { type: "data-sources", data: sources },
+      ]),
+    ).toEqual({
+      body: [{ kind: "text", text: "Here is the answer." }],
+      sources: [{ kind: "sources", data: sources }],
+      details: [{ kind: "tools", tools: [toolResult] }],
+    });
   });
 
   it("groups structured progress parts semantically", () => {

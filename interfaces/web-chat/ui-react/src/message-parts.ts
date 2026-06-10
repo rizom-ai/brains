@@ -26,6 +26,29 @@ export type RenderedPart =
     }
   | { kind: "generic"; type: string; data: unknown };
 
+export interface MessagePartSections {
+  body: RenderedPart[];
+  sources: RenderedPart[];
+  details: RenderedPart[];
+}
+
+function getMessagePartSection(part: RenderedPart): keyof MessagePartSections {
+  switch (part.kind) {
+    case "sources":
+      return "sources";
+    case "tools":
+    case "native-tool":
+    case "generic":
+      return "details";
+    case "text":
+    case "attachment":
+    case "progress":
+    case "confirmation":
+    case "file":
+      return "body";
+  }
+}
+
 export function groupMessageParts(
   parts: readonly MessagePart[],
 ): RenderedPart[] {
@@ -103,4 +126,14 @@ export function groupMessageParts(
   }
   flush();
   return out;
+}
+
+export function groupMessagePartSections(
+  parts: readonly MessagePart[],
+): MessagePartSections {
+  const sections: MessagePartSections = { body: [], sources: [], details: [] };
+  for (const part of groupMessageParts(parts)) {
+    sections[getMessagePartSection(part)].push(part);
+  }
+  return sections;
 }

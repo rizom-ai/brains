@@ -186,10 +186,9 @@ explicit retrieval surfaces: agent-context retrieval emits a `Retrieved context`
 sources card, structured `system_get` entity results emit a source, and
 structured `system_search` results emit a capped, score-sorted `Retrieved
 sources` card. Search sources preserve retrieval score in provenance and are
-retrieval candidates, not inferred citations from free-form model text.
-UI currently renders the generic structured part; it can graduate to an AI
-Elements sources component once the contract proves useful in real Rover
-sessions.
+retrieval candidates, not inferred citations from free-form model text. Web-chat
+renders `data-sources` with a dedicated sources part and falls back to generic
+structured data for malformed payloads.
 
 Remaining richer-part implementation order:
 
