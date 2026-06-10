@@ -175,8 +175,8 @@ Current protocol shape: `AgentResponse.cards` is the backend-owned extension
 point for durable structured chat parts. It is already projected through the
 public agent contract, remote eval bridge, web-chat stream writer, transcript
 metadata, and browser history hydration. Current card kinds are
-`tool-approval`, `attachment`, and `sources`; web-chat maps those to AI SDK UI
-parts rather than deriving UI from assistant text.
+`tool-approval`, `attachment`, `sources`, and `actions`; web-chat maps those to
+AI SDK UI parts rather than deriving UI from assistant text.
 
 Retrieval source/citation cards are shipped as the first richer part. The
 `sources` card kind streams as `data-sources` and carries source rows with `id`,
@@ -190,14 +190,17 @@ retrieval candidates, not inferred citations from free-form model text. Web-chat
 renders `data-sources` with a dedicated sources part and falls back to generic
 structured data for malformed payloads.
 
+Suggested follow-up action cards are shipped as the second richer part. The
+`actions` card kind streams as `data-actions`, persists through history, and
+renders as a collapsible action list. Initial action types are deliberately safe:
+`prompt` actions submit a visible prompt through the normal chat path, while
+`event` actions are displayed disabled until a concrete runtime handler (such as
+playbooks) binds them to existing permission/confirmation paths. The UI must not
+execute hidden tool calls directly.
+
 Remaining richer-part implementation order:
 
-1. **Suggested follow-up actions.** Add only after a concrete Rover flow needs
-   clickable next steps. Proposed contract is an `actions` card whose items are
-   display labels plus an explicit action type (`prompt`, `tool`, or
-   route/navigation). Tool actions must reuse existing permission/confirmation
-   paths; the UI must not execute hidden tool calls directly.
-2. **Concise reasoning/status summaries.** Prefer existing progress and
+1. **Concise reasoning/status summaries.** Prefer existing progress and
    tool-status parts for operational state. If tool-heavy turns need a summary,
    add a compact `status-summary` card with user-facing bullet text and optional
    related job/tool ids. Avoid chain-of-thought or model-internal reasoning;
@@ -211,7 +214,8 @@ Acceptance bar for any new card kind:
 - web-chat stream writer maps it to a `data-*` UI part;
 - transcript persistence and history hydration keep terminal/durable cards;
 - package tests cover schema, stream output, and history rehydration;
-- no UI component work beyond a generic renderer until backend emission exists.
+- dedicated UI component work only when a backend emitter exists or a concrete
+  Rover/product flow has committed to the card contract.
 
 ### 5. Per-release polish pass
 

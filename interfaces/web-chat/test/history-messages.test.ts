@@ -58,6 +58,38 @@ describe("web chat history messages", () => {
     });
   });
 
+  it("rehydrates stored action cards as AI SDK data-actions parts", () => {
+    const card = {
+      kind: "actions" as const,
+      id: "actions:onboarding",
+      title: "Next steps",
+      actions: [
+        {
+          type: "prompt" as const,
+          id: "review-draft",
+          label: "Review draft",
+          prompt: "Show me the transformed draft.",
+        },
+      ],
+    };
+
+    expect(
+      toUiMessage({
+        id: "message-1",
+        role: "assistant",
+        content: "Choose the next step.",
+        cards: [card],
+      }),
+    ).toEqual({
+      id: "message-1",
+      role: "assistant",
+      parts: [
+        { type: "text", text: "Choose the next step." },
+        { type: "data-actions", data: card },
+      ],
+    });
+  });
+
   it("rehydrates stored source citation cards as AI SDK data-sources parts", () => {
     const card = {
       kind: "sources" as const,

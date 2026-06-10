@@ -1288,6 +1288,92 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   line-height: 1.45;
 }
 
+.web-chat-actions-card {
+  margin: 1rem 0 0;
+  border: 1px solid var(--chat-border-soft);
+  background: var(--chat-surface-inset);
+}
+.web-chat-actions-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.web-chat-actions-summary::-webkit-details-marker {
+  display: none;
+}
+.web-chat-actions-card[open] > .web-chat-actions-summary > .web-chat-data-part-chevron {
+  transform: rotate(45deg);
+}
+.web-chat-actions-kicker,
+.web-chat-actions-count {
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.web-chat-actions-kicker {
+  color: var(--chat-accent);
+}
+.web-chat-actions-count {
+  color: var(--chat-text-light);
+}
+.web-chat-actions-body {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0 0.85rem 0.85rem;
+}
+.web-chat-actions-body h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--chat-text-muted);
+}
+.web-chat-actions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.web-chat-action-item {
+  display: grid;
+  gap: 0.25rem;
+}
+.web-chat-action-item button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--chat-border);
+  border-radius: 999px;
+  color: var(--chat-text);
+  background: var(--chat-surface-soft);
+  font-family: var(--chat-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.web-chat-action-item button:not(:disabled):hover {
+  border-color: rgb(from var(--chat-accent) r g b / 0.48);
+  color: var(--chat-accent);
+}
+.web-chat-action-item button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.web-chat-action-item p {
+  margin: 0;
+  max-width: 18rem;
+  color: var(--chat-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .web-chat-attachment-card {
   position: relative;
   display: grid;
