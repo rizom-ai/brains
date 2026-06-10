@@ -62,6 +62,7 @@
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",
     "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
     "typescript": "^5.3.3"
   }
 }
