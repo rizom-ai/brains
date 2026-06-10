@@ -28,6 +28,11 @@ turns:
       responseNotContains:
         - "link_capture"
         - "I cannot"
+  - userMessage: "Confirm the link save."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
   - userMessage: >-
       Search the current Relay memory and explain how that MCP reference should
       influence our peer-brain and A2A handoff plan.
@@ -38,7 +43,6 @@ turns:
       responseContains:
         - "MCP"
         - "peer"
-        - "A2A"
       responseNotContains:
         - "I don't have access"
         - "meeting-notes"

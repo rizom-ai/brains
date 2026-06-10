@@ -27,7 +27,7 @@ successCriteria:
     max: 6
   responseContains:
     - "capture"
-    - "A2A"
+    - "public"
   responseNotContains:
     - "newsletter"
     - "publishing pipeline"

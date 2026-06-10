@@ -16,6 +16,15 @@ turns:
   - userMessage: >-
       As a shared Relay teammate, save this team note: Customer Delta wants the
       onboarding checklist linked from next week's pilot handoff.
+  - userMessage: "Confirm the team note save."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
+      responseNotContains:
+        - "permission denied"
+        - "owner only"
+        - "cannot save"
 
 successCriteria:
   expectedTools:

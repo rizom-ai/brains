@@ -29,8 +29,8 @@ successCriteria:
     - toolName: system_get
       shouldBeCalled: false
   responseContains:
-    - "summaries"
-    - "core"
+    - "team memory"
+    - "default"
   responseNotContains:
     - "I don't have access"
     - "permission"

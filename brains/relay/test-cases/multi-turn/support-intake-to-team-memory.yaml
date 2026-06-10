@@ -17,10 +17,10 @@ tags:
 
 turns:
   - userMessage: >-
-      Capture this customer signal for the Relay team: Beta Ops says their team
-      can add links, but they cannot tell which captures have already been
-      summarized or mapped to topics. They need a simple status view before the
-      pilot review.
+      Capture this customer signal for the Relay team as one note only: Beta Ops
+      says their team can add links, but they cannot tell which captures have
+      already been summarized or mapped to topics. They need a simple status view
+      before the pilot review.
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -31,6 +31,12 @@ turns:
         - "ticket"
         - "issue tracker"
         - "I cannot"
+        - "decision"
+  - userMessage: "Confirm the capture."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
   - userMessage: >-
       Search Relay memory for related context and give me a triage note that
       includes the customer name, user pain, likely product area, and next action.

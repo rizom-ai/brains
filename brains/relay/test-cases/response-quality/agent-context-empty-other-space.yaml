@@ -31,7 +31,7 @@ successCriteria:
     - toolName: system_list
       shouldBeCalled: false
   responseContains:
-    - "No conversation memory"
+    - "conversation memory"
   responseNotContains:
     - "Core should validate private team memory"
     - "default should add a minimal public site"

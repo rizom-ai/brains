@@ -45,10 +45,17 @@ turns:
         - toolName: a2a_call
           shouldBeCalled: false
       responseContains:
-        - "save"
-        - "agent"
+        - "Confirmation required"
       responseNotContains:
         - "wish"
+        - "I contacted"
+        - "a2a_call failed"
+  - userMessage: "Confirm the agent save."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
+      responseNotContains:
         - "I contacted"
         - "a2a_call failed"
 
