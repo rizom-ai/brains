@@ -437,7 +437,13 @@ auto-send on load. Enabled only on presets with an anchor web-chat surface
 Run state in the UI (decision on invariant: surface a little, deliberately): a
 **resume affordance** for an interrupted/dismissed run, and a **structured "blocked"
 signal** (current step + what's missing + Keep going / Skip), rather than relying on
-the model to paraphrase it. Nothing more for MVP.
+the model to paraphrase it. Once web-chat `actions` cards are available, playbooks
+should use them for these continuation affordances. The cards must be projections of
+the active run state and route through playbook runtime actions/tools; they must not
+invent transitions, execute hidden tool calls, or skip XState guards. The agent may
+still request transitions by calling `playbook_send_event`; UI actions are a parallel
+operator-facing request path, and in both cases the runtime/XState machine remains
+authoritative.
 
 ## Phases
 
