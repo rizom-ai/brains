@@ -83,14 +83,57 @@ function toApprovalCardInput(
   );
 }
 
+function getSourceArtifactRequestInfo(message: string): {
+  referencesArtifact: boolean;
+  referencesExistingSource: boolean;
+  durableArtifactRequest: boolean;
+  deckCarouselPreviewOnly: boolean;
+} {
+  const normalized = message.toLowerCase();
+  const referencesArtifact =
+    /\b(carousel|printable|og image|open graph|social preview|preview image|attachment|attach|pdf|document)\b/.test(
+      normalized,
+    );
+  const referencesExistingSource =
+    /\b(deck|post|project|product|existing entity|source attachment|source-derived)\b/.test(
+      normalized,
+    );
+  const durableArtifactRequest =
+    /\b(save|persist|create|attach|regenerate|replace|set)\b/.test(normalized);
+  const deckCarouselPreviewOnly =
+    /\b(deck|slides|presentation)\b/.test(normalized) &&
+    /\bcarousel\b/.test(normalized) &&
+    /\b(preview|render)\b/.test(normalized) &&
+    !durableArtifactRequest;
+
+  return {
+    referencesArtifact,
+    referencesExistingSource,
+    durableArtifactRequest,
+    deckCarouselPreviewOnly,
+  };
+}
+
 function shouldEnableCreateSourceAttachment(input: {
   message: string;
   hasAccessibleUploads: boolean;
 }): boolean {
-  if (input.hasAccessibleUploads) return false;
-  const message = input.message.toLowerCase();
-  return /\b(carousel|printable|og image|open graph|social preview|preview image|attachment|attach|pdf|document)\b/.test(
-    message,
+  const info = getSourceArtifactRequestInfo(input.message);
+
+  if (info.deckCarouselPreviewOnly) return false;
+  if (input.hasAccessibleUploads && !info.referencesExistingSource) {
+    return false;
+  }
+  return info.referencesArtifact;
+}
+
+function shouldDisableDocumentGenerate(message: string): boolean {
+  const info = getSourceArtifactRequestInfo(message);
+  return (
+    info.referencesArtifact &&
+    info.referencesExistingSource &&
+    info.durableArtifactRequest &&
+    !info.deckCarouselPreviewOnly
   );
 }
 
@@ -480,6 +523,7 @@ export class AgentService implements IAgentService {
       message,
       hasAccessibleUploads,
     });
+    const disableDocumentGenerate = shouldDisableDocumentGenerate(message);
     const callOptions: BrainCallOptions = {
       userPermissionLevel,
       conversationId,
@@ -492,6 +536,7 @@ export class AgentService implements IAgentService {
       ...(enableCreateSourceAttachment
         ? { enableCreateSourceAttachment: true }
         : {}),
+      ...(disableDocumentGenerate ? { disableDocumentGenerate: true } : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     };
 

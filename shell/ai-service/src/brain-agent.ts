@@ -32,6 +32,7 @@ export const brainCallOptionsSchema = z.object({
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
   enableCreateSourceAttachment: z.boolean().optional(),
+  disableDocumentGenerate: z.boolean().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -98,9 +99,15 @@ export function createBrainAgentFactory(
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
         // Get tools available for this permission level
-        const allowedTools = config.getToolsForPermission(
-          callOptions.userPermissionLevel,
-        );
+        const allowedTools = config
+          .getToolsForPermission(callOptions.userPermissionLevel)
+          .filter(
+            (tool) =>
+              !(
+                callOptions.disableDocumentGenerate === true &&
+                tool.name === "document_generate"
+              ),
+          );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options

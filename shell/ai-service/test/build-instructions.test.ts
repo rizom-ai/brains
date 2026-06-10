@@ -190,6 +190,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should distinguish artifact previews from durable artifact saves", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks only to preview/render/generate a preview and a `document_generate` tool is available, call `document_generate`",
+    );
+    expect(instructions).toContain(
+      "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
+    );
+  });
+
   it("should teach the model to refuse never-gated and level-gated actions", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("### Entity Action Permissions");
