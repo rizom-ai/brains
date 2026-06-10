@@ -171,11 +171,44 @@ as standalone component work. Install or customize a registry component only
 when the backend emits the corresponding structured part or a concrete Rover
 surface needs it.
 
-Follow-up discovery work: identify which richer parts Rover actually needs,
-define the backend stream contract first, then add the matching AI Elements UI.
-Likely candidates to evaluate are retrieval sources/citations, suggested
-follow-up actions, and concise reasoning/status summaries after tool-heavy
-turns.
+Current protocol shape: `AgentResponse.cards` is the backend-owned extension
+point for durable structured chat parts. It is already projected through the
+public agent contract, remote eval bridge, web-chat stream writer, transcript
+metadata, and browser history hydration. Existing card kinds are
+`tool-approval` and `attachment`; web-chat maps those to AI SDK UI parts rather
+than deriving UI from assistant text.
+
+Implementation order for richer parts:
+
+1. **Retrieval sources/citations first.** Add a `sources` card kind to the
+   shared agent contract, then stream it as `data-sources`. This should carry a
+   stable card id plus source rows with `id`, human label/title, source kind
+   (`memory`, `entity`, `search`, etc.), optional URL/entity ref, excerpt, and
+   provenance. Initial emitters should be explicit backend surfaces such as
+   conversation-memory retrieval or search/tool result synthesis; do not infer
+   citations from free-form model text. UI can initially render the structured
+   data with a simple expandable part, then graduate to an AI Elements sources
+   component once the contract proves useful.
+2. **Suggested follow-up actions second.** Add only after a concrete Rover flow
+   needs clickable next steps. Proposed contract is an `actions` card whose
+   items are display labels plus an explicit action type (`prompt`, `tool`, or
+   route/navigation). Tool actions must reuse existing permission/confirmation
+   paths; the UI must not execute hidden tool calls directly.
+3. **Concise reasoning/status summaries last.** Prefer existing progress and
+   tool-status parts for operational state. If tool-heavy turns need a summary,
+   add a compact `status-summary` card with user-facing bullet text and optional
+   related job/tool ids. Avoid chain-of-thought or model-internal reasoning;
+   this is an outcome/status summary only.
+
+Acceptance bar for any new card kind:
+
+- schema in `@brains/plugins` public agent contract;
+- runtime mirror in `@brains/ai-service` types if the agent can emit it;
+- public/remote response projection preserves it without leaking internals;
+- web-chat stream writer maps it to a `data-*` UI part;
+- transcript persistence and history hydration keep terminal/durable cards;
+- package tests cover schema, stream output, and history rehydration;
+- no UI component work beyond a generic renderer until backend emission exists.
 
 ### 5. Per-release polish pass
 
