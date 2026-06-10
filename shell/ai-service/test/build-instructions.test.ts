@@ -200,6 +200,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should prevent draft blog post checks from fanning out across draft entity types", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"Do I have any draft blog posts?" requires only `system_list({ entityType: "post", status: "draft" })`',
+    );
+    expect(instructions).toContain(
+      "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+  });
+
   it("should teach the model to verify confirmed update state with system_get instead of looping", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
