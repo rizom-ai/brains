@@ -287,6 +287,62 @@ describe("public agent contracts", () => {
     ]);
   });
 
+  it("accepts action cards in the public response", () => {
+    const response = toPublicAgentResponse({
+      text: "Choose the next step.",
+      cards: [
+        {
+          kind: "actions",
+          id: "actions:onboarding",
+          title: "Next steps",
+          defaultOpen: true,
+          actions: [
+            {
+              type: "prompt",
+              id: "review-draft",
+              label: "Review draft",
+              prompt: "Show me the transformed draft.",
+              description: "Ask Rover to open the draft in chat.",
+            },
+            {
+              type: "event",
+              id: "continue",
+              label: "Continue",
+              event: "NEXT",
+              description: "Request the next playbook transition.",
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+
+    expect(AgentResponseSchema.parse(response).cards).toEqual([
+      {
+        kind: "actions",
+        id: "actions:onboarding",
+        title: "Next steps",
+        defaultOpen: true,
+        actions: [
+          {
+            type: "prompt",
+            id: "review-draft",
+            label: "Review draft",
+            prompt: "Show me the transformed draft.",
+            description: "Ask Rover to open the draft in chat.",
+          },
+          {
+            type: "event",
+            id: "continue",
+            label: "Continue",
+            event: "NEXT",
+            description: "Request the next playbook transition.",
+          },
+        ],
+      },
+    ]);
+  });
+
   it("does not expose singular pendingConfirmation in the public response", () => {
     const response = toPublicAgentResponse({
       text: "Confirmation required.",

@@ -687,6 +687,37 @@ function getSourceScore(
   return parsed.success ? parsed.data.score : undefined;
 }
 
+const promptChatActionSchema = z.object({
+  type: z.literal("prompt"),
+  id: z.string().min(1),
+  label: z.string().min(1),
+  prompt: z.string().min(1),
+  description: z.string().min(1).optional(),
+});
+
+const eventChatActionSchema = z.object({
+  type: z.literal("event"),
+  id: z.string().min(1),
+  label: z.string().min(1),
+  event: z.string().min(1),
+  description: z.string().min(1).optional(),
+});
+
+const actionsCardSchema = z.object({
+  kind: z.literal("actions"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  defaultOpen: z.boolean().optional(),
+  actions: z
+    .array(
+      z.discriminatedUnion("type", [
+        promptChatActionSchema,
+        eventChatActionSchema,
+      ]),
+    )
+    .min(1),
+});
+
 export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
   const parsed = sourcesCardSchema.safeParse(data);
   if (!parsed.success) {
@@ -733,6 +764,61 @@ export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
             );
           })}
         </ol>
+      </div>
+    </details>
+  );
+}
+
+export function ActionsPart({
+  data,
+  onPromptAction,
+}: {
+  data: unknown;
+  onPromptAction: (prompt: string) => void;
+}): React.ReactElement {
+  const parsed = actionsCardSchema.safeParse(data);
+  if (!parsed.success) {
+    return <GenericDataPart type="data-actions" data={data} />;
+  }
+
+  const card = parsed.data;
+  return (
+    <details
+      className="web-chat-actions-card"
+      aria-label="Suggested actions"
+      open={card.defaultOpen}
+    >
+      <summary className="web-chat-actions-summary">
+        <span className="web-chat-actions-kicker">actions</span>
+        <span className="web-chat-actions-count">
+          {`${card.actions.length} available`}
+        </span>
+        <span className="web-chat-data-part-chevron" aria-hidden="true" />
+      </summary>
+      <div className="web-chat-actions-body">
+        {card.title ? <h4>{card.title}</h4> : null}
+        <div className="web-chat-actions-list">
+          {card.actions.map((action) => (
+            <div className="web-chat-action-item" key={action.id}>
+              <button
+                type="button"
+                disabled={action.type === "event"}
+                aria-disabled={action.type === "event"}
+                title={
+                  action.type === "event"
+                    ? "Runtime event actions need a dedicated handler before they can be clicked."
+                    : undefined
+                }
+                onClick={() => {
+                  if (action.type === "prompt") onPromptAction(action.prompt);
+                }}
+              >
+                {action.label}
+              </button>
+              {action.description ? <p>{action.description}</p> : null}
+            </div>
+          ))}
+        </div>
       </div>
     </details>
   );

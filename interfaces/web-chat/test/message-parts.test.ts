@@ -50,6 +50,30 @@ describe("web chat message part grouping", () => {
     ).toEqual([]);
   });
 
+  it("groups structured action parts semantically", () => {
+    const actions = {
+      kind: "actions",
+      id: "actions:onboarding",
+      actions: [
+        {
+          type: "prompt",
+          id: "review-draft",
+          label: "Review draft",
+          prompt: "Show me the transformed draft.",
+        },
+      ],
+    };
+
+    expect(
+      groupMessageParts([
+        {
+          type: "data-actions",
+          data: actions,
+        },
+      ]),
+    ).toEqual([{ kind: "actions", data: actions }]);
+  });
+
   it("groups structured source citation parts semantically", () => {
     const sources = {
       kind: "sources",
@@ -73,7 +97,19 @@ describe("web chat message part grouping", () => {
     ).toEqual([{ kind: "sources", data: sources }]);
   });
 
-  it("separates message parts into body, sources, and details sections", () => {
+  it("separates message parts into body, sources, actions, and details sections", () => {
+    const actions = {
+      kind: "actions",
+      id: "actions:onboarding",
+      actions: [
+        {
+          type: "prompt",
+          id: "review-draft",
+          label: "Review draft",
+          prompt: "Show me the transformed draft.",
+        },
+      ],
+    };
     const sources = {
       kind: "sources",
       id: "sources:tool-results",
@@ -85,11 +121,13 @@ describe("web chat message part grouping", () => {
       groupMessagePartSections([
         { type: "text", text: "Here is the answer." },
         { type: "data-tool-result", data: toolResult },
+        { type: "data-actions", data: actions },
         { type: "data-sources", data: sources },
       ]),
     ).toEqual({
       body: [{ kind: "text", text: "Here is the answer." }],
       sources: [{ kind: "sources", data: sources }],
+      actions: [{ kind: "actions", data: actions }],
       details: [{ kind: "tools", tools: [toolResult] }],
     });
   });

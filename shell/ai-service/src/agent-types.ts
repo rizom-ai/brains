@@ -197,10 +197,37 @@ export interface SourcesCard {
   sources: SourceCitation[];
 }
 
+export interface PromptChatAction {
+  type: "prompt";
+  id: string;
+  label: string;
+  prompt: string;
+  description?: string | undefined;
+}
+
+export interface EventChatAction {
+  type: "event";
+  id: string;
+  label: string;
+  event: string;
+  description?: string | undefined;
+}
+
+export type ChatAction = PromptChatAction | EventChatAction;
+
+export interface ActionsCard {
+  kind: "actions";
+  id: string;
+  title?: string | undefined;
+  defaultOpen?: boolean | undefined;
+  actions: ChatAction[];
+}
+
 export type StructuredChatCard =
   | ToolApprovalCard
   | AttachmentCard
-  | SourcesCard;
+  | SourcesCard
+  | ActionsCard;
 
 /**
  * Tool result data for tracking

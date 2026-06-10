@@ -92,7 +92,7 @@ Rover is the public reference brain and should keep working without Relay. The p
 
 Three parallel sub-tracks:
 
-**Primary: bundled web chat UI polish.** Rover (and every brain) now ships a bundled in-browser chat surface with sessions, confirmations, uploads, progress, and generated artifact cards. The remaining work is polish and productization: public/trusted chat abuse controls, dashboard-widget embedding, and observed UX papercuts. See [brain-web-ui.md](./plans/brain-web-ui.md).
+**Completed: bundled web chat UI.** Rover (and every brain) now ships a bundled in-browser chat surface at `/chat`, including sessions, confirmations, uploads, progress/status parts, generated attachments, sources, and suggested actions. Keep hardening it through normal bug reports and release verification rather than a standing plan.
 
 **Completed: media/OG follow-through.** PDF carousels, printable PDFs, generated OG images, and content-pipeline publish assets landed in this cycle. Future media tweaks should be handled as normal bugs/enhancements rather than a standing plan.
 
@@ -105,10 +105,6 @@ Three parallel sub-tracks:
 - keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
 
 Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
-
-Supporting plans:
-
-- [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
 

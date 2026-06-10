@@ -57,6 +57,128 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
 }
 
+function isImageAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType.startsWith("image/");
+}
+
+function isPdfAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType === "application/pdf";
+}
+
+function isTextAttachment(attachment: ChatAttachment): boolean {
+  return attachment.kind === "text" || attachment.mediaType.startsWith("text/");
+}
+
+function buildAttachmentOnlyActionsCard(
+  attachments: ChatAttachment[],
+): StructuredChatCard | undefined {
+  if (attachments.length === 0) return undefined;
+
+  if (attachments.length > 1) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-uploads",
+          label: "Summarize uploads",
+          prompt: "Summarize the uploaded files.",
+        },
+      ],
+    };
+  }
+
+  const [attachment] = attachments;
+  if (attachment === undefined) return undefined;
+
+  if (isImageAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "describe-image",
+          label: "Describe image",
+          prompt: "Describe the uploaded image.",
+        },
+        {
+          type: "prompt",
+          id: "save-image",
+          label: "Save image",
+          prompt: "Save the uploaded image.",
+        },
+      ],
+    };
+  }
+
+  if (isPdfAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-pdf",
+          label: "Summarize PDF",
+          prompt: "Summarize the uploaded PDF.",
+        },
+        {
+          type: "prompt",
+          id: "save-document",
+          label: "Save document",
+          prompt: "Save the uploaded PDF as a document.",
+        },
+      ],
+    };
+  }
+
+  if (isTextAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-upload",
+          label: "Summarize upload",
+          prompt: "Summarize the uploaded file.",
+        },
+        {
+          type: "prompt",
+          id: "save-upload-note",
+          label: "Save as note",
+          prompt: "Save the uploaded file as a note.",
+        },
+      ],
+    };
+  }
+
+  return {
+    kind: "actions",
+    id: "actions:upload-intent",
+    title: "Try next",
+    defaultOpen: true,
+    actions: [
+      {
+        type: "prompt",
+        id: "summarize-upload",
+        label: "Summarize upload",
+        prompt: "Summarize the uploaded file.",
+      },
+    ],
+  };
+}
+
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
@@ -350,6 +472,8 @@ export class AgentService implements IAgentService {
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
+      const actionsCard = buildAttachmentOnlyActionsCard(attachments);
+      const responseCards = actionsCard ? [actionsCard] : [];
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
@@ -357,12 +481,14 @@ export class AgentService implements IAgentService {
         ...this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
         }),
       });
 
       return {
         text: responseText,
         toolResults: [],
+        ...(responseCards.length > 0 ? { cards: responseCards } : {}),
         usage: emptyUsage,
       };
     }

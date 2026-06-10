@@ -9,9 +9,7 @@ not the general playbook platform. Anything an onboarding run does not exercise
 is listed under [Deferred](#deferred-not-built-here) and is explicitly out of
 build scope.
 
-Related: [Brain web chat surface](./brain-web-ui.md) owns `/chat`;
-first-passkey bootstrap is shipped in `shell/auth-service` and no longer has a
-standing plan.
+Related: the bundled web chat owns `/chat`; first-passkey bootstrap is shipped in `shell/auth-service` and no longer has a standing plan.
 
 ## What this is
 

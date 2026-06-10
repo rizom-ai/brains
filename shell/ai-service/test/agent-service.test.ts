@@ -620,9 +620,32 @@ describe("AgentService", () => {
         ],
       });
 
+      const expectedCards = [
+        {
+          kind: "actions" as const,
+          id: "actions:upload-intent",
+          title: "Try next",
+          defaultOpen: true,
+          actions: [
+            {
+              type: "prompt" as const,
+              id: "summarize-pdf",
+              label: "Summarize PDF",
+              prompt: "Summarize the uploaded PDF.",
+            },
+            {
+              type: "prompt" as const,
+              id: "save-document",
+              label: "Save document",
+              prompt: "Save the uploaded PDF as a document.",
+            },
+          ],
+        },
+      ];
       expect(response).toEqual({
         text: "I got `brief.pdf`. What would you like me to do with it?",
         toolResults: [],
+        cards: expectedCards,
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       });
       expect(mockGenerate).not.toHaveBeenCalled();
@@ -649,8 +672,57 @@ describe("AgentService", () => {
         expect.objectContaining({
           role: "assistant",
           content: "I got `brief.pdf`. What would you like me to do with it?",
+          metadata: expect.objectContaining({ cards: expectedCards }),
         }),
       );
+    });
+
+    it("offers image-specific actions for image-only uploads", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const imageBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+
+      const response = await service.chat("", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source: { kind: "upload", id: "upload-image" },
+          },
+        ],
+      });
+
+      expect(response.cards).toEqual([
+        {
+          kind: "actions",
+          id: "actions:upload-intent",
+          title: "Try next",
+          defaultOpen: true,
+          actions: [
+            {
+              type: "prompt",
+              id: "describe-image",
+              label: "Describe image",
+              prompt: "Describe the uploaded image.",
+            },
+            {
+              type: "prompt",
+              id: "save-image",
+              label: "Save image",
+              prompt: "Save the uploaded image.",
+            },
+          ],
+        },
+      ]);
     });
 
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
