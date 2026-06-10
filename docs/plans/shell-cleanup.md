@@ -99,8 +99,8 @@ with the thinnest coverage.
    - `webauthn-endpoints.ts` — registration + authentication
      options/verify.
    - `setup-flow.ts` — setup token state, setup page, email delivery.
-   `AuthService` keeps composition, `handleRequest` dispatch,
-   `verifyBearerToken`, and metadata endpoints.
+     `AuthService` keeps composition, `handleRequest` dispatch,
+     `verifyBearerToken`, and metadata endpoints.
 3. Behavior must be unchanged — the phase-2.1 tests pass without
    modification (only import-path edits allowed).
 
@@ -109,17 +109,28 @@ green and unmodified.
 
 ### Phase 3 — core: make bootstrap order explicit
 
-1. Add/extend an initialization-order test (services come up in a
-   deterministic, asserted sequence; shutdown reverses it).
-2. Consolidate the eight `initialization/` files behind one
-   orchestrator that names the sequence explicitly (create services →
-   register templates → register entities → initialize plugins → start
-   daemons), delegating to the existing helpers rather than rewriting
-   them.
-3. Reduce `shell.ts` to composition + lifecycle delegation.
+**Scope corrected after fact-checking (2026-06-10).** The audit's
+premise was stale: `ShellBootloader.boot()` already names the full
+sequence explicitly in one commented method (entity DB init →
+registration via `ShellInitializer.initializeAll` → job handlers →
+core datasources → system capabilities → early webserver →
+pluginsRegistered barrier → identity/prompt ready-state → ready hooks →
+runtime services), `shell-shutdown.ts` reverses it, `shell.ts` is
+already a facade of one-line delegations, and ordering is pinned by
+behavioral tests (`shell-initialization-order.test.ts`) plus
+source-guard tests (`startup-initialization-order.test.ts`).
 
-Acceptance: a reader can answer "what starts before what" from one
-file; core suite green.
+Remaining gap, now closed: shutdown ordering was untested — nothing
+asserted that plugin daemons stop on shutdown, after background
+workers and before database close. Added to
+`shell-shutdown.test.ts`.
+
+No production changes. The runtime-upload attachment helpers living in
+`initialization/identity-agent-services.ts` are ai-service domain
+logic; consider moving them during Phase 5 rather than here.
+
+Acceptance (met): a reader can answer "what starts before what" from
+`shellBootloader.ts`; shutdown ordering asserted; core suite green.
 
 ### Phase 4 — move entity domain logic out of core's tool builders
 
