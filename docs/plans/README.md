@@ -27,7 +27,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Shell layer cleanup](./shell-cleanup.md) — proposed; phased decomposition of auth-service, core bootstrap, entity-service types, core entity tools, and agent-service
 
 ### Auth, users, CMS, and HTTP
 
