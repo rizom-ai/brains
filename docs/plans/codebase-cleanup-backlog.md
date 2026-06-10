@@ -2,14 +2,35 @@
 
 ## Status
 
-Reference backlog. These findings came out of the shell-layer
-refactoring audit (2026-06-10, shipped as the shell-cleanup work) but
-fall outside any active plan. Each is small enough that it doesn't
-warrant its own plan yet; recorded here so they don't evaporate.
-Findings that grow an owner move into a real plan and get removed from
-this list.
+Reference backlog. Findings from the shell-layer refactoring audit
+(2026-06, shipped as the shell-cleanup work) that fall outside any
+active plan. Every entry below was **verified against the code**
+(2026-06-10) — the raw audit's unverified claims are listed at the
+bottom as checked-and-cleared so they don't get re-flagged. Findings
+that grow an owner move into a real plan and get removed from this
+list.
 
-## Findings
+## Verified findings
+
+### Orphaned prototype: `tools/rover-pilot`
+
+Dead code: no `package.json`, referenced by no turbo task or script,
+superseded by `packages/brains-ops` (which has ~7x the code and active
+development). Delete the `tools/` directory, or archive it as a
+documentation artifact if the prototype is worth keeping as reference.
+
+### content-service: three untested public methods
+
+`formatContent()` (including its truncation option), `getTemplate()`,
+and `listTemplates()` (including its formatter/basePrompt filtering)
+have zero test coverage, and nothing covers them indirectly — other
+packages mock content-service. Small, well-bounded test additions.
+
+### mcp-service: plugin instructions path untested
+
+`registerInstructions()` / `getInstructions()` — the mechanism by which
+plugins contribute to the agent system prompt — has no coverage. The
+rest of the service is well-tested (11/13 public methods).
 
 ### CSS-as-string monoliths
 
@@ -18,9 +39,8 @@ this list.
 - `plugins/dashboard/src/render/styles/components.ts` — 1,122 lines of
   component CSS packed into a single template-string export.
 
-Both make styling unmaintainable and undiffable. Extract to dedicated
-style modules (or the shared theme/ui packages) next time either
-surface gets real styling work.
+Extract to dedicated style modules (or the shared theme/ui packages)
+next time either surface gets real styling work.
 
 ### `@brains/utils` grab-bag split
 
@@ -39,3 +59,43 @@ extend `../../tsconfig.json` directly instead of
 aliases — but the package-name indirection is the convention. Two-line
 fix plus a `@brains/typescript-config` devDependency in each; ride
 along with any commit touching those packages.
+
+### package.json script drift
+
+70+ packages declare lint/typecheck scripts with 5+ glob/flag
+variations (`--ext .ts` vs `.ts,.tsx`, `--max-warnings 0` vs none).
+Inconsistent quality gates; normalize when touching turbo config.
+
+### Minor (fix opportunistically)
+
+- `sites/professional` and `sites/personal` homepage datasources share
+  ~60% structure; extract a shared datasource helper if a third site
+  appears.
+- Approval-card formatting is inlined separately in the Discord and CLI
+  interfaces; a small shared formatter would help — but see
+  checked-and-cleared below, the interfaces are otherwise sound.
+
+## Checked and cleared (do not re-flag)
+
+Verified 2026-06-10; the audit claims about these were wrong:
+
+- **job-queue worker/batch-manager "overlap"** — none. JobQueueWorker
+  is the polling/concurrency execution engine; BatchJobManager is batch
+  metadata tracking + status aggregation and never touches handlers.
+  Retry logic lives solely in the repository (`JobQueueRepository.fail`).
+- **Interface lifecycle "duplication"** — already solved by the
+  two-tier base hierarchy (`InterfacePlugin` →
+  `MessageInterfacePlugin`); job tracking, progress handling, upload
+  validation, and chunking (`chunkMessage` in `@brains/utils`) are
+  inherited, and per-interface permission models differ by design.
+- **Oversized interface test files** — well-organized integration
+  suites (web-chat: 67 focused tests; discord: 44 across 10 describe
+  blocks); size reflects protocol complexity, not missing seams.
+- **conversation-service "under-tested"** — one file, but 23
+  integration tests covering all 9 public methods against a real DB.
+- **ai-evaluation "scattered responsibilities"** — well-factored:
+  scoring, metric collection, output validation, config loading, and
+  reporters are cleanly separated; test-runner orchestrates them.
+- **scripts/, deploy/, sites/ structure** — scripts all referenced,
+  deploy modular, site plugins/routes appropriately specialized, no
+  cross-package relative imports anywhere in those trees.
