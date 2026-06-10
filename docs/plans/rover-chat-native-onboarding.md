@@ -43,7 +43,9 @@ polished enough to call done. Observed issues:
    remaining ambiguity should be clarified instead of inventing maintenance tasks.
 7. **Job-status disagreement handling** — when the operator says local logs show a
    job succeeded, Rover should inspect runtime/job status if available instead of
-   arguing from the conversation transcript.
+   arguing from the conversation transcript. Generic job-status tool guidance now
+   directs ready checks and status disputes to runtime status rather than
+   transcript-only reasoning. **Done.**
 8. **Entity terminology mismatch** — Rover says "note" while generic creation may
    create a `base` entity. This may be acceptable as user-facing language, but the
    product decision should be explicit.
