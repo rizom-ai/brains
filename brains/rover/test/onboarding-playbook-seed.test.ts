@@ -30,6 +30,9 @@ describe("Rover onboarding playbook seed", () => {
     expect(firstSeed?.instructions).toContain(
       'After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"',
     );
+    expect(firstSeed?.instructions).toContain(
+      "Use 'note' as the operator-facing term for base knowledge entries.",
+    );
     expect(retrievalDemo?.instructions).toContain(
       "After demonstrating retrieval, send NEXT before the final answer so the run moves to transformation.",
     );

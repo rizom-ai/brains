@@ -143,6 +143,7 @@ First knowledge seed
 
 - Ask for one rough idea, note, link, or fragment the operator wants Rover to remember.
 - Save it as the appropriate durable entity, usually a note or link.
+- Use 'note' as the operator-facing term for base knowledge entries.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
 - After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"

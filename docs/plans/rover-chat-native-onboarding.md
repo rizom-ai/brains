@@ -77,8 +77,9 @@ Ordered fix plan:
 8. **Create confirmation policy decision**: keep routine durable entity creation
    low-friction by default; require confirmation for publish/send/external effects,
    deletes, updates, replace/overwrite, or public side-effectful creation. **Done.**
-9. **Terminology decision**: decide whether onboarding should create literal `note`
-   entities or keep using generic `base` while calling them "durable notes" in chat.
+9. **Terminology decision**: keep using the existing `base` note entity type and
+   use "note"/"durable note" as the operator-facing language for base knowledge
+   entries. **Done.**
 
 Validation for this polish slice:
 
