@@ -190,6 +190,46 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should distinguish artifact previews from durable artifact saves", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks only to preview/render/generate a preview and a `document_generate` tool is available, call `document_generate`",
+    );
+    expect(instructions).toContain(
+      "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
+    );
+  });
+
+  it("should prevent draft blog post checks from fanning out across draft entity types", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"Do I have any draft blog posts?" requires only `system_list({ entityType: "post", status: "draft" })`',
+    );
+    expect(instructions).toContain(
+      "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+  });
+
+  it("should teach the model to verify confirmed update state with system_get instead of looping", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks to show, display, read back, verify, or check the latest state of a known entity after an update/confirmation, call `system_get`",
+    );
+    expect(instructions).toContain(
+      "If a previous confirmed action returned a `Completed:` response or a successful tool result, treat it as completed.",
+    );
+  });
+
+  it("should tell the model to choose a requested title and update it", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks you to choose a missing title/name",
+    );
+    expect(instructions).toContain(
+      "call `system_update` with `fields.title` immediately",
+    );
+  });
+
   it("should teach the model to refuse never-gated and level-gated actions", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("### Entity Action Permissions");

@@ -351,6 +351,84 @@ describe("TestRunner", () => {
       );
     });
 
+    it("should fail the test instead of throwing when a confirmation turn has no pending approval", async () => {
+      const testCase: TestCase = {
+        id: "test-missing-pending-approval",
+        name: "Missing Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          {
+            userMessage: "Approve missing confirmation",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: [],
+        }),
+      );
+      expect(result.turnResults[0]?.assistantResponse).toContain(
+        "cannot resolve approvalId",
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+    });
+
+    it("should fail the test instead of throwing when multiple pending approvals require an explicit id", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                args: { entityType: "agent", id: "old-agent.io" },
+              },
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-ambiguous-pending-approval",
+        name: "Ambiguous Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Prepare update and delete" },
+          {
+            userMessage: "Approve one",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: ["approval:update", "approval:delete"],
+        }),
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+    });
+
     it("should use explicit eval permission when provided", async () => {
       const testCase: TestCase = {
         id: "test-explicit-anchor",

@@ -82,17 +82,29 @@ export class TestRunner implements ITestRunner {
       if (turn.confirmPendingAction !== undefined) {
         const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
         if (!approvalId) {
-          throw new Error(
+          const message =
             `Turn ${i}: cannot resolve approvalId for confirmPendingAction. ` +
-              `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
-              `(pending=${pendingApprovalIds.length}).`,
+            `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
+            `(pending=${pendingApprovalIds.length}).`;
+          failures.push({
+            criterion: "confirmPendingAction",
+            expected:
+              "Exactly one pending approval id or an explicit approvalId",
+            actual: pendingApprovalIds,
+            message,
+          });
+          response = {
+            text: message,
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            toolResults: [],
+          };
+        } else {
+          response = await this.agentService.confirmPendingAction(
+            conversationId,
+            turn.confirmPendingAction,
+            approvalId,
           );
         }
-        response = await this.agentService.confirmPendingAction(
-          conversationId,
-          turn.confirmPendingAction,
-          approvalId,
-        );
       } else {
         response = await this.agentService.chat(
           turn.userMessage,

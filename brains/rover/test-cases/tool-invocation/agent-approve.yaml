@@ -11,7 +11,7 @@ tags:
   - regression
 
 turns:
-  - userMessage: "Approve old-agent.io"
+  - userMessage: "Approve approval-candidate.io"
 
 successCriteria:
   expectedTools:
@@ -19,7 +19,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        id: "old-agent.io"
+        id: "approval-candidate.io"
         fields.status: "approved"
       argsAbsent:
         - confirmed
