@@ -145,7 +145,7 @@ First knowledge seed
 - Save it as the appropriate durable entity, usually a note or link.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
-- After saving the seed, close by offering to demonstrate retrieval next.
+- After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"
 
 #### Done When
 
@@ -182,7 +182,7 @@ Retrieval demonstration
 - Invite the operator to ask about the saved seed, or offer to demonstrate.
 - Retrieve or reference the saved entity through normal agent/tool behavior.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
-- When the retrieval demo is complete, send NEXT.
+- After demonstrating retrieval, send NEXT before the final answer so the run moves to transformation.
 
 #### Done When
 

@@ -11,7 +11,7 @@ import {
   expectError,
   expectSuccess,
 } from "@brains/plugins/test";
-import { playbooksPlugin, type GoalCheck } from "../src";
+import { playbooksPlugin, type GoalCheck, type GoalCheckInput } from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
@@ -95,6 +95,7 @@ const runSummarySchema = z
     id: z.string().min(1),
     currentState: z.string().min(1),
     status: z.string().optional(),
+    lifecycle: z.string().optional(),
     conversationId: z.string().optional(),
     completedStates: z.array(z.string()).default([]),
     context: z.record(z.string(), z.unknown()).default({}),
@@ -260,6 +261,49 @@ describe("PlaybooksPlugin", () => {
       "playbook_start",
       "playbook_status",
     ]);
+  });
+
+  it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    const statusTool = capabilities.tools.find(
+      (tool) => tool.name === "playbook_status",
+    );
+    if (!statusTool) throw new Error("playbook_status not found");
+
+    expect(statusTool.description).toContain(
+      "Do not send an extra NEXT after runtime evidence already advanced the run",
+    );
+    expect(statusTool.description).toContain(
+      "Do not claim the playbook is finished",
+    );
+  });
+
+  it("preserves an active run lifecycle when playbook_start is called again", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness);
+
+    const conversationId = "resume-preserve-lifecycle";
+    const started = await harness.executeTool(
+      "playbook_start",
+      { playbookId: "rover-onboarding", lifecycle: "first-anchor-web-chat" },
+      { conversationId },
+    );
+    expectSuccess(started);
+    const restarted = await harness.executeTool(
+      "playbook_start",
+      { playbookId: "rover-onboarding", lifecycle: "onboarding" },
+      { conversationId },
+    );
+    expectSuccess(restarted);
+
+    const data = parsePlaybookToolData(restarted.data);
+    expect(data.activeRun.lifecycle).toBe("first-anchor-web-chat");
   });
 
   it("returns lifecycle starters for active anchor web-chat playbooks", async () => {
@@ -586,6 +630,63 @@ describe("PlaybooksPlugin", () => {
     expect(parsePlaybookToolData(status.data).guidance).toContain(
       "judge unavailable",
     );
+  });
+
+  it("includes entity details in runtime evidence for generic goal checks", async () => {
+    const evaluate = mock(async (input: GoalCheckInput) => {
+      expect(input.evidence[0]?.data).toMatchObject({
+        entityType: "base",
+        entityId: "seed-note",
+        operation: "created",
+        title: "Seed note",
+        contentPreview: "Rough idea worth remembering.",
+      });
+      return { met: true, reason: "The seed note was recorded." };
+    });
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin(
+        { storageDir: await tempStorageDir() },
+        goalCheck(evaluate),
+      ),
+    );
+    addPlaybookEntity(harness, {
+      ...playbookBody,
+      states: [
+        {
+          id: "welcome",
+          title: "Welcome",
+          instructions: ["Save a seed."],
+          doneWhen: ["A first knowledge seed has been saved."],
+          transitions: [{ event: "NEXT", target: "complete" }],
+        },
+        completeState,
+      ],
+    });
+
+    const conversationId = "web-runtime-evidence-details";
+    const runId = await startRun(harness, conversationId);
+
+    await harness.sendMessage(
+      "entity:created",
+      {
+        entityType: "base",
+        entityId: "seed-note",
+        conversationId,
+        entity: {
+          metadata: { title: "Seed note" },
+          content: "Rough idea worth remembering.",
+        },
+      },
+      "entity-service",
+      true,
+    );
+
+    const status = await harness.executeTool("playbook_status", { runId });
+    expectSuccess(status);
+    const data = parsePlaybookToolData(status.data);
+    expect(data.activeRun.currentState).toBe("complete");
+    expect(evaluate).toHaveBeenCalledTimes(1);
   });
 
   it("auto-advances a gated NEXT after runtime evidence satisfies it", async () => {
@@ -920,6 +1021,13 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain(
       "end the turn with the next immediate question or action",
     );
+    expect(content).toContain(
+      "If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event",
+    );
+    expect(content).toContain(
+      "If the operator gives an ambiguous continuation like 'go ahead'",
+    );
+    expect(content).toContain("do not start unrelated maintenance tasks");
   });
 
   it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {

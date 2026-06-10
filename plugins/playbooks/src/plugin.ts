@@ -257,7 +257,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_status",
         description:
-          "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body.",
+          "Get playbook lifecycle config, active runs, current state, valid events, and parsed playbook body. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state.",
         inputSchema: statusInputSchema,
         visibility: "anchor",
         handler: async (
@@ -278,7 +278,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       },
       {
         name: "playbook_start",
-        description: "Start or resume a playbook run.",
+        description:
+          "Start a playbook run, or resume an existing active run. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
         inputSchema: startInputSchema,
         visibility: "anchor",
         handler: async (
@@ -298,7 +299,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             ? await this.store.upsert({
                 ...existing,
                 status: "active",
-                ...(parsed.lifecycle ? { lifecycle: parsed.lifecycle } : {}),
                 ...(conversationId ? { conversationId } : {}),
                 ...(existing.startedAt
                   ? {}
@@ -747,6 +747,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         entityType,
         entityId,
         operation,
+        ...entityEvidenceDetails(payload),
         ...(conversationId ? { conversationId } : {}),
         ...(stringFromPayload(payload, "toolCallId")
           ? { toolCallId: stringFromPayload(payload, "toolCallId") }
@@ -1029,7 +1030,9 @@ Current state id (tool use only): ${state.id}
 Use this run ID for run-scoped playbook tools when explicit run identity is needed.
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
-After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state.
+After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state.
+If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event instead of starting the playbook again.
+If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 
 Completed states:
 ${completedStates || "- none"}
@@ -1071,7 +1074,9 @@ Treat playbook_status and active-playbook context as the source of truth for the
 Raw playbook state IDs are for tool use only. Do not mention them to the operator; use state titles or natural-language task descriptions instead.
 Follow the playbook's current state instructions, operating rules, and Done When conditions.
 Do not redo completed state work or ask for evidence already captured; ask only for what is missing in the current state.
-After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. Do not leave the operator needing to ask "what is next?".
+After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state. Do not leave the operator needing to ask "what is next?".
+If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event instead of starting the playbook again.
+When the operator gives an ambiguous continuation like "go ahead" after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
@@ -1120,6 +1125,52 @@ function stringFromPayload(
 ): string | undefined {
   const value = payload[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function entityEvidenceDetails(
+  payload: Record<string, unknown>,
+): Record<string, string> {
+  const entity = recordFromUnknown(payload["entity"]);
+  if (!entity) return {};
+
+  const metadata = recordFromUnknown(entity["metadata"]);
+  const title = firstNonEmptyString(
+    metadata?.["title"],
+    metadata?.["name"],
+    entity["title"],
+  );
+  const content = firstNonEmptyString(entity["content"]);
+  const contentPreview = content ? previewText(content) : undefined;
+
+  return {
+    ...(title ? { title } : {}),
+    ...(contentPreview ? { contentPreview } : {}),
+  };
+}
+
+function recordFromUnknown(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function firstNonEmptyString(...values: unknown[]): string | undefined {
+  return values
+    .find(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
+    )
+    ?.trim();
+}
+
+function previewText(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > 500
+    ? `${normalized.slice(0, 497)}...`
+    : normalized;
 }
 
 function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {

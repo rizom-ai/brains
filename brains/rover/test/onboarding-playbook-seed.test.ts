@@ -28,7 +28,10 @@ describe("Rover onboarding playbook seed", () => {
       "A first knowledge seed has been saved.",
     ]);
     expect(firstSeed?.instructions).toContain(
-      "After saving the seed, close by offering to demonstrate retrieval next.",
+      'After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"',
+    );
+    expect(retrievalDemo?.instructions).toContain(
+      "After demonstrating retrieval, send NEXT before the final answer so the run moves to transformation.",
     );
     expect(retrievalDemo?.doneWhen).toEqual([]);
     expect(transformationDemo?.doneWhen).toEqual([]);

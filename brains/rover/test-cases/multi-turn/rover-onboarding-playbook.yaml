@@ -67,15 +67,17 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Show me how Rover can reuse that note, then finish the onboarding."
+  - userMessage: "Go ahead and demonstrate that."
     successCriteria:
       expectedTools:
+        - toolName: system_extract
+          shouldBeCalled: false
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
             event: NEXT
       responseContains:
-        - onboarding
+        - retriev
       responseNotContains:
         - "another first"
         - "share a first"
@@ -107,4 +109,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 16
-  maxTokens: 80000
+  maxTokens: 85000
