@@ -355,6 +355,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return `## Agent-to-agent calls
 - Use \`a2a_call\` only for agents already saved in the local \`agent\` directory.
 - Pass only the saved local agent id to \`a2a_call\` (for example \`yeehaa.io\`). Never pass a full URL or a display name like \`Brain\`.
+- If the user names an exact saved local agent id such as \`yeehaa.io\`, call \`a2a_call\` directly with that id. Do not preflight with \`system_list\` or \`system_get\`; the tool validates saved/approved status and reports errors.
 - If the user asks you to ask, message, contact, hear what a saved agent has to say, or ask a saved agent for its own skills/capabilities, treat that as an agent-directory request first and call \`a2a_call\` in the same turn. Do not stop after listing the agent, drafting the question, searching general content locally, or reading the saved agent entity metadata.
 - After \`a2a_call\` returns within a turn, answer that turn from its response. Do **not** supplement with \`system_get\` (or any other read tool) on the agent entity, unless the user explicitly asks for directory/profile details about the agent itself.
 - Each new turn that asks the same saved agent something — including short follow-ups like "what skills does it have", "and what about X", "tell me more" — is a **new** contact request and needs its **own** fresh \`a2a_call\`. Do not assume the previous turn's a2a response already covers a new question, and do not substitute \`system_list\`/\`system_get\` for the fresh call.

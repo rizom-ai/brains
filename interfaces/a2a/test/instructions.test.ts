@@ -15,5 +15,9 @@ describe("A2A instructions", () => {
     expect(instructions).toContain("hear what a saved agent has to say");
     expect(instructions).toContain("call `a2a_call` in the same turn");
     expect(instructions).toContain("reading the saved agent entity metadata");
+    expect(instructions).toContain(
+      "If the user names an exact saved local agent id such as `yeehaa.io`, call `a2a_call` directly",
+    );
+    expect(instructions).toContain("Do not preflight with `system_list`");
   });
 });

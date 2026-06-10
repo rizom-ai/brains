@@ -190,6 +190,25 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should distinguish cover image operations from OG image operations", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"Cover image" means the entity\'s `coverImageId`; "OG image", "social preview", or "Open Graph image" means `ogImageId`.',
+    );
+    expect(instructions).toContain(
+      "Do not satisfy a cover-image request by reusing, setting, clearing, or mentioning `ogImageId`",
+    );
+    expect(instructions).toContain(
+      "Do not call `system_update` with an existing image id for a generate/new-cover request",
+    );
+    expect(instructions).toContain(
+      "For cover-image changes/removal, the field key is `coverImageId`",
+    );
+    expect(instructions).toContain(
+      "Do not clear `ogImageId` for cover-removal requests, even if `system_get` shows an `ogImageId` and no current `coverImageId`.",
+    );
+  });
+
   it("should distinguish artifact previews from durable artifact saves", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
