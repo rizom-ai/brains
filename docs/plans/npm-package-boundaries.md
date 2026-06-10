@@ -67,6 +67,15 @@ Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a la
 
 These subpaths are the SDK. They must have generated declarations with no `@brains/*` imports (enforced by `scripts/declaration-leaks.ts`).
 
+Subpath curation rule (decided 2026-06-10): the list above is the
+registry. Adding a subpath requires a named concrete consumer (a
+package or fixture that needs it today, not speculatively), a
+declaration-leak-clean build, and an edit to this list in the same
+change. `./site`, `./themes`, and `./deploy` are ratified retroactively
+— they serve brain definitions, site skins, and fleet deploy. Anything
+that can't name its consumer stays internal; this rule exists so the
+SDK doesn't accrete the way `@brains/utils` did.
+
 ### Tier 3: official publishable plugin/entity packages
 
 Examples:
@@ -111,6 +120,25 @@ These may remain workspace-internal implementation details. They can be used by 
 - keep `@brains/utils` private/internal for now
 - promote only proven stable utilities into curated `@rizom/brain/*` subpaths
 - expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities (**not yet implemented** as of 2026-06-10 — no public entry exports `z`; this is a prerequisite for the `@brains/note` proof since note's schemas import `z` from `@brains/utils`)
+
+### Zod version policy (decided 2026-06-10)
+
+The blessed `z` cannot diverge from the workspace zod: the public
+subpaths re-export schemas built with the workspace `z`, and mixing zod
+majors in author code produces incompatible schema classes. So:
+
+1. The blessed `z` **is** the workspace zod — v3 today. Plugin packages
+   must not declare their own `zod` dependency; they use the blessed
+   export exclusively (enforce with the step-4 dependency rules). The
+   zod major becomes an SDK internal that authors inherit.
+2. The repo-wide zod 4 migration is a **release blocker for the first
+   stable (non-alpha) `@rizom/brain`**: during alpha the v3→v4 break is
+   acceptable churn; after a stable release it is a breaking public API
+   change. Do not ship a stable SDK on v3.
+3. Sequencing and mechanics live in
+   `external-dependency-review.md` (pin bump to `^3.25.x` first, which
+   every upstream peer accepts and which unlocks zod's incremental
+   `zod/v4` migration path).
 
 The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
 
@@ -194,6 +222,14 @@ Once one package proves the shape, add dependency-cruiser or lint rules:
 ### 5. Repeat package by package
 
 Refactor packages in isolated worktrees, one package at a time. Do not combine public SDK expansion, dependency enforcement, and multiple package migrations in one PR unless the change is purely mechanical and already proven.
+
+Sequencing gate (decided 2026-06-10): the `@brains/note` proof
+(Milestone A) waits only for the blessed `z` — note already extends the
+public `EntityPlugin`, so its migration is an import swap. But before
+rolling out to the remaining entity packages, design the
+adapter/handler scaffolding helpers from the related-finding section
+below and land them on the public surface — otherwise twenty-plus
+packages get migrated twice (once raw, once onto the helpers).
 
 ## Suggested first worktree
 
