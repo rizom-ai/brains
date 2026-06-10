@@ -77,6 +77,9 @@ turns:
         - "another first"
         - "share a first"
         - "save a first idea"
+        - "retrieval-demo"
+        - "transformation-demo"
+        - "wrap-up"
         - "I cannot"
         - "I don't have access"
 
@@ -91,6 +94,9 @@ successCriteria:
   toolCountRange:
     min: 5
   responseNotContains:
+    - "retrieval-demo"
+    - "transformation-demo"
+    - "wrap-up"
     - "I cannot"
     - "I don't have access"
   minHelpfulnessScore: 3

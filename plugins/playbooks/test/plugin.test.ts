@@ -864,7 +864,15 @@ describe("PlaybooksPlugin", () => {
 
     expect(response?.items).toHaveLength(1);
     expect(response?.items[0]?.source).toBe("active-playbook");
-    expect(response?.items[0]?.content).toContain("Current state: welcome");
+    expect(response?.items[0]?.content).toContain(
+      "Current state title: Welcome",
+    );
+    expect(response?.items[0]?.content).toContain(
+      "Current state id (tool use only): welcome",
+    );
+    expect(response?.items[0]?.content).toContain(
+      "Do not mention raw playbook state IDs to the operator",
+    );
     expect(response?.items[0]?.content).toContain("NEXT -> seed");
   });
 
@@ -898,7 +906,8 @@ describe("PlaybooksPlugin", () => {
     });
 
     const content = response?.items[0]?.content ?? "";
-    expect(content).toContain("Current state: seed");
+    expect(content).toContain("Current state title: Seed");
+    expect(content).toContain("Current state id (tool use only): seed");
     expect(content).toContain("Completed states:");
     expect(content).toContain("- welcome");
     expect(content).toContain("Do not redo completed states");

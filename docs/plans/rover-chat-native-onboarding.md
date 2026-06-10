@@ -62,7 +62,7 @@ Ordered fix plan:
    action/object type labels that remain accurate after the mutation. **Done.**
 5. **Hide internal state IDs from operator-facing chat**: keep state IDs in agent
    context/tool results, but instruct the agent to translate them into natural
-   language when speaking to the operator.
+   language when speaking to the operator. **Done.**
 6. **Ambiguous continuation handling**: when the user says `go ahead` after a list
    of options, ask a clarifying question or choose the current playbook state's next
    explicit demonstration; do not start unrelated maintenance tasks.
