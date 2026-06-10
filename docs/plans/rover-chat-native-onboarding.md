@@ -73,10 +73,10 @@ Ordered fix plan:
    to ask "what is next?". **Done.**
 7. **Ambiguous continuation handling**: when the user says `go ahead` after a list
    of options, ask a clarifying question or choose the current playbook state's next
-   explicit demonstration; do not start unrelated maintenance tasks.
+   explicit demonstration; do not start unrelated maintenance tasks. **Done.**
 8. **Create confirmation policy decision**: keep routine durable entity creation
    low-friction by default; require confirmation for publish/send/external effects,
-   deletes, updates, replace/overwrite, or public side-effectful creation.
+   deletes, updates, replace/overwrite, or public side-effectful creation. **Done.**
 9. **Terminology decision**: decide whether onboarding should create literal `note`
    entities or keep using generic `base` while calling them "durable notes" in chat.
 
