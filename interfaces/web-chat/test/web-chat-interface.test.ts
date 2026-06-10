@@ -836,6 +836,56 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain(uploadId);
   });
 
+  it("streams source citation cards as Brain data parts", async () => {
+    const agent = createSpyAgentService({
+      text: "According to retrieved context...",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "Relay decision summary",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What did we decide?" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-sources");
+    expect(body).toContain("Retrieved context");
+    expect(body).toContain("summary-1");
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",
@@ -2415,7 +2465,22 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(403);
   });
 
-  it("loads stored generated attachment cards for an operator", async () => {
+  it("loads stored generated attachment and source citation cards for an operator", async () => {
+    const sourcesCard = {
+      kind: "sources",
+      id: "sources:agent-context",
+      title: "Retrieved context",
+      sources: [
+        {
+          id: "summary-1",
+          title: "Relay decision summary",
+          source: "conversation-memory",
+          entityType: "summary",
+          entityId: "summary-1",
+          excerpt: "The team decided to use explicit memory retrieval.",
+        },
+      ],
+    };
     const card = {
       kind: "attachment",
       id: "attachment:mossy-robot",
@@ -2445,7 +2510,7 @@ describe("WebChatInterface", () => {
               "web-session",
               "assistant",
               'Queued image generation.\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]',
-              JSON.stringify({ cards: [card] }),
+              JSON.stringify({ cards: [card, sourcesCard] }),
             ),
           ],
         },
@@ -2467,7 +2532,7 @@ describe("WebChatInterface", () => {
           id: "message-1",
           role: "assistant",
           content: "Queued image generation.",
-          cards: [card],
+          cards: [card, sourcesCard],
         },
       ],
     });

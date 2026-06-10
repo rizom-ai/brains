@@ -243,6 +243,50 @@ describe("public agent contracts", () => {
     });
   });
 
+  it("accepts source citation cards in the public response", () => {
+    const response = toPublicAgentResponse({
+      text: "According to the retrieved context...",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "Relay decision summary",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+              provenance: { conversationId: "relay-conv" },
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+
+    expect(AgentResponseSchema.parse(response).cards).toEqual([
+      {
+        kind: "sources",
+        id: "sources:agent-context",
+        title: "Retrieved context",
+        sources: [
+          {
+            id: "summary-1",
+            title: "Relay decision summary",
+            source: "conversation-memory",
+            entityType: "summary",
+            entityId: "summary-1",
+            excerpt: "The team decided to use explicit memory retrieval.",
+            provenance: { conversationId: "relay-conv" },
+          },
+        ],
+      },
+    ]);
+  });
+
   it("does not expose singular pendingConfirmation in the public response", () => {
     const response = toPublicAgentResponse({
       text: "Confirmation required.",

@@ -171,11 +171,47 @@ as standalone component work. Install or customize a registry component only
 when the backend emits the corresponding structured part or a concrete Rover
 surface needs it.
 
-Follow-up discovery work: identify which richer parts Rover actually needs,
-define the backend stream contract first, then add the matching AI Elements UI.
-Likely candidates to evaluate are retrieval sources/citations, suggested
-follow-up actions, and concise reasoning/status summaries after tool-heavy
-turns.
+Current protocol shape: `AgentResponse.cards` is the backend-owned extension
+point for durable structured chat parts. It is already projected through the
+public agent contract, remote eval bridge, web-chat stream writer, transcript
+metadata, and browser history hydration. Current card kinds are
+`tool-approval`, `attachment`, and `sources`; web-chat maps those to AI SDK UI
+parts rather than deriving UI from assistant text.
+
+Retrieval source/citation cards are shipped as the first richer part. The
+`sources` card kind streams as `data-sources` and carries source rows with `id`,
+human label/title, source kind (`conversation-memory`, `entity`, `search`,
+etc.), optional URL/entity ref, excerpt, and provenance. The first emitters are
+explicit retrieval surfaces: agent-context retrieval emits a `Retrieved context`
+sources card, structured `system_get` entity results emit a source, and
+structured `system_search` results emit a capped, score-sorted `Retrieved
+sources` card. Search sources preserve retrieval score in provenance and are
+retrieval candidates, not inferred citations from free-form model text. Web-chat
+renders `data-sources` with a dedicated sources part and falls back to generic
+structured data for malformed payloads.
+
+Remaining richer-part implementation order:
+
+1. **Suggested follow-up actions.** Add only after a concrete Rover flow needs
+   clickable next steps. Proposed contract is an `actions` card whose items are
+   display labels plus an explicit action type (`prompt`, `tool`, or
+   route/navigation). Tool actions must reuse existing permission/confirmation
+   paths; the UI must not execute hidden tool calls directly.
+2. **Concise reasoning/status summaries.** Prefer existing progress and
+   tool-status parts for operational state. If tool-heavy turns need a summary,
+   add a compact `status-summary` card with user-facing bullet text and optional
+   related job/tool ids. Avoid chain-of-thought or model-internal reasoning;
+   this is an outcome/status summary only.
+
+Acceptance bar for any new card kind:
+
+- schema in `@brains/plugins` public agent contract;
+- runtime mirror in `@brains/ai-service` types if the agent can emit it;
+- public/remote response projection preserves it without leaking internals;
+- web-chat stream writer maps it to a `data-*` UI part;
+- transcript persistence and history hydration keep terminal/durable cards;
+- package tests cover schema, stream output, and history rehydration;
+- no UI component work beyond a generic renderer until backend emission exists.
 
 ### 5. Per-release polish pass
 

@@ -24,6 +24,7 @@ import {
   ConfirmationPart,
   GenericDataPart,
   NativeToolPart,
+  SourcesPart,
   ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
@@ -41,7 +42,7 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
-import { groupMessageParts } from "./message-parts";
+import { groupMessagePartSections, type RenderedPart } from "./message-parts";
 import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
@@ -416,6 +417,72 @@ export function App(): React.ReactElement {
   } = useChat({
     chat,
   });
+
+  function renderMessagePart(
+    group: RenderedPart,
+    key: string,
+  ): React.ReactElement | null {
+    if (group.kind === "text") {
+      return <MessageResponse key={key}>{group.text}</MessageResponse>;
+    }
+    if (group.kind === "tools") {
+      if (group.tools.length === 1) {
+        return <ToolResultPart key={key} data={group.tools[0]} />;
+      }
+      return <ToolCallsGroup key={key} tools={group.tools} />;
+    }
+    if (group.kind === "confirmation") {
+      return (
+        <ConfirmationPart
+          key={key}
+          data={group.data}
+          addToolApprovalResponse={addToolApprovalResponse}
+        />
+      );
+    }
+    if (group.kind === "native-tool") {
+      return <NativeToolPart key={key} data={group.data} />;
+    }
+    if (group.kind === "attachment") {
+      return <AttachmentPart key={key} data={group.data} />;
+    }
+    if (group.kind === "progress") {
+      return <ProgressPart key={key} data={group.data} />;
+    }
+    if (group.kind === "sources") {
+      return <SourcesPart key={key} data={group.data} />;
+    }
+    if (group.kind === "file") {
+      return (
+        <UploadedFilePart
+          key={key}
+          filename={group.filename}
+          mediaType={group.mediaType}
+          url={group.url}
+        />
+      );
+    }
+    return <GenericDataPart key={key} type={group.type} data={group.data} />;
+  }
+
+  function renderMessageSections(
+    parts: UIMessage["parts"],
+  ): React.ReactElement {
+    const sections = groupMessagePartSections(parts);
+    return (
+      <>
+        {sections.body.map((group, index) =>
+          renderMessagePart(group, `body-${index}`),
+        )}
+        {sections.sources.map((group, index) =>
+          renderMessagePart(group, `sources-${index}`),
+        )}
+        {sections.details.map((group, index) =>
+          renderMessagePart(group, `details-${index}`),
+        )}
+      </>
+    );
+  }
 
   useEffect(() => {
     if (promptInputRef.current) {
@@ -1175,60 +1242,7 @@ export function App(): React.ReactElement {
                   data-role={message.role}
                 >
                   <MessageContent className="web-chat-message-bubble">
-                    {groupMessageParts(message.parts).map((group, index) => {
-                      if (group.kind === "text") {
-                        return (
-                          <MessageResponse key={index}>
-                            {group.text}
-                          </MessageResponse>
-                        );
-                      }
-                      if (group.kind === "tools") {
-                        if (group.tools.length === 1) {
-                          return (
-                            <ToolResultPart key={index} data={group.tools[0]} />
-                          );
-                        }
-                        return (
-                          <ToolCallsGroup key={index} tools={group.tools} />
-                        );
-                      }
-                      if (group.kind === "confirmation") {
-                        return (
-                          <ConfirmationPart
-                            key={index}
-                            data={group.data}
-                            addToolApprovalResponse={addToolApprovalResponse}
-                          />
-                        );
-                      }
-                      if (group.kind === "native-tool") {
-                        return <NativeToolPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "attachment") {
-                        return <AttachmentPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "progress") {
-                        return <ProgressPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "file") {
-                        return (
-                          <UploadedFilePart
-                            key={index}
-                            filename={group.filename}
-                            mediaType={group.mediaType}
-                            url={group.url}
-                          />
-                        );
-                      }
-                      return (
-                        <GenericDataPart
-                          key={index}
-                          type={group.type}
-                          data={group.data}
-                        />
-                      );
-                    })}
+                    {renderMessageSections(message.parts)}
                   </MessageContent>
                 </Message>
               ))

@@ -41,6 +41,7 @@ import {
 } from "./conversation-messages";
 import {
   buildAttachmentCardFromToolData,
+  buildSourcesCardFromContextItems,
   extractToolResults,
   buildEntityMemoryNote,
 } from "./agent-results";
@@ -547,6 +548,8 @@ export class AgentService implements IAgentService {
 
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
+    const sourcesCard = buildSourcesCardFromContextItems(contextItems);
+    const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
       pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
@@ -570,7 +573,7 @@ export class AgentService implements IAgentService {
             this.getAssistantActor(),
             this.buildAssistantSource(channelId, channelName),
             [],
-            cards,
+            responseCards,
             entityMemoryNote,
           ),
         ),
@@ -588,7 +591,7 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
-      ...(cards.length > 0 ? { cards } : {}),
+      ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
     };
 

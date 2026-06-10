@@ -55,6 +55,17 @@ plugins:
     });
   });
 
+  it("distinguishes draft blog posts from adjacent draft publishing entities", () => {
+    const config = resolve(rover, {}, { preset: "full" });
+
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "Draft blog posts are only post entities with status draft",
+    );
+    expect(config.agentInstructions?.join("\n")).toContain(
+      "do not also list social-post, newsletter, deck, or other draft entity types",
+    );
+  });
+
   it("includes document support in the full preset", () => {
     const config = resolve(rover, {}, { preset: "full" });
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];

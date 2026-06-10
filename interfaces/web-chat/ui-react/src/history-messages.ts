@@ -39,12 +39,32 @@ export interface WebChatHistoryAttachmentCard {
   };
 }
 
+export interface WebChatHistorySourcesCard {
+  kind: "sources";
+  id: string;
+  title?: string | undefined;
+  sources: Array<{
+    id: string;
+    title?: string | undefined;
+    source: string;
+    url?: string | undefined;
+    entityType?: string | undefined;
+    entityId?: string | undefined;
+    excerpt?: string | undefined;
+    provenance?: Record<string, unknown> | undefined;
+  }>;
+}
+
+export type WebChatHistoryCard =
+  | WebChatHistoryAttachmentCard
+  | WebChatHistorySourcesCard;
+
 export interface WebChatHistoryMessage {
   id: string;
   role: UIMessage["role"];
   content: string;
   attachments?: WebChatHistoryAttachment[];
-  cards?: WebChatHistoryAttachmentCard[];
+  cards?: WebChatHistoryCard[];
 }
 
 export interface WebChatMessagesResponse {
@@ -62,7 +82,10 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
     if (upload) parts.push(createUploadPart(upload));
   }
   for (const card of message.cards ?? []) {
-    parts.push({ type: "data-attachment", data: card });
+    parts.push({
+      type: card.kind === "sources" ? "data-sources" : "data-attachment",
+      data: card,
+    });
   }
 
   return {

@@ -58,6 +58,40 @@ describe("web chat history messages", () => {
     });
   });
 
+  it("rehydrates stored source citation cards as AI SDK data-sources parts", () => {
+    const card = {
+      kind: "sources" as const,
+      id: "sources:agent-context",
+      title: "Retrieved context",
+      sources: [
+        {
+          id: "summary-1",
+          title: "Relay decision summary",
+          source: "conversation-memory",
+          entityType: "summary",
+          entityId: "summary-1",
+          excerpt: "The team decided to use explicit memory retrieval.",
+        },
+      ],
+    };
+
+    expect(
+      toUiMessage({
+        id: "message-1",
+        role: "assistant",
+        content: "According to retrieved context...",
+        cards: [card],
+      }),
+    ).toEqual({
+      id: "message-1",
+      role: "assistant",
+      parts: [
+        { type: "text", text: "According to retrieved context..." },
+        { type: "data-sources", data: card },
+      ],
+    });
+  });
+
   it("rehydrates stored generated artifact cards as AI SDK data-attachment parts", () => {
     const card = {
       kind: "attachment" as const,

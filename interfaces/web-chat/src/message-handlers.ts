@@ -42,7 +42,33 @@ const storedAttachmentCardSchema = z.object({
       .optional(),
   }),
 });
-const storedChatCardsSchema = z.array(storedAttachmentCardSchema);
+
+const storedSourcesCardSchema = z.object({
+  kind: z.literal("sources"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  sources: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        title: z.string().min(1).optional(),
+        source: z.string().min(1),
+        url: z.string().min(1).optional(),
+        entityType: z.string().min(1).optional(),
+        entityId: z.string().min(1).optional(),
+        excerpt: z.string().min(1).optional(),
+        provenance: z.record(z.unknown()).optional(),
+      }),
+    )
+    .min(1),
+});
+
+const storedChatCardsSchema = z.array(
+  z.discriminatedUnion("kind", [
+    storedAttachmentCardSchema,
+    storedSourcesCardSchema,
+  ]),
+);
 
 type PermissionResolver = (request: Request) => Promise<"anchor" | "public">;
 type ConversationService = InterfacePluginContext["conversations"];
