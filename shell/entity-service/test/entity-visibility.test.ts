@@ -5,8 +5,11 @@ import { createEntityDatabase } from "../src/db";
 import { entities } from "../src/schema/entities";
 import {
   baseEntitySchema,
+  canWriteVisibility,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
+  normalizeContentVisibility,
+  permissionToVisibilityScope,
   type BaseEntity,
   type ContentVisibility,
 } from "../src/types";
@@ -95,6 +98,39 @@ describe("entity visibility scope utilities", () => {
       "shared",
       "restricted",
     ]);
+  });
+
+  test("normalizeContentVisibility defaults undefined to public and maps private to restricted", () => {
+    expect(normalizeContentVisibility(undefined)).toBe("public");
+    expect(normalizeContentVisibility("private")).toBe("restricted");
+    expect(normalizeContentVisibility("public")).toBe("public");
+    expect(normalizeContentVisibility("shared")).toBe("shared");
+    expect(normalizeContentVisibility("restricted")).toBe("restricted");
+  });
+
+  test("permissionToVisibilityScope maps permission levels and fails closed", () => {
+    expect(permissionToVisibilityScope("anchor")).toBe("restricted");
+    expect(permissionToVisibilityScope("trusted")).toBe("shared");
+    expect(permissionToVisibilityScope("public")).toBe("public");
+    expect(permissionToVisibilityScope(undefined)).toBe("public");
+  });
+
+  test("canWriteVisibility only permits writes at visibilities the caller can read", () => {
+    expect(canWriteVisibility("public", "public")).toBe(true);
+    expect(canWriteVisibility("public", "shared")).toBe(false);
+    expect(canWriteVisibility("public", "restricted")).toBe(false);
+
+    expect(canWriteVisibility("trusted", "public")).toBe(true);
+    expect(canWriteVisibility("trusted", "shared")).toBe(true);
+    expect(canWriteVisibility("trusted", "restricted")).toBe(false);
+
+    expect(canWriteVisibility("anchor", "public")).toBe(true);
+    expect(canWriteVisibility("anchor", "shared")).toBe(true);
+    expect(canWriteVisibility("anchor", "restricted")).toBe(true);
+
+    expect(canWriteVisibility(undefined, "public")).toBe(true);
+    expect(canWriteVisibility(undefined, "shared")).toBe(false);
+    expect(canWriteVisibility(undefined, "restricted")).toBe(false);
   });
 });
 
