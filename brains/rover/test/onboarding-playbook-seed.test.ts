@@ -27,6 +27,9 @@ describe("Rover onboarding playbook seed", () => {
     expect(firstSeed?.doneWhen).toEqual([
       "A first knowledge seed has been saved.",
     ]);
+    expect(firstSeed?.instructions).toContain(
+      "After saving the seed, close by offering to demonstrate retrieval next.",
+    );
     expect(retrievalDemo?.doneWhen).toEqual([]);
     expect(transformationDemo?.doneWhen).toEqual([]);
     expect(wrapUp?.doneWhen).toEqual([]);

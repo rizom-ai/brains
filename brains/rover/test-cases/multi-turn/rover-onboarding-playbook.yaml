@@ -60,7 +60,10 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
+      responseContains:
+        - "demonstrate"
       responseNotContains:
+        - "what is next"
         - "I cannot"
         - "I don't have access"
 

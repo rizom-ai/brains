@@ -1029,6 +1029,7 @@ Current state id (tool use only): ${state.id}
 Use this run ID for run-scoped playbook tools when explicit run identity is needed.
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
+After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state.
 
 Completed states:
 ${completedStates || "- none"}
@@ -1070,6 +1071,7 @@ Treat playbook_status and active-playbook context as the source of truth for the
 Raw playbook state IDs are for tool use only. Do not mention them to the operator; use state titles or natural-language task descriptions instead.
 Follow the playbook's current state instructions, operating rules, and Done When conditions.
 Do not redo completed state work or ask for evidence already captured; ask only for what is missing in the current state.
+After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. Do not leave the operator needing to ask "what is next?".
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.

@@ -70,7 +70,7 @@ Ordered fix plan:
 6. **Proactive next-step guidance**: after meaningful tool actions during an active
    playbook, the agent should refresh/use current playbook status and end the turn
    with the next state's immediate question or action. The operator should not need
-   to ask "what is next?".
+   to ask "what is next?". **Done.**
 7. **Ambiguous continuation handling**: when the user says `go ahead` after a list
    of options, ask a clarifying question or choose the current playbook state's next
    explicit demonstration; do not start unrelated maintenance tasks.

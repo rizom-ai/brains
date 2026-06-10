@@ -914,6 +914,12 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain(
       "ask only for what is missing in the current state",
     );
+    expect(content).toContain(
+      "After meaningful tool actions, refresh playbook_status",
+    );
+    expect(content).toContain(
+      "end the turn with the next immediate question or action",
+    );
   });
 
   it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {

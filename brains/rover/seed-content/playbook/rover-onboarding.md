@@ -145,6 +145,7 @@ First knowledge seed
 - Save it as the appropriate durable entity, usually a note or link.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
+- After saving the seed, close by offering to demonstrate retrieval next.
 
 #### Done When
 
