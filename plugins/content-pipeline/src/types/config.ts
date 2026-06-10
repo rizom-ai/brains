@@ -17,15 +17,6 @@ export const publishConfigSchema = z
     /** Optional metadata/frontmatter field for storing publish timestamps. */
     publishTimestampField: z.string().min(1).optional(),
 
-    /** Maximum number of retry attempts before marking as failed */
-    maxRetries: z.number().optional(),
-
-    /** Initial backoff delay in milliseconds between retries */
-    retryBackoffMs: z.number().optional(),
-
-    /** Multiplier for exponential backoff (e.g., 2 = double delay each retry) */
-    retryBackoffMultiplier: z.number().optional(),
-
     /** Whether this entity type is enabled for publishing */
     enabled: z.boolean().optional(),
   })
@@ -39,9 +30,6 @@ export const DEFAULT_PUBLISH_CONFIG: Required<PublishConfig> = {
   executionMode: "provider",
   publishResultIdField: "platformId",
   publishTimestampField: "publishedAt",
-  maxRetries: 3,
-  retryBackoffMs: 5000,
-  retryBackoffMultiplier: 2,
   enabled: true,
 };
 
@@ -128,12 +116,6 @@ export const contentPipelineConfigSchema = z.object({
   generationConditions: z
     .record(z.string(), generationConditionSchema)
     .optional(),
-
-  /** Maximum number of retry attempts */
-  maxRetries: z.number().optional().default(3),
-
-  /** Base delay in milliseconds for retry backoff */
-  retryBaseDelayMs: z.number().optional().default(5000),
 });
 
 export type ContentPipelineConfig = z.infer<typeof contentPipelineConfigSchema>;

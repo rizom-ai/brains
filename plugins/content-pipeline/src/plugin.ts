@@ -46,10 +46,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 
     this.queueManager = QueueManager.createFresh();
     this.providerRegistry = ProviderRegistry.createFresh();
-    this.retryTracker = RetryTracker.createFresh({
-      maxRetries: this.config.maxRetries,
-      baseDelayMs: this.config.retryBaseDelayMs,
-    });
+    this.retryTracker = RetryTracker.createFresh();
     this.publishAssetRegistry = PublishAssetRegistry.createFresh();
     this.publishAssetPreflight = new PublishAssetPreflight({
       context,
@@ -122,7 +119,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   protected override async getInstructions(): Promise<string | undefined> {
     return `## Publishing
 - Use \`content-pipeline_queue\` to manage the publish queue — list queued items, add entities to the queue, remove them, or reorder.
-- Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown).
+- Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown). This tool has its own confirmation flow; call it without \`confirmed\` when the user asks to publish instead of asking for plain-text confirmation.
 - Use \`content-pipeline_ensure-assets\` to reconcile missing publish assets such as generated OG images for already-published content.
 - When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
   }

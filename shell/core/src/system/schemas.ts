@@ -38,27 +38,62 @@ const coverImageInputSchema = z.union([
   z.literal(false).describe("Do not generate a cover image"),
 ]);
 
-const createFromAttachmentInputSchema = z.object({
+const createSourceAttachmentInputSchema = z.object({
   sourceEntityType: z.string().min(1).describe("Source entity type"),
   sourceEntityId: z.string().min(1).describe("Source entity ID"),
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
+const createUploadInputSchema = z.object({
+  kind: z.literal("upload").describe("Upload ref kind"),
+  id: z.string().min(1).describe("Upload ID"),
+});
+
 export const createInputSchema = z.object({
-  entityType: z.string().describe("Entity type to create"),
-  title: z.string().optional().describe("Title for the entity"),
-  prompt: z.string().optional().describe("Prompt for AI generation"),
-  content: z.string().optional().describe("Direct content to store"),
+  entityType: z
+    .string()
+    .describe(
+      "Entity type to create. Do not use system_create for status-only requests such as making an existing post a draft; use system_update instead.",
+    ),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      "Title for a new entity. Do not invent placeholder titles like 'Draft Post' unless the user explicitly asked to create a new post.",
+    ),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "Prompt for AI generation of a new entity. Do not use for finalized/exact/as-written content, and do not use for status changes like 'make one draft' or 'change it to draft'.",
+    ),
+  content: z
+    .string()
+    .optional()
+    .describe(
+      "Direct content to store. Use this for finalized/exact/as-written user-provided markdown, including deck markdown with frontmatter and slide separators; omit prompt in those cases.",
+    ),
   url: z
     .string()
     .optional()
     .describe(
       "URL or domain for URL-first create flows such as saving a link or remote agent",
     ),
-  from: createFromAttachmentInputSchema
+  upload: createUploadInputSchema
     .optional()
     .describe(
-      "Create from a source-derived attachment, e.g. a deck carousel PDF document",
+      'Promote an upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
+    ),
+  transform: z
+    .string()
+    .optional()
+    .describe(
+      'Optional upload transform. Set to exactly "extract-markdown" only with upload and entityType base to extract markdown/text from an uploaded text or PDF file into a markdown note. Omit for raw file promotion to document/image; never include transform with entityType document or image.',
+    ),
+  sourceAttachment: createSourceAttachmentInputSchema
+    .optional()
+    .describe(
+      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
   replace: z
     .boolean()
@@ -81,6 +116,11 @@ export const createInputSchema = z.object({
     .describe(
       "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
     ),
+  confirmed: z.literal(true).optional().describe("Confirm the creation"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
 export const updateInputSchema = z.object({

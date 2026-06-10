@@ -1,0 +1,108 @@
+id: rover-publishing-followup-uses-updated-post
+name: Publish follow-up uses the post just changed to draft
+description: >-
+  Regression for a multi-turn publish flow. After the user changes the existing
+  Resilience post to draft, follow-ups like "publish it" must target that same
+  post by canonical ID. The agent must not demand an explicit ID, switch to a
+  different draft, or publish an unrelated freshly-created draft.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - rover
+  - publishing
+  - follow-up-targeting
+  - regression
+
+turns:
+  - userMessage: >-
+      Change the blog post "Resilience Is Not Redundancy" to draft.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            fields.status: draft
+      responseNotContains:
+        - "send the exact ID"
+        - "need the exact ID"
+        - "provide an ID"
+
+  - userMessage: >-
+      Approve the status change.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            id: resilience-in-distributed-systems
+            fields.status: draft
+
+  - userMessage: >-
+      Can you publish it now?
+    successCriteria:
+      expectedTools:
+        - toolName: content-pipeline_publish
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            id: resilience-in-distributed-systems
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "which post"
+        - "exact post title or ID"
+        - "exact ID"
+        - "send the slug"
+        - "untitled-draft-post"
+
+  - userMessage: >-
+      Approve the publish.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: content-pipeline_publish
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            id: resilience-in-distributed-systems
+            confirmed: true
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "which post"
+        - "exact post title or ID"
+        - "exact ID"
+        - "send the slug"
+        - "untitled-draft-post"
+
+successCriteria:
+  expectedTools:
+    - toolName: content-pipeline_publish
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        id: resilience-in-distributed-systems
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "which post"
+    - "exact post title or ID"
+    - "exact ID"
+    - "send the slug"
+    - "untitled-draft-post"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 30000

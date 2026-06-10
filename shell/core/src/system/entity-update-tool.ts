@@ -48,10 +48,19 @@ function applyFieldUpdates(
       )
     : withCoverImage;
 
+  const nextMetadata = { ...entity.metadata };
+  for (const [key, value] of Object.entries(metadataFields)) {
+    if (value === null) {
+      delete nextMetadata[key];
+    } else {
+      nextMetadata[key] = value;
+    }
+  }
+
   return {
     ...withOgImage,
     visibility: nextVisibility,
-    metadata: { ...entity.metadata, ...metadataFields },
+    metadata: nextMetadata,
   };
 }
 

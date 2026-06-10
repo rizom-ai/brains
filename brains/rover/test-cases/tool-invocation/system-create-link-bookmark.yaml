@@ -19,6 +19,10 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
+      argsAbsent:
+        - upload
+        - sourceAttachment
+        - from
   responseNotContains:
     - "I cannot"
     - "I don't have access"

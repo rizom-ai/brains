@@ -51,7 +51,6 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
       generationConditions: config.generationConditions,
     }),
     messageBus,
-    entityService: context.entityService,
     publishExecutor,
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(

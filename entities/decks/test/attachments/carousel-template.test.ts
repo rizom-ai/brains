@@ -23,6 +23,25 @@ describe("deck carousel template", () => {
     expect(html).toContain("--color-accent");
   });
 
+  it("uses a medium heading weight for carousel slide titles", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Heading Weight",
+        slides: [{ markdown: "# Not Too Heavy" }],
+      },
+      siteConfig: { title: "Heading Weight", themeMode: "dark" },
+    });
+
+    expect(html).toContain(`.deck-carousel-content h1,
+            .deck-carousel-content h2,
+            .deck-carousel-content h3 {
+              color: var(--carousel-heading);
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 500;`);
+  });
+
   it("renders a zero-padded counter per slide showing current and total", () => {
     const html = renderMediaTemplateHtml({
       template: deckCarouselTemplate,
@@ -158,6 +177,22 @@ describe("deck carousel template", () => {
 
     expect(html).toContain('[data-theme="dark"] .deck-carousel-pdf');
     expect(html).toContain('[data-theme="light"] .deck-carousel-pdf');
+  });
+
+  it("styles italic emphasis with the carousel accent color", () => {
+    const html = renderMediaTemplateHtml({
+      template: deckCarouselTemplate,
+      format: "pdf",
+      content: {
+        title: "Accent",
+        slides: [{ markdown: "This is *important*." }],
+      },
+      siteConfig: { title: "Accent", themeMode: "dark" },
+    });
+
+    expect(html).toContain("<em>important</em>");
+    expect(html).toContain(".deck-carousel-content em");
+    expect(html).toContain("color: var(--carousel-accent);");
   });
 
   it("uses opaque slide backgrounds for LinkedIn PDF compatibility", () => {

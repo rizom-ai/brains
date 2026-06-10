@@ -22,9 +22,9 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "document"
-        from.sourceEntityType: "project"
-        from.sourceEntityId: "city-pulse"
-        from.attachmentType: "printable"
+        sourceAttachment.sourceEntityType: "project"
+        sourceAttachment.sourceEntityId: "city-pulse"
+        sourceAttachment.attachmentType: "printable"
         replace: true
   responseNotContains:
     - "I cannot"

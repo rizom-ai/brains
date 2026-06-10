@@ -45,28 +45,5 @@ describe("ContentPipelinePlugin - Report Handlers", () => {
       expect(retryInfo?.retryCount).toBe(1);
       expect(retryInfo?.lastError).toBe("Network error");
     });
-
-    it("should indicate willRetry=false after max retries", async () => {
-      const limitedHarness = createPluginHarness<ContentPipelinePlugin>({
-        dataDir: "/tmp/test-limited",
-      });
-      const limitedPlugin = new ContentPipelinePlugin({ maxRetries: 2 });
-      await limitedHarness.installPlugin(limitedPlugin);
-
-      await limitedHarness.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
-        entityType: "social-post",
-        entityId: "post-1",
-        error: "Error 1",
-      });
-
-      await limitedHarness.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
-        entityType: "social-post",
-        entityId: "post-1",
-        error: "Error 2",
-      });
-
-      const retryInfo = limitedPlugin.getRetryTracker().getRetryInfo("post-1");
-      expect(retryInfo?.willRetry).toBe(false);
-    });
   });
 });

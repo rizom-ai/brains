@@ -26,6 +26,7 @@ import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
   createAppInfoGetter,
   createConversationsNamespace,
@@ -256,6 +257,13 @@ export interface BasePluginContext {
   readonly attachments: IAttachmentsNamespace;
 
   // ============================================================================
+  // Runtime Uploads
+  // ============================================================================
+
+  /** Ephemeral runtime upload storage namespace. */
+  readonly uploads: IRuntimeUploadsNamespace;
+
+  // ============================================================================
   // Conversations (Read-Only)
   // ============================================================================
 
@@ -346,6 +354,7 @@ export function createBasePluginContext(
   const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
   const attachments = shell.getAttachmentRegistry();
+  const uploads = shell.getRuntimeUploadRegistry();
 
   return {
     pluginId,
@@ -373,6 +382,8 @@ export function createBasePluginContext(
     jobs: createJobsNamespace(shell, pluginId),
 
     attachments,
+
+    uploads,
 
     conversations: createConversationsNamespace(shell),
 

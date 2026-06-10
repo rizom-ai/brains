@@ -157,10 +157,8 @@ export class ContentScheduler {
 
   private get publishDeps(): PublishDeps {
     return {
-      providerRegistry: this.config.providerRegistry,
       retryTracker: this.config.retryTracker,
       messageBus: this.config.messageBus,
-      entityService: this.config.entityService,
       publishExecutor: this.config.publishExecutor,
       onPublish: this.config.onPublish,
       onFailed: this.config.onFailed,

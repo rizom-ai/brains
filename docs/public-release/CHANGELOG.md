@@ -81,7 +81,7 @@ The first public release of `brains`, after roughly a year of private developmen
 
 #### System tools (stable surface)
 
-- `system_create` — create or AI-generate any entity
+- `system_create` — create or AI-generate any entity with confirmation flow
 - `system_update` — modify an entity with confirmation flow
 - `system_delete` — delete an entity with confirmation flow
 - `system_get` / `system_list` / `system_search` — read access

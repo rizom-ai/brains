@@ -1,0 +1,85 @@
+id: multi-turn-web-chat-pdf-upload-save-follow-up
+name: Web chat PDF upload follow-up promotes document
+description: Verifies a bare web-chat PDF upload is inert, then an explicit save/promote follow-up calls system_create with the prior web-chat upload ref as a raw document.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-file-upload-save
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - pdf
+  - document
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: raw-upload-handbook.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000501
+    successCriteria:
+      responseContains:
+        - "raw-upload-handbook.pdf"
+        - "What would you like me to do"
+      responseNotContains:
+        - "upload-00000000-0000-4000-8000-000000000501"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "save it as a document"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: document
+            upload.kind: upload
+            upload.id: upload-00000000-0000-4000-8000-000000000501
+          argsAbsent:
+            - transform
+            - from
+            - fromUpload
+            - sourceAttachment
+      responseNotContains:
+        - "upload reference isn't accessible"
+        - "upload reference isn’t accessible"
+        - "file reference isn't accessible"
+        - "file reference isn’t accessible"
+        - "Please re-upload"
+        - "re-upload"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: document
+        upload.kind: upload
+        upload.id: upload-00000000-0000-4000-8000-000000000501
+      argsAbsent:
+        - transform
+        - from
+        - fromUpload
+        - sourceAttachment
+    - toolName: document_generate
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "deck"
+    - "Please re-upload"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 40000

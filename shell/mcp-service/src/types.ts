@@ -25,7 +25,7 @@ export interface ToolContext {
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId: string; // User who invoked the tool
-  conversationId?: string; // Durable conversation/session id when available
+  conversationId?: string; // Durable conversation/session id for conversation-scoped tools when available
   channelId?: string; // Transport channel/room context (for Matrix, etc.)
   channelName?: string; // Human-readable channel name (for display)
   runId?: string; // Runtime workflow/playbook run context when available
@@ -83,7 +83,7 @@ export const toolErrorSchema = z
 
 /**
  * Confirmation response schema
- * Tools return this when a destructive operation needs user approval.
+ * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
 export const toolConfirmationSchema = z

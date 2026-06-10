@@ -1,5 +1,6 @@
 import type {
   CreateExecutionContext,
+  CreateFromAttachmentInput,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
@@ -12,10 +13,16 @@ import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import { SourceImageRenderJobHandler } from "./handlers/source-image-render-handler";
+import { UploadPromotionJobHandler } from "./handlers/upload-promotion-handler";
 import {
   getDistillableEntityContent,
   isImageDataUrl,
 } from "./lib/distillable-content";
+import {
+  getUploadImageIdentity,
+  isSupportedImageMediaType,
+  webChatUploadsScope,
+} from "./lib/upload-promotion";
 import packageJson from "../package.json";
 
 const imageConfigSchema = z.object({
@@ -110,6 +117,35 @@ function buildPredictedImageAttachment(
   };
 }
 
+function buildUploadedImageAttachment(input: {
+  mediaType: string;
+  entityId: string;
+  filename: string;
+}): {
+  mediaType: string;
+  url: string;
+  downloadUrl: string;
+  filename: string;
+  source: {
+    entityType: "image";
+    entityId: string;
+    attachmentType: "uploaded";
+  };
+} {
+  const encodedId = encodeURIComponent(input.entityId);
+  return {
+    mediaType: input.mediaType,
+    url: `/api/chat/attachments/image?id=${encodedId}`,
+    downloadUrl: `/api/chat/attachments/image?id=${encodedId}&download=1`,
+    filename: input.filename,
+    source: {
+      entityType: "image",
+      entityId: input.entityId,
+      attachmentType: "uploaded",
+    },
+  };
+}
+
 /**
  * Image EntityPlugin — manages image entities with AI generation.
  *
@@ -136,6 +172,10 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     _executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
+    if (input.from?.kind === webChatUploadsScope.refKind) {
+      return this.promoteUpload(input, context);
+    }
+
     const prompt = getImageGenerationPrompt(input);
     const targetEntityType = normalizeText(input.targetEntityType);
     const targetEntityId = normalizeText(input.targetEntityId);
@@ -143,7 +183,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       targetEntityType === this.entityType ? targetEntityId : undefined;
 
     const from = input.from;
-    if (from) {
+    if (from?.kind === "entity-attachment") {
       return this.enqueueSourceImageRender({ ...input, from }, context);
     }
 
@@ -234,8 +274,85 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
   }
 
+  private async promoteUpload(
+    input: CreateInput,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    const uploadRef = input.from;
+    if (uploadRef?.kind !== webChatUploadsScope.refKind) {
+      return {
+        kind: "handled",
+        result: { success: false, error: "Unsupported upload ref kind" },
+      };
+    }
+
+    const uploadId = uploadRef.id;
+    let uploadRecord;
+    try {
+      uploadRecord = await context.uploads
+        .scoped(webChatUploadsScope)
+        .readRecord(uploadId);
+    } catch {
+      return {
+        kind: "handled",
+        result: { success: false, error: "Upload ref not found" },
+      };
+    }
+
+    if (!isSupportedImageMediaType(uploadRecord.mediaType)) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error: "Only image uploads can be promoted to image entities",
+        },
+      };
+    }
+
+    let identity;
+    try {
+      identity = getUploadImageIdentity({
+        filename: uploadRecord.filename,
+        ...(input.title !== undefined ? { title: input.title } : {}),
+      });
+    } catch (error) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
+
+    const jobId = await context.jobs.enqueue({
+      type: "upload-promote",
+      data: {
+        uploadId,
+        ...(input.title !== undefined ? { title: input.title } : {}),
+      },
+    });
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: identity.id,
+          status: "generating",
+          jobId,
+          attachment: buildUploadedImageAttachment({
+            mediaType: uploadRecord.mediaType,
+            entityId: identity.id,
+            filename: uploadRecord.filename,
+          }),
+        },
+      },
+    };
+  }
+
   private async enqueueSourceImageRender(
-    input: CreateInput & { from: NonNullable<CreateInput["from"]> },
+    input: CreateInput & { from: CreateFromAttachmentInput },
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     const sourceEntityType = normalizeText(input.from.sourceEntityType);
@@ -320,6 +437,10 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return `For durable raw image saves/promotions from uploaded images, call system_create with entityType: "image", the exact upload object shown in the current turn or conversation "Available upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the upload. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely.`;
+  }
+
   protected override createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler {
@@ -338,6 +459,13 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     context.jobs.registerHandler(
       "image-render-source",
       new SourceImageRenderJobHandler(context, this.logger),
+    );
+    context.jobs.registerHandler(
+      "upload-promote",
+      new UploadPromotionJobHandler(
+        this.logger.child("UploadPromotionJobHandler"),
+        context,
+      ),
     );
   }
 }

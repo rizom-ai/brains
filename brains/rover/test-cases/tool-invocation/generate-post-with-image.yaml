@@ -21,6 +21,9 @@ successCriteria:
         entityType: "social-post"
         coverImage.generate: true
       argsAbsent:
+        - upload
+        - sourceAttachment
+        - from
         - targetEntityType
         - targetEntityId
   responseNotContains:

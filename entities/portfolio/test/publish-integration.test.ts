@@ -67,8 +67,19 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message on init with internal provider", async () => {
+    it("should send publish:register message after system:plugins:ready with internal provider", async () => {
       await harness.installPlugin(new PortfolioPlugin({}));
+
+      expect(
+        receivedMessages.find((m) => m.type === "publish:register"),
+      ).toBeUndefined();
+
+      await harness.sendMessage(
+        "system:plugins:ready",
+        { timestamp: new Date().toISOString(), pluginCount: 1 },
+        "shell",
+        true,
+      );
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",

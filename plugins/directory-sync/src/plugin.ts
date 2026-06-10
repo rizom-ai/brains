@@ -5,6 +5,7 @@ import { GitSync } from "./lib/git-sync";
 import { directorySyncConfigSchema, type DirectorySyncConfig } from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 import { directorySyncStatusSchema } from "./schemas";
+import { DirectorySyncRequestJobHandler } from "./handlers";
 import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
@@ -132,6 +133,16 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       this.logger.info("Git integration enabled", {
         repo: this.config.git.repo,
       });
+
+      context.jobs.registerHandler(
+        "sync-request",
+        new DirectorySyncRequestJobHandler(
+          this.logger.child("DirectorySyncRequestJobHandler"),
+          context,
+          this.requireDirectorySync(),
+          this.gitSync,
+        ),
+      );
 
       this.gitCleanups.push(
         setupGitAutoCommit(

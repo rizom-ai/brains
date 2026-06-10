@@ -1,5 +1,77 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- [`2688667`](https://github.com/rizom-ai/brains/commit/26886676251bcfab6f4bbeae7e743059746e737e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep raw attachment URLs out of model-visible tool results while preserving full artifact card data for chat UI rendering.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/conversation-service@0.2.0-alpha.116
+  - @brains/entity-service@0.2.0-alpha.116
+  - @brains/identity-service@0.2.0-alpha.116
+  - @brains/mcp-service@0.2.0-alpha.116
+  - @brains/messaging-service@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/conversation-service@0.2.0-alpha.115
+  - @brains/entity-service@0.2.0-alpha.115
+  - @brains/identity-service@0.2.0-alpha.115
+  - @brains/mcp-service@0.2.0-alpha.115
+  - @brains/messaging-service@0.2.0-alpha.115
+  - @brains/templates@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/conversation-service@0.2.0-alpha.114
+  - @brains/entity-service@0.2.0-alpha.114
+  - @brains/identity-service@0.2.0-alpha.114
+  - @brains/mcp-service@0.2.0-alpha.114
+  - @brains/messaging-service@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/conversation-service@0.2.0-alpha.113
+  - @brains/entity-service@0.2.0-alpha.113
+  - @brains/identity-service@0.2.0-alpha.113
+  - @brains/mcp-service@0.2.0-alpha.113
+  - @brains/messaging-service@0.2.0-alpha.113
+  - @brains/templates@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/conversation-service@0.2.0-alpha.112
+  - @brains/entity-service@0.2.0-alpha.112
+  - @brains/identity-service@0.2.0-alpha.112
+  - @brains/mcp-service@0.2.0-alpha.112
+  - @brains/messaging-service@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

@@ -159,25 +159,14 @@ describe("sync tool", () => {
     expect(result.data?.["totalFiles"]).toBe(10);
   });
 
-  it("should git pull before queuing imports", async () => {
+  it("should enqueue git pull plus sync work when git is configured", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
     const { gitSync, pullMock } = createMockGitSync();
-
-    const order: string[] = [];
-    pullMock.mockImplementation(async () => {
-      order.push("pull");
-      return { files: [], alreadyUpToDate: true };
-    });
-    queueSyncBatchMock.mockImplementation(async () => {
-      order.push("queueSyncBatch");
-      return {
-        batchId: "b",
-        operationCount: 1,
-        exportOperationsCount: 0,
-        importOperationsCount: 1,
-        totalFiles: 1,
-      };
-    });
+    const enqueueMock = mock(async () => "job-123");
+    context = {
+      ...context,
+      jobs: { ...context.jobs, enqueue: enqueueMock },
+    } as ServicePluginContext;
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -186,9 +175,22 @@ describe("sync tool", () => {
       gitSync,
     );
     const syncTool = findTool(tools, "directory-sync_sync");
-    await syncTool.handler({}, toolContext);
+    const result = parseToolResult(await syncTool.handler({}, toolContext));
 
-    expect(order).toEqual(["pull", "queueSyncBatch"]);
+    expect(result.success).toBe(true);
+    expect(result.data?.["jobId"]).toBe("job-123");
+    expect(result.data?.["gitPulled"]).toBe(true);
+    expect(enqueueMock).toHaveBeenCalledWith({
+      type: "sync-request",
+      data: {
+        source: "plugin:directory-sync",
+        interfaceType: "mcp",
+        channelId: undefined,
+      },
+      toolContext,
+    });
+    expect(pullMock).not.toHaveBeenCalled();
+    expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 
   it("should skip git pull when no gitSync", async () => {
@@ -222,9 +224,14 @@ describe("sync tool", () => {
     expect(result.message).toContain("No files to sync");
   });
 
-  it("should return success with gitPulled when no files but git configured", async () => {
+  it("should return success with jobId when git is configured", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
     const { gitSync } = createMockGitSync();
+    const enqueueMock = mock(async () => "job-123");
+    context = {
+      ...context,
+      jobs: { ...context.jobs, enqueue: enqueueMock },
+    } as ServicePluginContext;
     queueSyncBatchMock.mockResolvedValue(null);
 
     const tools = createDirectorySyncTools(
@@ -237,13 +244,23 @@ describe("sync tool", () => {
     const result = parseToolResult(await syncTool.handler({}, toolContext));
 
     expect(result.success).toBe(true);
+    expect(result.data?.["jobId"]).toBe("job-123");
     expect(result.data?.["gitPulled"]).toBe(true);
+    expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 
-  it("should return toolError when pull fails", async () => {
+  it("should return toolError when enqueueing a git-backed sync fails", async () => {
     const { directorySync } = createMockDirectorySync();
-    const { gitSync, pullMock } = createMockGitSync();
-    pullMock.mockRejectedValue(new Error("Network timeout"));
+    const { gitSync } = createMockGitSync();
+    context = {
+      ...context,
+      jobs: {
+        ...context.jobs,
+        enqueue: mock(async () => {
+          throw new Error("Queue unavailable");
+        }),
+      },
+    } as ServicePluginContext;
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -255,7 +272,7 @@ describe("sync tool", () => {
     const result = parseToolResult(await syncTool.handler({}, toolContext));
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Network timeout");
+    expect(result.error).toContain("Queue unavailable");
   });
 
   it("should return toolError when queueSyncBatch fails", async () => {
@@ -316,7 +333,7 @@ describe("sync tool", () => {
     );
   });
 
-  it("should run pull and queueSyncBatch inside the same withLock call", async () => {
+  it("should leave git locking and batch queueing to the sync-request job", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
     const { gitSync, pullMock, withLockCallCount } = createMockGitSync();
 
@@ -329,11 +346,9 @@ describe("sync tool", () => {
     const syncTool = findTool(tools, "directory-sync_sync");
     await syncTool.handler({}, toolContext);
 
-    // withLock should be called exactly once (both pull and queue inside it)
-    expect(withLockCallCount.value).toBe(1);
-    // Both pull and queueSyncBatch should have been called
-    expect(pullMock).toHaveBeenCalledTimes(1);
-    expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
+    expect(withLockCallCount.value).toBe(0);
+    expect(pullMock).not.toHaveBeenCalled();
+    expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 });
 

@@ -21,7 +21,9 @@ import type {
 // Plugin manager
 import {
   createAttachmentsNamespace,
+  createRuntimeUploadsNamespace,
   type IAttachmentsNamespace,
+  type IRuntimeUploadsNamespace,
   type PluginManager,
 } from "@brains/plugins";
 
@@ -326,6 +328,10 @@ export class Shell implements IShell {
 
   public getAttachmentRegistry(): IAttachmentsNamespace {
     return createAttachmentsNamespace(this.services.attachmentRegistry);
+  }
+
+  public getRuntimeUploadRegistry(): IRuntimeUploadsNamespace {
+    return createRuntimeUploadsNamespace(this.services.runtimeUploadRegistry);
   }
 
   public getMessageBus(): IMessageBus {

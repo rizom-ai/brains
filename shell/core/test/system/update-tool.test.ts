@@ -326,6 +326,64 @@ describe("system_update tool", () => {
     expect(updated?.metadata).not.toHaveProperty("visibility");
   });
 
+  it("removes optional metadata fields when a field update sets them to null", async () => {
+    services.addEntities([
+      {
+        id: "resilience-in-distributed-systems",
+        entityType: "post",
+        content:
+          "---\ntitle: Resilience Is Not Redundancy\nslug: resilience-in-distributed-systems\nstatus: published\npublishedAt: '2025-08-15T00:00:00.000Z'\n---\n\nPost body.",
+        contentHash: "hash-post-published",
+        visibility: "public",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          slug: "resilience-in-distributed-systems",
+          status: "published",
+          publishedAt: "2025-08-15T00:00:00.000Z",
+        },
+        created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+      },
+    ]);
+
+    const originalUpdateEntity = services.entityService.updateEntity.bind(
+      services.entityService,
+    );
+    const postUpdateSchema = z
+      .object({
+        metadata: z
+          .object({
+            publishedAt: z.string().datetime().optional(),
+          })
+          .passthrough(),
+      })
+      .passthrough();
+    services.entityService.updateEntity = async (request) => {
+      if (request.entity.entityType === "post") {
+        postUpdateSchema.parse(request.entity);
+      }
+      return originalUpdateEntity(request);
+    };
+
+    const result = await exec({
+      entityType: "post",
+      id: "resilience-in-distributed-systems",
+      fields: { status: "draft", publishedAt: null },
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "resilience-in-distributed-systems" },
+    });
+
+    const updated = services
+      .getEntities()
+      .get("resilience-in-distributed-systems");
+    expect(updated?.metadata["status"]).toBe("draft");
+    expect(updated?.metadata).not.toHaveProperty("publishedAt");
+  });
+
   it("rejects coverImageId field updates for entity types without cover support", async () => {
     const result = await exec({
       entityType: "agent",

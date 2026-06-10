@@ -90,7 +90,15 @@ describe("write tools cap visibility by caller permission", () => {
     input: Record<string, unknown>,
     level: ToolContext["userPermissionLevel"],
   ): Promise<unknown> {
-    return getTool("system_create").handler(input, baseContext(level));
+    const result = await getTool("system_create").handler(
+      input,
+      baseContext(level),
+    );
+    const response = toolResponseSchema.parse(result);
+    if (!("needsConfirmation" in response)) {
+      return result;
+    }
+    return getTool("system_create").handler(response.args, baseContext(level));
   }
 
   async function runUpdate(

@@ -1,5 +1,80 @@
 # @brains/plugins
 
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.116
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/site-composition@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/conversation-service@0.2.0-alpha.116
+  - @brains/identity-service@0.2.0-alpha.116
+  - @brains/job-queue@0.2.0-alpha.116
+  - @brains/messaging-service@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.115
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/site-composition@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/conversation-service@0.2.0-alpha.115
+  - @brains/identity-service@0.2.0-alpha.115
+  - @brains/job-queue@0.2.0-alpha.115
+  - @brains/messaging-service@0.2.0-alpha.115
+  - @brains/templates@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.114
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/site-composition@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/conversation-service@0.2.0-alpha.114
+  - @brains/identity-service@0.2.0-alpha.114
+  - @brains/job-queue@0.2.0-alpha.114
+  - @brains/messaging-service@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.113
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/site-composition@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/conversation-service@0.2.0-alpha.113
+  - @brains/identity-service@0.2.0-alpha.113
+  - @brains/job-queue@0.2.0-alpha.113
+  - @brains/messaging-service@0.2.0-alpha.113
+  - @brains/templates@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.112
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/site-composition@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/conversation-service@0.2.0-alpha.112
+  - @brains/identity-service@0.2.0-alpha.112
+  - @brains/job-queue@0.2.0-alpha.112
+  - @brains/messaging-service@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

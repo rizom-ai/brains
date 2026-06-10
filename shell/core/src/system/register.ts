@@ -73,6 +73,7 @@ export function registerSystemCapabilities(
         args,
         interfaceType,
         userId,
+        conversationId,
         channelId,
         userPermissionLevel,
       } = parsed.data;
@@ -89,6 +90,7 @@ export function registerSystemCapabilities(
         interfaceType: interfaceType ?? "system",
         userId: userId ?? "system",
       };
+      if (conversationId) toolContext.conversationId = conversationId;
       if (channelId) toolContext.channelId = channelId;
       if (userPermissionLevel)
         toolContext.userPermissionLevel = userPermissionLevel;

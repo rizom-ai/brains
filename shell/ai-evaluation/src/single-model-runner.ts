@@ -56,6 +56,9 @@ export async function runSingleModelEvaluation(
   await options.runEvaluations({
     agentService,
     aiService,
+    ...(!options.remoteUrl
+      ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
+      : {}),
     testCasesDir: options.testCasesDirs,
     skipLLMJudge: options.skipLLMJudge,
     verbose: options.verbose,

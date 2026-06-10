@@ -9,6 +9,7 @@ export function createSystemInstructions(services: SystemServices): string {
     "Use these system tools for ALL entity operations:",
     "",
     "- **system_create**: Create or generate any entity. " +
+      "Requires confirmation before persisting or queueing creation; never pass `confirmed: true` on the initial user request. " +
       "Pass `content` for direct creation, `prompt` for AI generation, `url` for URL-first flows like saving links or remote agents, or `from` for source-derived artifact saves such as deck carousel PDFs, rendered OG images, and printable post/project/product PDFs. " +
       "When creating an entity with a cover image, pass `coverImage: true` or `coverImage: { generate: true, prompt }`; do not guess a future entity ID. " +
       `Available entity types: ${types.join(", ")}.`,

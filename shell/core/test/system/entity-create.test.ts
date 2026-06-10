@@ -8,7 +8,8 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/entity-service";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
+import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
@@ -256,22 +257,19 @@ describe("system_create tool", () => {
     tools = createSystemTools(services);
   });
 
-  function exec(
-    input: Record<string, unknown>,
-    context?: {
-      interfaceType?: string;
-      userId?: string;
-      conversationId?: string;
-      channelId?: string;
-      channelName?: string;
-      runId?: string;
-      toolCallId?: string;
-      userPermissionLevel?: UserPermissionLevel;
-    },
-  ): Promise<ToolResponse> {
-    const tool = tools.find((t) => t.name === "system_create");
-    if (!tool) throw new Error("system_create not found");
-    return tool.handler(input, {
+  interface CreateToolTestContext {
+    interfaceType?: string;
+    userId?: string;
+    conversationId?: string;
+    channelId?: string;
+    channelName?: string;
+    runId?: string;
+    toolCallId?: string;
+    userPermissionLevel?: UserPermissionLevel;
+  }
+
+  function buildContext(context?: CreateToolTestContext): ToolContext {
+    return {
       interfaceType: context?.interfaceType ?? "test",
       userId: context?.userId ?? "test",
       ...(context?.conversationId
@@ -284,8 +282,110 @@ describe("system_create tool", () => {
       ...(context?.userPermissionLevel
         ? { userPermissionLevel: context.userPermissionLevel }
         : {}),
-    });
+    };
   }
+
+  function execRaw(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const tool = tools.find((t) => t.name === "system_create");
+    if (!tool) throw new Error("system_create not found");
+    return tool.handler(input, buildContext(context));
+  }
+
+  async function exec(
+    input: Record<string, unknown>,
+    context?: CreateToolTestContext,
+  ): Promise<ToolResponse> {
+    const result = await execRaw(input, context);
+    if (!("needsConfirmation" in result)) return result;
+    return execRaw(result.args as Record<string, unknown>, context);
+  }
+
+  it("should require confirmation before creating durable entities", async () => {
+    const result = await execRaw({
+      entityType: "base",
+      title: "Confirm Me",
+      content: "Confirm this create.",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_create",
+      summary: 'Create "Confirm Me"?',
+    });
+    expect(result).toHaveProperty("args.confirmed", true);
+  });
+
+  it("hides raw upload refs from confirmation preview copy", async () => {
+    const uploadId = "upload-00000000-0000-4000-8000-000000000777";
+    const conversationService: IConversationService = {
+      startConversation: async () => "conv-1",
+      addMessage: async () => undefined,
+      getMessages: async () => [
+        {
+          id: "message-1",
+          conversationId: "conv-1",
+          role: "user",
+          content: "",
+          timestamp: new Date(0).toISOString(),
+          metadata: JSON.stringify({
+            attachments: [
+              {
+                kind: "file",
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                source: { kind: "upload", id: uploadId },
+              },
+            ],
+          }),
+        },
+      ],
+      countMessages: async () => 1,
+      getConversation: async () => null,
+      listConversations: async () => [],
+      updateConversationMetadata: async () => false,
+      deleteConversation: async () => false,
+      searchConversations: async () => [],
+      close: () => undefined,
+    };
+    services = createMockSystemServices({ conversationService });
+    tools = createSystemTools(services);
+
+    const result = await execRaw(
+      {
+        entityType: "base",
+        title: "Brief",
+        content: "Preserve uploaded PDF.",
+        upload: { kind: "upload", id: uploadId },
+      },
+      { conversationId: "conv-1" },
+    );
+
+    const parsedConfirmation = z
+      .object({ preview: z.string() })
+      .passthrough()
+      .parse(result);
+    expect(result).toMatchObject({ needsConfirmation: true });
+    expect(parsedConfirmation.preview).toContain("Upload: uploaded file");
+    expect(parsedConfirmation.preview).not.toContain(uploadId);
+  });
+
+  it("should reject confirmed create calls without a pending confirmation token", async () => {
+    const result = await execRaw({
+      entityType: "base",
+      title: "No Token",
+      content: "Do not create directly.",
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "No pending create confirmation found. Please request creation again and confirm the new approval.",
+    });
+  });
 
   it("passes separate conversation, channel, run, and tool call provenance to entity creation", async () => {
     const result = await exec(
@@ -363,6 +463,338 @@ describe("system_create tool", () => {
       userId: "alice",
       channelId: "!room:test",
       channelName: "#general",
+    });
+  });
+
+  it("should pass accessible upload refs to registered create interceptors", async () => {
+    let capturedInput: CreateInput | undefined;
+    services = createMockSystemServices({
+      conversationService: {
+        ...services.conversationService,
+        getMessages: async () => [
+          {
+            id: "message-1",
+            conversationId: "web-conversation-1",
+            role: "user",
+            content: "",
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "brief.pdf",
+                  mediaType: "application/pdf",
+                  source: {
+                    kind: "upload",
+                    id: "upload-00000000-0000-4000-8000-000000000301",
+                  },
+                },
+              ],
+            }),
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+    tools = createSystemTools(services);
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input) => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { status: "created", entityId: "brief" },
+          },
+        };
+      },
+    );
+
+    const result = await exec(
+      {
+        entityType: "document",
+        upload: {
+          kind: "upload",
+          id: "upload-00000000-0000-4000-8000-000000000301",
+        },
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "brief" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "document",
+      from: {
+        kind: "upload",
+        id: "upload-00000000-0000-4000-8000-000000000301",
+      },
+    });
+  });
+
+  it("should pass upload markdown transforms to registered create interceptors", async () => {
+    let capturedInput: CreateInput | undefined;
+    services = createMockSystemServices({
+      conversationService: {
+        ...services.conversationService,
+        getMessages: async () => [
+          {
+            id: "message-1",
+            conversationId: "web-conversation-1",
+            role: "user",
+            content: "",
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "brief.pdf",
+                  mediaType: "application/pdf",
+                  source: {
+                    kind: "upload",
+                    id: "upload-00000000-0000-4000-8000-000000000304",
+                  },
+                },
+              ],
+            }),
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+    tools = createSystemTools(services);
+    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief-note" },
+        },
+      };
+    });
+
+    const result = await exec(
+      {
+        entityType: "base",
+        upload: {
+          kind: "upload",
+          id: "upload-00000000-0000-4000-8000-000000000304",
+        },
+        transform: "extract-markdown",
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "brief-note" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "base",
+      from: {
+        kind: "upload",
+        id: "upload-00000000-0000-4000-8000-000000000304",
+      },
+      transform: "extract-markdown",
+    });
+  });
+
+  it("should reject extract-markdown transform without an upload ref", async () => {
+    const result = await exec({
+      entityType: "base",
+      content: "# Notes\n\nStore this directly.",
+      transform: "extract-markdown",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+    });
+  });
+
+  it("should reject extract-markdown transform for raw document upload promotion", async () => {
+    services = createMockSystemServices({
+      conversationService: {
+        ...services.conversationService,
+        getMessages: async () => [
+          {
+            id: "message-1",
+            conversationId: "web-conversation-1",
+            role: "user",
+            content: "",
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "brief.pdf",
+                  mediaType: "application/pdf",
+                  source: {
+                    kind: "upload",
+                    id: "upload-00000000-0000-4000-8000-000000000305",
+                  },
+                },
+              ],
+            }),
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+    tools = createSystemTools(services);
+    let interceptorCalled = false;
+    services.entityRegistry.registerCreateInterceptor("document", async () => {
+      interceptorCalled = true;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "brief" },
+        },
+      };
+    });
+
+    const result = await exec(
+      {
+        entityType: "document",
+        upload: {
+          kind: "upload",
+          id: "upload-00000000-0000-4000-8000-000000000305",
+        },
+        transform: "extract-markdown",
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+    });
+    expect(interceptorCalled).toBe(false);
+  });
+
+  it("should treat empty transform strings as omitted for direct creates", async () => {
+    let capturedInput: CreateInput | undefined;
+    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+      capturedInput = input;
+      return {
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "created", entityId: "operating-notes" },
+        },
+      };
+    });
+
+    const result = await exec({
+      entityType: "base",
+      title: "Operating Notes",
+      content: "# Operating Notes\n\n- Store it as-is.",
+      transform: "",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "operating-notes" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "base",
+      title: "Operating Notes",
+      content: "# Operating Notes\n\n- Store it as-is.",
+    });
+  });
+
+  it("should use conversationId for upload access when channelId is not the conversation id", async () => {
+    let capturedInput: CreateInput | undefined;
+    services = createMockSystemServices({
+      conversationService: {
+        ...services.conversationService,
+        getMessages: async (conversationId: string) =>
+          conversationId === "web-conversation-1"
+            ? [
+                {
+                  id: "message-1",
+                  conversationId: "web-conversation-1",
+                  role: "user",
+                  content: "",
+                  metadata: JSON.stringify({
+                    attachments: [
+                      {
+                        kind: "file",
+                        filename: "brief.pdf",
+                        mediaType: "application/pdf",
+                        source: {
+                          kind: "upload",
+                          id: "upload-00000000-0000-4000-8000-000000000303",
+                        },
+                      },
+                    ],
+                  }),
+                  timestamp: new Date().toISOString(),
+                },
+              ]
+            : [],
+      },
+    });
+    tools = createSystemTools(services);
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input) => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { status: "created", entityId: "brief" },
+          },
+        };
+      },
+    );
+
+    const result = await exec(
+      {
+        entityType: "document",
+        upload: {
+          kind: "upload",
+          id: "upload-00000000-0000-4000-8000-000000000303",
+        },
+      },
+      {
+        interfaceType: "web-chat",
+        conversationId: "web-conversation-1",
+        channelId: "web-channel-1",
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "created", entityId: "brief" },
+    });
+    expect(capturedInput?.from).toEqual({
+      kind: "upload",
+      id: "upload-00000000-0000-4000-8000-000000000303",
+    });
+  });
+
+  it("should reject upload refs outside the current conversation", async () => {
+    const result = await exec(
+      {
+        entityType: "document",
+        upload: {
+          kind: "upload",
+          id: "upload-00000000-0000-4000-8000-000000000302",
+        },
+      },
+      { interfaceType: "web-chat", channelId: "web-conversation-1" },
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Upload ref is not accessible in this conversation or no longer exists.",
     });
   });
 
@@ -581,7 +1013,7 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
-  it("should require content, prompt, url, or from", async () => {
+  it("should require content, prompt, url, upload, or sourceAttachment", async () => {
     const result = await exec({
       entityType: "base",
       title: "Nothing else",
@@ -598,7 +1030,7 @@ status: draft
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "URL-only or attachment-derived creation is supported only for entity types that explicitly handle it",
+      "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it",
     );
   });
 
@@ -834,18 +1266,22 @@ A saved research link.`;
     );
   });
 
-  it("should expose top-level url, from, replace, and coverImage, and not include options field in schema", () => {
+  it("should expose top-level url, upload, transform, sourceAttachment, replace, and coverImage, and not include options/from fields in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
 
     expect(tool.inputSchema).toHaveProperty("url");
-    expect(tool.inputSchema).toHaveProperty("from");
+    expect(tool.inputSchema).not.toHaveProperty("from");
+    expect(tool.inputSchema).toHaveProperty("upload");
+    expect(tool.inputSchema).toHaveProperty("transform");
+    expect(tool.inputSchema).toHaveProperty("sourceAttachment");
+    expect(tool.inputSchema).not.toHaveProperty("fromUpload");
     expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
   });
 
-  it("should accept from as a create source and forward replace to create interceptors", async () => {
+  it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
       "document",
@@ -867,7 +1303,11 @@ A saved research link.`;
 
     const result = await exec({
       entityType: "document",
-      from: {
+      upload: {
+        kind: "upload",
+        id: "upload-00000000-0000-4000-8000-000000000951",
+      },
+      sourceAttachment: {
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
         attachmentType: "carousel",
@@ -888,6 +1328,7 @@ A saved research link.`;
     expect(capturedInput).toEqual({
       entityType: "document",
       from: {
+        kind: "entity-attachment",
         sourceEntityType: "deck",
         sourceEntityId: "distributed-systems-primer",
         attachmentType: "carousel",

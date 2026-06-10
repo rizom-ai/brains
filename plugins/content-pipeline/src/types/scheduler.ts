@@ -1,4 +1,4 @@
-import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
+import type { IMessageBus } from "@brains/plugins";
 import type { PublishResult } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
@@ -58,10 +58,8 @@ export interface SchedulerConfig {
   generationConditions?: Record<string, GenerationCondition>;
   /** Optional message bus for publish/generation events */
   messageBus?: IMessageBus;
-  /** Entity service for fetching entity content when no shared executor is configured. */
-  entityService?: ICoreEntityService;
   /** Shared executor for provider publishing and durable publish state updates. */
-  publishExecutor?: PublishEntityExecutor;
+  publishExecutor?: Pick<PublishEntityExecutor, "publish">;
   /** Callback on successful publish */
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */

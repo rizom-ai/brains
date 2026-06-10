@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 
 describe("TestRunner", () => {
   let mockAgentService: IAgentService;
@@ -134,6 +135,78 @@ describe("TestRunner", () => {
           },
         ],
       });
+    });
+
+    it("should seed source-backed eval attachments into runtime upload storage", async () => {
+      const savedUploads: unknown[] = [];
+      const scopedCalls: unknown[] = [];
+      const runtimeUploads: IRuntimeUploadsNamespace = {
+        scoped: (options) => {
+          scopedCalls.push(options);
+          return {
+            save: async (input: unknown) => {
+              savedUploads.push(input);
+              return {
+                id: options.createId?.() ?? "upload-fallback",
+                ref: {
+                  kind: options.refKind,
+                  id: options.createId?.() ?? "upload-fallback",
+                },
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                sizeBytes: 7,
+                createdAt: new Date().toISOString(),
+              };
+            },
+          } as ReturnType<IRuntimeUploadsNamespace["scoped"]>;
+        },
+      };
+      testRunner = TestRunner.createFresh(
+        mockAgentService,
+        undefined,
+        runtimeUploads,
+      );
+      const testCase: TestCase = {
+        id: "test-runtime-upload-seed",
+        name: "Runtime Upload Seed Test",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "",
+            attachments: [
+              {
+                kind: "text",
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                content: "# Notes",
+                source: {
+                  kind: "upload",
+                  id: "upload-00000000-0000-4000-8000-000000000999",
+                },
+              },
+            ],
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      expect(scopedCalls).toEqual([
+        {
+          namespace: "upload",
+          refKind: "upload",
+          routePath: "",
+          createId: expect.any(Function),
+        },
+      ]);
+      expect(savedUploads).toEqual([
+        {
+          filename: "notes.md",
+          mediaType: "text/markdown",
+          content: Buffer.from("# Notes", "utf8"),
+        },
+      ]);
     });
 
     it("should reuse previous attachments when a turn asks for them", async () => {
@@ -276,6 +349,84 @@ describe("TestRunner", () => {
         true,
         "approval:delete",
       );
+    });
+
+    it("should fail the test instead of throwing when a confirmation turn has no pending approval", async () => {
+      const testCase: TestCase = {
+        id: "test-missing-pending-approval",
+        name: "Missing Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          {
+            userMessage: "Approve missing confirmation",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: [],
+        }),
+      );
+      expect(result.turnResults[0]?.assistantResponse).toContain(
+        "cannot resolve approvalId",
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+    });
+
+    it("should fail the test instead of throwing when multiple pending approvals require an explicit id", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                args: { entityType: "agent", id: "old-agent.io" },
+              },
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-ambiguous-pending-approval",
+        name: "Ambiguous Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Prepare update and delete" },
+          {
+            userMessage: "Approve one",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: ["approval:update", "approval:delete"],
+        }),
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
     });
 
     it("should use explicit eval permission when provided", async () => {

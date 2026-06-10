@@ -18,11 +18,17 @@ turns:
           argsContain:
             entityType: "wish"
       responseContains:
-        - "wishlist"
+        - "Confirmation required"
       responseNotContains:
         - "I made lasagna"
         - "I made it"
         - "it is done"
+
+  - userMessage: "Confirm wishlist save"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
 
   - userMessage: "Can you show me my wishlist"
     successCriteria:
@@ -39,5 +45,5 @@ turns:
 successCriteria: {}
 
 efficiency:
-  maxToolCalls: 4
+  maxToolCalls: 5
   maxTokens: 40000

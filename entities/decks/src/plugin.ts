@@ -71,7 +71,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    await this.registerWithPublishPipeline(context);
+    this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerOgImageAttachmentProvider(context);
@@ -93,19 +93,20 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     this.unregisterAtprotoProjection = undefined;
   }
 
-  private async registerWithPublishPipeline(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    await context.messaging.send({
-      type: "publish:register",
-      payload: {
-        entityType: "deck",
-        provider: {
-          name: "internal",
-          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+  private deferPublishRegistration(context: EntityPluginContext): void {
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send({
+        type: "publish:register",
+        payload: {
+          entityType: "deck",
+          provider: {
+            name: "internal",
+            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+          },
+          config: { executionMode: "provider" },
         },
-        config: { executionMode: "provider" },
-      },
+      });
+      return { success: true };
     });
   }
 

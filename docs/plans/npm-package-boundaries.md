@@ -229,3 +229,20 @@ The UI/template public-surface decision is not needed before the non-UI `@brains
 - Generated public declarations contain no `@brains/*` imports.
 - Enforcement prevents regressions after the first package migration.
 - Public docs explain what external and official plugin packages may depend on.
+
+## Related finding: plugin and entity authoring boilerplate (audit 2026-06-10)
+
+A shell-layer refactoring audit surfaced duplication this plan's public
+authoring surface should absorb when the SDK shape is curated:
+
+- Five plugins carry 240–794-line `plugin.ts` files repeating the same
+  config-schema/refine/registration pattern (`plugins/cms` 794,
+  `plugins/atproto` 599, `plugins/site-builder` 359, `plugins/dashboard`
+  276, `plugins/directory-sync` 240).
+- The 22 `entities/` packages each reimplement adapters/handlers with no
+  shared base.
+
+Both want a shared base in `@brains/plugins`, surfaced through
+`@rizom/brain/*`. Designing that base as part of the public contract
+(rather than retrofitting one later) keeps official packages on the
+public surface from day one.

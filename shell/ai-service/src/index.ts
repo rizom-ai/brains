@@ -46,6 +46,8 @@ export type {
   BrainAgent,
   BrainAgentFactory,
   BrainAgentResult,
+  ChatAttachment,
+  ChatAttachmentSource,
   ChatContext,
   IAgentService,
   PendingConfirmation,
@@ -53,6 +55,7 @@ export type {
   ToolApprovalCard,
   ToolApprovalCardState,
   ToolResultData,
+  UploadAttachmentResolver,
 } from "./agent-types";
 
 export type {

@@ -1,5 +1,80 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.116
+  - @brains/blog@0.2.0-alpha.116
+  - @brains/site-info@0.2.0-alpha.116
+  - @brains/site-composition@0.2.0-alpha.116
+  - @brains/site-engine@0.2.0-alpha.116
+  - @brains/ui-library@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/identity-service@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.115
+  - @brains/site-info@0.2.0-alpha.115
+  - @brains/site-composition@0.2.0-alpha.115
+  - @brains/site-engine@0.2.0-alpha.115
+  - @brains/ui-library@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/identity-service@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+  - @brains/templates@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.114
+  - @brains/site-info@0.2.0-alpha.114
+  - @brains/site-composition@0.2.0-alpha.114
+  - @brains/site-engine@0.2.0-alpha.114
+  - @brains/ui-library@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/identity-service@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.113
+  - @brains/site-info@0.2.0-alpha.113
+  - @brains/site-composition@0.2.0-alpha.113
+  - @brains/site-engine@0.2.0-alpha.113
+  - @brains/ui-library@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/identity-service@0.2.0-alpha.113
+  - @brains/plugins@0.2.0-alpha.113
+  - @brains/templates@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.112
+  - @brains/site-info@0.2.0-alpha.112
+  - @brains/site-composition@0.2.0-alpha.112
+  - @brains/site-engine@0.2.0-alpha.112
+  - @brains/ui-library@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/identity-service@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

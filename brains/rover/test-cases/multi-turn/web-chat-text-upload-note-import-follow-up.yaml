@@ -1,0 +1,85 @@
+id: multi-turn-web-chat-text-upload-note-import-follow-up
+name: Web chat text upload follow-up imports markdown note
+description: Verifies a bare web-chat text upload is inert, then an explicit note/markdown import follow-up calls system_create with transform extract-markdown.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-text-note-import
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - text
+  - note
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: text
+        filename: field-notes.md
+        mediaType: text/markdown
+        content: |
+          # Field Notes
+
+          - First observation: upload follow-ups should use explicit refs.
+          - Second observation: bare uploads should stay inert.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000921
+    successCriteria:
+      responseContains:
+        - "field-notes.md"
+        - "What would you like me to do"
+      responseNotContains:
+        - "upload-00000000-0000-4000-8000-000000000921"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "turn it into a note"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+            upload.kind: upload
+            upload.id: upload-00000000-0000-4000-8000-000000000921
+            transform: extract-markdown
+          argsAbsent:
+            - from
+            - fromUpload
+            - sourceAttachment
+      responseNotContains:
+        - "Please re-upload"
+        - "re-upload"
+        - "document_generate"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: base
+        upload.kind: upload
+        upload.id: upload-00000000-0000-4000-8000-000000000921
+        transform: extract-markdown
+      argsAbsent:
+        - from
+        - fromUpload
+        - sourceAttachment
+    - toolName: document_generate
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "Please re-upload"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 40000

@@ -1,4 +1,5 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { IndexReadinessGate } from "./types";
 
 export interface RunEvaluationsOptions {
@@ -6,6 +7,8 @@ export interface RunEvaluationsOptions {
   agentService: IAgentService;
   /** AI service for LLM judge */
   aiService: IAIService;
+  /** Runtime upload storage used by local evals to seed attachment refs. */
+  runtimeUploads?: IRuntimeUploadsNamespace;
   /** Directory containing test cases */
   testCasesDir?: string | string[];
   /** Directory to save results */

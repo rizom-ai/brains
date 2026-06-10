@@ -27,6 +27,9 @@ export type { EmbeddingDB } from "./db/embedding-db";
 export type {
   BaseEntity,
   CreateCoverImageInput,
+  CreateFromAttachmentInput,
+  CreateFromInput,
+  CreateFromUploadInput,
   CreateInput,
   CreateExecutionContext,
   CreateResult,
@@ -73,6 +76,7 @@ export {
   permissionToVisibilityScope,
 } from "./types";
 
+export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
 export { scopedDerivedId } from "./scoped-derived-id";
 

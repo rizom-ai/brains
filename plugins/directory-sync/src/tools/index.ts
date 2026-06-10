@@ -27,21 +27,31 @@ export function createDirectorySyncTools(
             channelId: context.channelId,
           };
 
-          // Pull and queue under the same lock so file listing sees the
-          // post-pull state and no auto-commit interleaves with the scan.
-          const gitPulled = gitSync !== undefined;
-          const queueSync = (): ReturnType<IDirectorySync["queueSyncBatch"]> =>
-            directorySync.queueSyncBatch(pluginContext, source, metadata);
+          if (gitSync) {
+            const jobId = await pluginContext.jobs.enqueue({
+              type: "sync-request",
+              data: {
+                source,
+                interfaceType: metadata.interfaceType,
+                channelId: metadata.channelId,
+              },
+              toolContext: context,
+            });
 
-          const result = gitSync
-            ? await gitSync.withLock(async () => {
-                await gitSync.pull();
-                return queueSync();
-              })
-            : await queueSync();
+            return toolSuccess(
+              { jobId, status: "queued", gitPulled: true },
+              "Sync queued: pulling from git and scanning files",
+            );
+          }
+
+          const result = await directorySync.queueSyncBatch(
+            pluginContext,
+            source,
+            metadata,
+          );
 
           if (!result) {
-            return toolSuccess({ gitPulled }, "No files to sync");
+            return toolSuccess({ gitPulled: false }, "No files to sync");
           }
 
           return toolSuccess(
@@ -49,9 +59,9 @@ export function createDirectorySyncTools(
               batchId: result.batchId,
               importOperations: result.importOperationsCount,
               totalFiles: result.totalFiles,
-              gitPulled,
+              gitPulled: false,
             },
-            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files${gitPulled ? " (pulled from git)" : ""}`,
+            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
           );
         } catch (error) {
           return toolError(

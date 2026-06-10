@@ -3,6 +3,7 @@ import type {
   ChatContext,
   AgentResponse,
 } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
@@ -23,16 +24,32 @@ import {
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
+function getRuntimeUploadNamespace(refKind: string): string | null {
+  return refKind === "upload" ? "upload" : null;
+}
+
+function toAttachmentContent(attachment: EvalAttachment): Buffer {
+  return attachment.kind === "text"
+    ? Buffer.from(attachment.content, "utf8")
+    : Buffer.from(attachment.dataBase64, "base64");
+}
+
 /**
  * Runs individual test cases against an agent service
  */
 export class TestRunner implements ITestRunner {
   private readonly agentService: IAgentService;
   private readonly llmJudge: ILLMJudge | null;
+  private readonly runtimeUploads: IRuntimeUploadsNamespace | null;
 
-  constructor(agentService: IAgentService, llmJudge?: ILLMJudge) {
+  constructor(
+    agentService: IAgentService,
+    llmJudge?: ILLMJudge,
+    runtimeUploads?: IRuntimeUploadsNamespace,
+  ) {
     this.agentService = agentService;
     this.llmJudge = llmJudge ?? null;
+    this.runtimeUploads = runtimeUploads ?? null;
   }
 
   /**
@@ -55,24 +72,39 @@ export class TestRunner implements ITestRunner {
       const turn = testCase.turns[i];
       if (!turn) continue;
       const attachments = this.buildTurnAttachments(turn, previousAttachments);
-      if (turn.attachments !== undefined) previousAttachments = attachments;
+      if (turn.attachments !== undefined) {
+        await this.seedRuntimeUploads(turn.attachments);
+        previousAttachments = attachments;
+      }
 
       collector.startTurn();
       let response: AgentResponse;
       if (turn.confirmPendingAction !== undefined) {
         const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
         if (!approvalId) {
-          throw new Error(
+          const message =
             `Turn ${i}: cannot resolve approvalId for confirmPendingAction. ` +
-              `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
-              `(pending=${pendingApprovalIds.length}).`,
+            `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
+            `(pending=${pendingApprovalIds.length}).`;
+          failures.push({
+            criterion: "confirmPendingAction",
+            expected:
+              "Exactly one pending approval id or an explicit approvalId",
+            actual: pendingApprovalIds,
+            message,
+          });
+          response = {
+            text: message,
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            toolResults: [],
+          };
+        } else {
+          response = await this.agentService.confirmPendingAction(
+            conversationId,
+            turn.confirmPendingAction,
+            approvalId,
           );
         }
-        response = await this.agentService.confirmPendingAction(
-          conversationId,
-          turn.confirmPendingAction,
-          approvalId,
-        );
       } else {
         response = await this.agentService.chat(
           turn.userMessage,
@@ -236,6 +268,32 @@ export class TestRunner implements ITestRunner {
     };
   }
 
+  private async seedRuntimeUploads(
+    attachments: EvalAttachment[],
+  ): Promise<void> {
+    if (!this.runtimeUploads) return;
+
+    for (const attachment of attachments) {
+      const source = attachment.source;
+      if (!source) continue;
+      const namespace = getRuntimeUploadNamespace(source.kind);
+      if (!namespace) continue;
+
+      await this.runtimeUploads
+        .scoped({
+          namespace,
+          refKind: source.kind,
+          routePath: "",
+          createId: () => source.id,
+        })
+        .save({
+          filename: attachment.filename,
+          mediaType: attachment.mediaType,
+          content: toAttachmentContent(attachment),
+        });
+    }
+  }
+
   private withTurnAttachments(
     context: ChatContext,
     attachments: ChatAttachment[],
@@ -249,7 +307,8 @@ export class TestRunner implements ITestRunner {
   static createFresh(
     agentService: IAgentService,
     llmJudge?: ILLMJudge,
+    runtimeUploads?: IRuntimeUploadsNamespace,
   ): TestRunner {
-    return new TestRunner(agentService, llmJudge);
+    return new TestRunner(agentService, llmJudge, runtimeUploads);
   }
 }

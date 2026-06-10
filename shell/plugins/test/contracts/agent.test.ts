@@ -55,7 +55,7 @@ describe("public agent contracts", () => {
             mediaType: "text/markdown",
             content: "# Notes",
             sizeBytes: 7,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       }),
@@ -67,7 +67,7 @@ describe("public agent contracts", () => {
           mediaType: "text/markdown",
           content: "# Notes",
           sizeBytes: 7,
-          source: { kind: "web-chat-upload", id: "upload-123" },
+          source: { kind: "upload", id: "upload-123" },
         },
       ],
     });
@@ -84,7 +84,7 @@ describe("public agent contracts", () => {
             mediaType: "image/png",
             data: imageBytes,
             sizeBytes: imageBytes.byteLength,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       }),
@@ -96,7 +96,7 @@ describe("public agent contracts", () => {
           mediaType: "image/png",
           data: imageBytes,
           sizeBytes: imageBytes.byteLength,
-          source: { kind: "web-chat-upload", id: "upload-123" },
+          source: { kind: "upload", id: "upload-123" },
         },
       ],
     });
@@ -126,7 +126,7 @@ describe("public agent contracts", () => {
           filename: "notes.md",
           mediaType: "text/markdown",
           content: "# Notes",
-          source: { kind: "web-chat-upload", id: "upload-123" },
+          source: { kind: "upload", id: "upload-123" },
         },
       ],
     });
@@ -139,7 +139,7 @@ describe("public agent contracts", () => {
             filename: "notes.md",
             mediaType: "text/markdown",
             content: "# Notes",
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       },
@@ -241,6 +241,50 @@ describe("public agent contracts", () => {
         totalTokens: 3,
       },
     });
+  });
+
+  it("accepts source citation cards in the public response", () => {
+    const response = toPublicAgentResponse({
+      text: "According to the retrieved context...",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "Relay decision summary",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+              provenance: { conversationId: "relay-conv" },
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+
+    expect(AgentResponseSchema.parse(response).cards).toEqual([
+      {
+        kind: "sources",
+        id: "sources:agent-context",
+        title: "Retrieved context",
+        sources: [
+          {
+            id: "summary-1",
+            title: "Relay decision summary",
+            source: "conversation-memory",
+            entityType: "summary",
+            entityId: "summary-1",
+            excerpt: "The team decided to use explicit memory retrieval.",
+            provenance: { conversationId: "relay-conv" },
+          },
+        ],
+      },
+    ]);
   });
 
   it("does not expose singular pendingConfirmation in the public response", () => {

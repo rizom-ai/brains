@@ -28,6 +28,9 @@ successCriteria:
         entityType: base
       argsAbsent:
         - prompt
+        - upload
+        - sourceAttachment
+        - from
   toolCountRange:
     min: 1
   responseNotContains:

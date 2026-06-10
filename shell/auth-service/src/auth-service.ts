@@ -1,19 +1,10 @@
-import { randomUUID } from "node:crypto";
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils";
-import { AuthorizationCodeStore, InvalidGrantError } from "./auth-code-store";
-import { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
-import { signJwt } from "./jwt";
+import { AuthorizationCodeStore } from "./auth-code-store";
+import { OAuthClientStore } from "./client-store";
 import { AuthKeyStore } from "./key-store";
-import { PasskeyService, type WebAuthnRequestContext } from "./passkey-service";
-import {
-  InvalidRefreshTokenError,
-  RefreshTokenStore,
-} from "./refresh-token-store";
-import { SetupStateStore, setupTokenId } from "./setup-state-store";
+import { PasskeyService } from "./passkey-service";
+import { RefreshTokenStore } from "./refresh-token-store";
+import { SetupStateStore } from "./setup-state-store";
 import {
   clearOperatorSessionCookie,
   OperatorSessionStore,
@@ -32,13 +23,26 @@ import {
   verifyAccessToken,
   type VerifiedAccessToken,
 } from "./token-verifier";
-import { hasMatchingRedirectUri } from "./redirect-uri";
+import {
+  corsPreflightResponse,
+  htmlResponse,
+  isCorsMachineEndpoint,
+  jsonResponse,
+  safeRelativeReturnTo,
+  withCors,
+} from "./http-responses";
+import { renderLoginPage, unauthorizedHtmlResponse } from "./pages";
+import { OAuthEndpoints } from "./oauth-endpoints";
+import { WebAuthnEndpoints } from "./webauthn-endpoints";
+import { SetupFlow, type OperatorSetupRequired } from "./setup-flow";
 import type {
   AuthorizationServerMetadata,
   JwksResponse,
   ProtectedResourceMetadata,
   RegisteredOAuthClient,
 } from "./types";
+
+export type { OperatorSetupRequired } from "./setup-flow";
 
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
@@ -52,31 +56,6 @@ export interface AuthServiceOptions {
   logger?: Logger;
 }
 
-interface SetupTokenState {
-  token: string;
-  expiresAt: number;
-}
-
-export interface OperatorSetupRequired {
-  setupUrl: string;
-  expiresAt: number;
-  setupTokenId: string;
-}
-
-interface AuthorizationApprovalTokenState {
-  token: string;
-  sessionId: string;
-  clientId: string;
-  redirectUri: string;
-  codeChallenge: string;
-  scope?: string;
-  state?: string;
-  expiresAt: number;
-}
-
-const SETUP_TOKEN_TTL_SECONDS = 30 * 60;
-const AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS = 10 * 60;
-
 export class AuthService {
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
@@ -86,14 +65,10 @@ export class AuthService {
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
   private readonly passkeyService: PasskeyService;
-  private readonly refreshTokenStore: RefreshTokenStore;
-  private readonly setupStateStore: SetupStateStore;
+  private readonly setupFlow: SetupFlow;
+  private readonly oauthEndpoints: OAuthEndpoints;
+  private readonly webauthnEndpoints: WebAuthnEndpoints;
   private readonly logger: Logger | undefined;
-  private setupToken: SetupTokenState | undefined;
-  private readonly authorizationApprovalTokens = new Map<
-    string,
-    AuthorizationApprovalTokenState
-  >();
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
@@ -117,11 +92,23 @@ export class AuthService {
       storageDir: options.storageDir,
       ...(options.logger ? { logger: options.logger } : {}),
     });
-    this.refreshTokenStore = new RefreshTokenStore({
-      storageDir: options.storageDir,
+    this.setupFlow = new SetupFlow({
+      setupStateStore: new SetupStateStore({ storageDir: options.storageDir }),
+      passkeyService: this.passkeyService,
     });
-    this.setupStateStore = new SetupStateStore({
-      storageDir: options.storageDir,
+    this.oauthEndpoints = new OAuthEndpoints({
+      clientStore: this.clientStore,
+      authCodeStore: this.authCodeStore,
+      refreshTokenStore: new RefreshTokenStore({
+        storageDir: options.storageDir,
+      }),
+      sessionStore: this.sessionStore,
+      keyStore: this.keyStore,
+    });
+    this.webauthnEndpoints = new WebAuthnEndpoints({
+      passkeyService: this.passkeyService,
+      sessionStore: this.sessionStore,
+      setupFlow: this.setupFlow,
     });
     this.logger = options.logger;
   }
@@ -135,7 +122,7 @@ export class AuthService {
     this.logger?.debug("Auth service signing key loaded");
 
     if (!(await this.hasPasskeyCredentials())) {
-      await this.ensureSetupToken();
+      await this.setupFlow.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {
         if (isLoopbackIssuer(this.issuer)) {
@@ -242,28 +229,32 @@ export class AuthService {
   }
 
   getSetupUrl(issuer = this.issuer): string | undefined {
-    const setupToken = this.getValidSetupToken();
-    if (!setupToken) return undefined;
-    return absoluteUrl(
-      issuer,
-      `/setup?token=${encodeURIComponent(setupToken.token)}`,
-    );
+    return this.setupFlow.getSetupUrl(issuer);
   }
 
   async getOperatorSetupRequired(
     issuer = this.issuer,
   ): Promise<OperatorSetupRequired | undefined> {
-    if (await this.hasPasskeyCredentials()) return undefined;
-    const setupToken = this.getValidSetupToken();
-    if (!setupToken) return undefined;
-    return {
-      setupUrl: absoluteUrl(
-        issuer,
-        `/setup?token=${encodeURIComponent(setupToken.token)}`,
-      ),
-      expiresAt: setupToken.expiresAt,
-      setupTokenId: setupTokenId(setupToken.token),
-    };
+    return this.setupFlow.getOperatorSetupRequired(issuer);
+  }
+
+  async hasSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+  ): Promise<boolean> {
+    return this.setupFlow.hasSetupEmailDelivery(setupTokenIdValue, recipient);
+  }
+
+  async recordSetupEmailDelivery(
+    setupTokenIdValue: string,
+    recipient: string,
+    options: { deliveryId?: string } = {},
+  ): Promise<void> {
+    await this.setupFlow.recordSetupEmailDelivery(
+      setupTokenIdValue,
+      recipient,
+      options,
+    );
   }
 
   async handleRequest(request: Request): Promise<Response> {
@@ -303,7 +294,7 @@ export class AuthService {
     }
 
     if (request.method === "GET" && path === "/setup") {
-      return this.handleSetupPage(request);
+      return this.setupFlow.handleSetupPage(request);
     }
 
     if (request.method === "GET" && path === "/login") {
@@ -318,39 +309,43 @@ export class AuthService {
     }
 
     if (request.method === "POST" && path === "/webauthn/register/options") {
-      return this.handleWebAuthnRegistrationOptions(request);
+      return this.webauthnEndpoints.handleRegistrationOptions(request);
     }
 
     if (request.method === "POST" && path === "/webauthn/register/verify") {
-      return this.handleWebAuthnRegistrationVerify(request);
+      return this.webauthnEndpoints.handleRegistrationVerify(request);
     }
 
     if (request.method === "POST" && path === "/webauthn/auth/options") {
-      return this.handleWebAuthnAuthenticationOptions(request);
+      return this.webauthnEndpoints.handleAuthenticationOptions(request);
     }
 
     if (request.method === "POST" && path === "/webauthn/auth/verify") {
-      return this.handleWebAuthnAuthenticationVerify(request);
+      return this.webauthnEndpoints.handleAuthenticationVerify(request);
     }
 
     if (request.method === "GET" && path === "/authorize") {
-      return this.handleAuthorizePage(request);
+      return this.oauthEndpoints.handleAuthorizePage(request);
     }
 
     if (request.method === "POST" && path === "/authorize") {
-      return this.handleAuthorizeApproval(request);
+      return this.oauthEndpoints.handleAuthorizeApproval(request);
     }
 
     if (request.method === "POST" && path === "/register") {
-      return withCors(await this.handleClientRegistration(request));
+      return withCors(
+        await this.oauthEndpoints.handleClientRegistration(request),
+      );
     }
 
     if (request.method === "POST" && path === "/token") {
-      return withCors(await this.handleTokenRequest(request, requestIssuer));
+      return withCors(
+        await this.oauthEndpoints.handleTokenRequest(request, requestIssuer),
+      );
     }
 
     if (request.method === "POST" && path === "/revoke") {
-      return withCors(await this.handleRevokeRequest(request));
+      return withCors(await this.oauthEndpoints.handleRevokeRequest(request));
     }
 
     return new Response("Not Found", { status: 404 });
@@ -374,18 +369,6 @@ export class AuthService {
     );
   }
 
-  private async handleSetupPage(request: Request): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
-      return new Response("Setup already completed", { status: 404 });
-    }
-    if (!this.hasValidSetupToken(request)) {
-      return new Response("Not Found", { status: 404 });
-    }
-
-    const token = new URL(request.url).searchParams.get("token") ?? "";
-    return htmlResponse(renderSetupPage(token));
-  }
-
   private handleLoginPage(request: Request): Response {
     const returnTo = safeRelativeReturnTo(
       new URL(request.url).searchParams.get("return_to"),
@@ -407,1095 +390,4 @@ export class AuthService {
       },
     });
   }
-
-  private async handleWebAuthnRegistrationOptions(
-    request: Request,
-  ): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Passkey setup already completed",
-      );
-    }
-    if (!this.hasValidSetupToken(request)) {
-      return oauthErrorResponse("access_denied", "Invalid setup token");
-    }
-
-    const options = await this.passkeyService.generateRegistrationOptions(
-      webAuthnRequestContext(request),
-    );
-    return jsonResponse(options);
-  }
-
-  private async handleWebAuthnRegistrationVerify(
-    request: Request,
-  ): Promise<Response> {
-    if (await this.passkeyService.hasCredentials()) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Passkey setup already completed",
-      );
-    }
-    if (!this.hasValidSetupToken(request)) {
-      return oauthErrorResponse("access_denied", "Invalid setup token");
-    }
-
-    const result = await this.passkeyService.verifyRegistrationResponse(
-      (await request.json()) as RegistrationResponseJSON,
-      webAuthnRequestContext(request),
-    );
-    if (!result.verified) {
-      return oauthErrorResponse("access_denied", "Passkey registration failed");
-    }
-
-    this.setupToken = undefined;
-    await this.setupStateStore.clearSetupState();
-    const session = await this.createOperatorSession(result.subject, {
-      secure: isSecureRequest(request),
-    });
-    return jsonResponse({ verified: true }, 200, {
-      "Set-Cookie": session.cookie,
-    });
-  }
-
-  async hasSetupEmailDelivery(
-    setupTokenIdValue: string,
-    recipient: string,
-  ): Promise<boolean> {
-    return this.setupStateStore.hasDelivery(setupTokenIdValue, recipient);
-  }
-
-  async recordSetupEmailDelivery(
-    setupTokenIdValue: string,
-    recipient: string,
-    options: { deliveryId?: string } = {},
-  ): Promise<void> {
-    await this.setupStateStore.recordDelivery(
-      setupTokenIdValue,
-      recipient,
-      options,
-    );
-  }
-
-  private async ensureSetupToken(): Promise<SetupTokenState> {
-    const currentSetupToken = this.getValidSetupToken();
-    if (currentSetupToken) return currentSetupToken;
-
-    const storedSetupToken = await this.setupStateStore.getValidSetupToken(
-      Math.floor(Date.now() / 1000),
-    );
-    if (storedSetupToken) {
-      this.setupToken = storedSetupToken;
-      return storedSetupToken;
-    }
-
-    return this.createSetupToken();
-  }
-
-  private async createSetupToken(): Promise<SetupTokenState> {
-    this.setupToken = {
-      token: `setup_${randomUUID()}`,
-      expiresAt: Math.floor(Date.now() / 1000) + SETUP_TOKEN_TTL_SECONDS,
-    };
-    await this.setupStateStore.saveSetupToken(this.setupToken);
-    return this.setupToken;
-  }
-
-  private getValidSetupToken(): SetupTokenState | undefined {
-    if (!this.setupToken) return undefined;
-    if (this.setupToken.expiresAt <= Math.floor(Date.now() / 1000)) {
-      this.setupToken = undefined;
-      return undefined;
-    }
-    return this.setupToken;
-  }
-
-  private hasValidSetupToken(request: Request): boolean {
-    const setupToken = this.getValidSetupToken();
-    if (!setupToken) return false;
-    const url = new URL(request.url);
-    const suppliedToken =
-      url.searchParams.get("setup_token") ?? url.searchParams.get("token");
-    return suppliedToken === setupToken.token;
-  }
-
-  private async handleWebAuthnAuthenticationOptions(
-    request: Request,
-  ): Promise<Response> {
-    if (!(await this.passkeyService.hasCredentials())) {
-      return oauthErrorResponse("access_denied", "No passkey registered");
-    }
-
-    const options = await this.passkeyService.generateAuthenticationOptions(
-      webAuthnRequestContext(request),
-    );
-    return jsonResponse(options);
-  }
-
-  private async handleWebAuthnAuthenticationVerify(
-    request: Request,
-  ): Promise<Response> {
-    const result = await this.passkeyService.verifyAuthenticationResponse(
-      (await request.json()) as AuthenticationResponseJSON,
-      webAuthnRequestContext(request),
-    );
-    if (!result.verified) {
-      return oauthErrorResponse(
-        "access_denied",
-        "Passkey authentication failed",
-      );
-    }
-
-    const session = await this.createOperatorSession(result.subject, {
-      secure: isSecureRequest(request),
-    });
-    return jsonResponse({ verified: true }, 200, {
-      "Set-Cookie": session.cookie,
-    });
-  }
-
-  private async handleAuthorizePage(request: Request): Promise<Response> {
-    const session = await this.sessionStore.getSessionFromRequest(request);
-    if (!session) {
-      return unauthorizedHtmlResponse(request);
-    }
-
-    const validation = await this.validateAuthorizationRequest(
-      new URL(request.url).searchParams,
-    );
-    if (!validation.success) {
-      return new Response(validation.error, { status: 400 });
-    }
-
-    const approvalToken = this.createAuthorizationApprovalToken(
-      session,
-      validation.params,
-    );
-    return htmlResponse(renderAuthorizePage(validation.params, approvalToken));
-  }
-
-  private async handleAuthorizeApproval(request: Request): Promise<Response> {
-    const session = await this.sessionStore.getSessionFromRequest(request);
-    if (!session) {
-      return unauthorizedHtmlResponse(request);
-    }
-
-    const form = await request.formData();
-    const validation = await this.validateAuthorizationRequest(
-      new URLSearchParams(stringEntries(form)),
-    );
-    if (!validation.success) {
-      return new Response(validation.error, { status: 400 });
-    }
-
-    const rawApprovalToken = form.get("approval_token");
-    const approvalToken =
-      typeof rawApprovalToken === "string" ? rawApprovalToken : undefined;
-    if (
-      !approvalToken ||
-      !this.consumeAuthorizationApprovalToken(
-        approvalToken,
-        session,
-        validation.params,
-      )
-    ) {
-      return new Response("Invalid authorization approval token", {
-        status: 400,
-      });
-    }
-
-    const code = await this.authCodeStore.createCode({
-      clientId: validation.params.clientId,
-      redirectUri: validation.params.redirectUri,
-      codeChallenge: validation.params.codeChallenge,
-      ...(validation.params.scope ? { scope: validation.params.scope } : {}),
-      subject: session.subject,
-    });
-
-    const redirect = new URL(validation.params.redirectUri);
-    redirect.searchParams.set("code", code.code);
-    if (validation.params.state) {
-      redirect.searchParams.set("state", validation.params.state);
-    }
-
-    return Response.redirect(redirect.toString(), 302);
-  }
-
-  private createAuthorizationApprovalToken(
-    session: OperatorSessionRecord,
-    params: ValidAuthorizationRequest,
-  ): string {
-    this.pruneExpiredAuthorizationApprovalTokens();
-    const token = `oat_${randomUUID()}`;
-    this.authorizationApprovalTokens.set(token, {
-      token,
-      sessionId: session.id,
-      clientId: params.clientId,
-      redirectUri: params.redirectUri,
-      codeChallenge: params.codeChallenge,
-      ...(params.scope ? { scope: params.scope } : {}),
-      ...(params.state ? { state: params.state } : {}),
-      expiresAt:
-        Math.floor(Date.now() / 1000) +
-        AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS,
-    });
-    return token;
-  }
-
-  private consumeAuthorizationApprovalToken(
-    token: string,
-    session: OperatorSessionRecord,
-    params: ValidAuthorizationRequest,
-  ): boolean {
-    this.pruneExpiredAuthorizationApprovalTokens();
-    const stored = this.authorizationApprovalTokens.get(token);
-    if (!stored) return false;
-
-    this.authorizationApprovalTokens.delete(token);
-    return (
-      stored.sessionId === session.id &&
-      stored.clientId === params.clientId &&
-      stored.redirectUri === params.redirectUri &&
-      stored.codeChallenge === params.codeChallenge &&
-      stored.scope === params.scope &&
-      stored.state === params.state
-    );
-  }
-
-  private pruneExpiredAuthorizationApprovalTokens(): void {
-    const now = Math.floor(Date.now() / 1000);
-    for (const [token, stored] of this.authorizationApprovalTokens.entries()) {
-      if (stored.expiresAt <= now) {
-        this.authorizationApprovalTokens.delete(token);
-      }
-    }
-  }
-
-  private async validateAuthorizationRequest(params: URLSearchParams): Promise<
-    | {
-        success: true;
-        params: ValidAuthorizationRequest;
-      }
-    | { success: false; error: string }
-  > {
-    const responseType = params.get("response_type");
-    const clientId = params.get("client_id");
-    const redirectUri = params.get("redirect_uri");
-    const codeChallenge = params.get("code_challenge");
-    const codeChallengeMethod = params.get("code_challenge_method");
-    const requestedScope = params.get("scope") ?? undefined;
-    const state = params.get("state") ?? undefined;
-
-    if (responseType !== "code") {
-      return { success: false, error: "Unsupported response_type" };
-    }
-    if (!clientId) {
-      return { success: false, error: "Missing client_id" };
-    }
-    if (!redirectUri) {
-      return { success: false, error: "Missing redirect_uri" };
-    }
-    if (!codeChallenge) {
-      return { success: false, error: "Missing code_challenge" };
-    }
-    if (codeChallengeMethod !== "S256") {
-      return { success: false, error: "Unsupported code_challenge_method" };
-    }
-
-    const client = await this.clientStore.getClient(clientId);
-    if (!client) {
-      return { success: false, error: "Unknown client_id" };
-    }
-    if (!hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
-      return { success: false, error: "Unregistered redirect_uri" };
-    }
-
-    const scope = requestedScope ?? client.scope;
-
-    return {
-      success: true,
-      params: {
-        clientId,
-        redirectUri,
-        codeChallenge,
-        ...(scope ? { scope } : {}),
-        ...(state ? { state } : {}),
-        clientName: client.client_name ?? client.client_id,
-      },
-    };
-  }
-
-  private async handleClientRegistration(request: Request): Promise<Response> {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return oauthErrorResponse(
-        "invalid_client_metadata",
-        "Request body must be JSON",
-      );
-    }
-
-    try {
-      const client = await this.registerClient(body);
-      return jsonResponse(client, 201);
-    } catch (error) {
-      if (error instanceof InvalidClientMetadataError) {
-        return oauthErrorResponse("invalid_client_metadata", error.message);
-      }
-      throw error;
-    }
-  }
-
-  private async handleTokenRequest(
-    request: Request,
-    issuer: string,
-  ): Promise<Response> {
-    const body = await parseRequestBody(request);
-    const grantType = body.get("grant_type");
-    const clientAuth = parseClientAuth(request, body);
-    const clientId = clientAuth.clientId ?? body.get("client_id");
-
-    if (clientAuth.error) {
-      return oauthErrorResponse("invalid_client", clientAuth.error);
-    }
-    if (!clientId) {
-      return oauthErrorResponse("invalid_request", "client_id is required");
-    }
-
-    const client = await this.clientStore.getClient(clientId);
-    const clientError = validateClientForTokenRequest(client, clientAuth);
-    if (clientError) {
-      return oauthErrorResponse("invalid_client", clientError);
-    }
-
-    if (grantType === "authorization_code") {
-      return this.handleAuthorizationCodeGrant(body, clientId, issuer);
-    }
-
-    if (grantType === "refresh_token") {
-      return this.handleRefreshTokenGrant(body, clientId, issuer);
-    }
-
-    return oauthErrorResponse(
-      "unsupported_grant_type",
-      "Only authorization_code and refresh_token are supported",
-    );
-  }
-
-  private async handleAuthorizationCodeGrant(
-    body: URLSearchParams,
-    clientId: string,
-    issuer: string,
-  ): Promise<Response> {
-    const code = body.get("code");
-    const redirectUri = body.get("redirect_uri");
-    const codeVerifier = body.get("code_verifier");
-
-    if (!code || !redirectUri || !codeVerifier) {
-      return oauthErrorResponse(
-        "invalid_request",
-        "code, redirect_uri, and code_verifier are required",
-      );
-    }
-
-    const client = await this.clientStore.getClient(clientId);
-    if (!client || !hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
-      return oauthErrorResponse("invalid_grant", "Unregistered redirect_uri");
-    }
-
-    try {
-      const consumed = await this.authCodeStore.consumeCode({
-        code,
-        clientId,
-        redirectUri,
-        codeVerifier,
-      });
-      return await this.createTokenResponse({
-        issuer,
-        clientId,
-        subject: consumed.subject,
-        ...(consumed.scope ? { scope: consumed.scope } : {}),
-      });
-    } catch (error) {
-      if (error instanceof InvalidGrantError) {
-        return oauthErrorResponse("invalid_grant", error.message);
-      }
-      throw error;
-    }
-  }
-
-  private async handleRefreshTokenGrant(
-    body: URLSearchParams,
-    clientId: string,
-    issuer: string,
-  ): Promise<Response> {
-    const refreshToken = body.get("refresh_token");
-    if (!refreshToken) {
-      return oauthErrorResponse("invalid_request", "refresh_token is required");
-    }
-
-    try {
-      const rotated = await this.refreshTokenStore.rotateToken(
-        refreshToken,
-        clientId,
-      );
-      return await this.createTokenResponse({
-        issuer,
-        clientId,
-        subject: rotated.consumed.subject,
-        ...(rotated.consumed.scope ? { scope: rotated.consumed.scope } : {}),
-        refreshToken: rotated.replacement.token,
-      });
-    } catch (error) {
-      if (error instanceof InvalidRefreshTokenError) {
-        return oauthErrorResponse("invalid_grant", error.message);
-      }
-      throw error;
-    }
-  }
-
-  private async createTokenResponse(options: {
-    issuer: string;
-    clientId: string;
-    subject: string;
-    scope?: string;
-    refreshToken?: string;
-  }): Promise<Response> {
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const expiresIn = 15 * 60;
-    const accessToken = await signJwt(await this.keyStore.getPrivateJwk(), {
-      iss: options.issuer,
-      sub: options.subject,
-      aud: options.clientId,
-      iat: issuedAt,
-      exp: issuedAt + expiresIn,
-      ...(options.scope ? { scope: options.scope } : {}),
-    });
-    const refreshToken =
-      options.refreshToken ??
-      (
-        await this.refreshTokenStore.issueToken({
-          clientId: options.clientId,
-          subject: options.subject,
-          ...(options.scope ? { scope: options.scope } : {}),
-        })
-      ).token;
-
-    return jsonResponse({
-      access_token: accessToken,
-      token_type: "Bearer",
-      expires_in: expiresIn,
-      ...(options.scope ? { scope: options.scope } : {}),
-      refresh_token: refreshToken,
-    });
-  }
-
-  private async handleRevokeRequest(request: Request): Promise<Response> {
-    const body = await parseRequestBody(request);
-    const clientAuth = parseClientAuth(request, body);
-    const clientId = clientAuth.clientId ?? body.get("client_id") ?? undefined;
-    const token = body.get("token");
-
-    if (clientAuth.error) {
-      return oauthErrorResponse("invalid_client", clientAuth.error);
-    }
-    if (!token) {
-      return oauthErrorResponse("invalid_request", "token is required");
-    }
-
-    if (clientId) {
-      const client = await this.clientStore.getClient(clientId);
-      const clientError = validateClientForTokenRequest(client, clientAuth);
-      if (clientError) {
-        return oauthErrorResponse("invalid_client", clientError);
-      }
-    }
-
-    await this.refreshTokenStore.revokeToken(token, clientId);
-    return new Response(null, { status: 200 });
-  }
-}
-
-interface ValidAuthorizationRequest {
-  clientId: string;
-  redirectUri: string;
-  codeChallenge: string;
-  scope?: string;
-  state?: string;
-  clientName: string;
-}
-
-function jsonResponse(
-  body: unknown,
-  status = 200,
-  extraHeaders: Record<string, string> = {},
-): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      ...extraHeaders,
-    },
-  });
-}
-
-const CORS_MACHINE_ENDPOINTS = new Set([
-  "/.well-known/oauth-authorization-server",
-  "/.well-known/jwks.json",
-  "/.well-known/oauth-protected-resource",
-  "/register",
-  "/token",
-  "/revoke",
-]);
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
-  "Access-Control-Allow-Private-Network": "true",
-  "X-Content-Type-Options": "nosniff",
-} as const;
-
-function isCorsMachineEndpoint(path: string): boolean {
-  return CORS_MACHINE_ENDPOINTS.has(path);
-}
-
-function withCors(response: Response): Response {
-  const headers = new Headers(response.headers);
-  for (const [key, value] of Object.entries(CORS_HEADERS)) {
-    headers.set(key, value);
-  }
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
-function corsPreflightResponse(): Response {
-  return withCors(new Response(null, { status: 204 }));
-}
-
-function oauthErrorResponse(error: string, description: string): Response {
-  return jsonResponse(
-    {
-      error,
-      error_description: description,
-    },
-    400,
-  );
-}
-
-async function parseRequestBody(request: Request): Promise<URLSearchParams> {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    const body = (await request.json()) as Record<string, unknown>;
-    return new URLSearchParams(
-      Object.entries(body).flatMap(([key, value]) =>
-        typeof value === "string" ? [[key, value]] : [],
-      ),
-    );
-  }
-
-  if (contentType.includes("form")) {
-    return new URLSearchParams(stringEntries(await request.formData()));
-  }
-
-  return new URLSearchParams(await request.text());
-}
-
-function stringEntries(form: FormData): [string, string][] {
-  return Array.from(form.entries()).flatMap(([key, value]) =>
-    typeof value === "string" ? [[key, value]] : [],
-  );
-}
-
-function validateClientForTokenRequest(
-  client: RegisteredOAuthClient | undefined,
-  clientAuth: { clientSecret?: string },
-): string | undefined {
-  if (!client) return "Unknown client_id";
-  if (
-    client.client_secret &&
-    client.client_secret !== clientAuth.clientSecret
-  ) {
-    return "Invalid client secret";
-  }
-  return undefined;
-}
-
-function parseClientAuth(
-  request: Request,
-  body: URLSearchParams,
-): { clientId?: string; clientSecret?: string; error?: string } {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) {
-    const clientId = body.get("client_id") ?? undefined;
-    const clientSecret = body.get("client_secret") ?? undefined;
-    return {
-      ...(clientId ? { clientId } : {}),
-      ...(clientSecret ? { clientSecret } : {}),
-    };
-  }
-
-  if (!authHeader.startsWith("Basic ")) {
-    return { error: "Unsupported client authentication method" };
-  }
-
-  try {
-    const decoded = Buffer.from(
-      authHeader.slice("Basic ".length),
-      "base64",
-    ).toString("utf8");
-    const separator = decoded.indexOf(":");
-    if (separator < 0) {
-      return { error: "Invalid Basic client authentication" };
-    }
-
-    const clientId = decodeURIComponent(decoded.slice(0, separator));
-    const clientSecret = decodeURIComponent(decoded.slice(separator + 1));
-    const bodyClientId = body.get("client_id");
-    if (bodyClientId && bodyClientId !== clientId) {
-      return { error: "Conflicting client_id values" };
-    }
-    return { clientId, clientSecret };
-  } catch {
-    return { error: "Invalid Basic client authentication" };
-  }
-}
-
-const AUTH_FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
-
-function renderSetupPage(setupToken: string): string {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Set up passkey</title>
-    ${authPageHeadAssets()}
-  </head>
-  <body>
-    <main class="card">
-      <h1>Set up your brain passkey</h1>
-      <p>Register a passkey to become the operator for this brain.</p>
-      <button type="button" id="register">Register passkey</button>
-      <p id="status" role="status"></p>
-    </main>
-    <script>${webauthnBrowserHelpers()}
-    document.getElementById('register').addEventListener('click', async () => {
-      const status = document.getElementById('status');
-      try {
-        status.textContent = 'Waiting for passkey...';
-        const setupToken = ${JSON.stringify(setupToken)};
-        const options = await fetchJSON('/webauthn/register/options?setup_token=' + encodeURIComponent(setupToken), { method: 'POST' });
-        const credential = await navigator.credentials.create({ publicKey: prepareCreationOptions(options) });
-        await fetchJSON('/webauthn/register/verify?setup_token=' + encodeURIComponent(setupToken), {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(credentialToJSON(credential)),
-        });
-        status.textContent = 'Passkey registered. You are logged in.';
-        location.href = '/';
-      } catch (error) {
-        status.textContent = error instanceof Error ? error.message : String(error);
-      }
-    });</script>
-  </body>
-</html>`;
-}
-
-function safeRelativeReturnTo(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
-  return value;
-}
-
-function renderLoginPage(returnTo: string, title = "Operator login"): string {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)}</title>
-    ${authPageHeadAssets()}
-  </head>
-  <body>
-    <main class="card">
-      <h1>${escapeHtml(title)}</h1>
-      <p>Use your passkey to continue.</p>
-      <button type="button" id="login">Continue with passkey</button>
-      <p id="status" role="status"></p>
-    </main>
-    <script>${webauthnBrowserHelpers()}
-    document.getElementById('login').addEventListener('click', async () => {
-      const status = document.getElementById('status');
-      try {
-        status.textContent = 'Waiting for passkey...';
-        const options = await fetchJSON('/webauthn/auth/options', { method: 'POST' });
-        const credential = await navigator.credentials.get({ publicKey: prepareRequestOptions(options) });
-        await fetchJSON('/webauthn/auth/verify', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(credentialToJSON(credential)),
-        });
-        location.href = ${JSON.stringify(returnTo)};
-      } catch (error) {
-        status.textContent = error instanceof Error ? error.message : String(error);
-      }
-    });</script>
-  </body>
-</html>`;
-}
-
-function authPageHeadAssets(): string {
-  return `<link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="${AUTH_FONTS_URL}" rel="stylesheet" />
-    <style>
-      :root {
-        --ink: #0a0819;
-        --ink-raised: #14112b;
-        --ink-deep: #05040f;
-        --paper: #f1eadd;
-        --paper-dim: #bfb7a6;
-        --paper-mute: #7a7263;
-        --rule-strong: rgba(241, 234, 221, 0.14);
-        --accent: #ff8b3d;
-        --accent-soft: rgba(255, 139, 61, 0.12);
-        --err: #e26d6d;
-        --font-display: "Fraunces", "Times New Roman", serif;
-        --font-body: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
-        --font-mono: "JetBrains Mono", ui-monospace, monospace;
-        color-scheme: dark;
-      }
-      * { box-sizing: border-box; }
-      html, body { min-height: 100%; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 32px 18px;
-        font-family: var(--font-body);
-        line-height: 1.55;
-        color: var(--paper);
-        background:
-          radial-gradient(circle at 18% 12%, rgba(255, 139, 61, 0.18), transparent 28rem),
-          radial-gradient(circle at 82% 6%, rgba(241, 234, 221, 0.08), transparent 24rem),
-          linear-gradient(145deg, var(--ink-deep), var(--ink));
-        -webkit-font-smoothing: antialiased;
-      }
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0.04;
-        mix-blend-mode: overlay;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-      }
-      .card {
-        width: min(100%, 36rem);
-        position: relative;
-        border: 1px solid var(--rule-strong);
-        border-radius: 4px;
-        padding: 30px 32px 34px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--ink-raised);
-        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 28px 70px -34px rgba(0, 0, 0, 0.72);
-      }
-      .card::before {
-        content: "Operator gate";
-        display: block;
-        margin-bottom: 16px;
-        font-family: var(--font-mono);
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: var(--paper-mute);
-      }
-      .card::after {
-        content: "";
-        position: absolute;
-        left: 32px;
-        top: 58px;
-        width: 84px;
-        height: 1px;
-        background: var(--accent);
-      }
-      h1 {
-        margin: 0;
-        font-family: var(--font-display);
-        font-variation-settings: "opsz" 144, "SOFT" 55, "wght" 380;
-        font-size: clamp(2.25rem, 8vw, 3.5rem);
-        line-height: 0.98;
-        letter-spacing: -0.03em;
-      }
-      p { color: var(--paper-dim); margin: 18px 0 0; }
-      button {
-        margin-top: 24px;
-        border: 1px solid rgba(255, 139, 61, 0.55);
-        border-radius: 999px;
-        padding: 0.82rem 1.18rem;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        background: var(--accent);
-        color: var(--ink-deep);
-        cursor: pointer;
-        box-shadow: 0 10px 28px -18px var(--accent);
-      }
-      button:hover { filter: brightness(1.06); transform: translateY(-1px); }
-      code {
-        overflow-wrap: anywhere;
-        color: var(--paper);
-        background: var(--accent-soft);
-        border: 1px solid var(--rule-strong);
-        padding: 0.08rem 0.3rem;
-      }
-      .scope-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-      .scope-list li { border: 1px solid var(--rule-strong); border-radius: 3px; padding: 10px 12px; background: rgba(255, 255, 255, 0.025); }
-      .scope-list b { display: block; color: var(--paper); }
-      .scope-list span { display: block; color: var(--paper-dim); font-size: 0.94rem; }
-      [role='status'] { min-height: 1.5em; color: var(--paper-mute); }
-      @media (max-width: 520px) {
-        .card { padding: 24px 22px 28px; }
-        .card::after { left: 22px; }
-      }
-    </style>`;
-}
-
-function webauthnBrowserHelpers(): string {
-  return `
-    function base64urlToBuffer(value) {
-      const padded = value + '='.repeat((4 - value.length % 4) % 4);
-      const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
-      const binary = atob(base64);
-      return Uint8Array.from(binary, c => c.charCodeAt(0));
-    }
-    function bufferToBase64url(buffer) {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (const byte of bytes) binary += String.fromCharCode(byte);
-      return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
-    }
-    function prepareCreationOptions(options) {
-      return {
-        ...options,
-        challenge: base64urlToBuffer(options.challenge),
-        user: { ...options.user, id: base64urlToBuffer(options.user.id) },
-        excludeCredentials: (options.excludeCredentials || []).map(credential => ({
-          ...credential,
-          id: base64urlToBuffer(credential.id),
-        })),
-      };
-    }
-    function prepareRequestOptions(options) {
-      return {
-        ...options,
-        challenge: base64urlToBuffer(options.challenge),
-        allowCredentials: (options.allowCredentials || []).map(credential => ({
-          ...credential,
-          id: base64urlToBuffer(credential.id),
-        })),
-      };
-    }
-    function encodeResponseField(response, output, key) {
-      const value = response[key];
-      if (value instanceof ArrayBuffer) output[key] = bufferToBase64url(value);
-      else if (value !== null && value !== undefined) output[key] = value;
-    }
-    function credentialToJSON(credential) {
-      const source = credential.response;
-      const response = {};
-
-      // Authenticator response fields are exposed as WebIDL attributes, not
-      // enumerable object keys, so copy the known registration/authentication
-      // fields explicitly.
-      encodeResponseField(source, response, 'clientDataJSON');
-      encodeResponseField(source, response, 'attestationObject');
-      encodeResponseField(source, response, 'authenticatorData');
-      encodeResponseField(source, response, 'signature');
-      encodeResponseField(source, response, 'userHandle');
-
-      if (typeof source.getTransports === 'function') {
-        response.transports = source.getTransports();
-      }
-      if (typeof source.getAuthenticatorData === 'function') {
-        response.authenticatorData = bufferToBase64url(source.getAuthenticatorData());
-      }
-      if (typeof source.getPublicKey === 'function') {
-        const publicKey = source.getPublicKey();
-        if (publicKey) response.publicKey = bufferToBase64url(publicKey);
-      }
-      if (typeof source.getPublicKeyAlgorithm === 'function') {
-        response.publicKeyAlgorithm = source.getPublicKeyAlgorithm();
-      }
-
-      return {
-        id: credential.id,
-        rawId: bufferToBase64url(credential.rawId),
-        type: credential.type,
-        response,
-        clientExtensionResults: credential.getClientExtensionResults(),
-        authenticatorAttachment: credential.authenticatorAttachment,
-      };
-    }
-    async function fetchJSON(url, init) {
-      const response = await fetch(url, init);
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error_description || body.error || response.statusText);
-      return body;
-    }
-  `;
-}
-
-function renderScopeItems(scope: string | undefined): string {
-  const scopes = scope?.split(/\s+/).filter(Boolean) ?? [];
-  if (scopes.length === 0) {
-    return renderScopeItem(
-      "Sign-in only",
-      "Issue an authorization code without additional requested scopes.",
-    );
-  }
-
-  return scopes
-    .map((requestedScope) => {
-      const copy = getScopeCopy(requestedScope);
-      return renderScopeItem(copy.title, copy.description);
-    })
-    .join("\n        ");
-}
-
-function renderScopeItem(title: string, description: string): string {
-  return `<li><b>${escapeHtml(title)}</b><span>${escapeHtml(description)}</span></li>`;
-}
-
-function getScopeCopy(scope: string): { title: string; description: string } {
-  switch (scope) {
-    case "openid":
-      return {
-        title: "Sign in",
-        description: "Identify this browser session to the OAuth client.",
-      };
-    case "profile":
-      return {
-        title: "Basic profile",
-        description:
-          "Share the local operator profile subject with the client.",
-      };
-    case "email":
-      return {
-        title: "Email address",
-        description: "Share the operator email address when one is configured.",
-      };
-    case "offline_access":
-      return {
-        title: "Offline access",
-        description: "Allow the client to refresh access without asking again.",
-      };
-    case "mcp":
-      return {
-        title: "MCP access",
-        description: "Use Model Context Protocol tools exposed by this brain.",
-      };
-    default:
-      return {
-        title: scope,
-        description: "Requested by the OAuth client.",
-      };
-  }
-}
-
-function renderAuthorizePage(
-  params: ValidAuthorizationRequest,
-  approvalToken: string,
-): string {
-  const scopeItems = renderScopeItems(params.scope);
-  const hidden = {
-    response_type: "code",
-    client_id: params.clientId,
-    redirect_uri: params.redirectUri,
-    code_challenge: params.codeChallenge,
-    code_challenge_method: "S256",
-    approval_token: approvalToken,
-    ...(params.scope ? { scope: params.scope } : {}),
-    ...(params.state ? { state: params.state } : {}),
-  };
-
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Authorize ${escapeHtml(params.clientName)}</title>
-    ${authPageHeadAssets()}
-  </head>
-  <body>
-    <main class="card">
-      <h1>Authorize ${escapeHtml(params.clientName)}?</h1>
-      <p><b>${escapeHtml(params.clientName)}</b> is requesting access to this brain.</p>
-      <p>After approval, the client will return to:</p>
-      <p><code>${escapeHtml(params.redirectUri)}</code></p>
-      <p>Requested permissions:</p>
-      <ul class="scope-list">
-        ${scopeItems}
-      </ul>
-      <form method="post" action="/authorize">
-        ${Object.entries(hidden)
-          .map(
-            ([name, value]) =>
-              `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`,
-          )
-          .join("\n        ")}
-        <button type="submit">Approve and continue</button>
-      </form>
-    </main>
-  </body>
-</html>`;
-}
-
-function htmlResponse(body: string): Response {
-  return new Response(body, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
-}
-
-function unauthorizedHtmlResponse(request: Request): Response {
-  const returnTo = `${new URL(request.url).pathname}${new URL(request.url).search}`;
-  return new Response(renderLoginPage(returnTo, "Operator login required"), {
-    status: 401,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
-}
-
-function webAuthnRequestContext(request: Request): WebAuthnRequestContext {
-  const issuer = issuerFromRequest(request);
-  const origin = new URL(issuer);
-  return {
-    origin: origin.origin,
-    rpID: origin.hostname,
-  };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }

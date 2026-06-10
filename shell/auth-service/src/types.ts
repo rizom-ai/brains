@@ -46,6 +46,19 @@ export interface ProtectedResourceMetadata extends JsonObject {
   scopes_supported: string[];
 }
 
+/**
+ * A validated /authorize request, after client lookup and redirect URI
+ * checks. Produced by the OAuth endpoints and rendered by the authorize page.
+ */
+export interface ValidAuthorizationRequest {
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  scope?: string;
+  state?: string;
+  clientName: string;
+}
+
 export interface RegisteredOAuthClient {
   client_id: string;
   client_id_issued_at: number;

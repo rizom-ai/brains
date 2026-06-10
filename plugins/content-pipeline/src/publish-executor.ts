@@ -24,8 +24,20 @@ export interface PublishEntityError {
 
 export type PublishEntityResult = PublishEntitySuccess | PublishEntityError;
 
+export type PublishCandidateResolution =
+  | { entity: PublishableEntity }
+  | { error: string };
+
 export interface PublishEntityExecutor {
   publish(input: PublishEntityInput): Promise<PublishEntityResult>;
+  /**
+   * Resolve and validate a publish candidate without publishing.
+   * Shared with the publish tool so confirmation and execution apply the same
+   * checks from a single source of truth.
+   */
+  resolveCandidate(
+    input: PublishEntityInput,
+  ): Promise<PublishCandidateResolution>;
 }
 
 export interface PublishExecutorDeps {
@@ -48,9 +60,9 @@ export interface PublishExecutorDeps {
 export class PublishExecutor implements PublishEntityExecutor {
   constructor(private readonly deps: PublishExecutorDeps) {}
 
-  public async publish(
+  public async resolveCandidate(
     input: PublishEntityInput,
-  ): Promise<PublishEntityResult> {
+  ): Promise<PublishCandidateResolution> {
     const { entityType, id, slug } = input;
 
     if (!id && !slug) {
@@ -79,6 +91,17 @@ export class PublishExecutor implements PublishEntityExecutor {
       };
     }
 
+    return { entity };
+  }
+
+  public async publish(
+    input: PublishEntityInput,
+  ): Promise<PublishEntityResult> {
+    const resolution = await this.resolveCandidate(input);
+    if ("error" in resolution) return resolution;
+
+    const { entity } = resolution;
+    const { entityType } = input;
     const provider = this.deps.providerRegistry.get(entityType);
     const { bodyContent, imageData, documentData } =
       await preparePublishContent(this.deps.context, entity);
@@ -102,6 +125,11 @@ export class PublishExecutor implements PublishEntityExecutor {
         ...(publishTimestampField ? { publishTimestampField } : {}),
       },
     );
+    // The markEntityPublished update above also emits entity:updated, which the
+    // plugin routes to the same preflight for status changes that bypass this
+    // executor (e.g. direct system_update). Running it here too is deliberate:
+    // it guarantees preflight for executor-driven publishes regardless of event
+    // delivery, and the overlap is collapsed by the job dedupe key.
     await this.runPublishAssetPreflight(updated);
 
     return { entity: updated as PublishableEntity, result };

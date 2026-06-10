@@ -113,9 +113,32 @@ export const AttachmentCardSchema = z.object({
 
 export type AttachmentCard = z.infer<typeof AttachmentCardSchema>;
 
+export const SourceCitationSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  source: z.string().min(1),
+  url: z.string().min(1).optional(),
+  entityType: z.string().min(1).optional(),
+  entityId: z.string().min(1).optional(),
+  excerpt: z.string().min(1).optional(),
+  provenance: z.record(z.unknown()).optional(),
+});
+
+export type SourceCitation = z.infer<typeof SourceCitationSchema>;
+
+export const SourcesCardSchema = z.object({
+  kind: z.literal("sources"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  sources: z.array(SourceCitationSchema).min(1),
+});
+
+export type SourcesCard = z.infer<typeof SourcesCardSchema>;
+
 export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
   ToolApprovalCardSchema,
   AttachmentCardSchema,
+  SourcesCardSchema,
 ]);
 
 export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
@@ -126,6 +149,26 @@ export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
  * remote agent service) so the nested optional-stripping lives in one place.
  * Accepts any structurally-compatible attachment card (runtime or parsed).
  */
+export function toPublicSourcesCard(card: SourcesCard): SourcesCard {
+  return {
+    kind: "sources",
+    id: card.id,
+    ...(card.title !== undefined && { title: card.title }),
+    sources: card.sources.map((source) => ({
+      id: source.id,
+      ...(source.title !== undefined && { title: source.title }),
+      source: source.source,
+      ...(source.url !== undefined && { url: source.url }),
+      ...(source.entityType !== undefined && { entityType: source.entityType }),
+      ...(source.entityId !== undefined && { entityId: source.entityId }),
+      ...(source.excerpt !== undefined && { excerpt: source.excerpt }),
+      ...(source.provenance !== undefined && {
+        provenance: source.provenance,
+      }),
+    })),
+  };
+}
+
 export function toPublicAttachmentCard(card: AttachmentCard): AttachmentCard {
   const { attachment } = card;
   const { source } = attachment;

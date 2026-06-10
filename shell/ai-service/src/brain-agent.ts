@@ -30,6 +30,10 @@ export const brainCallOptionsSchema = z.object({
   interfaceType: z.string(),
   agentContextInstructions: z.string().optional(),
   disableTools: z.boolean().optional(),
+  enableCreateUpload: z.boolean().optional(),
+  enableCreateTransform: z.boolean().optional(),
+  enableCreateSourceAttachment: z.boolean().optional(),
+  disableDocumentGenerate: z.boolean().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -113,7 +117,15 @@ export function createBrainAgentFactory(
         // an already-confirmed action).
         const allowedTools = callOptions.disableTools
           ? []
-          : config.getToolsForPermission(callOptions.userPermissionLevel);
+          : config
+              .getToolsForPermission(callOptions.userPermissionLevel)
+              .filter(
+                (tool) =>
+                  !(
+                    callOptions.disableDocumentGenerate === true &&
+                    tool.name === "document_generate"
+                  ),
+              );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options
@@ -125,6 +137,10 @@ export function createBrainAgentFactory(
             channelName: callOptions.channelName,
             interfaceType: callOptions.interfaceType,
             userPermissionLevel: callOptions.userPermissionLevel,
+            enableCreateUpload: callOptions.enableCreateUpload,
+            enableCreateTransform: callOptions.enableCreateTransform,
+            enableCreateSourceAttachment:
+              callOptions.enableCreateSourceAttachment,
           },
           emitter,
         );

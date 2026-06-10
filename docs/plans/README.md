@@ -17,8 +17,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Relay eval failure recovery](./relay-eval-failure-recovery.md) — triage from the 2026-05-30 eval run
-- [Conversation speaker attribution](./conversation-speaker-attribution.md) — first pass implemented; identity-link follow-ups deferred
 
 ### Public surface and framework cleanup
 
@@ -29,27 +27,22 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Job queue claim expiry](./job-queue-claim-expiry.md) — proposed; reclaim stranded `processing` rows after a timeout
-- [Search index readiness for playbook gates](./search-index-readiness.md) — proposed; fix KB search semantics and embedding readiness before GoalCheck/onboarding evals
-
-### Content, sync, and generation
-
-- [OG images and printable PDFs on the media rendering substrate](./og-images-pdf-carousels.md) — proposed follow-up for OG images plus printable post/project/product PDFs
-- [Content pipeline publish assets](./content-pipeline-publish-assets.md) — proposed abstraction for auto-generating publish-adjacent assets such as OG images
+- [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, tsconfig drift)
+- [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference while onboarding smoke finishes
 
 ### Auth, users, CMS, and HTTP
 
 - [A2A request signing](./a2a-request-signing.md) — proposed auth hardening
 - [Multi-user and permissions](./multi-user.md) — proposed runtime-user layer
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
-- [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
 - [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos
 
 ### Hosted, deployed, and monetized product
 
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
-- [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — proposed lifecycle-triggered onboarding powered by a generic playbook entity
+- [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — proposed in-chat guided apprenticeship for first-run Rover operators
+- [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial; first-passkey bootstrap for hosted Rover operators
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
 - [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
@@ -58,6 +51,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
 - [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — active prototype; Phase 1/2 outbound publishing is live, the `rizom.ai` registry is verified, and Phase 4 discovery is the next target
+- [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work

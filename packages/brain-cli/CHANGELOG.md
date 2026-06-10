@@ -1,5 +1,23 @@
 # @rizom/brain
 
+## 0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- [`7f9c3b1`](https://github.com/rizom-ai/brains/commit/7f9c3b191ee9d3979ec1bd922ef20664050bb783) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align PDF carousel inline emphasis with HTML deck styling by rendering italic markdown emphasis in the deck accent color.
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- [`c6c7df5`](https://github.com/rizom-ai/brains/commit/c6c7df529c7fe7b23680934ce3dc1b1c1f4ae4f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent generated document artifacts from creating oversized MCP tool names. Document IDs derived from dedup keys are now bounded with a short deterministic hash suffix instead of embedding full content hashes, and the entity-detail MCP resource template no longer enumerates every entity instance as a discoverable resource.
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

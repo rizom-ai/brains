@@ -175,7 +175,7 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
       PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
       new ProjectOgImageAttachmentProvider(context),
     );
-    await this.registerWithPublishPipeline(context);
+    this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);
     this.unregisterAtprotoProjection =
       AtprotoProjectionRegistry.getInstance().register(
@@ -211,20 +211,22 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
     });
   }
 
-  private async registerWithPublishPipeline(
-    context: EntityPluginContext,
-  ): Promise<void> {
+  private deferPublishRegistration(context: EntityPluginContext): void {
     const provider: PublishProvider = {
       name: "internal",
       publish: async (): Promise<PublishResult> => ({ id: "internal" }),
     };
-    await context.messaging.send({
-      type: "publish:register",
-      payload: {
-        entityType: "project",
-        provider,
-        config: { executionMode: "provider" },
-      },
+
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send({
+        type: "publish:register",
+        payload: {
+          entityType: "project",
+          provider,
+          config: { executionMode: "provider" },
+        },
+      });
+      return { success: true };
     });
   }
 

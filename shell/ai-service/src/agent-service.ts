@@ -1,9 +1,8 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import { type IMCPService, type ToolContext } from "@brains/mcp-service";
+import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
-  ConversationMessageMetadata,
   ConversationMessageSource,
   IConversationService,
 } from "@brains/conversation-service";
@@ -19,9 +18,7 @@ import type {
   ChatContext,
   IAgentService,
   StructuredChatCard,
-  ToolResultData,
 } from "./agent-types";
-import type { BrainCallOptions } from "./brain-agent";
 import {
   agentMachine,
   emptyUsage,
@@ -33,29 +30,23 @@ import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
+  resolveConversationUploadContinuity,
 } from "./conversation-messages";
-import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
+import {
+  buildSourcesCardFromContextItems,
+  extractToolResults,
+  buildEntityMemoryNote,
+} from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
+import { buildBrainCallOptions } from "./call-options";
+import { buildConfirmedActionResult } from "./confirmed-action";
+import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
 /**
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getStringField(value: unknown, field: string): string | undefined {
-  if (!isRecord(value)) return undefined;
-  const fieldValue = value[field];
-  return typeof fieldValue === "string" ? fieldValue : undefined;
-}
-
-function isFailedToolOutput(value: unknown): boolean {
-  return isRecord(value) && value["success"] === false;
-}
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   const filenames = attachments.map((attachment) => attachment.filename);
@@ -279,7 +270,7 @@ export class AgentService implements IAgentService {
   }
 
   /**
-   * Confirm or cancel a pending destructive operation
+   * Confirm or cancel a pending approval-gated action
    */
   public async confirmPendingAction(
     conversationId: string,
@@ -371,9 +362,7 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "user",
         content: message,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(actor, source, attachments),
-        ),
+        ...this.messageMetadata({ actor, source, attachments }),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
@@ -381,12 +370,10 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+        }),
       });
 
       return {
@@ -402,16 +389,30 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
+    const uploadContinuity = resolveConversationUploadContinuity({
+      message,
+      currentAttachments: attachments,
+      historyMessages,
+    });
+
+    const effectiveMessage = uploadContinuity.message;
+    const effectiveAttachments = uploadContinuity.attachments;
     const contextItems = await this.fetchAgentContext({
       conversationId,
-      message,
+      message: effectiveMessage,
       interfaceType,
       channelId,
       channelName,
       userPermissionLevel,
     });
 
-    const modelMessage = buildMessageWithAttachments(message, attachments);
+    const modelMessage = buildMessageWithAttachments(
+      effectiveMessage,
+      effectiveAttachments,
+      {
+        uploadRefs: uploadContinuity.refs,
+      },
+    );
     const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
@@ -429,21 +430,30 @@ export class AgentService implements IAgentService {
     await this.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: message,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(actor, source, attachments),
-      ),
+      content: effectiveMessage,
+      ...this.messageMetadata({
+        actor,
+        source,
+        attachments: effectiveAttachments,
+      }),
     });
 
     // Call agent
-    const callOptions: BrainCallOptions = {
+    const hasCurrentUploadAttachments = effectiveAttachments.some(
+      (attachment) => attachment.source !== undefined,
+    );
+    const hasAccessibleUploads =
+      hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
+    const callOptions = buildBrainCallOptions({
+      message,
+      hasAccessibleUploads,
       userPermissionLevel,
       conversationId,
       channelId,
       channelName,
       interfaceType,
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
-    };
+    });
 
     const result = await this.getAgent().generate({
       messages,
@@ -452,6 +462,8 @@ export class AgentService implements IAgentService {
 
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
+    const sourcesCard = buildSourcesCardFromContextItems(contextItems);
+    const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
       pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
@@ -470,15 +482,12 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-            [],
-            cards,
-            entityMemoryNote,
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
+          entityMemoryNote,
+        }),
       });
     }
 
@@ -493,7 +502,7 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
-      ...(cards.length > 0 ? { cards } : {}),
+      ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
     };
 
@@ -567,76 +576,43 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const failed = isFailedToolOutput(result);
-    const prefix = failed ? "Failed" : "Completed";
-    const actionLabel =
-      pendingConfirmation.completionSummary ?? pendingConfirmation.summary;
-    const errorMessage = failed
-      ? (getStringField(result, "error") ?? getStringField(result, "message"))
-      : undefined;
-    const resultText = errorMessage
-      ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
-      : `${prefix}: ${actionLabel}`;
-    const toolResult: ToolResultData = {
-      toolName: pendingConfirmation.toolName,
-      data: result,
-      ...(isRecord(pendingConfirmation.args)
-        ? { args: pendingConfirmation.args }
-        : {}),
-    };
-    const approvalCard: StructuredChatCard = {
-      kind: "tool-approval",
-      id: pendingConfirmation.id,
-      ...(pendingConfirmation.toolCallId
-        ? { toolCallId: pendingConfirmation.toolCallId }
-        : {}),
-      toolName: pendingConfirmation.toolName,
-      ...(isRecord(pendingConfirmation.args)
-        ? { input: pendingConfirmation.args }
-        : {}),
-      summary: pendingConfirmation.summary,
-      ...(pendingConfirmation.completionSummary !== undefined
-        ? { completionSummary: pendingConfirmation.completionSummary }
-        : {}),
-      state: failed ? "output-error" : "output-available",
-      output: result,
-      ...(failed
-        ? { error: getStringField(result, "error") ?? "Action failed" }
-        : {}),
-    };
-
+    const outcome = buildConfirmedActionResult(pendingConfirmation, result);
+    const failed = outcome.cards.some(
+      (card) => card.kind === "tool-approval" && card.state === "output-error",
+    );
     const response = failed
       ? undefined
       : await this.generatePostConfirmationFollowUp({
           conversationId,
-          resultText,
+          resultText: outcome.resultText,
           interfaceType,
           channelId,
           channelName,
           userPermissionLevel,
         });
     const responseText = response?.text.trim()
-      ? `${resultText}\n\n${response.text}`
-      : resultText;
-    const cards = [approvalCard, ...(response?.cards ?? [])];
-    const toolResults = [toolResult, ...(response?.toolResults ?? [])];
-    const entityMemoryNote = response
+      ? `${outcome.resultText}\n\n${response.text}`
+      : outcome.resultText;
+    const cards = [...outcome.cards, ...(response?.cards ?? [])];
+    const toolResults = [outcome.toolResult, ...(response?.toolResults ?? [])];
+    const followUpEntityMemoryNote = response
       ? buildEntityMemoryNote(response.toolResults ?? [])
       : "";
+    const entityMemoryNote = [
+      outcome.entityMemoryNote,
+      followUpEntityMemoryNote,
+    ].join("");
 
     await this.conversationService.addMessage({
       conversationId,
       role: "assistant",
       content: responseText,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(
-          this.getAssistantActor(),
-          this.buildAssistantSource(channelId, channelName),
-          [],
-          cards,
-          entityMemoryNote,
-        ),
-      ),
+      ...this.messageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(channelId, channelName),
+        cards,
+        entityMemoryNote,
+      }),
     });
 
     return {
@@ -687,7 +663,7 @@ export class AgentService implements IAgentService {
       options: {
         userPermissionLevel: params.userPermissionLevel,
         conversationId: params.conversationId,
-        channelId: params.channelId,
+        ...(params.channelId ? { channelId: params.channelId } : {}),
         channelName: params.channelName,
         interfaceType: params.interfaceType,
         ...(agentContextInstructions ? { agentContextInstructions } : {}),
@@ -710,49 +686,21 @@ export class AgentService implements IAgentService {
     };
   }
 
-  private buildMessageMetadata(
-    actor: ConversationMessageActor | null,
-    source: ConversationMessageSource | null,
-    attachments: ChatAttachment[] = [],
-    cards: StructuredChatCard[] = [],
-    entityMemoryNote = "",
-  ): ConversationMessageMetadata {
-    const enrichedActor = actor
-      ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
-      : null;
-    return {
-      ...(enrichedActor ? { actor: enrichedActor } : {}),
-      ...(source ? { source } : {}),
-      ...(attachments.length > 0
-        ? {
-            attachments: attachments.map((attachment) =>
-              this.toMessageAttachmentMetadata(attachment),
-            ),
-          }
-        : {}),
-      ...(cards.length > 0 ? { cards } : {}),
-      ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
-    };
-  }
-
-  private toMessageAttachmentMetadata(
-    attachment: ChatAttachment,
-  ): Record<string, unknown> {
-    return {
-      kind: attachment.kind,
-      filename: attachment.filename,
-      mediaType: attachment.mediaType,
-      ...(attachment.sizeBytes !== undefined && {
-        sizeBytes: attachment.sizeBytes,
+  private messageMetadata(params: {
+    actor: ConversationMessageActor | null;
+    source: ConversationMessageSource | null;
+    attachments?: ChatAttachment[];
+    cards?: StructuredChatCard[];
+    entityMemoryNote?: string;
+  }): { metadata: Record<string, unknown> } | Record<string, never> {
+    return withMessageMetadata(
+      buildMessageMetadata({
+        ...params,
+        ...(this.canonicalIdentityResolver
+          ? { canonicalIdentityResolver: this.canonicalIdentityResolver }
+          : {}),
       }),
-      ...(attachment.source !== undefined && { source: attachment.source }),
-    };
-  }
-
-  private withMessageMetadata(
-    metadata: ConversationMessageMetadata,
-  ): { metadata: Record<string, unknown> } | Record<string, never> {
-    return Object.keys(metadata).length > 0 ? { metadata } : {};
+    );
   }
 
   private getAssistantActor(): ConversationMessageActor {
