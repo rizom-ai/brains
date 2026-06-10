@@ -200,6 +200,26 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should teach the model to verify confirmed update state with system_get instead of looping", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks to show, display, read back, verify, or check the latest state of a known entity after an update/confirmation, call `system_get`",
+    );
+    expect(instructions).toContain(
+      "If a previous confirmed action returned a `Completed:` response or a successful tool result, treat it as completed.",
+    );
+  });
+
+  it("should tell the model to choose a requested title and update it", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks you to choose a missing title/name",
+    );
+    expect(instructions).toContain(
+      "call `system_update` with `fields.title` immediately",
+    );
+  });
+
   it("should teach the model to refuse never-gated and level-gated actions", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("### Entity Action Permissions");

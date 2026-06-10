@@ -1416,6 +1416,90 @@ describe("AgentService", () => {
       );
     });
 
+    it("stores confirmed update entity ids in conversation memory", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm title update.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_update",
+                input: {
+                  entityType: "base",
+                  id: "rizom-brains-provenance-token-concept-note",
+                  fields: { title: "Rizom Brains and Provenance" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_update",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: 'Update "Untitled"?',
+                  args: {
+                    entityType: "base",
+                    id: "rizom-brains-provenance-token-concept-note",
+                    fields: { title: "Rizom Brains and Provenance" },
+                    confirmed: true,
+                    contentHash: "hash-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const updateHandler = mock(async () => ({
+        success: true as const,
+        data: { updated: "rizom-brains-provenance-token-concept-note" },
+      }));
+      const updateTool: Tool = {
+        name: "system_update",
+        description: "Update entity",
+        inputSchema: { entityType: z.string(), id: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("give it a title", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+      );
+
+      expect(response.text).toBe('Completed: Update "Untitled"?');
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: response.text,
+          metadata: expect.objectContaining({
+            entityMemoryNote: expect.stringContaining(
+              'base "rizom-brains-provenance-token-concept-note" (updated)',
+            ),
+          }),
+        }),
+      );
+    });
+
     it("includes attachment cards from confirmed create results", async () => {
       mockAgentGenerateResult = {
         text: "Please confirm image generation.",
