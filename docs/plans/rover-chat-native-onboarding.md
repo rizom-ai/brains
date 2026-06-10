@@ -33,14 +33,18 @@ polished enough to call done. Observed issues:
 4. **Internal state leakage** — Rover sometimes says things like
    `retrieval-demo step` or `moved the onboarding run to wrap-up`. State IDs are
    useful runtime context, not user-facing onboarding language.
-5. **Ambiguous continuation drift** — after offering several next actions,
-   `go ahead` can trigger an unrelated operational path such as topic extraction.
-   Rover should either pick the playbook's next explicit action or ask which
-   option the operator means; it should not invent a maintenance task.
-6. **Job-status disagreement handling** — when the operator says local logs show a
+5. **Missing proactive next-step guidance** — after meaningful onboarding actions,
+   Rover can stop at "saved" or "done", making the operator ask "what is next?".
+   Active playbook turns should end with the next natural state question/action so
+   the onboarding flow carries itself forward.
+6. **Ambiguous continuation drift** — when the flow has already forced the operator
+   to ask "what is next?", a later `go ahead` can trigger unrelated operational work
+   such as topic extraction. Fixing proactive next-step guidance should reduce this;
+   remaining ambiguity should be clarified instead of inventing maintenance tasks.
+7. **Job-status disagreement handling** — when the operator says local logs show a
    job succeeded, Rover should inspect runtime/job status if available instead of
    arguing from the conversation transcript.
-7. **Entity terminology mismatch** — Rover says "note" while generic creation may
+8. **Entity terminology mismatch** — Rover says "note" while generic creation may
    create a `base` entity. This may be acceptable as user-facing language, but the
    product decision should be explicit.
 
@@ -63,13 +67,17 @@ Ordered fix plan:
 5. **Hide internal state IDs from operator-facing chat**: keep state IDs in agent
    context/tool results, but instruct the agent to translate them into natural
    language when speaking to the operator. **Done.**
-6. **Ambiguous continuation handling**: when the user says `go ahead` after a list
+6. **Proactive next-step guidance**: after meaningful tool actions during an active
+   playbook, the agent should refresh/use current playbook status and end the turn
+   with the next state's immediate question or action. The operator should not need
+   to ask "what is next?".
+7. **Ambiguous continuation handling**: when the user says `go ahead` after a list
    of options, ask a clarifying question or choose the current playbook state's next
    explicit demonstration; do not start unrelated maintenance tasks.
-7. **Create confirmation policy decision**: keep routine durable entity creation
+8. **Create confirmation policy decision**: keep routine durable entity creation
    low-friction by default; require confirmation for publish/send/external effects,
    deletes, updates, replace/overwrite, or public side-effectful creation.
-8. **Terminology decision**: decide whether onboarding should create literal `note`
+9. **Terminology decision**: decide whether onboarding should create literal `note`
    entities or keep using generic `base` while calling them "durable notes" in chat.
 
 Validation for this polish slice:
