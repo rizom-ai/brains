@@ -451,3 +451,11 @@ No dependency on `@atproto/pds` — we connect to an external PDS, we don't run 
 7. Custom feeds are subscribable in Bluesky
 8. Peer brain activity triggers local reactions only for approved or explicitly followed peers
 9. A2A continues to work for directed RPC alongside atproto pub/sub
+
+## Related finding: contracts barrel export (audit 2026-06-10)
+
+`shared/atproto-contracts/src/index.ts` (817 lines) re-exports 200+ zod
+schemas from one barrel — the type-instantiation blowup `shared/utils`
+explicitly warns against in its own index. When touching the contracts
+package for OAuth/discovery work, split the barrel by domain (records,
+types, projections) with named exports.
