@@ -2,12 +2,11 @@
 
 ## Status
 
-On `feature/rover-chat-native-onboarding`; not yet mergeable. A first
-playbook/entity/runtime/web-chat slice exists, and live smoke testing exposed
-correctness gaps (below). This plan is scoped to **shipping Rover onboarding** —
-not the general playbook platform. Anything an onboarding run does not exercise
-is listed under [Deferred](#deferred-not-built-here) and is explicitly out of
-build scope.
+On `feature/rover-chat-native-onboarding`; automated onboarding polish
+regressions now pass, and the branch is pending final live smoke before merge.
+This plan is scoped to **shipping Rover onboarding** — not the general playbook
+platform. Anything an onboarding run does not exercise is listed under
+[Deferred](#deferred-not-built-here) and is explicitly out of build scope.
 
 Related: [Brain web chat surface](./brain-web-ui.md) owns `/chat`;
 [Passkey Operator Onboarding](./passkey-operator-onboarding.md) owns first-passkey
@@ -15,8 +14,9 @@ bootstrap.
 
 ## Current smoke-test observations and next fixes
 
-Latest live onboarding smoke test completes end-to-end, but the experience is not
-polished enough to call done. Observed issues:
+Earlier live onboarding smoke tests completed end-to-end but exposed the polish
+issues below. The ordered fixes are implemented; final live smoke is still needed
+before calling the branch merge-ready.
 
 1. **Manual encouragement needed** — after evidence-producing actions, Rover often
    waits for "continue" instead of moving to the next state. The runtime already
