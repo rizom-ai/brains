@@ -1,7 +1,11 @@
 import type { AgentNamespace, ChatAttachment } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
-import { writeStructuredCards, writeTextPart } from "./stream-writer";
+import {
+  redactUploadRefs,
+  writeStructuredCards,
+  writeTextPart,
+} from "./stream-writer";
 
 export interface ActiveStream {
   writer: UIMessageStreamWriter<UIMessage>;
@@ -55,7 +59,7 @@ export async function handleStreamedChat(
       input.writer.write({
         type: "data-tool-result",
         id: deps.createId("tool"),
-        data: toolResult,
+        data: redactUploadRefs(toolResult),
       });
     }
     writeStructuredCards(input.writer, response.cards ?? []);

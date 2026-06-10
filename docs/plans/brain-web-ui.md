@@ -128,9 +128,7 @@ upload-context regression are shipped.
 
 Remaining upload work:
 
-- browser-verify the released upload paths against a running Rover instance;
-- keep user-visible copy saying "uploaded file" or "chat upload", not internal
-  ref-kind names.
+- browser-verify the released upload paths against a running Rover instance.
 
 Upload import transform policy: `extract-markdown` is deterministic extraction,
 not cleanup, rewriting, or summarization. Future cleanup/summarization should be

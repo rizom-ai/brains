@@ -9,6 +9,7 @@ import type {
   CreateInterceptionResult,
 } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
+import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { z, slugify } from "@brains/utils";
 
@@ -294,6 +295,60 @@ describe("system_create tool", () => {
       summary: 'Create "Confirm Me"?',
     });
     expect(result).toHaveProperty("args.confirmed", true);
+  });
+
+  it("hides raw upload refs from confirmation preview copy", async () => {
+    const uploadId = "upload-00000000-0000-4000-8000-000000000777";
+    const conversationService: IConversationService = {
+      startConversation: async () => "conv-1",
+      addMessage: async () => undefined,
+      getMessages: async () => [
+        {
+          id: "message-1",
+          conversationId: "conv-1",
+          role: "user",
+          content: "",
+          timestamp: new Date(0).toISOString(),
+          metadata: JSON.stringify({
+            attachments: [
+              {
+                kind: "file",
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                source: { kind: "upload", id: uploadId },
+              },
+            ],
+          }),
+        },
+      ],
+      countMessages: async () => 1,
+      getConversation: async () => null,
+      listConversations: async () => [],
+      updateConversationMetadata: async () => false,
+      deleteConversation: async () => false,
+      searchConversations: async () => [],
+      close: () => undefined,
+    };
+    services = createMockSystemServices({ conversationService });
+    tools = createSystemTools(services);
+
+    const result = await execRaw(
+      {
+        entityType: "base",
+        title: "Brief",
+        content: "Preserve uploaded PDF.",
+        upload: { kind: "upload", id: uploadId },
+      },
+      { conversationId: "conv-1" },
+    );
+
+    const parsedConfirmation = z
+      .object({ preview: z.string() })
+      .passthrough()
+      .parse(result);
+    expect(result).toMatchObject({ needsConfirmation: true });
+    expect(parsedConfirmation.preview).toContain("Upload: uploaded file");
+    expect(parsedConfirmation.preview).not.toContain(uploadId);
   });
 
   it("should reject confirmed create calls without a pending confirmation token", async () => {

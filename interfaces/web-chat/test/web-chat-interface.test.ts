@@ -777,6 +777,65 @@ describe("WebChatInterface", () => {
     expect(body).not.toContain("/api/chat/attachments/image");
   });
 
+  it("redacts raw upload refs from streamed tool result details and approval input", async () => {
+    const uploadId = "upload-00000000-0000-4000-8000-000000000888";
+    const uploadArg = { kind: "upload", id: uploadId };
+    const agent = createSpyAgentService({
+      text: "Confirmation required.",
+      toolResults: [
+        {
+          toolName: "system_create",
+          args: {
+            entityType: "document",
+            upload: uploadArg,
+          },
+        },
+      ],
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "system_create",
+          input: {
+            entityType: "document",
+            upload: uploadArg,
+          },
+          summary: "Create document?",
+          preview: "Entity type: document\nUpload: uploaded file",
+          state: "approval-requested",
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Save the upload" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-tool-result");
+    expect(body).toContain("uploaded file");
+    expect(body).not.toContain(uploadId);
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",

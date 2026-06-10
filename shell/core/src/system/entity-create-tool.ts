@@ -65,9 +65,7 @@ function buildCreateConfirmation(input: {
     `Entity type: ${input.entityType}`,
     ...(input.title ? [`Title: ${input.title}`] : []),
     ...(input.url ? [`URL: ${input.url}`] : []),
-    ...(input.upload
-      ? [`Upload: ${input.upload.kind}:${input.upload.id}`]
-      : []),
+    ...(input.upload ? ["Upload: uploaded file"] : []),
     ...(input.sourceAttachment
       ? [
           `Source attachment: ${input.sourceAttachment.sourceEntityType}/${input.sourceAttachment.sourceEntityId} (${input.sourceAttachment.attachmentType})`,
