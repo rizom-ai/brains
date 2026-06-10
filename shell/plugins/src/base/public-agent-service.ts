@@ -6,6 +6,7 @@ import type {
 } from "@brains/ai-service";
 import {
   toPublicAttachmentCard,
+  toPublicSourcesCard,
   type AgentNamespace,
   type AgentResponse,
   type ChatContext,
@@ -46,6 +47,10 @@ function toPublicStructuredChatCard(
 ): StructuredChatCard {
   if (card.kind === "attachment") {
     return toPublicAttachmentCard(card);
+  }
+
+  if (card.kind === "sources") {
+    return toPublicSourcesCard(card);
   }
 
   return {

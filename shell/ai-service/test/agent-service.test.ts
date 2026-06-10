@@ -1130,6 +1130,55 @@ describe("AgentService", () => {
       );
     });
 
+    it("returns retrieved context as source citation cards", async () => {
+      const agentContextProvider = mock(async () => [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "summary from #relay-team",
+          content: "The team decided to use explicit memory retrieval.",
+          provenance: {
+            entityType: "summary",
+            entityId: "summary-1",
+            conversationId: "relay-conv",
+          },
+        },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      const response = await service.chat("What did we decide?", "relay-conv");
+
+      expect(response.cards).toEqual([
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "summary from #relay-team",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+              provenance: {
+                entityType: "summary",
+                entityId: "summary-1",
+                conversationId: "relay-conv",
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it("tells the agent when the context provider returns no relevant memory", async () => {
       const agentContextProvider = mock(async () => []);
       const service = AgentService.createFresh(
@@ -2272,6 +2321,156 @@ describe("AgentService", () => {
 
       expect(response.toolResults).toBeDefined();
       expect(response.toolResults?.length).toBe(0);
+    });
+
+    it("caps and sorts structured entity search sources by score", async () => {
+      mockAgentGenerateResult = {
+        text: "Your notes describe resilience as graceful degradation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-search",
+                toolName: "system_search",
+                input: { query: "resilience", entityType: "note" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-search",
+                toolName: "system_search",
+                output: {
+                  success: true,
+                  data: {
+                    results: [
+                      {
+                        entity: {
+                          id: "security",
+                          entityType: "base",
+                          content: "Security policy content.",
+                          metadata: { title: "Security Policy" },
+                        },
+                        score: 0.42,
+                        excerpt: "Security policy content.",
+                      },
+                      {
+                        entity: {
+                          id: "resilience-note",
+                          entityType: "note",
+                          content:
+                            "Resilience preserves essential function under stress.",
+                          metadata: { title: "Resilience Is Not Redundancy" },
+                        },
+                        score: 0.91,
+                        excerpt:
+                          "Resilience preserves essential function under stress.",
+                      },
+                      {
+                        entity: {
+                          id: "distributed-systems-primer",
+                          entityType: "base",
+                          content: "Distributed systems fail in partial ways.",
+                          metadata: {
+                            title: "Distributed Systems: A Practical Primer",
+                          },
+                        },
+                        score: 0.83,
+                        excerpt: "Distributed systems fail in partial ways.",
+                      },
+                      {
+                        entity: {
+                          id: "green-software",
+                          entityType: "base",
+                          content: "Carbon efficiency notes.",
+                          metadata: { title: "Green Software" },
+                        },
+                        score: 0.35,
+                        excerpt: "Carbon efficiency notes.",
+                      },
+                      {
+                        entity: {
+                          id: "resilience-post",
+                          entityType: "post",
+                          content: "Redundancy is not resilience.",
+                          metadata: { title: "More Replicas Are Not Enough" },
+                        },
+                        score: 0.87,
+                        excerpt: "Redundancy is not resilience.",
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 25, outputTokens: 40, totalTokens: 65 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "what do we know about resilience?",
+        "test-conversation",
+      );
+
+      const expectedSourcesCard = {
+        kind: "sources" as const,
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "note:resilience-note",
+            title: "Resilience Is Not Redundancy",
+            source: "note",
+            entityType: "note",
+            entityId: "resilience-note",
+            excerpt: "Resilience preserves essential function under stress.",
+            provenance: { toolName: "system_search", score: 0.91 },
+          },
+          {
+            id: "post:resilience-post",
+            title: "More Replicas Are Not Enough",
+            source: "post",
+            entityType: "post",
+            entityId: "resilience-post",
+            excerpt: "Redundancy is not resilience.",
+            provenance: { toolName: "system_search", score: 0.87 },
+          },
+          {
+            id: "base:distributed-systems-primer",
+            title: "Distributed Systems: A Practical Primer",
+            source: "base",
+            entityType: "base",
+            entityId: "distributed-systems-primer",
+            excerpt: "Distributed systems fail in partial ways.",
+            provenance: { toolName: "system_search", score: 0.83 },
+          },
+        ],
+      };
+      expect(response.cards).toContainEqual(expectedSourcesCard);
+      expect(response.cards).not.toContainEqual(
+        expect.objectContaining({
+          sources: expect.arrayContaining([
+            expect.objectContaining({ entityId: "security" }),
+          ]),
+        }),
+      );
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({
+            cards: [expectedSourcesCard],
+          }),
+        }),
+      );
     });
 
     it("should include multiple tool results when agent calls multiple tools", async () => {

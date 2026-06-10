@@ -47,6 +47,29 @@ describe("web chat message part grouping", () => {
     ).toEqual([]);
   });
 
+  it("groups structured source citation parts semantically", () => {
+    const sources = {
+      kind: "sources",
+      id: "sources:agent-context",
+      sources: [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "Relay decision summary",
+        },
+      ],
+    };
+
+    expect(
+      groupMessageParts([
+        {
+          type: "data-sources",
+          data: sources,
+        },
+      ]),
+    ).toEqual([{ kind: "sources", data: sources }]);
+  });
+
   it("groups structured progress parts semantically", () => {
     const progress = {
       status: "processing",

@@ -174,27 +174,31 @@ surface needs it.
 Current protocol shape: `AgentResponse.cards` is the backend-owned extension
 point for durable structured chat parts. It is already projected through the
 public agent contract, remote eval bridge, web-chat stream writer, transcript
-metadata, and browser history hydration. Existing card kinds are
-`tool-approval` and `attachment`; web-chat maps those to AI SDK UI parts rather
-than deriving UI from assistant text.
+metadata, and browser history hydration. Current card kinds are
+`tool-approval`, `attachment`, and `sources`; web-chat maps those to AI SDK UI
+parts rather than deriving UI from assistant text.
 
-Implementation order for richer parts:
+Retrieval source/citation cards are shipped as the first richer part. The
+`sources` card kind streams as `data-sources` and carries source rows with `id`,
+human label/title, source kind (`conversation-memory`, `entity`, `search`,
+etc.), optional URL/entity ref, excerpt, and provenance. The first emitters are
+explicit retrieval surfaces: agent-context retrieval emits a `Retrieved context`
+sources card, structured `system_get` entity results emit a source, and
+structured `system_search` results emit a capped, score-sorted `Retrieved
+sources` card. Search sources preserve retrieval score in provenance and are
+retrieval candidates, not inferred citations from free-form model text.
+UI currently renders the generic structured part; it can graduate to an AI
+Elements sources component once the contract proves useful in real Rover
+sessions.
 
-1. **Retrieval sources/citations first.** Add a `sources` card kind to the
-   shared agent contract, then stream it as `data-sources`. This should carry a
-   stable card id plus source rows with `id`, human label/title, source kind
-   (`memory`, `entity`, `search`, etc.), optional URL/entity ref, excerpt, and
-   provenance. Initial emitters should be explicit backend surfaces such as
-   conversation-memory retrieval or search/tool result synthesis; do not infer
-   citations from free-form model text. UI can initially render the structured
-   data with a simple expandable part, then graduate to an AI Elements sources
-   component once the contract proves useful.
-2. **Suggested follow-up actions second.** Add only after a concrete Rover flow
-   needs clickable next steps. Proposed contract is an `actions` card whose
-   items are display labels plus an explicit action type (`prompt`, `tool`, or
+Remaining richer-part implementation order:
+
+1. **Suggested follow-up actions.** Add only after a concrete Rover flow needs
+   clickable next steps. Proposed contract is an `actions` card whose items are
+   display labels plus an explicit action type (`prompt`, `tool`, or
    route/navigation). Tool actions must reuse existing permission/confirmation
    paths; the UI must not execute hidden tool calls directly.
-3. **Concise reasoning/status summaries last.** Prefer existing progress and
+2. **Concise reasoning/status summaries.** Prefer existing progress and
    tool-status parts for operational state. If tool-heavy turns need a summary,
    add a compact `status-summary` card with user-facing bullet text and optional
    related job/tool ids. Avoid chain-of-thought or model-internal reasoning;

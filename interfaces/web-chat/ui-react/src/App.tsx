@@ -1211,6 +1211,15 @@ export function App(): React.ReactElement {
                       if (group.kind === "progress") {
                         return <ProgressPart key={index} data={group.data} />;
                       }
+                      if (group.kind === "sources") {
+                        return (
+                          <GenericDataPart
+                            key={index}
+                            type="data-sources"
+                            data={group.data}
+                          />
+                        );
+                      }
                       if (group.kind === "file") {
                         return (
                           <UploadedFilePart

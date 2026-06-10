@@ -66,6 +66,15 @@ export function writeStructuredCards(
       continue;
     }
 
+    if (card.kind === "sources") {
+      writer.write({
+        type: "data-sources",
+        id: card.id,
+        data: card,
+      });
+      continue;
+    }
+
     const toolCallId = card.toolCallId ?? card.id;
     const input = card.input ?? {};
     writer.write({

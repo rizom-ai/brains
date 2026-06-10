@@ -15,6 +15,7 @@ export type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
+  | { kind: "sources"; data: unknown }
   | { kind: "progress"; data: unknown }
   | {
       kind: "file";
@@ -55,6 +56,10 @@ export function groupMessageParts(
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      case "data-sources":
+        flush();
+        out.push({ kind: "sources", data: getPartData(part) });
         break;
       case "data-progress":
         flush();

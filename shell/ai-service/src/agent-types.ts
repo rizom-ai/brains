@@ -179,7 +179,28 @@ export interface AttachmentCard {
   attachment: AttachmentCardData;
 }
 
-export type StructuredChatCard = ToolApprovalCard | AttachmentCard;
+export interface SourceCitation {
+  id: string;
+  title?: string | undefined;
+  source: string;
+  url?: string | undefined;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  excerpt?: string | undefined;
+  provenance?: Record<string, unknown> | undefined;
+}
+
+export interface SourcesCard {
+  kind: "sources";
+  id: string;
+  title?: string | undefined;
+  sources: SourceCitation[];
+}
+
+export type StructuredChatCard =
+  | ToolApprovalCard
+  | AttachmentCard
+  | SourcesCard;
 
 /**
  * Tool result data for tracking
