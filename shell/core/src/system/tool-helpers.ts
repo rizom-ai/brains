@@ -166,8 +166,14 @@ export function normalizeUpdateInput(input: {
   return { content: input.content };
 }
 
+const ENTITY_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  base: "note",
+};
+
 export function humanizeEntityType(entityType: string): string {
-  return entityType.replaceAll("-", " ");
+  return (
+    ENTITY_TYPE_DISPLAY_NAMES[entityType] ?? entityType.replaceAll("-", " ")
+  );
 }
 
 export function getEntityDisplayLabel(entity: BaseEntity): string {

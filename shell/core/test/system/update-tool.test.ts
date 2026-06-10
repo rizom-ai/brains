@@ -75,6 +75,16 @@ describe("system_update tool", () => {
         updated: new Date("2026-03-11T10:00:00.000Z").toISOString(),
       },
       {
+        id: "woodchuck-note",
+        entityType: "base",
+        content: "Woodchucks and woodpeckers are different animals.",
+        contentHash: "hash-base-note",
+        visibility: "public",
+        metadata: { title: "Woodchuck note" },
+        created: new Date("2026-03-12T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-12T10:00:00.000Z").toISOString(),
+      },
+      {
         id: "newsletter-1",
         entityType: "newsletter",
         content:
@@ -196,6 +206,22 @@ describe("system_update tool", () => {
       toolName: "system_update",
       summary: expect.stringContaining('Update "Notes on Living Systems"?'),
       completionSummary: "Updated newsletter.",
+    });
+  });
+
+  it("uses note as the completion label for base entity updates", async () => {
+    const result = await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      content:
+        "Woodchucks and woodpeckers are different animals. The distinction is useful.",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_update",
+      summary: expect.stringContaining('Update "Woodchuck note"?'),
+      completionSummary: "Updated note.",
     });
   });
 

@@ -82,9 +82,23 @@ turns:
         - "another first"
         - "share a first"
         - "save a first idea"
+        - "another seed"
         - "retrieval-demo"
         - "transformation-demo"
         - "wrap-up"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Let's do a social draft."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+      responseContains:
+        - draft
+      responseNotContains:
+        - "wrap-up"
+        - "transformation stage"
         - "I cannot"
         - "I don't have access"
 
@@ -109,4 +123,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 16
-  maxTokens: 85000
+  maxTokens: 95000

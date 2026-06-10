@@ -18,6 +18,22 @@ Earlier live onboarding smoke tests completed end-to-end but exposed the polish
 issues below. The ordered fixes are implemented; final live smoke is still needed
 before calling the branch merge-ready.
 
+Latest live smoke is much improved but still needs these patches before merge:
+
+- Avoid the double "continue?" loop: after an operator accepts the welcome step,
+  advance instead of repeating the welcome prompt.
+- After saving the first seed, guide only to the retrieval demonstration; do not
+  offer another seed during onboarding.
+- Use operator-facing entity labels in confirmations: updating a base note should
+  complete as "Updated note," not "Updated base."
+- After note updates during onboarding, proactively give the retrieval/demo next
+  step so the operator does not need to ask "what is next?" This requires a
+  follow-up engine slice because confirmed actions currently return terminal
+  `Completed: ...` messages without a second model turn.
+- After creating a transformed draft, show or offer to review the draft before
+  offering wrap-up.
+- Avoid state-machine-ish phrasing such as "transformation stage" in chat.
+
 1. **Manual encouragement needed** — after evidence-producing actions, Rover often
    waits for "continue" instead of moving to the next state. The runtime already
    knows the gated `NEXT` is valid; the run should auto-advance when a single
@@ -516,7 +532,13 @@ auto-send on load. Enabled only on presets with an anchor web-chat surface
 Run state in the UI (decision on invariant: surface a little, deliberately): a
 **resume affordance** for an interrupted/dismissed run, and a **structured "blocked"
 signal** (current step + what's missing + Keep going / Skip), rather than relying on
-the model to paraphrase it. Nothing more for MVP.
+the model to paraphrase it. Once web-chat `actions` cards are available, playbooks
+should use them for these continuation affordances. The cards must be projections of
+the active run state and route through playbook runtime actions/tools; they must not
+invent transitions, execute hidden tool calls, or skip XState guards. The agent may
+still request transitions by calling `playbook_send_event`; UI actions are a parallel
+operator-facing request path, and in both cases the runtime/XState machine remains
+authoritative.
 
 ## Phases
 

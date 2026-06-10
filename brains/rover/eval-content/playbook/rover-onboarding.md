@@ -144,6 +144,7 @@ First knowledge seed
 - Ask for one rough idea, note, link, or fragment the operator wants Rover to remember.
 - Save it as the appropriate durable entity, usually a note or link.
 - Use 'note' as the operator-facing term for base knowledge entries.
+- Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
 - After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"
@@ -182,6 +183,7 @@ Retrieval demonstration
 
 - Invite the operator to ask about the saved seed, or offer to demonstrate.
 - Retrieve or reference the saved entity through normal agent/tool behavior.
+- If the operator updates or expands the saved note, confirm the update then point back to the retrieval demonstration next.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 - After demonstrating retrieval, send NEXT before the final answer so the run moves to transformation.
 
@@ -217,6 +219,7 @@ Transformation demonstration
 
 - Offer two or three transformations: blog post outline, social draft, newsletter idea, topic suggestion, or project angle.
 - Create a draft entity only after the operator chooses one.
+- After creating a draft, show it or offer to review it before offering wrap-up.
 - Explain how Rover helps move from raw thinking to public output without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 - When the transformation demo is complete, send NEXT.
