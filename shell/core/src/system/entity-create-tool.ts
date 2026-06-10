@@ -1,10 +1,10 @@
 import type {
-  BaseEntity,
   CreateCoverImageInput,
   CreateExecutionContext,
   CreateInput,
 } from "@brains/entity-service";
 import {
+  buildGenerationStubEntity,
   canWriteVisibility,
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
@@ -78,27 +78,6 @@ function buildCreateConfirmation(input: {
   ];
 
   return { summary, preview: previewParts.join("\n") };
-}
-
-function buildGenerationStubEntity(
-  services: SystemServices,
-  input: { entityType: string; id: string; title: string },
-): BaseEntity | undefined {
-  const adapter = services.entityRegistry.getAdapter(input.entityType);
-  if (!adapter.buildStub) return undefined;
-
-  const stub = adapter.buildStub({ id: input.id, title: input.title });
-  const now = new Date().toISOString();
-  return {
-    id: input.id,
-    entityType: input.entityType,
-    content: stub.content,
-    metadata: stub.metadata as Record<string, unknown>,
-    visibility: "public",
-    created: now,
-    updated: now,
-    contentHash: "",
-  };
 }
 
 async function enqueueCoverImageGeneration(
@@ -416,7 +395,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           };
         }
         const stubTitle = createInput.title ?? proposedId;
-        const stub = buildGenerationStubEntity(services, {
+        const stub = buildGenerationStubEntity(services.entityRegistry, {
           entityType: createInput.entityType,
           id: proposedId,
           title: stubTitle,

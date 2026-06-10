@@ -75,6 +75,7 @@ export {
   permissionToVisibilityScope,
 } from "./types";
 
+export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
 export { scopedDerivedId } from "./scoped-derived-id";
 

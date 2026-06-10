@@ -134,15 +134,35 @@ Acceptance (met): a reader can answer "what starts before what" from
 
 ### Phase 4 — move entity domain logic out of core's tool builders
 
-`entity-create-tool.ts` / `entity-update-tool.ts` keep only MCP tool
-shape (schema, name, description, wiring); validation, confirmation
-construction, and cover-image prompt logic move to entity-service
-behind a small API. Note: the recent "require confirmation for entity
-creation" work (e25943b05) touched this area — rebase carefully and
-re-run its tests.
+**Scope corrected after fact-checking (2026-06-10).** Most of what the
+audit called "entity domain logic in core" turns out to be legitimate
+tool-protocol concern or immovable:
 
-Acceptance: tool files are thin adapters; moved logic has unit tests
-in entity-service; existing core system-tool tests green.
+- Confirmation construction and diff previews
+  (`buildCreateConfirmation`, `buildUpdateDiff`) are tool-presentation
+  logic — entity-service should not know about confirmation envelopes.
+  They stay in core.
+- The reusable visibility/permission primitives the tools rely on
+  (`canWriteVisibility` etc.) already live in entity-service as of
+  Phase 1.
+- `applyFieldUpdates` (entity-update-tool) is genuine entity-domain
+  semantics, but it uses `setCoverImageId`/`setOgImageId` from
+  `@brains/image`, and `@brains/image` depends on entity-service —
+  moving it would create a package cycle. It stays in core.
+- `isUploadRefInConversation` is conversation-domain logic, but the
+  unified upload-refs work (a1ae524f1) just landed around it; leave it
+  until that settles.
+
+The genuine move, done: `buildGenerationStubEntity` — the stamping
+half of the `EntityAdapter.buildStub` contract ("central code only
+stamps id/timestamps/visibility") — now lives in
+`shell/entity-service/src/generation-stub.ts` next to that contract,
+with unit tests, exposed via a deliberately non-generic
+`GenerationStubAdapterLookup` so callers and tests need no casts.
+`entity-create-tool.ts` consumes it.
+
+Acceptance (met): stub construction owned and unit-tested by
+entity-service; core system-tool tests green and unmodified.
 
 ### Phase 5 — ai-service: split `agent-service.ts`
 
