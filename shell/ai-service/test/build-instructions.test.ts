@@ -239,6 +239,30 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should tell the model to publish the entity just changed to draft", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'If a prior confirmed update changed an entity to draft, a follow-up like "publish it now" means publish that same entity',
+    );
+    expect(instructions).toContain("call `content-pipeline_publish`");
+    expect(instructions).toContain(
+      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ.",
+    );
+  });
+
+  it("should tell the model to act after resolving exact update targets", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "Once `system_get` returns a single matching entity for an exact title/slug",
+    );
+    expect(instructions).toContain(
+      "call the requested `system_update`/publish tool in the same turn",
+    );
+    expect(instructions).toContain(
+      "Do not ask which item, and do not add a broad list call",
+    );
+  });
+
   it("should tell the model to choose a requested title and update it", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
