@@ -351,6 +351,24 @@ transitions); ask one question at a time; teach by doing and explain after; if a
 transition is blocked, read `playbook_status` and do the real work rather than
 retrying; don't publish without explicit confirmation.
 
+### Web-chat action cards
+
+Playbooks should use web-chat `actions` cards once that rich part is available.
+Those cards should be projections of the active run state: current step, next prompt,
+valid events, blocked reason, and any allowed continuation such as Continue, Skip,
+Dismiss, or Resume.
+
+Action cards must stay bound to the playbook runtime. Clicking one should route
+through playbook runtime actions/tools and existing permission/confirmation paths; it
+must not execute hidden tool calls, invent transitions, or skip XState guards. The
+agent may still request transitions by calling `playbook_send_event`; UI actions are a
+parallel operator-facing request path, not a replacement for the agent path. In both
+cases the runtime/XState machine is authoritative and decides whether the transition
+actually advances. The source of truth remains the active run state,
+`playbook_status`, valid vs. blocked events, Done When goals, and configured state
+instructions. Generic prompt-only actions may render playbook `nextPrompts`, but they
+are presentation on top of the run, not a separate control path.
+
 ## Deferred (not built here)
 
 The design leaves room for these; **none are in build scope.** Adding them later means
