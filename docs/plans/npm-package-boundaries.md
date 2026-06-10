@@ -250,10 +250,12 @@ authoring surface should absorb when the SDK shape is curated:
   config-schema/refine/registration pattern (`plugins/cms` 794,
   `plugins/atproto` 599, `plugins/site-builder` 359, `plugins/dashboard`
   276, `plugins/directory-sync` 240).
-- The 22 `entities/` packages each reimplement adapters/handlers with no
-  shared base.
+- The `entities/` packages share the `EntityPlugin` base (18 of 22
+  extend it, and it is already exported from `@rizom/brain/plugins`) —
+  but each reimplements the layer above it: adapter wiring, handler
+  composition, and schema introspection.
 
-Both want a shared base in `@brains/plugins`, surfaced through
-`@rizom/brain/*`. Designing that base as part of the public contract
-(rather than retrofitting one later) keeps official packages on the
-public surface from day one.
+The remaining duplication wants helpers in that layer (adapter/handler
+scaffolding), surfaced through `@rizom/brain/*`. Designing them as part
+of the public contract (rather than retrofitting later) keeps official
+packages on the public surface from day one.
