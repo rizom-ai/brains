@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- [`78171a4`](https://github.com/rizom-ai/brains/commit/78171a49698a9248fe12ceae6d8f45a5e5cc8b97) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so prior image uploads are rehydrated as native vision inputs, avoid generated-image copy for uploaded image saves, and clean completed confirmation text.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+  - @brains/conversation-service@0.2.0-alpha.118
+  - @brains/entity-service@0.2.0-alpha.118
+  - @brains/identity-service@0.2.0-alpha.118
+  - @brains/mcp-service@0.2.0-alpha.118
+  - @brains/messaging-service@0.2.0-alpha.118
+  - @brains/templates@0.2.0-alpha.118
+
 ## 0.2.0-alpha.117
 
 ### Patch Changes

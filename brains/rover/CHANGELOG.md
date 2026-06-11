@@ -1,5 +1,50 @@
 # @brains/rover
 
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- [`78171a4`](https://github.com/rizom-ai/brains/commit/78171a49698a9248fe12ceae6d8f45a5e5cc8b97) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so prior image uploads are rehydrated as native vision inputs, avoid generated-image copy for uploaded image saves, and clean completed confirmation text.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.118
+  - @brains/assessment@0.2.0-alpha.118
+  - @brains/blog@0.2.0-alpha.118
+  - @brains/decks@0.2.0-alpha.118
+  - @brains/document-plugin@0.2.0-alpha.118
+  - @brains/image-plugin@0.2.0-alpha.118
+  - @brains/link@0.2.0-alpha.118
+  - @brains/note@0.2.0-alpha.118
+  - @brains/portfolio@0.2.0-alpha.118
+  - @brains/prompt@0.2.0-alpha.118
+  - @brains/rizom-ecosystem@0.2.0-alpha.118
+  - @brains/series@0.2.0-alpha.118
+  - @brains/site-info@0.2.0-alpha.118
+  - @brains/social-media@0.2.0-alpha.118
+  - @brains/topics@0.2.0-alpha.118
+  - @brains/wishlist@0.2.0-alpha.118
+  - @brains/a2a@0.2.0-alpha.118
+  - @brains/discord@0.2.0-alpha.118
+  - @brains/mcp@0.2.0-alpha.118
+  - @brains/web-chat@0.2.0-alpha.118
+  - @brains/webserver@0.2.0-alpha.118
+  - @brains/analytics@0.2.0-alpha.118
+  - @brains/atproto@0.2.0-alpha.118
+  - @brains/cms@0.2.0-alpha.118
+  - @brains/content-pipeline@0.2.0-alpha.118
+  - @brains/dashboard@0.2.0-alpha.118
+  - @brains/directory-sync@0.2.0-alpha.118
+  - @brains/email-resend@0.2.0-alpha.118
+  - @brains/newsletter@0.2.0-alpha.118
+  - @brains/notifications@0.2.0-alpha.118
+  - @brains/obsidian-vault@0.2.0-alpha.118
+  - @brains/site-builder-plugin@0.2.0-alpha.118
+  - @brains/stock-photo@0.2.0-alpha.118
+  - @brains/theme-default@0.2.0-alpha.118
+  - @brains/app@0.2.0-alpha.118
+  - @brains/auth-service@0.2.0-alpha.118
+  - @brains/site-default@0.2.0-alpha.118
+
 ## 0.2.0-alpha.117
 
 ### Patch Changes
