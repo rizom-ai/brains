@@ -69,6 +69,13 @@ function isTextAttachment(attachment: ChatAttachment): boolean {
   return attachment.kind === "text" || attachment.mediaType.startsWith("text/");
 }
 
+function shouldHydratePriorUploads(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return /\b(describe|summari[sz]e|inspect|look at|view|read|see|analy[sz]e|what(?:'s| is)? in|what does|can you look)\b/.test(
+    normalized,
+  );
+}
+
 function buildAttachmentOnlyActionsCard(
   attachments: ChatAttachment[],
 ): StructuredChatCard | undefined {
@@ -198,6 +205,7 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
+  private uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -291,6 +299,7 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
+    this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
   /**
@@ -506,7 +515,11 @@ export class AgentService implements IAgentService {
     });
 
     const effectiveMessage = uploadContinuity.message;
-    const effectiveAttachments = uploadContinuity.attachments;
+    const effectiveAttachments = await this.hydrateUploadAttachments({
+      message: effectiveMessage,
+      currentAttachments: uploadContinuity.attachments,
+      uploadRefs: uploadContinuity.refs,
+    });
     const contextItems = await this.fetchAgentContext({
       conversationId,
       message: effectiveMessage,
@@ -621,6 +634,34 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async hydrateUploadAttachments(params: {
+    message: string;
+    currentAttachments: ChatAttachment[];
+    uploadRefs: { source: NonNullable<ChatAttachment["source"]> }[];
+  }): Promise<ChatAttachment[]> {
+    if (params.currentAttachments.length > 0) return params.currentAttachments;
+    if (!this.uploadAttachmentResolver) return params.currentAttachments;
+    if (!shouldHydratePriorUploads(params.message))
+      return params.currentAttachments;
+
+    const hydrated: ChatAttachment[] = [];
+    for (const ref of params.uploadRefs.slice().reverse()) {
+      try {
+        const attachment = await this.uploadAttachmentResolver(ref.source);
+        if (attachment) hydrated.push(attachment);
+      } catch (error) {
+        this.logger.debug("Skipped unavailable prior upload attachment", {
+          uploadKind: ref.source.kind,
+          uploadId: ref.source.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (hydrated.length > 0) break;
+    }
+
+    return hydrated.length > 0 ? hydrated : params.currentAttachments;
   }
 
   private async fetchAgentContext(params: {

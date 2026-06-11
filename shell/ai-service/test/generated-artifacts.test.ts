@@ -9,6 +9,7 @@ import type {
   IBrainCharacterService,
 } from "@brains/identity-service";
 import { AgentService } from "../src/agent-service";
+import { buildAttachmentCardFromToolData } from "../src/agent-results";
 import type { BrainAgentFactory, BrainAgentResult } from "../src/agent-types";
 import { toModelToolOutput } from "../src/sdk-tools";
 
@@ -59,6 +60,36 @@ function createProfileService(): IAnchorProfileService {
 function createNoopUnsubscribe(): () => void {
   return (): void => undefined;
 }
+
+describe("generated artifact cards", () => {
+  it("does not describe uploaded image promotion as image generation", () => {
+    const card = buildAttachmentCardFromToolData({
+      entityId: "download",
+      status: "generating",
+      jobId: "job-upload",
+      attachment: {
+        mediaType: "image/png",
+        url: "/api/chat/attachments/image?id=download",
+        downloadUrl: "/api/chat/attachments/image?id=download&download=1",
+        filename: "download.png",
+        source: {
+          entityType: "image",
+          entityId: "download",
+          attachmentType: "uploaded",
+        },
+      },
+    });
+
+    expect(card).toEqual(
+      expect.objectContaining({
+        kind: "attachment",
+        title: "download.png",
+        description:
+          "Uploaded image save has been queued. This artifact will open once the job completes.",
+      }),
+    );
+  });
+});
 
 describe("generated artifact tool loop", () => {
   it("keeps attachment URLs available for cards while hiding them from model-visible tool results", async () => {

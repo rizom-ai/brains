@@ -69,6 +69,16 @@ function describeAttachmentMedia(mediaType: string): string {
   return "artifact";
 }
 
+function buildQueuedAttachmentDescription(
+  mediaLabel: string,
+  attachmentType?: string,
+): string {
+  if (attachmentType === "uploaded") {
+    return `Uploaded ${mediaLabel} save has been queued. This artifact will open once the job completes.`;
+  }
+  return `${mediaLabel} generation has been queued. This artifact will open once the job completes.`;
+}
+
 export function buildAttachmentCardFromToolData(
   data: unknown,
 ): StructuredChatCard | undefined {
@@ -83,6 +93,10 @@ export function buildAttachmentCardFromToolData(
 
   const source = attachment.source;
   const mediaLabel = describeAttachmentMedia(attachment.mediaType);
+  const queuedDescription = buildQueuedAttachmentDescription(
+    mediaLabel,
+    source?.attachmentType,
+  );
   return {
     kind: "attachment",
     id: `attachment:${attachmentId}`,
@@ -90,11 +104,7 @@ export function buildAttachmentCardFromToolData(
     title: attachment.filename ?? `Generated ${mediaLabel}`,
     // Only describe the work as queued when there is a job backing it;
     // an already-materialized attachment arrives without a jobId.
-    ...(jobIdParsed.success
-      ? {
-          description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
-        }
-      : {}),
+    ...(jobIdParsed.success ? { description: queuedDescription } : {}),
     attachment: {
       mediaType: attachment.mediaType,
       url: attachment.url,
