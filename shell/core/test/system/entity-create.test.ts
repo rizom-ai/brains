@@ -297,7 +297,7 @@ describe("system_create tool", () => {
     expect(result).toHaveProperty("args.confirmed", true);
   });
 
-  it("hides raw upload refs from confirmation preview copy", async () => {
+  it("omits stale upload refs from direct-content confirmation preview copy", async () => {
     const uploadId = "upload-00000000-0000-4000-8000-000000000777";
     const conversationService: IConversationService = {
       startConversation: async () => "conv-1",
@@ -347,7 +347,7 @@ describe("system_create tool", () => {
       .passthrough()
       .parse(result);
     expect(result).toMatchObject({ needsConfirmation: true });
-    expect(parsedConfirmation.preview).toContain("Upload: uploaded file");
+    expect(parsedConfirmation.preview).not.toContain("Upload: uploaded file");
     expect(parsedConfirmation.preview).not.toContain(uploadId);
   });
 
@@ -1231,6 +1231,60 @@ A saved research link.`;
     expect(tool.inputSchema).toHaveProperty("replace");
     expect(tool.inputSchema).toHaveProperty("coverImage");
     expect(tool.inputSchema).not.toHaveProperty("options");
+  });
+
+  it("should let direct content take precedence over stale upload refs", async () => {
+    const result = await execRaw({
+      entityType: "base",
+      title: "Image Discussion",
+      content: "Notes from the image discussion.",
+      upload: {
+        kind: "upload",
+        id: "upload-00000000-0000-4000-8000-000000000951",
+      },
+      transform: "extract-markdown",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      summary: 'Create "Image Discussion"?',
+    });
+    expect(result).toHaveProperty(
+      "args.content",
+      "Notes from the image discussion.",
+    );
+    expect(result).not.toHaveProperty("args.upload");
+    expect(result).not.toHaveProperty("args.transform");
+  });
+
+  it("should let image prompts take precedence over stale upload refs", async () => {
+    const result = await execRaw({
+      entityType: "image",
+      prompt: "Editorial cover image for the social post.",
+      targetEntityType: "social-post",
+      targetEntityId: "ecosystems-over-extraction",
+      upload: {
+        kind: "upload",
+        id: "upload-00000000-0000-4000-8000-000000000952",
+      },
+      transform: "extract-markdown",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      summary: "Generate image?",
+    });
+    expect(result).toHaveProperty(
+      "args.prompt",
+      "Editorial cover image for the social post.",
+    );
+    expect(result).toHaveProperty("args.targetEntityType", "social-post");
+    expect(result).toHaveProperty(
+      "args.targetEntityId",
+      "ecosystems-over-extraction",
+    );
+    expect(result).not.toHaveProperty("args.upload");
+    expect(result).not.toHaveProperty("args.transform");
   });
 
   it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {

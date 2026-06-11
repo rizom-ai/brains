@@ -162,6 +162,64 @@ async function isUploadRefInConversation(
   return false;
 }
 
+interface NormalizedCreateSource {
+  prompt?: string;
+  content?: string;
+  url?: string;
+  from?: CreateInput["from"];
+  uploadRef?: { kind: "upload"; id: string };
+  transform?: CreateInput["transform"];
+}
+
+function normalizeCreateSource(input: {
+  prompt?: string | undefined;
+  content?: string | undefined;
+  url?: string | undefined;
+  upload?: { kind: "upload"; id: string } | undefined;
+  sourceAttachment?:
+    | {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        attachmentType: string;
+      }
+    | undefined;
+  transform?: string | undefined;
+}):
+  | { success: true; source: NormalizedCreateSource }
+  | { success: false; error: string } {
+  const prompt = normalizeOptionalString(input.prompt);
+  const content = normalizeOptionalString(input.content);
+  const url = normalizeOptionalString(input.url);
+  const hasDirectSource = Boolean(content ?? prompt ?? url);
+  const uploadRef =
+    input.sourceAttachment || hasDirectSource ? undefined : input.upload;
+  const from: CreateInput["from"] = input.sourceAttachment
+    ? { kind: "entity-attachment", ...input.sourceAttachment }
+    : uploadRef;
+  const rawTransform = normalizeOptionalString(input.transform);
+  const transform = hasDirectSource && input.upload ? undefined : rawTransform;
+
+  if (transform !== undefined && transform !== "extract-markdown") {
+    return {
+      success: false,
+      error:
+        'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
+    };
+  }
+
+  return {
+    success: true,
+    source: {
+      ...(prompt && { prompt }),
+      ...(content && { content }),
+      ...(url && { url }),
+      ...(from && { from }),
+      ...(uploadRef && { uploadRef }),
+      ...(transform && { transform }),
+    },
+  };
+}
+
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
   const pendingConfirmationTokens = new Set<string>();
@@ -171,27 +229,13 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
-      const prompt = normalizeOptionalString(input.prompt);
-      const content = normalizeOptionalString(input.content);
+      const normalizedSource = normalizeCreateSource(input);
+      if (!normalizedSource.success) return normalizedSource;
+      const { prompt, content, url, from, uploadRef, transform } =
+        normalizedSource.source;
       const title = normalizeOptionalString(input.title);
-      const url = normalizeOptionalString(input.url);
-      const uploadRef = input.sourceAttachment ? undefined : input.upload;
-      const from: CreateInput["from"] = input.sourceAttachment
-        ? { kind: "entity-attachment", ...input.sourceAttachment }
-        : uploadRef;
-      const requestedTransform = normalizeOptionalString(input.transform);
       if (
-        requestedTransform !== undefined &&
-        requestedTransform !== "extract-markdown"
-      ) {
-        return {
-          success: false,
-          error:
-            'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
-        };
-      }
-      if (
-        requestedTransform === "extract-markdown" &&
+        transform === "extract-markdown" &&
         (!uploadRef || input.entityType !== "base")
       ) {
         return {
@@ -200,7 +244,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
         };
       }
-      const transform: CreateInput["transform"] = requestedTransform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -316,12 +359,34 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             sourceAttachment: input.sourceAttachment,
           }),
         });
+        const confirmationArgs = {
+          entityType: createInput.entityType,
+          ...(createInput.title && { title: createInput.title }),
+          ...(createInput.prompt && { prompt: createInput.prompt }),
+          ...(createInput.content && { content: createInput.content }),
+          ...(createInput.url && { url: createInput.url }),
+          ...(uploadRef && { upload: uploadRef }),
+          ...(input.sourceAttachment && {
+            sourceAttachment: input.sourceAttachment,
+          }),
+          ...(createInput.transform && { transform: createInput.transform }),
+          ...(createInput.replace && { replace: createInput.replace }),
+          ...(createInput.targetEntityType && {
+            targetEntityType: createInput.targetEntityType,
+          }),
+          ...(createInput.targetEntityId && {
+            targetEntityId: createInput.targetEntityId,
+          }),
+          ...(createInput.coverImage && { coverImage: createInput.coverImage }),
+          confirmed: true,
+          confirmationToken,
+        };
         return {
           needsConfirmation: true,
           toolName: "system_create",
           summary: confirmation.summary,
           preview: confirmation.preview,
-          args: { ...input, confirmed: true, confirmationToken },
+          args: confirmationArgs,
         };
       }
       if (interceptor) {
