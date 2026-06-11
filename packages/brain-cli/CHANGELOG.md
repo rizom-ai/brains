@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- [`fc3b669`](https://github.com/rizom-ai/brains/commit/fc3b669daa7d38097adf79b334451d69888ba1d5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release current mainline fixes and UI updates: explicit durable-write confirmation coverage, richer web-chat stream parts, improved Rover agent/publish routing, and associated eval/test/doc cleanup.
+
 ## 0.2.0-alpha.116
 
 ## 0.2.0-alpha.115
