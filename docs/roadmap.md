@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-05-29
+Last updated: 2026-06-10
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -37,7 +37,7 @@ Relay POC validation (§2) and shared-Relay trust hardening (§3) proceed in par
 These areas are effectively landed:
 
 - **Entity and plugin architecture** — unified `EntityPlugin` / `ServicePlugin` / `InterfacePlugin` split
-- **System tool surface** — create, update, delete, search, extract, status, and insights consolidated into framework-level tools
+- **System tool surface** — create, update, delete, search, extract, status, and insights consolidated into framework-level tools, with durable writes routed through explicit confirmation
 - **Plugin create interceptors** — plugins can override `system_create` behavior per entity type via `EntityPlugin.interceptCreate`; link capture and image cover-target resolution moved into their respective plugins
 - **Knowledge-context opt-in** — AI templates explicitly opt in to knowledge-base context injection, replacing an implicit default that caused embedding-API overflows on long extractive prompts
 - **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
@@ -54,7 +54,7 @@ These areas are effectively landed:
 - **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
 - **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
-- **Rover eval stabilization** — the full Rover suite covers 86 cases across shell quality, tool invocation, multi-turn agent flows, and plugin behavior; the previous search-argument and ambiguous-agent failures are fixed, with residual full-suite variance tracked in per-run results
+- **Rover eval stabilization** — the full Rover suite covers 118 cases across shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior; the current mainline suite is green at 118/118
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
@@ -92,7 +92,7 @@ Rover is the public reference brain and should keep working without Relay. The p
 
 Three parallel sub-tracks:
 
-**Primary: bundled web chat UI.** Rover (and every brain) currently has no in-browser way to actually chat with the brain — the options are CLI, Discord setup, or MCP through a desktop assistant. None of these is a credible "try it" path for new users. A bundled web chat surface closes that gap and is the most leveraged Rover hardening investment. See [brain-web-ui.md](./plans/brain-web-ui.md).
+**Completed: bundled web chat UI.** Rover (and every brain) now ships a bundled in-browser chat surface at `/chat`, including sessions, confirmations, uploads, progress/status parts, generated attachments, sources, and suggested actions. Keep hardening it through normal bug reports and release verification rather than a standing plan.
 
 **Completed: media/OG follow-through.** PDF carousels, printable PDFs, generated OG images, and content-pipeline publish assets landed in this cycle. Future media tweaks should be handled as normal bugs/enhancements rather than a standing plan.
 
@@ -105,10 +105,6 @@ Three parallel sub-tracks:
 - keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
 
 Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
-
-Supporting plans:
-
-- [brain-web-ui.md](./plans/brain-web-ui.md) — bundled in-browser chat surface for every brain; closes the "how does a new user try Rover" gap.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
 

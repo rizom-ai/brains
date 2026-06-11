@@ -1,7 +1,7 @@
 {
   "name": "@brains/directory-sync",
   "private": true,
-  "version": "0.2.0-alpha.116",
+  "version": "0.2.0-alpha.119",
   "description": "Directory-based entity synchronization plugin for Brains",
   "type": "module",
   "main": "./src/index.ts",
@@ -29,6 +29,7 @@
     "simple-git": "^3.21.0"
   },
   "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "typescript": "^5.3.3"

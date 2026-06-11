@@ -57,6 +57,135 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
 }
 
+function isImageAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType.startsWith("image/");
+}
+
+function isPdfAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType === "application/pdf";
+}
+
+function isTextAttachment(attachment: ChatAttachment): boolean {
+  return attachment.kind === "text" || attachment.mediaType.startsWith("text/");
+}
+
+function shouldHydratePriorUploads(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return /\b(describe|summari[sz]e|inspect|look at|view|read|see|analy[sz]e|what(?:'s| is)? in|what does|can you look)\b/.test(
+    normalized,
+  );
+}
+
+function buildAttachmentOnlyActionsCard(
+  attachments: ChatAttachment[],
+): StructuredChatCard | undefined {
+  if (attachments.length === 0) return undefined;
+
+  if (attachments.length > 1) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-uploads",
+          label: "Summarize uploads",
+          prompt: "Summarize the uploaded files.",
+        },
+      ],
+    };
+  }
+
+  const [attachment] = attachments;
+  if (attachment === undefined) return undefined;
+
+  if (isImageAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "describe-image",
+          label: "Describe image",
+          prompt: "Describe the uploaded image.",
+        },
+        {
+          type: "prompt",
+          id: "save-image",
+          label: "Save image",
+          prompt: "Save the uploaded image.",
+        },
+      ],
+    };
+  }
+
+  if (isPdfAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-pdf",
+          label: "Summarize PDF",
+          prompt: "Summarize the uploaded PDF.",
+        },
+        {
+          type: "prompt",
+          id: "save-document",
+          label: "Save document",
+          prompt: "Save the uploaded PDF as a document.",
+        },
+      ],
+    };
+  }
+
+  if (isTextAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-upload",
+          label: "Summarize upload",
+          prompt: "Summarize the uploaded file.",
+        },
+        {
+          type: "prompt",
+          id: "save-upload-note",
+          label: "Save as note",
+          prompt: "Save the uploaded file as a note.",
+        },
+      ],
+    };
+  }
+
+  return {
+    kind: "actions",
+    id: "actions:upload-intent",
+    title: "Try next",
+    defaultOpen: true,
+    actions: [
+      {
+        type: "prompt",
+        id: "summarize-upload",
+        label: "Summarize upload",
+        prompt: "Summarize the uploaded file.",
+      },
+    ],
+  };
+}
+
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
@@ -77,6 +206,7 @@ export class AgentService implements IAgentService {
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
   private indexReadiness: AgentConfig["indexReadiness"];
+  private uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -171,6 +301,7 @@ export class AgentService implements IAgentService {
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
     this.indexReadiness = config.indexReadiness;
+    this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
   /**
@@ -366,6 +497,8 @@ export class AgentService implements IAgentService {
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
+      const actionsCard = buildAttachmentOnlyActionsCard(attachments);
+      const responseCards = actionsCard ? [actionsCard] : [];
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
@@ -373,12 +506,14 @@ export class AgentService implements IAgentService {
         ...this.messageMetadata({
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
         }),
       });
 
       return {
         text: responseText,
         toolResults: [],
+        ...(responseCards.length > 0 ? { cards: responseCards } : {}),
         usage: emptyUsage,
       };
     }
@@ -396,7 +531,11 @@ export class AgentService implements IAgentService {
     });
 
     const effectiveMessage = uploadContinuity.message;
-    const effectiveAttachments = uploadContinuity.attachments;
+    const effectiveAttachments = await this.hydrateUploadAttachments({
+      message: effectiveMessage,
+      currentAttachments: uploadContinuity.attachments,
+      uploadRefs: uploadContinuity.refs,
+    });
     const contextItems = await this.fetchAgentContext({
       conversationId,
       message: effectiveMessage,
@@ -511,6 +650,34 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async hydrateUploadAttachments(params: {
+    message: string;
+    currentAttachments: ChatAttachment[];
+    uploadRefs: { source: NonNullable<ChatAttachment["source"]> }[];
+  }): Promise<ChatAttachment[]> {
+    if (params.currentAttachments.length > 0) return params.currentAttachments;
+    if (!this.uploadAttachmentResolver) return params.currentAttachments;
+    if (!shouldHydratePriorUploads(params.message))
+      return params.currentAttachments;
+
+    const hydrated: ChatAttachment[] = [];
+    for (const ref of params.uploadRefs.slice().reverse()) {
+      try {
+        const attachment = await this.uploadAttachmentResolver(ref.source);
+        if (attachment) hydrated.push(attachment);
+      } catch (error) {
+        this.logger.debug("Skipped unavailable prior upload attachment", {
+          uploadKind: ref.source.kind,
+          uploadId: ref.source.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (hydrated.length > 0) break;
+    }
+
+    return hydrated.length > 0 ? hydrated : params.currentAttachments;
   }
 
   private async fetchAgentContext(params: {

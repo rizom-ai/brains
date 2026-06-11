@@ -1,0 +1,67 @@
+id: multi-turn-web-chat-image-upload-action-follow-up
+name: Web chat image upload action prompt hydrates prior upload ref
+description: Verifies the Describe image action prompt can inspect a prior bare image upload from conversation upload refs, without relying on same-turn attachment reuse.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-image-upload-action
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: misleading-robot.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000901
+    successCriteria:
+      responseContains:
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Describe the uploaded image."
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseNotContains:
+        - "from the filename alone"
+        - "only the filename"
+        - "Please reattach"
+        - "I can't see the image"
+        - "I can’t see the image"
+        - "I only have metadata"
+        - "can't directly inspect"
+        - "can’t directly inspect"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "from the filename alone"
+    - "only the filename"
+    - "Please reattach"
+    - "I can't see the image"
+    - "I can’t see the image"
+    - "I only have metadata"
+    - "can't directly inspect"
+    - "can’t directly inspect"
+
+efficiency:
+  maxToolCalls: 0
+  maxTokens: 40000

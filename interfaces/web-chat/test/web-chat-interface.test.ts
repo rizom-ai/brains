@@ -960,6 +960,54 @@ describe("WebChatInterface", () => {
     expect(body).toContain("summary-1");
   });
 
+  it("streams action cards as Brain data parts", async () => {
+    const agent = createSpyAgentService({
+      text: "Choose the next step.",
+      cards: [
+        {
+          kind: "actions",
+          id: "actions:onboarding",
+          title: "Next steps",
+          actions: [
+            {
+              type: "prompt",
+              id: "review-draft",
+              label: "Review draft",
+              prompt: "Show me the transformed draft.",
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What next?" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-actions");
+    expect(body).toContain("Next steps");
+    expect(body).toContain("review-draft");
+  });
+
   it("streams attachment cards as Brain data parts", async () => {
     const agent = createSpyAgentService({
       text: "Export ready.",
@@ -2541,7 +2589,20 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(403);
   });
 
-  it("loads stored generated attachment and source citation cards for an operator", async () => {
+  it("loads stored generated attachment, source citation, and action cards for an operator", async () => {
+    const actionsCard = {
+      kind: "actions",
+      id: "actions:onboarding",
+      title: "Next steps",
+      actions: [
+        {
+          type: "prompt",
+          id: "review-draft",
+          label: "Review draft",
+          prompt: "Show me the transformed draft.",
+        },
+      ],
+    };
     const sourcesCard = {
       kind: "sources",
       id: "sources:agent-context",
@@ -2586,7 +2647,7 @@ describe("WebChatInterface", () => {
               "web-session",
               "assistant",
               'Queued image generation.\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]',
-              JSON.stringify({ cards: [card, sourcesCard] }),
+              JSON.stringify({ cards: [card, sourcesCard, actionsCard] }),
             ),
           ],
         },
@@ -2608,7 +2669,7 @@ describe("WebChatInterface", () => {
           id: "message-1",
           role: "assistant",
           content: "Queued image generation.",
-          cards: [card, sourcesCard],
+          cards: [card, sourcesCard, actionsCard],
         },
       ],
     });

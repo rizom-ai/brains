@@ -63,10 +63,38 @@ const storedSourcesCardSchema = z.object({
     .min(1),
 });
 
+const storedActionsCardSchema = z.object({
+  kind: z.literal("actions"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  defaultOpen: z.boolean().optional(),
+  actions: z
+    .array(
+      z.discriminatedUnion("type", [
+        z.object({
+          type: z.literal("prompt"),
+          id: z.string().min(1),
+          label: z.string().min(1),
+          prompt: z.string().min(1),
+          description: z.string().min(1).optional(),
+        }),
+        z.object({
+          type: z.literal("event"),
+          id: z.string().min(1),
+          label: z.string().min(1),
+          event: z.string().min(1),
+          description: z.string().min(1).optional(),
+        }),
+      ]),
+    )
+    .min(1),
+});
+
 const storedChatCardsSchema = z.array(
   z.discriminatedUnion("kind", [
     storedAttachmentCardSchema,
     storedSourcesCardSchema,
+    storedActionsCardSchema,
   ]),
 );
 

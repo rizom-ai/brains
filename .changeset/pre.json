@@ -140,6 +140,7 @@
     "content-archive-first-year-break",
     "content-archive-upright-years",
     "content-pipeline-publish-assets",
+    "current-main-alpha-release",
     "dashboard-light-surface-tokens",
     "dashboard-topics-skills-widgets",
     "deck-carousel-accent-emphasis",
@@ -252,9 +253,11 @@
     "web-chat-mobile-fixes",
     "web-chat-native-file-uploads",
     "web-chat-spine-and-tool-collapse",
+    "web-chat-stale-upload-context",
     "web-chat-streamdown-markdown",
     "web-chat-theme-toggle-placement",
     "web-chat-tool-styling-fix",
+    "web-chat-upload-vision-fix",
     "webserver-streaming-idle-timeout",
     "wordmark-slot-and-generic-suffix"
   ]

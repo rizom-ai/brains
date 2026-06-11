@@ -1,5 +1,41 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- Updated dependencies [[`d0716d4`](https://github.com/rizom-ai/brains/commit/d0716d40b16b33e63dcdcbd3e8dcb9c280aa6e58)]:
+  - @brains/ai-service@0.2.0-alpha.119
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/app@0.2.0-alpha.119
+  - @brains/content-formatters@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+  - @brains/templates@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- Updated dependencies [[`78171a4`](https://github.com/rizom-ai/brains/commit/78171a49698a9248fe12ceae6d8f45a5e5cc8b97)]:
+  - @brains/ai-service@0.2.0-alpha.118
+  - @brains/plugins@0.2.0-alpha.118
+  - @brains/content-formatters@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+  - @brains/app@0.2.0-alpha.118
+  - @brains/templates@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/ai-service@0.2.0-alpha.117
+  - @brains/app@0.2.0-alpha.117
+  - @brains/plugins@0.2.0-alpha.117
+  - @brains/templates@0.2.0-alpha.117
+
 ## 0.2.0-alpha.116
 
 ### Patch Changes

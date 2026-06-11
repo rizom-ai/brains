@@ -1,5 +1,44 @@
 # @brains/products
 
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/content-formatters@0.2.0-alpha.119
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/media-page-composer@0.2.0-alpha.119
+  - @brains/media-renderer@0.2.0-alpha.119
+  - @brains/ui-library@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.118
+  - @brains/content-formatters@0.2.0-alpha.118
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/media-page-composer@0.2.0-alpha.118
+  - @brains/media-renderer@0.2.0-alpha.118
+  - @brains/ui-library@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.117
+  - @brains/contracts@0.2.0-alpha.117
+  - @brains/media-page-composer@0.2.0-alpha.117
+  - @brains/media-renderer@0.2.0-alpha.117
+  - @brains/ui-library@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/plugins@0.2.0-alpha.117
+
 ## 0.2.0-alpha.116
 
 ### Patch Changes

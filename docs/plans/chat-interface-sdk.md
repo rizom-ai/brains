@@ -2,7 +2,7 @@
 
 ## Status
 
-Parked. This plan is the design record for a _later_ multi-platform chat adapter consolidation, to be revisited only when another chat surface (Slack, Teams, Matrix return path) gets prioritized. The web-first chat surface that previously appeared in this doc is out of scope here — it shipped via [brain-web-ui.md](./brain-web-ui.md) and is tracked there.
+Parked. This plan is the design record for a _later_ multi-platform chat adapter consolidation, to be revisited only when another chat surface (Slack, Teams, Matrix return path) gets prioritized. The web-first chat surface that previously appeared in this doc is out of scope here — it shipped as the bundled `/chat` UI and is now maintained through normal product hardening.
 
 The previous hosted-Rover Discord gateway direction has been dropped. The "shared bot + central gateway + per-user routing" model added accidental complexity to solve a self-imposed constraint (one shared bot for all hosted users). The replacement model is: each Rover user brings their own Discord app token if they want Discord; each Relay team installs their own Discord app for their team's server.
 
@@ -22,7 +22,7 @@ These goals remain valid, but they are not urgent. Today's brain ships `@brains/
 
 - **Discord stays on `@brains/discord`.** No migration off the existing package is planned. Bring-your-own-Discord-app for Rover and per-team install for Relay both work with the current package.
 - **No urgent Slack/Teams demand.** When a new chat platform is actually prioritized, this plan's adapter architecture is the right starting point — but until then, building it speculatively just creates surface to maintain.
-- **Web is its own surface, not a multi-platform adapter.** The bundled browser chat uses AI SDK UI streaming, not the Chat SDK platform-adapter model this plan describes. See [brain-web-ui.md](./brain-web-ui.md) for the active web surface and the distinction below.
+- **Web is its own surface, not a multi-platform adapter.** The bundled browser chat uses AI SDK UI streaming, not the Chat SDK platform-adapter model this plan describes.
 
 ## When to revisit
 
@@ -36,7 +36,7 @@ Until one of those triggers fires, this plan stays parked.
 
 ## Relationship to other plans
 
-- [brain-web-ui.md](./brain-web-ui.md) — active. Web chat surface bundled with `@rizom/brain`; prefers Vercel **AI SDK UI** / stream protocol for browser chat. That is distinct from this plan's Vercel **Chat SDK** platform-adapter consolidation.
+- The bundled `/chat` web surface uses Vercel **AI SDK UI** / stream protocol and is distinct from this plan's Vercel **Chat SDK** platform-adapter consolidation.
 - Relay's per-team Discord install model and shared-space trust resolver are independent of this plan.
 
 ## Decisions made before parking

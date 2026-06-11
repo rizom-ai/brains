@@ -100,7 +100,7 @@ Mode is fixed for the lifetime of the process. Switching modes means editing `br
 | Surface   | Local mode                                 | Remote mode                                                                                            |
 | --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | Dashboard | RPC into local shell                       | HTTP to `/dashboard/*` on the remote brain                                                             |
-| Chat      | Native chat via local agent service        | Reuses the remote brain's web-chat surface (`brain-web-ui.md`)                                         |
+| Chat      | Native chat via local agent service        | Reuses the remote brain's bundled `/chat` web surface                                                  |
 | CMS       | Sveltia against local brain-data, no OAuth | Sveltia against the remote brain's `/cms` route, using whatever CMS login the remote brain has enabled |
 | Config    | Reads/writes local `brain.yaml`            | Reads remote config; write support is restricted to self-hosted brains and may be deferred             |
 | Tray icon | Local process health, start/stop           | Remote reachability + last sync status                                                                 |

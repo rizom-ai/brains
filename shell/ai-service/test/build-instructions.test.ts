@@ -209,6 +209,19 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should keep image discussion notes and cover images off upload import paths", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks to save an image description, image discussion, image interpretation, caption, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image upload and do not pass `upload` or `transform`.",
+    );
+    expect(instructions).toContain(
+      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
+    );
+    expect(instructions).toContain(
+      "Prior upload refs from the conversation are irrelevant to cover-image generation unless the user explicitly says to use the uploaded image as the cover.",
+    );
+  });
+
   it("should distinguish artifact previews from durable artifact saves", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(

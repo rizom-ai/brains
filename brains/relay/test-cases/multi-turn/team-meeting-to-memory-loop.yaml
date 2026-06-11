@@ -16,7 +16,8 @@ tags:
 
 turns:
   - userMessage: >-
-      Capture these rough Relay team notes exactly enough for later follow-up:
+      Capture these rough Relay team notes as one note only, exactly enough for
+      later follow-up; do not create separate decisions or action records:
       Customer Alpha cannot find the latest MCP handoff; decision: keep the
       default homepage as a system diagram with live counts; action: Daniel
       updates seed/eval content and Mira validates dashboard identity by Friday.
@@ -30,6 +31,11 @@ turns:
         - "I cannot"
         - "meeting-notes"
         - "decision-record"
+  - userMessage: "Confirm the capture."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
   - userMessage: >-
       Now search Relay memory and give me the follow-up plan for the team. Keep
       it grounded in what was captured, with owner/action pairs.

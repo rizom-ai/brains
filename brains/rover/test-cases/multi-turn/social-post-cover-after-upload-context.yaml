@@ -1,0 +1,89 @@
+id: multi-turn-social-post-cover-after-upload-context
+name: Social post cover follow-up ignores stale upload refs
+description: Verifies that after an uploaded image discussion and generated social post, a cover-image follow-up targets the social post with prompt-based image generation and does not reuse stale upload refs.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-social-cover-upload-context
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - social-media
+  - cover
+  - regression
+  - multi-turn
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: house-capitalism.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000912
+    successCriteria:
+      responseContains:
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Describe the uploaded image and how it relates to ecosystems."
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseContains:
+        - "ecosystem"
+
+  - userMessage: "can you generate a social post about this for me?"
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: social-post
+
+  - userMessage: "Confirm creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Generate"
+
+  - userMessage: "I want a cover image to go with that"
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: image
+            targetEntityType: social-post
+
+  - userMessage: "Confirm creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Generate"
+      responseNotContains:
+        - "Upload ref not found"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: image
+        targetEntityType: social-post
+  responseNotContains:
+    - "Upload ref not found"
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 60000

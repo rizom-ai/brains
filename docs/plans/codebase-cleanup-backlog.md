@@ -12,26 +12,6 @@ list.
 
 ## Verified findings
 
-### Orphaned prototype: `tools/rover-pilot`
-
-Dead code: no `package.json`, referenced by no turbo task or script,
-superseded by `packages/brains-ops` (which has ~7x the code and active
-development). Delete the `tools/` directory, or archive it as a
-documentation artifact if the prototype is worth keeping as reference.
-
-### content-service: three untested public methods
-
-`formatContent()` (including its truncation option), `getTemplate()`,
-and `listTemplates()` (including its formatter/basePrompt filtering)
-have zero test coverage, and nothing covers them indirectly — other
-packages mock content-service. Small, well-bounded test additions.
-
-### mcp-service: plugin instructions path untested
-
-`registerInstructions()` / `getInstructions()` — the mechanism by which
-plugins contribute to the agent system prompt — has no coverage. The
-rest of the service is well-tested (11/13 public methods).
-
 ### CSS-as-string monoliths
 
 - `interfaces/web-chat/src/chat-page.ts` — 1,981 lines, ~1,600 of them
@@ -48,17 +28,6 @@ Long-known: the package mixes zod re-export, Logger, ID generation,
 markdown, YAML, and progress reporting. It needs a deliberate split,
 not more bandages. Related context: `npm-package-boundaries.md` already
 decided not to publish it as the SDK.
-
-### tsconfig inheritance drift
-
-`plugins/directory-sync/tsconfig.json` and `brains/relay/tsconfig.json`
-extend `../../tsconfig.json` directly instead of
-`@brains/typescript-config/base.json` like every other package. Note
-`base.json` itself extends the root config and only adds
-`baseUrl`/`paths`, so the behavioral drift is just the missing path
-aliases — but the package-name indirection is the convention. Two-line
-fix plus a `@brains/typescript-config` devDependency in each; ride
-along with any commit touching those packages.
 
 ### package.json script drift
 

@@ -23,7 +23,7 @@ describe("buildConfirmedActionResult", () => {
       data: { entityId: "my-note", status: "updated" },
     });
 
-    expect(result.resultText).toBe('Completed: Update "My Note"?');
+    expect(result.resultText).toBe('Completed: Update "My Note"');
     expect(result.toolResult).toEqual({
       toolName: "system_update",
       data: { success: true, data: { entityId: "my-note", status: "updated" } },
@@ -60,7 +60,7 @@ describe("buildConfirmedActionResult", () => {
       error: "boom",
     });
 
-    expect(result.resultText).toBe('Failed: Update "My Note"?\n\nboom');
+    expect(result.resultText).toBe('Failed: Update "My Note"\n\nboom');
     expect(result.entityMemoryNote).toBe("");
     expect(result.cards[0]).toMatchObject({
       state: "output-error",
@@ -74,7 +74,7 @@ describe("buildConfirmedActionResult", () => {
       message: "not allowed",
     });
 
-    expect(result.resultText).toBe('Failed: Update "My Note"?\n\nnot allowed');
+    expect(result.resultText).toBe('Failed: Update "My Note"\n\nnot allowed');
   });
 
   test("omits args and card input for non-record args", () => {

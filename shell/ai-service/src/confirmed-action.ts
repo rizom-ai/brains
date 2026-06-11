@@ -23,6 +23,10 @@ function isFailedToolOutput(value: unknown): boolean {
   return isRecord(value) && value["success"] === false;
 }
 
+function statementFromConfirmationSummary(summary: string): string {
+  return summary.trim().replace(/[?？]+$/u, "");
+}
+
 const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "confirmed",
   "confirmationToken",
@@ -61,9 +65,11 @@ export function buildConfirmedActionResult(
   const errorMessage = failed
     ? (getStringField(result, "error") ?? getStringField(result, "message"))
     : undefined;
-  const actionLabel = failed
-    ? pendingConfirmation.summary
-    : (pendingConfirmation.completionSummary ?? pendingConfirmation.summary);
+  const actionLabel = statementFromConfirmationSummary(
+    failed
+      ? pendingConfirmation.summary
+      : (pendingConfirmation.completionSummary ?? pendingConfirmation.summary),
+  );
   const resultText = errorMessage
     ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
     : `${prefix}: ${actionLabel}`;

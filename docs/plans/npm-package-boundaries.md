@@ -4,6 +4,14 @@
 
 Accepted direction. Near-term: the external authoring path is already alpha-usable through `@rizom/brain/*`, and this plan narrows the publishing target before more official package refactors and broader external adoption. Builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
 
+Fact-checked against the tree 2026-06-10:
+
+- The public subpaths exist and exceed the Tier 2 list below: `@rizom/brain` (packages/brain-cli) ships `./plugins`, `./entities`, `./services`, `./interfaces`, `./templates`, plus `./site`, `./themes`, `./deploy`, and the `./cli` bin.
+- Declaration cleanliness is already guarded: `packages/brain-cli/scripts/declaration-leaks.ts` fails the build when generated declarations contain `@brains/*` imports.
+- dependency-cruiser is configured (`bun run arch:check`) with layering rules (no-circular, plugins-can-only-import-shell-and-shared, no plugin-to-plugin, …) — but not yet the published-official-plugin dependency rule from migration step 4.
+- The blessed `z` root export (utils section below) is **not yet implemented** — no public entry exports `z`.
+- Milestone A has not started: `@brains/note` still depends on five private workspaces (`@brains/plugins`, `@brains/contracts`, `@brains/atproto-contracts`, `@brains/document`, `@brains/utils`).
+
 New external-facing plugin/entity work should not add private `@brains/*` shortcut imports when a suitable public `@rizom/brain/*` surface exists or should be added. Existing packages can migrate package-by-package, but new work should move toward the public-only shape instead of deepening private coupling.
 
 ## Goal
@@ -45,16 +53,28 @@ This is the installed product and public authoring package. It owns the stable p
 
 ### Tier 2: public authoring subpaths
 
-Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a later need proves otherwise:
+Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a later need proves otherwise. Shipping today (2026-06-10):
 
 - `@rizom/brain/plugins`
 - `@rizom/brain/entities`
 - `@rizom/brain/services`
 - `@rizom/brain/interfaces`
 - `@rizom/brain/templates`
+- `@rizom/brain/site`
+- `@rizom/brain/themes`
+- `@rizom/brain/deploy`
 - optional future `@rizom/brain/ui` or equivalent template/UI subpath
 
-These subpaths are the SDK. They must have generated declarations with no `@brains/*` imports.
+These subpaths are the SDK. They must have generated declarations with no `@brains/*` imports (enforced by `scripts/declaration-leaks.ts`).
+
+Subpath curation rule (decided 2026-06-10): the list above is the
+registry. Adding a subpath requires a named concrete consumer (a
+package or fixture that needs it today, not speculatively), a
+declaration-leak-clean build, and an edit to this list in the same
+change. `./site`, `./themes`, and `./deploy` are ratified retroactively
+— they serve brain definitions, site skins, and fleet deploy. Anything
+that can't name its consumer stays internal; this rule exists so the
+SDK doesn't accrete the way `@brains/utils` did.
 
 ### Tier 3: official publishable plugin/entity packages
 
@@ -99,7 +119,26 @@ These may remain workspace-internal implementation details. They can be used by 
 
 - keep `@brains/utils` private/internal for now
 - promote only proven stable utilities into curated `@rizom/brain/*` subpaths
-- expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities
+- expose a blessed `z` from the root `@rizom/brain` export for plugin/entity schema authoring, avoiding schema-version skew without publishing all utilities (**not yet implemented** as of 2026-06-10 — no public entry exports `z`; this is a prerequisite for the `@brains/note` proof since note's schemas import `z` from `@brains/utils`)
+
+### Zod version policy (decided 2026-06-10)
+
+The blessed `z` cannot diverge from the workspace zod: the public
+subpaths re-export schemas built with the workspace `z`, and mixing zod
+majors in author code produces incompatible schema classes. So:
+
+1. The blessed `z` **is** the workspace zod — v3 today. Plugin packages
+   must not declare their own `zod` dependency; they use the blessed
+   export exclusively (enforce with the step-4 dependency rules). The
+   zod major becomes an SDK internal that authors inherit.
+2. The repo-wide zod 4 migration is a **release blocker for the first
+   stable (non-alpha) `@rizom/brain`**: during alpha the v3→v4 break is
+   acceptable churn; after a stable release it is a breaking public API
+   change. Do not ship a stable SDK on v3.
+3. Sequencing and mechanics live in
+   `external-dependency-review.md` (pin bump to `^3.25.x` first, which
+   every upstream peer accepts and which unlocks zod's incremental
+   `zod/v4` migration path).
 
 The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
 
@@ -184,6 +223,14 @@ Once one package proves the shape, add dependency-cruiser or lint rules:
 
 Refactor packages in isolated worktrees, one package at a time. Do not combine public SDK expansion, dependency enforcement, and multiple package migrations in one PR unless the change is purely mechanical and already proven.
 
+Sequencing gate (decided 2026-06-10): the `@brains/note` proof
+(Milestone A) waits only for the blessed `z` — note already extends the
+public `EntityPlugin`, so its migration is an import swap. But before
+rolling out to the remaining entity packages, design the
+adapter/handler scaffolding helpers from the related-finding section
+below and land them on the public surface — otherwise twenty-plus
+packages get migrated twice (once raw, once onto the helpers).
+
 ## Suggested first worktree
 
 Branch/worktree:
@@ -239,10 +286,12 @@ authoring surface should absorb when the SDK shape is curated:
   config-schema/refine/registration pattern (`plugins/cms` 794,
   `plugins/atproto` 599, `plugins/site-builder` 359, `plugins/dashboard`
   276, `plugins/directory-sync` 240).
-- The 22 `entities/` packages each reimplement adapters/handlers with no
-  shared base.
+- The `entities/` packages share the `EntityPlugin` base (18 of 22
+  extend it, and it is already exported from `@rizom/brain/plugins`) —
+  but each reimplements the layer above it: adapter wiring, handler
+  composition, and schema introspection.
 
-Both want a shared base in `@brains/plugins`, surfaced through
-`@rizom/brain/*`. Designing that base as part of the public contract
-(rather than retrofitting one later) keeps official packages on the
-public surface from day one.
+The remaining duplication wants helpers in that layer (adapter/handler
+scaffolding), surfaced through `@rizom/brain/*`. Designing them as part
+of the public contract (rather than retrofitting later) keeps official
+packages on the public surface from day one.

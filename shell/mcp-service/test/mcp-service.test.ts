@@ -96,6 +96,29 @@ describe("MCPService", () => {
     mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
   });
 
+  describe("plugin instructions", () => {
+    it("returns no instructions before any plugin registers", () => {
+      expect(mcpService.getInstructions()).toEqual([]);
+    });
+
+    it("collects instructions from plugins in registration order", () => {
+      mcpService.registerInstructions("plugin-a", "Always be concise.");
+      mcpService.registerInstructions("plugin-b", "Prefer markdown tables.");
+
+      expect(mcpService.getInstructions()).toEqual([
+        "Always be concise.",
+        "Prefer markdown tables.",
+      ]);
+    });
+
+    it("replaces a plugin's instructions on re-registration", () => {
+      mcpService.registerInstructions("plugin-a", "Old guidance.");
+      mcpService.registerInstructions("plugin-a", "New guidance.");
+
+      expect(mcpService.getInstructions()).toEqual(["New guidance."]);
+    });
+  });
+
   describe("initialization", () => {
     it("should create singleton instance", () => {
       const instance1 = MCPService.getInstance(

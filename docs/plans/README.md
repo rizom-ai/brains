@@ -27,7 +27,8 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, tsconfig drift)
+- [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
+- [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
 - [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference while onboarding smoke finishes
 
 ### Auth, users, CMS, and HTTP
@@ -42,13 +43,11 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
 - [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — proposed in-chat guided apprenticeship for first-run Rover operators
-- [Passkey operator onboarding](./passkey-operator-onboarding.md) — partial; first-passkey bootstrap for hosted Rover operators
 - [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
 - [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
 
 ### New interfaces, renderers, and runtimes
 
-- [Brain web chat surface](./brain-web-ui.md) — MVP shipped; tracks remaining session/artifact/landing follow-ups and deferred public-chat / dashboard-widget work (consolidates the earlier AI Elements adoption plan)
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work

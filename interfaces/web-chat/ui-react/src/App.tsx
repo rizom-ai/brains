@@ -20,6 +20,7 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import {
+  ActionsPart,
   AttachmentPart,
   ConfirmationPart,
   GenericDataPart,
@@ -495,6 +496,15 @@ export function App(): React.ReactElement {
     if (group.kind === "sources") {
       return <SourcesPart key={key} data={group.data} />;
     }
+    if (group.kind === "actions") {
+      return (
+        <ActionsPart
+          key={key}
+          data={group.data}
+          onPromptAction={(prompt) => void submitMessage(prompt)}
+        />
+      );
+    }
     if (group.kind === "file") {
       return (
         <UploadedFilePart
@@ -519,6 +529,9 @@ export function App(): React.ReactElement {
         )}
         {sections.sources.map((group, index) =>
           renderMessagePart(group, `sources-${index}`),
+        )}
+        {sections.actions.map((group, index) =>
+          renderMessagePart(group, `actions-${index}`),
         )}
         {sections.details.map((group, index) =>
           renderMessagePart(group, `details-${index}`),

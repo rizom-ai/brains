@@ -5,6 +5,7 @@ import type {
   PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
 import {
+  toPublicActionsCard,
   toPublicAttachmentCard,
   toPublicSourcesCard,
   type AgentNamespace,
@@ -51,6 +52,10 @@ function toPublicStructuredChatCard(
 
   if (card.kind === "sources") {
     return toPublicSourcesCard(card);
+  }
+
+  if (card.kind === "actions") {
+    return toPublicActionsCard(card);
   }
 
   return {

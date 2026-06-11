@@ -5,6 +5,7 @@ import type {
 } from "@brains/ai-service";
 import {
   AgentResponseSchema,
+  toPublicActionsCard,
   toPublicAttachmentCard,
   toPublicSourcesCard,
 } from "@brains/plugins";
@@ -40,6 +41,10 @@ function parseAgentResponse(json: unknown): AgentResponse {
 
       if (card.kind === "sources") {
         return toPublicSourcesCard(card);
+      }
+
+      if (card.kind === "actions") {
+        return toPublicActionsCard(card);
       }
 
       return {

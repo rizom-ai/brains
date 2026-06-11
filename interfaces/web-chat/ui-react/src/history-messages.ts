@@ -55,9 +55,33 @@ export interface WebChatHistorySourcesCard {
   }>;
 }
 
+export interface WebChatHistoryActionsCard {
+  kind: "actions";
+  id: string;
+  title?: string | undefined;
+  defaultOpen?: boolean | undefined;
+  actions: Array<
+    | {
+        type: "prompt";
+        id: string;
+        label: string;
+        prompt: string;
+        description?: string | undefined;
+      }
+    | {
+        type: "event";
+        id: string;
+        label: string;
+        event: string;
+        description?: string | undefined;
+      }
+  >;
+}
+
 export type WebChatHistoryCard =
   | WebChatHistoryAttachmentCard
-  | WebChatHistorySourcesCard;
+  | WebChatHistorySourcesCard
+  | WebChatHistoryActionsCard;
 
 export interface WebChatHistoryMessage {
   id: string;
@@ -83,7 +107,12 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   }
   for (const card of message.cards ?? []) {
     parts.push({
-      type: card.kind === "sources" ? "data-sources" : "data-attachment",
+      type:
+        card.kind === "sources"
+          ? "data-sources"
+          : card.kind === "actions"
+            ? "data-actions"
+            : "data-attachment",
       data: card,
     });
   }

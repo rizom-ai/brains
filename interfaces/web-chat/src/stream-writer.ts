@@ -75,6 +75,15 @@ export function writeStructuredCards(
       continue;
     }
 
+    if (card.kind === "actions") {
+      writer.write({
+        type: "data-actions",
+        id: card.id,
+        data: card,
+      });
+      continue;
+    }
+
     const toolCallId = card.toolCallId ?? card.id;
     const input = card.input ?? {};
     writer.write({

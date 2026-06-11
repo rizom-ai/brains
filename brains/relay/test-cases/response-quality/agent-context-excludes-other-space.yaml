@@ -29,7 +29,7 @@ successCriteria:
     - toolName: system_list
       shouldBeCalled: false
   responseContains:
-    - "docs"
+    - "team-flavored Rover"
   responseNotContains:
     - "publishing calendar"
     - "blog posts"
