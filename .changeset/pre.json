@@ -253,6 +253,7 @@
     "web-chat-mobile-fixes",
     "web-chat-native-file-uploads",
     "web-chat-spine-and-tool-collapse",
+    "web-chat-stale-upload-context",
     "web-chat-streamdown-markdown",
     "web-chat-theme-toggle-placement",
     "web-chat-tool-styling-fix",

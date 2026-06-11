@@ -1,5 +1,19 @@
 # @brains/core
 
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- [`d0716d4`](https://github.com/rizom-ai/brains/commit/d0716d40b16b33e63dcdcbd3e8dcb9c280aa6e58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid reusing stale upload refs when saving image discussions as notes or generating cover images from prior conversation context.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/image@0.2.0-alpha.119
+  - @brains/site-composition@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+  - @brains/templates@0.2.0-alpha.119
+
 ## 0.2.0-alpha.118
 
 ### Patch Changes
