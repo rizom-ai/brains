@@ -209,7 +209,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     await super.onRegister(context);
     this.ctx = context;
     this.store = new PlaybookRunStore(
-      this.config.storageDir ?? join(context.dataDir, "playbooks"),
+      this.config.storageDir ?? join("data", "playbooks"),
     );
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
 

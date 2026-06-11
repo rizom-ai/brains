@@ -163,15 +163,27 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
-  it("stores runs under shell dataDir by default", async () => {
-    const dataDir = await tempStorageDir();
-    const harness = createPluginHarness({ dataDir });
-    await harness.installPlugin(playbooksPlugin({}));
-    addPlaybookEntity(harness);
+  it("stores runs under runtime data by default, not content dataDir", async () => {
+    const previousCwd = process.cwd();
+    const runtimeDir = await tempStorageDir();
+    const contentDataDir = await tempStorageDir();
+    process.chdir(runtimeDir);
+    try {
+      const harness = createPluginHarness({ dataDir: contentDataDir });
+      await harness.installPlugin(playbooksPlugin({}));
+      addPlaybookEntity(harness);
 
-    await startRun(harness, "conversation-uses-shell-data-dir");
+      await startRun(harness, "conversation-uses-runtime-data-dir");
 
-    expect(existsSync(join(dataDir, "playbooks", "runs.json"))).toBe(true);
+      expect(
+        existsSync(join(runtimeDir, "data", "playbooks", "runs.json")),
+      ).toBe(true);
+      expect(existsSync(join(contentDataDir, "playbooks", "runs.json"))).toBe(
+        false,
+      );
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 
   it("registers a generic goalCheck eval handler", async () => {
