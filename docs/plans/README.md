@@ -17,6 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
+- [Rover core-preset evals](./rover-core-preset-evals.md) — proposed; exhaustive, hermetic eval suite for the core preset (preset-aware runner, permission matrix, coverage ledger); runs in its own worktree
 
 ### Public surface and framework cleanup
 
