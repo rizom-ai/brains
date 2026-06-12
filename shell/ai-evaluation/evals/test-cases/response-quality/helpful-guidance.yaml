@@ -9,6 +9,7 @@ tags:
   - quality
   - helpfulness
   - guidance
+  - preset-core
 
 turns:
   - userMessage: "What can you help me with?"

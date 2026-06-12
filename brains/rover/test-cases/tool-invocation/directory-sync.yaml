@@ -9,6 +9,7 @@ tags:
   - directory-sync
   - tool-invocation
   - anti-hallucination
+  - preset-core
 
 turns:
   - userMessage: "Refresh my content from the filesystem"

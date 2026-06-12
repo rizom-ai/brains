@@ -1,3 +1,7 @@
+import type { PresetName } from "@brains/app";
+
+const PRESET_NAMES = new Set<string>(["core", "default", "full"]);
+
 export interface CliOptions {
   skipLLMJudge: boolean;
   parallel: boolean;
@@ -6,6 +10,7 @@ export interface CliOptions {
   tags?: string[];
   testCaseIds?: string[];
   testType?: "agent" | "plugin";
+  preset?: PresetName;
   remoteUrl?: string;
   authToken?: string;
   compareAgainst?: string;
@@ -36,11 +41,16 @@ export function parseSingleFlag(
   return value;
 }
 
+function parsePreset(value: string | undefined): PresetName | undefined {
+  return value && PRESET_NAMES.has(value) ? (value as PresetName) : undefined;
+}
+
 export function parseCliOptions(args: string[]): CliOptions {
   const maxParallelArg = parseSingleFlag(args, "--max-parallel");
   const testTypeArg = parseSingleFlag(args, "--type");
   const tags = parseFlag(args, "--tags");
   const testCaseIds = parseFlag(args, "--test") ?? parseFlag(args, "--filter");
+  const preset = parsePreset(parseSingleFlag(args, "--preset"));
   const remoteUrl = parseSingleFlag(args, "--url");
   const authToken = parseSingleFlag(args, "--token");
   const saveBaseline = parseSingleFlag(args, "--baseline");
@@ -54,6 +64,7 @@ export function parseCliOptions(args: string[]): CliOptions {
 
   if (tags) options.tags = tags;
   if (testCaseIds) options.testCaseIds = testCaseIds;
+  if (preset) options.preset = preset;
   if (testTypeArg === "agent" || testTypeArg === "plugin") {
     options.testType = testTypeArg;
   }

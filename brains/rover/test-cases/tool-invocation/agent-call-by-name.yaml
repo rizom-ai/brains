@@ -8,6 +8,7 @@ tags:
   - agent-discovery
   - a2a
   - tool-invocation
+  - preset-core
 
 turns:
   - userMessage: "Ask yeehaa.io about ecosystem architecture"

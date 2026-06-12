@@ -123,6 +123,7 @@ export default defineBrain({
     "webserver",
     "web-chat",
     "mcp",
+    "atproto",
     "analytics",
     "dashboard",
     "dashboard-root",

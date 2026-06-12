@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - entity-crud
+  - preset-core
 
 turns:
   - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Design Patterns'"

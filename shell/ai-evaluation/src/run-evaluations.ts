@@ -7,6 +7,7 @@
  *   bun run eval --test tool-invocation-list  # Run specific test(s)
  *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
+ *   bun run eval --preset core                # Boot a specific brain preset
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
  *   bun run eval --url http://localhost:8080  # Run against remote instance
@@ -46,6 +47,7 @@ export async function main(): Promise<void> {
     tags,
     testCaseIds,
     testType,
+    preset,
     remoteUrl,
     authToken,
     compareAgainst,
@@ -53,7 +55,7 @@ export async function main(): Promise<void> {
   } = parseCliOptions(args);
 
   try {
-    const evalConfigResult = await loadEvalConfig();
+    const evalConfigResult = await loadEvalConfig({ preset });
     const {
       config,
       testCasesDirs,

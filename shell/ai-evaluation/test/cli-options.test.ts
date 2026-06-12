@@ -34,6 +34,8 @@ describe("cli options", () => {
       "a,b",
       "--type",
       "plugin",
+      "--preset",
+      "core",
       "--url",
       "http://localhost:8080",
       "--token",
@@ -52,6 +54,7 @@ describe("cli options", () => {
       tags: ["core", "smoke"],
       testCaseIds: ["a", "b"],
       testType: "plugin",
+      preset: "core",
       remoteUrl: "http://localhost:8080",
       authToken: "secret",
       compareAgainst: "baseline",
@@ -74,9 +77,10 @@ describe("cli options", () => {
     expect(options.compareAgainst).toBe("");
   });
 
-  it("ignores invalid test types", () => {
-    const options = parseCliOptions(["--type", "bad"]);
+  it("ignores invalid test types and presets", () => {
+    const options = parseCliOptions(["--type", "bad", "--preset", "bad"]);
 
     expect(options.testType).toBeUndefined();
+    expect(options.preset).toBeUndefined();
   });
 });

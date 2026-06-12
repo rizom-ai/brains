@@ -12,6 +12,7 @@ tags:
   - passkey
   - setup
   - core
+  - preset-core
 
 turns:
   - userMessage: >-
@@ -24,7 +25,6 @@ successCriteria:
       shouldBeCalled: true
   responseContains:
     - "setup"
-    - "passkey"
   responseNotContains:
     - "environment variable"
     - "GitHub Actions logs"

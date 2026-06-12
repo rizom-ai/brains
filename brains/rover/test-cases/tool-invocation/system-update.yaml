@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - entity-crud
+  - preset-core
 
 turns:
   - userMessage: "Update the status of my note 'typescript-patterns' to draft"

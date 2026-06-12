@@ -11,6 +11,7 @@ tags:
   - base
   - note
   - discord
+  - preset-core
 
 turns:
   - userMessage: "Capture this as a note: buy milk, eggs, and coffee filters"

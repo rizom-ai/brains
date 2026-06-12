@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - entity-crud
+  - preset-core
 
 turns:
   - userMessage: "Delete the note 'green-software-principles'"

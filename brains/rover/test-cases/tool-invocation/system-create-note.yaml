@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - entity-crud
+  - preset-core
 
 turns:
   - userMessage: "Save this as a note: The quick brown fox jumps over the lazy dog."

@@ -5,6 +5,8 @@ import {
   resolve as resolveConfig,
   parseInstanceOverrides,
   InstanceOverridesParseError,
+  type InstanceOverrides,
+  type PresetName,
 } from "@brains/app";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
@@ -32,11 +34,18 @@ export interface EvalConfigResult {
   resolveConfig?: () => AppConfig;
 }
 
-export async function loadEvalConfig(): Promise<EvalConfigResult> {
+export interface LoadEvalConfigOptions {
+  /** CLI preset override; takes precedence over brain.eval.yaml `preset:`. */
+  preset?: PresetName | undefined;
+}
+
+export async function loadEvalConfig(
+  options: LoadEvalConfigOptions = {},
+): Promise<EvalConfigResult> {
   const pluginConfig = await loadPluginEvalConfigIfPresent();
   if (pluginConfig) return pluginConfig;
 
-  const brainConfig = await loadBrainEvalConfigIfPresent();
+  const brainConfig = await loadBrainEvalConfigIfPresent(options);
   if (brainConfig) return brainConfig;
 
   return loadLegacyEvalConfig();
@@ -65,14 +74,17 @@ async function loadPluginEvalConfigIfPresent(): Promise<
   };
 }
 
-async function loadBrainEvalConfigIfPresent(): Promise<
-  EvalConfigResult | undefined
-> {
+async function loadBrainEvalConfigIfPresent(
+  options: LoadEvalConfigOptions,
+): Promise<EvalConfigResult | undefined> {
   const yamlPath = resolvePath(process.cwd(), "brain.eval.yaml");
   if (!existsSync(yamlPath)) return undefined;
 
   const content = readFileSync(yamlPath, "utf-8");
-  const overrides = parseBrainEvalOverrides(content);
+  const overrides = applyCliOverrides(
+    parseBrainEvalOverrides(content),
+    options,
+  );
   const rawYaml = await parseRawBrainEvalYaml(content);
   const models = parseModelsField(rawYaml);
   const judge = parseJudgeField(rawYaml);
@@ -106,7 +118,10 @@ async function loadBrainEvalConfigIfPresent(): Promise<
   // point we can assume the YAML is valid — if re-parsing fails later
   // (e.g. an env var disappeared), surface the error loud.
   const freshResolve = (): AppConfig => {
-    const freshOverrides = parseInstanceOverrides(content);
+    const freshOverrides = applyCliOverrides(
+      parseInstanceOverrides(content),
+      options,
+    );
     return resolveConfig(brainModule.default, process.env, freshOverrides);
   };
 
@@ -117,6 +132,17 @@ async function loadBrainEvalConfigIfPresent(): Promise<
     models,
     ...(judge ? { judge } : {}),
     resolveConfig: freshResolve,
+  };
+}
+
+function applyCliOverrides(
+  overrides: InstanceOverrides,
+  options: LoadEvalConfigOptions,
+): InstanceOverrides {
+  if (!options.preset) return overrides;
+  return {
+    ...overrides,
+    preset: options.preset,
   };
 }
 

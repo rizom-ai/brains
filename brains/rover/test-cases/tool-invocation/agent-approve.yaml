@@ -9,6 +9,7 @@ tags:
   - a2a
   - tool-invocation
   - regression
+  - preset-core
 
 turns:
   - userMessage: "Approve approval-candidate.io"

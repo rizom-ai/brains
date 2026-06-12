@@ -10,6 +10,7 @@ tags:
   - multi-turn
   - regression
   - tool-invocation
+  - preset-core
 
 turns:
   - userMessage: "what does yeehaa.io have to say?"

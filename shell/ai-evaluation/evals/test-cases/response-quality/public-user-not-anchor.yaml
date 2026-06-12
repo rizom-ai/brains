@@ -9,6 +9,7 @@ tags:
   - identity
   - permissions
   - regression
+  - preset-core
 
 setup:
   permissionLevel: public

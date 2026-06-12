@@ -9,6 +9,7 @@ tags:
   - system
   - link
   - entity-crud
+  - preset-core
 
 turns:
   - userMessage: "Save this link for me: https://anthropic.com/research"

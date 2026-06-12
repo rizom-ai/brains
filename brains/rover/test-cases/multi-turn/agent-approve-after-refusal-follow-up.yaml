@@ -9,6 +9,7 @@ tags:
   - a2a
   - multi-turn
   - regression
+  - preset-core
 
 turns:
   - userMessage: "Can you talk to refusal-followup.example for me?"

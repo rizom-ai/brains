@@ -9,6 +9,7 @@ tags:
   - directory-sync
   - tool-invocation
   - anti-hallucination
+  - preset-core
 
 turns:
   - userMessage: "Can you backup my brain to git?"

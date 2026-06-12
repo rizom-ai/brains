@@ -12,6 +12,7 @@ tags:
   - search
   - visibility
   - regression
+  - preset-core
 
 turns:
   - userMessage: "Search my content for private operational covenants."

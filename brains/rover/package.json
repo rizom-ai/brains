@@ -16,6 +16,7 @@
     "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
+    "eval:core": "brain-eval --preset core --tags preset-core",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
