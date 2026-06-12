@@ -1,5 +1,14 @@
 # @brains/atproto-registry
 
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+
 ## 0.2.0-alpha.119
 
 ### Patch Changes

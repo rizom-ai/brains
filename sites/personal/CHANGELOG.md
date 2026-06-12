@@ -1,5 +1,20 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.120
+  - @brains/site-info@0.2.0-alpha.120
+  - @brains/site-composition@0.2.0-alpha.120
+  - @brains/site-engine@0.2.0-alpha.120
+  - @brains/ui-library@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/identity-service@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+  - @brains/templates@0.2.0-alpha.120
+
 ## 0.2.0-alpha.119
 
 ### Patch Changes
