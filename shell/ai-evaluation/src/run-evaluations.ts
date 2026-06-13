@@ -8,6 +8,7 @@
  *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
  *   bun run eval --preset core                # Boot a specific brain preset
+ *   bun run eval --tool-ledger                # Show registered vs asserted tool coverage
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
  *   bun run eval --url http://localhost:8080  # Run against remote instance
@@ -23,6 +24,7 @@ import { runSingleModelEvaluation } from "./single-model-runner";
 import { printHelp } from "./cli-help";
 import { bootstrapCliEnvironment } from "./cli-bootstrap";
 import { runEvaluations, runEvaluationsCollect } from "./evaluation-runner";
+import { renderToolCoverageLedger, runToolCoverageLedger } from "./tool-ledger";
 
 export { runEvaluations, runEvaluationsCollect };
 
@@ -48,6 +50,7 @@ export async function main(): Promise<void> {
     testCaseIds,
     testType,
     preset,
+    toolLedger,
     remoteUrl,
     authToken,
     compareAgainst,
@@ -77,6 +80,20 @@ export async function main(): Promise<void> {
         brainModelPath,
         cloneData,
       });
+      process.exit(0);
+    }
+
+    // ── Tool coverage ledger ────────────────────────────────────────────
+    if (toolLedger) {
+      const ledger = await runToolCoverageLedger({
+        config,
+        testCasesDirs,
+        evalHandlerRegistry,
+        brainModelPath,
+        cloneData,
+        tags,
+      });
+      process.stdout.write(`${renderToolCoverageLedger(ledger)}\n`);
       process.exit(0);
     }
 

@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposed. Outcome of the 2026-06-12 eval review: the rover suite (111
+In progress. Phase 1 landed in `core-evals` with a green `eval:core`
+run (46/46). Outcome of the 2026-06-12 eval review: the rover suite (111
 cases, 118/118 passing on 2026-06-10) is written against the `full`
 preset, while `core` — the contract every other preset inherits, and
 the closest thing to what every shipped brain runs — is never evaled
@@ -59,10 +60,9 @@ test-cases` holds 10 preset-agnostic cases (incl.
   same reasoning that disabled email-resend. Publish-gating belongs in
   `plugins/atproto` integration tests; eval-level propensity cases
   wait for a dry-run mode or mock PDS (own slice, not this plan).
-- **Judge must differ from the model under test.** Switch rover's
-  `judge:` to a different model (cross-provider if an anthropic key is
-  acceptable in the eval env, otherwise a distinct OpenAI model), and
-  the runner warns when `judge` equals an entry in `models`.
+- **Judge/model equality is allowed** (2026-06-13). Rover keeps the
+  existing eval judge unless there is a separate reason to change it;
+  no runner warning is required when `judge` is also in `models`.
 - **One permission default: `anchor`**, taken from the schema. The
   runner's divergent `public` fallback is removed; cases that want
   public say so explicitly.
@@ -83,8 +83,7 @@ changes in `shell/ai-evaluation` are test-first.
    app boots the named preset without editing `brain.eval.yaml`.
 3. Fix the permission-default divergence (test asserting the unified
    anchor default, then the runner change).
-4. Judge change in `brains/rover/brain.eval.yaml` plus the
-   judge==model warning in the runner.
+4. No judge change; judge/model equality is explicitly allowed.
 5. Verify eval-content under a core boot: either directory-sync skips
    unregistered entity types cleanly (assert it) or add a core-only
    seed subset.
@@ -104,6 +103,20 @@ them against the tools asserted (`shouldBeCalled` true _or_ false) in
 this plan. Exhaustive then means: ledger empty, every registered tool
 asserted somewhere, every core entity type exercised through the
 system-tool family.
+
+Ledger from `bun run eval:core:ledger` (2026-06-13):
+
+- Registered tools: 17
+- Asserted tools: 13
+- Missing assertions: 4
+- Stale assertions: 0
+
+Missing assertions:
+
+- `system_check-job-status`
+- `system_get-conversation`
+- `system_get-messages`
+- `system_list-conversations`
 
 ### Phase 3 — permission matrix
 
