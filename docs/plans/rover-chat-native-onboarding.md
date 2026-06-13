@@ -3,8 +3,9 @@
 ## Status
 
 On `feature/rover-chat-native-onboarding`; automated onboarding polish
-regressions pass, including the generic post-confirmation follow-up slice. The
-branch is pending final live smoke before merge.
+regressions pass, including the generic post-confirmation follow-up slice and
+structured playbook continuation action-card path. The branch is pending final
+live smoke before merge.
 This plan is scoped to **shipping Rover onboarding** — not the general playbook
 platform. Anything an onboarding run does not exercise is listed under
 [Deferred](#deferred-not-built-here) and is explicitly out of build scope.
@@ -17,10 +18,12 @@ Earlier live onboarding smoke tests completed end-to-end but exposed the polish
 issues below. The ordered fixes are implemented; final live smoke is still needed
 before calling the branch merge-ready.
 
-Latest live smoke is much improved but still needs these patches before merge:
+Latest live smoke is much improved. Remaining pre-merge work is a final live
+smoke pass of the structured action-card path:
 
-- Avoid the double "continue?" loop: after an operator accepts the welcome step,
-  advance instead of repeating the welcome prompt.
+- Avoid the double "continue?" loop by projecting a structured **Keep going**
+  action from the active run state; the button routes through the playbook
+  runtime instead of relying on broad typed natural-language interception.
 - After saving the first seed, guide only to the retrieval demonstration; do not
   offer another seed during onboarding.
 - Use operator-facing entity labels in confirmations: updating a base note should
@@ -90,9 +93,12 @@ Ordered fix plan:
    to ask "what is next?". Prompt/context guidance is done, and successful
    confirmed actions now use a bounded text-only follow-up turn when active context
    exists. **Done.**
-7. **Ambiguous continuation handling**: when the user says `go ahead` after a list
-   of options, ask a clarifying question or choose the current playbook state's next
-   explicit demonstration; do not start unrelated maintenance tasks. **Done.**
+7. **Ambiguous continuation handling**: avoid a broad natural-language router
+   between the operator and model. The shipped deterministic path is structured:
+   playbooks project valid runtime events as web-chat action cards, and event
+   buttons route through `agent:action:request` to the playbook runtime. Typed
+   ambiguous text remains model-mediated/clarified rather than intercepted by the
+   shell. **Structured action-card path done.**
 8. **Create confirmation policy decision**: keep routine durable entity creation
    low-friction by default; require confirmation for publish/send/external effects,
    deletes, updates, replace/overwrite, or public side-effectful creation. **Done.**
@@ -533,13 +539,13 @@ auto-send on load. Enabled only on presets with an anchor web-chat surface
 Run state in the UI (decision on invariant: surface a little, deliberately): a
 **resume affordance** for an interrupted/dismissed run, and a **structured "blocked"
 signal** (current step + what's missing + Keep going / Skip), rather than relying on
-the model to paraphrase it. Once web-chat `actions` cards are available, playbooks
-should use them for these continuation affordances. The cards must be projections of
-the active run state and route through playbook runtime actions/tools; they must not
-invent transitions, execute hidden tool calls, or skip XState guards. The agent may
-still request transitions by calling `playbook_send_event`; UI actions are a parallel
-operator-facing request path, and in both cases the runtime/XState machine remains
-authoritative.
+the model to paraphrase it. Web-chat `actions` cards now carry playbook
+continuation affordances. The cards are projections of the active run state and
+route through `agent:action:request` to playbook runtime actions/tools; they must
+not invent transitions, execute hidden tool calls, or skip XState guards. The
+agent may still request transitions by calling `playbook_send_event`; UI actions
+are a parallel operator-facing structured request path, and in both cases the
+runtime/XState machine remains authoritative.
 
 ## Phases
 
