@@ -107,16 +107,11 @@ system-tool family.
 Ledger from `bun run eval:core:ledger` (2026-06-13):
 
 - Registered tools: 17
-- Asserted tools: 13
-- Missing assertions: 4
+- Asserted tools: 17
+- Missing assertions: 0
 - Stale assertions: 0
 
-Missing assertions:
-
-- `system_check-job-status`
-- `system_get-conversation`
-- `system_get-messages`
-- `system_list-conversations`
+Missing assertions: none.
 
 ### Phase 3 — permission matrix
 

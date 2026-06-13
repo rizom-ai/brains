@@ -11,7 +11,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Design Patterns'"
+  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Pattern Notes'"
 
 successCriteria:
   expectedTools:
