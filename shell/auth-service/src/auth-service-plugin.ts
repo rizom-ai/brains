@@ -10,6 +10,7 @@ import type {
 import { createTool, ServicePlugin, toolSuccess } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { AuthService, type OperatorSetupRequired } from "./auth-service";
+import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
 const setupEmailSchema = z.union([
@@ -35,6 +36,12 @@ const authServiceConfigSchema = z.object({
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
+  /** First-passkey setup token lifetime in seconds. */
+  setupTokenTtlSeconds: z
+    .number()
+    .int()
+    .positive()
+    .default(DEFAULT_SETUP_TOKEN_TTL_SECONDS),
   /** Optional first-passkey setup email recipient or template. */
   setupEmail: setupEmailSchema.optional(),
 });
@@ -78,6 +85,7 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       ...(this.config.allowLocalhostIssuers !== undefined
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
+      setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
       logger: context.logger,
     });
     await this.service.initialize();
