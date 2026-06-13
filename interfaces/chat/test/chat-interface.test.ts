@@ -1852,7 +1852,7 @@ describe("ChatInterface", () => {
       .getRuntimeUploadRegistry()
       .scoped(createDiscordChatUploadStoreScope());
     const record = await uploadStore.save({
-      filename: 'deck "draft".pdf',
+      filename: 'déck "draft".pdf',
       mediaType: "application/pdf",
       content: Buffer.from("%PDF-1.7"),
     });
@@ -1884,13 +1884,47 @@ describe("ChatInterface", () => {
       "nosniff",
     );
     expect(inlineResponse?.headers.get("Content-Disposition")).toBe(
-      'inline; filename="deck _draft_.pdf"',
+      "inline; filename=\"d_ck _draft_.pdf\"; filename*=UTF-8''d%C3%A9ck%20%22draft%22.pdf",
     );
     expect(await inlineResponse?.text()).toBe("%PDF-1.7");
     expect(downloadResponse?.status).toBe(200);
     expect(downloadResponse?.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="deck _draft_.pdf"',
+      "attachment; filename=\"d_ck _draft_.pdf\"; filename*=UTF-8''d%C3%A9ck%20%22draft%22.pdf",
     );
+  });
+
+  it("does not serve upload refs from other runtime upload scopes", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const otherUploadStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "web-chat",
+        refKind: "web-chat-upload",
+        routePath: "/api/chat/uploads",
+      });
+    const record = await otherUploadStore.save({
+      filename: "private.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("not a discord source upload"),
+    });
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/discord/uploads" &&
+          candidate.method === "GET",
+      );
+
+    const response = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
+      ),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Upload not found");
   });
 
   it("rejects missing, malformed, or unknown Discord upload refs", async () => {

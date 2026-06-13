@@ -150,11 +150,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           "Content-Length": String(content.byteLength),
           "Cache-Control": "private, no-store",
           "X-Content-Type-Options": "nosniff",
-          "Content-Disposition": `${
+          "Content-Disposition": this.formatContentDisposition(
             new URL(request.url).searchParams.has("download")
               ? "attachment"
-              : "inline"
-          }; filename="${this.escapeHeaderValue(record.filename)}"`,
+              : "inline",
+            record.filename,
+          ),
         },
       });
     } catch {
@@ -167,8 +168,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return this.context.uploads.scoped(createDiscordChatUploadStoreScope());
   }
 
-  private escapeHeaderValue(value: string): string {
-    return value.replace(/["\\\r\n]/g, "_");
+  private formatContentDisposition(
+    disposition: "inline" | "attachment",
+    filename: string,
+  ): string {
+    return `${disposition}; filename="${this.escapeHeaderFilenameFallback(
+      filename,
+    )}"; filename*=UTF-8''${this.encodeHeaderFilename(filename)}`;
+  }
+
+  private escapeHeaderFilenameFallback(value: string): string {
+    return value.replace(/[^\x20-\x7E]|["\\\r\n]/g, "_");
+  }
+
+  private encodeHeaderFilename(value: string): string {
+    return encodeURIComponent(value).replace(
+      /[!'()*]/g,
+      (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
   }
 
   protected override createDaemon(): Daemon | undefined {
