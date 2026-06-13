@@ -18,6 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/utils": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {

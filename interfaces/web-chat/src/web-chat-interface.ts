@@ -1,3 +1,7 @@
+import {
+  AGENT_ACTION_REQUEST_CHANNEL,
+  parseAgentResponse,
+} from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
@@ -53,6 +57,16 @@ import {
 
 const webChatInterfaceType = "web-chat";
 const playbooksLifecycleStartersChannel = "playbooks:lifecycle-starters";
+const chatActionRequestSchema = z
+  .object({
+    conversationId: z.string().min(1),
+    action: z.object({
+      type: z.literal("event"),
+      event: z.string().min(1),
+    }),
+  })
+  .strict();
+
 const chatBootstrapResponseSchema = z.object({
   starters: z.array(
     z
@@ -127,6 +141,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           this.handleChatRequest(request),
         handleBootstrapRequest: (request): Promise<Response> =>
           this.handleBootstrapRequest(request),
+        handleActionRequest: (request): Promise<Response> =>
+          this.handleActionRequest(request),
         handleSessionsRequest: (request): Promise<Response> =>
           this.handleSessionsRequest(request),
         handleDeleteSessionRequest: (request): Promise<Response> =>
@@ -272,6 +288,39 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     }
 
     return Response.json(parsed.data);
+  }
+
+  private async handleActionRequest(request: Request): Promise<Response> {
+    if (!(await this.resolveOperatorSession(request))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const body = await request.json();
+    const parsed = chatActionRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response("Invalid chat action request", { status: 400 });
+    }
+
+    const response = await this.getContext().messaging.send({
+      type: AGENT_ACTION_REQUEST_CHANNEL,
+      payload: {
+        conversationId: parsed.data.conversationId,
+        interfaceType: webChatInterfaceType,
+        channelName: "Web Chat",
+        userPermissionLevel: "anchor",
+        action: parsed.data.action,
+      },
+    });
+
+    if ("noop" in response || !response.success || !response.data) {
+      return new Response("No runtime action handler", { status: 404 });
+    }
+
+    try {
+      return Response.json(parseAgentResponse(response.data));
+    } catch {
+      return new Response("Invalid runtime action response", { status: 502 });
+    }
   }
 
   private async handleUiAssetRequest(): Promise<Response> {

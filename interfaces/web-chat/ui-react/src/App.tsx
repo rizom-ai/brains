@@ -502,6 +502,7 @@ export function App(): React.ReactElement {
           key={key}
           data={group.data}
           onPromptAction={(prompt) => void submitMessage(prompt)}
+          onEventAction={(event) => void submitRuntimeEvent(event)}
         />
       );
     }
@@ -704,6 +705,64 @@ export function App(): React.ReactElement {
         void loadSessions({ quiet: true });
         focusPromptTextarea(promptInputRef.current);
       });
+  }
+
+  async function submitRuntimeEvent(event: string): Promise<void> {
+    if (isBusyStatus(status)) return;
+    setHistoryError(null);
+
+    try {
+      const response = await fetch("/api/chat/actions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          action: { type: "event", event },
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Runtime action failed: ${response.status}`);
+      }
+      const data = (await response.json()) as {
+        text?: string;
+        cards?: Array<{ kind: string }>;
+        toolResults?: unknown[];
+      };
+      const parts: UIMessage["parts"] = [];
+      if (data.text && data.text.trim().length > 0) {
+        parts.push({ type: "text", text: data.text });
+      }
+      for (const toolResult of data.toolResults ?? []) {
+        parts.push({ type: "data-tool-result", data: toolResult });
+      }
+      for (const card of data.cards ?? []) {
+        parts.push({
+          type:
+            card.kind === "sources"
+              ? "data-sources"
+              : card.kind === "actions"
+                ? "data-actions"
+                : "data-attachment",
+          data: card,
+        });
+      }
+      if (parts.length > 0) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: `runtime-${crypto.randomUUID()}`,
+            role: "assistant",
+            parts,
+          },
+        ]);
+      }
+      void loadSessions({ quiet: true });
+    } catch (error) {
+      const effect = classifySubmitError(error, "send");
+      if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
+      setHistoryError(effect.historyError);
+    }
   }
 
   function startPlaybook(starter: WebChatStarter): void {

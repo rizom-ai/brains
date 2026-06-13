@@ -1,4 +1,7 @@
-import type { AgentContextItem } from "@brains/contracts";
+import {
+  StructuredChatCardSchema,
+  type AgentContextItem,
+} from "@brains/contracts";
 import { z } from "@brains/utils";
 import {
   toolConfirmationSchema,
@@ -36,6 +39,10 @@ const searchToolDataSchema = z.object({
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
 });
+const toolDataCardsSchema = z.object({
+  cards: z.array(StructuredChatCardSchema),
+});
+
 const attachmentToolDataSchema = z
   .object({
     documentId: z.string().min(1).optional(),
@@ -401,6 +408,10 @@ export function extractToolResults(
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
         }
+        const structuredCards = toolDataCardsSchema.safeParse(
+          successParsed.data.data,
+        );
+        if (structuredCards.success) cards.push(...structuredCards.data.cards);
         const attachmentCard = buildAttachmentCardFromToolData(
           successParsed.data.data,
         );

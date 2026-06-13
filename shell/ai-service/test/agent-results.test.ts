@@ -1,6 +1,67 @@
 import { describe, expect, it } from "bun:test";
 
-import { buildEntityMemoryNote } from "../src/agent-results";
+import {
+  buildEntityMemoryNote,
+  extractToolResults,
+} from "../src/agent-results";
+
+describe("extractToolResults", () => {
+  it("surfaces structured cards returned by successful tool data", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "tool-1",
+            toolName: "playbook_start",
+            input: { playbookId: "rover-onboarding" },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "tool-1",
+            toolName: "playbook_start",
+            output: {
+              success: true,
+              data: {
+                cards: [
+                  {
+                    kind: "actions",
+                    id: "actions:playbook:run-1",
+                    title: "Continue onboarding",
+                    actions: [
+                      {
+                        type: "event",
+                        id: "playbook:run-1:NEXT",
+                        label: "Keep going",
+                        event: "NEXT",
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(results.cards).toEqual([
+      {
+        kind: "actions",
+        id: "actions:playbook:run-1",
+        title: "Continue onboarding",
+        actions: [
+          {
+            type: "event",
+            id: "playbook:run-1:NEXT",
+            label: "Keep going",
+            event: "NEXT",
+          },
+        ],
+      },
+    ]);
+  });
+});
 
 describe("buildEntityMemoryNote", () => {
   it("records updated entity ids from confirmed update results", () => {

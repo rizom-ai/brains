@@ -1,9 +1,14 @@
 import { join } from "node:path";
 import {
+  AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentActionRequestSchema,
   agentContextRequestSchema,
+  type AgentActionRequest,
   type AgentContextItem,
   type AgentContextResponse,
+  type AgentResponse,
+  type ActionsCard,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
@@ -124,6 +129,7 @@ export interface PlaybookStatusResponse {
   validEvents?: PlaybookTransition[] | undefined;
   blockedEvents?: PlaybookTransition[] | undefined;
   guidance?: string | undefined;
+  cards?: ActionsCard[] | undefined;
   lifecycle: Record<string, LifecyclePlaybookConfig>;
 }
 
@@ -236,6 +242,17 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       },
     );
 
+    context.messaging.subscribe<unknown, AgentResponse>(
+      AGENT_ACTION_REQUEST_CHANNEL,
+      async (message) => {
+        const request = agentActionRequestSchema.parse(message.payload);
+        const response = await this.handleAgentAction(request);
+        return response
+          ? { success: true, data: response }
+          : { success: false };
+      },
+    );
+
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
       "entity:created",
       async (message) => ({
@@ -331,53 +348,112 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
             conversationId: toolContext.conversationId,
           });
           if (!run.success) return run;
-          const playbook = await this.requirePlaybook(run.data.playbookId);
-          if (run.data.playbookVersion !== playbook.version) {
-            return {
-              success: false,
-              error: `Playbook definition changed for '${run.data.playbookId}'. Run version ${run.data.playbookVersion} does not match current version ${playbook.version}.`,
-            };
-          }
-          const result = await this.transitionRun(
+          const result = await this.sendEventForRun(
             run.data,
-            playbook.body,
             parsed.event,
+            parsed.context,
           );
-          if (!result.success) {
-            if (result.gateVerdicts) {
-              await this.store.upsert({
-                ...run.data,
-                gateVerdicts: result.gateVerdicts,
-              });
-            }
-            return { success: false, error: result.error };
-          }
-
-          const reachedFinalState = playbook.body.finalStates.includes(
-            result.currentState,
-          );
-          const nextRun = await this.store.upsert({
-            ...run.data,
-            currentState: result.currentState,
-            completedStates: appendUnique(
-              run.data.completedStates,
-              run.data.currentState,
-            ),
-            snapshot: result.snapshot,
-            gateVerdicts: result.gateVerdicts,
-            context: { ...run.data.context, ...(parsed.context ?? {}) },
-            ...(reachedFinalState
-              ? {
-                  status: "completed" as const,
-                  completedAt: new Date().toISOString(),
-                }
-              : {}),
-          });
-          const data = await this.getStatus({ runId: nextRun.id });
-          return { success: true, data };
+          return result.success
+            ? { success: true, data: result.data }
+            : { success: false, error: result.error };
         },
       },
     ];
+  }
+
+  private async handleAgentAction(
+    request: AgentActionRequest,
+  ): Promise<AgentResponse | undefined> {
+    if (request.userPermissionLevel !== "anchor") return undefined;
+
+    const scopedRun = await this.resolveScopedRunResponse({
+      conversationId: request.conversationId,
+    });
+    if (!scopedRun.success) return undefined;
+
+    const result = await this.sendEventForRun(
+      scopedRun.data,
+      request.action.event,
+    );
+    if (!result.success) {
+      return {
+        text: `I couldn't continue the playbook: ${result.error}`,
+        toolResults: [
+          {
+            toolName: "playbook_send_event",
+            args: { runId: scopedRun.data.id, event: request.action.event },
+          },
+        ],
+        usage: zeroUsage(),
+      };
+    }
+
+    const state = this.getCurrentRunState(result.data);
+    return {
+      text: formatActionResponseText(state),
+      ...(result.data.cards ? { cards: result.data.cards } : {}),
+      toolResults: [
+        {
+          toolName: "playbook_send_event",
+          args: { runId: scopedRun.data.id, event: request.action.event },
+          data: result.data,
+        },
+      ],
+      usage: zeroUsage(),
+    };
+  }
+
+  private getCurrentRunState(
+    status: PlaybookStatusResponse,
+  ): PlaybookState | undefined {
+    return status.currentState;
+  }
+
+  private async sendEventForRun(
+    run: PlaybookRun,
+    event: string,
+    context?: Record<string, unknown>,
+  ): Promise<
+    | { success: true; data: PlaybookStatusResponse }
+    | { success: false; error: string }
+  > {
+    const playbook = await this.requirePlaybook(run.playbookId);
+    if (run.playbookVersion !== playbook.version) {
+      return {
+        success: false,
+        error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
+      };
+    }
+    const result = await this.transitionRun(run, playbook.body, event);
+    if (!result.success) {
+      if (result.gateVerdicts) {
+        await this.store.upsert({
+          ...run,
+          gateVerdicts: result.gateVerdicts,
+        });
+      }
+      return { success: false, error: result.error };
+    }
+
+    const reachedFinalState = playbook.body.finalStates.includes(
+      result.currentState,
+    );
+    const nextRun = await this.store.upsert({
+      ...run,
+      currentState: result.currentState,
+      completedStates: appendUnique(run.completedStates, run.currentState),
+      snapshot: result.snapshot,
+      gateVerdicts: result.gateVerdicts,
+      context: { ...run.context, ...(context ?? {}) },
+      ...(reachedFinalState
+        ? {
+            status: "completed" as const,
+            completedAt: new Date().toISOString(),
+          }
+        : {}),
+    });
+    const data = await this.getStatus({ runId: nextRun.id });
+    return { success: true, data };
   }
 
   private async createStartedRun(input: {
@@ -669,6 +745,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ? this.buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
         : undefined;
 
+    const actionsCard =
+      activeRun && parsedPlaybook && validEvents.length > 0
+        ? buildPlaybookActionsCard({
+            run: activeRun,
+            title: parsedPlaybook.entity.metadata.title,
+            transitions: validEvents,
+          })
+        : undefined;
+
     return {
       runs: input.conversationId ? conversationRuns : runs,
       ...(activeRun ? { activeRun } : {}),
@@ -678,6 +763,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...(validEvents.length > 0 ? { validEvents } : {}),
       ...(blockedEvents.length > 0 ? { blockedEvents } : {}),
       ...(guidance ? { guidance } : {}),
+      ...(actionsCard ? { cards: [actionsCard] } : {}),
       lifecycle: this.config.lifecycle,
     };
   }
@@ -1091,6 +1177,45 @@ Do not publish content unless the operator explicitly asks and confirms the publ
 Configured lifecycle playbooks:
 ${lifecycleSummary || "- none"}`;
   }
+}
+
+function buildPlaybookActionsCard(input: {
+  run: PlaybookRun;
+  title: string;
+  transitions: PlaybookTransition[];
+}): ActionsCard {
+  return {
+    kind: "actions",
+    id: `actions:playbook:${input.run.id}`,
+    title: `Continue ${input.title}`,
+    defaultOpen: true,
+    actions: input.transitions.map((transition) => ({
+      type: "event",
+      id: `playbook:${input.run.id}:${transition.event}`,
+      label: playbookEventLabel(transition.event),
+      event: transition.event,
+      ...(transition.description
+        ? { description: transition.description }
+        : {}),
+    })),
+  };
+}
+
+function playbookEventLabel(event: string): string {
+  if (event === "NEXT") return "Keep going";
+  if (event === "SKIP") return "Skip";
+  return event;
+}
+
+function formatActionResponseText(state: PlaybookState | undefined): string {
+  if (!state) return "Continuing.";
+  return ["Continuing.", `Next: ${state.title}.`, state.instructions[0] ?? ""]
+    .filter((line) => line.length > 0)
+    .join("\n\n");
+}
+
+function zeroUsage(): AgentResponse["usage"] {
+  return { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 }
 
 function appendUnique(values: string[], value: string): string[] {

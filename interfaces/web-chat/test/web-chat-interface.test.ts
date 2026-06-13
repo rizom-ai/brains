@@ -1,3 +1,4 @@
+import { AGENT_ACTION_REQUEST_CHANNEL } from "@brains/contracts";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
   IAgentService,
@@ -235,7 +236,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(14);
+    expect(routes).toHaveLength(15);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -252,60 +253,124 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[3]).toMatchObject({
-      path: "/api/chat/sessions",
-      method: "GET",
+      path: "/api/chat/actions",
+      method: "POST",
       public: true,
     });
     expect(routes[4]).toMatchObject({
       path: "/api/chat/sessions",
-      method: "DELETE",
+      method: "GET",
       public: true,
     });
     expect(routes[5]).toMatchObject({
       path: "/api/chat/sessions",
-      method: "PUT",
+      method: "DELETE",
       public: true,
     });
     expect(routes[6]).toMatchObject({
-      path: "/api/chat/sessions/archive",
+      path: "/api/chat/sessions",
       method: "PUT",
       public: true,
     });
     expect(routes[7]).toMatchObject({
+      path: "/api/chat/sessions/archive",
+      method: "PUT",
+      public: true,
+    });
+    expect(routes[8]).toMatchObject({
       path: "/api/chat/messages",
       method: "GET",
       public: true,
     });
-    expect(routes[8]).toMatchObject({
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
+    expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[13]).toMatchObject({
+    expect(routes[14]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
     });
+  });
+
+  it("routes structured event actions through runtime action channel without model chat", async () => {
+    const plugin = operatorPlugin();
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    await harness.installPlugin(plugin);
+    const received: unknown[] = [];
+    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+      received.push(message.payload);
+      return {
+        success: true,
+        data: {
+          text: "Continuing onboarding.",
+          toolResults: [
+            {
+              toolName: "playbook_send_event",
+              args: { event: "NEXT" },
+              data: { currentState: "identity" },
+            },
+          ],
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        },
+      };
+    });
+
+    const route = getRoute(plugin, "/api/chat/actions", "POST");
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          conversationId: "web-session",
+          action: { type: "event", event: "NEXT" },
+        }),
+      }),
+    );
+
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({
+      text: "Continuing onboarding.",
+      toolResults: [
+        {
+          toolName: "playbook_send_event",
+          args: { event: "NEXT" },
+          data: { currentState: "identity" },
+        },
+      ],
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    expect(received).toEqual([
+      {
+        conversationId: "web-session",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "anchor",
+        action: { type: "event", event: "NEXT" },
+      },
+    ]);
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("requires operator auth for the chat page", async () => {

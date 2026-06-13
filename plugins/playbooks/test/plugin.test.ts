@@ -3,7 +3,10 @@ import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, mock } from "bun:test";
-import { AGENT_CONTEXT_REQUEST_CHANNEL } from "@brains/contracts";
+import {
+  AGENT_ACTION_REQUEST_CHANNEL,
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+} from "@brains/contracts";
 import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
 import { z } from "@brains/utils";
 import {
@@ -121,6 +124,16 @@ const playbookToolDataSchema = z
     validEvents: z.array(transitionSchema).default([]),
     blockedEvents: z.array(transitionSchema).default([]),
     guidance: z.string().optional(),
+    cards: z
+      .array(
+        z
+          .object({
+            kind: z.string(),
+            actions: z.array(z.object({ event: z.string() }).passthrough()),
+          })
+          .passthrough(),
+      )
+      .default([]),
   })
   .passthrough();
 
@@ -386,6 +399,109 @@ describe("PlaybooksPlugin", () => {
 
     expectError(stale);
     expect(stale.error).toContain("Playbook definition changed");
+  });
+
+  it("projects valid playbook events as structured action cards", async () => {
+    const harness = await installHarness();
+
+    const started = await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { conversationId: "web-action-card" },
+    );
+    expectSuccess(started);
+
+    const data = parsePlaybookToolData(started.data);
+    expect(data.cards).toEqual([
+      {
+        kind: "actions",
+        id: `actions:playbook:${data.activeRun.id}`,
+        title: "Continue Rover Onboarding",
+        defaultOpen: true,
+        actions: [
+          {
+            type: "event",
+            id: `playbook:${data.activeRun.id}:NEXT`,
+            label: "Keep going",
+            event: "NEXT",
+            description: "Continue.",
+          },
+          {
+            type: "event",
+            id: `playbook:${data.activeRun.id}:SKIP`,
+            label: "Skip",
+            event: "SKIP",
+            description: "Skip.",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("handles structured NEXT actions for the active conversation run", async () => {
+    const harness = await installHarness();
+    const runId = await startRun(harness, "web-action-next");
+
+    const response = await harness.sendMessage<
+      {
+        conversationId: string;
+        interfaceType: string;
+        channelName: string;
+        userPermissionLevel: "anchor";
+        action: { type: "event"; event: "NEXT" };
+      },
+      {
+        text: string;
+        cards?: unknown[];
+        toolResults?: Array<{
+          toolName: string;
+          args?: Record<string, unknown>;
+          data?: unknown;
+        }>;
+        usage: {
+          promptTokens: number;
+          completionTokens: number;
+          totalTokens: number;
+        };
+      }
+    >(AGENT_ACTION_REQUEST_CHANNEL, {
+      conversationId: "web-action-next",
+      interfaceType: "web-chat",
+      channelName: "Web Chat",
+      userPermissionLevel: "anchor",
+      action: { type: "event", event: "NEXT" },
+    });
+
+    expect(response).toBeDefined();
+    expect(response?.text).toContain("Seed");
+    expect(response?.cards).toEqual([
+      expect.objectContaining({
+        kind: "actions",
+        id: `actions:playbook:${runId}`,
+      }),
+    ]);
+    expect(response?.toolResults).toEqual([
+      {
+        toolName: "playbook_send_event",
+        args: { runId, event: "NEXT" },
+        data: expect.objectContaining({
+          activeRun: expect.objectContaining({ currentState: "seed" }),
+        }),
+      },
+    ]);
+
+    const status = await harness.executeTool(
+      "playbook_status",
+      {},
+      { conversationId: "web-action-next" },
+    );
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).activeRun.currentState).toBe(
+      "seed",
+    );
   });
 
   it("starts and reports runs within the current conversation", async () => {
