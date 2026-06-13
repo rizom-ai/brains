@@ -1,0 +1,63 @@
+id: tool-invocation-agent-docs-follow-up
+name: Repeated Docs Agent Request Uses Fresh A2A Call
+description: Tests that follow-up requests to ask the same saved docs agent make a fresh a2a_call and do not recreate the agent or answer from memory.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+  - anti-fabrication
+
+turns:
+  - userMessage: "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover/"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "docs.rizom.ai"
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "I can't contact docs.rizom.ai directly"
+        - "I can’t contact docs.rizom.ai directly"
+        - "From the onboarding doc"
+
+  - userMessage: "can you ask it my question now?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "docs.rizom.ai"
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "I need to know whether you mean"
+        - "PDF/image"
+        - "uploaded PDF"
+        - "saved agent itself"
+        - "Completed: Create"
+        - "From the onboarding doc"
+
+successCriteria:
+  expectedTools:
+    - toolName: a2a_call
+      shouldBeCalled: true
+      argsContain:
+        agent: "docs.rizom.ai"
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "I need to know whether you mean"
+    - "PDF/image"
+    - "uploaded PDF"
+    - "Completed: Create"
+    - "From the onboarding doc"
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 60000

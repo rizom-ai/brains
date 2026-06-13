@@ -541,6 +541,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   markdown: createInput.content,
                 },
+                options: { deduplicateId: true },
               })
             : await entityService.createEntity({
                 entity: {
@@ -551,6 +552,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },
+                options: { deduplicateId: true },
               });
         if (coverImage) {
           await enqueueCoverImageGeneration(
