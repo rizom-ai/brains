@@ -73,8 +73,10 @@ A state may declare a **Done When** goal: one or more plain-prose statements of 
 outcome that must hold before the state advances — "the brain knows who the operator
 is," not "the `anchor-profile` entity was updated." A gate is the **goal**, not a
 mechanical entity match, so the agent can reach it any valid way and the author writes
-a sentence, not a query. A state with **no** Done When is **ungated** — `NEXT` advances
-freely.
+a sentence, not a query. A step with **no** Done When carries no completion gate; it
+advances by an operator **choice** instead (see
+[Steps and choices](#steps-and-choices-the-authoring-surface)). There is no free
+ungated `NEXT`: a step either completes on verified evidence or forks on a user choice.
 
 On `NEXT`, a **goal check** evaluates the goal against the run's current knowledge —
 the KB plus the evidence the run collected — and returns met / not-met with a short
@@ -158,10 +160,96 @@ blocking default. There is no composition-root adapter, no pre-shell factory wir
 lazy global — that whole class of plumbing, the trap the first attempts kept falling into,
 disappears once judgment is a context capability rather than something smuggled in.
 
+## Steps and choices (the authoring surface)
+
+A playbook is authored as an ordered list of **steps**, not a graph of events and
+targets. Every step moves the run forward by **exactly one** mechanism, and the two are
+never blurred:
+
+- **Completion (agent-driven).** The step declares a `Done when` goal. It advances only
+  when the run's evidence satisfies that goal check. The agent does real work, evidence
+  lands, the gate passes, the run auto-advances. **A completion step never carries an
+  operator button** — "continue past finished work" is not a user action.
+- **Choice (user-driven).** The step offers a `Choices` fork the operator owns ("set up
+  or not now?", "blog / social / newsletter?"). Each choice is a labelled branch.
+  Picking one only _routes_; it asserts nothing about work being done, and the
+  destination step still has to satisfy its own `Done when`.
+
+A non-terminal step with **neither** a `Done when` nor `Choices` is an authoring error
+(parse-time). This rule closes the click-through loophole: nothing advances "for free",
+so there is no ungated `NEXT` for the UI to project as a "Keep going" button. The
+**terminal** step (no outgoing step) is exempt — it only delivers a closing message.
+
+Operator buttons are therefore **derived, not authored**: a transition becomes a button
+iff it came from a `Choices` (or `Skip`) block. The author never writes `event`,
+`target`, `operatorAction`, `NEXT`/`SKIP`, or state IDs — those exist only in the
+compiled `PlaybookBody`. The markdown adapter lowers steps/choices into the transition
+structure: document order supplies the implicit `NEXT` target, `initialState` is the
+first step and `finalStates` are terminal steps, `Done when` makes a step's `NEXT`
+gated, and each choice/skip becomes an operator transition.
+
+```md
+## Steps
+
+### Welcome
+
+Say: Rover is your personal knowledge and publishing brain. Want to set it up together?
+
+Choices:
+
+- Set up Rover → Identity
+- Not now → Done
+
+### Identity
+
+Say: What name, role, and audience should Rover remember for you?
+
+To do:
+
+- Ask one thing at a time: name, role, audience, expertise, tone.
+- Summarize, then update the anchor profile.
+
+Done when:
+
+- Rover knows who the operator is.
+
+Skip: Skip for now → First note
+
+### First note
+
+Say: Send me one rough idea, note, or link you want Rover to remember.
+
+To do:
+
+- Save it as the right entity and explain how Rover will reuse it.
+
+Done when:
+
+- A first note has been saved.
+
+### Done
+
+Say: You're set up — save, retrieve, transform, or publish whenever you're ready.
+```
+
+Mapping to the compiled machine (no runtime change — XState, guards, goal check,
+evidence, and the action-card builder are untouched):
+
+| Author writes                                   | Compiler derives                                                                                            | Button?      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------ |
+| steps in document order                         | implicit `NEXT` → next step                                                                                 | —            |
+| `Done when:`                                    | that `NEXT` is gated by the goal check                                                                      | no           |
+| `Choices:`                                      | one transition per choice; `target` = slug of the named step; `operatorAction: true`; `label` = choice text | yes          |
+| `Skip: … → Step`                                | one ungated escape transition; `operatorAction: true`                                                       | yes (single) |
+| neither `Done when` nor a choice (non-terminal) | parse-time error                                                                                            | —            |
+
 ## Playbook entity (`@brains/playbook`)
 
 A shared package, reusable from day one. Structured markdown: frontmatter for
-metadata, body parsed with the shared structured-content formatter.
+metadata, body parsed with the shared structured-content formatter. The author writes
+[steps and choices](#steps-and-choices-the-authoring-surface); the adapter lowers them
+into the `PlaybookBody` below, so `event`/`target`/`operatorAction` are compiler-derived,
+never hand-written.
 
 ```ts
 interface PlaybookBody {
@@ -172,69 +260,27 @@ interface PlaybookBody {
     id: string;
     title: string;
     instructions: string[]; // teaching/guidance the agent follows (non-gating)
-    doneWhen?: string[]; // prose goal(s); all must hold. omitted/empty => NEXT ungated
-    transitions: Array<{ event: string; target: string; description?: string }>;
+    doneWhen?: string[]; // prose goal(s); all must hold. present => this step's NEXT is gated
+    // transitions are compiler-derived from steps/choices, not hand-authored:
+    transitions: Array<{
+      event: string;
+      target: string;
+      operatorAction?: boolean; // true => projected as a button; set only for choices/skip
+      label?: string; // choice text shown on the button
+      description?: string;
+    }>;
   }>;
   finalStates: string[];
   nextPrompts?: string[];
 }
 ```
 
-A minimal example — one ungated state, one gated:
-
-```md
----
-title: Example Playbook
-status: active
----
-
-## Purpose
-
-What this playbook accomplishes by doing real work.
-
-## Initial State
-
-intro
-
-## States
-
-### intro
-
-Title: Intro
-
-Instructions:
-
-- Explain what this is; ask whether to continue.
-
-Transitions:
-
-- NEXT -> setup
-
-### setup
-
-Title: Setup
-
-Instructions:
-
-- Do the work that creates the entity.
-
-Done When:
-
-- The thing the operator described has been captured.
-
-Transitions:
-
-- NEXT -> done
-
-## Final States
-
-- done
-```
-
-Authoring guidance: a Done When is the state's goal in plain prose — an outcome the
-check can assess against the KB. If a state is pure teaching with no outcome to verify,
-leave Done When empty (ungated). Editing the goal redefines the gate; a run pinned to
-the old version fails loudly rather than drifting.
+For the markdown an author actually writes, see
+[Steps and choices](#steps-and-choices-the-authoring-surface). Authoring guidance: a
+Done When is the step's goal in plain prose — an outcome the check can assess against
+the KB. A step with no outcome to verify is not "left ungated"; it is written as a
+**fork** (`Choices`) so the operator advances it deliberately. Editing a goal redefines
+the gate; a run pinned to the old version fails loudly rather than drifting.
 
 ## Playbooks plugin (`@brains/playbooks`)
 
@@ -353,10 +399,14 @@ retrying; don't publish without explicit confirmation.
 
 ### Web-chat action cards
 
-Playbooks should use web-chat `actions` cards once that rich part is available.
-Those cards should be projections of the active run state: current step, next prompt,
-valid events, blocked reason, and any allowed continuation such as Continue, Skip,
-Dismiss, or Resume.
+Playbooks use web-chat `actions` cards as projections of the active run state. The card
+projects **only authored choices** — the `Choices`/`Skip` transitions the runtime marks
+`operatorAction: true` — plus run-level affordances (Dismiss, Resume). It must **never**
+project a generic advance such as "Continue" / "Keep going": a completion step (one with
+a `Done when`) surfaces no button at all and advances on verified evidence, so the
+operator cannot click past work the agent has not done. Current step, next prompt,
+blocked reason, and the gate's missing-evidence note remain available as context, not as
+an advance button.
 
 Action cards must stay bound to the playbook runtime. Clicking one should route
 through playbook runtime actions/tools and existing permission/confirmation paths; it
