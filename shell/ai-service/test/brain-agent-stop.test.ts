@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import { confirmationRequested } from "../src/brain-agent";
+import { shouldStopToolLoop } from "../src/brain-agent";
 
 describe("BrainAgent stop conditions", () => {
   it("stops the tool loop after a tool requests confirmation", () => {
-    const shouldStop = confirmationRequested({
+    const shouldStop = shouldStopToolLoop({
       steps: [
         {
           toolResults: [
@@ -26,8 +26,45 @@ describe("BrainAgent stop conditions", () => {
     expect(shouldStop).toBe(true);
   });
 
+  it("stops the tool loop after starting a playbook", () => {
+    const shouldStop = shouldStopToolLoop({
+      steps: [
+        {
+          toolResults: [
+            {
+              toolCallId: "call-1",
+              toolName: "playbook_start",
+              output: {
+                success: true,
+                data: {
+                  activeRun: { id: "run-1", currentState: "welcome" },
+                  cards: [
+                    {
+                      kind: "actions",
+                      id: "actions:playbook:run-1",
+                      actions: [
+                        {
+                          type: "event",
+                          id: "playbook:run-1:NEXT",
+                          label: "Keep going",
+                          event: "NEXT",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(shouldStop).toBe(true);
+  });
+
   it("does not stop for ordinary successful tool results", () => {
-    const shouldStop = confirmationRequested({
+    const shouldStop = shouldStopToolLoop({
       steps: [
         {
           toolResults: [

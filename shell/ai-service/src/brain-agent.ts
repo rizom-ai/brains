@@ -38,15 +38,19 @@ export const brainCallOptionsSchema = z.object({
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 
-export function confirmationRequested(input: {
+export function shouldStopToolLoop(input: {
   steps: Array<{
-    toolResults?: Array<{ output?: unknown } & Record<string, unknown>>;
+    toolResults?: Array<
+      { output?: unknown; toolName?: string } & Record<string, unknown>
+    >;
   }>;
 }): boolean {
   const latestStep = input.steps.at(-1);
   return (
     latestStep?.toolResults?.some(
-      (result) => toolConfirmationSchema.safeParse(result.output).success,
+      (result) =>
+        toolConfirmationSchema.safeParse(result.output).success ||
+        result.toolName === "playbook_start",
     ) ?? false
   );
 }
@@ -171,7 +175,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
-      stopWhen: [confirmationRequested, stepCountIs(config.stepLimit ?? 10)],
+      stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
   };
 }
