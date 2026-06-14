@@ -1,5 +1,6 @@
 import {
   RuntimeUploadStoreError,
+  formatContentDispositionHeader,
   type ChatAttachment,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
@@ -105,9 +106,10 @@ export async function handleUploadDownloadRequest(
     headers: {
       "Content-Type": record.mediaType,
       "Content-Length": String(content.byteLength),
-      "Content-Disposition": `${disposition}; filename="${escapeHeaderValue(
-        record.filename,
-      )}"`,
+      "Content-Disposition": formatContentDispositionHeader({
+        disposition,
+        filename: record.filename,
+      }),
     },
   });
 }
@@ -240,8 +242,4 @@ function decodeUploadedDataUrl(
   } catch {
     return null;
   }
-}
-
-function escapeHeaderValue(value: string): string {
-  return value.replace(/["\\\r\n]/g, "_");
 }

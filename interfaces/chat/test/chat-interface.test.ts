@@ -1844,6 +1844,27 @@ describe("ChatInterface", () => {
     expect(await response?.text()).toBe("Discord chat webhook not configured");
   });
 
+  it("returns 404 from Discord upload route when no Discord adapter is configured", async () => {
+    const plugin = new ChatInterface();
+    await harness.installPlugin(plugin);
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/discord/uploads" &&
+          candidate.method === "GET",
+      );
+
+    const response = await route?.handler(
+      new Request(
+        "https://brain.test/api/webhooks/chat/discord/uploads?id=upload-00000000-0000-4000-8000-000000000000",
+      ),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Discord chat uploads not configured");
+  });
+
   it("serves stored Discord upload refs through the upload route", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);

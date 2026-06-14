@@ -1,4 +1,7 @@
-import type { InterfacePluginContext } from "@brains/plugins";
+import {
+  formatContentDispositionHeader,
+  type InterfacePluginContext,
+} from "@brains/plugins";
 
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
 type EntityService = InterfacePluginContext["entityService"];
@@ -90,9 +93,12 @@ function createBinaryAttachmentResponse(input: {
   const headers = new Headers({
     "Content-Type": input.mediaType,
     "Content-Length": String(input.data.byteLength),
-    "Content-Disposition": `${
-      input.requestUrl.searchParams.has("download") ? "attachment" : "inline"
-    }; filename="${escapeHeaderValue(input.filename)}"`,
+    "Content-Disposition": formatContentDispositionHeader({
+      disposition: input.requestUrl.searchParams.has("download")
+        ? "attachment"
+        : "inline",
+      filename: input.filename,
+    }),
   });
   return new Response(input.data, { headers });
 }
@@ -159,8 +165,4 @@ function getImageFilename(
 
   const subtype = mimeType.split("/")[1];
   return `${imageId}.${subtype && subtype.length > 0 ? subtype : "png"}`;
-}
-
-function escapeHeaderValue(value: string): string {
-  return value.replace(/["\\\r\n]/g, "_");
 }

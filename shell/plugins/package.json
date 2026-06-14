@@ -14,6 +14,7 @@
     "./contracts/metadata": "./src/contracts/metadata.ts",
     "./contracts/messaging": "./src/contracts/messaging.ts",
     "./message-interface/artifact-display": "./src/message-interface/artifact-display.ts",
+    "./message-interface/content-disposition": "./src/message-interface/content-disposition.ts",
     "./message-interface/confirmation-result": "./src/message-interface/confirmation-result.ts",
     "./message-interface/stored-message-metadata": "./src/message-interface/stored-message-metadata.ts",
     "./message-interface/upload-policy": "./src/message-interface/upload-policy.ts",

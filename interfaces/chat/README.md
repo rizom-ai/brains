@@ -81,7 +81,8 @@ Discord source uploads use runtime upload storage and unguessable `upload-<uuid>
 - only trusted/anchor Discord users can create reusable upload refs;
 - public Discord users cannot cause attachments to be fetched or reused;
 - refs are random UUIDs and runtime uploads are pruned by the shared upload registry;
-- route responses serve only stored source uploads, not arbitrary content entities;
+- the route is unavailable unless the Discord adapter is configured;
+- route responses serve only stored Discord source uploads, not arbitrary runtime uploads or content entities;
 - route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`;
 - route responses include both safe fallback `filename` and encoded `filename*` content-disposition parameters.
 

@@ -786,7 +786,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toBe("application/pdf");
     expect(response?.headers.get("content-disposition")).toBe(
-      'attachment; filename="deck-carousel.pdf"',
+      "attachment; filename=\"deck-carousel.pdf\"; filename*=UTF-8''deck-carousel.pdf",
     );
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("utf8")).toBe(
       "%PDF-1.7",
@@ -822,7 +822,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toBe("image/png");
     expect(response?.headers.get("content-disposition")).toBe(
-      'attachment; filename="mossy-robot.png"',
+      "attachment; filename=\"mossy-robot.png\"; filename*=UTF-8''mossy-robot.png",
     );
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("base64")).toBe(
       "iVBORw0KGgo=",
@@ -1012,7 +1012,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("Content-Type")).toBe("text/markdown");
     expect(response?.headers.get("Content-Disposition")).toBe(
-      'inline; filename="notes.md"',
+      "inline; filename=\"notes.md\"; filename*=UTF-8''notes.md",
     );
     expect(await response?.text()).toBe("# Downloadable");
   });
@@ -1055,7 +1055,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("Content-Type")).toBe("image/png");
     expect(response?.headers.get("Content-Disposition")).toBe(
-      'inline; filename="robot.png"',
+      "inline; filename=\"robot.png\"; filename*=UTF-8''robot.png",
     );
     if (!response) throw new Error("Missing download response");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(image);

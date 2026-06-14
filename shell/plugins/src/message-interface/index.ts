@@ -28,6 +28,12 @@ export {
 } from "./confirmation-handler";
 
 export {
+  formatContentDispositionHeader,
+  type ContentDispositionInput,
+  type ContentDispositionType,
+} from "./content-disposition";
+
+export {
   artifactStatusLabel,
   formatArtifactDisplay,
   formatByteSize,

@@ -18,6 +18,11 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 Discord uploads currently use runtime upload storage and a download route. The remaining work is validating the documented production access model.
 
+Current behavior:
+
+- Discord and web-chat binary/download routes share `formatContentDispositionHeader()` for ASCII-safe fallback filenames plus UTF-8 `filename*` preservation.
+- Discord upload responses are no-store/nosniff and only serve Discord-scoped source upload refs when the Discord adapter is configured.
+
 Required work:
 
 - Validate the Discord stored-upload route in local and hosted deployments.

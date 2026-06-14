@@ -4,6 +4,7 @@ import {
   collectUploadIdsFromStoredMessages,
   formatArtifactDisplay,
   formatConfirmationResult,
+  formatContentDispositionHeader,
   formatStructuredOutputSummary,
   getMessageUploadKind,
   isMessageUploadDeclaredSizeAllowed,
@@ -135,6 +136,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private async handleDiscordUploadRequest(
     request: Request,
   ): Promise<Response> {
+    if (!this.config.adapters.discord) {
+      return new Response("Discord chat uploads not configured", {
+        status: 404,
+      });
+    }
+
     const uploadId = new URL(request.url).searchParams.get("id")?.trim();
     if (!uploadId) {
       return new Response("Missing upload id", { status: 400 });
@@ -150,12 +157,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           "Content-Length": String(content.byteLength),
           "Cache-Control": "private, no-store",
           "X-Content-Type-Options": "nosniff",
-          "Content-Disposition": this.formatContentDisposition(
-            new URL(request.url).searchParams.has("download")
+          "Content-Disposition": formatContentDispositionHeader({
+            disposition: new URL(request.url).searchParams.has("download")
               ? "attachment"
               : "inline",
-            record.filename,
-          ),
+            filename: record.filename,
+          }),
         },
       });
     } catch {
@@ -166,26 +173,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private getDiscordUploadStore(): RuntimeUploadStore {
     if (!this.context) throw new Error("Chat interface not registered");
     return this.context.uploads.scoped(createDiscordChatUploadStoreScope());
-  }
-
-  private formatContentDisposition(
-    disposition: "inline" | "attachment",
-    filename: string,
-  ): string {
-    return `${disposition}; filename="${this.escapeHeaderFilenameFallback(
-      filename,
-    )}"; filename*=UTF-8''${this.encodeHeaderFilename(filename)}`;
-  }
-
-  private escapeHeaderFilenameFallback(value: string): string {
-    return value.replace(/[^\x20-\x7E]|["\\\r\n]/g, "_");
-  }
-
-  private encodeHeaderFilename(value: string): string {
-    return encodeURIComponent(value).replace(
-      /[!'()*]/g,
-      (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
-    );
   }
 
   protected override createDaemon(): Daemon | undefined {
