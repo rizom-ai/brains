@@ -111,7 +111,7 @@ Covered by tests:
 - agent error responses
 - structured artifact, approval, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including absolute artifact links when a site URL is configured
 - live tool activity status messages edited in place, with failed-tool fallback notices
-- async job progress and completion edits for tracked responses
+- async job progress, completion, and failure edits for tracked responses and standalone progress messages
 - platform response chunking for Discord's 2000-character limit
 - Discord webhook route delegation
 - stored Discord upload download route

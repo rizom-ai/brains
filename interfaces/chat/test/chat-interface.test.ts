@@ -1813,6 +1813,178 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("posts and edits standalone Discord progress when no agent response is tracked", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Starting background build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    const agentSentMessage = createSentMessage("agent-sent-123");
+    const progressSentMessage = createSentMessage("progress-sent-123");
+    const thread = createThread({
+      post: mock((message: string) =>
+        Promise.resolve(
+          message.startsWith("🔄") ? progressSentMessage : agentSentMessage,
+        ),
+      ),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await harness.sendMessage("job-progress", {
+      id: "job-standalone",
+      type: "job",
+      status: "processing",
+      message: "Rendering PDF",
+      progress: { current: 1, total: 2, percentage: 50 },
+      metadata: {
+        rootJobId: "job-standalone",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+    await harness.sendMessage("job-progress", {
+      id: "job-standalone",
+      type: "job",
+      status: "completed",
+      message: "Deck ready",
+      metadata: {
+        rootJobId: "job-standalone",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(thread.post).toHaveBeenCalledWith(
+      "🔄 **content operations: Deck** 1/2 (50%)\nRendering PDF",
+    );
+    expect(progressSentMessage.edit).toHaveBeenCalledWith(
+      "✅ **content operations: Deck** completed\nDeck ready",
+    );
+  });
+
+  it("posts terminal Discord job updates when no progress message is tracked", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "I will watch for updates.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    await harness.sendMessage("job-progress", {
+      id: "job-untracked",
+      type: "job",
+      status: "failed",
+      message: "Export failed",
+      metadata: {
+        rootJobId: "job-untracked",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(thread.post).toHaveBeenCalledWith(
+      "❌ **content operations: Deck** failed\nExport failed",
+    );
+  });
+
+  it("edits standalone Discord progress when async jobs fail", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Starting background build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    const agentSentMessage = createSentMessage("agent-sent-123");
+    const progressSentMessage = createSentMessage("progress-sent-123");
+    const thread = createThread({
+      post: mock((message: string) =>
+        Promise.resolve(
+          message.startsWith("🔄") ? progressSentMessage : agentSentMessage,
+        ),
+      ),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await harness.sendMessage("job-progress", {
+      id: "job-standalone",
+      type: "job",
+      status: "processing",
+      message: "Rendering PDF",
+      progress: { current: 1, total: 2, percentage: 50 },
+      metadata: {
+        rootJobId: "job-standalone",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+    await harness.sendMessage("job-progress", {
+      id: "job-standalone",
+      type: "job",
+      status: "failed",
+      message: "Render failed",
+      metadata: {
+        rootJobId: "job-standalone",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(progressSentMessage.edit).toHaveBeenCalledWith(
+      "❌ **content operations: Deck** failed\nRender failed",
+    );
+  });
+
+  it("edits tracked Discord agent responses when async jobs fail", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-123" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: string) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await harness.sendMessage("job-progress", {
+      id: "job-123",
+      type: "job",
+      status: "failed",
+      message: "Build failed: missing template",
+      metadata: {
+        rootJobId: "job-123",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledWith(
+      "❌ **content operations: Site** failed\nBuild failed: missing template",
+    );
+  });
+
   it("delegates Discord webhook routes to Chat SDK", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
