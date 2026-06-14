@@ -116,7 +116,8 @@ Great. To tune Rover to you, let’s start with the basics: what name, role, aud
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
 - Ask one question at a time.
 - Summarize before saving.
-- Create or update the anchor profile with existing entity tools.
+- Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
+- Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
 - Explain that Rover uses identity to shape answers, site content, and publishing workflows.
 
 #### Done When
@@ -294,6 +295,8 @@ Next, let’s turn your raw knowledge into something useful. Would you like a bl
 
 #### Done When
 
+- A transformation draft has been created.
+
 #### Transitions
 
 ##### Transition 1
@@ -304,11 +307,11 @@ NEXT
 
 ###### Target
 
-wrap-up
+useful-next-prompts
 
 ###### Label
 
-Wrap up
+See useful prompts
 
 ###### Description
 
@@ -322,11 +325,11 @@ Finish with useful next prompts.
 
 #### ID
 
-wrap-up
+useful-next-prompts
 
 #### Title
 
-Wrap up
+Useful next prompts
 
 #### Prompt
 

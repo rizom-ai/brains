@@ -2529,6 +2529,85 @@ describe("AgentService", () => {
   });
 
   describe("toolResults in response", () => {
+    it("uses a tool-result state prompt when a terminal tool call returns no model text", async () => {
+      mockAgentGenerateResult = {
+        text: "",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "playbook_start",
+                toolCallId: "call1",
+                input: {
+                  playbookId: "rover-onboarding",
+                  lifecycle: "first-anchor-web-chat",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "playbook_start",
+                toolCallId: "call1",
+                output: {
+                  success: true,
+                  data: {
+                    currentState: {
+                      prompt:
+                        "Rover is your personal knowledge and publishing brain. Want to continue?",
+                    },
+                    cards: [
+                      {
+                        kind: "actions",
+                        id: "actions:playbook:run-1",
+                        title: "Continue Rover Onboarding",
+                        actions: [
+                          {
+                            type: "event",
+                            id: "playbook:run-1:NEXT",
+                            label: "Keep going",
+                            event: "NEXT",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 0, totalTokens: 50 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Start the Rover onboarding playbook.",
+        "test-conversation",
+      );
+
+      expect(response.text).toBe(
+        "Rover is your personal knowledge and publishing brain. Want to continue?",
+      );
+      expect(response.cards).toEqual([
+        expect.objectContaining({ id: "actions:playbook:run-1" }),
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content:
+            "Rover is your personal knowledge and publishing brain. Want to continue?",
+        }),
+      );
+    });
+
     it("should include tool results in response when agent calls tools", async () => {
       // Mock agent to return tool calls with data output
       mockAgentGenerateResult = {

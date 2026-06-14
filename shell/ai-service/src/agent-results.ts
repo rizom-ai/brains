@@ -42,6 +42,11 @@ const getToolDataSchema = z.object({
 const toolDataCardsSchema = z.object({
   cards: z.array(StructuredChatCardSchema),
 });
+const toolStatePromptDataSchema = z.object({
+  currentState: z.object({
+    prompt: z.string().min(1).optional(),
+  }),
+});
 
 const attachmentToolDataSchema = z
   .object({
@@ -84,6 +89,18 @@ function buildQueuedAttachmentDescription(
     return `Uploaded ${mediaLabel} save has been queued. This artifact will open once the job completes.`;
   }
   return `${mediaLabel} generation has been queued. This artifact will open once the job completes.`;
+}
+
+export function buildToolResultPromptFallback(
+  toolResults: ToolResultData[],
+): string | undefined {
+  for (const toolResult of toolResults) {
+    const parsed = toolStatePromptDataSchema.safeParse(toolResult.data);
+    if (parsed.success && parsed.data.currentState.prompt) {
+      return parsed.data.currentState.prompt;
+    }
+  }
+  return undefined;
 }
 
 export function buildAttachmentCardFromToolData(

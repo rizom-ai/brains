@@ -59,6 +59,16 @@ turns:
 
   - userMessage: "Save this first idea: resilient software is a climate strategy because systems that fail less waste less energy and operator attention."
     successCriteria:
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "what is next"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that first seed."
+    confirmPendingAction: true
+    successCriteria:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
@@ -93,13 +103,23 @@ turns:
 
   - userMessage: "Let's do a social draft."
     successCriteria:
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "wrap-up"
+        - "transformation stage"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve creating the social draft."
+    confirmPendingAction: true
+    successCriteria:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
       responseContains:
         - draft
       responseNotContains:
-        - "wrap-up"
         - "transformation stage"
         - "I cannot"
         - "I don't have access"
@@ -125,4 +145,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 16
-  maxTokens: 110000
+  maxTokens: 160000

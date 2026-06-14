@@ -19,11 +19,19 @@ describe("Rover onboarding playbook seed", () => {
     const transformationDemo = body.states.find(
       (state) => state.id === "transformation-demo",
     );
-    const wrapUp = body.states.find((state) => state.id === "wrap-up");
+    const usefulNextPrompts = body.states.find(
+      (state) => state.id === "useful-next-prompts",
+    );
 
     expect(identity?.doneWhen).toEqual([
       "The anchor profile has been created or updated.",
     ]);
+    expect(identity?.instructions).toContain(
+      'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',
+    );
+    expect(identity?.instructions).toContain(
+      "Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.",
+    );
     expect(firstSeed?.doneWhen).toEqual([
       "A first knowledge seed has been saved.",
     ]);
@@ -55,7 +63,9 @@ describe("Rover onboarding playbook seed", () => {
       "After creating a draft, show it or offer to review it before offering wrap-up.",
     );
     expect(retrievalDemo?.doneWhen).toEqual([]);
-    expect(transformationDemo?.doneWhen).toEqual([]);
-    expect(wrapUp?.doneWhen).toEqual([]);
+    expect(transformationDemo?.doneWhen).toEqual([
+      "A transformation draft has been created.",
+    ]);
+    expect(usefulNextPrompts?.doneWhen).toEqual([]);
   });
 });

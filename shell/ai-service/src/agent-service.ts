@@ -36,6 +36,7 @@ import {
   buildSourcesCardFromContextItems,
   extractToolResults,
   buildEntityMemoryNote,
+  buildToolResultPromptFallback,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { buildBrainCallOptions } from "./call-options";
@@ -605,7 +606,11 @@ export class AgentService implements IAgentService {
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
-      pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
+      pendingConfirmations.length > 0
+        ? "Confirmation required."
+        : result.text.trim().length > 0
+          ? result.text
+          : (buildToolResultPromptFallback(toolResults) ?? result.text);
     const entityMemoryNote =
       pendingConfirmations.length > 0 ? "" : buildEntityMemoryNote(toolResults);
 
