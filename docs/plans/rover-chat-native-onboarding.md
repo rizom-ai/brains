@@ -12,6 +12,35 @@ platform. Anything an onboarding run does not exercise is listed under
 
 Related: the bundled web chat owns `/chat`; first-passkey bootstrap is shipped in `shell/auth-service` and no longer has a standing plan.
 
+## UX rethink: choices vs completion
+
+Live testing showed the action-card UX exposing state-machine advancement as buttons: an
+operator could click **Keep going** through completion steps (retrieval, transformation,
+wrap-up, complete) without Rover doing the work, because an ungated `NEXT` projects a
+button and advances for free. The markdown was also too implementation-shaped — authors
+faced raw `event`/`target`/`operatorAction`/`NEXT` transitions. The fix is a content-model
+change in the engine — see
+[Playbooks: steps and choices](./playbooks.md#steps-and-choices-the-authoring-surface).
+For onboarding specifically:
+
+- **Completion steps carry no button.** Identity, the first note, and the transformation
+  draft advance only when real evidence satisfies their `Done when`; Rover does the work
+  and narrates the next step. The operator's affordance is chatting, not a "continue"
+  button.
+- **Buttons appear only at genuine forks.** Welcome ("Set up Rover" / "Not now"),
+  "see it come back" ("Show me" / "I'll ask"), and the draft picker ("Outline" /
+  "Social" / "Newsletter") are the only places onboarding shows buttons; an authored
+  **Skip** is the only escape on a gated step.
+- **No free `NEXT`.** Every onboarding step is gated or forked, so nothing advances
+  unverified. The old ungated narration steps (`retrieval-demo`, `useful-next-prompts`)
+  are rewritten as a fork or folded into an adjacent step.
+
+This **supersedes** the earlier "project a structured **Keep going** action from the run
+state" item in the smoke-test list below: buttons are projected only from authored
+choices, never from a generic advance event. The author writes steps and choices; the
+adapter lowers them into the existing machine, so the XState runtime, gate guards, goal
+check, and evidence collection are unchanged.
+
 ## Current smoke-test observations and next fixes
 
 Earlier live onboarding smoke tests completed end-to-end but exposed the polish
@@ -277,15 +306,24 @@ interface PlaybookBody {
     id: string;
     title: string;
     instructions: string[]; // teaching/guidance the agent follows (non-gating)
-    doneWhen?: string[]; // plain-prose gate; omitted/empty => NEXT ungated
-    transitions: Array<{ event: string; target: string; description?: string }>;
+    doneWhen?: string[]; // prose goal; present => this step's NEXT is gated
+    // compiler-derived from steps/choices, not hand-authored:
+    transitions: Array<{
+      event: string;
+      target: string;
+      operatorAction?: boolean; // button iff from a choice/skip
+      label?: string;
+      description?: string;
+    }>;
   }>;
   finalStates: string[];
   nextPrompts?: string[];
 }
 ```
 
-Seed at `brains/rover/seed-content/playbook/rover-onboarding.md`:
+Authors write [steps and choices](./playbooks.md#steps-and-choices-the-authoring-surface),
+not raw transitions; the adapter lowers them into `PlaybookBody`. Seed at
+`brains/rover/seed-content/playbook/rover-onboarding.md`:
 
 ```md
 ---
@@ -297,7 +335,7 @@ trigger: first-anchor-web-chat
 
 ## Purpose
 
-Teach the operator how Rover works by doing useful setup work.
+Teach the operator how Rover works by doing useful setup work — not by being an intake form.
 
 ## Operating Rules
 
@@ -305,69 +343,78 @@ Teach the operator how Rover works by doing useful setup work.
 - Teach by doing real actions; explain what just happened and why.
 - Do not publish anything unless the operator explicitly asks and confirms.
 
-## Initial State
+## Steps
 
-welcome
+### Welcome
 
-## States
+Say: Rover is your personal knowledge and publishing brain — it captures rough ideas,
+finds them later, and turns them into publishable work. Want to set it up together?
 
-### welcome
+Choices:
 
-Title: Welcome and orientation
+- Set up Rover → Identity
+- Not now → Done
 
-Instructions:
+### Identity
 
-- Explain Rover briefly as a personal knowledge and publishing brain.
-- Ask whether to continue.
+Say: Let's tune Rover to you. What name, role, and audience should it remember?
 
-Transitions:
+To do:
 
-- NEXT -> identity
-- SKIP -> complete
-
-### identity
-
-Title: Identity setup
-
-Instructions:
-
-- Ask one question at a time about name, role, audience, expertise, tone.
-- Summarize, then create or update the anchor profile with existing tools.
+- Ask one thing at a time: name, role, audience, expertise, tone.
+- Summarize, then update the anchor profile (the existing singleton).
 
 Done when:
 
-- The anchor profile has been created or updated.
+- Rover knows who the operator is.
 
-Transitions:
+Skip: Skip for now → First note
 
-- NEXT -> first-knowledge-seed
-- SKIP -> first-knowledge-seed
+### First note
 
-### first-knowledge-seed
+Say: Send me one rough idea, note, or link you want Rover to remember.
 
-Title: First knowledge seed
+To do:
 
-Instructions:
-
-- Ask for one rough idea, note, link, or fragment; save it as the right entity.
-- Explain how Rover can retrieve and repurpose it later.
+- Save it as the right entity (usually a note) and explain how Rover will reuse it.
 
 Done when:
 
-- A first knowledge seed has been saved.
+- A first note has been saved.
 
-Transitions:
+### See it come back
 
-- NEXT -> retrieval-demo
+Say: Want me to find that note now, or would you rather ask for it yourself?
 
-## Final States
+Choices:
 
-- complete
+- Show me → Make something
+- I'll ask → Make something
+
+### Make something
+
+Say: Let's turn a note into something useful — a post outline, a social draft, or a newsletter idea?
+
+To do:
+
+- Create the draft the operator picks, then show it before moving on.
+
+Done when:
+
+- A draft has been created from the operator's knowledge.
+
+### Done
+
+Say: You're set up. Save, retrieve, transform, or publish whenever you're ready.
 ```
 
-Authoring guidance (not a hard rule): phrase a Done When as an observable outcome
-the runtime can have evidence for ("a profile was created"), not an internal state
-("the operator understands retrieval"). Editing a Done When's text redefines that
+Note how the rewrite removes the two free-`NEXT` steps: retrieval is now the **fork**
+"See it come back" (the operator chooses to be shown or to ask), and the old wrap-up
+step folds into the terminal "Done" message. Identity's `Skip` is the single authored
+escape on a gated step. Authoring guidance (not a hard rule): phrase a Done When as an
+observable outcome the runtime can have evidence for ("a profile was created"), not an
+internal state ("the operator understands retrieval"). Editing a Done When's text
+redefines that
 gate and re-judges it — intended, since the words _are_ the meaning of "done."
 
 ## Playbooks plugin (`@brains/playbooks`)

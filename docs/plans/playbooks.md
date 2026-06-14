@@ -527,3 +527,11 @@ evidence })` returns `{ met, reason }` (the check reads the KB itself via `entit
    own sake), or housing it in `shell/ai-service` (inverts the dependency and leaks a
    plugin's domain into a generic service). See
    [Where the real check comes from](#where-the-real-check-comes-from).
+9. **Forward motion is either completion or choice; buttons come only from choices** —
+   a step advances on a verified `Done when` (agent-driven, no button) or on an authored
+   `Choices`/`Skip` fork (user-driven, button). A non-terminal step with neither is an
+   authoring error. `operatorAction` is compiler-derived from choices, never authored,
+   and the action card never projects a generic "Continue"/"Keep going". This keeps the
+   machine vocabulary (`event`/`target`/`NEXT`) out of the authoring surface and stops
+   the UI from letting an operator click past unfinished work. See
+   [Steps and choices](#steps-and-choices-the-authoring-surface).

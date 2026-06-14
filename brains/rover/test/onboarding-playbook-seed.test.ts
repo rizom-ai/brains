@@ -3,69 +3,93 @@ import { describe, expect, it } from "bun:test";
 import { playbookAdapter } from "@brains/playbook";
 
 describe("Rover onboarding playbook seed", () => {
-  it("keeps only entity-evidence-backed onboarding states gated", async () => {
+  it("compiles readable steps into gated completion and authored choices", async () => {
     const seedMarkdown = await readFile(
       new URL("../seed-content/playbook/rover-onboarding.md", import.meta.url),
       "utf8",
     );
     const { body } = playbookAdapter.parsePlaybookContent(seedMarkdown);
+    const welcome = body.states.find((state) => state.id === "welcome");
     const identity = body.states.find((state) => state.id === "identity");
-    const firstSeed = body.states.find(
-      (state) => state.id === "first-knowledge-seed",
+    const firstNote = body.states.find((state) => state.id === "first-note");
+    const seeItComeBack = body.states.find(
+      (state) => state.id === "see-it-come-back",
     );
-    const retrievalDemo = body.states.find(
-      (state) => state.id === "retrieval-demo",
-    );
-    const transformationDemo = body.states.find(
-      (state) => state.id === "transformation-demo",
-    );
-    const usefulNextPrompts = body.states.find(
-      (state) => state.id === "useful-next-prompts",
+    const makeSomething = body.states.find(
+      (state) => state.id === "make-something",
     );
 
+    expect(body.initialState).toBe("welcome");
+    expect(body.finalStates).toEqual(["done"]);
+    expect(welcome?.transitions).toEqual([
+      expect.objectContaining({
+        event: "CHOICE_1",
+        label: "Set up Rover",
+        target: "identity",
+        operatorAction: true,
+      }),
+      expect.objectContaining({
+        event: "CHOICE_2",
+        label: "Not now",
+        target: "done",
+        operatorAction: true,
+      }),
+    ]);
     expect(identity?.doneWhen).toEqual([
       "The anchor profile has been created or updated.",
     ]);
+    expect(identity?.transitions).toContainEqual({
+      event: "NEXT",
+      target: "first-note",
+    });
+    expect(identity?.transitions).toContainEqual(
+      expect.objectContaining({
+        event: "SKIP",
+        label: "Skip for now",
+        target: "first-note",
+        operatorAction: true,
+      }),
+    );
     expect(identity?.instructions).toContain(
       'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',
     );
     expect(identity?.instructions).toContain(
       "Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.",
     );
-    expect(firstSeed?.doneWhen).toEqual([
+    expect(firstNote?.doneWhen).toEqual([
       "A first knowledge seed has been saved.",
     ]);
-    expect(firstSeed?.instructions).toContain(
-      'After saving the seed, end the turn by asking: "Want me to demonstrate retrieval next?"',
+    expect(firstNote?.transitions).toEqual([
+      { event: "NEXT", target: "see-it-come-back" },
+    ]);
+    expect(firstNote?.instructions).toContain(
+      'Use "note" as the operator-facing term for base knowledge entries.',
     );
-    expect(firstSeed?.instructions).toContain(
-      "Use 'note' as the operator-facing term for base knowledge entries.",
-    );
-    expect(firstSeed?.instructions).toContain(
+    expect(firstNote?.instructions).toContain(
       "Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.",
     );
-    expect(retrievalDemo?.prompt).toBe(
-      "Want me to demonstrate retrieval by finding your saved seed now, or would you like to ask about it yourself?",
+    expect(seeItComeBack?.prompt).toBe(
+      "Want me to find that note now, or would you rather ask for it yourself?",
     );
-    expect(
-      firstSeed?.transitions.find((transition) => transition.event === "NEXT"),
-    ).toMatchObject({
-      label: "Show me",
-      operatorDescription: "Demonstrate retrieval with the saved seed.",
-    });
-    expect(retrievalDemo?.instructions).toContain(
-      "If the operator updates or expands the saved note, confirm the update then point back to the retrieval demonstration next.",
-    );
-    expect(retrievalDemo?.instructions).toContain(
-      "After demonstrating retrieval, send NEXT before the final answer so the run moves to transformation.",
-    );
-    expect(transformationDemo?.instructions).toContain(
-      "After creating a draft, show it or offer to review it before offering wrap-up.",
-    );
-    expect(retrievalDemo?.doneWhen).toEqual([]);
-    expect(transformationDemo?.doneWhen).toEqual([
+    expect(seeItComeBack?.transitions).toEqual([
+      expect.objectContaining({
+        event: "CHOICE_1",
+        label: "Show me",
+        target: "make-something",
+        operatorAction: true,
+      }),
+      expect.objectContaining({
+        event: "CHOICE_2",
+        label: "I’ll ask",
+        target: "make-something",
+        operatorAction: true,
+      }),
+    ]);
+    expect(makeSomething?.doneWhen).toEqual([
       "A transformation draft has been created.",
     ]);
-    expect(usefulNextPrompts?.doneWhen).toEqual([]);
+    expect(makeSomething?.transitions).toEqual([
+      { event: "NEXT", target: "done" },
+    ]);
   });
 });

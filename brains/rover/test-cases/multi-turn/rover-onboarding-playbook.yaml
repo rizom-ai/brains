@@ -26,13 +26,13 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Yes, send the NEXT playbook event and continue to identity setup."
+  - userMessage: "Yes, set up Rover and continue to identity setup."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
-            event: NEXT
+            event: CHOICE_1
       responseNotContains:
         - "want to continue"
         - "continue onboarding"
@@ -79,7 +79,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Go ahead and demonstrate that."
+  - userMessage: "Show me by finding that note now."
     successCriteria:
       expectedTools:
         - toolName: system_extract
@@ -87,7 +87,7 @@ turns:
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
-            event: NEXT
+            event: CHOICE_1
       responseContains:
         - retriev
       responseNotContains:
@@ -97,6 +97,8 @@ turns:
         - "another seed"
         - "retrieval-demo"
         - "transformation-demo"
+        - "see-it-come-back"
+        - "make-something"
         - "wrap-up"
         - "I cannot"
         - "I don't have access"
@@ -137,6 +139,8 @@ successCriteria:
   responseNotContains:
     - "retrieval-demo"
     - "transformation-demo"
+    - "see-it-come-back"
+    - "make-something"
     - "wrap-up"
     - "I cannot"
     - "I don't have access"

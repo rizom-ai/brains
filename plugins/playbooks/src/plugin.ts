@@ -160,7 +160,10 @@ const goalCheckTransitionSchema = z
   .object({
     event: z.string().min(1),
     target: z.string().min(1),
+    operatorAction: z.boolean().optional(),
+    label: z.string().min(1).optional(),
     description: z.string().min(1).optional(),
+    operatorDescription: z.string().min(1).optional(),
   })
   .strict();
 
@@ -196,6 +199,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
+  private readonly startLocks = new Map<string, Promise<ToolResponse>>();
 
   constructor(
     config: Partial<PlaybooksConfig> = {},
@@ -305,31 +309,36 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ): Promise<ToolResponse> => {
           const parsed = z.object(startInputSchema).parse(input);
           const conversationId = toolContext.conversationId;
-          const playbook = await this.requirePlaybook(parsed.playbookId);
-          assertValidPlaybookBody(playbook.body);
-          const existing = conversationId
-            ? (await this.store.listActiveByConversation(conversationId)).find(
-                (run) => run.playbookId === parsed.playbookId,
-              )
-            : await this.store.findActiveByPlaybook(parsed.playbookId);
-          const run = existing
-            ? await this.store.upsert({
-                ...existing,
-                status: "active",
-                ...(conversationId ? { conversationId } : {}),
-                ...(existing.startedAt
-                  ? {}
-                  : { startedAt: new Date().toISOString() }),
-              })
-            : await this.createStartedRun({
-                playbookId: parsed.playbookId,
-                playbookVersion: playbook.version,
-                body: playbook.body,
-                lifecycle: parsed.lifecycle,
-                conversationId,
-              });
-          const data = await this.getStatus({ runId: run.id });
-          return { success: true, data };
+          const lockKey = conversationId
+            ? `${conversationId}:${parsed.playbookId}`
+            : `playbook:${parsed.playbookId}`;
+          return this.withStartLock(lockKey, async () => {
+            const playbook = await this.requirePlaybook(parsed.playbookId);
+            assertValidPlaybookBody(playbook.body);
+            const existing = conversationId
+              ? (
+                  await this.store.listActiveByConversation(conversationId)
+                ).find((run) => run.playbookId === parsed.playbookId)
+              : await this.store.findActiveByPlaybook(parsed.playbookId);
+            const run = existing
+              ? await this.store.upsert({
+                  ...existing,
+                  status: "active",
+                  ...(conversationId ? { conversationId } : {}),
+                  ...(existing.startedAt
+                    ? {}
+                    : { startedAt: new Date().toISOString() }),
+                })
+              : await this.createStartedRun({
+                  playbookId: parsed.playbookId,
+                  playbookVersion: playbook.version,
+                  body: playbook.body,
+                  lifecycle: parsed.lifecycle,
+                  conversationId,
+                });
+            const data = await this.getStatus({ runId: run.id });
+            return { success: true, data };
+          });
         },
       },
       {
@@ -359,6 +368,20 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         },
       },
     ];
+  }
+
+  private async withStartLock(
+    key: string,
+    task: () => Promise<ToolResponse>,
+  ): Promise<ToolResponse> {
+    const existing = this.startLocks.get(key);
+    if (existing) return existing;
+
+    const pending = task().finally(() => {
+      this.startLocks.delete(key);
+    });
+    this.startLocks.set(key, pending);
+    return pending;
   }
 
   private async handleAgentAction(
@@ -745,12 +768,15 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ? this.buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
         : undefined;
 
+    const operatorEvents = validEvents.filter(
+      (transition) => transition.operatorAction === true,
+    );
     const actionsCard =
-      activeRun && parsedPlaybook && validEvents.length > 0
+      activeRun && parsedPlaybook && operatorEvents.length > 0
         ? buildPlaybookActionsCard({
             run: activeRun,
             title: parsedPlaybook.entity.metadata.title,
-            transitions: validEvents,
+            transitions: operatorEvents,
           })
         : undefined;
 
@@ -1192,19 +1218,20 @@ function buildPlaybookActionsCard(input: {
     actions: input.transitions.map((transition) => ({
       type: "event",
       id: `playbook:${input.run.id}:${transition.event}`,
-      label: transition.label ?? playbookEventLabel(transition.event),
+      label:
+        transition.label ??
+        transition.operatorDescription ??
+        transition.description ??
+        transition.event,
       event: transition.event,
-      ...(transition.operatorDescription
-        ? { description: transition.operatorDescription }
+      ...((transition.operatorDescription ?? transition.description)
+        ? {
+            description:
+              transition.operatorDescription ?? transition.description,
+          }
         : {}),
     })),
   };
-}
-
-function playbookEventLabel(event: string): string {
-  if (event === "NEXT") return "Keep going";
-  if (event === "SKIP") return "Skip";
-  return event;
 }
 
 function formatActionResponseText(state: PlaybookState | undefined): string {

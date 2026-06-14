@@ -30,6 +30,7 @@ const welcomeState: PlaybookBody["states"][number] = {
     {
       event: "NEXT",
       target: "seed",
+      operatorAction: true,
       label: "Keep going",
       description: "Continue.",
       operatorDescription: "Continue to the first note.",
@@ -37,6 +38,7 @@ const welcomeState: PlaybookBody["states"][number] = {
     {
       event: "SKIP",
       target: "complete",
+      operatorAction: true,
       label: "Skip",
       description: "Skip.",
       operatorDescription: "Skip this playbook.",
@@ -345,6 +347,46 @@ describe("PlaybooksPlugin", () => {
     expect(data.activeRun.lifecycle).toBe("first-anchor-web-chat");
   });
 
+  it("deduplicates concurrent playbook_start calls for the same conversation", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ storageDir: await tempStorageDir() }),
+    );
+    addPlaybookEntity(harness);
+
+    const conversationId = "concurrent-start-same-conversation";
+    const results = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        harness.executeTool(
+          "playbook_start",
+          {
+            playbookId: "rover-onboarding",
+            lifecycle: "first-anchor-web-chat",
+          },
+          { conversationId },
+        ),
+      ),
+    );
+    const runIds = new Set<string>();
+    for (const result of results) {
+      if ("success" in result && result.success) {
+        runIds.add(parsePlaybookToolData(result.data).activeRun.id);
+      } else {
+        expectSuccess(result);
+        throw new Error("playbook_start failed");
+      }
+    }
+    expect(runIds.size).toBe(1);
+
+    const status = await harness.executeTool(
+      "playbook_status",
+      {},
+      { conversationId },
+    );
+    expectSuccess(status);
+    expect(parsePlaybookToolData(status.data).runs).toHaveLength(1);
+  });
+
   it("returns lifecycle starters for active anchor web-chat playbooks", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
@@ -415,7 +457,7 @@ describe("PlaybooksPlugin", () => {
     expect(stale.error).toContain("Playbook definition changed");
   });
 
-  it("projects valid playbook events as structured action cards", async () => {
+  it("projects only operator choice events as structured action cards", async () => {
     const harness = await installHarness();
 
     const started = await harness.executeTool(
@@ -493,12 +535,7 @@ describe("PlaybooksPlugin", () => {
     expect(response?.text).toBe("What rough idea should Rover remember first?");
     expect(response?.text).not.toContain("Next:");
     expect(response?.text).not.toContain("Continuing.");
-    expect(response?.cards).toEqual([
-      expect.objectContaining({
-        kind: "actions",
-        id: `actions:playbook:${runId}`,
-      }),
-    ]);
+    expect(response?.cards).toBeUndefined();
     expect(response?.toolResults).toEqual([
       {
         toolName: "playbook_send_event",

@@ -50,6 +50,13 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
                 { key: "event", label: "Event", type: "string" },
                 { key: "target", label: "Target", type: "string" },
                 {
+                  key: "operatorAction",
+                  label: "User Choice",
+                  type: "custom",
+                  formatter: formatOptionalBoolean,
+                  parser: parseOptionalBoolean,
+                },
+                {
                   key: "label",
                   label: "Label",
                   type: "custom",
@@ -94,4 +101,15 @@ function formatOptionalString(value: unknown): string {
 function parseOptionalString(text: string): string | undefined {
   const trimmed = text.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function formatOptionalBoolean(value: unknown): string {
+  return typeof value === "boolean" ? String(value) : "";
+}
+
+function parseOptionalBoolean(text: string): boolean | undefined {
+  const trimmed = text.trim().toLowerCase();
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
+  return undefined;
 }
