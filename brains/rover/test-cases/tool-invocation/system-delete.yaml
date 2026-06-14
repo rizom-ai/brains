@@ -25,6 +25,14 @@ permissions:
       - "deleted"
       - "removed"
       - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_delete
+        shouldBeCalled: true
+    responseNotContains:
+      - "deleted"
+      - "removed"
+      - "done"
   anchor:
     expectedTools:
       - toolName: system_delete

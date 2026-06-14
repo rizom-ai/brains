@@ -26,6 +26,17 @@ permissions:
       - "created"
       - "saved"
       - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: base
+    responseNotContains:
+      - "Confirmation required"
+      - "created"
+      - "saved"
+      - "done"
   anchor:
     expectedTools:
       - toolName: system_create

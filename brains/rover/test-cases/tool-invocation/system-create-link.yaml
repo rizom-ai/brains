@@ -1,33 +1,54 @@
 id: tool-invocation-system-create-link
 name: Link Save via system_create
-description: Verifies that the agent uses system_create with entityType link when asked to save a link
+description: Verifies permission-aware behavior for saving a link
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - core
   - system
   - link
   - entity-crud
+  - permissions
   - preset-core
 
 turns:
   - userMessage: "Save this link for me: https://anthropic.com/research"
 
-successCriteria:
-  expectedTools:
-    - toolName: system_create
-      shouldBeCalled: true
-      argsContain:
-        entityType: "link"
-        url: "https://anthropic.com/research"
-  responseNotContains:
-    - "I cannot"
-    - "I don't have access"
-    - "I'm unable"
-    - "link_capture"
-  minAccuracyScore: 3
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: false
+    responseNotContains:
+      - "created"
+      - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: "link"
+          url: "https://anthropic.com/research"
+    responseNotContains:
+      - "created"
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: "link"
+          url: "https://anthropic.com/research"
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
+      - "I'm unable"
+      - "link_capture"
+    minAccuracyScore: 3
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 5
   maxTokens: 25000

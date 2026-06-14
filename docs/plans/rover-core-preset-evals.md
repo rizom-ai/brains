@@ -121,16 +121,33 @@ one case into one run per level (result ids suffixed `@anchor`,
 `@public`, …), and `--test base-id` runs all expanded levels while
 `--test base-id@public` targets one level.
 
-Existing core CRUD cases converted to permission matrices:
-`tool-invocation-system-create-note`, `tool-invocation-update-title`,
-and `tool-invocation-system-delete` now run public denial plus anchor
-success from the same yaml. Tool coverage also counts assertions inside
-`permissions:` blocks.
+Permission audit applied to existing `preset-core` cases rather than
+adding one-off duplicates. Selection rule: convert single-turn cases
+that assert an anchor-only core action/tool boundary; leave pure read
+cases and multi-turn cases with per-turn criteria unchanged until the
+harness supports per-turn permission matrices.
 
-Remaining cases: public denied link update/delete (refusal, no tool
-call); trusted draft-edit boundaries; public `system_get` of a
-restricted entity by exact title; trusted vs anchor on agent-discovery
-save/approve actions.
+Converted existing cases:
+
+- CRUD/entity action boundaries: `tool-invocation-system-create-note`,
+  `tool-invocation-system-create-link`, `tool-invocation-system-update`,
+  `tool-invocation-update-title`, `tool-invocation-system-delete`, and
+  `shell-delete-requires-confirmation`.
+- Extraction boundary: `tool-invocation-extract-topics-broad-request`.
+- Anchor-only plugin/interface tools: `tool-invocation-directory-sync`,
+  `rover-tool-passkey-setup-url`, and `tool-invocation-agent-call-by-name`.
+- Agent-discovery write boundaries: `tool-invocation-agent-add` and
+  `tool-invocation-agent-approve`.
+
+The matrices capture the observed policy split: public callers should
+not call hidden/mutating tools; trusted callers may invoke visible
+system write/extract tools but must be denied by tool-level permission
+enforcement; anchors complete the action or confirmation request. Tool
+coverage also counts assertions inside `permissions:` blocks.
+
+Remaining cases: link update/delete variants if distinct prompts are
+added; public `system_get` of a restricted entity by exact title;
+per-turn permission matrices for multi-turn save/update/approve flows.
 
 ### Phase 4 — fill the coverage
 
