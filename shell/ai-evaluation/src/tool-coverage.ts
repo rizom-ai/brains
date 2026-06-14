@@ -4,14 +4,14 @@ import { YAMLLoader } from "./loaders/yaml-loader";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 
-export interface ToolCoverageLedger {
+export interface ToolCoverageReport {
   registeredTools: string[];
   assertedTools: string[];
   missingAssertions: string[];
   staleAssertions: string[];
 }
 
-export interface RunToolLedgerOptions {
+export interface RunToolCoverageOptions {
   config: AppConfig;
   testCasesDirs: string[];
   evalHandlerRegistry: EvalHandlerRegistry;
@@ -20,13 +20,13 @@ export interface RunToolLedgerOptions {
   tags?: string[] | undefined;
 }
 
-export async function runToolCoverageLedger(
-  options: RunToolLedgerOptions,
-): Promise<ToolCoverageLedger> {
+export async function runToolCoverageReport(
+  options: RunToolCoverageOptions,
+): Promise<ToolCoverageReport> {
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
     cloneData: options.cloneData,
-    suffix: "tool-ledger",
+    suffix: "tool-coverage",
   });
 
   const app = await bootEvalApp({
@@ -40,21 +40,21 @@ export async function runToolCoverageLedger(
     const registeredTools = shell
       .listToolsForPermissionLevel("anchor")
       .map((tool) => tool.name);
-    const testCases = await loadLedgerTestCases(
+    const testCases = await loadCoverageTestCases(
       options.testCasesDirs,
       options.tags,
     );
 
-    return createToolCoverageLedger(registeredTools, testCases);
+    return createToolCoverageReport(registeredTools, testCases);
   } finally {
     await app.getShell().shutdown();
   }
 }
 
-export function createToolCoverageLedger(
+export function createToolCoverageReport(
   registeredTools: string[],
   testCases: TestCase[],
-): ToolCoverageLedger {
+): ToolCoverageReport {
   const registered = uniqueSorted(registeredTools);
   const asserted = uniqueSorted(collectAssertedToolNames(testCases));
   const registeredSet = new Set(registered);
@@ -68,23 +68,23 @@ export function createToolCoverageLedger(
   };
 }
 
-export function renderToolCoverageLedger(ledger: ToolCoverageLedger): string {
+export function renderToolCoverageReport(report: ToolCoverageReport): string {
   return [
-    "# Tool Coverage Ledger",
+    "# Tool Coverage Report",
     "",
-    `Registered tools: ${ledger.registeredTools.length}`,
-    `Asserted tools: ${ledger.assertedTools.length}`,
-    `Missing assertions: ${ledger.missingAssertions.length}`,
-    `Stale assertions: ${ledger.staleAssertions.length}`,
+    `Registered tools: ${report.registeredTools.length}`,
+    `Asserted tools: ${report.assertedTools.length}`,
+    `Missing assertions: ${report.missingAssertions.length}`,
+    `Stale assertions: ${report.staleAssertions.length}`,
     "",
-    renderList("Registered tools", ledger.registeredTools),
-    renderList("Asserted tools", ledger.assertedTools),
-    renderList("Missing assertions", ledger.missingAssertions),
-    renderList("Stale assertions", ledger.staleAssertions),
+    renderList("Registered tools", report.registeredTools),
+    renderList("Asserted tools", report.assertedTools),
+    renderList("Missing assertions", report.missingAssertions),
+    renderList("Stale assertions", report.staleAssertions),
   ].join("\n");
 }
 
-async function loadLedgerTestCases(
+async function loadCoverageTestCases(
   testCasesDirs: string[],
   tags: string[] | undefined,
 ): Promise<TestCase[]> {

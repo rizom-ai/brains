@@ -94,17 +94,17 @@ preset-core` passes; add an `eval:core` package script for it.
 Deliverable: one command that boots an actual core-preset brain and
 runs the core-valid subset green.
 
-### Phase 2 — coverage ledger: make "exhaustive" measurable
+### Phase 2 — tool coverage: make "exhaustive" measurable
 
 Add a small check (script or test in `shell/ai-evaluation`) that boots
 the core-preset eval app, dumps the registered tool names, and diffs
 them against the tools asserted (`shouldBeCalled` true _or_ false) in
-`preset-core` cases. The diff is the ledger; it gets committed into
-this plan. Exhaustive then means: ledger empty, every registered tool
+`preset-core` cases. The diff is the coverage report; it gets committed into
+this plan. Exhaustive then means: coverage diff empty, every registered tool
 asserted somewhere, every core entity type exercised through the
 system-tool family.
 
-Ledger from `bun run eval:core:ledger` (2026-06-13):
+Coverage from `bun run eval:core:coverage` (2026-06-13):
 
 - Registered tools: 17
 - Asserted tools: 17
@@ -125,9 +125,9 @@ Missing assertions: none.
    boundaries; public `system_get` of a restricted entity by exact
    title; trusted vs anchor on agent-discovery save/approve actions.
 
-### Phase 4 — fill the ledger
+### Phase 4 — fill the coverage
 
-Write cases until the Phase 2 ledger is empty. Known gaps going in:
+Write cases until the Phase 2 coverage diff is empty. Known gaps going in:
 `system_status`, `system_insights` (topics), `system_check-job-status`,
 `system_extract` on topics, conversation tools, wishlist beyond the
 single lasagna regression, and multi-turn plus response-quality cases

@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
     "eval:core": "brain-eval --preset core --tags preset-core",
-    "eval:core:ledger": "brain-eval --preset core --tags preset-core --tool-ledger",
+    "eval:core:coverage": "brain-eval --preset core --tags preset-core --tool-coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

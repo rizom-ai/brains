@@ -19,7 +19,7 @@ Options:
   --max-parallel <n>  Set max concurrent tests (default: 3)
   --verbose, -v       Show verbose output
   --build-db          Build eval database from eval-content (no tests)
-  --tool-ledger       Diff registered tools against asserted eval tools
+  --tool-coverage       Diff registered tools against asserted eval tools
   --help, -h          Show this help message
 
 Examples:
@@ -34,7 +34,7 @@ Examples:
   bun run eval --test list,search           Run multiple tests
   bun run eval --tags core                  Run tests tagged 'core'
   bun run eval --preset core --tags preset-core  Run core-preset tests
-  bun run eval --preset core --tags preset-core --tool-ledger  Check tool assertion coverage
+  bun run eval --preset core --tags preset-core --tool-coverage  Check tool assertion coverage
   bun run eval --type plugin                Run only plugin tests
   bun run eval --type agent                 Run only agent tests
   bun run eval --skip-llm-judge             Skip LLM judge for speed

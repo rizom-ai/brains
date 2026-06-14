@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
 import {
-  createToolCoverageLedger,
-  renderToolCoverageLedger,
-} from "../src/tool-ledger";
+  createToolCoverageReport,
+  renderToolCoverageReport,
+} from "../src/tool-coverage";
 import type { TestCase } from "../src/schemas";
 
-describe("tool coverage ledger", () => {
+describe("tool coverage report", () => {
   it("diffs registered tools against top-level and per-turn assertions", () => {
     const testCases: TestCase[] = [
       {
@@ -38,12 +38,12 @@ describe("tool coverage ledger", () => {
       },
     ];
 
-    const ledger = createToolCoverageLedger(
+    const report = createToolCoverageReport(
       ["system_create", "system_search", "system_status"],
       testCases,
     );
 
-    expect(ledger).toEqual({
+    expect(report).toEqual({
       registeredTools: ["system_create", "system_search", "system_status"],
       assertedTools: ["system_create", "system_search"],
       missingAssertions: ["system_status"],
@@ -66,14 +66,14 @@ describe("tool coverage ledger", () => {
       },
     ];
 
-    const ledger = createToolCoverageLedger(["system_status"], testCases);
+    const report = createToolCoverageReport(["system_status"], testCases);
 
-    expect(ledger.missingAssertions).toEqual(["system_status"]);
-    expect(ledger.staleAssertions).toEqual(["site-builder_build-site"]);
+    expect(report.missingAssertions).toEqual(["system_status"]);
+    expect(report.staleAssertions).toEqual(["site-builder_build-site"]);
   });
 
   it("renders empty diff sections explicitly", () => {
-    const markdown = renderToolCoverageLedger({
+    const markdown = renderToolCoverageReport({
       registeredTools: ["system_status"],
       assertedTools: ["system_status"],
       missingAssertions: [],

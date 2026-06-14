@@ -7,7 +7,7 @@ export interface CliOptions {
   parallel: boolean;
   maxParallel: number;
   verbose: boolean;
-  toolLedger: boolean;
+  toolCoverage: boolean;
   tags?: string[];
   testCaseIds?: string[];
   testType?: "agent" | "plugin";
@@ -61,7 +61,7 @@ export function parseCliOptions(args: string[]): CliOptions {
     parallel: args.includes("--parallel") || args.includes("-p"),
     maxParallel: maxParallelArg ? parseInt(maxParallelArg, 10) : 3,
     verbose: args.includes("--verbose") || args.includes("-v"),
-    toolLedger: args.includes("--tool-ledger"),
+    toolCoverage: args.includes("--tool-coverage"),
   };
 
   if (tags) options.tags = tags;
