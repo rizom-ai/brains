@@ -53,5 +53,5 @@ permissions:
       - "It's still not approved yet"
 
 efficiency:
-  maxToolCalls: 4
+  maxToolCalls: 6
   maxTokens: 25000

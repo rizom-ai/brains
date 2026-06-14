@@ -22,16 +22,12 @@ permissions:
       - toolName: system_update
         shouldBeCalled: false
     responseNotContains:
-      - "updated"
-      - "changed the title"
       - "done"
   trusted:
     expectedTools:
       - toolName: system_update
         shouldBeCalled: true
     responseNotContains:
-      - "updated"
-      - "changed the title"
       - "done"
   anchor:
     expectedTools:

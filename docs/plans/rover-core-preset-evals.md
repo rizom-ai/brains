@@ -145,9 +145,13 @@ system write/extract tools but must be denied by tool-level permission
 enforcement; anchors complete the action or confirmation request. Tool
 coverage also counts assertions inside `permissions:` blocks.
 
-Remaining cases: link update/delete variants if distinct prompts are
-added; public `system_get` of a restricted entity by exact title;
-per-turn permission matrices for multi-turn save/update/approve flows.
+Additional gaps filled: link-specific update/delete matrices and an
+exact `system_get` restricted-content matrix. The restricted fixture was
+moved into the root eval-content set so core directory sync imports it
+as a `base` entity instead of leaving it under the legacy `note/` path.
+
+Remaining cases: per-turn permission matrices for multi-turn
+save/update/approve flows.
 
 ### Phase 4 — fill the coverage
 
