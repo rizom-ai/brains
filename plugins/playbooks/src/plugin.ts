@@ -1112,7 +1112,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
 Run ID: ${run.id}
 Current state title: ${state.title}
 Current state id (tool use only): ${state.id}
-
+${state.prompt ? `Operator-facing prompt: ${state.prompt}\n` : ""}
 Use this run ID for run-scoped playbook tools when explicit run identity is needed.
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
@@ -1192,10 +1192,10 @@ function buildPlaybookActionsCard(input: {
     actions: input.transitions.map((transition) => ({
       type: "event",
       id: `playbook:${input.run.id}:${transition.event}`,
-      label: playbookEventLabel(transition.event),
+      label: transition.label ?? playbookEventLabel(transition.event),
       event: transition.event,
-      ...(transition.description
-        ? { description: transition.description }
+      ...(transition.operatorDescription
+        ? { description: transition.operatorDescription }
         : {}),
     })),
   };
@@ -1209,9 +1209,7 @@ function playbookEventLabel(event: string): string {
 
 function formatActionResponseText(state: PlaybookState | undefined): string {
   if (!state) return "Continuing.";
-  return ["Continuing.", `Next: ${state.title}.`, state.instructions[0] ?? ""]
-    .filter((line) => line.length > 0)
-    .join("\n\n");
+  return state.prompt ?? `Continuing to ${state.title}.`;
 }
 
 function zeroUsage(): AgentResponse["usage"] {

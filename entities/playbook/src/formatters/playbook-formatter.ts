@@ -23,6 +23,13 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
             { key: "id", label: "ID", type: "string" },
             { key: "title", label: "Title", type: "string" },
             {
+              key: "prompt",
+              label: "Prompt",
+              type: "custom",
+              formatter: formatOptionalString,
+              parser: parseOptionalString,
+            },
+            {
               key: "instructions",
               label: "Instructions",
               type: "array",
@@ -42,7 +49,21 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
               itemMappings: [
                 { key: "event", label: "Event", type: "string" },
                 { key: "target", label: "Target", type: "string" },
+                {
+                  key: "label",
+                  label: "Label",
+                  type: "custom",
+                  formatter: formatOptionalString,
+                  parser: parseOptionalString,
+                },
                 { key: "description", label: "Description", type: "string" },
+                {
+                  key: "operatorDescription",
+                  label: "Operator Description",
+                  type: "custom",
+                  formatter: formatOptionalString,
+                  parser: parseOptionalString,
+                },
               ],
             },
           ],
@@ -65,3 +86,12 @@ export class PlaybookBodyFormatter extends StructuredContentFormatter<PlaybookBo
 }
 
 export const playbookBodyFormatter = new PlaybookBodyFormatter();
+
+function formatOptionalString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function parseOptionalString(text: string): string | undefined {
+  const trimmed = text.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}

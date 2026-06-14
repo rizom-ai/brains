@@ -23,17 +23,31 @@ async function tempStorageDir(): Promise<string> {
 const welcomeState: PlaybookBody["states"][number] = {
   id: "welcome",
   title: "Welcome",
+  prompt: "Welcome. Would you like to continue?",
   instructions: ["Explain the playbook."],
   doneWhen: [],
   transitions: [
-    { event: "NEXT", target: "seed", description: "Continue." },
-    { event: "SKIP", target: "complete", description: "Skip." },
+    {
+      event: "NEXT",
+      target: "seed",
+      label: "Keep going",
+      description: "Continue.",
+      operatorDescription: "Continue to the first note.",
+    },
+    {
+      event: "SKIP",
+      target: "complete",
+      label: "Skip",
+      description: "Skip.",
+      operatorDescription: "Skip this playbook.",
+    },
   ],
 };
 
 const seedState: PlaybookBody["states"][number] = {
   id: "seed",
   title: "Seed",
+  prompt: "What rough idea should Rover remember first?",
   instructions: ["Save a first note."],
   doneWhen: [],
   transitions: [{ event: "NEXT", target: "complete" }],
@@ -427,14 +441,14 @@ describe("PlaybooksPlugin", () => {
             id: `playbook:${data.activeRun.id}:NEXT`,
             label: "Keep going",
             event: "NEXT",
-            description: "Continue.",
+            description: "Continue to the first note.",
           },
           {
             type: "event",
             id: `playbook:${data.activeRun.id}:SKIP`,
             label: "Skip",
             event: "SKIP",
-            description: "Skip.",
+            description: "Skip this playbook.",
           },
         ],
       },
@@ -476,7 +490,9 @@ describe("PlaybooksPlugin", () => {
     });
 
     expect(response).toBeDefined();
-    expect(response?.text).toContain("Seed");
+    expect(response?.text).toBe("What rough idea should Rover remember first?");
+    expect(response?.text).not.toContain("Next:");
+    expect(response?.text).not.toContain("Continuing.");
     expect(response?.cards).toEqual([
       expect.objectContaining({
         kind: "actions",

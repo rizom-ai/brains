@@ -11,12 +11,15 @@ export const playbookCompletionModeSchema = z.enum([
 export const playbookTransitionSchema = z.object({
   event: z.string().min(1),
   target: z.string().min(1),
+  label: z.string().min(1).optional(),
   description: z.string().optional(),
+  operatorDescription: z.string().min(1).optional(),
 });
 
 export const playbookStateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
+  prompt: z.string().min(1).optional(),
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),
   transitions: z.array(playbookTransitionSchema).default([]),

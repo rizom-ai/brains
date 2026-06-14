@@ -36,6 +36,15 @@ describe("Rover onboarding playbook seed", () => {
     expect(firstSeed?.instructions).toContain(
       "Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.",
     );
+    expect(retrievalDemo?.prompt).toBe(
+      "Want me to demonstrate retrieval by finding your saved seed now, or would you like to ask about it yourself?",
+    );
+    expect(
+      firstSeed?.transitions.find((transition) => transition.event === "NEXT"),
+    ).toMatchObject({
+      label: "Show me",
+      operatorDescription: "Demonstrate retrieval with the saved seed.",
+    });
     expect(retrievalDemo?.instructions).toContain(
       "If the operator updates or expands the saved note, confirm the update then point back to the retrieval demonstration next.",
     );

@@ -39,6 +39,10 @@ welcome
 
 Welcome and orientation
 
+#### Prompt
+
+Rover is your personal knowledge and publishing brain. It helps you capture rough knowledge, retrieve it later, connect it to themes, and turn it into publishable work. Want to walk through a quick setup together?
+
 #### Instructions
 
 - Explain Rover as a personal knowledge and publishing brain for an independent professional.
@@ -59,9 +63,17 @@ NEXT
 
 identity
 
+###### Label
+
+Keep going
+
 ###### Description
 
 The operator wants to continue setup.
+
+###### Operator Description
+
+Start identity setup.
 
 ##### Transition 2
 
@@ -73,9 +85,17 @@ SKIP
 
 complete
 
+###### Label
+
+Skip
+
 ###### Description
 
 The operator wants to skip onboarding.
+
+###### Operator Description
+
+Skip onboarding for now.
 
 ### State 2
 
@@ -86,6 +106,10 @@ identity
 #### Title
 
 Identity setup
+
+#### Prompt
+
+Great. To tune Rover to you, let’s start with the basics: what name, role, audience, expertise, and tone should Rover remember for you?
 
 #### Instructions
 
@@ -111,9 +135,17 @@ NEXT
 
 first-knowledge-seed
 
+###### Label
+
+Continue
+
 ###### Description
 
 Identity setup is complete.
+
+###### Operator Description
+
+Continue to saving a first knowledge seed.
 
 ##### Transition 2
 
@@ -125,9 +157,17 @@ SKIP
 
 first-knowledge-seed
 
+###### Label
+
+Skip identity
+
 ###### Description
 
 The operator wants to skip identity setup for now.
+
+###### Operator Description
+
+Save identity details later and continue.
 
 ### State 3
 
@@ -138,6 +178,10 @@ first-knowledge-seed
 #### Title
 
 First knowledge seed
+
+#### Prompt
+
+Now let’s save one useful seed. Send me a rough idea, note, link, or fragment you want Rover to remember.
 
 #### Instructions
 
@@ -165,9 +209,17 @@ NEXT
 
 retrieval-demo
 
+###### Label
+
+Show me
+
 ###### Description
 
 The first knowledge seed exists.
+
+###### Operator Description
+
+Demonstrate retrieval with the saved seed.
 
 ### State 4
 
@@ -178,6 +230,10 @@ retrieval-demo
 #### Title
 
 Retrieval demonstration
+
+#### Prompt
+
+Want me to demonstrate retrieval by finding your saved seed now, or would you like to ask about it yourself?
 
 #### Instructions
 
@@ -201,9 +257,17 @@ NEXT
 
 transformation-demo
 
+###### Label
+
+Choose a transformation
+
 ###### Description
 
 The retrieval demo is complete.
+
+###### Operator Description
+
+Continue to transformation options.
 
 ### State 5
 
@@ -214,6 +278,10 @@ transformation-demo
 #### Title
 
 Transformation demonstration
+
+#### Prompt
+
+Next, let’s turn your raw knowledge into something useful. Would you like a blog post outline, a social draft, a newsletter idea, a topic suggestion, or a project angle?
 
 #### Instructions
 
@@ -238,9 +306,17 @@ NEXT
 
 wrap-up
 
+###### Label
+
+Wrap up
+
 ###### Description
 
 The transformation demo is complete.
+
+###### Operator Description
+
+Finish with useful next prompts.
 
 ### State 6
 
@@ -251,6 +327,10 @@ wrap-up
 #### Title
 
 Wrap up
+
+#### Prompt
+
+You’re set up. You can keep using Rover to save ideas, retrieve what you know, transform notes into drafts, and manage publishing work. Want a few useful prompts to try next?
 
 #### Instructions
 
@@ -272,9 +352,17 @@ NEXT
 
 complete
 
+###### Label
+
+Finish
+
 ###### Description
 
 The wrap-up is complete.
+
+###### Operator Description
+
+Complete onboarding.
 
 ### State 7
 
@@ -285,6 +373,10 @@ complete
 #### Title
 
 Complete
+
+#### Prompt
+
+Onboarding is complete. You can ask Rover to save, retrieve, transform, or publish knowledge whenever you are ready.
 
 #### Instructions
 

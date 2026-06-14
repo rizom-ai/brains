@@ -13,13 +13,16 @@ const body = {
     {
       id: "welcome",
       title: "Welcome",
+      prompt: "Welcome. Would you like to continue?",
       instructions: ["Explain the playbook."],
       doneWhen: ["Operator is ready."],
       transitions: [
         {
           event: "NEXT",
           target: "complete",
+          label: "Keep going",
           description: "Continue.",
+          operatorDescription: "Continue to the next step.",
         },
       ],
     },
