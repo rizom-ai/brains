@@ -106,6 +106,11 @@ function collectAssertedToolNames(testCases: TestCase[]): string[] {
   for (const testCase of testCases) {
     if (testCase.type === "plugin") continue;
     collectFromCriteria(tools, testCase.successCriteria);
+    for (const criteria of Object.values(
+      (testCase as AgentTestCase).permissions ?? {},
+    )) {
+      collectFromCriteria(tools, criteria);
+    }
     for (const turn of (testCase as AgentTestCase).turns) {
       collectFromCriteria(tools, turn.successCriteria);
     }

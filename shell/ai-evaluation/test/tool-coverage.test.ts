@@ -7,7 +7,7 @@ import {
 import type { TestCase } from "../src/schemas";
 
 describe("tool coverage report", () => {
-  it("diffs registered tools against top-level and per-turn assertions", () => {
+  it("diffs registered tools against top-level, matrix, and per-turn assertions", () => {
     const testCases: TestCase[] = [
       {
         id: "agent-case",
@@ -26,6 +26,13 @@ describe("tool coverage report", () => {
         successCriteria: {
           expectedTools: [{ toolName: "system_create", shouldBeCalled: false }],
         },
+        permissions: {
+          anchor: {
+            expectedTools: [
+              { toolName: "system_update", shouldBeCalled: true },
+            ],
+          },
+        },
       },
       {
         id: "plugin-case",
@@ -39,13 +46,18 @@ describe("tool coverage report", () => {
     ];
 
     const report = createToolCoverageReport(
-      ["system_create", "system_search", "system_status"],
+      ["system_create", "system_search", "system_status", "system_update"],
       testCases,
     );
 
     expect(report).toEqual({
-      registeredTools: ["system_create", "system_search", "system_status"],
-      assertedTools: ["system_create", "system_search"],
+      registeredTools: [
+        "system_create",
+        "system_search",
+        "system_status",
+        "system_update",
+      ],
+      assertedTools: ["system_create", "system_search", "system_update"],
       missingAssertions: ["system_status"],
       staleAssertions: [],
     });

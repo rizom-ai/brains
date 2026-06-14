@@ -121,13 +121,16 @@ one case into one run per level (result ids suffixed `@anchor`,
 `@public`, …), and `--test base-id` runs all expanded levels while
 `--test base-id@public` targets one level.
 
-Initial case added: public vs anchor note creation
-(`rover-permission-core-note-create-matrix`) passes targeted eval.
+Existing core CRUD cases converted to permission matrices:
+`tool-invocation-system-create-note`, `tool-invocation-update-title`,
+and `tool-invocation-system-delete` now run public denial plus anchor
+success from the same yaml. Tool coverage also counts assertions inside
+`permissions:` blocks.
 
-Remaining cases: public denied `system_update`/`delete` on note and
-link (refusal, no tool call); trusted draft-edit boundaries; public
-`system_get` of a restricted entity by exact title; trusted vs anchor
-on agent-discovery save/approve actions.
+Remaining cases: public denied link update/delete (refusal, no tool
+call); trusted draft-edit boundaries; public `system_get` of a
+restricted entity by exact title; trusted vs anchor on agent-discovery
+save/approve actions.
 
 ### Phase 4 — fill the coverage
 

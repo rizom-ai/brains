@@ -1,27 +1,39 @@
 id: tool-invocation-system-delete
 name: Entity Delete via system_delete
-description: Verifies that the agent uses system_delete when asked to remove content
+description: Verifies permission-aware behavior for removing content
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - core
   - system
   - entity-crud
+  - permissions
   - preset-core
 
 turns:
   - userMessage: "Delete the note 'green-software-principles'"
 
-successCriteria:
-  expectedTools:
-    - toolName: system_delete
-      shouldBeCalled: true
-  toolCountRange:
-    min: 1
-  responseNotContains:
-    - "I cannot"
-    - "I don't have access"
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_delete
+        shouldBeCalled: false
+    responseNotContains:
+      - "deleted"
+      - "removed"
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_delete
+        shouldBeCalled: true
+    toolCountRange:
+      min: 1
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
 
 efficiency:
   maxToolCalls: 5

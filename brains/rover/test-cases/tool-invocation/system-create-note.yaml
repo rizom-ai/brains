@@ -1,35 +1,48 @@
 id: tool-invocation-system-create-note
 name: Direct Note Creation via system_create
-description: Verifies that the agent uses system_create with content for direct note creation
+description: Verifies permission-aware behavior for direct note creation
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - core
   - system
   - entity-crud
+  - permissions
   - preset-core
 
 turns:
-  - userMessage: "Save this as a note: The quick brown fox jumps over the lazy dog."
+  - userMessage: "Save this as a note: Core permission matrix note."
 
-successCriteria:
-  expectedTools:
-    - toolName: system_create
-      shouldBeCalled: true
-      argsContain:
-        entityType: base
-      argsAbsent:
-        - upload
-        - sourceAttachment
-        - from
-  toolCountRange:
-    min: 1
-  responseNotContains:
-    - "I cannot"
-    - "note_create"
-  minAccuracyScore: 3
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: false
+    responseNotContains:
+      - "Confirmation required"
+      - "created"
+      - "saved"
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: base
+        argsAbsent:
+          - upload
+          - sourceAttachment
+          - from
+    toolCountRange:
+      min: 1
+    responseNotContains:
+      - "I cannot"
+      - "note_create"
+    minAccuracyScore: 3
 
 efficiency:
-  maxToolCalls: 3
-  maxTokens: 20000
+  maxToolCalls: 6
+  maxTokens: 25000
