@@ -8,11 +8,12 @@
    - use different tokens for `contentRepoAdminToken` and `gitSyncToken`: admin creates/checks content repos; sync is used by runtime directory-sync
    - confirm `agePublicKey`
 4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.
-   - Discord is enabled by default for pilot users.
-   - if the user should be an anchor there, add `--anchor-id <discord-user-id>`.
+   - Web chat is the primary interface; it needs no per-user setup beyond the passkey.
+   - `user:add` currently writes `discord: enabled: true`; set it to `false` unless the user's cohort actually uses Discord.
+   - if the user should be an anchor on Discord, add `--anchor-id <discord-user-id>`.
    - the command creates `users/<handle>.yaml`, `users/<handle>.secrets.yaml`, and the cohort membership without duplicating existing entries.
 5. Edit the generated user file if the anchor profile needs richer metadata.
-   - For browser/CMS-first onboarding, add `setup.delivery: email` and `setup.email` to the user file.
+   - Set `setup.delivery: email` and `setup.email` so the user gets the passkey setup email — this is the default onboarding path.
    - For ATProto publishing, add `atproto.identifier` to the user file; put only `atprotoAppPassword` in the per-user secrets file.
    - Ensure `SETUP_EMAIL_API_KEY` and `SETUP_EMAIL_FROM` exist as GitHub Secrets before deploying any email-setup user.
 6. Run `bunx brains-ops render <repo>`.
@@ -25,20 +26,21 @@
 13. Verify the deployed Rover contract:
     - all presets:
       - `https://<handle>.rizom.ai/health` returns `200`
+      - `https://<handle>.rizom.ai/chat` loads the web chat and accepts passkey sign-in
+      - `https://<handle>.rizom.ai/` loads the dashboard (or site surface on `default` preset)
+      - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
       - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
+      - content repo exists and runtime sync is healthy
       - background jobs are not repeatedly failing, except for expected missing optional integrations
     - for `presetOverride: default` users:
-      - `https://<handle>.rizom.ai/` loads the browser/site surface
-      - `https://<handle>.rizom.ai/cms` loads the CMS/login surface
       - initial site build completes
-      - content repo exists and runtime sync is healthy
-      - passkey setup/handoff is completed
 14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
-15. For Discord users, hand the Discord setup details to the user. For email-setup users, confirm they received the setup email and completed passkey registration.
-16. Hand over the browser defaults:
+15. Confirm the user received the setup email, registered their passkey, and can sign in to web chat at `https://<handle>.rizom.ai/chat`. That completes the default onboarding; everything below is per-cohort extras.
+16. Hand over the browser surfaces:
+    - Chat (primary): `https://<handle>.rizom.ai/chat`
     - Dashboard: `https://<handle>.rizom.ai/`
-    - CMS: `https://<handle>.rizom.ai/cms`
-    - GitHub token guidance for CMS access to the user's private content repo
-17. If they need direct client access, use OAuth/passkey-capable clients where possible.
-18. If you are also giving them a content repo workflow, describe it as optional and frame git/Obsidian as an advanced file-based path, not the default.
-19. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.
+    - CMS: `https://<handle>.rizom.ai/cms`, plus GitHub token guidance if CMS editing is part of their cohort
+17. For Discord-enabled cohorts, hand the Discord setup details to the user as a secondary chat surface.
+18. If they need direct client access (MCP), use OAuth/passkey-capable clients where possible.
+19. If you are also giving them a content repo workflow, describe it as optional and frame git/Obsidian as an advanced file-based path, not the default.
+20. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.

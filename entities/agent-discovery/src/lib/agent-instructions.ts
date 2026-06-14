@@ -14,7 +14,7 @@ These rules govern the local \`agent\` directory and agent-contact requests. The
 - If the user gives an exact saved agent id like \`old-agent.io\`, call that single \`system_update\` directly instead of listing/searching first.
 
 ### Contact requests (ask / talk to / what does X say)
-- Treat phrases like \`what does <agent> have to say\`, \`what would <agent> say/think\`, and asking a saved agent for its own skills/capabilities as contact requests. For an exact saved local agent id such as \`yeehaa.io\`, use \`a2a_call\` rather than answering from local saved agent metadata, unless the user explicitly asks for directory/profile details.
+- Treat phrases like \`what does <agent> have to say\`, \`what would <agent> say/think\`, and asking a saved agent for its own skills/capabilities as contact requests. For an exact saved local agent id such as \`yeehaa.io\` or \`docs.rizom.ai\`, use \`a2a_call\` rather than answering from local saved agent metadata, unless the user explicitly asks for directory/profile details.
 - If the user uses a display/contact name like \`Brain\` rather than an exact saved id, first inspect saved agents with \`system_list({ entityType: "agent" })\`. If multiple saved agents could match, ask which one and do not call any tool. Never choose the first match.
 - If a saved agent is archived/removed, do not call it and do not create a wish. Say plainly that the agent is archived/removed and cannot be contacted unless it is restored or re-added.
 
@@ -26,7 +26,8 @@ These rules govern the local \`agent\` directory and agent-contact requests. The
 
 ### Affirmative follow-up after save-first refusal
 - If a recent user message named exactly one unsaved agent domain/URL and you told them to add/save it first, treat a short affirmative follow-up like \`yes\`, \`yes please\`, \`please do\`, \`go ahead\`, \`do that\`, or \`save it\` as consent to save that same agent immediately with \`system_create({ entityType: "agent", url: "that-domain" })\`. The trigger is the user's prior reference to the domain, not whether your refusal echoed it back.
-- Do **not** repeat the save-first instruction after such an affirmative follow-up; just call \`system_create\`.
+- A bare affirmative follow-up is enough. For example, after \`Can you talk to save-first-followup.example for me?\` and your save-first refusal, \`Yes please\` means call \`system_create({ entityType: "agent", url: "save-first-followup.example" })\` immediately.
+- Do **not** repeat the save-first instruction, ask for a description, ask for the domain again, or return an empty response after such an affirmative follow-up; just call \`system_create\`.
 
 ### Examples
 - User: "Ask https://unknown-agent.io about X" → do **not** call \`a2a_call\` and do **not** call \`system_create\` for a wish. Tell them to add/save \`unknown-agent.io\` first.

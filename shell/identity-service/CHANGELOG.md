@@ -1,5 +1,21 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/entity-service@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/entity-service@0.2.0-alpha.120
+
 ## 0.2.0-alpha.119
 
 ### Patch Changes

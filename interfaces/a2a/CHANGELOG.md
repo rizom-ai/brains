@@ -1,5 +1,21 @@
 # @brains/a2a
 
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/plugins@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+
 ## 0.2.0-alpha.119
 
 ### Patch Changes

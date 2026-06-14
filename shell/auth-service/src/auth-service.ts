@@ -34,7 +34,11 @@ import {
 import { renderLoginPage, unauthorizedHtmlResponse } from "./pages";
 import { OAuthEndpoints } from "./oauth-endpoints";
 import { WebAuthnEndpoints } from "./webauthn-endpoints";
-import { SetupFlow, type OperatorSetupRequired } from "./setup-flow";
+import {
+  DEFAULT_SETUP_TOKEN_TTL_SECONDS,
+  SetupFlow,
+  type OperatorSetupRequired,
+} from "./setup-flow";
 import type {
   AuthorizationServerMetadata,
   JwksResponse,
@@ -53,6 +57,8 @@ export interface AuthServiceOptions {
   trustedIssuers?: string[];
   /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
   allowLocalhostIssuers?: boolean;
+  /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
+  setupTokenTtlSeconds?: number;
   logger?: Logger;
 }
 
@@ -95,6 +101,8 @@ export class AuthService {
     this.setupFlow = new SetupFlow({
       setupStateStore: new SetupStateStore({ storageDir: options.storageDir }),
       passkeyService: this.passkeyService,
+      setupTokenTtlSeconds:
+        options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS,
     });
     this.oauthEndpoints = new OAuthEndpoints({
       clientStore: this.clientStore,

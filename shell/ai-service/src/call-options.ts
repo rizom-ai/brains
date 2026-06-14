@@ -60,6 +60,37 @@ export function shouldDisableDocumentGenerate(message: string): boolean {
   );
 }
 
+export function shouldDisableSystemCreateForUploadRead(input: {
+  message: string;
+  hasAccessibleUploads: boolean;
+}): boolean {
+  if (!input.hasAccessibleUploads) return false;
+  const normalized = input.message.toLowerCase();
+  const asksToReadUpload =
+    /\b(summari[sz]e|describe|inspect|look at|view|read|see|analy[sz]e|what(?:'s| is)? in|what does|can you look)\b/.test(
+      normalized,
+    ) &&
+    /\b(upload(?:ed)?|file|pdf|image|attachment|it|this)\b/.test(normalized);
+  const asksToPersist =
+    /\b(save|persist|create|capture|store|import|promote|attach|turn\s+(?:it|this|the uploaded file|the uploaded pdf|the pdf|the file)\s+into|make\s+(?:it|this)\s+(?:a|an))\b/.test(
+      normalized,
+    );
+  return asksToReadUpload && !asksToPersist;
+}
+
+export function shouldDisableSystemCreateForSavedAgentContact(
+  message: string,
+): boolean {
+  const normalized = message.toLowerCase();
+  const asksToContactAgent =
+    /\b(ask|message|contact|talk to|call|reach out to|hear what)\b/.test(
+      normalized,
+    ) && /\b[a-z0-9][a-z0-9.-]*\.[a-z]{2,}\b/.test(normalized);
+  const asksToPersist =
+    /\b(add|save|create|capture|store|remember|note|record)\b/.test(normalized);
+  return asksToContactAgent && !asksToPersist;
+}
+
 /**
  * Assemble the per-call agent options: routing identifiers plus the
  * message-derived tool-availability flags.
@@ -79,6 +110,11 @@ export function buildBrainCallOptions(params: {
     hasAccessibleUploads: params.hasAccessibleUploads,
   });
   const disableDocumentGenerate = shouldDisableDocumentGenerate(params.message);
+  const disableSystemCreate =
+    shouldDisableSystemCreateForUploadRead({
+      message: params.message,
+      hasAccessibleUploads: params.hasAccessibleUploads,
+    }) || shouldDisableSystemCreateForSavedAgentContact(params.message);
 
   return {
     userPermissionLevel: params.userPermissionLevel,
@@ -93,6 +129,7 @@ export function buildBrainCallOptions(params: {
       ? { enableCreateSourceAttachment: true }
       : {}),
     ...(disableDocumentGenerate ? { disableDocumentGenerate: true } : {}),
+    ...(disableSystemCreate ? { disableSystemCreate: true } : {}),
     ...(params.agentContextInstructions
       ? { agentContextInstructions: params.agentContextInstructions }
       : {}),

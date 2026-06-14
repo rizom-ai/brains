@@ -34,6 +34,7 @@ export const brainCallOptionsSchema = z.object({
   enableCreateTransform: z.boolean().optional(),
   enableCreateSourceAttachment: z.boolean().optional(),
   disableDocumentGenerate: z.boolean().optional(),
+  disableSystemCreate: z.boolean().optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -128,6 +129,10 @@ export function createBrainAgentFactory(
                   !(
                     callOptions.disableDocumentGenerate === true &&
                     tool.name === "document_generate"
+                  ) &&
+                  !(
+                    callOptions.disableSystemCreate === true &&
+                    tool.name === "system_create"
                   ),
               );
         const allowedToolNames = allowedTools.map((t) => t.name);

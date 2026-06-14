@@ -3,6 +3,8 @@ import {
   buildBrainCallOptions,
   shouldDisableDocumentGenerate,
   shouldEnableCreateSourceAttachment,
+  shouldDisableSystemCreateForUploadRead,
+  shouldDisableSystemCreateForSavedAgentContact,
 } from "../src/call-options";
 
 describe("shouldEnableCreateSourceAttachment", () => {
@@ -72,6 +74,53 @@ describe("shouldDisableDocumentGenerate", () => {
   });
 });
 
+describe("shouldDisableSystemCreateForUploadRead", () => {
+  test("disables create for read-only uploaded PDF summaries", () => {
+    expect(
+      shouldDisableSystemCreateForUploadRead({
+        message: "Summarize the uploaded PDF.",
+        hasAccessibleUploads: true,
+      }),
+    ).toBe(true);
+  });
+
+  test("keeps create available for explicit uploaded file saves", () => {
+    expect(
+      shouldDisableSystemCreateForUploadRead({
+        message: "Save the uploaded PDF as a document.",
+        hasAccessibleUploads: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("keeps create available when uploads are not accessible", () => {
+    expect(
+      shouldDisableSystemCreateForUploadRead({
+        message: "Summarize the uploaded PDF.",
+        hasAccessibleUploads: false,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("shouldDisableSystemCreateForSavedAgentContact", () => {
+  test("disables create for exact saved-agent contact requests", () => {
+    expect(
+      shouldDisableSystemCreateForSavedAgentContact(
+        "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover",
+      ),
+    ).toBe(true);
+  });
+
+  test("keeps create available for explicit agent saves", () => {
+    expect(
+      shouldDisableSystemCreateForSavedAgentContact(
+        "Add docs.rizom.ai to my agent directory",
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("buildBrainCallOptions", () => {
   const base = {
     userPermissionLevel: "trusted" as const,
@@ -107,6 +156,29 @@ describe("buildBrainCallOptions", () => {
     expect(options.enableCreateUpload).toBe(true);
     expect(options.enableCreateTransform).toBe(true);
     expect(options.enableCreateSourceAttachment).toBeUndefined();
+  });
+
+  test("disables create for read-only upload summaries", () => {
+    const options = buildBrainCallOptions({
+      ...base,
+      message: "Summarize the uploaded PDF.",
+      hasAccessibleUploads: true,
+    });
+
+    expect(options.enableCreateUpload).toBe(true);
+    expect(options.enableCreateTransform).toBe(true);
+    expect(options.disableSystemCreate).toBe(true);
+  });
+
+  test("disables create for exact saved-agent contact requests", () => {
+    const options = buildBrainCallOptions({
+      ...base,
+      message:
+        "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover",
+      hasAccessibleUploads: false,
+    });
+
+    expect(options.disableSystemCreate).toBe(true);
   });
 
   test("enables source attachments and disables document generation for durable artifact requests", () => {

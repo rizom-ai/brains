@@ -539,6 +539,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         createInput.entityType,
       );
       try {
+        const createOptions = {
+          deduplicateId: true,
+          ...(eventContext ? { eventContext } : {}),
+        };
         const result =
           createInput.content && hasStructuredFrontmatter(frontmatterSchema)
             ? await entityService.createEntityFromMarkdown({
@@ -547,7 +551,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   markdown: createInput.content,
                 },
-                ...(eventContext ? { options: { eventContext } } : {}),
+                options: createOptions,
               })
             : await entityService.createEntity({
                 entity: {
@@ -558,7 +562,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },
-                ...(eventContext ? { options: { eventContext } } : {}),
+                options: createOptions,
               });
         if (coverImage) {
           await enqueueCoverImageGeneration(

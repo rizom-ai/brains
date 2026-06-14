@@ -473,20 +473,17 @@ describe("initPilotRepo", () => {
       join(repo, "docs", "user-onboarding.md"),
       "utf8",
     );
-    expect(userOnboarding).toContain("Rover Pilot User Onboarding");
+    expect(userOnboarding).toContain("Welcome to Rover");
+    expect(userOnboarding).toContain("https://<handle>.rizom.ai/chat");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
-    expect(userOnboarding).toContain("MCP setup: sent separately if enabled");
-    expect(userOnboarding).toContain("GitHub token");
-    expect(userOnboarding).toContain("Working in the CMS");
-    expect(userOnboarding).toContain("OAuth / browser login");
-    expect(userOnboarding).toContain("What the MCP login flow looks like");
-    expect(userOnboarding).toContain("Do not paste your passkey setup link");
-    expect(userOnboarding).toContain("Claude Desktop");
-    expect(userOnboarding).toContain("Obsidian");
-    expect(userOnboarding).toContain(
-      "Wishlist: when Rover cannot do something yet",
-    );
+    expect(userOnboarding).toContain("Register a passkey");
+    expect(userOnboarding).toContain("Capture → ask back → shape");
+    expect(userOnboarding).toContain("What your Rover holds");
+    expect(userOnboarding).toContain("make a wish");
+    expect(userOnboarding).toContain("Your Rover in the network");
+    expect(userOnboarding).toContain("The other doors");
+    expect(userOnboarding).toContain("<discord-invite>");
 
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");

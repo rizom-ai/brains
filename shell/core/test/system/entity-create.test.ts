@@ -372,6 +372,91 @@ describe("system_create tool", () => {
     expect(parsedConfirmation.preview).not.toContain(uploadId);
   });
 
+  it("uses deduplicated ids for direct content creates", async () => {
+    let createRequest: unknown;
+    services.entityService.createEntity = async (
+      request,
+    ): Promise<{ entityId: string; jobId: string; skipped: boolean }> => {
+      createRequest = request;
+      return {
+        entityId: "duplicate-title-2",
+        jobId: "job-duplicate-title-2",
+        skipped: false,
+      };
+    };
+
+    const result = await exec({
+      entityType: "base",
+      title: "Duplicate Title",
+      content: "Create a sibling instead of failing on a duplicate slug.",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { entityId: "duplicate-title-2", status: "created" },
+    });
+    expect(createRequest).toMatchObject({
+      entity: { id: "duplicate-title", entityType: "base" },
+      options: { deduplicateId: true },
+    });
+  });
+
+  it("uses deduplicated ids for finalized markdown creates", async () => {
+    services.addEntities([
+      {
+        id: "existing-deck",
+        entityType: "deck",
+        content: "Existing deck",
+        metadata: { title: "Existing Deck" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-deck",
+      },
+    ]);
+    let markdownRequest: unknown;
+    services.entityService.createEntityFromMarkdown = async (
+      request,
+    ): Promise<{ entityId: string; jobId: string; skipped: boolean }> => {
+      markdownRequest = request;
+      return {
+        entityId: "duplicate-deck-2",
+        jobId: "job-duplicate-deck-2",
+        skipped: false,
+      };
+    };
+
+    const markdown = `---
+title: Duplicate Deck
+slug: duplicate-deck
+status: draft
+---
+
+# Duplicate Deck
+
+---
+
+## Final Slide`;
+
+    const result = await exec({
+      entityType: "deck",
+      title: "Duplicate Deck",
+      content: markdown,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { entityId: "duplicate-deck-2", status: "created" },
+    });
+    expect(markdownRequest).toMatchObject({
+      input: {
+        entityType: "deck",
+        id: "duplicate-deck",
+        markdown,
+      },
+      options: { deduplicateId: true },
+    });
+  });
+
   it("should reject confirmed create calls without a pending confirmation token", async () => {
     const result = await execRaw({
       entityType: "base",

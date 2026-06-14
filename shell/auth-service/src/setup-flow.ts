@@ -5,7 +5,7 @@ import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
 import { renderSetupPage } from "./pages";
 
-const SETUP_TOKEN_TTL_SECONDS = 30 * 60;
+export const DEFAULT_SETUP_TOKEN_TTL_SECONDS = 24 * 60 * 60;
 
 interface SetupTokenState {
   token: string;
@@ -21,6 +21,7 @@ export interface OperatorSetupRequired {
 export interface SetupFlowOptions {
   setupStateStore: SetupStateStore;
   passkeyService: PasskeyService;
+  setupTokenTtlSeconds?: number;
 }
 
 /**
@@ -30,11 +31,14 @@ export interface SetupFlowOptions {
 export class SetupFlow {
   private readonly setupStateStore: SetupStateStore;
   private readonly passkeyService: PasskeyService;
+  private readonly setupTokenTtlSeconds: number;
   private setupToken: SetupTokenState | undefined;
 
   constructor(options: SetupFlowOptions) {
     this.setupStateStore = options.setupStateStore;
     this.passkeyService = options.passkeyService;
+    this.setupTokenTtlSeconds =
+      options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
   }
 
   async ensureSetupToken(): Promise<SetupTokenState> {
@@ -55,7 +59,7 @@ export class SetupFlow {
   private async createSetupToken(): Promise<SetupTokenState> {
     this.setupToken = {
       token: `setup_${randomUUID()}`,
-      expiresAt: Math.floor(Date.now() / 1000) + SETUP_TOKEN_TTL_SECONDS,
+      expiresAt: Math.floor(Date.now() / 1000) + this.setupTokenTtlSeconds,
     };
     await this.setupStateStore.saveSetupToken(this.setupToken);
     return this.setupToken;

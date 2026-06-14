@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- [`5180476`](https://github.com/rizom-ai/brains/commit/51804769182a88a9f7091c0504bf49dbc097a57a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix saved-agent routing for documentation brains and follow-up requests. Exact saved agent ids such as `docs.rizom.ai` now route through A2A instead of local-memory or save-first fallbacks, A2A failures are surfaced directly rather than answered from local docs, and bare affirmative follow-ups after a save-first refusal correctly save the referenced agent.
+
+- [`ee61e5a`](https://github.com/rizom-ai/brains/commit/ee61e5a660e688f4df04abe075dc02140ce13c69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Increase first-passkey setup link validity to 24 hours by default and add `auth-service.setupTokenTtlSeconds` for deployments that need a custom setup-token lifetime.
+
+- [`5180476`](https://github.com/rizom-ai/brains/commit/51804769182a88a9f7091c0504bf49dbc097a57a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix uploaded-file action routing. Summarizing uploaded PDFs is now read-only and no longer creates notes or asks for confirmation, suggested Save document/Save image actions preserve the raw upload as document/image entities, and direct creates use deduplicated ids so duplicate titles do not fail with raw database errors.
+
+## 0.2.0-alpha.120
+
 ## 0.2.0-alpha.119
 
 ## 0.2.0-alpha.118
