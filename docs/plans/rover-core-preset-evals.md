@@ -115,15 +115,19 @@ Missing assertions: none.
 
 ### Phase 3 — permission matrix
 
-1. Harness feature (test-first): a case-level `permissions:` block
-   mapping levels to per-level success criteria; the runner expands
-   one case into one run per level (result ids suffixed `@anchor`,
-   `@public`, …). This is what fixes the 99/1/1 skew without tripling
-   yaml files.
-2. Cases using it: public denied `system_create`/`update`/`delete` on
-   note and link (refusal, no tool call); trusted draft-edit
-   boundaries; public `system_get` of a restricted entity by exact
-   title; trusted vs anchor on agent-discovery save/approve actions.
+Started (2026-06-14): the harness supports a case-level `permissions:`
+block mapping levels to per-level success criteria. The runner expands
+one case into one run per level (result ids suffixed `@anchor`,
+`@public`, …), and `--test base-id` runs all expanded levels while
+`--test base-id@public` targets one level.
+
+Initial case added: public vs anchor note creation
+(`rover-permission-core-note-create-matrix`) passes targeted eval.
+
+Remaining cases: public denied `system_update`/`delete` on note and
+link (refusal, no tool call); trusted draft-edit boundaries; public
+`system_get` of a restricted entity by exact title; trusted vs anchor
+on agent-discovery save/approve actions.
 
 ### Phase 4 — fill the coverage
 
