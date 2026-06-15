@@ -9,6 +9,7 @@ tags:
   - a2a
   - tool-invocation
   - regression
+  - preset-core
 
 turns:
   - userMessage: "Save mylittlephoney.com as an agent in my directory"

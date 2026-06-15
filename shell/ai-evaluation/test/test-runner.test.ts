@@ -46,10 +46,10 @@ describe("TestRunner", () => {
       expect(result.failures).toHaveLength(0);
     });
 
-    it("should default eval callers to public permission", async () => {
+    it("should default eval callers to anchor permission", async () => {
       const testCase: TestCase = {
-        id: "test-default-public",
-        name: "Default Public Permission Test",
+        id: "test-default-anchor",
+        name: "Default Anchor Permission Test",
         type: "response_quality",
         turns: [{ userMessage: "Hello" }],
         successCriteria: {},
@@ -61,7 +61,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
       });
     });
@@ -123,7 +123,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         attachments: [
           {
@@ -240,7 +240,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[1]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         attachments: [
           {

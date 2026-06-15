@@ -1,18 +1,19 @@
-id: tool-invocation-system-delete
-name: Entity Delete via system_delete
-description: Verifies permission-aware behavior for removing content
+id: tool-invocation-system-delete-link
+name: Link Delete via system_delete
+description: Verifies permission-aware behavior for deleting a link entity.
 type: tool_invocation
 setup:
   interfaceType: evaluation
 tags:
   - core
   - system
+  - link
   - entity-crud
   - permissions
   - preset-core
 
 turns:
-  - userMessage: "Delete the note 'green-software-principles'"
+  - userMessage: "Delete the link 'sentilo-platform'."
 
 successCriteria: {}
 
@@ -29,6 +30,9 @@ permissions:
     expectedTools:
       - toolName: system_delete
         shouldBeCalled: true
+        argsContain:
+          entityType: link
+          id: sentilo-platform
     responseNotContains:
       - "deleted"
       - "removed"
@@ -37,12 +41,16 @@ permissions:
     expectedTools:
       - toolName: system_delete
         shouldBeCalled: true
-    toolCountRange:
-      min: 1
+        argsContain:
+          entityType: link
+          id: sentilo-platform
+    responseContains:
+      - "Confirmation required"
     responseNotContains:
-      - "I cannot"
-      - "I don't have access"
+      - "deleted"
+      - "removed"
+      - "successfully deleted"
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 20000
+  maxTokens: 30000

@@ -9,6 +9,7 @@ tags:
   - tool-invocation
   - search
   - proactive-behavior
+  - preset-core
 
 turns:
   - userMessage: "What have I written about sustainability?"

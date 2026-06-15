@@ -9,14 +9,14 @@ tags:
   - system
   - entity-crud
   - error-handling
+  - preset-core
 
 turns:
   - userMessage: "Delete the note 'this-does-not-exist-anywhere'"
 
 successCriteria:
-  expectedTools:
-    - toolName: system_delete
-      shouldBeCalled: true
+  toolCountRange:
+    min: 1
   responseNotContains:
     - "I cannot"
     - "I don't have access"

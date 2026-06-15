@@ -1,24 +1,41 @@
 id: tool-invocation-update-title
 name: Update Entity Title
-description: Tests that the agent uses system_update with correct entity reference to change a title
+description: Tests permission-aware system_update behavior for changing a title
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - core
   - system
   - entity-crud
+  - permissions
+  - preset-core
 
 turns:
-  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Design Patterns'"
+  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Pattern Notes'"
 
-successCriteria:
-  expectedTools:
-    - toolName: system_update
-      shouldBeCalled: true
-  responseNotContains:
-    - "I cannot"
-    - "I don't have access"
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: false
+    responseNotContains:
+      - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    responseNotContains:
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
 
 efficiency:
   maxToolCalls: 5

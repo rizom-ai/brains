@@ -8,6 +8,7 @@ tags:
   - core
   - directory-sync
   - tool-invocation
+  - preset-core
 
 turns:
   - userMessage: "What's my git sync status?"

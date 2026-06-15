@@ -13,6 +13,7 @@ tags:
   - quality
   - error-handling
   - user-experience
+  - preset-core
 
 turns:
   - userMessage: "List my foo items"

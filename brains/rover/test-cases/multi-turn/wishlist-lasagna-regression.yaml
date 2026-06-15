@@ -8,6 +8,7 @@ tags:
   - wishlist
   - multi-turn
   - regression
+  - preset-core
 
 turns:
   - userMessage: "Can you make lasagna for me?"

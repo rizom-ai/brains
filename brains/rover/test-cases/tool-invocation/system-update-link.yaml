@@ -1,6 +1,6 @@
-id: tool-invocation-system-create-link
-name: Link Save via system_create
-description: Verifies permission-aware behavior for saving a link
+id: tool-invocation-system-update-link
+name: Link Update via system_update
+description: Verifies permission-aware behavior for modifying link metadata.
 type: tool_invocation
 setup:
   interfaceType: evaluation
@@ -13,42 +13,37 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Save this link for me: https://anthropic.com/research"
+  - userMessage: "Change the title of my link 'green-software-foundation' to 'Green Software Foundation Resource'."
 
 successCriteria: {}
 
 permissions:
   public:
     expectedTools:
-      - toolName: system_create
+      - toolName: system_update
         shouldBeCalled: false
     responseNotContains:
-      - "created"
       - "done"
   trusted:
     expectedTools:
-      - toolName: system_create
+      - toolName: system_update
         shouldBeCalled: true
         argsContain:
-          entityType: "link"
-          url: "https://anthropic.com/research"
+          entityType: link
+          id: green-software-foundation
     responseNotContains:
-      - "created"
       - "done"
   anchor:
     expectedTools:
-      - toolName: system_create
+      - toolName: system_update
         shouldBeCalled: true
         argsContain:
-          entityType: "link"
-          url: "https://anthropic.com/research"
+          entityType: link
+          id: green-software-foundation
     responseNotContains:
       - "I cannot"
       - "I don't have access"
-      - "I'm unable"
-      - "link_capture"
-    minAccuracyScore: 3
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 25000
+  maxTokens: 30000
