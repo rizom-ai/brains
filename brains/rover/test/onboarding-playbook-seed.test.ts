@@ -84,6 +84,12 @@ describe("Rover onboarding playbook seed", () => {
     expect(seeItComeBack?.prompt).toBe(
       "Want me to find that note now, or would you rather ask for it yourself?",
     );
+    expect(seeItComeBack?.instructions).toContain(
+      "If the operator asks to see, find, or show the saved note, retrieve or reference it through normal tools, then continue to Make something in the same turn.",
+    );
+    expect(seeItComeBack?.instructions).toContain(
+      "Do not stop after retrieval; end by offering the transformation options from Make something.",
+    );
     expect(seeItComeBack?.transitions).toEqual([
       {
         event: "CHOICE_1",
@@ -98,8 +104,17 @@ describe("Rover onboarding playbook seed", () => {
         operatorAction: true,
       },
     ]);
+    expect(makeSomething?.instructions).toContain(
+      'When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn for the chosen draft type.',
+    );
+    expect(makeSomething?.instructions).toContain(
+      "Do not only say you will create the draft; the tool call is the action that should produce the approval request.",
+    );
+    expect(makeSomething?.instructions).toContain(
+      "If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat the draft as ready to review yet.",
+    );
     expect(makeSomething?.doneWhen).toEqual([
-      "A transformation draft has been created.",
+      "A transformation draft is ready to review.",
     ]);
     expect(makeSomething?.transitions).toEqual([
       { event: "NEXT", target: "done" },

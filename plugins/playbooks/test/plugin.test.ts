@@ -1212,6 +1212,9 @@ describe("PlaybooksPlugin", () => {
       "Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat",
     );
     expect(content).toContain(
+      "Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text",
+    );
+    expect(content).toContain(
       "If the operator gives an ambiguous continuation like 'go ahead'",
     );
     expect(content).toContain("do not start unrelated maintenance tasks");

@@ -26,7 +26,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Yes, set up Rover and continue to identity setup."
+  - userMessage: "Use the Set up Rover action and continue to identity setup."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
@@ -73,13 +73,15 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
       responseContains:
-        - "demonstrate"
+        - "show"
       responseNotContains:
         - "what is next"
         - "I cannot"
         - "I don't have access"
+        - "playbook_status"
+        - "playbook_send_event"
 
-  - userMessage: "Show me by finding that note now."
+  - userMessage: "Use the Show me action and find that note now."
     successCriteria:
       expectedTools:
         - toolName: system_extract
@@ -89,7 +91,7 @@ turns:
           argsContain:
             event: CHOICE_1
       responseContains:
-        - retriev
+        - found
       responseNotContains:
         - "another first"
         - "share a first"
@@ -103,24 +105,26 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Let's do a social draft."
+  - userMessage: "Do that as a post outline."
     successCriteria:
       responseContains:
         - "Confirmation required"
       responseNotContains:
+        - "I'll turn"
+        - "I’ll turn"
         - "wrap-up"
         - "transformation stage"
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Approve creating the social draft."
+  - userMessage: "Approve creating the post outline."
     confirmPendingAction: true
     successCriteria:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
       responseContains:
-        - draft
+        - ready
       responseNotContains:
         - "transformation stage"
         - "I cannot"
@@ -142,6 +146,8 @@ successCriteria:
     - "see-it-come-back"
     - "make-something"
     - "wrap-up"
+    - "playbook_status"
+    - "playbook_send_event"
     - "I cannot"
     - "I don't have access"
   minHelpfulnessScore: 3

@@ -1147,6 +1147,7 @@ Use this run ID for run-scoped playbook tools when explicit run identity is need
 Treat this current state as the source of truth. Do not redo completed states or ask for evidence already captured; ask only for what is missing in the current state.
 Do not mention raw playbook state IDs to the operator; use the state title or natural-language task description instead.
 Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
+Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text.
 After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state.
 If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event instead of starting the playbook again.
 After a playbook event advances the run, answer from the new current state rather than repeating the previous state prompt.
@@ -1191,6 +1192,7 @@ When a playbook run is active, use playbook_status before deciding what to do ne
 Treat playbook_status and active-playbook context as the source of truth for the current state and completed states.
 Raw playbook state IDs are for tool use only. Do not mention them to the operator; use state titles or natural-language task descriptions instead.
 Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
+Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text.
 Follow the playbook's current state instructions, operating rules, and Done When conditions.
 Do not redo completed state work or ask for evidence already captured; ask only for what is missing in the current state.
 After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state. Do not leave the operator needing to ask "what is next?".

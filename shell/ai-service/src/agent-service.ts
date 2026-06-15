@@ -1,5 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
-import { type Logger, getErrorMessage } from "@brains/utils";
+import { type Logger, getErrorMessage, z } from "@brains/utils";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import type {
   ConversationMessageActor,
@@ -48,6 +48,25 @@ import { toTokenUsage } from "./generation-options";
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
+
+const asyncGeneratingToolResultSchema = z
+  .object({
+    success: z.literal(true),
+    data: z
+      .object({
+        status: z.literal("generating"),
+        entityId: z.string().min(1).optional(),
+        jobId: z.string().min(1).optional(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+function buildAsyncGenerationFallback(data: unknown): string | undefined {
+  const parsed = asyncGeneratingToolResultSchema.safeParse(data);
+  if (!parsed.success) return undefined;
+  return "The draft is generating now. Once it is ready, I can review it with you, refine it, or turn it into another format.";
+}
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   const filenames = attachments.map((attachment) => attachment.filename);
@@ -762,9 +781,12 @@ export class AgentService implements IAgentService {
           channelName,
           userPermissionLevel,
         });
+    const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
     const responseText = response?.text.trim()
       ? `${outcome.resultText}\n\n${response.text}`
-      : outcome.resultText;
+      : fallbackText
+        ? `${outcome.resultText}\n\n${fallbackText}`
+        : outcome.resultText;
     const cards = [...outcome.cards, ...(response?.cards ?? [])];
     const toolResults = [outcome.toolResult, ...(response?.toolResults ?? [])];
     const followUpEntityMemoryNote = response

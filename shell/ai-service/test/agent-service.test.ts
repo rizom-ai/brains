@@ -1807,6 +1807,82 @@ describe("AgentService", () => {
       );
     });
 
+    it("adds a fallback follow-up for confirmed async generation when no agent context is available", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm post generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-generate-post",
+                toolName: "system_create",
+                input: {
+                  entityType: "post",
+                  prompt: "Generate a post outline",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-generate-post",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Generate post outline?",
+                  args: {
+                    entityType: "post",
+                    prompt: "Generate a post outline",
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "post-outline",
+          status: "generating",
+          jobId: "job-1",
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("generate a post outline", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-generate-post",
+      );
+
+      expect(response.text).toContain("Completed: Generate post outline");
+      expect(response.text).toContain("generating");
+      expect(response.text).toContain("ready");
+    });
+
     it("removes confirmation punctuation from completed action text", async () => {
       setupConfirmationResponse("Done.", 'Create "download"?');
       const deleteTool: Tool = {

@@ -83,8 +83,9 @@ Say: Want me to find that note now, or would you rather ask for it yourself?
 
 To do:
 
-- If the operator asks to see it, retrieve or reference the saved entity through normal agent/tool behavior before moving on.
-- If the operator says they will ask, explain they can search their own knowledge in natural language.
+- If the operator asks to see, find, or show the saved note, retrieve or reference it through normal tools, then continue to Make something in the same turn.
+- If the operator says they will ask, explain they can search their own knowledge in natural language, then continue to Make something.
+- Do not stop after retrieval; end by offering the transformation options from Make something.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 
 Choices:
@@ -100,13 +101,16 @@ To do:
 
 - Offer two or three transformations: blog post outline, social draft, newsletter idea, topic suggestion, or project angle.
 - Create a draft entity only after the operator chooses one.
-- After creating a draft, show it or offer to review it before moving on.
+- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn for the chosen draft type.
+- Do not only say you will create the draft; the tool call is the action that should produce the approval request.
+- If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat the draft as ready to review yet.
+- After the draft is ready, show it or offer to review it before moving on.
 - Explain how Rover helps move from raw thinking to public output without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
 Done when:
 
-- A transformation draft has been created.
+- A transformation draft is ready to review.
 
 ### Done
 
