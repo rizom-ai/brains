@@ -21,18 +21,18 @@
     "@brains/site-composition": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@tailwindcss/postcss": "^4.1.13",
-    "postcss": "^8.5.6",
+    "@tailwindcss/postcss": "^4.3.1",
+    "postcss": "^8.5.15",
     "sharp": "^0.34.5",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
+    "@types/bun": "^1.3.14",
     "@types/sharp": "^0.32.0",
-    "eslint": "^8.56.0",
+    "eslint": "^8.57.1",
     "typescript": "^5.3.3"
   }
 }

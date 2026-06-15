@@ -16,13 +16,13 @@
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.26.4"
   },
   "devDependencies": {
     "@brains/core": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest"
+    "@types/bun": "^1.3.14"
   }
 }

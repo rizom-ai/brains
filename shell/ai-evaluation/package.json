@@ -23,13 +23,13 @@
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
-    "dotenv": "^17.3.1",
-    "yaml": "^2.3.4"
+    "dotenv": "^17.4.2",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "latest",
+    "@types/bun": "^1.3.14",
     "typescript": "^5.3.3"
   },
   "exports": {

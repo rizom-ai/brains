@@ -2,99 +2,154 @@
 
 ## Status
 
-Proposed. Trigger: the zod version policy decided in
+In progress in `~/Documents/brains-worktrees/external-deps` on branch
+`chore/external-deps-phase1`. Trigger: the zod version policy decided in
 `npm-package-boundaries.md` (2026-06-10) — the blessed `z` ships as the
 workspace zod, and the zod 4 migration is a release blocker for the
 first stable `@rizom/brain`. That decision needs a home for sequencing
 and mechanics, and the same review surfaced broader drift worth
 handling deliberately instead of ad hoc.
 
-## Inventory (root, verified 2026-06-10 via `bun outdated`)
+Execution rule: dependency-changing work happens in a dedicated worktree
+(e.g. `~/Documents/brains-worktrees/external-deps`), never in the main
+checkout.
 
-Safe drift (minor/patch, no API changes expected):
+Progress as of 2026-06-15: Phases 1a, 1b, 1c, and 2 are implemented in
+the worktree and pass `deps:check`, `typecheck`, `lint`, and `test`.
+Rover evals were run with `bun run eval --skip-llm-judge --max-parallel
+1`; result was 157/161 passing, so the dependency work is not eval-green
+yet. Remaining outdated entries are deliberate holds/migrations from
+Phase 2b+ plus any newly surfaced patch drift after the sweep (for
+example `playwright-core` 1.60 → 1.61).
 
-| Package                     | Current | Latest  |
-| --------------------------- | ------- | ------- |
-| `@ai-sdk/anthropic`         | 3.0.58  | 3.0.82  |
-| `@ai-sdk/openai`            | 3.0.41  | 3.0.69  |
-| `ai`                        | 6.0.116 | 6.0.199 |
-| `@modelcontextprotocol/sdk` | 1.27.1  | 1.29.0  |
-| `@changesets/cli`           | 2.30.0  | 2.31.0  |
-| `dependency-cruiser`        | 17.3.8  | 17.4.3  |
-| `preact`                    | 10.28.4 | 10.29.2 |
-| `prettier`                  | 3.8.1   | 3.8.4   |
-| `turbo`                     | 2.8.14  | 2.9.17  |
+## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
-Major jumps (real migration work, one slice each):
+Safe root drift (minor/patch, no API changes expected):
 
-| Package       | Current | Latest | Notes                                                                                  |
-| ------------- | ------- | ------ | -------------------------------------------------------------------------------------- |
-| `eslint`      | 8.57.1  | 10.4.1 | Two majors behind; v8 is EOL; flat-config migration touches every package's lint setup |
-| `typescript`  | 5.9.3   | 6.0.3  | Check `@brains/typescript-config` strictness flags against 6.0 behavior changes        |
-| `lint-staged` | 15.5.2  | 17.0.7 | Hook pipeline; low blast radius                                                        |
-| `syncpack`    | 13.0.4  | 15.3.1 | Config format changes between majors; verify the version-group rules survive           |
+| Package                     | Current | Latest  | Notes                              |
+| --------------------------- | ------- | ------- | ---------------------------------- |
+| `@ai-sdk/anthropic`         | 3.0.58  | 3.0.84  | Sweep with AI SDK family           |
+| `@ai-sdk/openai`            | 3.0.41  | 3.0.71  | Sweep with AI SDK family           |
+| `ai`                        | 6.0.116 | 6.0.205 | AI SDK patch/minor drift           |
+| `@modelcontextprotocol/sdk` | 1.27.1  | 1.29.0  | Also used by MCP workspaces        |
+| `@changesets/cli`           | 2.30.0  | 2.31.0  | Safe tooling drift                 |
+| `dependency-cruiser`        | 17.3.8  | 17.4.3  | Safe tooling drift                 |
+| `preact`                    | 10.28.4 | 10.29.2 | Sync with workspace Preact drift   |
+| `prettier`                  | 3.8.1   | 3.8.4   | Safe tooling drift                 |
+| `turbo`                     | 2.8.14  | 2.9.18  | Also replace root `"latest"` range |
 
-Workspace majors (verified 2026-06-10 via `bun outdated --filter '*'`):
+Safe workspace drift to include in Phase 1a when low-risk and already
+covered by broad checks:
 
-| Package                                                                        | Current         | Latest  | Notes                                                                                                                                                                                                     |
-| ------------------------------------------------------------------------------ | --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `zod`                                                                          | 3.25.76         | 4.4.3   | Already resolves to 3.25.76 — Phase 2 is just aligning the declared `^3.23.8` ranges; v4 is Phase 4                                                                                                       |
-| `express`                                                                      | 4.22.1          | 5.2.1   | **Unused** — `interfaces/mcp` declares `express`, `express-async-handler`, and `@types/express` but imports none of them (the HTTP transport uses `createServer`). Delete instead of upgrading            |
-| `marked`                                                                       | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                                                                                                                       |
-| `chokidar`                                                                     | 3.6.0           | 5.0.0   | Watcher API changes (directory-sync)                                                                                                                                                                      |
-| `storybook`                                                                    | 8.6 + 9.1 mixed | 10.4    | **Unused** — only `shared/ui-library`, one demo story, no turbo/CI wiring, and the 8.x-addons/9.x-core mix can't launch. Remove (deps, scripts, `.storybook/`, `Button.stories.tsx`) instead of upgrading |
-| `vite`                                                                         | 7.3.3           | 8.0.16  |                                                                                                                                                                                                           |
-| `pdfjs-dist`                                                                   | 5.7.284         | 6.0.227 |                                                                                                                                                                                                           |
-| `@libsql/client`                                                               | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                                                                                                                        |
-| `drizzle-orm`                                                                  | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                                                                                                                      |
-| `@types/node`                                                                  | 20.19.37        | 25.9.2  | Should track the runtime Node baseline, not latest — decide the baseline first                                                                                                                            |
-| `tailwind-merge`                                                               | 2.6.1           | 3.6.0   |                                                                                                                                                                                                           |
-| `lucide-preact`                                                                | 0.460.0         | 1.17.0  |                                                                                                                                                                                                           |
-| `ink`                                                                          | 6.8.0           | 7.0.5   | chat-repl TUI                                                                                                                                                                                             |
-| `@clack/prompts`                                                               | 0.11.0          | 1.5.1   | brain-cli prompts                                                                                                                                                                                         |
-| `croner` / `p-limit` / `better-sqlite3` / `varlock` / `eslint-config-prettier` | various         | various | One-major bumps, low individual risk                                                                                                                                                                      |
+| Package family / package                                                    | Current                | Latest                  | Notes                                                      |
+| --------------------------------------------------------------------------- | ---------------------- | ----------------------- | ---------------------------------------------------------- |
+| `preact`, `preact-render-to-string`                                         | 10.28.4 / 6.6.6        | 10.29.2 / 6.7           | Sync all consumers and peer ranges                         |
+| `tailwindcss`, `@tailwindcss/postcss`, `@tailwindcss/typography`, `postcss` | 4.2.1 / 0.5.19 / 8.5.8 | 4.3.1 / 0.5.20 / 8.5.15 | Patch/minor CSS toolchain drift                            |
+| `js-yaml`, `yaml`, `dotenv`, `simple-git`, `xstate`, `sanitize-html`        | various                | minor/patch             | Consumer-specific smoke tests plus repo checks             |
+| `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`             | 8.56.1                 | 8.61.0                  | Safe within current eslint 8 setup                         |
+| `@simplewebauthn/server`, `drizzle-kit`, `rollup`, `@types/react`           | various                | patch/minor             | Low-risk patch/minor drift                                 |
+| `@types/node`                                                               | 20.19.37               | 20.19.43                | Patch within Node 20 only; do not jump to 25 in this phase |
+| `@types/bun`                                                                | 1.3.11 / 1.3.13        | 1.3.14                  | Align declarations/resolution; see Phase 1c                |
 
-Inventory inconsistencies found (fix in Phase 1 regardless of
-upgrades): storybook packages span two majors, and `@types/bun` is on
-both 1.3.11 and 1.3.13 across workspaces.
+Major jumps and pre-1.0 minors (real migration work, one slice each):
 
-Everything else workspace-level is minor/patch drift (discord.js,
-hono, xstate, yaml, shiki, simple-git, tailwindcss, typescript-eslint,
-…) and folds into the Phase 1 sweep.
+| Package                        | Current | Latest | Notes                                                                                  |
+| ------------------------------ | ------- | ------ | -------------------------------------------------------------------------------------- |
+| `eslint`                       | 8.57.1  | 10.5.0 | Two majors behind; v8 is EOL; flat-config migration touches every package's lint setup |
+| `typescript`                   | 5.9.3   | 6.0.3  | Check `@brains/typescript-config` strictness flags against 6.0 behavior changes        |
+| `lint-staged`                  | 15.5.2  | 17.0.7 | Hook pipeline; low blast radius                                                        |
+| `syncpack`                     | 13.0.4  | 15.3.1 | Config format changes between majors; verify version-group rules survive               |
+| `eslint-config-prettier`       | 8.10.2  | 10.1.8 | Pair with eslint flat-config work                                                      |
+| `@changesets/changelog-github` | 0.6.0   | 0.7.0  | 0.x minor; treat as a migration, not safe drift                                        |
+
+Workspace majors and delete-vs-upgrade decisions:
+
+| Package                                                                               | Current         | Latest  | Decision / notes                                                                                       |
+| ------------------------------------------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `zod`                                                                                 | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
+| `express`, `express-async-handler`, `@types/express`                                  | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
+| `storybook` + `@storybook/*`                                                          | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
+| `marked`                                                                              | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
+| `chokidar`                                                                            | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
+| `vite`                                                                                | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
+| `pdfjs-dist`                                                                          | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
+| `@libsql/client`                                                                      | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
+| `drizzle-orm`                                                                         | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
+| `@types/node`                                                                         | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
+| `tailwind-merge`                                                                      | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
+| `lucide-preact`                                                                       | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
+| `ink`                                                                                 | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
+| `@clack/prompts`                                                                      | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
+| `croner` / `p-limit` / `better-sqlite3` / `varlock` / `sharp` / `react-devtools-core` | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
+
+Inventory inconsistencies to fix deliberately:
+
+- Storybook packages span two majors and are not wired into CI or turbo.
+- `@types/bun` declarations mix `latest` and caret ranges, and the lock
+  currently resolves multiple versions (`1.3.11` / `1.3.13`). Align the
+  policy before touching the lockfile.
+- Root `package.json` declares `"turbo": "latest"`; replace with a
+  deterministic semver range during Phase 1.
+
+Everything else workspace-level is minor/patch drift and folds into the
+Phase 1a sweep when the relevant consumer checks are included.
 
 ## Phasing
 
-All of this happens in a dedicated worktree (e.g.
+All dependency-changing work happens in a dedicated worktree (e.g.
 `~/Documents/brains-worktrees/external-deps`), never in the main
 checkout — dependency bumps rewrite `bun.lock` and `node_modules`, and
 must not disturb in-flight work. Thin slices; each lands green
-(`typecheck`, `test`, `lint`) and merges to main on its own, so a
-stalled major (eslint, zod 4) never holds completed sweeps hostage.
+(`typecheck`, relevant tests, and `lint`) and merges to main on its own,
+so a stalled major (eslint, zod 4) never holds completed sweeps hostage.
 
 ### Phase 0 — full workspace inventory
 
-Done 2026-06-10 (tables above). On future passes: run
-`bun outdated --filter '*'` — the root-only form misses every
+Done 2026-06-10; refreshed 2026-06-15 (tables above). On future passes:
+run `bun outdated --filter '*'` — the root-only form misses every
 workspace dependency — and pair it with a usage check before planning
-any major migration: a declared-but-unimported dependency is a
-deletion, not an upgrade (express in `interfaces/mcp` was exactly
-this). When grepping for usage, check dynamic `import("pkg")` too —
-`pdfjs-dist` is only loaded lazily and looks unused to a naive grep.
-Anything held back deliberately gets a one-line reason here so it
-isn't re-flagged.
+any major migration: a declared-but-unimported dependency is a deletion,
+not an upgrade (express in `interfaces/mcp` was exactly this). When
+grepping for usage, check dynamic `import("pkg")` too — `pdfjs-dist` is
+only loaded lazily and looks unused to a naive grep. Anything held back
+deliberately gets a one-line reason here so it isn't re-flagged.
 
-### Phase 1 — safe drift sweep and dead-weight removal
+### Phase 1a — safe drift sweep (done in worktree)
 
-Update everything in the safe-drift table in one commit; run the full
-suite. AI SDK and MCP SDK patches occasionally tighten types — fix
-fallout in the same slice. In the same phase: delete the unused
-express trio from `interfaces/mcp`, remove the vestigial storybook
-setup from `shared/ui-library` (five devDeps, two scripts,
-`.storybook/`, the lone demo story — it has no pipeline wiring and the
-mixed 8.x/9.x install cannot launch), and align the split `@types/bun`
-pins.
+Update safe root and workspace patch/minor drift in one focused slice.
+Include AI SDK and MCP SDK families, Preact, Tailwind/PostCSS patches,
+TypeScript-ESLint 8.x patches, and other low-risk minor/patch drift
+listed above. AI SDK and MCP SDK patches occasionally tighten types —
+fix fallout in the same slice.
 
-### Phase 2 — zod pin bump (`^3.23.8` → `^3.25.x`)
+Validation: run `bun run deps:check`, `bun run typecheck`, relevant
+consumer tests for touched packages, then `bun run lint`.
+
+### Phase 1b — dead-weight removal (done in worktree)
+
+Delete instead of upgrading unused dependencies:
+
+- `interfaces/mcp`: remove `express`, `express-async-handler`, and
+  `@types/express`.
+- `shared/ui-library`: remove Storybook devDeps, `storybook` scripts,
+  `.storybook/`, `src/Button.stories.tsx`, Storybook README instructions,
+  and the `.storybook` entry in `tailwind.config.js`.
+
+Validation: package-local typecheck/build where available, plus repo
+`typecheck` and `lint`.
+
+### Phase 1c — declaration and lockfile hygiene (done in worktree)
+
+Normalize non-deterministic or inconsistent declarations without taking
+runtime majors:
+
+- Replace root `"turbo": "latest"` with the selected semver range.
+- Align `@types/bun` declarations/resolution across workspaces according
+  to the syncpack policy.
+- Optionally patch `@types/node` within Node 20 only; do not move to
+  Node 25 until the runtime baseline is decided.
+
+### Phase 2 — zod pin bump (`^3.23.8` → `^3.25.x`) (done in worktree)
 
 Pure housekeeping — the lockfile already resolves zod to 3.25.76, so
 this only aligns the declared ranges with reality. Every upstream peer
@@ -106,19 +161,19 @@ Syncpack keeps the version aligned across workspaces.
 
 From the workspace-majors table: chokidar 5, marked 18, pdfjs-dist 6,
 @libsql/client 0.17, drizzle-orm 0.45, ink 7, @clack/prompts 1.x,
-tailwind-merge 3, lucide 1.x, vite 8. None is urgent; take each only
-when touching its consumer package. Decide the Node runtime baseline
-before touching `@types/node` (20 → 25 should track the deploy
+tailwind-merge 3, lucide 1.x, vite 8, and optional/runtime majors such
+as better-sqlite3 12 and sharp 0.35. None is urgent; take each only when
+touching its consumer package. Decide the Node runtime baseline before
+touching `@types/node` 25 (the type package should track the deploy
 baseline, not npm latest).
 
 ### Phase 3 — tooling majors, one slice each
 
 In rough order of value:
 
-1. `eslint` 8 → 10 (flat config). Biggest lift; touches
-   `@brains/eslint-config` and every package's lint script — pairs
-   naturally with the package.json script-drift cleanup in
-   `codebase-cleanup-backlog.md`.
+1. `eslint` 8 → 10 (flat config), paired with `eslint-config-prettier` 10. Biggest lift; touches `@brains/eslint-config` and every
+   package's lint script — pairs naturally with the package.json
+   script-drift cleanup in `codebase-cleanup-backlog.md`.
 2. `syncpack` 13 → 15 (verify version-group config survives).
 3. `lint-staged` 15 → 17.
 4. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
@@ -138,7 +193,7 @@ for incremental, package-by-package migration behind the
 
 ## Cadence policy
 
-Re-run the Phase 0 inventory at each release cut. Patch/minor drift
-gets swept opportunistically (Phase 1 style); any new major gets an
-entry in this doc with a decision — migrate, hold (with reason), or
-drop the dependency.
+Re-run the Phase 0 inventory at each release cut. Patch/minor drift gets
+swept opportunistically (Phase 1a style); any new major gets an entry in
+this doc with a decision — migrate, hold (with reason), or drop the
+dependency.
