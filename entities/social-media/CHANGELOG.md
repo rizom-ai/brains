@@ -1,5 +1,15 @@
 # @brains/social-media
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.122
+  - @brains/contracts@0.2.0-alpha.122
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/plugins@0.2.0-alpha.122
+
 ## 0.2.0-alpha.121
 
 ### Patch Changes
