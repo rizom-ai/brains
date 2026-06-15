@@ -1,0 +1,41 @@
+id: multi-turn-conversation-tools
+name: Conversation Tools
+description: Verifies that the agent can inspect conversation history with the core conversation tools.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - core
+  - system
+  - conversations
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Use system_list-conversations to list recent conversations."
+    successCriteria:
+      expectedTools:
+        - toolName: system_list-conversations
+          shouldBeCalled: true
+
+  - userMessage: "Use system_get-conversation to show details for the first conversation from that list."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get-conversation
+          shouldBeCalled: true
+
+  - userMessage: "Use system_get-messages to show messages from that same conversation."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get-messages
+          shouldBeCalled: true
+
+successCriteria:
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 60000

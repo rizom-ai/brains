@@ -159,6 +159,16 @@ export const efficiencySchema = z.object({
 
 export type Efficiency = z.infer<typeof efficiencySchema>;
 
+export const permissionMatrixSchema = z
+  .object({
+    public: successCriteriaSchema.optional(),
+    trusted: successCriteriaSchema.optional(),
+    anchor: successCriteriaSchema.optional(),
+  })
+  .partial();
+
+export type PermissionMatrix = z.infer<typeof permissionMatrixSchema>;
+
 /**
  * Base test case fields shared by all types
  */
@@ -183,6 +193,9 @@ export const agentTestCaseSchema = baseTestCaseSchema.extend({
 
   // Final success criteria (evaluated after all turns)
   successCriteria: successCriteriaSchema,
+
+  // Permission matrix expands one case into per-level runs.
+  permissions: permissionMatrixSchema.optional(),
 
   // Efficiency expectations
   efficiency: efficiencySchema.optional(),

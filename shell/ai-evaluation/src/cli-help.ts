@@ -9,6 +9,7 @@ Options:
   --filter <ids>      Alias for --test
   --tags <tags>       Filter tests by tag(s), comma-separated
   --type <type>       Filter by type: "agent" or "plugin"
+  --preset <name>     Boot a specific brain preset (core, default, full)
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
   --compare [name]    Compare with previous run or named baseline
@@ -18,6 +19,7 @@ Options:
   --max-parallel <n>  Set max concurrent tests (default: 3)
   --verbose, -v       Show verbose output
   --build-db          Build eval database from eval-content (no tests)
+  --tool-coverage       Diff registered tools against asserted eval tools
   --help, -h          Show this help message
 
 Examples:
@@ -31,6 +33,8 @@ Examples:
   bun run eval --filter my-test             Run single test (alias)
   bun run eval --test list,search           Run multiple tests
   bun run eval --tags core                  Run tests tagged 'core'
+  bun run eval --preset core --tags preset-core  Run core-preset tests
+  bun run eval --preset core --tags preset-core --tool-coverage  Check tool assertion coverage
   bun run eval --type plugin                Run only plugin tests
   bun run eval --type agent                 Run only agent tests
   bun run eval --skip-llm-judge             Skip LLM judge for speed

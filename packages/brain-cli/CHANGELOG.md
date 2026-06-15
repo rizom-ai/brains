@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- [`b7a7514`](https://github.com/rizom-ai/brains/commit/b7a7514888373df93c9a2f12fb2bcadaad7aa924) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add core-preset Rover eval runner, tool coverage reporting, and permission matrix eval coverage.
+
 ## 0.2.0-alpha.121
 
 ### Patch Changes

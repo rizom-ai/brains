@@ -1,5 +1,6 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
 import type { IRuntimeUploadsNamespace } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/templates";
 
 import type {
   IEvaluationService,
@@ -26,6 +27,11 @@ import type { EvalHandlerRegistry } from "./eval-handler-registry";
 
 const DEFAULT_MAX_PARALLEL = 3;
 const DEFAULT_INDEX_READINESS_TIMEOUT_MS = 60_000;
+const PERMISSION_MATRIX_LEVELS: UserPermissionLevel[] = [
+  "public",
+  "trusted",
+  "anchor",
+];
 
 /**
  * Type guard to check if a test case is an agent test case
@@ -39,6 +45,33 @@ function isAgentTestCase(testCase: TestCase): testCase is AgentTestCase {
  */
 function isPluginTestCase(testCase: TestCase): testCase is PluginTestCase {
   return testCase.type === "plugin";
+}
+
+function expandPermissionMatrix(testCase: AgentTestCase): AgentTestCase[] {
+  if (!testCase.permissions) return [testCase];
+
+  return PERMISSION_MATRIX_LEVELS.flatMap((level) => {
+    const successCriteria = testCase.permissions?.[level];
+    if (!successCriteria) return [];
+
+    const { permissions: _permissions, ...baseTestCase } = testCase;
+    return [
+      {
+        ...baseTestCase,
+        id: `${testCase.id}@${level}`,
+        name: `${testCase.name} (${level})`,
+        setup: {
+          ...testCase.setup,
+          permissionLevel: level,
+        },
+        successCriteria,
+      },
+    ];
+  });
+}
+
+function baseId(id: string): string {
+  return id.split("@")[0] ?? id;
 }
 
 /**
@@ -85,11 +118,18 @@ export class EvaluationService implements IEvaluationService {
   async runEvaluations(
     options: EvaluationOptions = {},
   ): Promise<EvaluationSummary> {
-    const testCases = await this.getFilteredTestCases(options);
-    await this.awaitIndexReadiness(testCases, options);
+    const testCases = await this.getTaggedTestCases(options);
+    const runnableTestCases = this.filterByIds(
+      [
+        ...this.getAgentTestCases(testCases, options),
+        ...this.getPluginTestCases(testCases, options),
+      ],
+      options.testCaseIds,
+    );
+    await this.awaitIndexReadiness(runnableTestCases, options);
     const results = options.parallel
-      ? await this.runParallelTests(testCases, options)
-      : await this.runTestsInOrder(testCases, options);
+      ? await this.runParallelTests(runnableTestCases, options)
+      : await this.runTestsInOrder(runnableTestCases, options);
 
     const summary = this.generateSummary(results);
     await this.report(summary);
@@ -114,16 +154,10 @@ export class EvaluationService implements IEvaluationService {
   /**
    * Load and filter test cases by shared evaluation options.
    */
-  private async getFilteredTestCases(
+  private async getTaggedTestCases(
     options: EvaluationOptions,
   ): Promise<TestCase[]> {
-    let testCases = await this.loader.loadTestCases();
-
-    if (options.testCaseIds?.length) {
-      testCases = this.filterByIds(testCases, options.testCaseIds);
-    }
-
-    return this.filterByTags(testCases, options.tags);
+    return this.filterByTags(await this.loader.loadTestCases(), options.tags);
   }
 
   private async awaitIndexReadiness(
@@ -162,13 +196,23 @@ export class EvaluationService implements IEvaluationService {
     });
   }
 
-  private filterByIds(testCases: TestCase[], ids: string[]): TestCase[] {
-    const testCaseById = new Map(
-      testCases.map((testCase) => [testCase.id, testCase]),
-    );
-    return ids
-      .map((id) => testCaseById.get(id))
-      .filter((testCase): testCase is TestCase => testCase !== undefined);
+  private filterByIds<TTestCase extends TestCase>(
+    testCases: TTestCase[],
+    ids: string[] | undefined,
+  ): TTestCase[] {
+    if (!ids?.length) return testCases;
+
+    const selected: TTestCase[] = [];
+    const selectedIds = new Set<string>();
+    for (const id of ids) {
+      for (const testCase of testCases) {
+        if (selectedIds.has(testCase.id)) continue;
+        if (testCase.id !== id && baseId(testCase.id) !== id) continue;
+        selected.push(testCase);
+        selectedIds.add(testCase.id);
+      }
+    }
+    return selected;
   }
 
   private filterByTags(
@@ -189,7 +233,7 @@ export class EvaluationService implements IEvaluationService {
   ): AgentTestCase[] {
     return options.testType === "plugin"
       ? []
-      : testCases.filter(isAgentTestCase);
+      : testCases.filter(isAgentTestCase).flatMap(expandPermissionMatrix);
   }
 
   private getPluginTestCases(

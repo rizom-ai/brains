@@ -9,6 +9,7 @@ tags:
   - base
   - finalized-content
   - regression
+  - preset-core
 
 turns:
   - userMessage: |

@@ -8,6 +8,7 @@ tags:
   - agent-discovery
   - a2a
   - tool-invocation
+  - preset-core
 
 turns:
   - userMessage: "Can you message this agent URL for me: https://unknown-agent.io/a2a? Ask about ecosystem architecture."

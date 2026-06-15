@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposed. Outcome of the 2026-06-12 eval review: the rover suite (111
+In progress. Phase 1 landed in `core-evals` with a green `eval:core`
+run (46/46). Outcome of the 2026-06-12 eval review: the rover suite (111
 cases, 118/118 passing on 2026-06-10) is written against the `full`
 preset, while `core` — the contract every other preset inherits, and
 the closest thing to what every shipped brain runs — is never evaled
@@ -59,10 +60,9 @@ test-cases` holds 10 preset-agnostic cases (incl.
   same reasoning that disabled email-resend. Publish-gating belongs in
   `plugins/atproto` integration tests; eval-level propensity cases
   wait for a dry-run mode or mock PDS (own slice, not this plan).
-- **Judge must differ from the model under test.** Switch rover's
-  `judge:` to a different model (cross-provider if an anthropic key is
-  acceptable in the eval env, otherwise a distinct OpenAI model), and
-  the runner warns when `judge` equals an entry in `models`.
+- **Judge/model equality is allowed** (2026-06-13). Rover keeps the
+  existing eval judge unless there is a separate reason to change it;
+  no runner warning is required when `judge` is also in `models`.
 - **One permission default: `anchor`**, taken from the schema. The
   runner's divergent `public` fallback is removed; cases that want
   public say so explicitly.
@@ -83,8 +83,7 @@ changes in `shell/ai-evaluation` are test-first.
    app boots the named preset without editing `brain.eval.yaml`.
 3. Fix the permission-default divergence (test asserting the unified
    anchor default, then the runner change).
-4. Judge change in `brains/rover/brain.eval.yaml` plus the
-   judge==model warning in the runner.
+4. No judge change; judge/model equality is explicitly allowed.
 5. Verify eval-content under a core boot: either directory-sync skips
    unregistered entity types cleanly (assert it) or add a core-only
    seed subset.
@@ -95,31 +94,68 @@ preset-core` passes; add an `eval:core` package script for it.
 Deliverable: one command that boots an actual core-preset brain and
 runs the core-valid subset green.
 
-### Phase 2 — coverage ledger: make "exhaustive" measurable
+### Phase 2 — tool coverage: make "exhaustive" measurable
 
 Add a small check (script or test in `shell/ai-evaluation`) that boots
 the core-preset eval app, dumps the registered tool names, and diffs
 them against the tools asserted (`shouldBeCalled` true _or_ false) in
-`preset-core` cases. The diff is the ledger; it gets committed into
-this plan. Exhaustive then means: ledger empty, every registered tool
+`preset-core` cases. The diff is the coverage report; it gets committed into
+this plan. Exhaustive then means: coverage diff empty, every registered tool
 asserted somewhere, every core entity type exercised through the
 system-tool family.
 
+Coverage from `bun run eval:core:coverage` (2026-06-13):
+
+- Registered tools: 17
+- Asserted tools: 17
+- Missing assertions: 0
+- Stale assertions: 0
+
+Missing assertions: none.
+
 ### Phase 3 — permission matrix
 
-1. Harness feature (test-first): a case-level `permissions:` block
-   mapping levels to per-level success criteria; the runner expands
-   one case into one run per level (result ids suffixed `@anchor`,
-   `@public`, …). This is what fixes the 99/1/1 skew without tripling
-   yaml files.
-2. Cases using it: public denied `system_create`/`update`/`delete` on
-   note and link (refusal, no tool call); trusted draft-edit
-   boundaries; public `system_get` of a restricted entity by exact
-   title; trusted vs anchor on agent-discovery save/approve actions.
+Started (2026-06-14): the harness supports a case-level `permissions:`
+block mapping levels to per-level success criteria. The runner expands
+one case into one run per level (result ids suffixed `@anchor`,
+`@public`, …), and `--test base-id` runs all expanded levels while
+`--test base-id@public` targets one level.
 
-### Phase 4 — fill the ledger
+Permission audit applied to existing `preset-core` cases rather than
+adding one-off duplicates. Selection rule: convert single-turn cases
+that assert an anchor-only core action/tool boundary; leave pure read
+cases and multi-turn cases with per-turn criteria unchanged until the
+harness supports per-turn permission matrices.
 
-Write cases until the Phase 2 ledger is empty. Known gaps going in:
+Converted existing cases:
+
+- CRUD/entity action boundaries: `tool-invocation-system-create-note`,
+  `tool-invocation-system-create-link`, `tool-invocation-system-update`,
+  `tool-invocation-update-title`, `tool-invocation-system-delete`, and
+  `shell-delete-requires-confirmation`.
+- Extraction boundary: `tool-invocation-extract-topics-broad-request`.
+- Anchor-only plugin/interface tools: `tool-invocation-directory-sync`,
+  `rover-tool-passkey-setup-url`, and `tool-invocation-agent-call-by-name`.
+- Agent-discovery write boundaries: `tool-invocation-agent-add` and
+  `tool-invocation-agent-approve`.
+
+The matrices capture the observed policy split: public callers should
+not call hidden/mutating tools; trusted callers may invoke visible
+system write/extract tools but must be denied by tool-level permission
+enforcement; anchors complete the action or confirmation request. Tool
+coverage also counts assertions inside `permissions:` blocks.
+
+Additional gaps filled: link-specific update/delete matrices and an
+exact `system_get` restricted-content matrix. The restricted fixture was
+moved into the root eval-content set so core directory sync imports it
+as a `base` entity instead of leaving it under the legacy `note/` path.
+
+Remaining cases: per-turn permission matrices for multi-turn
+save/update/approve flows.
+
+### Phase 4 — fill the coverage
+
+Write cases until the Phase 2 coverage diff is empty. Known gaps going in:
 `system_status`, `system_insights` (topics), `system_check-job-status`,
 `system_extract` on topics, conversation tools, wishlist beyond the
 single lasagna regression, and multi-turn plus response-quality cases

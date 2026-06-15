@@ -1,5 +1,14 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/auth-service@0.2.0-alpha.122
+  - @brains/plugins@0.2.0-alpha.122
+
 ## 0.2.0-alpha.121
 
 ### Patch Changes

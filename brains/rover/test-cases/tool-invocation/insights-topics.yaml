@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - insights
+  - preset-core
 
 turns:
   - userMessage: "What are my most common topics?"

@@ -1,26 +1,46 @@
 id: tool-invocation-agent-add
 name: Add Agent to Directory
-description: Tests that the agent uses system_create for agent type when asked to add a contact
+description: Tests permission-aware behavior for saving an agent directory contact
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - agent-discovery
   - tool-invocation
+  - permissions
+  - preset-core
 
 turns:
   - userMessage: "Add yeehaa.io to my agent directory"
 
-successCriteria:
-  expectedTools:
-    - toolName: system_create
-      shouldBeCalled: true
-      argsContain:
-        entityType: "agent"
-        url: "yeehaa.io"
-  responseNotContains:
-    - "I cannot"
-    - "I don't have access"
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: false
+    responseNotContains:
+      - "created"
+  trusted:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: "agent"
+          url: "yeehaa.io"
+    responseNotContains:
+      - "created"
+  anchor:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          entityType: "agent"
+          url: "yeehaa.io"
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
 
 efficiency:
   maxToolCalls: 3
