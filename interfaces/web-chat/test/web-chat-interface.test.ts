@@ -725,16 +725,16 @@ describe("WebChatInterface", () => {
     expect(body).toContain('"transient":false');
   });
 
-  it("streams active tool activity as transient status parts", async () => {
+  it("streams active tool activity as readable transient status parts", async () => {
     const agent: IAgentService = {
       chat: async (_message, conversationId) => {
         await harness.sendMessage("tool:invoking", {
-          toolName: "search_notes",
+          toolName: "playbook_start",
           conversationId,
           interfaceType: "web-chat",
         });
         return {
-          text: "Search complete.",
+          text: "Playbook started.",
           usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
         };
       },
@@ -758,7 +758,7 @@ describe("WebChatInterface", () => {
           messages: [
             {
               role: "user",
-              parts: [{ type: "text", text: "Search notes" }],
+              parts: [{ type: "text", text: "Start onboarding" }],
             },
           ],
         }),
@@ -769,7 +769,8 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(body).toContain("data-status");
     expect(body).toContain("tool-invoking");
-    expect(body).toContain("Using search_notes…");
+    expect(body).toContain("Using playbook…");
+    expect(body).not.toContain("Using playbook_start…");
   });
 
   it("ignores tool activity outside the active web-chat conversation", async () => {
