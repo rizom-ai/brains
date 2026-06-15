@@ -8,19 +8,25 @@ export const playbookCompletionModeSchema = z.enum([
   "manual",
 ]);
 
+const optionalTextSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim().length === 0 ? undefined : value,
+  z.string().min(1).optional(),
+);
+
 export const playbookTransitionSchema = z.object({
   event: z.string().min(1),
   target: z.string().min(1),
   operatorAction: z.boolean().optional(),
-  label: z.string().min(1).optional(),
-  description: z.string().optional(),
-  operatorDescription: z.string().min(1).optional(),
+  label: optionalTextSchema,
+  description: optionalTextSchema,
+  operatorDescription: optionalTextSchema,
 });
 
 export const playbookStateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  prompt: z.string().min(1).optional(),
+  prompt: optionalTextSchema,
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),
   transitions: z.array(playbookTransitionSchema).default([]),
@@ -39,7 +45,7 @@ export const playbookFrontmatterSchema = z.object({
   title: z.string(),
   status: playbookStatusSchema.default("active"),
   audience: playbookAudienceSchema.default("anchor"),
-  trigger: z.string().optional(),
+  trigger: optionalTextSchema,
   completionMode: playbookCompletionModeSchema.default("agent-confirmed"),
 });
 
@@ -47,7 +53,7 @@ export const playbookMetadataSchema = z.object({
   title: z.string(),
   status: playbookStatusSchema,
   audience: playbookAudienceSchema,
-  trigger: z.string().optional(),
+  trigger: optionalTextSchema,
   completionMode: playbookCompletionModeSchema,
 });
 

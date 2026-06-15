@@ -475,7 +475,7 @@ describe("PlaybooksPlugin", () => {
       {
         kind: "actions",
         id: `actions:playbook:${data.activeRun.id}`,
-        title: "Continue Rover Onboarding",
+        title: "Rover Onboarding",
         defaultOpen: true,
         actions: [
           {
@@ -1239,7 +1239,7 @@ describe("PlaybooksPlugin", () => {
           doneWhen: ["The anchor profile has been created or updated."],
           transitions: [
             { event: "NEXT", target: "seed" },
-            { event: "SKIP", target: "seed" },
+            { event: "SKIP", target: "seed", label: "Skip for now" },
           ],
         },
         seedState,
@@ -1284,7 +1284,7 @@ describe("PlaybooksPlugin", () => {
     expect(content).toContain("Goal status:");
     expect(content).toContain("Not yet met");
     expect(content).toContain("Valid events:");
-    expect(content).toContain("SKIP -> seed");
+    expect(content).toContain("SKIP -> seed: Skip for now");
     expect(content).toContain("Blocked events:");
     expect(content).toContain("NEXT -> seed");
   });

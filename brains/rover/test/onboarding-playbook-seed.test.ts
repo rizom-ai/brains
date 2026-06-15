@@ -22,19 +22,22 @@ describe("Rover onboarding playbook seed", () => {
     expect(body.initialState).toBe("welcome");
     expect(body.finalStates).toEqual(["done"]);
     expect(welcome?.transitions).toEqual([
-      expect.objectContaining({
+      {
         event: "CHOICE_1",
         label: "Set up Rover",
         target: "identity",
         operatorAction: true,
-      }),
-      expect.objectContaining({
+      },
+      {
         event: "CHOICE_2",
         label: "Not now",
         target: "done",
         operatorAction: true,
-      }),
+      },
     ]);
+    expect(identity?.prompt).toBe(
+      "Let’s tune Rover to you. What should I call you?",
+    );
     expect(identity?.doneWhen).toEqual([
       "The anchor profile has been created or updated.",
     ]);
@@ -42,13 +45,23 @@ describe("Rover onboarding playbook seed", () => {
       event: "NEXT",
       target: "first-note",
     });
-    expect(identity?.transitions).toContainEqual(
-      expect.objectContaining({
-        event: "SKIP",
-        label: "Skip for now",
-        target: "first-note",
-        operatorAction: true,
-      }),
+    expect(identity?.transitions).toContainEqual({
+      event: "SKIP",
+      label: "Skip for now",
+      target: "first-note",
+      operatorAction: true,
+    });
+    expect(identity?.instructions).toContain(
+      "If the operator gives multiple details at once, use them; do not re-ask fields already provided.",
+    );
+    expect(identity?.instructions).toContain(
+      "Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.",
+    );
+    expect(identity?.instructions).toContain(
+      "Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.",
+    );
+    expect(identity?.instructions).toContain(
+      "When enough details are known, summarize once and ask for confirmation before saving.",
     );
     expect(identity?.instructions).toContain(
       'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',
@@ -72,18 +85,18 @@ describe("Rover onboarding playbook seed", () => {
       "Want me to find that note now, or would you rather ask for it yourself?",
     );
     expect(seeItComeBack?.transitions).toEqual([
-      expect.objectContaining({
+      {
         event: "CHOICE_1",
         label: "Show me",
         target: "make-something",
         operatorAction: true,
-      }),
-      expect.objectContaining({
+      },
+      {
         event: "CHOICE_2",
         label: "I’ll ask",
         target: "make-something",
         operatorAction: true,
-      }),
+      },
     ]);
     expect(makeSomething?.doneWhen).toEqual([
       "A transformation draft has been created.",

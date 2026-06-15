@@ -114,7 +114,6 @@ function parseAuthoredStepsBody(markdown: string): PlaybookBody {
           target: slugify(choice.target),
           operatorAction: true,
           label: choice.label,
-          description: choice.label,
         })),
         ...(step.skip
           ? [
@@ -123,7 +122,6 @@ function parseAuthoredStepsBody(markdown: string): PlaybookBody {
                 target: slugify(step.skip.target),
                 operatorAction: true,
                 label: step.skip.label,
-                description: step.skip.label,
               },
             ]
           : []),

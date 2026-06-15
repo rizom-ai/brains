@@ -1063,8 +1063,12 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   }
 
   private formatTransition(transition: PlaybookTransition): string {
-    return transition.description
-      ? `- ${transition.event} -> ${transition.target}: ${transition.description}`
+    const description =
+      transition.operatorDescription ??
+      transition.description ??
+      transition.label;
+    return description
+      ? `- ${transition.event} -> ${transition.target}: ${description}`
       : `- ${transition.event} -> ${transition.target}`;
   }
 
@@ -1213,7 +1217,7 @@ function buildPlaybookActionsCard(input: {
   return {
     kind: "actions",
     id: `actions:playbook:${input.run.id}`,
-    title: `Continue ${input.title}`,
+    title: input.title,
     defaultOpen: true,
     actions: input.transitions.map((transition) => ({
       type: "event",

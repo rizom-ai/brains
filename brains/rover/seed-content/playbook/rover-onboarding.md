@@ -41,16 +41,18 @@ Choices:
 
 ### Identity
 
-Say: Let’s tune Rover to you. What name, role, audience, expertise, and tone should Rover remember?
+Say: Let’s tune Rover to you. What should I call you?
 
 To do:
 
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
-- Ask one question at a time.
-- Summarize before saving.
+- Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.
+- If the operator gives multiple details at once, use them; do not re-ask fields already provided.
+- Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.
+- When enough details are known, summarize once and ask for confirmation before saving.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
-- Explain that Rover uses identity to shape answers, site content, and publishing workflows.
+- After saving, explain that Rover uses identity to shape answers, site content, and publishing workflows.
 
 Done when:
 
