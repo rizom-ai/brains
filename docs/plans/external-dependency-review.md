@@ -33,8 +33,10 @@ checks pass. A small tooling slice updated `@changesets/changelog-github`
 0.6 → 0.7 and verified Changesets status. Another Phase 2b slice
 updated `sharp` 0.34 → 0.35 across site-engine, brain-cli optional deps,
 and generated model package optional deps; affected package checks pass.
-Remaining outdated entries are deliberate holds/migrations from Phase
-2b+.
+Another Phase 2b slice updated `@clack/prompts` 0.11 → 1.5 for the
+`@rizom/brain` init prompt flow; `@rizom/brain` typecheck, lint, and
+tests pass. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -197,6 +199,9 @@ Done in worktree:
 - `sharp` 0.34 → 0.35 for `@brains/site-engine`, `@rizom/brain` optional
   deps, and generated model package optional deps; lazy import policy is
   unchanged and affected package tests pass.
+- `@clack/prompts` 0.11 → 1.5 for `@rizom/brain`; usage remains the
+  existing `intro`/`password`/`confirm`/`text`/`isCancel` prompt flow,
+  with package typecheck, lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
