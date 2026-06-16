@@ -1,0 +1,77 @@
+id: link-summarize-recent-saved-links
+name: Summarize Recently Saved Links Without Reasking
+description: |
+  Regression test for follow-up requests like "summarize both pages" after the
+  agent has just saved two link entities. The agent should use the conversation
+  context and proactively read or search the saved link records instead of
+  claiming it does not know the saved titles or asking the user for permission
+  to search.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - link
+  - tool-invocation
+  - summarization
+  - proactive-behavior
+  - context-carryover
+  - regression
+
+turns:
+  - userMessage: "Save this link: https://www.planetir.org/welcome"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://www.planetir.org/welcome"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "not authorized"
+        - "cannot resolve approvalId"
+
+  - userMessage: "Save https://kaphera.com/ too"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://kaphera.com/"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "not authorized"
+        - "cannot resolve approvalId"
+
+  - userMessage: "can you summarize both pages for me?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+      responseNotContains:
+        - "I don't have the saved link records"
+        - "I don’t have the saved link records"
+        - "send me the exact saved titles"
+        - "send me the exact titles"
+        - "I can search your links"
+        - "If you want"
+        - "if you want"
+        - "would you like me to search"
+        - "Would you like me to search"
+      minHelpfulnessScore: 3
+      minInstructionFollowingScore: 3
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 80000
