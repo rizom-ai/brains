@@ -21,7 +21,7 @@ describe("generateNpmPackageJson", () => {
     const pkg = generateNpmPackageJson("rover", "1.0.0");
     expect(pkg.optionalDependencies["sharp"]).toBeDefined();
     expect(pkg.optionalDependencies["@libsql/client"]).toBeDefined();
-    expect(pkg.optionalDependencies["better-sqlite3"]).toBeDefined();
+    expect(pkg.optionalDependencies["better-sqlite3"]).toBeUndefined();
   });
 
   test("should use correct version", () => {

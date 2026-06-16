@@ -48,8 +48,11 @@ updated `drizzle-orm` 0.44 → 0.45 across the same DB services; targeted
 DB/service checks pass. Another Phase 2b slice updated `ink` 6 → 7 for
 `@brains/chat-repl`; package typecheck, lint, and tests pass. Another
 Phase 2b slice updated `varlock` 0.5 → 1.7 for `@brains/app`; package
-typecheck, lint, and tests pass. Remaining outdated entries are
-deliberate holds/migrations from Phase 2b+.
+typecheck, lint, and tests pass. A follow-up delete-vs-upgrade slice
+removed unused `better-sqlite3` optional dependency metadata now that DB
+runtime paths consistently use `@libsql/client`; targeted package checks
+pass. Remaining outdated entries are deliberate holds/migrations from
+Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -93,23 +96,23 @@ Major jumps and pre-1.0 minors (real migration work, one slice each):
 
 Workspace majors and delete-vs-upgrade decisions:
 
-| Package                                                                               | Current         | Latest  | Decision / notes                                                                                       |
-| ------------------------------------------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `zod`                                                                                 | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
-| `express`, `express-async-handler`, `@types/express`                                  | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
-| `storybook` + `@storybook/*`                                                          | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
-| `marked`                                                                              | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
-| `chokidar`                                                                            | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
-| `vite`                                                                                | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
-| `pdfjs-dist`                                                                          | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
-| `@libsql/client`                                                                      | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
-| `drizzle-orm`                                                                         | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
-| `@types/node`                                                                         | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
-| `tailwind-merge`                                                                      | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
-| `lucide-preact`                                                                       | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
-| `ink`                                                                                 | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
-| `@clack/prompts`                                                                      | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
-| `croner` / `p-limit` / `better-sqlite3` / `varlock` / `sharp` / `react-devtools-core` | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
+| Package                                                            | Current         | Latest  | Decision / notes                                                                                       |
+| ------------------------------------------------------------------ | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `zod`                                                              | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
+| `express`, `express-async-handler`, `@types/express`               | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
+| `storybook` + `@storybook/*`                                       | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
+| `marked`                                                           | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
+| `chokidar`                                                         | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
+| `vite`                                                             | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
+| `pdfjs-dist`                                                       | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
+| `@libsql/client`                                                   | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
+| `drizzle-orm`                                                      | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
+| `@types/node`                                                      | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
+| `tailwind-merge`                                                   | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
+| `lucide-preact`                                                    | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
+| `ink`                                                              | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
+| `@clack/prompts`                                                   | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
+| `croner` / `p-limit` / `varlock` / `sharp` / `react-devtools-core` | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
 
 Inventory inconsistencies to fix deliberately:
 
@@ -191,8 +194,8 @@ Syncpack keeps the version aligned across workspaces.
 From the workspace-majors table: chokidar 5, marked 18, pdfjs-dist 6,
 @libsql/client 0.17, drizzle-orm 0.45, ink 7, @clack/prompts 1.x,
 tailwind-merge 3, lucide 1.x, vite 8, and optional/runtime majors such
-as better-sqlite3 12 and sharp 0.35. None is urgent; take each only when
-touching its consumer package. Decide the Node runtime baseline before
+as sharp 0.35. None is urgent; take each only when touching its consumer
+package. Decide the Node runtime baseline before
 touching `@types/node` 25 (the type package should track the deploy
 baseline, not npm latest).
 
@@ -240,6 +243,10 @@ Done in worktree:
 - `varlock` 0.5 → 1.7 for `@brains/app`; the internal graph-loader call
   now uses v1's `entryFilePaths` option, with package typecheck, lint,
   and tests passing.
+- Deleted unused `better-sqlite3` optional dependency declarations from
+  `@rizom/brain`, generated model package metadata, and Docker runtime
+  metadata; runtime DB usage is consistently `@libsql/client` via
+  Drizzle's libSQL adapter.
 
 ### Phase 3 — tooling majors, one slice each
 
