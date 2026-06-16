@@ -33,7 +33,7 @@ export function generateNpmPackageJson(
     },
     files: ["dist", "migrations", "seed-content"],
     optionalDependencies: {
-      sharp: "^0.34.5",
+      sharp: "^0.35.1",
       "@libsql/client": "^0.14.0",
       "better-sqlite3": "^11.8.1",
       lightningcss: "^1.29.2",

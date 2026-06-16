@@ -30,8 +30,11 @@ and added the missing direct dependency declaration for `@brains/web-chat`;
 UI typecheck/lint/test/build checks pass. A fourth Phase 2b slice updated
 `lucide-preact` 0.x → 1.x for `@brains/product-site-content`; package
 checks pass. A small tooling slice updated `@changesets/changelog-github`
-0.6 → 0.7 and verified Changesets status. Remaining outdated entries are
-deliberate holds/migrations from Phase 2b+.
+0.6 → 0.7 and verified Changesets status. Another Phase 2b slice
+updated `sharp` 0.34 → 0.35 across site-engine, brain-cli optional deps,
+and generated model package optional deps; affected package checks pass.
+Remaining outdated entries are deliberate holds/migrations from Phase
+2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -191,6 +194,9 @@ Done in worktree:
 - `lucide-preact` 0.x → 1.x for `@brains/product-site-content`; usage
   remains named/icon-map component imports, with package typecheck,
   lint, and tests passing.
+- `sharp` 0.34 → 0.35 for `@brains/site-engine`, `@rizom/brain` optional
+  deps, and generated model package optional deps; lazy import policy is
+  unchanged and affected package tests pass.
 
 ### Phase 3 — tooling majors, one slice each
 
