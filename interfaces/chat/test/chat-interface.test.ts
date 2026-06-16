@@ -2261,7 +2261,48 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Trusted denied deck\nFile: trusted-denied-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-trusted-denied",
+        "**Artifact:** Not available at your access level.",
+      ].join("\n\n"),
+    );
+  });
+
+  it("renders the artifact link when the referenced entity does not exist", async () => {
+    // A card whose entity is not stored must not be mistaken for an
+    // out-of-scope artifact: its link still renders rather than being
+    // suppressed as denied.
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Missing deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-missing",
+            filename: "missing-deck.pdf",
+            source: { entityType: "document", entityId: "deck-missing" },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the deck.",
+        "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-missing",
       ].join("\n\n"),
     );
   });
@@ -2306,7 +2347,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Denied deck\nFile: denied-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-public-denied",
+        "**Artifact:** Not available at your access level.",
       ].join("\n\n"),
     );
   });

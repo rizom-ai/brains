@@ -545,7 +545,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         );
       }
 
-      const nativeArtifactFiles = await this.resolveNativeArtifactFiles(
+      const artifactDelivery = await this.resolveArtifactDelivery(
         response.cards,
         userPermissionLevel,
       );
@@ -556,8 +556,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           response.text,
           response.cards,
           response.pendingConfirmations,
+          artifactDelivery.deniedCardIds,
         ),
-        files: nativeArtifactFiles,
+        files: artifactDelivery.files,
       });
 
       if (messageId) {
@@ -656,6 +657,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         response,
         approvalId,
       );
+      const artifactDelivery = await this.resolveArtifactDelivery(
+        response.cards,
+        userPermissionLevel,
+      );
       await this.sendAgentResponseWithFiles({
         thread,
         channelId: thread.id,
@@ -663,11 +668,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           response,
           parsed.confirmed,
           this.getRemainingApprovalHelp(conversationId, response),
+          artifactDelivery.deniedCardIds,
         ),
-        files: await this.resolveNativeArtifactFiles(
-          response.cards,
-          userPermissionLevel,
-        ),
+        files: artifactDelivery.files,
       });
     }
   }
@@ -722,9 +725,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     text: string,
     cards: StructuredChatCard[] | undefined,
     pendingConfirmations?: PendingConfirmation[],
+    deniedCardIds?: Set<string>,
   ): string {
     const cardSummaries = (cards ?? []).map((card) =>
-      this.formatStructuredCard(card),
+      this.formatStructuredCard(card, deniedCardIds),
     );
     const pendingHelp =
       this.formatPendingConfirmationHelp(pendingConfirmations);
@@ -737,6 +741,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     response: AgentResponse,
     confirmed: boolean,
     remainingApprovalHelp?: string,
+    deniedCardIds?: Set<string>,
   ): string {
     const display = formatConfirmationResult(
       response,
@@ -750,7 +755,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           : "✅";
     const attachmentSummaries = (response.cards ?? [])
       .filter((card) => card.kind === "attachment")
-      .map((card) => this.formatStructuredCard(card));
+      .map((card) => this.formatStructuredCard(card, deniedCardIds));
     const pendingHelp = this.formatPendingConfirmationHelp(
       response.pendingConfirmations,
     );
@@ -795,68 +800,94 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return lastSent?.id;
   }
 
-  private async resolveNativeArtifactFiles(
+  /**
+   * Resolve which generated artifacts to deliver to a Discord caller: native
+   * files for those visible to their permission level, plus the ids of cards
+   * whose artifact exists but is out of scope. Denied cards have their link and
+   * metadata suppressed so fallback links never expose restricted artifacts
+   * outside the intended permission scope.
+   */
+  private async resolveArtifactDelivery(
     cards: StructuredChatCard[] | undefined,
     userLevel: UserPermissionLevel,
-  ): Promise<FileUpload[]> {
-    if (userLevel !== "anchor" && userLevel !== "trusted") return [];
-    if (!cards || !this.context) return [];
-
+  ): Promise<{ files: FileUpload[]; deniedCardIds: Set<string> }> {
     const files: FileUpload[] = [];
+    const deniedCardIds = new Set<string>();
+    if (!cards || !this.context) return { files, deniedCardIds };
+
+    const scope = permissionToVisibilityScope(userLevel);
     for (const card of cards) {
       if (card.kind !== "attachment") continue;
-      const file = await this.resolveNativeArtifactFile(card, userLevel).catch(
-        (error: unknown) => {
-          this.logger.debug("Failed to resolve Discord artifact file", {
-            error,
-            cardId: card.id,
-          });
-          return undefined;
-        },
+      const entityRef = resolveArtifactEntityRefFromCard(
+        card,
+        this.getPreferredDisplayBaseUrl(),
       );
-      if (file) files.push(file);
+      if (!entityRef) continue;
+
+      const resolved = await this.resolveArtifactCard(
+        card,
+        entityRef,
+        scope,
+        userLevel,
+      ).catch((error: unknown) => {
+        this.logger.debug("Failed to resolve Discord artifact file", {
+          error,
+          cardId: card.id,
+        });
+        return undefined;
+      });
+      if (resolved?.denied) deniedCardIds.add(card.id);
+      if (resolved?.file) files.push(resolved.file);
     }
-    return files;
+    return { files, deniedCardIds };
   }
 
-  private async resolveNativeArtifactFile(
+  private async resolveArtifactCard(
     card: Extract<StructuredChatCard, { kind: "attachment" }>,
+    entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
+    scope: ReturnType<typeof permissionToVisibilityScope>,
     userLevel: UserPermissionLevel,
-  ): Promise<FileUpload | undefined> {
-    if (!this.context) return undefined;
-    const entityRef = resolveArtifactEntityRefFromCard(
-      card,
-      this.getPreferredDisplayBaseUrl(),
-    );
-    if (!entityRef) return undefined;
+  ): Promise<{ file?: FileUpload; denied?: boolean }> {
+    const context = this.context;
+    if (!context) return {};
 
-    const entity = await this.context.entityService.getEntity({
+    const entity = await context.entityService.getEntity({
       ...entityRef,
-      visibilityScope: permissionToVisibilityScope(userLevel),
+      visibilityScope: scope,
     });
-    if (!entity || typeof entity.content !== "string") return undefined;
+    if (!entity) {
+      // Not visible at this scope. Suppress the link/metadata only when the
+      // artifact actually exists (out of scope); leave genuinely-missing or
+      // unresolved references untouched so their links still render.
+      const exists = Boolean(await context.entityService.getEntity(entityRef));
+      return exists ? { denied: true } : {};
+    }
+    if (typeof entity.content !== "string") return {};
+    if (userLevel !== "anchor" && userLevel !== "trusted") return {};
 
     const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
-    if (!parsed) return undefined;
+    if (!parsed) return {};
     if (parsed.data.byteLength > DISCORD_NATIVE_ARTIFACT_MAX_BYTES) {
       this.logger.debug("Skipping oversized Discord artifact upload", {
         cardId: card.id,
         sizeBytes: parsed.data.byteLength,
       });
-      return undefined;
+      return {};
     }
 
     return {
-      data: parsed.data,
-      filename:
-        card.attachment.filename ??
-        getArtifactEntityFilename(
-          entity.metadata,
-          entityRef.id,
-          entityRef.entityType,
-          parsed.mimeType,
-        ),
-      mimeType: parsed.mimeType,
+      file: {
+        data: parsed.data,
+        filename:
+          card.attachment.filename ??
+          getArtifactEntityFilename(
+            entity.metadata,
+            entityRef.id,
+            entityRef.entityType,
+            parsed.mimeType,
+          ),
+        mimeType: parsed.mimeType,
+      },
     };
   }
 
@@ -908,8 +939,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     ].join("\n");
   }
 
-  private formatStructuredCard(card: StructuredChatCard): string {
+  private formatStructuredCard(
+    card: StructuredChatCard,
+    deniedCardIds?: Set<string>,
+  ): string {
     if (card.kind === "attachment") {
+      if (deniedCardIds?.has(card.id)) {
+        return "**Artifact:** Not available at your access level.";
+      }
       const display = formatArtifactDisplay(card);
       if (!display) return "**Artifact:** Generated artifact";
       const lines = [`**Artifact:** ${display.title}`];
