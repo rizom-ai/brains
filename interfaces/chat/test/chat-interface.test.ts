@@ -1640,7 +1640,7 @@ describe("ChatInterface", () => {
         entityType: "document",
         content: `data:application/pdf;base64,${Buffer.from("%PDF confirmed").toString("base64")}`,
         metadata: { filename: "confirmed-deck.pdf" },
-        visibility: "restricted",
+        visibility: "shared",
       },
     ]);
     harness.setPermissionService(
@@ -2115,7 +2115,7 @@ describe("ChatInterface", () => {
         entityType: "document",
         content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 test").toString("base64")}`,
         metadata: { filename: "native-deck.pdf" },
-        visibility: "restricted",
+        visibility: "shared",
       },
     ]);
     harness.setPermissionService(
@@ -2173,7 +2173,7 @@ describe("ChatInterface", () => {
         entityType: "image",
         content: `data:image/png;base64,${Buffer.from("png-bytes").toString("base64")}`,
         metadata: { filename: "native-image.png" },
-        visibility: "restricted",
+        visibility: "shared",
       },
     ]);
     harness.setPermissionService(
@@ -2213,6 +2213,56 @@ describe("ChatInterface", () => {
           }),
         ],
       }),
+    );
+  });
+
+  it("does not post restricted native Discord artifact files for trusted users", async () => {
+    harness.addEntities([
+      {
+        id: "deck-trusted-denied",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 test").toString("base64")}`,
+        metadata: { filename: "trusted-denied-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Trusted denied deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-trusted-denied",
+            filename: "trusted-denied-deck.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-trusted-denied",
+            },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the deck.",
+        "**Artifact:** Trusted denied deck\nFile: trusted-denied-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-trusted-denied",
+      ].join("\n\n"),
     );
   });
 

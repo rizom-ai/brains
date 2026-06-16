@@ -2,14 +2,18 @@ import {
   formatContentDispositionHeader,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
+  permissionToVisibilityScope,
   type InterfacePluginContext,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 
-type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type PermissionLevelResolver = (
+  request: Request,
+) => Promise<UserPermissionLevel>;
 type EntityService = InterfacePluginContext["entityService"];
 
 interface AttachmentHandlerDeps {
-  resolveOperatorSession: OperatorSessionResolver;
+  resolvePermissionLevel: PermissionLevelResolver;
   createOperatorLoginRequiredResponse: (request: Request) => Response;
   entityService: EntityService;
 }
@@ -18,9 +22,11 @@ export async function handleDocumentAttachmentRequest(
   request: Request,
   deps: AttachmentHandlerDeps,
 ): Promise<Response> {
-  if (!(await deps.resolveOperatorSession(request))) {
+  const permissionLevel = await deps.resolvePermissionLevel(request);
+  if (permissionLevel === "public") {
     return deps.createOperatorLoginRequiredResponse(request);
   }
+  const visibilityScope = permissionToVisibilityScope(permissionLevel);
 
   const url = new URL(request.url);
   const documentId = url.searchParams.get("id")?.trim();
@@ -31,6 +37,7 @@ export async function handleDocumentAttachmentRequest(
   const document = await deps.entityService.getEntity({
     entityType: "document",
     id: documentId,
+    visibilityScope,
   });
   if (!document) {
     return new Response("Document not found", { status: 404 });
@@ -59,9 +66,11 @@ export async function handleImageAttachmentRequest(
   request: Request,
   deps: AttachmentHandlerDeps,
 ): Promise<Response> {
-  if (!(await deps.resolveOperatorSession(request))) {
+  const permissionLevel = await deps.resolvePermissionLevel(request);
+  if (permissionLevel === "public") {
     return deps.createOperatorLoginRequiredResponse(request);
   }
+  const visibilityScope = permissionToVisibilityScope(permissionLevel);
 
   const url = new URL(request.url);
   const imageId = url.searchParams.get("id")?.trim();
@@ -72,6 +81,7 @@ export async function handleImageAttachmentRequest(
   const image = await deps.entityService.getEntity({
     entityType: "image",
     id: imageId,
+    visibilityScope,
   });
   if (!image) {
     return new Response("Image not found", { status: 404 });

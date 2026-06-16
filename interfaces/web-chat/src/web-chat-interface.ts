@@ -9,6 +9,7 @@ import {
   type SendMessageWithIdRequest,
   type WebRouteDefinition,
   type ToolActivityEvent,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import {
   createUIMessageStream,
@@ -52,10 +53,15 @@ import {
 
 const webChatInterfaceType = "web-chat";
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type PermissionLevelResolver = (
+  request: Request,
+) => Promise<UserPermissionLevel>;
 
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
   resolveOperatorSession?: OperatorSessionResolver;
+  /** Override the resolved caller permission level (used in tests). */
+  resolvePermissionLevel?: PermissionLevelResolver;
 }
 
 const defaultResolveOperatorSession: OperatorSessionResolver = async (
@@ -71,11 +77,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
+  private readonly resolveCallerPermissionLevel:
+    | PermissionLevelResolver
+    | undefined;
 
   constructor(config: Partial<WebChatConfig> = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveOperatorSession =
       deps.resolveOperatorSession ?? defaultResolveOperatorSession;
+    this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
   protected override async onRegister(
@@ -374,7 +384,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<Response> {
     return handleDocumentAttachmentRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolvePermissionLevel: (nextRequest) =>
+        this.resolveAttachmentPermissionLevel(nextRequest),
       createOperatorLoginRequiredResponse: (nextRequest) =>
         this.createOperatorLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
@@ -385,7 +396,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<Response> {
     return handleImageAttachmentRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolvePermissionLevel: (nextRequest) =>
+        this.resolveAttachmentPermissionLevel(nextRequest),
       createOperatorLoginRequiredResponse: (nextRequest) =>
         this.createOperatorLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
@@ -419,6 +431,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<"anchor" | "public"> {
     return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
+  }
+
+  private async resolveAttachmentPermissionLevel(
+    request: Request,
+  ): Promise<UserPermissionLevel> {
+    if (this.resolveCallerPermissionLevel) {
+      return this.resolveCallerPermissionLevel(request);
+    }
+    return this.resolvePermissionLevel(request);
   }
 
   private createOperatorLoginRequiredResponse(request: Request): Response {

@@ -8,7 +8,7 @@ Scope is intentionally narrow: bring Discord via Chat SDK to parity with the imp
 
 Implementation status:
 
-- **Implemented and covered by automated tests:** Discord routing/permission checks, upload ingestion/reuse, stored upload route hardening, approval rendering/selection/retry/restart restore, confirmation result summaries, artifact link summaries, shared artifact entity/data-url helpers, native Discord image/PDF artifact file posting for trusted/anchor chat and confirmation responses, artifact-card job progress tracking, live tool activity, async progress edits/fallbacks, response chunking, webhook route delegation, and Rover opt-in wiring.
+- **Implemented and covered by automated tests:** Discord routing/permission checks, upload ingestion/reuse, stored upload route hardening, approval rendering/selection/retry/restart restore, confirmation result summaries, artifact link summaries, shared artifact entity/data-url helpers, scoped artifact retrieval by caller visibility, native Discord image/PDF artifact file posting for trusted/anchor chat and confirmation responses, artifact-card job progress tracking, live tool activity, async progress edits/fallbacks, response chunking, webhook route delegation, and Rover opt-in wiring.
 - **Pending live validation:** Discord mention/DM/thread behavior, real upload delivery, progress edits, webhook delivery, generated artifact link retrieval, and restart continuation.
 - **Needs an explicit implementation decision:** DB-backed Chat SDK `StateAdapter` for adapter operational state. It is not required for stored messages/uploads/approvals, but it may be required for subscribed-thread state, queues, locks, or SDK caches across restart.
 - **Needs an explicit product/security decision:** Signed/authenticated routes for generated/protected artifacts outside trusted/anchor native Discord delivery. Current fallback behavior is link summaries.
@@ -23,9 +23,8 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 1. Decide whether to build DB-backed Chat SDK adapter state before live validation or keep it gated on a subscribed-thread restart failure.
 2. Decide the remaining generated/protected artifact delivery policy for public/external access: fallback links only or signed/authenticated artifact routes.
-3. Scope artifact retrieval by caller visibility on both the web attachment routes and the Discord native path (see Section 3 open task).
-4. Run the live Rover Discord trial using the checklist below.
-5. If the live trial passes, update Rover migration guidance and decide when `@brains/chat` can replace `@brains/discord` for Discord.
+3. Run the live Rover Discord trial using the checklist below.
+4. If the live trial passes, update Rover migration guidance and decide when `@brains/chat` can replace `@brains/discord` for Discord.
 
 ## Remaining parity work
 
@@ -88,23 +87,15 @@ Current behavior:
 - Discord renders attachment cards as readable text summaries.
 - Summaries include title, description, filename, media type, size, preview/open/download links when present.
 - Relative artifact links are resolved against the configured site URL, or local site URL when `preferLocalUrls` is enabled.
-- Trusted/anchor users receive native Discord file uploads for generated image/PDF artifact cards when the card resolves to a stored `image` or `document` entity.
+- Trusted/anchor users receive native Discord file uploads for generated image/PDF artifact cards when the card resolves to a stored `image` or `document` entity visible to their permission level.
+- Web attachment routes and Discord native artifact posting fetch artifacts with `permissionToVisibilityScope(level)` so restricted artifacts are not delivered to trusted-only callers.
 - Public users do not receive native protected artifact files; link summaries remain the fallback.
 
 Required work:
 
 - Validate Discord artifact summaries and native image/PDF file uploads in live flows.
 - Decide whether fallback links for non-native or public artifact access need authenticated/signed routes.
-- Ensure artifact retrieval is permission-gated for non-public artifacts. **(Open — see task below.)**
 - Validate queued/completed/failed artifact job status in Discord. Automated coverage now tracks progress for both `toolResults[].jobId` and attachment-card `jobId` responses.
-
-Open task — scope artifact retrieval by caller visibility:
-
-- Both retrieval paths fetch with `entityService.getEntity({ entityType, id })` and **no `visibilityScope`**, so any sufficiently-privileged caller receives an artifact regardless of its `visibility`. The coarse gates (operator-session for web, `trusted`/`anchor` for Discord) check _who_ is asking, never _whether this entity is visible to them_.
-- Fix: pass `permissionToVisibilityScope(level)` (from `@brains/entity-service`) as `visibilityScope`, so `getEntity` fails closed — it returns `null` when the entity's visibility exceeds the caller's scope. Reuse the existing model; do not add a parallel `canAccess` helper.
-  - `interfaces/web-chat/src/attachment-handlers.ts`: have `resolveOperatorSession` yield the operator's permission level instead of a boolean, derive the scope, and return `404` (not `403`) when the scoped fetch is `null` so existence is not leaked.
-  - `interfaces/chat/src/chat-interface.ts` (`resolveNativeArtifactFile`): thread the `userPermissionLevel` already computed in `handleMessage` through `resolveNativeArtifactFiles` and pass `visibilityScope`. Keep the coarse `trusted`/`anchor` early-out as a UX gate (skips the DB read for public users); correctness rides on the scoped fetch.
-- Consequence for tests: `permissionToVisibilityScope("trusted")` is `"shared"`, so a `restricted` artifact becomes deliverable only to `anchor`, not `trusted`. The `posts native Discord files for trusted generated document artifacts` test currently uses a `restricted` document with a `discord:* -> trusted` rule — update it to a `shared` artifact (delivered) or expect non-delivery for the restricted case.
 
 Acceptance criteria:
 

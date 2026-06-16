@@ -6,6 +6,7 @@ import {
   formatConfirmationResult,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
+  permissionToVisibilityScope,
   resolveArtifactEntityRefFromCard,
   formatContentDispositionHeader,
   formatStructuredOutputSummary,
@@ -25,6 +26,7 @@ import {
   type PermissionLookupContext,
   type RuntimeUploadStore,
   type ToolActivityEvent,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import type {
   Daemon,
@@ -607,7 +609,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     conversationId: string,
     thread: Thread,
     approvalIds: Set<string>,
-    userPermissionLevel: string,
+    userPermissionLevel: UserPermissionLevel,
   ): Promise<void> {
     const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
@@ -795,7 +797,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async resolveNativeArtifactFiles(
     cards: StructuredChatCard[] | undefined,
-    userLevel: string,
+    userLevel: UserPermissionLevel,
   ): Promise<FileUpload[]> {
     if (userLevel !== "anchor" && userLevel !== "trusted") return [];
     if (!cards || !this.context) return [];
@@ -803,7 +805,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const files: FileUpload[] = [];
     for (const card of cards) {
       if (card.kind !== "attachment") continue;
-      const file = await this.resolveNativeArtifactFile(card).catch(
+      const file = await this.resolveNativeArtifactFile(card, userLevel).catch(
         (error: unknown) => {
           this.logger.debug("Failed to resolve Discord artifact file", {
             error,
@@ -819,6 +821,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async resolveNativeArtifactFile(
     card: Extract<StructuredChatCard, { kind: "attachment" }>,
+    userLevel: UserPermissionLevel,
   ): Promise<FileUpload | undefined> {
     if (!this.context) return undefined;
     const entityRef = resolveArtifactEntityRefFromCard(
@@ -827,7 +830,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     if (!entityRef) return undefined;
 
-    const entity = await this.context.entityService.getEntity(entityRef);
+    const entity = await this.context.entityService.getEntity({
+      ...entityRef,
+      visibilityScope: permissionToVisibilityScope(userLevel),
+    });
     if (!entity || typeof entity.content !== "string") return undefined;
 
     const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);

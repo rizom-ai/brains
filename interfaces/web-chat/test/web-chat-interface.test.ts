@@ -178,6 +178,13 @@ function operatorPlugin(): WebChatInterface {
   return new WebChatInterface({}, { resolveOperatorSession: async () => true });
 }
 
+function trustedPlugin(): WebChatInterface {
+  return new WebChatInterface(
+    {},
+    { resolvePermissionLevel: async () => "trusted" },
+  );
+}
+
 function textDataUrl(content: string): string {
   return `data:text/plain;base64,${Buffer.from(content, "utf8").toString("base64")}`;
 }
@@ -791,6 +798,30 @@ describe("WebChatInterface", () => {
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("utf8")).toBe(
       "%PDF-1.7",
     );
+  });
+
+  it("does not serve restricted document attachments to trusted callers", async () => {
+    const plugin = trustedPlugin();
+    harness.addEntities([
+      {
+        id: "restricted-deck",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        metadata: { filename: "restricted-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/document?id=restricted-deck&download=1",
+      ),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Document not found");
   });
 
   it("serves generated image attachments to operators", async () => {
