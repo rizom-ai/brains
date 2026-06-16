@@ -109,7 +109,7 @@ export class TestRunner implements ITestRunner {
         response = await this.agentService.chat(
           turn.userMessage,
           conversationId,
-          this.withTurnAttachments(baseContext, attachments),
+          this.buildTurnChatContext(baseContext, turn, attachments),
         );
       }
       pendingApprovalIds = this.extractPendingApprovalIds(response);
@@ -294,10 +294,35 @@ export class TestRunner implements ITestRunner {
     }
   }
 
-  private withTurnAttachments(
-    context: ChatContext,
+  private buildTurnChatContext(
+    baseContext: ChatContext,
+    turn: AgentTestCase["turns"][number],
     attachments: ChatAttachment[],
   ): ChatContext {
+    const context: ChatContext = { ...baseContext };
+    const turnContext = turn.context;
+
+    if (turnContext) {
+      if (turnContext.userPermissionLevel !== undefined) {
+        context.userPermissionLevel = turnContext.userPermissionLevel;
+      }
+      if (turnContext.interfaceType !== undefined) {
+        context.interfaceType = turnContext.interfaceType;
+      }
+      if (turnContext.channelId !== undefined) {
+        context.channelId = turnContext.channelId;
+      }
+      if (turnContext.channelName !== undefined) {
+        context.channelName = turnContext.channelName;
+      }
+      if (turnContext.actor !== undefined) {
+        context.actor = turnContext.actor;
+      }
+      if (turnContext.source !== undefined) {
+        context.source = turnContext.source;
+      }
+    }
+
     return attachments.length > 0 ? { ...context, attachments } : context;
   }
 
