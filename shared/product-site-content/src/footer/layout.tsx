@@ -1,5 +1,4 @@
 import type { JSX } from "preact";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { FooterData } from "./schema";
 
 export const FooterLayout = ({

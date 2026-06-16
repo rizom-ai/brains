@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 import {
   buildGenerationStubEntity,
   type GenerationStubAdapterLookup,

@@ -52,8 +52,11 @@ typecheck, lint, and tests pass. A follow-up delete-vs-upgrade slice
 removed unused `better-sqlite3` optional dependency metadata now that DB
 runtime paths consistently use `@libsql/client`; targeted package checks
 pass. A follow-up icon-package drift slice updated `lucide-react` and
-`lucide-preact` 1.18 → 1.20; targeted consumer checks pass. Remaining
-outdated entries are deliberate holds/migrations from Phase 2b+.
+`lucide-preact` 1.18 → 1.20; targeted consumer checks pass. A Phase 3
+ESLint tightening slice now enforces `--max-warnings 0` through the root
+lint entrypoint and cleaned up existing warnings; root `lint` and
+`typecheck` pass. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -280,6 +283,13 @@ Done in worktree:
   rules absent from the ESLint 8 baseline are disabled, and representative
   `--print-config` comparisons show no loosened existing rule severities.
   Full repo `bun run lint` passes.
+- Root lint now uses `scripts/lint.mjs` to run Turbo with
+  `--max-warnings 0` passed to package ESLint commands, keeping package
+  scripts local while failing the repo lint on any warning and preserving
+  Turbo flags such as the pre-commit hook's `--continue`. The initial
+  warning cleanup fixed stale disables, type-only imports, missing return
+  types, unnecessary conditionals, and one closure-state false positive;
+  full repo `bun run lint` and `bun run typecheck` pass.
 
 ### Phase 4 — zod 4 migration
 
