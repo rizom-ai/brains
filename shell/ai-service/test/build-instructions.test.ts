@@ -163,10 +163,10 @@ describe("buildInstructions", () => {
   it("should protect identity/profile singletons from vague delete requests", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "`brain-character` and `anchor-profile` are protected singleton identity/profile records",
+      "`brain-character` and `anchor-profile` are protected singletons",
     );
     expect(instructions).toContain(
-      'Do not interpret vague phrases like "old brain" as `brain-character`',
+      'For vague phrases like "old brain", ask which saved agent/brain contact the user means or resolve `agent`',
     );
   });
 
@@ -257,7 +257,23 @@ describe("buildInstructions", () => {
       "do not also list social posts, newsletters, decks, or other draft entities",
     );
     expect(instructions).toContain(
-      'Never choose a published item yourself, never call `system_update` for an ambiguous "make one draft" follow-up',
+      "if the prior draft list was empty, list published posts and ask which one to convert",
+    );
+    expect(instructions).toContain(
+      'Never choose a published item yourself, never call `system_update` for an ambiguous "make one draft" follow-up, never offer to create a draft instead',
+    );
+  });
+
+  it("should allow anchors to read restricted tool results", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "reading restricted/private content returned by tools",
+    );
+    expect(instructions).toContain(
+      "when an anchor asks to show/read a record, include the requested content exactly as you would for public content",
+    );
+    expect(instructions).toContain(
+      "Public/trusted callers must not receive restricted content from denied tools or higher-permission conversation turns",
     );
   });
 
