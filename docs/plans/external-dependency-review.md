@@ -45,8 +45,9 @@ Phase 2b slice updated `@libsql/client` 0.15 → 0.17 across entity,
 conversation, and job-queue services plus published optional dependency
 metadata; targeted DB/service checks pass. Another Phase 2b slice
 updated `drizzle-orm` 0.44 → 0.45 across the same DB services; targeted
-DB/service checks pass. Remaining outdated entries are deliberate
-holds/migrations from Phase 2b+.
+DB/service checks pass. Another Phase 2b slice updated `ink` 6 → 7 for
+`@brains/chat-repl`; package typecheck, lint, and tests pass. Remaining
+outdated entries are deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -231,6 +232,9 @@ Done in worktree:
   `@brains/conversation-service`, and `@brains/job-queue`; existing
   query-builder and migrator usage remains unchanged, with affected
   package typecheck, lint, and tests passing.
+- `ink` 6 → 7 for `@brains/chat-repl`; existing dynamic `render()` and
+  component hook usage remains unchanged, with package typecheck, lint,
+  and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
