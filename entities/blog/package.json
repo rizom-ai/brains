@@ -10,8 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint \"**/*.ts\" --fix",
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
@@ -29,7 +29,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
-    "eslint": "^8.57.1",
+    "eslint": "^10.5.0",
     "typescript": "^5.3.3"
   }
 }

@@ -30,8 +30,8 @@
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint \"**/*.ts\" --fix",
     "test": "bun run build && bun test --timeout 20000",
     "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000"
   },

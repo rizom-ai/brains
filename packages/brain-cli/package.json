@@ -57,7 +57,7 @@
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint \"**/*.ts\""
   },
   "dependencies": {
     "@clack/prompts": "^1.5.1",

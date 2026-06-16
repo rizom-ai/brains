@@ -15,8 +15,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint \"**/*.ts\" --fix",
     "clean": "rm -rf .turbo"
   },
   "dependencies": {

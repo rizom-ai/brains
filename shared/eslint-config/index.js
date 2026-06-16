@@ -11,7 +11,14 @@ module.exports = {
     ecmaVersion: 2022,
     sourceType: "module",
     projectService: {
-      allowDefaultProject: ["*.js", "*.mjs", "*.cjs"],
+      allowDefaultProject: [
+        "*.js",
+        "*.mjs",
+        "*.cjs",
+        "packages/*/scripts/*.js",
+        "packages/*/scripts/*.mjs",
+        "packages/*/scripts/*.cjs",
+      ],
     },
   },
   overrides: [
@@ -136,5 +143,11 @@ module.exports = {
     "@typescript-eslint/consistent-type-exports": "error",
     "@typescript-eslint/no-duplicate-type-constituents": "error",
     "@typescript-eslint/no-redundant-type-constituents": "off",
+    // ESLint 10 changed its recommended core rule set. Keep the ESLint 8
+    // baseline strictness explicit, but do not opt into new core rules in
+    // this migration slice.
+    "no-inner-declarations": "error",
+    "no-useless-assignment": "off",
+    "preserve-caught-error": "off",
   },
 };

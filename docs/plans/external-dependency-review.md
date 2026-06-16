@@ -262,10 +262,7 @@ Done in worktree:
 
 In rough order of value:
 
-1. `eslint` 8 → 10 (flat config), paired with `eslint-config-prettier` 10. Biggest lift; touches `@brains/eslint-config` and every
-   package's lint script — pairs naturally with the package.json
-   script-drift cleanup in `codebase-cleanup-backlog.md`.
-2. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
+1. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
    it can surface new diagnostics repo-wide.
 
 Done in worktree:
@@ -277,6 +274,12 @@ Done in worktree:
 - `syncpack` 13 → 15; root scripts now use the v15 `lint`/`fix`
   commands, preserving the old `deps:check` mismatch-only semantics, and
   `syncpack lint` passes with the existing version-group policy.
+- `eslint` 8 → 10 and `eslint-config-prettier` 8 → 10; root flat config
+  uses `FlatCompat` to preserve the shared legacy policy, old `--ext`
+  scripts were converted to equivalent glob scopes, ESLint 10-only core
+  rules absent from the ESLint 8 baseline are disabled, and representative
+  `--print-config` comparisons show no loosened existing rule severities.
+  Full repo `bun run lint` passes.
 
 ### Phase 4 — zod 4 migration
 

@@ -11,9 +11,9 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src test --ext .ts,.tsx",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
     "eval": "cd evals && bun run brain-eval",
-    "lint:fix": "eslint src test --ext .ts,.tsx --fix"
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\" --fix"
   },
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -31,7 +31,7 @@
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/node": "^20.19.43",
-    "eslint": "^8.57.1",
+    "eslint": "^10.5.0",
     "typescript": "^5.3.3"
   }
 }

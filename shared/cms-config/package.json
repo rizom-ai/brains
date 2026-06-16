@@ -12,8 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint \"**/*.ts\" --fix",
     "test": "bun test",
     "clean": "rm -rf dist"
   },

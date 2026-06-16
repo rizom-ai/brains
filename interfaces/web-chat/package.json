@@ -16,8 +16,8 @@
     "build": "bun scripts/build-ui.ts",
     "build:ui": "bun scripts/build-ui.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json",
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint \"**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"**/*.{ts,tsx}\" --fix",
     "test": "bun test"
   },
   "dependencies": {
