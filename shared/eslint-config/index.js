@@ -148,6 +148,6 @@ module.exports = {
     // this migration slice.
     "no-inner-declarations": "error",
     "no-useless-assignment": "off",
-    "preserve-caught-error": "off",
+    "preserve-caught-error": "error",
   },
 };

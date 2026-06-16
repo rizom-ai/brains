@@ -88,6 +88,7 @@ export async function encryptPilotSecrets(
         await writePlaintextSecretsTemplate(plaintextPath, templateKeys);
         throw new Error(
           `Missing required secrets for ${handle}. Created ${plaintextDisplayPath}; fill it in and rerun secrets:encrypt. ${error.message}`,
+          { cause: error },
         );
       }
     }

@@ -49,7 +49,7 @@ export async function generateImageResult(
     return { base64, dataUrl };
   } catch (error) {
     logger.error("Failed to generate image", error);
-    throw new Error("Image generation failed");
+    throw new Error("Image generation failed", { cause: error });
   }
 }
 

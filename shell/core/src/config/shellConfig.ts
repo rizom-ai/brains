@@ -33,7 +33,7 @@ export async function getStandardConfigWithDirectories(): Promise<StandardConfig
       error instanceof Error && error.message.includes("EACCES")
         ? `Cannot create data directories — permission denied. Run from a writable directory or check permissions on ${STANDARD_PATHS.dataDir}`
         : `Cannot create data directories: ${error instanceof Error ? error.message : String(error)}`;
-    throw new Error(msg);
+    throw new Error(msg, { cause: error });
   }
 
   return getStandardConfig();

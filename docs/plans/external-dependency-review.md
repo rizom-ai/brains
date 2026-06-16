@@ -55,8 +55,10 @@ pass. A follow-up icon-package drift slice updated `lucide-react` and
 `lucide-preact` 1.18 → 1.20; targeted consumer checks pass. A Phase 3
 ESLint tightening slice now enforces `--max-warnings 0` through the root
 lint entrypoint and cleaned up existing warnings; root `lint` and
-`typecheck` pass. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+`typecheck` pass. A follow-up ESLint tightening slice enabled
+`preserve-caught-error` and updated symptom rethrows to retain `cause`;
+forced root lint and typecheck pass. Remaining outdated entries are
+deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -290,6 +292,9 @@ Done in worktree:
   warning cleanup fixed stale disables, type-only imports, missing return
   types, unnecessary conditionals, and one closure-state false positive;
   full repo `bun run lint` and `bun run typecheck` pass.
+- `preserve-caught-error` is now an error. Existing symptom rethrows were
+  updated to preserve their original caught errors with `cause`; forced full
+  repo lint and root typecheck pass.
 
 ### Phase 4 — zod 4 migration
 

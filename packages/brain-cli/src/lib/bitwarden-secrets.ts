@@ -327,6 +327,7 @@ function parseJson(output: string): unknown {
   } catch (error) {
     throw new Error(
       `Could not parse bws JSON output: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

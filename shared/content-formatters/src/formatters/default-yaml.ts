@@ -58,7 +58,9 @@ Edit the YAML above to modify the content.`;
         if (error.message === "YAML content must be an object") {
           throw error;
         }
-        throw new Error(`Failed to parse YAML: ${error.message}`);
+        throw new Error(`Failed to parse YAML: ${error.message}`, {
+          cause: error,
+        });
       }
       throw error;
     }
