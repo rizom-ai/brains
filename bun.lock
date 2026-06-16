@@ -1236,7 +1236,7 @@
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
-        "lucide-preact": "^0.460.0",
+        "lucide-preact": "^1.18.0",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -3395,7 +3395,7 @@
 
     "lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
 
-    "lucide-preact": ["lucide-preact@0.460.0", "", { "peerDependencies": { "preact": "^10.5.13" } }, "sha512-5wjHmK5PZrCg4wjlRUZOyhNSnUEMNW42f4fIn11s0K5COeSQpRLuPaH+QFrjz+1Me5DBgfBBL528rgD9ClFqCA=="],
+    "lucide-preact": ["lucide-preact@1.18.0", "", { "peerDependencies": { "preact": "^10.27.2" } }, "sha512-wNVJVhzG4duzmSEh/Uh5qO7/K+Po2ISe8nBYi9ysx4YkeYmG6pu4k95CFZYiTN8VXlwExveEb9aIMa5DzItaiA=="],
 
     "lucide-react": ["lucide-react@1.18.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-LZDb7H/0YfM+RJncD0hDQRCAu+vSGODqpe35TuVI8EuXaRjkczbsx7p8dY4J87F/MUSj6bpYqeI8nw8qXaAdmA=="],
 

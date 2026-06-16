@@ -27,8 +27,10 @@ pass. A second Phase 2b slice updated `p-limit` 6 → 7 behind the
 `@brains/utils` re-export; utils and direct consumer package checks pass.
 A third Phase 2b slice updated `tailwind-merge` 2 → 3 for UI packages
 and added the missing direct dependency declaration for `@brains/web-chat`;
-UI typecheck/lint/test/build checks pass. Remaining outdated entries are
-deliberate holds/migrations from Phase 2b+.
+UI typecheck/lint/test/build checks pass. A fourth Phase 2b slice updated
+`lucide-preact` 0.x → 1.x for `@brains/product-site-content`; package
+checks pass. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -185,6 +187,9 @@ Done in worktree:
 - `tailwind-merge` 2 → 3 for `@rizom/ui`, `@brains/ui-library`, and
   `@brains/web-chat`; usage remains `twMerge`/`extendTailwindMerge`, and
   the web-chat manifest now declares the package it imports directly.
+- `lucide-preact` 0.x → 1.x for `@brains/product-site-content`; usage
+  remains named/icon-map component imports, with package typecheck,
+  lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
