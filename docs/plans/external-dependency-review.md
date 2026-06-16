@@ -61,8 +61,10 @@ forced root lint and typecheck pass. Another ESLint tightening slice enabled
 `no-useless-assignment` and removed dead initial assignments; forced root
 lint and typecheck pass. Another ESLint tightening slice promoted
 `@typescript-eslint/consistent-type-imports` to error; forced root lint and
-typecheck pass. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+typecheck pass. Another ESLint tightening slice promoted
+`@typescript-eslint/prefer-nullish-coalescing` to error; forced root lint
+passes. Remaining outdated entries are deliberate holds/migrations from
+Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -305,6 +307,9 @@ Done in worktree:
 - `@typescript-eslint/consistent-type-imports` is now an error. No code
   changes were needed after the previous zero-warning cleanup; forced full
   repo lint and root typecheck pass.
+- `@typescript-eslint/prefer-nullish-coalescing` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint passes.
 
 ### Phase 4 — zod 4 migration
 

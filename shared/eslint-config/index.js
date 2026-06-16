@@ -111,7 +111,7 @@ module.exports = {
     "@typescript-eslint/explicit-module-boundary-types": "warn",
     "@typescript-eslint/no-non-null-assertion": "error",
     // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
-    "@typescript-eslint/prefer-nullish-coalescing": "warn",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
     "@typescript-eslint/prefer-optional-chain": "warn",
     "@typescript-eslint/ban-ts-comment": [
       "warn",
