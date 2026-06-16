@@ -1,5 +1,7 @@
 # Pending Entity Ingestion Plan
 
+The shared ingestion helper (`shell/plugins/src/entity/pending-ingestion.ts`) and the `entities/link` adopter are in place. This plan now covers only extending that lifecycle to media/upload entities.
+
 ## Problem
 
 Some entity creation flows persist durable content asynchronously. A create tool may return `status: generating` while a background job fetches, extracts, captions, OCRs, or otherwise enriches the entity later.
@@ -29,26 +31,14 @@ Recommended optional fields:
 - source reference, e.g. channel/upload/URL
 - media or source metadata needed for follow-up lookup
 
-## Implementation steps
+## Remaining work
 
-1. Add shared plugin helpers for pending ingestion:
-   - create a pending entity only if it does not already exist
-   - save processed output by updating an existing pending entity or creating the final entity if no placeholder exists
-   - preserve entity IDs across the lifecycle
-
-2. Refactor `@brains/link`:
-   - on confirmed link create, create a pending link placeholder immediately
-   - enqueue the link capture job
-   - have the capture job update pending links to `draft` when extraction completes
-   - leave inaccessible/incomplete links as durable `pending` records rather than invisible queued jobs
-
-3. Extend the same pattern to media/upload entities:
+1. Extend the lifecycle to media/upload entities via the shared helper:
    - create image/upload placeholders as soon as uploads are accepted
    - run OCR/caption/thumbnail/embedding as async jobs
    - update the same entity to `draft` or `failed`
 
-4. Add evals/tests:
-   - save two links then immediately ask about them
+2. Add evals/tests for the media path:
    - upload/save an image then immediately refer to it
    - processing failure leaves a visible pending/failed entity
 

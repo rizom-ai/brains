@@ -250,9 +250,10 @@ durable job — not reworking the gate model.
 - Long-lived runs that pause and re-evaluate when async evidence arrives later.
 - Run deadlines / timeouts.
 - Shell-owned runtime persistence for playbook runs (normalized run/evidence/verdict
-  tables). Designed as shell infrastructure in [Operator runtime database](./operator-runtime-db.md),
-  where playbook runs are a named consumer of the shell runtime-state service — not
-  plugin-private SQLite and not a one-off migration hook for playbooks.
+  tables). Designed as shell infrastructure in [Runtime state store](./runtime-state-store.md),
+  where playbook runs are a named consumer of the shell runtime-state service (the
+  ephemeral operational tier, alongside chat subscriptions) — not plugin-private SQLite
+  and not a one-off migration hook for playbooks.
 - Durable delayed jobs in `@brains/job-queue`, and any scheduler (content-pipeline's
   `SchedulerBackend` is in-memory/config-driven; if recurring pulls are ever needed
   it should be extracted to a shared package and owned by the producing plugin, never
@@ -464,10 +465,12 @@ Known JSON limits, accepted for this branch:
 - Schema migration is Zod/default based.
 
 Long-term storage is the shell-owned runtime-state service designed in
-[Operator runtime database](./operator-runtime-db.md); migrating `runs.json` onto it (as
+[Runtime state store](./runtime-state-store.md); migrating `runs.json` onto it (as
 normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables) is
-deferred until that service exists. Do **not** add plugin-private SQLite, plugin-specific
-migration packaging, or a generic migration abstraction only for playbooks in the meantime.
+deferred until that service exists — it is built first for chat subscriptions, then
+merged into this worktree as the second consumer. Do **not** add plugin-private SQLite,
+plugin-specific migration packaging, or a generic migration abstraction only for playbooks
+in the meantime.
 
 ```ts
 interface PlaybookRun {

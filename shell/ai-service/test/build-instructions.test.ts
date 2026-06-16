@@ -69,10 +69,23 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("Public users are not the anchor");
     expect(instructions).toContain("generally cannot create, update, delete");
     expect(instructions).toContain(
-      "Do not volunteer the configured anchor/profile person's name in this answer.",
+      "Do not name, volunteer, or disclose the configured anchor/profile identity in that answer",
     );
     expect(instructions).toContain(
-      "Do not answer by revealing or comparing against the configured profile person's name unless the user separately asks who owns the brain.",
+      "Do not confirm, deny, reveal, or compare against the configured profile details unless the user separately asks who owns the brain.",
+    );
+  });
+
+  it("should not disclose profile identity when answering whether caller is anchor", () => {
+    const instructions = buildInstructions(identity, "public", undefined, {
+      name: "Jan Hein",
+      kind: "professional" as const,
+    });
+    expect(instructions).toContain(
+      "Do not name, volunteer, or disclose the configured anchor/profile identity in that answer",
+    );
+    expect(instructions).toContain(
+      "Do not confirm, deny, reveal, or compare against the configured profile details",
     );
   });
 
@@ -236,6 +249,9 @@ describe("buildInstructions", () => {
     expect(instructions).toContain(
       "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
     );
+    expect(instructions).toContain(
+      "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+    );
   });
 
   it("should prevent draft blog post checks from fanning out across draft entity types", () => {
@@ -245,6 +261,9 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+    expect(instructions).toContain(
+      'Never choose a published item yourself, never call `system_update` for an ambiguous "make one draft" follow-up',
     );
   });
 
@@ -295,6 +314,16 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "call `system_update` with `fields.title` immediately",
+    );
+  });
+
+  it("should not substitute search for unavailable extract actions", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain(
+      "If `system_extract` is not available to the current caller, do not substitute `system_search`",
+    );
+    expect(instructions).toContain(
+      "say the caller cannot generate/extract topics with their current permissions",
     );
   });
 
