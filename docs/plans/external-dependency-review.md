@@ -23,8 +23,10 @@ patch/minor drift for AI SDK React bindings, `ai`, TypeScript-ESLint,
 `radix-ui`, and `playwright-core`; targeted consumer checks and root
 lint pass. The first Phase 2b runtime-major slice updated `croner` 9 →
 10 for `@brains/content-pipeline`; package typecheck, lint, and tests
-pass. Remaining outdated entries are deliberate holds/migrations from
-Phase 2b+.
+pass. A second Phase 2b slice updated `p-limit` 6 → 7 behind the
+`@brains/utils` re-export; utils and direct consumer package checks pass.
+Remaining outdated entries are deliberate holds/migrations from Phase
+2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -175,6 +177,9 @@ Done in worktree:
 
 - `croner` 9 → 10 for `@brains/content-pipeline`; usage is encapsulated
   in `CronerBackend`, with package typecheck, lint, and tests passing.
+- `p-limit` 6 → 7 for `@brains/utils`; usage remains the default
+  `pLimit(concurrency)` API, with utils checks and direct consumer
+  package tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
