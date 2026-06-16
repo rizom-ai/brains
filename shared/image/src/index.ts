@@ -3,10 +3,12 @@ export {
   imageSchema,
   imageMetadataSchema,
   imageFormatSchema,
+  imageIngestionStatusSchema,
   resolvedImageSchema,
   type Image,
   type ImageMetadata,
   type ImageFormat,
+  type ImageIngestionStatus,
   type ResolvedImage,
 } from "./schemas/image";
 

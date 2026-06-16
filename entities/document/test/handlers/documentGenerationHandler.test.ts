@@ -114,6 +114,107 @@ describe("DocumentGenerationJobHandler", () => {
     });
   });
 
+  it("updates an existing pending document when generation completes", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "carousel",
+        entityType: "document",
+        content: createPdfDataUrl(Buffer.from("%PDF-1.4\n%pending")),
+        metadata: {
+          title: "carousel",
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+          status: "pending",
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          attachmentType: "carousel",
+        },
+      },
+    });
+
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
+    );
+
+    await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/template/post-1",
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        filename: "carousel.pdf",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    const document = await context.entityService.getEntity({
+      entityType: "document",
+      id: "carousel",
+    });
+    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect(document?.metadata).toMatchObject({
+      status: "draft",
+      filename: "carousel.pdf",
+      sourceEntityType: "social-post",
+      sourceEntityId: "post-1",
+      attachmentType: "carousel",
+    });
+  });
+
+  it("marks a pending document failed when generation fails", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "carousel",
+        entityType: "document",
+        content: createPdfDataUrl(Buffer.from("%PDF-1.4\n%pending")),
+        metadata: {
+          title: "carousel",
+          mimeType: "application/pdf",
+          filename: "carousel.pdf",
+          status: "pending",
+        },
+      },
+    });
+
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<Buffer> => {
+          throw new Error("render failed");
+        },
+      },
+    );
+
+    try {
+      await handler.process(
+        {
+          renderUrl: "http://localhost/_media/carousel/template/post-1",
+          sourceEntityType: "social-post",
+          sourceEntityId: "post-1",
+          attachmentType: "carousel",
+          filename: "carousel.pdf",
+        },
+        "job-1",
+        progressReporter(),
+      );
+    } catch (error) {
+      expectErrorMessage(error, "render failed");
+    }
+
+    const document = await context.entityService.getEntity({
+      entityType: "document",
+      id: "carousel",
+    });
+    expect(document?.metadata).toMatchObject({
+      status: "failed",
+      processingError: expect.stringContaining("render failed"),
+    });
+  });
+
   it("reuses an existing document with the same dedup key", async () => {
     await context.entityService.createEntity({
       entity: {

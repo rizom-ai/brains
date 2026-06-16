@@ -5,6 +5,7 @@ import {
   type Image,
   type ImageMetadata,
   type ImageFormat,
+  type ImageIngestionStatus,
 } from "../schemas/image";
 import {
   parseDataUrl,
@@ -19,8 +20,13 @@ export interface CreateImageInput {
   dataUrl: string;
   title: string;
   alt?: string;
+  status?: ImageIngestionStatus;
+  sourceUrl?: string;
   sourceEntityType?: string;
   sourceEntityId?: string;
+  sourceUploadId?: string;
+  sourceFilename?: string;
+  sourceMediaType?: string;
   attachmentType?: string;
   dedupKey?: string;
 }
@@ -98,10 +104,17 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
         format: finalFormat,
         width: dimensions?.width ?? 0,
         height: dimensions?.height ?? 0,
+        ...(input.status && { status: input.status }),
+        ...(input.sourceUrl && { sourceUrl: input.sourceUrl }),
         ...(input.sourceEntityType && {
           sourceEntityType: input.sourceEntityType,
         }),
         ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+        ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
+        ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
+        ...(input.sourceMediaType && {
+          sourceMediaType: input.sourceMediaType,
+        }),
         ...(input.attachmentType && { attachmentType: input.attachmentType }),
         ...(input.dedupKey && { dedupKey: input.dedupKey }),
       },
