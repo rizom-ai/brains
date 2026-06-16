@@ -8,6 +8,7 @@ export interface CliOptions {
   maxParallel: number;
   verbose: boolean;
   toolCoverage: boolean;
+  suite?: string;
   tags?: string[];
   testCaseIds?: string[];
   testType?: "agent" | "plugin";
@@ -49,6 +50,7 @@ function parsePreset(value: string | undefined): PresetName | undefined {
 export function parseCliOptions(args: string[]): CliOptions {
   const maxParallelArg = parseSingleFlag(args, "--max-parallel");
   const testTypeArg = parseSingleFlag(args, "--type");
+  const suite = parseSingleFlag(args, "--suite");
   const tags = parseFlag(args, "--tags");
   const testCaseIds = parseFlag(args, "--test") ?? parseFlag(args, "--filter");
   const preset = parsePreset(parseSingleFlag(args, "--preset"));
@@ -64,6 +66,7 @@ export function parseCliOptions(args: string[]): CliOptions {
     toolCoverage: args.includes("--tool-coverage"),
   };
 
+  if (suite) options.suite = suite;
   if (tags) options.tags = tags;
   if (testCaseIds) options.testCaseIds = testCaseIds;
   if (preset) options.preset = preset;

@@ -59,7 +59,7 @@ export type AgentMachineEvent =
       type: "CONFIRM";
       approvalId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -69,7 +69,7 @@ export type AgentMachineEvent =
       type: "CANCEL";
       approvalId: string;
       interfaceType: string;
-      channelId: string;
+      channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
       actor: ConversationMessageActor | null;
@@ -401,7 +401,10 @@ export const agentMachine = setup({
               response: event.output,
               pendingConfirmations: [
                 ...context.pendingConfirmations,
-                ...(event.output.pendingConfirmations ?? []),
+                ...withRequester(
+                  event.output.pendingConfirmations ?? [],
+                  context,
+                ),
               ],
               activeConfirmation: null,
             })),

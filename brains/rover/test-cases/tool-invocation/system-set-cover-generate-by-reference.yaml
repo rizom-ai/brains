@@ -9,6 +9,7 @@ tags:
   - image
   - cover
   - search
+  - preset-default
 
 turns:
   - userMessage: "I don't like the cover image for my resilience post. Can you create a new one for me?"

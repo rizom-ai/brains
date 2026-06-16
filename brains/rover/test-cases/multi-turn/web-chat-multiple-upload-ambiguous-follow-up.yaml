@@ -12,6 +12,7 @@ tags:
   - upload
   - regression
   - multi-turn
+  - preset-default
 
 turns:
   - userMessage: ""

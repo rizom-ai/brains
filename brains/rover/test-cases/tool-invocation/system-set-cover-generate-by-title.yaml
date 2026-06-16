@@ -8,6 +8,7 @@ tags:
   - core
   - image
   - cover
+  - preset-default
 
 turns:
   - userMessage: "I don't like the cover image for the blog post 'Resilience Is Not Redundancy'. Can you create a new one for me?"

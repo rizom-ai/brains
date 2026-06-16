@@ -10,6 +10,7 @@ tags:
   - image
   - media
   - og-image
+  - preset-default
 
 turns:
   - userMessage: "Generate an OG image for deck 'distributed-systems-primer'"

@@ -8,6 +8,7 @@ tags:
   - newsletter
   - natural-language
   - anti-hallucination
+  - preset-full
 
 turns:
   - userMessage: "Create a newsletter for my subscribers about remote work"

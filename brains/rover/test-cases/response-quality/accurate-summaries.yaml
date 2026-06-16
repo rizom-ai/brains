@@ -9,6 +9,7 @@ tags:
   - quality
   - accuracy
   - summaries
+  - preset-full
 
 turns:
   - userMessage: "Give me an overview of all my content"

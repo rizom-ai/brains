@@ -2008,6 +2008,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-generate-post",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
       );
 
       expect(response.text).toContain("Completed: Generate post outline");
@@ -2191,6 +2192,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update-note",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
       );
 
       expect(mockGenerate).toHaveBeenCalledTimes(2);
@@ -2456,6 +2458,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update-profile",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
       );
 
       expect(response.text).toBe("Completed: Updated anchor profile.");

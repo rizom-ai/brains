@@ -1,0 +1,51 @@
+id: link-tool-capture-followup-extract
+name: Link Capture from Follow-up Extract Intent
+description: |
+  Regression test for conversations where the user first sends a bare URL, then
+  clarifies that it is a link and asks to extract it. The agent should remember
+  the URL and call system_create for entityType link rather than claiming bare
+  links cannot be extracted or treating the domain as an agent.
+type: multi_turn
+tags:
+  - link
+  - tool-invocation
+  - intent-recognition
+  - context-carryover
+  - regression
+
+turns:
+  - userMessage: "https://www.planetir.org/welcome"
+    successCriteria:
+      responseNotContains:
+        - "agent"
+        - "local directory"
+        - "before I can contact"
+        - "contact it"
+
+  - userMessage: "It's not an agent, it is a link"
+    successCriteria:
+      responseNotContains:
+        - "before I can contact"
+        - "local directory"
+
+  - userMessage: "extract it"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://www.planetir.org/welcome"
+      responseNotContains:
+        - "can't extract content from a bare link"
+        - "cannot extract content from a bare link"
+        - "save it first"
+        - "unless you want me to save"
+        - "send me the URL"
+        - "Which link"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

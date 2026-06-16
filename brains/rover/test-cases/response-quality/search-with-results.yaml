@@ -8,6 +8,7 @@ tags:
   - core
   - search
   - content-dependent
+  - preset-default
 
 turns:
   - userMessage: "What have I written about distributed systems?"

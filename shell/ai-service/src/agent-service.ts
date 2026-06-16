@@ -515,7 +515,7 @@ export class AgentService implements IAgentService {
     previousContext: AgentMachineContext,
   ): {
     interfaceType: string;
-    channelId: string;
+    channelId: string | undefined;
     channelName: string;
     userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
     actor: ConversationMessageActor | null;

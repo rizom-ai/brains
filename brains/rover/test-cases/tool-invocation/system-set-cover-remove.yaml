@@ -8,6 +8,7 @@ tags:
   - core
   - image
   - cover
+  - preset-default
 
 turns:
   - userMessage: "Remove the cover image from blog post 'resilience-in-distributed-systems'"

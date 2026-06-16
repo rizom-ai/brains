@@ -26,6 +26,20 @@ export {
   resetPromptCache,
   materializePrompts,
 } from "./entity/prompt-resolver";
+export {
+  createPendingEntity,
+  failPendingEntity,
+  saveProcessedEntity,
+  type CreatePendingEntityRequest,
+  type CreatePendingEntityResult,
+  type FailPendingEntityRequest,
+  type FailPendingEntityResult,
+  type PendingEntityMetadata,
+  type PendingEntityService,
+  type PendingIngestionStatus,
+  type SaveProcessedEntityRequest,
+  type SaveProcessedEntityResult,
+} from "./entity/pending-ingestion";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 

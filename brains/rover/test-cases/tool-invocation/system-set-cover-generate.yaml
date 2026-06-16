@@ -8,6 +8,7 @@ tags:
   - core
   - image
   - cover
+  - preset-default
 
 turns:
   - userMessage: "Generate a cover image for the blog post 'resilience-in-distributed-systems'"
