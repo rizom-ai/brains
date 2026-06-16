@@ -262,8 +262,7 @@ In rough order of value:
 1. `eslint` 8 → 10 (flat config), paired with `eslint-config-prettier` 10. Biggest lift; touches `@brains/eslint-config` and every
    package's lint script — pairs naturally with the package.json
    script-drift cleanup in `codebase-cleanup-backlog.md`.
-2. `syncpack` 13 → 15 (verify version-group config survives).
-3. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
+2. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
    it can surface new diagnostics repo-wide.
 
 Done in worktree:
@@ -272,6 +271,9 @@ Done in worktree:
   `changeset status --since=HEAD` passes.
 - `lint-staged` 15 → 17; root package-json config remains valid, and the
   hook command was exercised with `lint-staged --diff HEAD`.
+- `syncpack` 13 → 15; root scripts now use the v15 `lint`/`fix`
+  commands, preserving the old `deps:check` mismatch-only semantics, and
+  `syncpack lint` passes with the existing version-group policy.
 
 ### Phase 4 — zod 4 migration
 
