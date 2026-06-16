@@ -263,14 +263,15 @@ In rough order of value:
    package's lint script — pairs naturally with the package.json
    script-drift cleanup in `codebase-cleanup-backlog.md`.
 2. `syncpack` 13 → 15 (verify version-group config survives).
-3. `lint-staged` 15 → 17.
-4. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
+3. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
    it can surface new diagnostics repo-wide.
 
 Done in worktree:
 
 - `@changesets/changelog-github` 0.6 → 0.7; config remains unchanged and
   `changeset status --since=HEAD` passes.
+- `lint-staged` 15 → 17; root package-json config remains valid, and the
+  hook command was exercised with `lint-staged --diff HEAD`.
 
 ### Phase 4 — zod 4 migration
 
