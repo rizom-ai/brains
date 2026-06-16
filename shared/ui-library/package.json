@@ -20,7 +20,7 @@
     "clsx": "^2.1.0",
     "marked": "^12.0.0",
     "sanitize-html": "^2.17.5",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^3.6.0"
   },
   "peerDependencies": {
     "preact": "^10.27.2"

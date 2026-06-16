@@ -25,8 +25,10 @@ lint pass. The first Phase 2b runtime-major slice updated `croner` 9 →
 10 for `@brains/content-pipeline`; package typecheck, lint, and tests
 pass. A second Phase 2b slice updated `p-limit` 6 → 7 behind the
 `@brains/utils` re-export; utils and direct consumer package checks pass.
-Remaining outdated entries are deliberate holds/migrations from Phase
-2b+.
+A third Phase 2b slice updated `tailwind-merge` 2 → 3 for UI packages
+and added the missing direct dependency declaration for `@brains/web-chat`;
+UI typecheck/lint/test/build checks pass. Remaining outdated entries are
+deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -180,6 +182,9 @@ Done in worktree:
 - `p-limit` 6 → 7 for `@brains/utils`; usage remains the default
   `pLimit(concurrency)` API, with utils checks and direct consumer
   package tests passing.
+- `tailwind-merge` 2 → 3 for `@rizom/ui`, `@brains/ui-library`, and
+  `@brains/web-chat`; usage remains `twMerge`/`extendTailwindMerge`, and
+  the web-chat manifest now declares the package it imports directly.
 
 ### Phase 3 — tooling majors, one slice each
 

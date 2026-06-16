@@ -39,6 +39,7 @@
     "react-dom": "^19.2.7",
     "shiki": "^4.2.0",
     "streamdown": "^2.5.0",
+    "tailwind-merge": "^3.6.0",
     "use-stick-to-bottom": "^1.1.6"
   },
   "devDependencies": {
