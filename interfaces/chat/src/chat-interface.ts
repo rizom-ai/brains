@@ -385,8 +385,19 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     });
 
     app.onNewMention(async (thread, message) => {
-      if (!thread.isDM && this.getPlatformConfig(thread)?.useThreads) {
-        await thread.subscribe();
+      const platformConfig = this.getPlatformConfig(thread);
+      if (
+        platformConfig &&
+        this.shouldRouteDiscordMessage(thread, message, platformConfig) &&
+        !thread.isDM &&
+        platformConfig.useThreads
+      ) {
+        await thread.subscribe().catch((error: unknown) =>
+          this.logger.debug("Discord thread subscription failed", {
+            error,
+            threadId: thread.id,
+          }),
+        );
       }
       await this.handleRoutedMessage(thread, message);
     });
@@ -419,11 +430,22 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig) return;
-    if (thread.isDM && !platformConfig.allowDMs) return;
-    if (message.author.isBot && !message.isMention) return;
-    if (!this.isAllowedChannel(thread, platformConfig)) return;
+    if (!this.shouldRouteDiscordMessage(thread, message, platformConfig))
+      return;
 
     await this.routeToAgent(platform, thread, message);
+  }
+
+  private shouldRouteDiscordMessage(
+    thread: Thread,
+    message: Message,
+    platformConfig: DiscordChatAdapterConfig,
+  ): boolean {
+    if (thread.isDM && !platformConfig.allowDMs) return false;
+    if (message.author.isMe) return false;
+    if (message.author.isBot && !message.isMention) return false;
+    if (!this.isAllowedChannel(thread, platformConfig)) return false;
+    return true;
   }
 
   private async routeToAgent(
@@ -583,6 +605,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
+    if (!parsed.approvalId && this.hasExplicitApprovalReference(message)) {
+      await thread.post(
+        `_No matching pending approval id. Pending approval ids: ${[
+          ...approvalIds,
+        ].join(", ")}._`,
+      );
+      return;
+    }
+
     if (approvalIds.size > 1 && !parsed.approvalId) {
       await thread.post(
         `_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: ${[
@@ -599,15 +630,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    this.removePendingApproval(conversationId, approvalId);
     const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       approvalId,
     );
+    this.removePendingApproval(conversationId, approvalId);
     if (response) {
+      this.syncPendingConfirmationsFromResponse(
+        conversationId,
+        response,
+        approvalId,
+      );
       await thread.post(
-        this.formatConfirmationResponseText(response, parsed.confirmed),
+        this.formatConfirmationResponseText(
+          response,
+          parsed.confirmed,
+          this.getRemainingApprovalHelp(conversationId, response),
+        ),
       );
     }
   }
@@ -637,9 +677,25 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): string | undefined {
     if (!approvalIds || approvalIds.size === 0) return undefined;
     const normalized = message.toLowerCase();
-    return [...approvalIds].find((approvalId) =>
-      normalized.includes(approvalId.toLowerCase()),
-    );
+    return [...approvalIds]
+      .sort((left, right) => right.length - left.length)
+      .find((approvalId) =>
+        this.containsApprovalIdToken(normalized, approvalId.toLowerCase()),
+      );
+  }
+
+  private containsApprovalIdToken(
+    message: string,
+    approvalId: string,
+  ): boolean {
+    const escapedApprovalId = approvalId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(
+      `(^|[^a-z0-9_-])${escapedApprovalId}($|[^a-z0-9_-])`,
+    ).test(message);
+  }
+
+  private hasExplicitApprovalReference(message: string): boolean {
+    return /(^|[^a-z0-9_-])approval[:-][a-z0-9_-]+/i.test(message);
   }
 
   private formatAgentResponseText(
@@ -660,6 +716,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private formatConfirmationResponseText(
     response: AgentResponse,
     confirmed: boolean,
+    remainingApprovalHelp?: string,
   ): string {
     const display = formatConfirmationResult(
       response,
@@ -678,9 +735,26 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.pendingConfirmations,
     );
 
-    return [`${icon} ${display.label}`, ...attachmentSummaries, pendingHelp]
+    return [
+      `${icon} ${display.label}`,
+      ...attachmentSummaries,
+      pendingHelp,
+      remainingApprovalHelp,
+    ]
       .filter((part): part is string => Boolean(part?.trim()))
       .join("\n\n");
+  }
+
+  private getRemainingApprovalHelp(
+    conversationId: string,
+    response: AgentResponse,
+  ): string | undefined {
+    if (response.pendingConfirmations !== undefined) return undefined;
+    const remainingIds = this.pendingConfirmations.get(conversationId);
+    if (!remainingIds || remainingIds.size === 0) return undefined;
+    return `Remaining pending approval ids: ${[...remainingIds]
+      .map((approvalId) => `\`${approvalId}\``)
+      .join(", ")}.`;
   }
 
   private formatPendingConfirmationHelp(
@@ -758,6 +832,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
+  private syncPendingConfirmationsFromResponse(
+    conversationId: string,
+    response: AgentResponse,
+    resolvedApprovalId: string,
+  ): void {
+    if (response.pendingConfirmations === undefined) return;
+    const pendingIds = new Set(
+      response.pendingConfirmations
+        .map((confirmation) => confirmation.id)
+        .filter((approvalId) => approvalId !== resolvedApprovalId),
+    );
+    if (pendingIds.size === 0) {
+      this.pendingConfirmations.delete(conversationId);
+      return;
+    }
+    this.pendingConfirmations.set(conversationId, pendingIds);
+  }
+
   private removePendingApproval(
     conversationId: string,
     approvalId: string,
@@ -780,6 +872,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!platformConfig?.captureUrls) return;
     if (!platformConfig.requireMention) return;
     if (!this.isAllowedChannel(thread, platformConfig)) return;
+    if (message.author.isMe) return;
     if (message.author.isBot) return;
     if (message.isMention) return;
 

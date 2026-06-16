@@ -97,17 +97,17 @@ Covered by tests:
 - non-Discord Chat SDK threads ignored
 - Discord-scoped permission lookup (`discord:*`, not `chat:*`)
 - mentions and subscribed thread routing
-- thread subscription policy when `useThreads` is disabled
+- thread subscription policy when `useThreads` is disabled or subscription fails
 - typing indicator policy when `showTypingIndicator` is disabled
 - unmentioned channel routing when `requireMention: false`
 - DMs with `allowDMs`
-- allowed-channel gating for chat and URL capture
+- allowed-channel gating for chat, URL capture, and thread subscription
 - URL capture, disabled URL capture, and blocked domains
-- bot-message filtering unless mentioned, including passive URL capture
+- self-message filtering, plus bot-message filtering unless mentioned, including passive URL capture
 - trusted/anchor-only text, image, and PDF uploads as durable native agent attachments with Discord source metadata
 - prior upload follow-up reuse by filename, first/oldest, or most-recent wording, including restart reload from stored conversation metadata
 - user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
-- yes/no/cancel confirmation flow with readable pending-approval instructions, restart reload from stored approval cards, unrecognized replies, and explicit approval-id selection for multiple pending approvals
+- yes/no/cancel confirmation flow with readable pending-approval instructions, chained approvals, remaining-approval reminders, retry after confirmation errors, restart reload from stored approval cards, unrecognized replies, and exact approval-id selection for multiple pending approvals
 - agent error responses
 - structured artifact, approval, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including absolute artifact links when a site URL is configured
 - live tool activity status messages edited in place, with failed-tool fallback notices

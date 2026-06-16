@@ -396,6 +396,25 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
+  it("routes Discord mentions even when thread subscription fails", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      subscribe: mock(() => Promise.reject(new Error("Missing permissions"))),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.subscribe).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
   it("does not subscribe Discord mention threads when thread mode is disabled", async () => {
     const plugin = createPlugin({ useThreads: false });
     await harness.installPlugin(plugin);
@@ -625,6 +644,8 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
+    expect(thread.subscribe).not.toHaveBeenCalled();
+
     const urlMessage = createMessage({
       text: "worth saving https://example.com/a",
       isMention: false,
@@ -657,6 +678,31 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
+  it("ignores messages authored by itself even when mentioned", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        isMention: true,
+        author: {
+          userId: "bot-user-123",
+          userName: "brain",
+          fullName: "Brain Bot",
+          isBot: true,
+          isMe: true,
+        },
+      }),
+    );
+
+    expect(thread.subscribe).not.toHaveBeenCalled();
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
   it("ignores bot messages unless the bot is explicitly mentioned", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -676,6 +722,32 @@ describe("ChatInterface", () => {
         },
       }),
     );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
+  it("does not passively capture URLs from messages authored by itself", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const urlMessage = createMessage({
+      text: "self saw https://example.com/a",
+      isMention: false,
+      author: {
+        userId: "bot-user-123",
+        userName: "brain",
+        fullName: "Brain Bot",
+        isBot: false,
+        isMe: true,
+      },
+    });
+    const urlHandler = chat?.handlers.messagePatterns.find((entry) =>
+      entry.pattern.test(urlMessage.text),
+    );
+
+    await urlHandler?.handler(thread, urlMessage);
 
     expect(agentService.chat).not.toHaveBeenCalled();
     expect(thread.post).not.toHaveBeenCalled();
@@ -1275,6 +1347,247 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("continues chained pending confirmations returned by a confirmed action", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete first thing",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "First action confirmed.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-2",
+          toolName: "system_delete",
+          summary: "Delete second thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      1,
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-1",
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      2,
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-2",
+    );
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "✅ Approved · First action confirmed.",
+        "**Pending approval:** Delete second thing\nApproval id: `approval-2`\nReply with **yes** to confirm or **no/cancel** to abort.",
+      ].join("\n\n"),
+    );
+  });
+
+  it("syncs pending confirmations returned by a confirmed action", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "First action confirmed.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-1", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-1", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledWith(
+      "_No matching pending approval id. Pending approval ids: approval-2._",
+    );
+  });
+
+  it("does not re-add a resolved approval returned by a stale response", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "Action confirmed.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledTimes(2);
+    expect(agentService.chat.mock.calls[1]?.[0]).toBe("yes");
+  });
+
+  it("clears pending confirmations when confirmed action returns an empty pending list", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "All actions resolved.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-1", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-2", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
+    expect(agentService.chat).toHaveBeenCalledTimes(2);
+    expect(agentService.chat.mock.calls[1]?.[0]).toBe("yes approval-2");
+  });
+
+  it("keeps pending confirmations open when confirmation handling throws", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockRejectedValueOnce(
+      new Error("Temporary approval failure"),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(2);
+    expect(thread.post).toHaveBeenCalledWith(
+      "**Error:** Temporary approval failure",
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "✅ Approved · Action confirmed.",
+    );
+  });
+
   it("cancels pending confirmations in the same conversation", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
@@ -1436,6 +1749,182 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+    );
+  });
+
+  it("keeps remaining approvals pending after approving one of many", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-1", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-2", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      1,
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-1",
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      2,
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-2",
+    );
+    expect(thread.post).toHaveBeenCalledWith(
+      "✅ Approved · Action confirmed.\n\nRemaining pending approval ids: `approval-2`.",
+    );
+  });
+
+  it("keeps remaining approvals pending after cancelling one of many", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-2",
+          toolName: "system_publish",
+          summary: "Publish two",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "no approval-1", isMention: false }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-2", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      1,
+      "discord-discord:guild-123:channel-123:thread-456",
+      false,
+      "approval-1",
+    );
+    expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
+      2,
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-2",
+    );
+    expect(thread.post).toHaveBeenCalledWith(
+      "🚫 Declined\n\nRemaining pending approval ids: `approval-2`.",
+    );
+  });
+
+  it("selects the exact colon approval id when ids share a prefix", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval:call-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval:call-10",
+          toolName: "system_publish",
+          summary: "Publish ten",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval:call-10", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval:call-10",
+    );
+  });
+
+  it("selects the exact approval id when ids share a prefix", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_publish",
+          summary: "Publish one",
+          args: {},
+        },
+        {
+          id: "approval-10",
+          toolName: "system_publish",
+          summary: "Publish ten",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes approval-10", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-10",
     );
   });
 
@@ -1741,6 +2230,40 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       "❌ **system publish** failed: Publish failed",
     );
+  });
+
+  it("ignores non-Discord progress events even when a Discord thread is tracked", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-123" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: string) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    await harness.sendMessage("job-progress", {
+      id: "job-123",
+      type: "job",
+      status: "completed",
+      message: "Web chat job done",
+      metadata: {
+        rootJobId: "job-123",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "web-chat",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
   });
 
   it("edits tracked Discord agent responses for async job progress", async () => {
