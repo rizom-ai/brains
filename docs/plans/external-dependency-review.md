@@ -59,8 +59,10 @@ lint entrypoint and cleaned up existing warnings; root `lint` and
 `preserve-caught-error` and updated symptom rethrows to retain `cause`;
 forced root lint and typecheck pass. Another ESLint tightening slice enabled
 `no-useless-assignment` and removed dead initial assignments; forced root
-lint and typecheck pass. Remaining outdated entries are deliberate
-holds/migrations from Phase 2b+.
+lint and typecheck pass. Another ESLint tightening slice promoted
+`@typescript-eslint/consistent-type-imports` to error; forced root lint and
+typecheck pass. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -300,6 +302,9 @@ Done in worktree:
 - `no-useless-assignment` is now an error. Existing dead initial assignments
   were removed or rewritten to direct initialization/definite assignment;
   forced full repo lint, root typecheck, and targeted package tests pass.
+- `@typescript-eslint/consistent-type-imports` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint and root typecheck pass.
 
 ### Phase 4 — zod 4 migration
 
