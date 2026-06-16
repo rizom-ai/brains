@@ -37,6 +37,8 @@ Another Phase 2b slice updated `@clack/prompts` 0.11 → 1.5 for the
 `@rizom/brain` init prompt flow; `@rizom/brain` typecheck, lint, and
 tests pass. Another Phase 2b slice updated `chokidar` 3 → 5 for
 `@brains/directory-sync`; package typecheck, lint, and tests pass.
+Another Phase 2b slice updated `marked` 12 → 18 for `@brains/chat-repl`
+and `@brains/ui-library`; package typecheck, lint, and tests pass.
 Remaining outdated entries are deliberate holds/migrations from Phase
 2b+.
 
@@ -207,6 +209,9 @@ Done in worktree:
 - `chokidar` 3 → 5 for `@brains/directory-sync`; watcher usage remains
   the existing `watch()` + `FSWatcher` event API, with package typecheck,
   lint, and tests passing.
+- `marked` 12 → 18 for `@brains/chat-repl` and `@brains/ui-library`;
+  custom renderers now use Marked's token-object renderer API, with
+  package typecheck, lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
