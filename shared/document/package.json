@@ -20,7 +20,7 @@
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
-    "pdfjs-dist": "^5.4.394"
+    "pdfjs-dist": "^6.0.227"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
