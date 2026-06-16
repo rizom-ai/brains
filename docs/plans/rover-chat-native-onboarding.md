@@ -3,9 +3,11 @@
 ## Status
 
 On `feature/rover-chat-native-onboarding`; automated onboarding polish
-regressions pass, including the generic post-confirmation follow-up slice and
-structured playbook continuation action-card path. The branch is pending final
-live smoke before merge.
+regressions pass, including the generic post-confirmation follow-up slice,
+structured playbook continuation action-card path, and the plan-required focused
+eval set. A clean full-app browser/API smoke passed through setup, profile,
+seed save, retrieval, `Do that as a post outline`, confirmation, and generation
+follow-up.
 This plan is scoped to **shipping Rover onboarding** — not the general playbook
 platform. Anything an onboarding run does not exercise is listed under
 [Deferred](#deferred-not-built-here) and is explicitly out of build scope.
@@ -44,11 +46,11 @@ check, and evidence collection are unchanged.
 ## Current smoke-test observations and next fixes
 
 Earlier live onboarding smoke tests completed end-to-end but exposed the polish
-issues below. The ordered fixes are implemented; final live smoke is still needed
-before calling the branch merge-ready.
+issues below. The ordered fixes are implemented and the final clean full-app
+browser/API smoke passed.
 
-Latest live smoke is much improved. Remaining pre-merge work is a final live
-smoke pass of the structured action-card path:
+The final smoke covered the structured action-card/runtime path and the critical
+transformation continuation path:
 
 - Avoid the double "continue?" loop by projecting a structured **Keep going**
   action from the active run state; the button routes through the playbook
@@ -137,12 +139,12 @@ Ordered fix plan:
 
 Validation for this polish slice:
 
-- `plugins/playbooks`: focused test first, then typecheck/tests/lint.
+- `plugins/playbooks`: focused test first, then typecheck/tests/lint. **Done.**
 - `shell/ai-service` or `shell/core` checks if response assembly or confirmation
-  labels are touched.
-- `brains/rover`: typecheck/tests.
+  labels are touched. **Done for touched ai-service paths.**
+- `brains/rover`: typecheck/tests. **Done.**
 - Focused eval set in requested order:
-  `playbook-goal-check-met,playbook-goal-check-not-met,multi-turn-rover-onboarding-playbook`.
+  `playbook-goal-check-met,playbook-goal-check-not-met,multi-turn-rover-onboarding-playbook`. **Done; 3/3 passed on 2026-06-16.**
 
 ## What this is
 

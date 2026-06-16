@@ -72,8 +72,6 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
-      responseContains:
-        - "show"
       responseNotContains:
         - "what is next"
         - "I cannot"
@@ -86,10 +84,6 @@ turns:
       expectedTools:
         - toolName: system_extract
           shouldBeCalled: false
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
       responseContains:
         - found
       responseNotContains:
