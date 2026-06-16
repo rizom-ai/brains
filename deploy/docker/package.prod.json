@@ -2,7 +2,7 @@
   "name": "brain-runtime",
   "description": "Runtime dependencies for bundled brain apps",
   "dependencies": {
-    "react-devtools-core": "^6.1.1",
+    "react-devtools-core": "^7.0.1",
     "@libsql/client": "^0.17.4",
     "tailwindcss": "^4.1.11",
     "@tailwindcss/postcss": "^4.1.13",

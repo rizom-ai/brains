@@ -97,23 +97,23 @@ Major jumps and pre-1.0 minors (real migration work, one slice each):
 
 Workspace majors and delete-vs-upgrade decisions:
 
-| Package                                                            | Current         | Latest  | Decision / notes                                                                                       |
-| ------------------------------------------------------------------ | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `zod`                                                              | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
-| `express`, `express-async-handler`, `@types/express`               | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
-| `storybook` + `@storybook/*`                                       | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
-| `marked`                                                           | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
-| `chokidar`                                                         | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
-| `vite`                                                             | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
-| `pdfjs-dist`                                                       | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
-| `@libsql/client`                                                   | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
-| `drizzle-orm`                                                      | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
-| `@types/node`                                                      | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
-| `tailwind-merge`                                                   | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
-| `lucide-preact`                                                    | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
-| `ink`                                                              | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
-| `@clack/prompts`                                                   | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
-| `croner` / `p-limit` / `varlock` / `sharp` / `react-devtools-core` | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
+| Package                                              | Current         | Latest  | Decision / notes                                                                                       |
+| ---------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `zod`                                                | 3.25.76         | 4.4.3   | Lock already resolves to 3.25.76 — Phase 2 aligns declared `^3.23.8` ranges; v4 is Phase 4             |
+| `express`, `express-async-handler`, `@types/express` | 4.x             | 5.x     | **Delete** — `interfaces/mcp` imports none of them; HTTP transport uses `createServer`                 |
+| `storybook` + `@storybook/*`                         | 8.6 + 9.1 mixed | 10.4.4  | **Delete** — only `shared/ui-library`, one demo story, no turbo/CI wiring, mixed install cannot launch |
+| `marked`                                             | 12.0.2          | 18.0.5  | Six majors behind — check changelog before touching                                                    |
+| `chokidar`                                           | 3.6.0           | 5.0.0   | Watcher API changes (`directory-sync`)                                                                 |
+| `vite`                                               | 7.3.3           | 8.0.16  | Patch to 7.3.5 is safe drift; v8 is a separate migration                                               |
+| `pdfjs-dist`                                         | 5.7.284         | 6.0.227 | Lazily imported; grep usage must include dynamic imports                                               |
+| `@libsql/client`                                     | 0.15.15         | 0.17.3  | DB client — test entity/job/conversation suites against real files                                     |
+| `drizzle-orm`                                        | 0.44.7          | 0.45.2  | Pre-1.0 minor = potentially breaking                                                                   |
+| `@types/node`                                        | 20.19.37        | 25.9.3  | Hold at Node 20 until runtime baseline is decided; patch within 20 is okay                             |
+| `tailwind-merge`                                     | 2.6.1           | 3.6.0   | Runtime UI helper migration                                                                            |
+| `lucide-preact`                                      | 0.460.0         | 1.18.0  | Runtime icon package migration                                                                         |
+| `ink`                                                | 6.8.0           | 7.0.5   | `chat-repl` TUI                                                                                        |
+| `@clack/prompts`                                     | 0.11.0          | 1.x     | `brain-cli` prompts; verify against current inventory before starting                                  |
+| `croner` / `p-limit` / `varlock` / `sharp`           | various         | various | One-major or pre-1.0 bumps; take individually with consumer tests                                      |
 
 Inventory inconsistencies to fix deliberately:
 
@@ -251,6 +251,9 @@ Done in worktree:
 - `lucide-react`/`lucide-preact` 1.18 → 1.20 for `@brains/web-chat` and
   `@brains/product-site-content`; named icon imports remain unchanged,
   with targeted consumer checks passing.
+- `react-devtools-core` 6 → 7 for `@rizom/brain`, generated model
+  package optional deps, and Docker runtime metadata; it remains
+  externalized for Ink, with app/CLI checks passing.
 
 ### Phase 3 — tooling majors, one slice each
 

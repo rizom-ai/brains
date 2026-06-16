@@ -37,7 +37,7 @@ export function generateNpmPackageJson(
       "@libsql/client": "^0.17.4",
       lightningcss: "^1.29.2",
       "@tailwindcss/oxide": "^4.1.4",
-      "react-devtools-core": "^6.1.1",
+      "react-devtools-core": "^7.0.1",
     },
     publishConfig: {
       access: "public",
