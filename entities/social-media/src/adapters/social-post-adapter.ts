@@ -35,7 +35,7 @@ export class SocialPostAdapter extends BaseEntityAdapter<
    * Frontmatter-only fields (not in metadata schema) are preserved from entity.content.
    */
   public override toMarkdown(entity: SocialPost): string {
-    let contentBody = "";
+    let contentBody: string;
     let existingFrontmatter: Partial<SocialPostFrontmatter> = {};
 
     try {

@@ -107,7 +107,6 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
       const categoryMatch = title.match(/\[([^\]]+)\]$/);
       if (categoryMatch) {
         category = categoryMatch[1] ?? "general";
-        title = title.replace(/\s*\[([^\]]+)\]$/, "").trim();
       }
     }
 

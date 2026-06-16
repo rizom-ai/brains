@@ -144,10 +144,10 @@ module.exports = {
     "@typescript-eslint/no-duplicate-type-constituents": "error",
     "@typescript-eslint/no-redundant-type-constituents": "off",
     // ESLint 10 changed its recommended core rule set. Keep the ESLint 8
-    // baseline strictness explicit, but do not opt into new core rules in
-    // this migration slice.
+    // baseline strictness explicit, then opt into selected new core rules
+    // through separate follow-up strictness slices.
     "no-inner-declarations": "error",
-    "no-useless-assignment": "off",
+    "no-useless-assignment": "error",
     "preserve-caught-error": "error",
   },
 };

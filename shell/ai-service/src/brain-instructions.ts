@@ -9,20 +9,18 @@ export function buildInstructions(
   agentInstructions?: string[],
   agentContextInstructions?: string,
 ): string {
-  let userContext = "";
-  if (userPermissionLevel === "anchor") {
-    userContext = `
+  const userContext =
+    userPermissionLevel === "anchor"
+      ? `
 ## Current User
-The current caller has **anchor-level operator permissions**. This authorizes owner-level actions, but it does not prove the caller's real-world identity or profile name.`;
-  } else if (userPermissionLevel === "trusted") {
-    userContext = `
+The current caller has **anchor-level operator permissions**. This authorizes owner-level actions, but it does not prove the caller's real-world identity or profile name.`
+      : userPermissionLevel === "trusted"
+        ? `
 ## Current User
-The current caller is a **trusted user** with elevated access, but is not the anchor.`;
-  } else {
-    userContext = `
+The current caller is a **trusted user** with elevated access, but is not the anchor.`
+        : `
 ## Current User
 The current caller is a **public user** with limited, read-oriented access. Public users are not the anchor and generally cannot create, update, delete, publish, sync, or otherwise mutate content.`;
-  }
 
   // Build profile section
   let profileSection = "";
