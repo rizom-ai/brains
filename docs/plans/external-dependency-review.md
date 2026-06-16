@@ -21,8 +21,10 @@ Rover evals were run with `bun run eval --skip-llm-judge --max-parallel
 yet. A 2026-06-16 follow-up safe-drift slice updated newly surfaced
 patch/minor drift for AI SDK React bindings, `ai`, TypeScript-ESLint,
 `radix-ui`, and `playwright-core`; targeted consumer checks and root
-lint pass. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+lint pass. The first Phase 2b runtime-major slice updated `croner` 9 →
+10 for `@brains/content-pipeline`; package typecheck, lint, and tests
+pass. Remaining outdated entries are deliberate holds/migrations from
+Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -168,6 +170,11 @@ as better-sqlite3 12 and sharp 0.35. None is urgent; take each only when
 touching its consumer package. Decide the Node runtime baseline before
 touching `@types/node` 25 (the type package should track the deploy
 baseline, not npm latest).
+
+Done in worktree:
+
+- `croner` 9 → 10 for `@brains/content-pipeline`; usage is encapsulated
+  in `CronerBackend`, with package typecheck, lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
