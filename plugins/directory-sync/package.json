@@ -25,7 +25,7 @@
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "chokidar": "^3.5.3",
+    "chokidar": "^5.0.0",
     "simple-git": "^3.36.0"
   },
   "devDependencies": {

@@ -35,8 +35,10 @@ updated `sharp` 0.34 → 0.35 across site-engine, brain-cli optional deps,
 and generated model package optional deps; affected package checks pass.
 Another Phase 2b slice updated `@clack/prompts` 0.11 → 1.5 for the
 `@rizom/brain` init prompt flow; `@rizom/brain` typecheck, lint, and
-tests pass. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+tests pass. Another Phase 2b slice updated `chokidar` 3 → 5 for
+`@brains/directory-sync`; package typecheck, lint, and tests pass.
+Remaining outdated entries are deliberate holds/migrations from Phase
+2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -202,6 +204,9 @@ Done in worktree:
 - `@clack/prompts` 0.11 → 1.5 for `@rizom/brain`; usage remains the
   existing `intro`/`password`/`confirm`/`text`/`isCancel` prompt flow,
   with package typecheck, lint, and tests passing.
+- `chokidar` 3 → 5 for `@brains/directory-sync`; watcher usage remains
+  the existing `watch()` + `FSWatcher` event API, with package typecheck,
+  lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
