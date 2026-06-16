@@ -1,7 +1,7 @@
 {
   "name": "@brains/email-resend",
   "private": true,
-  "version": "0.2.0-alpha.122",
+  "version": "0.2.0-alpha.123",
   "description": "Generic email delivery adapter for Resend",
   "type": "module",
   "exports": {
