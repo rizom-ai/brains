@@ -8,6 +8,7 @@ tags:
   - social-media
   - queue
   - agent
+  - preset-full
 
 turns:
   - userMessage: "Show me what's in my LinkedIn publish queue"

@@ -8,6 +8,7 @@ tags:
   - core
   - social-media
   - entity-crud
+  - preset-full
 
 turns:
   - userMessage: "Create a LinkedIn post about our latest product launch"

@@ -11,6 +11,8 @@ import {
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
 
+const PRESET_NAMES = new Set<string>(["core", "default", "full"]);
+
 /**
  * Load eval config from brain.eval.yaml (preferred) or brain.eval.config.ts (legacy).
  *
@@ -28,6 +30,8 @@ export interface EvalConfigResult {
   models: string[];
   /** Judge model for LLM scoring (from `judge:` field) */
   judge?: string;
+  /** Effective tags from the selected eval suite or CLI `--tags`. */
+  tags?: string[];
   /** Brain definition for re-resolution per model (multi-model only) */
   brainDefinition?: unknown;
   /** Resolve fresh config (re-reads env vars for interpolation) */
@@ -35,8 +39,12 @@ export interface EvalConfigResult {
 }
 
 export interface LoadEvalConfigOptions {
-  /** CLI preset override; takes precedence over brain.eval.yaml `preset:`. */
+  /** CLI suite selector from brain.eval.yaml `suites:`. */
+  suite?: string | undefined;
+  /** CLI preset override; takes precedence over selected suite `preset:`. */
   preset?: PresetName | undefined;
+  /** CLI tag override; takes precedence over selected suite `tags:`. */
+  tags?: string[] | undefined;
 }
 
 export async function loadEvalConfig(
@@ -81,11 +89,12 @@ async function loadBrainEvalConfigIfPresent(
   if (!existsSync(yamlPath)) return undefined;
 
   const content = readFileSync(yamlPath, "utf-8");
+  const rawYaml = await parseRawBrainEvalYaml(content);
+  const evalSelection = resolveEvalSelection(rawYaml, options);
   const overrides = applyCliOverrides(
     parseBrainEvalOverrides(content),
-    options,
+    evalSelection,
   );
-  const rawYaml = await parseRawBrainEvalYaml(content);
   const models = parseModelsField(rawYaml);
   const judge = parseJudgeField(rawYaml);
 
@@ -120,7 +129,7 @@ async function loadBrainEvalConfigIfPresent(
   const freshResolve = (): AppConfig => {
     const freshOverrides = applyCliOverrides(
       parseInstanceOverrides(content),
-      options,
+      evalSelection,
     );
     return resolveConfig(brainModule.default, process.env, freshOverrides);
   };
@@ -131,19 +140,135 @@ async function loadBrainEvalConfigIfPresent(
     brainModelPath: brainModulePath,
     models,
     ...(judge ? { judge } : {}),
+    ...(evalSelection.tags?.length ? { tags: evalSelection.tags } : {}),
     resolveConfig: freshResolve,
   };
 }
 
+export interface EvalSelection {
+  preset?: PresetName;
+  tags?: string[];
+}
+
+export function resolveEvalSelection(
+  rawYaml: Record<string, unknown>,
+  options: LoadEvalConfigOptions,
+): EvalSelection {
+  const suiteSelection = options.suite
+    ? resolveEvalSuite(rawYaml, options.suite)
+    : undefined;
+  const preset = options.preset ?? suiteSelection?.preset;
+  const tags = options.tags ?? suiteSelection?.tags;
+
+  return {
+    ...(preset ? { preset } : {}),
+    ...(tags?.length ? { tags } : {}),
+  };
+}
+
+function resolveEvalSuite(
+  rawYaml: Record<string, unknown>,
+  suiteName: string,
+): EvalSelection {
+  const suites = rawYaml["suites"];
+  if (!isRecord(suites)) {
+    throw new Error(
+      `Eval suite "${suiteName}" was requested, but brain.eval.yaml has no suites block.`,
+    );
+  }
+
+  const visiting = new Set<string>();
+  const resolved = new Map<string, EvalSelection>();
+
+  const visit = (name: string): EvalSelection => {
+    if (visiting.has(name)) {
+      throw new Error(`Eval suite "${name}" extends itself in a cycle.`);
+    }
+    const cached = resolved.get(name);
+    if (cached) return cached;
+
+    const rawSuite = suites[name];
+    if (!isRecord(rawSuite)) {
+      throw new Error(`Unknown eval suite "${name}".`);
+    }
+
+    visiting.add(name);
+    const parentNames = parseSuiteExtends(rawSuite["extends"], name);
+    const parentSelections = parentNames.map((parentName) => visit(parentName));
+    visiting.delete(name);
+
+    const ownPreset = parseSuitePreset(rawSuite["preset"], name);
+    const ownTags = parseSuiteTags(rawSuite["tags"], name);
+    const parentTags = parentSelections.flatMap(
+      (selection) => selection.tags ?? [],
+    );
+    const inheritedPreset = [...parentSelections]
+      .reverse()
+      .find((selection) => selection.preset)?.preset;
+    const preset = ownPreset ?? inheritedPreset;
+
+    const selection: EvalSelection = {
+      ...(preset ? { preset } : {}),
+      tags: uniqueStrings([...parentTags, ...ownTags]),
+    };
+    resolved.set(name, selection);
+    return selection;
+  };
+
+  return visit(suiteName);
+}
+
 function applyCliOverrides(
   overrides: InstanceOverrides,
-  options: LoadEvalConfigOptions,
+  options: Pick<LoadEvalConfigOptions, "preset">,
 ): InstanceOverrides {
   if (!options.preset) return overrides;
   return {
     ...overrides,
     preset: options.preset,
   };
+}
+
+function parseSuiteExtends(value: unknown, suiteName: string): string[] {
+  if (value === undefined) return [];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    return value;
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid extends; expected a string or string array.`,
+  );
+}
+
+function parseSuitePreset(
+  value: unknown,
+  suiteName: string,
+): PresetName | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string" && PRESET_NAMES.has(value)) {
+    return value as PresetName;
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid preset; expected core, default, or full.`,
+  );
+}
+
+function parseSuiteTags(value: unknown, suiteName: string): string[] {
+  if (value === undefined) return [];
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    return value;
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid tags; expected a string array.`,
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values)];
 }
 
 function parseBrainEvalOverrides(

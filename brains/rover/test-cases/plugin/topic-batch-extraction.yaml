@@ -9,6 +9,7 @@ tags:
   - topics
   - batch-extraction
   - derivation
+  - preset-full
 plugin: topics
 handler: batchExtract
 

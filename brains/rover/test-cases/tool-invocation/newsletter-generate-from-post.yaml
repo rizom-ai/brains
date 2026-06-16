@@ -9,6 +9,7 @@ tags:
   - newsletter
   - blog-integration
   - anti-hallucination
+  - preset-full
 
 turns:
   - userMessage: "Create a newsletter based on my latest blog post"

@@ -8,6 +8,7 @@ tags:
   - core
   - image
   - cover
+  - preset-default
 
 turns:
   - userMessage: "Set the image 'hero-banner' as the cover for blog post 'resilience-in-distributed-systems'"

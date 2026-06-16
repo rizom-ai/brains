@@ -7,6 +7,7 @@ setup:
 tags:
   - core
   - search
+  - preset-default
 
 turns:
   - userMessage: "Search for blog posts about programming"

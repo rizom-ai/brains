@@ -15,6 +15,7 @@ tags:
   - cover
   - regression
   - multi-turn
+  - preset-full
 
 turns:
   - userMessage: ""

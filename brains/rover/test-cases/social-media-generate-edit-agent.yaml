@@ -9,6 +9,7 @@ tags:
   - linkedin
   - agent
   - multi-turn
+  - preset-full
 
 turns:
   - userMessage: "Create a LinkedIn post about the future of work and decentralized organizations"

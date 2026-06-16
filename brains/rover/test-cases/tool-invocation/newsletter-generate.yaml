@@ -8,6 +8,7 @@ tags:
   - core
   - newsletter
   - anti-hallucination
+  - preset-full
 
 turns:
   - userMessage: "Generate a newsletter about AI trends"

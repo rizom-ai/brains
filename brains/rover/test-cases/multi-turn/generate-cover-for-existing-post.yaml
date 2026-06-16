@@ -9,6 +9,7 @@ tags:
   - image
   - cover
   - multi-turn
+  - preset-full
 
 turns:
   - userMessage: "Generate a LinkedIn post about the future of AI"

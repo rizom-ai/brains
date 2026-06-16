@@ -13,6 +13,7 @@ tags:
   - pdf
   - regression
   - multi-turn
+  - preset-default
 
 turns:
   - userMessage: ""

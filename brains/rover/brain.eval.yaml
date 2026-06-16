@@ -2,6 +2,22 @@ brain: rover
 preset: full
 mode: eval
 
+suites:
+  core:
+    preset: core
+    tags:
+      - preset-core
+  default:
+    extends: core
+    preset: default
+    tags:
+      - preset-default
+  full:
+    extends: default
+    preset: full
+    tags:
+      - preset-full
+
 # Single model eval with OpenAI LLM judge
 models:
   - gpt-5.4-mini

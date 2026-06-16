@@ -177,9 +177,19 @@ full-preset territory.
 ### Phase 5 — make it the gate
 
 Document `eval:core` as the pre-release smoke for any change touching
-presets or shell system tools. Pointers out: extending `--preset` to a
-default/full matrix is the natural follow-up; multi-model parallelism
-stays in `parallel-eval-workers.md`.
+presets or shell system tools. Eval suites are declarative and inheritable in
+`brain.eval.yaml`: `core` runs `preset-core`, `default` extends `core` and adds
+`preset-default`, and `full` extends `default` and adds `preset-full`. This keeps
+larger preset gates from duplicating smaller-preset tags in package scripts.
+
+Legacy full-suite cases were reviewed and assigned to the smallest preset they
+exercise instead of bulk-tagging everything as full. After moving image into the
+core preset, the split is 67 direct `preset-core` cases, 33 direct
+`preset-default` cases, and 36 direct `preset-full` cases. The full suite
+inherits all three tags, so it still covers all 136 existing eval fixtures
+without direct tag overlap between preset tiers. Filling new default/full
+coverage gaps remains the natural follow-up; multi-model parallelism stays in
+`parallel-eval-workers.md`.
 
 ## Cost note
 

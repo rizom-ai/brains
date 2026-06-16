@@ -11,6 +11,7 @@ tags:
   - document
   - media
   - document-generate
+  - preset-full
 
 turns:
   - userMessage: "Preview the carousel for deck 'distributed-systems-primer' as a PDF"

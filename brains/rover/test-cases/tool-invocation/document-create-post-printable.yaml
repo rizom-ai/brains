@@ -11,6 +11,7 @@ tags:
   - media
   - printable
   - document-create
+  - preset-full
 
 turns:
   - userMessage: "Save the blog post 'Resilience Is Not Redundancy' as a printable PDF"

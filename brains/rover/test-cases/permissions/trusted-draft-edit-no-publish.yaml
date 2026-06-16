@@ -13,6 +13,7 @@ tags:
   - permissions
   - publish-action-policy
   - trusted
+  - preset-full
 
 turns:
   - userMessage: >-

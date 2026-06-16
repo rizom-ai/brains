@@ -13,6 +13,7 @@ tags:
   - image
   - regression
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: ""

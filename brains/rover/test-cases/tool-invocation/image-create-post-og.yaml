@@ -10,6 +10,7 @@ tags:
   - image
   - media
   - og-image
+  - preset-default
 
 turns:
   - userMessage: "Generate an OG image for blog post 'resilience-in-distributed-systems'"

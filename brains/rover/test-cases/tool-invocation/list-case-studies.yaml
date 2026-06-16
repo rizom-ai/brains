@@ -8,6 +8,7 @@ tags:
   - core
   - list
   - entity-type-resolution
+  - preset-full
 
 turns:
   - userMessage: "Show me my case studies"

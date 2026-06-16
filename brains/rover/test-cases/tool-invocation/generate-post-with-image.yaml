@@ -9,6 +9,7 @@ tags:
   - image
   - cover
   - core
+  - preset-full
 
 turns:
   - userMessage: "Generate a LinkedIn post with a cover image about continuous learning in tech"

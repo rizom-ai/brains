@@ -8,6 +8,7 @@ tags:
   - core
   - image
   - web-chat
+  - preset-core
 
 turns:
   - userMessage: "Can you generate an image of a robot for me?"

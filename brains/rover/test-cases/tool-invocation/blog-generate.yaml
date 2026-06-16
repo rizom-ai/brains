@@ -8,6 +8,7 @@ tags:
   - core
   - blog
   - anti-hallucination
+  - preset-default
 
 turns:
   - userMessage: "Generate a new blog post about AI"
