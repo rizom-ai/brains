@@ -40,9 +40,11 @@ tests pass. Another Phase 2b slice updated `chokidar` 3 → 5 for
 Another Phase 2b slice updated `marked` 12 → 18 for `@brains/chat-repl`
 and `@brains/ui-library`; package typecheck, lint, and tests pass.
 Another Phase 2b slice updated `pdfjs-dist` 5 → 6 for
-`@brains/document`; package typecheck, lint, and tests pass.
-Remaining outdated entries are deliberate holds/migrations from Phase
-2b+.
+`@brains/document`; package typecheck, lint, and tests pass. Another
+Phase 2b slice updated `@libsql/client` 0.15 → 0.17 across entity,
+conversation, and job-queue services plus published optional dependency
+metadata; targeted DB/service checks pass. Remaining outdated entries
+are deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -218,6 +220,11 @@ Done in worktree:
   `pdfjs-dist/legacy/build/pdf.mjs`, and cleanup now goes through the
   v6 loading-task `destroy()` API, with package typecheck, lint, and
   tests passing.
+- `@libsql/client` 0.15 → 0.17 for `@brains/entity-service`,
+  `@brains/conversation-service`, `@brains/job-queue`, and
+  `@rizom/brain`/model package optional dependency metadata; existing
+  `createClient` usage remains unchanged, with affected package
+  typecheck, lint, and tests passing.
 
 ### Phase 3 — tooling majors, one slice each
 
