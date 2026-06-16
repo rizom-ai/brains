@@ -16,63 +16,31 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 ## Remaining work
 
-### 1. DB-backed Chat SDK state adapter
+### 1. Persist Discord thread subscriptions
 
-Discord thread continuation depends on Chat SDK operational state. Today `@brains/chat` still uses `createMemoryState()`, so subscribed-thread state is lost on process restart. That means a user may need to mention the bot again after restart before unmentioned thread follow-ups route correctly.
+Discord thread continuation depends on Chat SDK operational state. Today `@brains/chat` uses `createMemoryState()` at both `createChatApp` branches (`interfaces/chat/src/chat-interface.ts`), so subscribed-thread state is lost on process restart — a user may need to mention the bot again after restart before unmentioned thread follow-ups route correctly.
 
-This is not web-chat state. Web-chat sessions, messages, approvals, uploads, and artifacts are already Brains-owned durable state. This adapter is for Chat SDK operational state only.
+Only **subscriptions** need to survive restart. The Chat SDK documents `subscribe(threadId)` as persistent; locks are held by live in-flight handlers (a restart should clear them, not restore stale ones), and cache/queues are transient. So the fix is narrow: persist subscriptions, keep the in-memory adapter semantics for everything else.
+
+This is not web-chat state, and it is not the operator/admin tier. It is **ephemeral operational state** owned by the [Runtime state store](./runtime-state-store.md); chat is that store's first consumer. The store (shell-owned, namespaced, local libSQL) is built in its own worktree and merged in; this plan does not design a chat-specific database.
 
 Required implementation:
 
-- Add a dedicated DB-backed Chat SDK `StateAdapter`; do **not** store this state in conversation/message metadata.
-- Store adapter state in proper operational tables, not Redis and not local files.
-- Preserve Chat SDK memory adapter semantics for:
-  - subscriptions: `subscribe`, `unsubscribe`, `isSubscribed`
-  - locks: `acquireLock`, `extendLock`, `releaseLock`, `forceReleaseLock`
-  - cache values: `get`, `set`, `setIfNotExists`, `delete`
-  - lists: `appendToList`, `getList`, TTL, `maxLength`
-  - queues: `enqueue`, `dequeue`, `queueDepth`, `maxSize`
-- Wire `ChatInterface` to use the DB adapter when the shell/runtime provides it; keep memory state as fallback only when no persistent adapter is available.
-
-Suggested schema shape:
-
-```sql
-chat_state_values (
-  namespace text not null,
-  key text not null,
-  value_json text not null,
-  expires_at integer,
-  primary key (namespace, key)
-);
-
-chat_state_locks (
-  namespace text not null,
-  thread_id text not null,
-  token text not null,
-  expires_at integer not null,
-  primary key (namespace, thread_id)
-);
-
-chat_state_queues (
-  namespace text not null,
-  thread_id text not null,
-  position integer not null,
-  entry_json text not null,
-  expires_at integer,
-  primary key (namespace, thread_id, position)
-);
-```
-
-Subscriptions can be stored either as dedicated rows in `chat_state_values` or as a small dedicated table. Prefer the simplest version that keeps adapter semantics clear.
+- Back `subscribe` / `unsubscribe` / `isSubscribed` with a namespaced subscriptions table in the runtime state store.
+- Keep `acquireLock`/`extendLock`/`releaseLock`/`forceReleaseLock`, `get`/`set`/`setIfNotExists`/`delete`, `appendToList`/`getList`, and `enqueue`/`dequeue`/`queueDepth` on the SDK memory adapter.
+- Implement the adapter's `connect()` / `disconnect()` against the store the runtime provides.
+- Wire both `createChatApp` branches to use the store-backed adapter when the runtime provides one, falling back to `createMemoryState()` when it does not.
+- Do **not** store this state in conversation/message metadata.
 
 Acceptance criteria:
 
 - Subscribed Discord threads continue routing unmentioned follow-up messages after process restart.
-- Adapter state is scoped by namespace so future Chat SDK uses do not collide.
-- Expired locks/cache/list/queue records are ignored and safely pruned or overwritten.
-- Lock token semantics match Chat SDK memory state behavior.
-- Queue trim/dequeue order matches Chat SDK memory state behavior.
-- Tests cover adapter recreation to simulate restart.
+- Locks/cache/queues remain in-memory; a restart does not resurrect stale locks.
+- Subscription rows are namespaced so other runtime-store consumers do not collide.
+- Tests cover store recreation to simulate restart.
+- Revisit persisting queues only if live validation shows queued-inbound-message loss across restart actually matters.
+
+Depends on the [Runtime state store](./runtime-state-store.md) landing (built in its own worktree, chat-first).
 
 ### 2. Live Discord trial
 
