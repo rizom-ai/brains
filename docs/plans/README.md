@@ -30,7 +30,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
 - [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
 - [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
-- [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference while onboarding smoke finishes
+- [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference for playbook gate and eval-readiness behavior
 
 ### Auth, users, CMS, and HTTP
 

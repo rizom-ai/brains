@@ -47,10 +47,11 @@ Phase 3 has landed: the code now carries one gate model, a generic `Judge` capab
 `@brains/ai-service`, a narrow `context.judge` plugin capability, eval judges that reuse it,
 and a production `GoalCheck` backed by `context.judge` (see
 [Where the real check comes from](#where-the-real-check-comes-from)). Focused GoalCheck eval
-coverage and the Rover onboarding product eval are blocked on
-[Search index readiness](./search-index-readiness.md): the semantic index can be incomplete or
-not-yet-ready when a gate runs (seed KB unembedded), so a judge can receive incomplete material.
-The fix is index completeness + readiness, not a change to search semantics.
+coverage and the Rover onboarding product eval are no longer blocked: the search-index
+readiness/backfill work landed, and the focused Rover set
+`playbook-goal-check-met,playbook-goal-check-not-met,multi-turn-rover-onboarding-playbook`
+passed on 2026-06-16. The fix was index completeness + readiness, not a change to search
+semantics.
 
 ## What this is
 
