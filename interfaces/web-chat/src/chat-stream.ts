@@ -72,6 +72,8 @@ interface StreamedConfirmationsInput {
   writer: UIMessageStreamWriter<UIMessage>;
   conversationId: string;
   approvalResponses: ApprovalResponse[];
+  permissionLevel: "anchor" | "public";
+  interfaceType: string;
 }
 
 export async function handleStreamedConfirmations(
@@ -96,6 +98,12 @@ export async function handleStreamedConfirmations(
         input.conversationId,
         approvalResponse.approved,
         approvalResponse.id,
+        {
+          userPermissionLevel: input.permissionLevel,
+          interfaceType: input.interfaceType,
+          channelId: input.conversationId,
+          channelName: "Web Chat",
+        },
       );
       writeText(input.writer, response.text, "text", deps.createId);
       writeStructuredCards(input.writer, response.cards ?? []);

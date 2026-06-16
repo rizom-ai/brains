@@ -400,6 +400,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       conversationId,
       approvalSelection.confirmed,
       approvalSelection.approvalId,
+      {
+        userPermissionLevel: "anchor",
+        interfaceType: "cli",
+      },
     );
 
     // Send response to UI

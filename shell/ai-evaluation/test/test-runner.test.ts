@@ -389,6 +389,10 @@ describe("TestRunner", () => {
         expect.any(String),
         true,
         "approval:system_update",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
       );
     });
 
@@ -442,6 +446,103 @@ describe("TestRunner", () => {
         expect.any(String),
         true,
         "approval:delete",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
+      );
+    });
+
+    it("should retain pending approval ids after unauthorized confirmation attempts", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+      let confirmCalls = 0;
+      mockAgentService.confirmPendingAction = mock(() => {
+        confirmCalls += 1;
+        return Promise.resolve(
+          createMockResponse(
+            confirmCalls === 1
+              ? {
+                  text: "You are not authorized to confirm this pending action.",
+                  pendingConfirmations: [
+                    {
+                      id: "approval:delete",
+                      toolName: "system_delete",
+                      summary: "Delete note?",
+                      args: { entityType: "note", id: "note-1" },
+                    },
+                  ],
+                }
+              : { text: "Action confirmed." },
+          ),
+        );
+      });
+
+      const testCase: TestCase = {
+        id: "test-unauthorized-confirm-keeps-pending-id",
+        name: "Unauthorized Confirm Keeps Pending ID Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Delete note" },
+          {
+            userMessage: "Bob approves",
+            confirmPendingAction: true,
+            context: {
+              userPermissionLevel: "public",
+              actor: {
+                actorId: "bob",
+                interfaceType: "evaluation",
+                role: "user",
+              },
+            },
+          },
+          {
+            userMessage: "Alice approves",
+            confirmPendingAction: true,
+            context: {
+              userPermissionLevel: "anchor",
+              actor: {
+                actorId: "alice",
+                interfaceType: "evaluation",
+                role: "user",
+              },
+            },
+          },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        true,
+        "approval:delete",
+        expect.objectContaining({ userPermissionLevel: "public" }),
+      );
+      expect(mockAgentService.confirmPendingAction).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        true,
+        "approval:delete",
+        expect.objectContaining({ userPermissionLevel: "anchor" }),
       );
     });
 

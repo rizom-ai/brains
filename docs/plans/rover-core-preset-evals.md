@@ -159,10 +159,10 @@ replay, anchor confirmed restricted update followed by public read, trusted
 update denial in a shared anchor thread, and public create denial in a shared
 anchor thread.
 
-Remaining case: approval hijack boundaries in literal multi-user threads
-(public/trusted cannot confirm or consume anchor-only pending approvals). The
-current `confirmPendingAction` API does not yet accept chat context, so this
-needs a small runtime/harness contract change before it can be evaled.
+Approval hijack boundaries are now covered by requiring caller context on
+`confirmPendingAction`, storing the requester on pending approvals, and adding a
+literal multi-user eval where a public caller cannot confirm an anchor's pending
+approval but the original anchor still can.
 
 ### Phase 4 — fill the coverage
 

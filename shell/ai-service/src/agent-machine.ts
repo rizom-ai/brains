@@ -10,6 +10,15 @@ import type {
   PendingConfirmation,
 } from "./agent-types";
 
+export interface PendingConfirmationRequester {
+  actorKey?: string;
+  userPermissionLevel: UserPermissionLevel;
+}
+
+export type RuntimePendingConfirmation = PendingConfirmation & {
+  requester: PendingConfirmationRequester;
+};
+
 /**
  * Context for the agent state machine.
  * All fields are required (no optionals) to avoid exactOptionalPropertyTypes issues.
@@ -25,8 +34,8 @@ export interface AgentMachineContext {
   source: ConversationMessageSource | null;
   attachments: ChatAttachment[];
   response: AgentResponse | null;
-  pendingConfirmations: PendingConfirmation[];
-  activeConfirmation: PendingConfirmation | null;
+  pendingConfirmations: RuntimePendingConfirmation[];
+  activeConfirmation: RuntimePendingConfirmation | null;
   error: string | null;
 }
 
@@ -46,8 +55,26 @@ export type AgentMachineEvent =
       source: ConversationMessageSource | null;
       attachments: ChatAttachment[];
     }
-  | { type: "CONFIRM"; approvalId: string }
-  | { type: "CANCEL"; approvalId: string };
+  | {
+      type: "CONFIRM";
+      approvalId: string;
+      interfaceType: string;
+      channelId: string;
+      channelName: string;
+      userPermissionLevel: UserPermissionLevel;
+      actor: ConversationMessageActor | null;
+      source: ConversationMessageSource | null;
+    }
+  | {
+      type: "CANCEL";
+      approvalId: string;
+      interfaceType: string;
+      channelId: string;
+      channelName: string;
+      userPermissionLevel: UserPermissionLevel;
+      actor: ConversationMessageActor | null;
+      source: ConversationMessageSource | null;
+    };
 
 /**
  * Input for the processMessage actor
@@ -86,10 +113,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function actorKey(actor: ConversationMessageActor | null): string | undefined {
+  return actor?.canonicalId ?? actor?.actorId;
+}
+
+function withRequester(
+  confirmations: PendingConfirmation[],
+  context: AgentMachineContext,
+): RuntimePendingConfirmation[] {
+  const requesterActorKey = actorKey(context.actor);
+  return confirmations.map((confirmation) => ({
+    ...confirmation,
+    requester: {
+      ...(requesterActorKey ? { actorKey: requesterActorKey } : {}),
+      userPermissionLevel: context.userPermissionLevel,
+    },
+  }));
+}
+
 function findPendingConfirmation(
   context: AgentMachineContext,
   approvalId: string,
-): PendingConfirmation | null {
+): RuntimePendingConfirmation | null {
   return (
     context.pendingConfirmations.find(
       (confirmation) => confirmation.id === approvalId,
@@ -100,7 +145,7 @@ function findPendingConfirmation(
 function remainingPendingConfirmations(
   context: AgentMachineContext,
   approvalId: string,
-): PendingConfirmation[] {
+): RuntimePendingConfirmation[] {
   return context.pendingConfirmations.filter(
     (confirmation) => confirmation.id !== approvalId,
   );
@@ -233,9 +278,12 @@ export const agentMachine = setup({
             guard: ({ event }): boolean =>
               (event.output.pendingConfirmations ?? []).length > 0,
             target: "awaitingConfirmation",
-            actions: assign(({ event }) => ({
+            actions: assign(({ context, event }) => ({
               response: event.output,
-              pendingConfirmations: event.output.pendingConfirmations ?? [],
+              pendingConfirmations: withRequester(
+                event.output.pendingConfirmations ?? [],
+                context,
+              ),
               activeConfirmation: null,
             })),
           },
@@ -270,6 +318,12 @@ export const agentMachine = setup({
         CONFIRM: {
           target: "executing",
           actions: assign(({ context, event }) => ({
+            interfaceType: event.interfaceType,
+            channelId: event.channelId,
+            channelName: event.channelName,
+            userPermissionLevel: event.userPermissionLevel,
+            actor: event.actor,
+            source: event.source,
             activeConfirmation: findPendingConfirmation(
               context,
               event.approvalId,
@@ -285,6 +339,12 @@ export const agentMachine = setup({
             guard: hasRemainingPendingConfirmations,
             target: "awaitingConfirmation",
             actions: assign(({ context, event }) => ({
+              interfaceType: event.interfaceType,
+              channelId: event.channelId,
+              channelName: event.channelName,
+              userPermissionLevel: event.userPermissionLevel,
+              actor: event.actor,
+              source: event.source,
               response: buildCancelledResponse(
                 findPendingConfirmation(context, event.approvalId),
               ),
@@ -298,6 +358,12 @@ export const agentMachine = setup({
           {
             target: "idle",
             actions: assign(({ context, event }) => ({
+              interfaceType: event.interfaceType,
+              channelId: event.channelId,
+              channelName: event.channelName,
+              userPermissionLevel: event.userPermissionLevel,
+              actor: event.actor,
+              source: event.source,
               response: buildCancelledResponse(
                 findPendingConfirmation(context, event.approvalId),
               ),

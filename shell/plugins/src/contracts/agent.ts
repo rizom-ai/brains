@@ -95,6 +95,7 @@ export interface AgentNamespace {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse>;
   invalidate(): void;
 }

@@ -52,12 +52,18 @@ export function createPublicAgentNamespace(
       conversationId,
       confirmed,
       approvalId,
+      context,
     ): Promise<AgentResponse> => {
+      const runtimeContext = toRuntimeChatContext(context);
+      if (!runtimeContext) {
+        throw new Error("Confirmation requires caller context.");
+      }
       return toPublicAgentResponse(
         await agentService.confirmPendingAction(
           conversationId,
           confirmed,
           approvalId,
+          runtimeContext,
         ),
       );
     },

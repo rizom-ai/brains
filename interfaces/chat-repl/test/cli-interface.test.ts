@@ -155,7 +155,10 @@ describe("CLIInterface", () => {
       expect(responseHandler).toHaveBeenCalledWith(
         expect.stringContaining("Please reply with **yes**"),
       );
-      expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1");
+      expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-1", {
+        userPermissionLevel: "anchor",
+        interfaceType: "cli",
+      });
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete note?");
     });
 
@@ -208,7 +211,15 @@ describe("CLIInterface", () => {
       await cliInterface.processInput("delete it");
       await cliInterface.processInput("no");
 
-      expect(confirmMock).toHaveBeenCalledWith("cli", false, "approval:call-1");
+      expect(confirmMock).toHaveBeenCalledWith(
+        "cli",
+        false,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "cli",
+        },
+      );
       expect(responseHandler).toHaveBeenCalledWith("○ Delete note?");
     });
 
@@ -281,12 +292,20 @@ describe("CLIInterface", () => {
         "cli",
         true,
         "approval:call-2",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "cli",
+        },
       );
       expect(confirmMock).toHaveBeenNthCalledWith(
         2,
         "cli",
         false,
         "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "cli",
+        },
       );
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete beta?");
       expect(responseHandler).toHaveBeenCalledWith("○ Delete alpha?");

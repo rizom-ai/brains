@@ -103,6 +103,7 @@ export class TestRunner implements ITestRunner {
             conversationId,
             turn.confirmPendingAction,
             approvalId,
+            this.buildTurnChatContext(baseContext, turn, attachments),
           );
         }
       } else {
@@ -112,7 +113,11 @@ export class TestRunner implements ITestRunner {
           this.buildTurnChatContext(baseContext, turn, attachments),
         );
       }
-      pendingApprovalIds = this.extractPendingApprovalIds(response);
+      pendingApprovalIds = this.nextPendingApprovalIds(
+        pendingApprovalIds,
+        turn,
+        response,
+      );
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults:
@@ -190,6 +195,14 @@ export class TestRunner implements ITestRunner {
     if (turn.approvalId) return turn.approvalId;
     if (pendingApprovalIds.length !== 1) return undefined;
     return pendingApprovalIds[0];
+  }
+
+  private nextPendingApprovalIds(
+    _currentIds: string[],
+    _turn: AgentTestCase["turns"][number],
+    response: AgentResponse,
+  ): string[] {
+    return this.extractPendingApprovalIds(response);
   }
 
   private extractPendingApprovalIds(response: AgentResponse): string[] {
