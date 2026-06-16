@@ -51,8 +51,9 @@ Phase 2b slice updated `varlock` 0.5 → 1.7 for `@brains/app`; package
 typecheck, lint, and tests pass. A follow-up delete-vs-upgrade slice
 removed unused `better-sqlite3` optional dependency metadata now that DB
 runtime paths consistently use `@libsql/client`; targeted package checks
-pass. Remaining outdated entries are deliberate holds/migrations from
-Phase 2b+.
+pass. A follow-up icon-package drift slice updated `lucide-react` and
+`lucide-preact` 1.18 → 1.20; targeted consumer checks pass. Remaining
+outdated entries are deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -247,6 +248,9 @@ Done in worktree:
   `@rizom/brain`, generated model package metadata, and Docker runtime
   metadata; runtime DB usage is consistently `@libsql/client` via
   Drizzle's libSQL adapter.
+- `lucide-react`/`lucide-preact` 1.18 → 1.20 for `@brains/web-chat` and
+  `@brains/product-site-content`; named icon imports remain unchanged,
+  with targeted consumer checks passing.
 
 ### Phase 3 — tooling majors, one slice each
 
