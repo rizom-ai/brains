@@ -508,6 +508,11 @@ describe("TestRunner", () => {
                 role: "user",
               },
             },
+            successCriteria: {
+              expectedTools: [
+                { toolName: "system_delete", shouldBeCalled: false },
+              ],
+            },
           },
           {
             userMessage: "Alice approves",
@@ -544,6 +549,7 @@ describe("TestRunner", () => {
         "approval:delete",
         expect.objectContaining({ userPermissionLevel: "anchor" }),
       );
+      expect(result.turnResults[1]?.toolCalls).toEqual([]);
     });
 
     it("should fail the test instead of throwing when a confirmation turn has no pending approval", async () => {
@@ -705,6 +711,94 @@ describe("TestRunner", () => {
 
       expect(result.passed).toBe(true);
       expect(result.totalMetrics.toolCallCount).toBe(1);
+    });
+
+    it("should count pending confirmations as expected tool calls", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:create-note",
+                toolName: "system_create",
+                summary: "Create note?",
+                args: {
+                  entityType: "base",
+                  content: "remember this",
+                  confirmed: true,
+                  confirmationToken: "runtime-token",
+                },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-pending-confirmation-tool-call",
+        name: "Pending Confirmation Tool Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Save this as a note: remember this" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: { entityType: "base" },
+              argsAbsent: ["confirmed", "confirmationToken"],
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(result.totalMetrics.toolCallCount).toBe(1);
+      expect(result.turnResults[0]?.toolCalls).toEqual([
+        {
+          toolName: "system_create",
+          args: { entityType: "base", content: "remember this" },
+          result: { needsConfirmation: true },
+        },
+      ]);
+    });
+
+    it("should preserve non-system confirmed args for eval criteria", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "content-pipeline_publish",
+                args: { entityType: "post", id: "post-1", confirmed: true },
+                data: { success: true },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-non-system-confirmed-arg",
+        name: "Non-system Confirmed Arg Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Publish post-1" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "content-pipeline_publish",
+              shouldBeCalled: true,
+              argsContain: { confirmed: true },
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
     });
 
     it("should fail when expected tool not called", async () => {

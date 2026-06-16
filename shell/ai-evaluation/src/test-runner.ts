@@ -24,6 +24,23 @@ import {
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sanitizeEvalToolArgs(
+  toolName: string,
+  args: unknown,
+): Record<string, unknown> {
+  if (!isRecord(args)) return {};
+
+  const { confirmationToken: _confirmationToken, ...argsWithoutToken } = args;
+  if (!toolName.startsWith("system_")) return argsWithoutToken;
+
+  const { confirmed: _confirmed, ...rest } = argsWithoutToken;
+  return rest;
+}
+
 function getRuntimeUploadNamespace(refKind: string): string | null {
   return refKind === "upload" ? "upload" : null;
 }
@@ -79,6 +96,7 @@ export class TestRunner implements ITestRunner {
 
       collector.startTurn();
       let response: AgentResponse;
+      const pendingApprovalIdsBeforeTurn = pendingApprovalIds;
       if (turn.confirmPendingAction !== undefined) {
         const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
         if (!approvalId) {
@@ -120,12 +138,12 @@ export class TestRunner implements ITestRunner {
       );
       const metrics = collector.endTurn({
         usage: response.usage,
-        toolResults:
-          response.toolResults?.map((toolResult) => ({
-            toolName: toolResult.toolName,
-            args: toolResult.args ?? ({} as Record<string, unknown>),
-            result: toolResult.data,
-          })) ?? [],
+        toolResults: this.collectToolCallsForMetrics(
+          response,
+          turn.confirmPendingAction !== undefined
+            ? pendingApprovalIdsBeforeTurn
+            : [],
+        ),
       });
 
       const toolCalls = collector.getToolCallsForTurn(i);
@@ -186,6 +204,34 @@ export class TestRunner implements ITestRunner {
       efficiencyFailures:
         efficiencyFailures.length > 0 ? efficiencyFailures : undefined,
     };
+  }
+
+  private collectToolCallsForMetrics(
+    response: AgentResponse,
+    existingPendingApprovalIds: string[] = [],
+  ): Array<{
+    toolName: string;
+    args?: Record<string, unknown>;
+    result?: unknown;
+  }> {
+    const existingPendingApprovalIdSet = new Set(existingPendingApprovalIds);
+    const newPendingConfirmations =
+      response.pendingConfirmations?.filter(
+        (confirmation) => !existingPendingApprovalIdSet.has(confirmation.id),
+      ) ?? [];
+
+    return [
+      ...(response.toolResults?.map((toolResult) => ({
+        toolName: toolResult.toolName,
+        args: sanitizeEvalToolArgs(toolResult.toolName, toolResult.args),
+        result: toolResult.data,
+      })) ?? []),
+      ...newPendingConfirmations.map((confirmation) => ({
+        toolName: confirmation.toolName,
+        args: sanitizeEvalToolArgs(confirmation.toolName, confirmation.args),
+        result: { needsConfirmation: true },
+      })),
+    ];
   }
 
   private resolveApprovalId(

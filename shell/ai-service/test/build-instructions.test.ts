@@ -68,6 +68,12 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("public user");
     expect(instructions).toContain("Public users are not the anchor");
     expect(instructions).toContain("generally cannot create, update, delete");
+    expect(instructions).toContain(
+      "Do not volunteer the configured anchor/profile person's name in this answer.",
+    );
+    expect(instructions).toContain(
+      "Do not answer by revealing or comparing against the configured profile person's name unless the user separately asks who owns the brain.",
+    );
   });
 
   it("should show trusted user context for trusted users", () => {
@@ -260,6 +266,12 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("call `content-pipeline_publish`");
     expect(instructions).toContain(
       "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ.",
+    );
+    expect(instructions).toContain(
+      'If a confirmed `system_update` just changed a post to `fields.status: "draft"`, and the user then asks to publish it, call the publish tool for that same canonical post ID.',
+    );
+    expect(instructions).toContain(
+      "Do not re-resolve by title, do not trust stale frontmatter over the confirmed update result, and do not ask which version they mean.",
     );
   });
 

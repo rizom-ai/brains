@@ -108,6 +108,7 @@ To do:
 - Create a draft entity only after the operator chooses one.
 - When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn for the chosen draft type.
 - Do not only say you will create the draft; the tool call is the action that should produce the approval request.
+- A response to "Do that as..." or another transformation choice must include system_create; a search-only, retrieval-only, or explanation-only response is not sufficient.
 - Do not write the outline, social draft, newsletter idea, topic suggestion, or project angle inline in chat before calling system_create; if the operator says "Do that as a post outline", call system_create for a post outline instead of composing the outline yourself.
 - If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat the draft as ready to review yet.
 - After the draft is ready, show it or offer to review it before moving on.

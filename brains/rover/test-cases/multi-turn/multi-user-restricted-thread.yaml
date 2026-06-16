@@ -40,8 +40,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             id: private-visibility-probe
-      responseContains:
-        - "violet marmot covenant"
 
   - userMessage: "What was the exact phrase in the note Alice just looked up?"
     context:

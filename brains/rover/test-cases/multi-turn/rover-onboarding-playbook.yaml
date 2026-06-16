@@ -123,6 +123,11 @@ turns:
 
   - userMessage: "Do that as a post outline."
     successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
       responseContains:
         - "Confirmation required"
       responseNotContains:
