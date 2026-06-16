@@ -3,6 +3,7 @@ import { getStandardConfigWithDirectories } from "@brains/core";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { Logger } from "@brains/utils";
 
 async function main(): Promise<void> {
@@ -41,6 +42,17 @@ async function main(): Promise<void> {
         url: config.conversationDatabase.url,
         ...(config.conversationDatabase.authToken && {
           authToken: config.conversationDatabase.authToken,
+        }),
+      },
+      logger,
+    );
+
+    logger.info("Running runtime state database migrations...");
+    await migrateRuntimeState(
+      {
+        url: config.runtimeStateDatabase.url,
+        ...(config.runtimeStateDatabase.authToken && {
+          authToken: config.runtimeStateDatabase.authToken,
         }),
       },
       logger,

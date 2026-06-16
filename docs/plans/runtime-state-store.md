@@ -72,6 +72,10 @@ So the chat consumer persists subscriptions only and keeps the in-memory adapter
 - Tests cover store recreation to simulate restart.
 - The store is documented as disposable/non-secret so future consumers self-select the correct tier.
 
+## Follow-up: migration packaging lists
+
+Runtime-state migrations currently need to be copied by each packaging path that already copies shell migrations: `shell/app/scripts/build.ts`, `shell/app/scripts/build-model.ts`, and `packages/brain-cli/scripts/build.ts`. This slice keeps those lists in sync without refactoring. A later cleanup should centralize the migration source list so new shell databases do not require three separate edits.
+
 ## Sequencing
 
 1. Build the service + minimal store in this worktree, with the chat subscriptions consumer proving the interface.

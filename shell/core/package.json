@@ -17,6 +17,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"

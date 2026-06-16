@@ -32,6 +32,7 @@ import type {
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
+import type { RuntimeStateService } from "@brains/runtime-state";
 import type { IJobProgressMonitor, Logger } from "@brains/utils";
 
 export interface ShellServices {
@@ -61,6 +62,7 @@ export interface ShellServices {
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
+  runtimeStateService: RuntimeStateService;
 }
 
 export interface ShellDependencies {
@@ -85,4 +87,5 @@ export interface ShellDependencies {
   dataSourceRegistry?: DataSourceRegistry;
   attachmentRegistry?: AttachmentRegistry;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
+  runtimeStateService?: RuntimeStateService;
 }

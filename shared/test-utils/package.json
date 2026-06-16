@@ -17,6 +17,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
     "@types/node": "^20.0.0",
