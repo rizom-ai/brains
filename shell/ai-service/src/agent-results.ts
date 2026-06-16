@@ -1,3 +1,4 @@
+import type { AgentContextItem } from "@brains/contracts";
 import { z } from "@brains/utils";
 import {
   toolConfirmationSchema,
@@ -7,12 +8,34 @@ import {
 import type {
   BrainAgentResult,
   PendingConfirmation,
+  SourceCitation,
   StructuredChatCard,
   ToolResultData,
 } from "./agent-types";
 
 const toolCallArgsSchema = z.record(z.unknown());
 const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
+const sourceEntitySchema = z
+  .object({
+    id: z.string().min(1),
+    entityType: z.string().min(1),
+    content: z.string().optional(),
+    metadata: z.record(z.unknown()).default({}),
+  })
+  .passthrough();
+const entitySearchResultSchema = z
+  .object({
+    entity: sourceEntitySchema,
+    score: z.number().finite().optional(),
+    excerpt: z.string().optional(),
+  })
+  .passthrough();
+const searchToolDataSchema = z.object({
+  results: z.array(entitySearchResultSchema),
+});
+const getToolDataSchema = z.object({
+  entity: sourceEntitySchema,
+});
 const attachmentToolDataSchema = z
   .object({
     documentId: z.string().min(1).optional(),
@@ -46,6 +69,241 @@ function describeAttachmentMedia(mediaType: string): string {
   return "artifact";
 }
 
+function buildQueuedAttachmentDescription(
+  mediaLabel: string,
+  attachmentType?: string,
+): string {
+  if (attachmentType === "uploaded") {
+    return `Uploaded ${mediaLabel} save has been queued. This artifact will open once the job completes.`;
+  }
+  return `${mediaLabel} generation has been queued. This artifact will open once the job completes.`;
+}
+
+export function buildAttachmentCardFromToolData(
+  data: unknown,
+): StructuredChatCard | undefined {
+  const jobIdParsed = jobIdSchema.safeParse(data);
+  const attachmentParsed = attachmentToolDataSchema.safeParse(data);
+  if (!attachmentParsed.success) return undefined;
+
+  const attachment = attachmentParsed.data.attachment;
+  const attachmentId =
+    attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
+  if (attachmentId === undefined) return undefined;
+
+  const source = attachment.source;
+  const mediaLabel = describeAttachmentMedia(attachment.mediaType);
+  const queuedDescription = buildQueuedAttachmentDescription(
+    mediaLabel,
+    source?.attachmentType,
+  );
+  return {
+    kind: "attachment",
+    id: `attachment:${attachmentId}`,
+    ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
+    title: attachment.filename ?? `Generated ${mediaLabel}`,
+    // Only describe the work as queued when there is a job backing it;
+    // an already-materialized attachment arrives without a jobId.
+    ...(jobIdParsed.success ? { description: queuedDescription } : {}),
+    attachment: {
+      mediaType: attachment.mediaType,
+      url: attachment.url,
+      ...(attachment.downloadUrl !== undefined
+        ? { downloadUrl: attachment.downloadUrl }
+        : {}),
+      ...(attachment.previewUrl !== undefined
+        ? { previewUrl: attachment.previewUrl }
+        : {}),
+      ...(attachment.filename !== undefined
+        ? { filename: attachment.filename }
+        : {}),
+      ...(attachment.sizeBytes !== undefined
+        ? { sizeBytes: attachment.sizeBytes }
+        : {}),
+      ...(source !== undefined
+        ? {
+            source: {
+              ...(source.entityType !== undefined
+                ? { entityType: source.entityType }
+                : {}),
+              ...(source.entityId !== undefined
+                ? { entityId: source.entityId }
+                : {}),
+              ...(source.attachmentType !== undefined
+                ? { attachmentType: source.attachmentType }
+                : {}),
+            },
+          }
+        : {}),
+    },
+  };
+}
+
+const MAX_SOURCE_EXCERPT_LENGTH = 500;
+const MAX_SEARCH_SOURCES = 3;
+
+function truncateSourceExcerpt(content: string): string {
+  const trimmed = content.trim();
+  if (trimmed.length <= MAX_SOURCE_EXCERPT_LENGTH) return trimmed;
+  return `${trimmed.slice(0, MAX_SOURCE_EXCERPT_LENGTH - 1).trimEnd()}…`;
+}
+
+function getStringProvenanceValue(
+  provenance: AgentContextItem["provenance"],
+  key: string,
+): string | undefined {
+  const value = provenance?.[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function buildSourcesCardFromContextItems(
+  contextItems: AgentContextItem[] | undefined,
+): StructuredChatCard | undefined {
+  if (!contextItems || contextItems.length === 0) return undefined;
+
+  return {
+    kind: "sources",
+    id: "sources:agent-context",
+    title: "Retrieved context",
+    sources: contextItems.map((item) => ({
+      id: item.id,
+      ...(item.title !== undefined ? { title: item.title } : {}),
+      source: item.source,
+      ...(getStringProvenanceValue(item.provenance, "url") !== undefined
+        ? { url: getStringProvenanceValue(item.provenance, "url") }
+        : {}),
+      ...(getStringProvenanceValue(item.provenance, "entityType") !== undefined
+        ? {
+            entityType: getStringProvenanceValue(item.provenance, "entityType"),
+          }
+        : {}),
+      ...(getStringProvenanceValue(item.provenance, "entityId") !== undefined
+        ? { entityId: getStringProvenanceValue(item.provenance, "entityId") }
+        : {}),
+      excerpt: truncateSourceExcerpt(item.content),
+      ...(item.provenance !== undefined ? { provenance: item.provenance } : {}),
+    })),
+  };
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function getEntityTitle(entity: z.infer<typeof sourceEntitySchema>): string {
+  return (
+    getMetadataString(entity.metadata, "title") ??
+    getMetadataString(entity.metadata, "name") ??
+    getMetadataString(entity.metadata, "slug") ??
+    entity.id
+  );
+}
+
+function getEntityUrl(
+  entity: z.infer<typeof sourceEntitySchema>,
+): string | undefined {
+  return (
+    getMetadataString(entity.metadata, "url") ??
+    getMetadataString(entity.metadata, "permalink") ??
+    getMetadataString(entity.metadata, "canonicalUrl")
+  );
+}
+
+function buildSourceCitationFromEntity(params: {
+  toolName: string;
+  entity: z.infer<typeof sourceEntitySchema>;
+  excerpt?: string | undefined;
+  score?: number | undefined;
+}): SourceCitation {
+  const { entity, toolName, score } = params;
+  const excerpt =
+    params.excerpt !== undefined
+      ? truncateSourceExcerpt(params.excerpt)
+      : entity.content !== undefined
+        ? truncateSourceExcerpt(entity.content)
+        : undefined;
+  const url = getEntityUrl(entity);
+
+  return {
+    id: `${entity.entityType}:${entity.id}`,
+    title: getEntityTitle(entity),
+    source: entity.entityType,
+    ...(url !== undefined ? { url } : {}),
+    entityType: entity.entityType,
+    entityId: entity.id,
+    ...(excerpt !== undefined ? { excerpt } : {}),
+    provenance: {
+      toolName,
+      ...(score !== undefined ? { score } : {}),
+    },
+  };
+}
+
+function buildToolSourceCitations(params: {
+  toolName: string;
+  data: unknown;
+}): SourceCitation[] {
+  if (params.toolName === "system_search") {
+    const parsed = searchToolDataSchema.safeParse(params.data);
+    if (!parsed.success) return [];
+    return [...parsed.data.results]
+      .sort(
+        (a, b) =>
+          (b.score ?? Number.NEGATIVE_INFINITY) -
+          (a.score ?? Number.NEGATIVE_INFINITY),
+      )
+      .slice(0, MAX_SEARCH_SOURCES)
+      .map((result) =>
+        buildSourceCitationFromEntity({
+          toolName: params.toolName,
+          entity: result.entity,
+          excerpt: result.excerpt,
+          score: result.score,
+        }),
+      );
+  }
+
+  if (params.toolName === "system_get") {
+    const parsed = getToolDataSchema.safeParse(params.data);
+    if (!parsed.success) return [];
+    return [
+      buildSourceCitationFromEntity({
+        toolName: params.toolName,
+        entity: parsed.data.entity,
+      }),
+    ];
+  }
+
+  return [];
+}
+
+function buildToolSourcesCard(
+  sources: SourceCitation[],
+): StructuredChatCard | undefined {
+  if (sources.length === 0) return undefined;
+
+  const uniqueSources: SourceCitation[] = [];
+  const seen = new Set<string>();
+  for (const source of sources) {
+    if (seen.has(source.id)) continue;
+    seen.add(source.id);
+    uniqueSources.push(source);
+  }
+
+  return {
+    kind: "sources",
+    id: "sources:tool-results",
+    title: "Retrieved sources",
+    sources: uniqueSources,
+  };
+}
+
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmations: PendingConfirmation[];
@@ -58,6 +316,7 @@ export function extractToolResults(
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
+  const sourceCitations: SourceCitation[] = [];
   const pendingConfirmations: PendingConfirmation[] = [];
   let totalToolCalls = 0;
 
@@ -137,66 +396,24 @@ export function extractToolResults(
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
         }
-        const attachmentParsed = attachmentToolDataSchema.safeParse(
+        const attachmentCard = buildAttachmentCardFromToolData(
           successParsed.data.data,
         );
-        if (attachmentParsed.success) {
-          const attachment = attachmentParsed.data.attachment;
-          const attachmentId =
-            attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
-          if (attachmentId === undefined) continue;
-          const source = attachment.source;
-          const mediaLabel = describeAttachmentMedia(attachment.mediaType);
-          cards.push({
-            kind: "attachment",
-            id: `attachment:${attachmentId}`,
-            ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
-            title: attachment.filename ?? `Generated ${mediaLabel}`,
-            // Only describe the work as queued when there is a job backing it;
-            // an already-materialized attachment arrives without a jobId.
-            ...(jobIdParsed.success
-              ? {
-                  description: `${mediaLabel} generation has been queued. This artifact will open once the job completes.`,
-                }
-              : {}),
-            attachment: {
-              mediaType: attachment.mediaType,
-              url: attachment.url,
-              ...(attachment.downloadUrl !== undefined
-                ? { downloadUrl: attachment.downloadUrl }
-                : {}),
-              ...(attachment.previewUrl !== undefined
-                ? { previewUrl: attachment.previewUrl }
-                : {}),
-              ...(attachment.filename !== undefined
-                ? { filename: attachment.filename }
-                : {}),
-              ...(attachment.sizeBytes !== undefined
-                ? { sizeBytes: attachment.sizeBytes }
-                : {}),
-              ...(source !== undefined
-                ? {
-                    source: {
-                      ...(source.entityType !== undefined
-                        ? { entityType: source.entityType }
-                        : {}),
-                      ...(source.entityId !== undefined
-                        ? { entityId: source.entityId }
-                        : {}),
-                      ...(source.attachmentType !== undefined
-                        ? { attachmentType: source.attachmentType }
-                        : {}),
-                    },
-                  }
-                : {}),
-            },
-          });
-        }
+        if (attachmentCard) cards.push(attachmentCard);
+        sourceCitations.push(
+          ...buildToolSourceCitations({
+            toolName: tr.toolName,
+            data: successParsed.data.data,
+          }),
+        );
       }
 
       toolResults.push(toolResult);
     }
   }
+
+  const sourcesCard = buildToolSourcesCard(sourceCitations);
+  if (sourcesCard) cards.push(sourcesCard);
 
   return {
     toolResults,
@@ -207,10 +424,15 @@ export function extractToolResults(
 }
 
 const entityRefDataSchema = z.object({
-  entityId: z.string().min(1),
+  entityId: z.string().min(1).optional(),
+  updated: z.string().min(1).optional(),
+  deleted: z.string().min(1).optional(),
   status: z.string().optional(),
 });
-const entityRefArgsSchema = z.object({ entityType: z.string().optional() });
+const entityRefArgsSchema = z.object({
+  entityType: z.string().optional(),
+  id: z.string().optional(),
+});
 
 /**
  * Build a compact memory note listing the entities a turn created or updated.
@@ -227,14 +449,21 @@ export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
     if (!data.success) continue;
-    const { entityId, status } = data.data;
-    if (seen.has(entityId)) continue;
+    const { status } = data.data;
+    const entityId =
+      data.data.entityId ?? data.data.updated ?? data.data.deleted;
+    if (!entityId || seen.has(entityId)) continue;
     seen.add(entityId);
 
     const args = entityRefArgsSchema.safeParse(tr.args ?? {});
     const entityType = args.success ? args.data.entityType : undefined;
+    const operation = data.data.updated
+      ? "updated"
+      : data.data.deleted
+        ? "deleted"
+        : status;
     const label = entityType ? `${entityType} "${entityId}"` : `"${entityId}"`;
-    refs.push(status ? `${label} (${status})` : label);
+    refs.push(operation ? `${label} (${operation})` : label);
   }
   if (refs.length === 0) return "";
   return `\n\n[Entities affected this turn: ${refs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.]`;

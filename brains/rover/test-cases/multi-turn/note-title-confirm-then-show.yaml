@@ -1,0 +1,61 @@
+id: multi-turn-note-title-confirm-then-show
+name: Confirmed note title update can be shown afterward
+description: Verifies that after a confirmed title update, the agent treats the update as complete and uses system_get to show the known note instead of looping on confirmation state.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+tags:
+  - notes
+  - confirmation
+  - multi-turn
+  - regression
+  - preset-core
+
+turns:
+  - userMessage: "Give note 'rizom-brains-provenance-token-concept-note' a title. You decide."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+            id: rizom-brains-provenance-token-concept-note
+          argsAbsent:
+            - confirmed
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "what title"
+        - "would you like"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Update"
+
+  - userMessage: "can you show me the note?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+            id: rizom-brains-provenance-token-concept-note
+        - toolName: system_update
+          shouldBeCalled: false
+      responseContains:
+        - "Rizom Brains"
+        - "provenance"
+      responseNotContains:
+        - "need to update"
+        - "resolve the title-update state"
+        - "bouncing on confirmation"
+        - "confirmed inconsistently"
+        - "not cleanly"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 50000

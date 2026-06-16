@@ -198,6 +198,13 @@ function createDiscordButtonInteraction(
     isButton: (): boolean => true,
     customId: "brains:approval:approve:approval:call-1",
     channelId: "thread-456",
+    channel: mockChannel,
+    user: {
+      id: "user-789",
+      username: "mira",
+      displayName: "Mira Ops",
+      bot: false,
+    },
     deferUpdate: mockDeferUpdate,
     reply: mockInteractionReply,
     ...overrides,
@@ -731,6 +738,11 @@ describe("DiscordInterface", () => {
         expect.stringContaining("discord-"),
         true,
         "approval:dangerous-tool",
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
       );
     });
 
@@ -864,6 +876,11 @@ describe("DiscordInterface", () => {
         "discord-thread-456",
         true,
         "approval:call-update",
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -925,6 +942,11 @@ describe("DiscordInterface", () => {
         "discord-thread-456",
         true,
         "approval:call-1",
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1001,6 +1023,11 @@ describe("DiscordInterface", () => {
         expect.stringContaining("discord-"),
         true,
         "approval:call-1",
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1067,6 +1094,11 @@ describe("DiscordInterface", () => {
         expect.stringContaining("discord-"),
         false,
         "approval:call-1",
+        expect.objectContaining({
+          userPermissionLevel: "public",
+          interfaceType: "discord",
+          actor: expect.objectContaining({ actorId: "discord:user-789" }),
+        }),
       );
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({

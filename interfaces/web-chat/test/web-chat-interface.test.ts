@@ -515,8 +515,80 @@ describe("WebChatInterface", () => {
     expect(body).toContain('"operationType":"batch_processing"');
     expect(body).toContain('"operationTarget":"/tmp/brain-data"');
     expect(body).toContain("Finished indexing 24 files");
+    expect(body).toContain('"transient":false');
     expect(body).not.toContain("✅");
     expect(body).not.toContain("**batch processing");
+  });
+
+  it("keeps pending progress transient and failed progress durable", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("job-progress", {
+          id: "import-1",
+          type: "job",
+          status: "pending",
+          message: "Queued upload import",
+          metadata: {
+            rootJobId: "import-1",
+            operationType: "file_operations",
+            operationTarget: "notes.pdf",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        await harness.sendMessage("job-progress", {
+          id: "import-1",
+          type: "job",
+          status: "failed",
+          message: "Upload import failed",
+          metadata: {
+            rootJobId: "import-1",
+            operationType: "file_operations",
+            operationTarget: "notes.pdf",
+            interfaceType: "web-chat",
+            channelId: conversationId,
+          },
+        });
+        return {
+          text: "Import failed.",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Import upload" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain('"status":"pending"');
+    expect(body).toContain("Queued upload import");
+    expect(body).toContain('"transient":true');
+    expect(body).toContain('"status":"failed"');
+    expect(body).toContain("Upload import failed");
+    expect(body).toContain('"transient":false');
   });
 
   it("streams active tool activity as transient status parts", async () => {
@@ -710,6 +782,163 @@ describe("WebChatInterface", () => {
     expect(body).toContain("data-tool-result");
     expect(body).not.toContain("data-attachment");
     expect(body).not.toContain("/api/chat/attachments/image");
+  });
+
+  it("redacts raw upload refs from streamed tool result details and approval input", async () => {
+    const uploadId = "upload-00000000-0000-4000-8000-000000000888";
+    const uploadArg = { kind: "upload", id: uploadId };
+    const agent = createSpyAgentService({
+      text: "Confirmation required.",
+      toolResults: [
+        {
+          toolName: "system_create",
+          args: {
+            entityType: "document",
+            upload: uploadArg,
+          },
+        },
+      ],
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "system_create",
+          input: {
+            entityType: "document",
+            upload: uploadArg,
+          },
+          summary: "Create document?",
+          preview: "Entity type: document\nUpload: uploaded file",
+          state: "approval-requested",
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Save the upload" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-tool-result");
+    expect(body).toContain("uploaded file");
+    expect(body).not.toContain(uploadId);
+  });
+
+  it("streams source citation cards as Brain data parts", async () => {
+    const agent = createSpyAgentService({
+      text: "According to retrieved context...",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "Relay decision summary",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What did we decide?" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-sources");
+    expect(body).toContain("Retrieved context");
+    expect(body).toContain("summary-1");
+  });
+
+  it("streams action cards as Brain data parts", async () => {
+    const agent = createSpyAgentService({
+      text: "Choose the next step.",
+      cards: [
+        {
+          kind: "actions",
+          id: "actions:onboarding",
+          title: "Next steps",
+          actions: [
+            {
+              type: "prompt",
+              id: "review-draft",
+              label: "Review draft",
+              prompt: "Show me the transformed draft.",
+            },
+          ],
+        },
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What next?" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("data-actions");
+    expect(body).toContain("Next steps");
+    expect(body).toContain("review-draft");
   });
 
   it("streams attachment cards as Brain data parts", async () => {
@@ -946,7 +1175,7 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(201);
     expect(body.id).toStartWith("upload-");
-    expect(body.ref).toEqual({ kind: "web-chat-upload", id: body.id });
+    expect(body.ref).toEqual({ kind: "upload", id: body.id });
     expect(body.filename).toBe("notes.md");
     expect(body.mediaType).toBe("text/markdown");
     expect(body.sizeBytes).toBe(29);
@@ -956,7 +1185,7 @@ describe("WebChatInterface", () => {
 
     const uploadDir = join(
       "/tmp/mock-shell-test-data",
-      "web-chat",
+      "upload",
       "uploads",
       body.id,
     );
@@ -974,7 +1203,7 @@ describe("WebChatInterface", () => {
   });
 
   it("stores multipart uploads in runtime data, not content brain-data", async () => {
-    const root = "/tmp/web-chat-upload-path-test";
+    const root = "/tmp/web-chat-file-upload-path-test";
     await rm(root, { recursive: true, force: true });
     const scopedHarness = createPluginHarness<WebChatInterface>({
       dataDir: join(root, "brain-data"),
@@ -1002,12 +1231,12 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(201);
     expect(
       await Bun.file(
-        join(root, "data", "web-chat", "uploads", body.id, "content"),
+        join(root, "data", "upload", "uploads", body.id, "content"),
       ).text(),
     ).toBe("# Runtime");
     expect(
       await Bun.file(
-        join(root, "brain-data", "web-chat", "uploads", body.id, "content"),
+        join(root, "brain-data", "upload", "uploads", body.id, "content"),
       ).exists(),
     ).toBe(false);
 
@@ -1215,11 +1444,7 @@ describe("WebChatInterface", () => {
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
 
-    const uploadsRoot = join(
-      "/tmp/mock-shell-test-data",
-      "web-chat",
-      "uploads",
-    );
+    const uploadsRoot = join("/tmp/mock-shell-test-data", "upload", "uploads");
     // Seed a stale upload dir (>24h old) that should be swept.
     const staleDir = join(
       uploadsRoot,
@@ -1301,7 +1526,7 @@ describe("WebChatInterface", () => {
         mediaType: "text/markdown",
         content: "# Durable Notes",
         sizeBytes: 15,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
+        source: { kind: "upload", id: upload.ref.id },
       },
     ]);
   });
@@ -1352,472 +1577,7 @@ describe("WebChatInterface", () => {
         mediaType: "image/png",
         data: image,
         sizeBytes: image.byteLength,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
-      },
-    ]);
-  });
-
-  it("reuses a prior durable upload ref for explicit follow-up image requests", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const image = pngBytes();
-    const form = new FormData();
-    form.set(
-      "file",
-      new File([image], "flirty-robot.png", { type: "image/png" }),
-    );
-    const uploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
-    );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              content: "",
-              parts: [{ type: "data-upload", data: { ref: upload.ref } }],
-            },
-            {
-              role: "assistant",
-              content:
-                "I got `flirty-robot.png`. What would you like me to do with it?",
-              parts: [
-                {
-                  type: "text",
-                  text: "I got `flirty-robot.png`. What would you like me to do with it?",
-                },
-              ],
-            },
-            {
-              role: "user",
-              content: "can you describe that picture for me",
-              parts: [
-                { type: "text", text: "can you describe that picture for me" },
-              ],
-            },
-          ],
-        }),
-      }),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.message).toBe(
-      "can you describe that picture for me",
-    );
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "flirty-robot.png",
-        mediaType: "image/png",
-        data: image,
-        sizeBytes: image.byteLength,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
-      },
-    ]);
-  });
-
-  it("reuses a prior durable PDF upload for explicit save/import follow-ups", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const pdf = Buffer.from("%PDF-1.4\n%EOF\n");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File([pdf], "distributed-systems-primer.pdf", {
-        type: "application/pdf",
-      }),
-    );
-    const uploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
-    );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              content: "",
-              parts: [{ type: "data-upload", data: { ref: upload.ref } }],
-            },
-            {
-              role: "assistant",
-              content:
-                "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
-              parts: [
-                {
-                  type: "text",
-                  text: "I got `distributed-systems-primer.pdf`. What would you like me to do with it?",
-                },
-              ],
-            },
-            {
-              role: "user",
-              content: "save it as a document",
-              parts: [{ type: "text", text: "save it as a document" }],
-            },
-          ],
-        }),
-      }),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.message).toBe("save it as a document");
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "distributed-systems-primer.pdf",
-        mediaType: "application/pdf",
-        data: pdf,
-        sizeBytes: pdf.byteLength,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
-      },
-    ]);
-  });
-
-  it("selects a prior upload by filename when follow-up text names it", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const firstImage = pngBytes();
-    const secondImage = pngBytes();
-    const firstForm = new FormData();
-    firstForm.set(
-      "file",
-      new File([firstImage], "first-robot.png", { type: "image/png" }),
-    );
-    const secondForm = new FormData();
-    secondForm.set(
-      "file",
-      new File([secondImage], "second-robot.png", { type: "image/png" }),
-    );
-    const firstUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: firstForm,
-      }),
-    );
-    const secondUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: secondForm,
-      }),
-    );
-    const firstUpload = (await firstUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-    const secondUpload = (await secondUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: firstUpload.ref } }],
-            },
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: secondUpload.ref } }],
-            },
-            {
-              role: "user",
-              content: "describe second-robot.png",
-              parts: [{ type: "text", text: "describe second-robot.png" }],
-            },
-          ],
-        }),
-      }),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "second-robot.png",
-        mediaType: "image/png",
-        data: secondImage,
-        sizeBytes: secondImage.byteLength,
-        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
-      },
-    ]);
-  });
-
-  it("selects the most recent matching upload when follow-up text asks for it", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const firstImage = pngBytes();
-    const secondImage = pngBytes();
-    const firstForm = new FormData();
-    firstForm.set(
-      "file",
-      new File([firstImage], "first-robot.png", { type: "image/png" }),
-    );
-    const secondForm = new FormData();
-    secondForm.set(
-      "file",
-      new File([secondImage], "second-robot.png", { type: "image/png" }),
-    );
-    const firstUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: firstForm,
-      }),
-    );
-    const secondUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: secondForm,
-      }),
-    );
-    const firstUpload = (await firstUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-    const secondUpload = (await secondUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: firstUpload.ref } }],
-            },
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: secondUpload.ref } }],
-            },
-            {
-              role: "user",
-              content: "describe the most recent image",
-              parts: [{ type: "text", text: "describe the most recent image" }],
-            },
-          ],
-        }),
-      }),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "second-robot.png",
-        mediaType: "image/png",
-        data: secondImage,
-        sizeBytes: secondImage.byteLength,
-        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
-      },
-    ]);
-  });
-
-  it("reuses prior stored upload metadata after session reload", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const shell = harness.getMockShell();
-    const messagesByConversation: Record<string, Message[]> = {
-      "test-conversation": [],
-    };
-    shell.setConversationService(
-      makeFixedConversationService({
-        conversations: [makeConversation("test-conversation", "web-chat")],
-        messagesByConversation,
-      }),
-    );
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const image = pngBytes();
-    const form = new FormData();
-    form.set(
-      "file",
-      new File([image], "stored-robot.png", { type: "image/png" }),
-    );
-    const uploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
-    );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-    messagesByConversation["test-conversation"] = [
-      makeMessage(
-        "message-1",
-        "test-conversation",
-        "user",
-        "",
-        JSON.stringify({
-          attachments: [
-            {
-              kind: "file",
-              filename: "stored-robot.png",
-              mediaType: "image/png",
-              sizeBytes: image.byteLength,
-              source: { kind: "web-chat-upload", id: upload.ref.id },
-            },
-          ],
-        }),
-      ),
-    ];
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              content: "describe that picture",
-              parts: [{ type: "text", text: "describe that picture" }],
-            },
-          ],
-        }),
-      }),
-    );
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "stored-robot.png",
-        mediaType: "image/png",
-        data: image,
-        sizeBytes: image.byteLength,
-        source: { kind: "web-chat-upload", id: upload.ref.id },
-      },
-    ]);
-  });
-
-  it("makes prior uploads available on a follow-up without guessing intent", async () => {
-    const agent = createSpyAgentService();
-    harness.setAgentService(agent);
-    const plugin = operatorPlugin();
-    await harness.installPlugin(plugin);
-    const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
-    const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const firstImage = pngBytes();
-    const secondImage = pngBytes();
-    const firstForm = new FormData();
-    firstForm.set(
-      "file",
-      new File([firstImage], "first-robot.png", { type: "image/png" }),
-    );
-    const secondForm = new FormData();
-    secondForm.set(
-      "file",
-      new File([secondImage], "second-robot.png", { type: "image/png" }),
-    );
-    const firstUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: firstForm,
-      }),
-    );
-    const secondUploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: secondForm,
-      }),
-    );
-    const firstUpload = (await firstUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-    const secondUpload = (await secondUploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
-
-    const response = await chatRoute?.handler(
-      new Request("http://brain/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "test-conversation",
-          messages: [
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: firstUpload.ref } }],
-            },
-            {
-              role: "user",
-              parts: [{ type: "data-upload", data: { ref: secondUpload.ref } }],
-            },
-            {
-              role: "user",
-              content: "describe an image upload",
-              parts: [{ type: "text", text: "describe an image upload" }],
-            },
-          ],
-        }),
-      }),
-    );
-    await response?.text();
-
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "first-robot.png",
-        mediaType: "image/png",
-        data: firstImage,
-        sizeBytes: firstImage.byteLength,
-        source: { kind: "web-chat-upload", id: firstUpload.ref.id },
-      },
-      {
-        kind: "file",
-        filename: "second-robot.png",
-        mediaType: "image/png",
-        data: secondImage,
-        sizeBytes: secondImage.byteLength,
-        source: { kind: "web-chat-upload", id: secondUpload.ref.id },
+        source: { kind: "upload", id: upload.ref.id },
       },
     ]);
   });
@@ -1841,7 +1601,7 @@ describe("WebChatInterface", () => {
               parts: [
                 {
                   type: "data-upload",
-                  data: { ref: { kind: "web-chat-upload", id: "../bad" } },
+                  data: { ref: { kind: "upload", id: "../bad" } },
                 },
               ],
             },
@@ -2784,7 +2544,35 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(403);
   });
 
-  it("loads stored generated attachment cards for an operator", async () => {
+  it("loads stored generated attachment, source citation, and action cards for an operator", async () => {
+    const actionsCard = {
+      kind: "actions",
+      id: "actions:onboarding",
+      title: "Next steps",
+      actions: [
+        {
+          type: "prompt",
+          id: "review-draft",
+          label: "Review draft",
+          prompt: "Show me the transformed draft.",
+        },
+      ],
+    };
+    const sourcesCard = {
+      kind: "sources",
+      id: "sources:agent-context",
+      title: "Retrieved context",
+      sources: [
+        {
+          id: "summary-1",
+          title: "Relay decision summary",
+          source: "conversation-memory",
+          entityType: "summary",
+          entityId: "summary-1",
+          excerpt: "The team decided to use explicit memory retrieval.",
+        },
+      ],
+    };
     const card = {
       kind: "attachment",
       id: "attachment:mossy-robot",
@@ -2814,7 +2602,7 @@ describe("WebChatInterface", () => {
               "web-session",
               "assistant",
               'Queued image generation.\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]',
-              JSON.stringify({ cards: [card] }),
+              JSON.stringify({ cards: [card, sourcesCard, actionsCard] }),
             ),
           ],
         },
@@ -2836,7 +2624,7 @@ describe("WebChatInterface", () => {
           id: "message-1",
           role: "assistant",
           content: "Queued image generation.",
-          cards: [card],
+          cards: [card, sourcesCard, actionsCard],
         },
       ],
     });
@@ -2861,7 +2649,7 @@ describe("WebChatInterface", () => {
                     filename: "notes.md",
                     mediaType: "text/markdown",
                     sizeBytes: 7,
-                    source: { kind: "web-chat-upload", id: "upload-123" },
+                    source: { kind: "upload", id: "upload-123" },
                   },
                 ],
               }),
@@ -2893,7 +2681,7 @@ describe("WebChatInterface", () => {
               mediaType: "text/markdown",
               sizeBytes: 7,
               createdAt: "2026-05-24T00:00:30.000Z",
-              source: { kind: "web-chat-upload", id: "upload-123" },
+              source: { kind: "upload", id: "upload-123" },
             },
           ],
         },

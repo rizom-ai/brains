@@ -3,7 +3,12 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
-import { AgentResponseSchema, toPublicAttachmentCard } from "@brains/plugins";
+import {
+  AgentResponseSchema,
+  toPublicActionsCard,
+  toPublicAttachmentCard,
+  toPublicSourcesCard,
+} from "@brains/plugins";
 
 function parseAgentResponse(json: unknown): AgentResponse {
   const result = AgentResponseSchema.safeParse(json);
@@ -32,6 +37,14 @@ function parseAgentResponse(json: unknown): AgentResponse {
     response.cards = parsed.cards.map((card) => {
       if (card.kind === "attachment") {
         return toPublicAttachmentCard(card);
+      }
+
+      if (card.kind === "sources") {
+        return toPublicSourcesCard(card);
+      }
+
+      if (card.kind === "actions") {
+        return toPublicActionsCard(card);
       }
 
       return {
@@ -113,6 +126,7 @@ export class RemoteAgentService implements IAgentService {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse> {
     const response = await fetch(`${this.baseUrl}/api/chat/confirm`, {
       method: "POST",
@@ -124,6 +138,7 @@ export class RemoteAgentService implements IAgentService {
         conversationId,
         confirmed,
         approvalId,
+        context,
       }),
     });
 

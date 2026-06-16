@@ -1,8 +1,9 @@
 import {
-  getStoredAttachmentCards,
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
-  type AttachmentCard,
+  parseStoredMessageMetadata,
+  StructuredChatCardSchema,
   type InterfacePluginContext,
+  type StructuredChatCard,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
@@ -79,6 +80,13 @@ function getStoredMessageAttachments(
     }));
 }
 
-function getStoredMessageCards(metadata: unknown): AttachmentCard[] {
-  return getStoredAttachmentCards(metadata);
+function getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
+  const parsedMetadata = parseStoredMessageMetadata(metadata);
+  const cards = parsedMetadata?.["cards"];
+  if (!Array.isArray(cards)) return [];
+
+  return cards
+    .map((card) => StructuredChatCardSchema.safeParse(card))
+    .filter((result) => result.success)
+    .map((result) => result.data);
 }

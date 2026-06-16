@@ -132,7 +132,7 @@ Some entity types own generation or capture workflows:
 - posts, decks, newsletters, and social posts can be generated from prompts or source entities depending on active plugins
 - topics, skills, and SWOT entries are usually derived from existing content
 
-A create call may return `{ status: "generating", jobId }` instead of an immediate entity. Check job status through runtime tools or wait for progress in MCP/chat clients.
+Create requests use the standard confirmation flow before anything is persisted or queued. After confirmation, a create call may return `{ status: "generating", jobId }` instead of an immediate entity. Check job status through runtime tools or wait for progress in MCP/chat clients.
 
 ## Publishing workflow
 

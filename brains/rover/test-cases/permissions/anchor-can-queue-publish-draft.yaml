@@ -12,6 +12,7 @@ tags:
   - permissions
   - publish-action-policy
   - anchor
+  - preset-full
 
 turns:
   - userMessage: >-

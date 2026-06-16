@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.111",
+  "version": "0.2.0-alpha.122",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
@@ -16,6 +16,12 @@
     "start:full": "bun run build:web-chat && cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
+    "eval:core": "brain-eval --suite core",
+    "eval:core:coverage": "brain-eval --suite core --tool-coverage",
+    "eval:default": "brain-eval --suite default",
+    "eval:default:coverage": "brain-eval --suite default --tool-coverage",
+    "eval:full": "brain-eval --suite full",
+    "eval:full:coverage": "brain-eval --suite full --tool-coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

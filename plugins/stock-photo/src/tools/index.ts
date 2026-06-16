@@ -1,10 +1,9 @@
 import { z } from "@brains/utils";
-import { imageAdapter, type Image } from "@brains/image";
 import type {
   Tool,
   ToolResponse,
   IEntityService,
-  EntityInput,
+  ServicePluginContext,
 } from "@brains/plugins";
 import type {
   StockPhotoProvider,
@@ -16,6 +15,7 @@ export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
   entityService: IEntityService;
   fetchImage: FetchImageFn;
+  jobs: ServicePluginContext["jobs"];
 }
 
 const searchInputSchema = {
@@ -149,51 +149,30 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         return { success: true, data: result };
       }
 
-      // Trigger download tracking and fetch image concurrently
-      deps.provider.triggerDownload(downloadLocation).catch(() => {});
-
-      let dataUrl: string;
-      try {
-        dataUrl = await deps.fetchImage(imageUrl);
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Image download failed";
-        return { success: false, error: msg };
-      }
-
-      const imageTitle = title ?? `Stock photo ${photoId}`;
-      const imageData = imageAdapter.createImageEntity({
-        dataUrl,
-        title: imageTitle,
-        alt: alt ?? imageTitle,
-      });
-
-      const entityInput: EntityInput<Image> = {
-        id: photoId,
-        ...imageData,
-        metadata: {
-          ...imageData.metadata,
-          sourceUrl: imageUrl,
+      const jobId = await deps.jobs.enqueue({
+        type: "select-photo",
+        data: {
+          photoId,
+          downloadLocation,
+          photographerName,
+          photographerUrl,
+          sourceUrl,
+          imageUrl,
+          ...(title !== undefined ? { title } : {}),
+          ...(alt !== undefined ? { alt } : {}),
+          ...(targetEntityType !== undefined ? { targetEntityType } : {}),
+          ...(targetEntityId !== undefined ? { targetEntityId } : {}),
         },
-      };
-
-      const { entityId } = await deps.entityService.createEntity({
-        entity: entityInput,
       });
 
       const result: SelectResult = {
-        imageEntityId: entityId,
+        imageEntityId: photoId,
         alreadyExisted: false,
         attribution,
+        jobId,
+        status: "generating",
       };
-
       if (targetEntityType && targetEntityId) {
-        await setCoverImage(
-          deps.entityService,
-          targetEntityType,
-          targetEntityId,
-          entityId,
-        );
         result.coverSet = true;
       }
 

@@ -1,9 +1,9 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
-import { type IMCPService, type ToolContext } from "@brains/mcp-service";
+import type { IMCPService, ToolContext } from "@brains/mcp-service";
+import { PermissionService } from "@brains/templates";
 import type {
   ConversationMessageActor,
-  ConversationMessageMetadata,
   ConversationMessageSource,
   IConversationService,
 } from "@brains/conversation-service";
@@ -19,45 +19,37 @@ import type {
   ChatContext,
   IAgentService,
   StructuredChatCard,
-  ToolResultData,
 } from "./agent-types";
-import type { BrainCallOptions } from "./brain-agent";
 import {
   agentMachine,
   emptyUsage,
   type ProcessMessageInput,
   type ExecuteActionInput,
+  type RuntimePendingConfirmation,
+  type AgentMachineContext,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
 import {
   buildAgentContextInstructions,
   buildMessageWithAttachments,
   buildModelMessages,
-  collectUploadRefsFromMessages,
-  resolveConversationUploadRefs,
+  resolveConversationUploadContinuity,
 } from "./conversation-messages";
-import { extractToolResults, buildEntityMemoryNote } from "./agent-results";
+import {
+  buildSourcesCardFromContextItems,
+  extractToolResults,
+  buildEntityMemoryNote,
+} from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
+import { buildBrainCallOptions } from "./call-options";
+import { buildConfirmedActionResult } from "./confirmed-action";
+import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
 /**
  * Default step limit if not specified
  */
 const DEFAULT_STEP_LIMIT = 10;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getStringField(value: unknown, field: string): string | undefined {
-  if (!isRecord(value)) return undefined;
-  const fieldValue = value[field];
-  return typeof fieldValue === "string" ? fieldValue : undefined;
-}
-
-function isFailedToolOutput(value: unknown): boolean {
-  return isRecord(value) && value["success"] === false;
-}
 
 function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   const filenames = attachments.map((attachment) => attachment.filename);
@@ -68,14 +60,133 @@ function buildAttachmentOnlyResponse(attachments: ChatAttachment[]): string {
   return `I got ${fileLabel}. What would you like me to do with ${filenames.length === 1 ? "it" : "these files"}?`;
 }
 
-function hasSourceAttachmentIntent(message: string): boolean {
-  return /\b(carousel|printable|source attachment|attach(?:ed)? document|attach(?:ed)? pdf)\b/i.test(
-    message,
+function isImageAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType.startsWith("image/");
+}
+
+function isPdfAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType === "application/pdf";
+}
+
+function isTextAttachment(attachment: ChatAttachment): boolean {
+  return attachment.kind === "text" || attachment.mediaType.startsWith("text/");
+}
+
+function shouldHydratePriorUploads(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return /\b(describe|summari[sz]e|inspect|look at|view|read|see|analy[sz]e|what(?:'s| is)? in|what does|can you look)\b/.test(
+    normalized,
   );
 }
 
-function hasUploadMarkdownTransformIntent(message: string): boolean {
-  return /\b(note|markdown|extract(?:ion)?|text)\b/i.test(message);
+function buildAttachmentOnlyActionsCard(
+  attachments: ChatAttachment[],
+): StructuredChatCard | undefined {
+  if (attachments.length === 0) return undefined;
+
+  if (attachments.length > 1) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-uploads",
+          label: "Summarize uploads",
+          prompt: "Summarize the uploaded files.",
+        },
+      ],
+    };
+  }
+
+  const [attachment] = attachments;
+  if (attachment === undefined) return undefined;
+
+  if (isImageAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "describe-image",
+          label: "Describe image",
+          prompt: "Describe the uploaded image.",
+        },
+        {
+          type: "prompt",
+          id: "save-image",
+          label: "Save image",
+          prompt: "Save the uploaded image.",
+        },
+      ],
+    };
+  }
+
+  if (isPdfAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-pdf",
+          label: "Summarize PDF",
+          prompt: "Summarize the uploaded PDF.",
+        },
+        {
+          type: "prompt",
+          id: "save-document",
+          label: "Save document",
+          prompt: "Save the uploaded PDF as a document.",
+        },
+      ],
+    };
+  }
+
+  if (isTextAttachment(attachment)) {
+    return {
+      kind: "actions",
+      id: "actions:upload-intent",
+      title: "Try next",
+      defaultOpen: true,
+      actions: [
+        {
+          type: "prompt",
+          id: "summarize-upload",
+          label: "Summarize upload",
+          prompt: "Summarize the uploaded file.",
+        },
+        {
+          type: "prompt",
+          id: "save-upload-note",
+          label: "Save as note",
+          prompt: "Save the uploaded file as a note.",
+        },
+      ],
+    };
+  }
+
+  return {
+    kind: "actions",
+    id: "actions:upload-intent",
+    title: "Try next",
+    defaultOpen: true,
+    actions: [
+      {
+        type: "prompt",
+        id: "summarize-upload",
+        label: "Summarize upload",
+        prompt: "Summarize the uploaded file.",
+      },
+    ],
+  };
 }
 
 /**
@@ -97,6 +208,7 @@ export class AgentService implements IAgentService {
   private assistantActorId: string | undefined;
   private canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   private agentContextProvider: AgentConfig["agentContextProvider"];
+  private uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -190,6 +302,7 @@ export class AgentService implements IAgentService {
     this.assistantActorId = config.assistantActorId;
     this.canonicalIdentityResolver = config.canonicalIdentityResolver;
     this.agentContextProvider = config.agentContextProvider;
+    this.uploadAttachmentResolver = config.uploadAttachmentResolver;
   }
 
   /**
@@ -282,12 +395,13 @@ export class AgentService implements IAgentService {
   }
 
   /**
-   * Confirm or cancel a pending destructive operation
+   * Confirm or cancel a pending approval-gated action
    */
   public async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
     if (!actor) {
@@ -306,13 +420,35 @@ export class AgentService implements IAgentService {
       };
     }
 
-    const matchesApproval =
-      snapshotBeforeConfirm.context.pendingConfirmations.some(
+    const pendingConfirmation =
+      snapshotBeforeConfirm.context.pendingConfirmations.find(
         (confirmation) => confirmation.id === approvalId,
-      );
-    if (!matchesApproval) {
+      ) ?? null;
+    if (!pendingConfirmation) {
       return {
         text: `No pending action matches approval id '${approvalId}'.`,
+        usage: emptyUsage,
+      };
+    }
+
+    const confirmationContext = this.resolveConfirmationContext(
+      context,
+      snapshotBeforeConfirm.context,
+    );
+    if (!confirmationContext) {
+      return {
+        text: "Confirmation requires caller context.",
+        usage: emptyUsage,
+      };
+    }
+
+    if (
+      !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
+    ) {
+      return {
+        text: "You are not authorized to confirm this pending action.",
+        pendingConfirmations:
+          snapshotBeforeConfirm.context.pendingConfirmations,
         usage: emptyUsage,
       };
     }
@@ -320,6 +456,12 @@ export class AgentService implements IAgentService {
     actor.send({
       type: confirmed ? "CONFIRM" : "CANCEL",
       approvalId,
+      interfaceType: confirmationContext.interfaceType,
+      channelId: confirmationContext.channelId,
+      channelName: confirmationContext.channelName,
+      userPermissionLevel: confirmationContext.userPermissionLevel,
+      actor: confirmationContext.actor,
+      source: confirmationContext.source,
     });
 
     const snapshot = await waitFor(
@@ -337,6 +479,56 @@ export class AgentService implements IAgentService {
         usage: emptyUsage,
       }
     );
+  }
+
+  private resolveConfirmationContext(
+    context: ChatContext | undefined,
+    previousContext: AgentMachineContext,
+  ): {
+    interfaceType: string;
+    channelId: string;
+    channelName: string;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+    actor: ConversationMessageActor | null;
+    source: ConversationMessageSource | null;
+  } | null {
+    if (!context?.userPermissionLevel) return null;
+
+    return {
+      interfaceType: context.interfaceType ?? previousContext.interfaceType,
+      channelId: context.channelId ?? previousContext.channelId,
+      channelName: context.channelName ?? previousContext.channelName,
+      userPermissionLevel: context.userPermissionLevel,
+      actor: context.actor ?? null,
+      source: context.source ?? null,
+    };
+  }
+
+  private canConfirmPendingAction(
+    pendingConfirmation: RuntimePendingConfirmation,
+    context: {
+      userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+      actor: ConversationMessageActor | null;
+    },
+  ): boolean {
+    if (context.userPermissionLevel === "anchor") return true;
+
+    const requesterActorKey = pendingConfirmation.requester.actorKey;
+    if (requesterActorKey) {
+      const callerActorKey = this.actorKey(context.actor);
+      if (callerActorKey !== requesterActorKey) return false;
+    }
+
+    return PermissionService.hasPermission(
+      context.userPermissionLevel,
+      pendingConfirmation.requester.userPermissionLevel,
+    );
+  }
+
+  private actorKey(
+    actor: ConversationMessageActor | null | undefined,
+  ): string | undefined {
+    return actor?.canonicalId ?? actor?.actorId;
   }
 
   private async processMessage(
@@ -367,27 +559,27 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "user",
         content: message,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(actor, source, attachments),
-        ),
+        ...this.messageMetadata({ actor, source, attachments }),
       });
 
       const responseText = buildAttachmentOnlyResponse(attachments);
+      const actionsCard = buildAttachmentOnlyActionsCard(attachments);
+      const responseCards = actionsCard ? [actionsCard] : [];
       await this.conversationService.addMessage({
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
+        }),
       });
 
       return {
         text: responseText,
         toolResults: [],
+        ...(responseCards.length > 0 ? { cards: responseCards } : {}),
         usage: emptyUsage,
       };
     }
@@ -398,55 +590,34 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
+    const uploadContinuity = resolveConversationUploadContinuity({
+      message,
+      currentAttachments: attachments,
+      historyMessages,
+    });
+
+    const effectiveMessage = uploadContinuity.message;
+    const effectiveAttachments = await this.hydrateUploadAttachments({
+      message: effectiveMessage,
+      currentAttachments: uploadContinuity.attachments,
+      uploadRefs: uploadContinuity.refs,
+    });
     const contextItems = await this.fetchAgentContext({
       conversationId,
-      message,
+      message: effectiveMessage,
       interfaceType,
       channelId,
       channelName,
       userPermissionLevel,
     });
 
-    const uploadRefs = collectUploadRefsFromMessages(historyMessages);
-    const uploadRefResolution =
-      attachments.length === 0
-        ? resolveConversationUploadRefs(message, uploadRefs)
-        : { kind: "selected" as const, refs: uploadRefs };
-    if (uploadRefResolution.kind === "clarify") {
-      await this.conversationService.addMessage({
-        conversationId,
-        role: "user",
-        content: message,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(actor, source, attachments),
-        ),
-      });
-
-      const responseText = `Which uploaded file should I use? ${uploadRefResolution.refs
-        .map((ref) => `\`${ref.filename}\``)
-        .join(", ")}`;
-      await this.conversationService.addMessage({
-        conversationId,
-        role: "assistant",
-        content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-          ),
-        ),
-      });
-
-      return {
-        text: responseText,
-        toolResults: [],
-        usage: emptyUsage,
-      };
-    }
-
-    const modelMessage = buildMessageWithAttachments(message, attachments, {
-      uploadRefs: uploadRefResolution.refs,
-    });
+    const modelMessage = buildMessageWithAttachments(
+      effectiveMessage,
+      effectiveAttachments,
+      {
+        uploadRefs: uploadContinuity.refs,
+      },
+    );
     const messages = buildModelMessages(historyMessages, modelMessage);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
@@ -464,31 +635,30 @@ export class AgentService implements IAgentService {
     await this.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: message,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(actor, source, attachments),
-      ),
+      content: effectiveMessage,
+      ...this.messageMetadata({
+        actor,
+        source,
+        attachments: effectiveAttachments,
+      }),
     });
 
     // Call agent
-    const callOptions: BrainCallOptions = {
+    const hasCurrentUploadAttachments = effectiveAttachments.some(
+      (attachment) => attachment.source !== undefined,
+    );
+    const hasAccessibleUploads =
+      hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
+    const callOptions = buildBrainCallOptions({
+      message,
+      hasAccessibleUploads,
       userPermissionLevel,
       conversationId,
       channelId,
       channelName,
       interfaceType,
-      ...(attachments.some((attachment) => attachment.source !== undefined) ||
-      uploadRefResolution.refs.length > 0
-        ? { enableCreateUpload: true }
-        : {}),
-      ...(hasUploadMarkdownTransformIntent(message)
-        ? { enableCreateTransform: true }
-        : {}),
-      ...(hasSourceAttachmentIntent(message)
-        ? { enableCreateSourceAttachment: true }
-        : {}),
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
-    };
+    });
 
     const result = await this.getAgent().generate({
       messages,
@@ -497,6 +667,8 @@ export class AgentService implements IAgentService {
 
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
+    const sourcesCard = buildSourcesCardFromContextItems(contextItems);
+    const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
     const responseText =
       pendingConfirmations.length > 0 ? "Confirmation required." : result.text;
@@ -515,15 +687,12 @@ export class AgentService implements IAgentService {
         conversationId,
         role: "assistant",
         content: responseText,
-        ...this.withMessageMetadata(
-          this.buildMessageMetadata(
-            this.getAssistantActor(),
-            this.buildAssistantSource(channelId, channelName),
-            [],
-            cards,
-            entityMemoryNote,
-          ),
-        ),
+        ...this.messageMetadata({
+          actor: this.getAssistantActor(),
+          source: this.buildAssistantSource(channelId, channelName),
+          cards: responseCards,
+          entityMemoryNote,
+        }),
       });
     }
 
@@ -538,7 +707,7 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: responseText,
       toolResults,
-      ...(cards.length > 0 ? { cards } : {}),
+      ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
     };
 
@@ -547,6 +716,34 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async hydrateUploadAttachments(params: {
+    message: string;
+    currentAttachments: ChatAttachment[];
+    uploadRefs: { source: NonNullable<ChatAttachment["source"]> }[];
+  }): Promise<ChatAttachment[]> {
+    if (params.currentAttachments.length > 0) return params.currentAttachments;
+    if (!this.uploadAttachmentResolver) return params.currentAttachments;
+    if (!shouldHydratePriorUploads(params.message))
+      return params.currentAttachments;
+
+    const hydrated: ChatAttachment[] = [];
+    for (const ref of params.uploadRefs.slice().reverse()) {
+      try {
+        const attachment = await this.uploadAttachmentResolver(ref.source);
+        if (attachment) hydrated.push(attachment);
+      } catch (error) {
+        this.logger.debug("Skipped unavailable prior upload attachment", {
+          uploadKind: ref.source.kind,
+          uploadId: ref.source.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (hydrated.length > 0) break;
+    }
+
+    return hydrated.length > 0 ? hydrated : params.currentAttachments;
   }
 
   private async fetchAgentContext(params: {
@@ -612,104 +809,43 @@ export class AgentService implements IAgentService {
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
-    const failed = isFailedToolOutput(result);
-    const prefix = failed ? "Failed" : "Completed";
-    const errorMessage = failed
-      ? (getStringField(result, "error") ?? getStringField(result, "message"))
-      : undefined;
-    const resultText = errorMessage
-      ? `${prefix}: ${pendingConfirmation.summary}\n\n${errorMessage}`
-      : `${prefix}: ${pendingConfirmation.summary}`;
-    const toolResult: ToolResultData = {
-      toolName: pendingConfirmation.toolName,
-      data: result,
-      ...(isRecord(pendingConfirmation.args)
-        ? { args: pendingConfirmation.args }
-        : {}),
-    };
-    const approvalCard: StructuredChatCard = {
-      kind: "tool-approval",
-      id: pendingConfirmation.id,
-      ...(pendingConfirmation.toolCallId
-        ? { toolCallId: pendingConfirmation.toolCallId }
-        : {}),
-      toolName: pendingConfirmation.toolName,
-      ...(isRecord(pendingConfirmation.args)
-        ? { input: pendingConfirmation.args }
-        : {}),
-      summary: pendingConfirmation.summary,
-      state: failed ? "output-error" : "output-available",
-      output: result,
-      ...(failed
-        ? { error: getStringField(result, "error") ?? "Action failed" }
-        : {}),
-    };
+    const outcome = buildConfirmedActionResult(pendingConfirmation, result);
 
     await this.conversationService.addMessage({
       conversationId,
       role: "assistant",
-      content: resultText,
-      ...this.withMessageMetadata(
-        this.buildMessageMetadata(
-          this.getAssistantActor(),
-          this.buildAssistantSource(channelId, channelName),
-          [],
-          [approvalCard],
-        ),
-      ),
+      content: outcome.resultText,
+      ...this.messageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(channelId, channelName),
+        cards: outcome.cards,
+        entityMemoryNote: outcome.entityMemoryNote,
+      }),
     });
 
     return {
-      text: resultText,
-      toolResults: [toolResult],
-      cards: [approvalCard],
+      text: outcome.resultText,
+      toolResults: [outcome.toolResult],
+      cards: outcome.cards,
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }
 
-  private buildMessageMetadata(
-    actor: ConversationMessageActor | null,
-    source: ConversationMessageSource | null,
-    attachments: ChatAttachment[] = [],
-    cards: StructuredChatCard[] = [],
-    entityMemoryNote = "",
-  ): ConversationMessageMetadata {
-    const enrichedActor = actor
-      ? (this.canonicalIdentityResolver?.enrichActor(actor) ?? actor)
-      : null;
-    return {
-      ...(enrichedActor ? { actor: enrichedActor } : {}),
-      ...(source ? { source } : {}),
-      ...(attachments.length > 0
-        ? {
-            attachments: attachments.map((attachment) =>
-              this.toMessageAttachmentMetadata(attachment),
-            ),
-          }
-        : {}),
-      ...(cards.length > 0 ? { cards } : {}),
-      ...(entityMemoryNote.length > 0 ? { entityMemoryNote } : {}),
-    };
-  }
-
-  private toMessageAttachmentMetadata(
-    attachment: ChatAttachment,
-  ): Record<string, unknown> {
-    return {
-      kind: attachment.kind,
-      filename: attachment.filename,
-      mediaType: attachment.mediaType,
-      ...(attachment.sizeBytes !== undefined && {
-        sizeBytes: attachment.sizeBytes,
+  private messageMetadata(params: {
+    actor: ConversationMessageActor | null;
+    source: ConversationMessageSource | null;
+    attachments?: ChatAttachment[];
+    cards?: StructuredChatCard[];
+    entityMemoryNote?: string;
+  }): { metadata: Record<string, unknown> } | Record<string, never> {
+    return withMessageMetadata(
+      buildMessageMetadata({
+        ...params,
+        ...(this.canonicalIdentityResolver
+          ? { canonicalIdentityResolver: this.canonicalIdentityResolver }
+          : {}),
       }),
-      ...(attachment.source !== undefined && { source: attachment.source }),
-    };
-  }
-
-  private withMessageMetadata(
-    metadata: ConversationMessageMetadata,
-  ): { metadata: Record<string, unknown> } | Record<string, never> {
-    return Object.keys(metadata).length > 0 ? { metadata } : {};
+    );
   }
 
   private getAssistantActor(): ConversationMessageActor {

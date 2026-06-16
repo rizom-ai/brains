@@ -13,6 +13,7 @@ tags:
   - pdf
   - regression
   - multi-turn
+  - preset-default
 
 turns:
   - userMessage: ""
@@ -22,7 +23,7 @@ turns:
         mediaType: application/pdf
         dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCnhyZWYKMCAzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTExCiUlRU9GCg==
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000911
     successCriteria:
       responseContains:
@@ -38,7 +39,7 @@ turns:
         mediaType: application/pdf
         dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCnhyZWYKMCAzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTExCiUlRU9GCg==
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000912
     successCriteria:
       responseContains:
@@ -54,7 +55,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: document
-            upload.kind: web-chat-upload
+            upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000911
           argsAbsent:
             - transform
@@ -72,7 +73,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: document
-        upload.kind: web-chat-upload
+        upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000911
       argsAbsent:
         - transform

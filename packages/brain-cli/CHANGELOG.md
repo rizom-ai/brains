@@ -1,5 +1,55 @@
 # @rizom/brain
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- [`b7a7514`](https://github.com/rizom-ai/brains/commit/b7a7514888373df93c9a2f12fb2bcadaad7aa924) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add core-preset Rover eval runner, tool coverage reporting, and permission matrix eval coverage.
+
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- [`5180476`](https://github.com/rizom-ai/brains/commit/51804769182a88a9f7091c0504bf49dbc097a57a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix saved-agent routing for documentation brains and follow-up requests. Exact saved agent ids such as `docs.rizom.ai` now route through A2A instead of local-memory or save-first fallbacks, A2A failures are surfaced directly rather than answered from local docs, and bare affirmative follow-ups after a save-first refusal correctly save the referenced agent.
+
+- [`ee61e5a`](https://github.com/rizom-ai/brains/commit/ee61e5a660e688f4df04abe075dc02140ce13c69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Increase first-passkey setup link validity to 24 hours by default and add `auth-service.setupTokenTtlSeconds` for deployments that need a custom setup-token lifetime.
+
+- [`5180476`](https://github.com/rizom-ai/brains/commit/51804769182a88a9f7091c0504bf49dbc097a57a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix uploaded-file action routing. Summarizing uploaded PDFs is now read-only and no longer creates notes or asks for confirmation, suggested Save document/Save image actions preserve the raw upload as document/image entities, and direct creates use deduplicated ids so duplicate titles do not fail with raw database errors.
+
+## 0.2.0-alpha.120
+
+## 0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- [`78171a4`](https://github.com/rizom-ai/brains/commit/78171a49698a9248fe12ceae6d8f45a5e5cc8b97) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so prior image uploads are rehydrated as native vision inputs, avoid generated-image copy for uploaded image saves, and clean completed confirmation text.
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- [`fc3b669`](https://github.com/rizom-ai/brains/commit/fc3b669daa7d38097adf79b334451d69888ba1d5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release current mainline fixes and UI updates: explicit durable-write confirmation coverage, richer web-chat stream parts, improved Rover agent/publish routing, and associated eval/test/doc cleanup.
+
+## 0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- [`7f9c3b1`](https://github.com/rizom-ai/brains/commit/7f9c3b191ee9d3979ec1bd922ef20664050bb783) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align PDF carousel inline emphasis with HTML deck styling by rendering italic markdown emphasis in the deck accent color.
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- [`c6c7df5`](https://github.com/rizom-ai/brains/commit/c6c7df529c7fe7b23680934ce3dc1b1c1f4ae4f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent generated document artifacts from creating oversized MCP tool names. Document IDs derived from dedup keys are now bounded with a short deterministic hash suffix instead of embedding full content hashes, and the entity-detail MCP resource template no longer enumerates every entity instance as a discoverable resource.
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

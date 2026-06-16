@@ -8,6 +8,7 @@ tags:
   - core
   - system
   - extract
+  - preset-default
 
 turns:
   - userMessage: "Extract topics from my blog posts"

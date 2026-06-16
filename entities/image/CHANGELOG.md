@@ -1,5 +1,128 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.122
+  - @brains/image@0.2.0-alpha.122
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/entity-service@0.2.0-alpha.122
+  - @brains/plugins@0.2.0-alpha.122
+
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.121
+  - @brains/image@0.2.0-alpha.121
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/entity-service@0.2.0-alpha.121
+  - @brains/plugins@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.120
+  - @brains/image@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/entity-service@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- [`d0716d4`](https://github.com/rizom-ai/brains/commit/d0716d40b16b33e63dcdcbd3e8dcb9c280aa6e58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid reusing stale upload refs when saving image discussions as notes or generating cover images from prior conversation context.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/image@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+  - @brains/entity-service@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.118
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/image@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+  - @brains/entity-service@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.117
+  - @brains/image@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/entity-service@0.2.0-alpha.117
+  - @brains/plugins@0.2.0-alpha.117
+
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.116
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/image@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/entity-service@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/image@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/entity-service@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/image@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/entity-service@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/image@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/entity-service@0.2.0-alpha.113
+  - @brains/plugins@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/image@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/entity-service@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

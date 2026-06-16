@@ -11,4 +11,14 @@ describe("getAgentDiscoveryInstructions", () => {
       "rather than answering from local saved agent metadata",
     );
   });
+
+  it("treats bare affirmative follow-ups after save-first refusal as consent to save", () => {
+    const instructions = getAgentDiscoveryInstructions();
+
+    expect(instructions).toContain("Yes please");
+    expect(instructions).toContain(
+      'system_create({ entityType: "agent", url: "save-first-followup.example" })',
+    );
+    expect(instructions).toContain("return an empty response");
+  });
 });

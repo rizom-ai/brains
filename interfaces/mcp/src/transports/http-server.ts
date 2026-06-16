@@ -6,7 +6,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
-import type { AgentNamespace } from "@brains/plugins";
+import { ChatContextSchema, type AgentNamespace } from "@brains/plugins";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -414,11 +414,12 @@ export class StreamableHTTPServer {
       );
     }
 
-    const { conversationId, confirmed, approvalId } =
+    const { conversationId, confirmed, approvalId, context } =
       (await request.json()) as {
         conversationId?: string;
         confirmed?: boolean;
         approvalId?: string;
+        context?: unknown;
       };
 
     if (!conversationId || typeof conversationId !== "string") {
@@ -442,6 +443,14 @@ export class StreamableHTTPServer {
       );
     }
 
+    const parsedContext = ChatContextSchema.safeParse(context);
+    if (!parsedContext.success || !parsedContext.data.userPermissionLevel) {
+      return this.createJsonResponse(
+        { error: "Missing or invalid 'context' field" },
+        400,
+      );
+    }
+
     this.logger.debug(
       `POST /api/chat/confirm - conversation: ${conversationId}`,
     );
@@ -451,6 +460,7 @@ export class StreamableHTTPServer {
         conversationId,
         confirmed,
         approvalId,
+        parsedContext.data,
       );
       return this.createJsonResponse(response);
     } catch (error) {

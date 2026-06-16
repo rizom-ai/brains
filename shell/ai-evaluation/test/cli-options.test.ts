@@ -28,12 +28,17 @@ describe("cli options", () => {
       "--max-parallel",
       "5",
       "--verbose",
+      "--tool-coverage",
+      "--suite",
+      "default",
       "--tags",
       "core,smoke",
       "--test",
       "a,b",
       "--type",
       "plugin",
+      "--preset",
+      "core",
       "--url",
       "http://localhost:8080",
       "--token",
@@ -49,9 +54,12 @@ describe("cli options", () => {
       parallel: true,
       maxParallel: 5,
       verbose: true,
+      toolCoverage: true,
+      suite: "default",
       tags: ["core", "smoke"],
       testCaseIds: ["a", "b"],
       testType: "plugin",
+      preset: "core",
       remoteUrl: "http://localhost:8080",
       authToken: "secret",
       compareAgainst: "baseline",
@@ -70,13 +78,15 @@ describe("cli options", () => {
 
     expect(options.parallel).toBe(true);
     expect(options.verbose).toBe(true);
+    expect(options.toolCoverage).toBe(false);
     expect(options.testCaseIds).toEqual(["fallback"]);
     expect(options.compareAgainst).toBe("");
   });
 
-  it("ignores invalid test types", () => {
-    const options = parseCliOptions(["--type", "bad"]);
+  it("ignores invalid test types and presets", () => {
+    const options = parseCliOptions(["--type", "bad", "--preset", "bad"]);
 
     expect(options.testType).toBeUndefined();
+    expect(options.preset).toBeUndefined();
   });
 });

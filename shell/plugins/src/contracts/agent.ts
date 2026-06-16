@@ -111,9 +111,70 @@ export const AttachmentCardSchema = z.object({
 
 export type AttachmentCard = z.infer<typeof AttachmentCardSchema>;
 
+export const SourceCitationSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  source: z.string().min(1),
+  url: z.string().min(1).optional(),
+  entityType: z.string().min(1).optional(),
+  entityId: z.string().min(1).optional(),
+  excerpt: z.string().min(1).optional(),
+  provenance: z.record(z.unknown()).optional(),
+});
+
+export type SourceCitation = z.infer<typeof SourceCitationSchema>;
+
+export const SourcesCardSchema = z.object({
+  kind: z.literal("sources"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  sources: z.array(SourceCitationSchema).min(1),
+});
+
+export type SourcesCard = z.infer<typeof SourcesCardSchema>;
+
+export const PromptChatActionSchema = z.object({
+  type: z.literal("prompt"),
+  id: z.string().min(1),
+  label: z.string().min(1),
+  prompt: z.string().min(1),
+  description: z.string().min(1).optional(),
+});
+
+export type PromptChatAction = z.infer<typeof PromptChatActionSchema>;
+
+export const EventChatActionSchema = z.object({
+  type: z.literal("event"),
+  id: z.string().min(1),
+  label: z.string().min(1),
+  event: z.string().min(1),
+  description: z.string().min(1).optional(),
+});
+
+export type EventChatAction = z.infer<typeof EventChatActionSchema>;
+
+export const ChatActionSchema = z.discriminatedUnion("type", [
+  PromptChatActionSchema,
+  EventChatActionSchema,
+]);
+
+export type ChatAction = z.infer<typeof ChatActionSchema>;
+
+export const ActionsCardSchema = z.object({
+  kind: z.literal("actions"),
+  id: z.string().min(1),
+  title: z.string().min(1).optional(),
+  defaultOpen: z.boolean().optional(),
+  actions: z.array(ChatActionSchema).min(1),
+});
+
+export type ActionsCard = z.infer<typeof ActionsCardSchema>;
+
 export const StructuredChatCardSchema = z.discriminatedUnion("kind", [
   ToolApprovalCardSchema,
   AttachmentCardSchema,
+  SourcesCardSchema,
+  ActionsCardSchema,
 ]);
 
 export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
@@ -124,6 +185,58 @@ export type StructuredChatCard = z.infer<typeof StructuredChatCardSchema>;
  * remote agent service) so the nested optional-stripping lives in one place.
  * Accepts any structurally-compatible attachment card (runtime or parsed).
  */
+export function toPublicActionsCard(card: ActionsCard): ActionsCard {
+  return {
+    kind: "actions",
+    id: card.id,
+    ...(card.title !== undefined && { title: card.title }),
+    ...(card.defaultOpen !== undefined && { defaultOpen: card.defaultOpen }),
+    actions: card.actions.map((action) => {
+      if (action.type === "prompt") {
+        return {
+          type: "prompt",
+          id: action.id,
+          label: action.label,
+          prompt: action.prompt,
+          ...(action.description !== undefined && {
+            description: action.description,
+          }),
+        };
+      }
+
+      return {
+        type: "event",
+        id: action.id,
+        label: action.label,
+        event: action.event,
+        ...(action.description !== undefined && {
+          description: action.description,
+        }),
+      };
+    }),
+  };
+}
+
+export function toPublicSourcesCard(card: SourcesCard): SourcesCard {
+  return {
+    kind: "sources",
+    id: card.id,
+    ...(card.title !== undefined && { title: card.title }),
+    sources: card.sources.map((source) => ({
+      id: source.id,
+      ...(source.title !== undefined && { title: source.title }),
+      source: source.source,
+      ...(source.url !== undefined && { url: source.url }),
+      ...(source.entityType !== undefined && { entityType: source.entityType }),
+      ...(source.entityId !== undefined && { entityId: source.entityId }),
+      ...(source.excerpt !== undefined && { excerpt: source.excerpt }),
+      ...(source.provenance !== undefined && {
+        provenance: source.provenance,
+      }),
+    })),
+  };
+}
+
 export function toPublicAttachmentCard(card: AttachmentCard): AttachmentCard {
   const { attachment } = card;
   const { source } = attachment;
@@ -196,6 +309,7 @@ export interface AgentNamespace {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse>;
   invalidate(): void;
 }

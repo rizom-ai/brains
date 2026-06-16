@@ -5,7 +5,9 @@ import type {
   PendingConfirmation as RuntimePendingConfirmation,
 } from "@brains/ai-service";
 import {
+  toPublicActionsCard,
   toPublicAttachmentCard,
+  toPublicSourcesCard,
   type AgentNamespace,
   type AgentResponse,
   type ChatContext,
@@ -46,6 +48,14 @@ function toPublicStructuredChatCard(
 ): StructuredChatCard {
   if (card.kind === "attachment") {
     return toPublicAttachmentCard(card);
+  }
+
+  if (card.kind === "sources") {
+    return toPublicSourcesCard(card);
+  }
+
+  if (card.kind === "actions") {
+    return toPublicActionsCard(card);
   }
 
   return {
@@ -118,12 +128,18 @@ export function createPublicAgentNamespace(
       conversationId,
       confirmed,
       approvalId,
+      context,
     ): Promise<AgentResponse> => {
+      const runtimeContext = toRuntimeChatContext(context);
+      if (!runtimeContext) {
+        throw new Error("Confirmation requires caller context.");
+      }
       return toPublicAgentResponse(
         await agentService.confirmPendingAction(
           conversationId,
           confirmed,
           approvalId,
+          runtimeContext,
         ),
       );
     },

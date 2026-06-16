@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createSystemResources } from "../../src/system/resources";
+import { createSystemResourceTemplates } from "../../src/system/resource-templates";
 import { createMockSystemServices } from "./mock-services";
 
 describe("system resources", () => {
@@ -49,5 +50,12 @@ describe("system resources", () => {
     const parsed = JSON.parse(result?.contents[0]?.text ?? "{}");
 
     expect(parsed.name).toBe("Test Owner");
+  });
+
+  it("entity detail resource template should not enumerate entity instances", () => {
+    const templates = createSystemResourceTemplates(createMockSystemServices());
+    const detailTemplate = templates.find((t) => t.name === "entity-detail");
+
+    expect(detailTemplate?.list).toBeUndefined();
   });
 });

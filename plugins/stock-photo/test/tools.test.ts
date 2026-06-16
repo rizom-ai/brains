@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createStockPhotoTools } from "../src/tools";
 import type { StockPhotoProvider, SearchResult } from "../src/lib/types";
-import type { Tool, IEntityService, ToolContext } from "@brains/plugins";
+import type {
+  Tool,
+  IEntityService,
+  ToolContext,
+  ServicePluginContext,
+} from "@brains/plugins";
 
 const mockContext: ToolContext = {
   interfaceType: "test",
@@ -81,14 +86,24 @@ describe("stock-photo tools", () => {
   let provider: StockPhotoProvider;
   let entityService: IEntityService;
   let tools: Tool[];
+  let enqueuedJobs: Array<{ type: string; data: unknown }>;
+  let jobs: ServicePluginContext["jobs"];
 
   beforeEach(() => {
     provider = createMockProvider();
     entityService = createMockEntityService();
+    enqueuedJobs = [];
+    jobs = {
+      enqueue: async (request): Promise<string> => {
+        enqueuedJobs.push(request);
+        return "queued-stock-photo-job";
+      },
+    } as ServicePluginContext["jobs"];
     tools = createStockPhotoTools("stock-photo", {
       provider,
       entityService,
       fetchImage: mockFetchImage(),
+      jobs,
     });
   });
 
@@ -131,6 +146,7 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_search");
@@ -154,6 +170,7 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_search");
@@ -173,6 +190,7 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_search");
@@ -203,21 +221,7 @@ describe("stock-photo tools", () => {
       alt: "Snow-capped mountains at sunset",
     };
 
-    it("should create image entity and return result", async () => {
-      entityService = createMockEntityService({
-        createEntity: async () => ({
-          entityId: "abc123",
-          jobId: "job-1",
-          skipped: false,
-        }),
-      });
-
-      tools = createStockPhotoTools("stock-photo", {
-        provider,
-        entityService,
-        fetchImage: mockFetchImage(),
-      });
-
+    it("should queue image materialization and return result", async () => {
       const tool = findTool(tools, "stock-photo_select");
       const result = await tool.handler(validInput, mockContext);
 
@@ -230,10 +234,16 @@ describe("stock-photo tools", () => {
           photographerUrl: "https://unsplash.com/@janesmith",
           sourceUrl: "https://unsplash.com/photos/abc123",
         },
+        jobId: "queued-stock-photo-job",
+        status: "generating",
+      });
+      expect(enqueuedJobs[0]).toMatchObject({
+        type: "select-photo",
+        data: validInput,
       });
     });
 
-    it("should trigger download tracking", async () => {
+    it("should leave download tracking to the queued job", async () => {
       let downloadTriggered = false;
 
       provider = createMockProvider({
@@ -246,14 +256,14 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_select");
       await tool.handler(validInput, mockContext);
 
-      // Give fire-and-forget a tick
-      await new Promise((r) => setTimeout(r, 10));
-      expect(downloadTriggered).toBe(true);
+      expect(downloadTriggered).toBe(false);
+      expect(enqueuedJobs).toHaveLength(1);
     });
 
     it("should reuse existing image entity by sourceUrl", async () => {
@@ -274,6 +284,7 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_select");
@@ -319,6 +330,7 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: mockFetchImage(),
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_select");
@@ -334,14 +346,17 @@ describe("stock-photo tools", () => {
       expect(result).toMatchObject({ success: true });
       expect((result as { data: Record<string, unknown> }).data).toMatchObject({
         coverSet: true,
+        jobId: "queued-stock-photo-job",
+        status: "generating",
       });
-      expect(updatedEntity).toMatchObject({
-        id: "my-post",
-        metadata: { coverImageId: "abc123" },
+      expect(enqueuedJobs[0]?.data).toMatchObject({
+        targetEntityType: "post",
+        targetEntityId: "my-post",
       });
+      expect(updatedEntity).toBeUndefined();
     });
 
-    it("should return error when image download fails", async () => {
+    it("should not download the image inline", async () => {
       const failingFetchImage = async (): Promise<never> => {
         throw new Error("Connection refused");
       };
@@ -350,13 +365,14 @@ describe("stock-photo tools", () => {
         provider,
         entityService,
         fetchImage: failingFetchImage,
+        jobs,
       });
 
       const tool = findTool(tools, "stock-photo_select");
       const result = await tool.handler(validInput, mockContext);
 
-      expect(result).toMatchObject({ success: false });
-      expect((result as { error: string }).error).toBe("Connection refused");
+      expect(result).toMatchObject({ success: true });
+      expect(enqueuedJobs).toHaveLength(1);
     });
 
     it("should reject invalid input", async () => {
@@ -367,29 +383,12 @@ describe("stock-photo tools", () => {
       expect((result as { error: string }).error).toContain("Invalid input");
     });
 
-    it("should use photoId as default title when title not provided", async () => {
-      let createdMetadata: Record<string, unknown> | undefined;
-
-      entityService = createMockEntityService({
-        createEntity: async (request: {
-          entity: { metadata: Record<string, unknown> };
-        }) => {
-          createdMetadata = request.entity.metadata;
-          return { entityId: "abc123", jobId: "job-1", skipped: false };
-        },
-      });
-
-      tools = createStockPhotoTools("stock-photo", {
-        provider,
-        entityService,
-        fetchImage: mockFetchImage(),
-      });
-
+    it("should allow the job to derive the default title", async () => {
       const { title: _, alt: __, ...inputWithoutTitleAlt } = validInput;
       const tool = findTool(tools, "stock-photo_select");
       await tool.handler(inputWithoutTitleAlt, mockContext);
 
-      expect(createdMetadata?.["title"]).toBe("Stock photo abc123");
+      expect(enqueuedJobs[0]?.data).toEqual(inputWithoutTitleAlt);
     });
   });
 });

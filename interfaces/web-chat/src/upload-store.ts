@@ -10,7 +10,7 @@ import {
   type SaveRuntimeUploadInput,
 } from "@brains/plugins";
 
-export const webChatUploadRefKind = "web-chat-upload";
+export const webChatUploadRefKind = "upload";
 export const webChatUploadIdPattern = runtimeUploadIdPattern;
 export const defaultWebChatUploadRetentionMs = 24 * 60 * 60 * 1000;
 export const defaultWebChatUploadMaxCount = 200;
@@ -37,7 +37,7 @@ export interface WebChatUploadStoreOptions {
 }
 
 const webChatUploadScope = {
-  namespace: "web-chat",
+  namespace: "upload",
   refKind: webChatUploadRefKind,
   routePath: "/api/chat/uploads",
 } satisfies Pick<

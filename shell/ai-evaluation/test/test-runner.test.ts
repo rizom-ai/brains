@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 
 describe("TestRunner", () => {
   let mockAgentService: IAgentService;
@@ -45,10 +46,10 @@ describe("TestRunner", () => {
       expect(result.failures).toHaveLength(0);
     });
 
-    it("should default eval callers to public permission", async () => {
+    it("should default eval callers to anchor permission", async () => {
       const testCase: TestCase = {
-        id: "test-default-public",
-        name: "Default Public Permission Test",
+        id: "test-default-anchor",
+        name: "Default Anchor Permission Test",
         type: "response_quality",
         turns: [{ userMessage: "Hello" }],
         successCriteria: {},
@@ -60,7 +61,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
       });
     });
@@ -93,6 +94,100 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should allow each turn to override chat context for multi-user conversations", async () => {
+      const testCase: TestCase = {
+        id: "test-multi-user-context",
+        name: "Multi-user Context Test",
+        type: "multi_turn",
+        setup: {
+          permissionLevel: "anchor",
+          interfaceType: "evaluation",
+          channelId: "shared-thread",
+        },
+        turns: [
+          {
+            userMessage: "Save this private note",
+            context: {
+              userPermissionLevel: "anchor",
+              actor: {
+                actorId: "alice-eval",
+                canonicalId: "alice",
+                interfaceType: "evaluation",
+                role: "user",
+                displayName: "Alice",
+              },
+              source: {
+                messageId: "msg-1",
+                channelId: "shared-thread",
+                threadId: "thread-1",
+              },
+            },
+          },
+          {
+            userMessage: "What private note did Alice save?",
+            context: {
+              userPermissionLevel: "public",
+              actor: {
+                actorId: "bob-eval",
+                canonicalId: "bob",
+                interfaceType: "evaluation",
+                role: "user",
+                displayName: "Bob",
+              },
+              source: {
+                messageId: "msg-2",
+                channelId: "shared-thread",
+                threadId: "thread-1",
+              },
+            },
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        channelId: "shared-thread",
+        actor: {
+          actorId: "alice-eval",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+          displayName: "Alice",
+        },
+        source: {
+          messageId: "msg-1",
+          channelId: "shared-thread",
+          threadId: "thread-1",
+        },
+      });
+      expect(calls[1]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        channelId: "shared-thread",
+        actor: {
+          actorId: "bob-eval",
+          canonicalId: "bob",
+          interfaceType: "evaluation",
+          role: "user",
+          displayName: "Bob",
+        },
+        source: {
+          messageId: "msg-2",
+          channelId: "shared-thread",
+          threadId: "thread-1",
+        },
+      });
+    });
+
     it("should pass native turn attachments to chat", async () => {
       const testCase: TestCase = {
         id: "test-turn-attachments",
@@ -122,7 +217,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[0]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         attachments: [
           {
@@ -134,6 +229,78 @@ describe("TestRunner", () => {
           },
         ],
       });
+    });
+
+    it("should seed source-backed eval attachments into runtime upload storage", async () => {
+      const savedUploads: unknown[] = [];
+      const scopedCalls: unknown[] = [];
+      const runtimeUploads: IRuntimeUploadsNamespace = {
+        scoped: (options) => {
+          scopedCalls.push(options);
+          return {
+            save: async (input: unknown) => {
+              savedUploads.push(input);
+              return {
+                id: options.createId?.() ?? "upload-fallback",
+                ref: {
+                  kind: options.refKind,
+                  id: options.createId?.() ?? "upload-fallback",
+                },
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                sizeBytes: 7,
+                createdAt: new Date().toISOString(),
+              };
+            },
+          } as ReturnType<IRuntimeUploadsNamespace["scoped"]>;
+        },
+      };
+      testRunner = TestRunner.createFresh(
+        mockAgentService,
+        undefined,
+        runtimeUploads,
+      );
+      const testCase: TestCase = {
+        id: "test-runtime-upload-seed",
+        name: "Runtime Upload Seed Test",
+        type: "response_quality",
+        turns: [
+          {
+            userMessage: "",
+            attachments: [
+              {
+                kind: "text",
+                filename: "notes.md",
+                mediaType: "text/markdown",
+                content: "# Notes",
+                source: {
+                  kind: "upload",
+                  id: "upload-00000000-0000-4000-8000-000000000999",
+                },
+              },
+            ],
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      expect(scopedCalls).toEqual([
+        {
+          namespace: "upload",
+          refKind: "upload",
+          routePath: "",
+          createId: expect.any(Function),
+        },
+      ]);
+      expect(savedUploads).toEqual([
+        {
+          filename: "notes.md",
+          mediaType: "text/markdown",
+          content: Buffer.from("# Notes", "utf8"),
+        },
+      ]);
     });
 
     it("should reuse previous attachments when a turn asks for them", async () => {
@@ -167,7 +334,7 @@ describe("TestRunner", () => {
         mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
       ).mock.calls;
       expect(calls[1]?.[2]).toEqual({
-        userPermissionLevel: "public",
+        userPermissionLevel: "anchor",
         interfaceType: "evaluation",
         attachments: [
           {
@@ -222,6 +389,10 @@ describe("TestRunner", () => {
         expect.any(String),
         true,
         "approval:system_update",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
       );
     });
 
@@ -275,7 +446,182 @@ describe("TestRunner", () => {
         expect.any(String),
         true,
         "approval:delete",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
       );
+    });
+
+    it("should retain pending approval ids after unauthorized confirmation attempts", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+      let confirmCalls = 0;
+      mockAgentService.confirmPendingAction = mock(() => {
+        confirmCalls += 1;
+        return Promise.resolve(
+          createMockResponse(
+            confirmCalls === 1
+              ? {
+                  text: "You are not authorized to confirm this pending action.",
+                  pendingConfirmations: [
+                    {
+                      id: "approval:delete",
+                      toolName: "system_delete",
+                      summary: "Delete note?",
+                      args: { entityType: "note", id: "note-1" },
+                    },
+                  ],
+                }
+              : { text: "Action confirmed." },
+          ),
+        );
+      });
+
+      const testCase: TestCase = {
+        id: "test-unauthorized-confirm-keeps-pending-id",
+        name: "Unauthorized Confirm Keeps Pending ID Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Delete note" },
+          {
+            userMessage: "Bob approves",
+            confirmPendingAction: true,
+            context: {
+              userPermissionLevel: "public",
+              actor: {
+                actorId: "bob",
+                interfaceType: "evaluation",
+                role: "user",
+              },
+            },
+          },
+          {
+            userMessage: "Alice approves",
+            confirmPendingAction: true,
+            context: {
+              userPermissionLevel: "anchor",
+              actor: {
+                actorId: "alice",
+                interfaceType: "evaluation",
+                role: "user",
+              },
+            },
+          },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        true,
+        "approval:delete",
+        expect.objectContaining({ userPermissionLevel: "public" }),
+      );
+      expect(mockAgentService.confirmPendingAction).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        true,
+        "approval:delete",
+        expect.objectContaining({ userPermissionLevel: "anchor" }),
+      );
+    });
+
+    it("should fail the test instead of throwing when a confirmation turn has no pending approval", async () => {
+      const testCase: TestCase = {
+        id: "test-missing-pending-approval",
+        name: "Missing Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          {
+            userMessage: "Approve missing confirmation",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: [],
+        }),
+      );
+      expect(result.turnResults[0]?.assistantResponse).toContain(
+        "cannot resolve approvalId",
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
+    });
+
+    it("should fail the test instead of throwing when multiple pending approvals require an explicit id", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:update",
+                toolName: "system_update",
+                summary: "Update agent?",
+                args: { entityType: "agent", id: "old-agent.io" },
+              },
+              {
+                id: "approval:delete",
+                toolName: "system_delete",
+                summary: "Delete note?",
+                args: { entityType: "note", id: "note-1" },
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-ambiguous-pending-approval",
+        name: "Ambiguous Pending Approval Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Prepare update and delete" },
+          {
+            userMessage: "Approve one",
+            confirmPendingAction: true,
+          },
+        ],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "confirmPendingAction",
+          actual: ["approval:update", "approval:delete"],
+        }),
+      );
+      expect(mockAgentService.confirmPendingAction).not.toHaveBeenCalled();
     });
 
     it("should use explicit eval permission when provided", async () => {

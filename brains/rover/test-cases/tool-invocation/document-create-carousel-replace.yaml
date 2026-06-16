@@ -10,6 +10,7 @@ tags:
   - carousel
   - document
   - media
+  - preset-full
 
 turns:
   - userMessage: "Regenerate the carousel document for deck 'distributed-systems-primer'"

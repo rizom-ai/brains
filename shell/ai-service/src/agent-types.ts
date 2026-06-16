@@ -57,6 +57,10 @@ export type CanonicalIdentityResolver = Pick<
   "enrichActor"
 >;
 
+export type UploadAttachmentResolver = (
+  source: ChatAttachmentSource,
+) => Promise<ChatAttachment | null | undefined>;
+
 export interface AgentConfig {
   /** Maximum iterations before stopping (SDK defaults to 1) */
   stepLimit?: number;
@@ -72,6 +76,8 @@ export interface AgentConfig {
   agentContextProvider?: (
     request: AgentContextRequest,
   ) => Promise<AgentContextItem[]>;
+  /** Optional resolver for prior uploads stored in conversation metadata. */
+  uploadAttachmentResolver?: UploadAttachmentResolver;
 }
 
 /**
@@ -114,7 +120,7 @@ export interface ChatContext {
 }
 
 /**
- * Pending confirmation for destructive operations
+ * Pending confirmation for durable write operations or other approval-gated actions
  */
 export interface PendingConfirmation {
   id: string;
@@ -173,7 +179,55 @@ export interface AttachmentCard {
   attachment: AttachmentCardData;
 }
 
-export type StructuredChatCard = ToolApprovalCard | AttachmentCard;
+export interface SourceCitation {
+  id: string;
+  title?: string | undefined;
+  source: string;
+  url?: string | undefined;
+  entityType?: string | undefined;
+  entityId?: string | undefined;
+  excerpt?: string | undefined;
+  provenance?: Record<string, unknown> | undefined;
+}
+
+export interface SourcesCard {
+  kind: "sources";
+  id: string;
+  title?: string | undefined;
+  sources: SourceCitation[];
+}
+
+export interface PromptChatAction {
+  type: "prompt";
+  id: string;
+  label: string;
+  prompt: string;
+  description?: string | undefined;
+}
+
+export interface EventChatAction {
+  type: "event";
+  id: string;
+  label: string;
+  event: string;
+  description?: string | undefined;
+}
+
+export type ChatAction = PromptChatAction | EventChatAction;
+
+export interface ActionsCard {
+  kind: "actions";
+  id: string;
+  title?: string | undefined;
+  defaultOpen?: boolean | undefined;
+  actions: ChatAction[];
+}
+
+export type StructuredChatCard =
+  | ToolApprovalCard
+  | AttachmentCard
+  | SourcesCard
+  | ActionsCard;
 
 /**
  * Tool result data for tracking
@@ -201,7 +255,7 @@ export interface AgentResponse {
   // tool outputs, artifacts, and future rich parts.
   cards?: StructuredChatCard[];
 
-  // Pending confirmations for destructive operations.
+  // Pending confirmations for durable write operations or other approval-gated actions.
   pendingConfirmations?: PendingConfirmation[];
 
   // Token usage for tracking
@@ -229,7 +283,7 @@ export interface IAgentService {
   ): Promise<AgentResponse>;
 
   /**
-   * Confirm a pending destructive operation
+   * Confirm a pending approval-gated action
    * @param conversationId - ID of the conversation
    * @param confirmed - Whether the user confirmed the operation
    * @param approvalId - Explicit approval/action id to resolve
@@ -238,6 +292,7 @@ export interface IAgentService {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse>;
 
   /**

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
+import type { Plugin } from "@brains/plugins";
 import type { ShellConfigInput } from "../src/config";
 import { resetAllSingletons } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
@@ -126,6 +127,59 @@ describe("Shell shutdown", () => {
       expect(fullError).toContain("CLIENT_CLOSED");
     }
     expect(threw).toBe(true);
+  });
+
+  it("should stop background workers, then plugin daemons, before closing databases", async () => {
+    const order: string[] = [];
+    let workerRunningDuringDaemonStop: boolean | undefined;
+    let dbUsableDuringDaemonStop = false;
+
+    const daemonPlugin: Plugin = {
+      id: "shutdown-order-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Observes shutdown ordering from its daemon stop hook",
+      packageName: "@test/shutdown-order",
+      register: async (shellInstance) => {
+        shellInstance.registerDaemon(
+          "shutdown-order-daemon",
+          {
+            start: async () => {
+              order.push("daemon-started");
+            },
+            stop: async () => {
+              order.push("daemon-stopped");
+
+              const shellWithServices = shellInstance as unknown as {
+                services: { jobQueueWorker: { isWorkerRunning(): boolean } };
+              };
+              workerRunningDuringDaemonStop =
+                shellWithServices.services.jobQueueWorker.isWorkerRunning();
+
+              // Databases must outlive daemons: shutdown closes them last.
+              await shellInstance
+                .getEntityService()
+                .listEntities({ entityType: "note" });
+              dbUsableDuringDaemonStop = true;
+            },
+          },
+          "shutdown-order-plugin",
+        );
+        return { tools: [], resources: [] };
+      },
+    };
+
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [daemonPlugin];
+    const shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    await shell.shutdown();
+
+    expect(order).toEqual(["daemon-started", "daemon-stopped"]);
+    expect(workerRunningDuringDaemonStop).toBe(false);
+    expect(dbUsableDuringDaemonStop).toBe(true);
   });
 
   it("should allow a second shell to boot cleanly after first is shut down", async () => {

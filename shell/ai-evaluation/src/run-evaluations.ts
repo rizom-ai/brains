@@ -7,6 +7,9 @@
  *   bun run eval --test tool-invocation-list  # Run specific test(s)
  *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
+ *   bun run eval --preset core                # Boot a specific brain preset
+ *   bun run eval --suite core                 # Run an eval suite from brain.eval.yaml
+ *   bun run eval --tool-coverage              # Show registered vs asserted tool coverage
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
  *   bun run eval --url http://localhost:8080  # Run against remote instance
@@ -22,6 +25,10 @@ import { runSingleModelEvaluation } from "./single-model-runner";
 import { printHelp } from "./cli-help";
 import { bootstrapCliEnvironment } from "./cli-bootstrap";
 import { runEvaluations, runEvaluationsCollect } from "./evaluation-runner";
+import {
+  renderToolCoverageReport,
+  runToolCoverageReport,
+} from "./tool-coverage";
 
 export { runEvaluations, runEvaluationsCollect };
 
@@ -43,9 +50,12 @@ export async function main(): Promise<void> {
     parallel,
     maxParallel,
     verbose,
+    suite,
     tags,
     testCaseIds,
     testType,
+    preset,
+    toolCoverage,
     remoteUrl,
     authToken,
     compareAgainst,
@@ -53,7 +63,7 @@ export async function main(): Promise<void> {
   } = parseCliOptions(args);
 
   try {
-    const evalConfigResult = await loadEvalConfig();
+    const evalConfigResult = await loadEvalConfig({ preset, suite, tags });
     const {
       config,
       testCasesDirs,
@@ -62,6 +72,7 @@ export async function main(): Promise<void> {
       judge,
       resolveConfig: freshResolve,
     } = evalConfigResult;
+    const effectiveTags = evalConfigResult.tags ?? tags;
 
     // Shared eval environment setup
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
@@ -75,6 +86,20 @@ export async function main(): Promise<void> {
         brainModelPath,
         cloneData,
       });
+      process.exit(0);
+    }
+
+    // ── Tool tool coverage ────────────────────────────────────────────
+    if (toolCoverage) {
+      const report = await runToolCoverageReport({
+        config,
+        testCasesDirs,
+        evalHandlerRegistry,
+        brainModelPath,
+        cloneData,
+        tags: effectiveTags,
+      });
+      process.stdout.write(`${renderToolCoverageReport(report)}\n`);
       process.exit(0);
     }
 
@@ -92,7 +117,7 @@ export async function main(): Promise<void> {
         verbose,
         parallel,
         maxParallel,
-        tags,
+        tags: effectiveTags,
         testCaseIds,
         testType,
         remoteUrl,
@@ -113,7 +138,7 @@ export async function main(): Promise<void> {
       verbose,
       parallel,
       maxParallel,
-      tags,
+      tags: effectiveTags,
       testCaseIds,
       testType,
       remoteUrl,

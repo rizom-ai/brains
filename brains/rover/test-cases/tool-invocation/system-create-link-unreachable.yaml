@@ -10,6 +10,7 @@ tags:
   - link
   - error-handling
   - anti-fabrication
+  - preset-core
 
 turns:
   - userMessage: "Save this link: https://this-domain-definitely-does-not-exist-12345.com/page"

@@ -10,6 +10,7 @@ tags:
   - carousel
   - document
   - media
+  - preset-full
 
 turns:
   - userMessage: "Save the carousel for deck 'distributed-systems-primer' and attach it to social post 'publish-policy-draft'"

@@ -9,9 +9,7 @@ not the general playbook platform. Anything an onboarding run does not exercise
 is listed under [Deferred](#deferred-not-built-here) and is explicitly out of
 build scope.
 
-Related: [Brain web chat surface](./brain-web-ui.md) owns `/chat`;
-[Passkey Operator Onboarding](./passkey-operator-onboarding.md) owns first-passkey
-bootstrap.
+Related: the bundled web chat owns `/chat`; first-passkey bootstrap is shipped in `shell/auth-service` and no longer has a standing plan.
 
 ## What this is
 
@@ -117,9 +115,10 @@ durable job — not reworking the gate model.
 - Long-lived runs that pause and re-evaluate when async evidence arrives later.
 - Run deadlines / timeouts.
 - Shell-owned runtime persistence for playbook runs (normalized run/evidence/verdict
-  tables). Designed as shell infrastructure in [Operator runtime database](./operator-runtime-db.md),
-  where playbook runs are a named consumer of the shell runtime-state service — not
-  plugin-private SQLite and not a one-off migration hook for playbooks.
+  tables). Designed as shell infrastructure in [Runtime state store](./runtime-state-store.md),
+  where playbook runs are a named consumer of the shell runtime-state service (the
+  ephemeral operational tier, alongside chat subscriptions) — not plugin-private SQLite
+  and not a one-off migration hook for playbooks.
 - Durable delayed jobs in `@brains/job-queue`, and any scheduler (content-pipeline's
   `SchedulerBackend` is in-memory/config-driven; if recurring pulls are ever needed
   it should be extracted to a shared package and owned by the producing plugin, never
@@ -313,10 +312,12 @@ Known JSON limits, accepted for this branch:
 - Schema migration is Zod/default based.
 
 Long-term storage is the shell-owned runtime-state service designed in
-[Operator runtime database](./operator-runtime-db.md); migrating `runs.json` onto it (as
+[Runtime state store](./runtime-state-store.md); migrating `runs.json` onto it (as
 normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables) is
-deferred until that service exists. Do **not** add plugin-private SQLite, plugin-specific
-migration packaging, or a generic migration abstraction only for playbooks in the meantime.
+deferred until that service exists — it is built first for chat subscriptions, then
+merged into this worktree as the second consumer. Do **not** add plugin-private SQLite,
+plugin-specific migration packaging, or a generic migration abstraction only for playbooks
+in the meantime.
 
 ```ts
 interface PlaybookRun {
@@ -437,7 +438,13 @@ auto-send on load. Enabled only on presets with an anchor web-chat surface
 Run state in the UI (decision on invariant: surface a little, deliberately): a
 **resume affordance** for an interrupted/dismissed run, and a **structured "blocked"
 signal** (current step + what's missing + Keep going / Skip), rather than relying on
-the model to paraphrase it. Nothing more for MVP.
+the model to paraphrase it. Once web-chat `actions` cards are available, playbooks
+should use them for these continuation affordances. The cards must be projections of
+the active run state and route through playbook runtime actions/tools; they must not
+invent transitions, execute hidden tool calls, or skip XState guards. The agent may
+still request transitions by calling `playbook_send_event`; UI actions are a parallel
+operator-facing request path, and in both cases the runtime/XState machine remains
+authoritative.
 
 ## Phases
 

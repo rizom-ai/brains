@@ -1,6 +1,8 @@
 import type { SimpleGit } from "simple-git";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
+import { GitStallError, runGitWithStallTimeout } from "./git-stall";
+import type { GitNetwork } from "./git-stall";
 
 /** Stage and commit all changes. */
 export async function commitGitChanges(
@@ -26,15 +28,24 @@ export async function commitGitChanges(
 }
 
 export async function pushGitChanges(
-  git: SimpleGit,
   logger: Logger,
   branch: string,
+  net: GitNetwork,
 ): Promise<void> {
   logger.debug("Pushing to origin", { branch });
+  // The network push runs on a throwaway, stall-guarded instance so an
+  // unresponsive remote can't hang the caller and wedge the git lock.
   try {
-    await git.push("origin", branch, ["--set-upstream"]);
-  } catch {
-    await git.push("origin", branch);
+    await runGitWithStallTimeout(net, (g) =>
+      g.push("origin", branch, ["--set-upstream"]),
+    );
+  } catch (error) {
+    // A stall is terminal — don't retry it. The fallback exists only for the
+    // "no upstream configured" case.
+    if (error instanceof GitStallError) {
+      throw error;
+    }
+    await runGitWithStallTimeout(net, (g) => g.push("origin", branch));
   }
   logger.info("Pushed changes to remote");
 }

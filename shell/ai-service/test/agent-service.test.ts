@@ -323,7 +323,7 @@ describe("AgentService", () => {
             mediaType: "image/png",
             data: imageBytes,
             sizeBytes: imageBytes.byteLength,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       });
@@ -335,7 +335,7 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: 'Describe this image\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- robot.png: upload { kind: "web-chat-upload", id: "upload-123" }; raw promotion call: system_create({ entityType: "image", upload }) and omit transform',
+            text: 'Describe this image\n\nAvailable upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a base entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n- robot.png: upload { kind: "upload", id: "upload-123" }; mediaType: image/png; raw-save entityType: "image"',
           },
           {
             type: "file",
@@ -357,12 +357,280 @@ describe("AgentService", () => {
                 filename: "robot.png",
                 mediaType: "image/png",
                 sizeBytes: imageBytes.byteLength,
-                source: { kind: "web-chat-upload", id: "upload-123" },
+                source: { kind: "upload", id: "upload-123" },
               },
             ],
           }),
         }),
       );
+    });
+
+    it("hydrates prior upload refs into native file attachments when the user asks to inspect an uploaded image", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "robot.png",
+                  mediaType: "image/png",
+                  sizeBytes: 4,
+                  source: { kind: "upload", id: "upload-123" },
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const imageBytes = new Uint8Array([137, 80, 78, 71]);
+      const uploadAttachmentResolver = mock(async () => ({
+        kind: "file" as const,
+        filename: "robot.png",
+        mediaType: "image/png",
+        data: imageBytes,
+        sizeBytes: imageBytes.byteLength,
+        source: { kind: "upload", id: "upload-123" },
+      }));
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
+      );
+
+      await service.chat("describe the latest image", "test-conversation");
+
+      expect(uploadAttachmentResolver).toHaveBeenCalledWith({
+        kind: "upload",
+        id: "upload-123",
+      });
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: 'describe the latest image\n\nAvailable upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a base entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n- robot.png: upload { kind: "upload", id: "upload-123" }; mediaType: image/png; raw-save entityType: "image"',
+          },
+          {
+            type: "file",
+            data: imageBytes,
+            mediaType: "image/png",
+            filename: "robot.png",
+          },
+        ],
+      });
+      expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          conversationId: "test-conversation",
+          role: "user",
+          content: "describe the latest image",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "file",
+                filename: "robot.png",
+                mediaType: "image/png",
+                sizeBytes: imageBytes.byteLength,
+                source: { kind: "upload", id: "upload-123" },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it("does not ask service-level upload clarification for deck carousel requests", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-pdf-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+                  mediaType: "application/pdf",
+                  source: { kind: "upload", id: "upload-pdf" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-image-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "IMG_8963.jpeg",
+                  mediaType: "image/jpeg",
+                  source: { kind: "upload", id: "upload-image" },
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "Can you generate a preview of the innovation deck carousel for me?",
+        "test-conversation",
+      );
+
+      expect(response.text).not.toContain("Which uploaded file should I use?");
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateUpload).toBe(true);
+      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
+      expect(callArgs?.options.disableDocumentGenerate).toBeUndefined();
+      const lastMessage = callArgs?.messages.at(-1);
+      expect(lastMessage?.role).toBe("user");
+      expect(lastMessage?.content).toContain(
+        "Can you generate a preview of the innovation deck carousel for me?",
+      );
+      expect(lastMessage?.content).toContain('id: "upload-pdf"');
+      expect(lastMessage?.content).toContain('id: "upload-image"');
+    });
+
+    it("does not expose create sourceAttachment for ordinary direct create requests", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "Save this as a note: hello world",
+        "test-conversation",
+      );
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
+    });
+
+    it("exposes create sourceAttachment for source-derived artifact requests", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat(
+        "Save the distributed systems deck carousel as a PDF document",
+        "test-conversation",
+      );
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableCreateSourceAttachment).toBe(true);
+      expect(callArgs?.options.disableDocumentGenerate).toBe(true);
+    });
+
+    it("lets the agent handle clarification replies instead of rewriting them", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-first-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "first-robot.png",
+                  mediaType: "image/png",
+                  source: { kind: "upload", id: "upload-first" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-second-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "second-robot.png",
+                  mediaType: "image/png",
+                  source: { kind: "upload", id: "upload-second" },
+                },
+              ],
+            }),
+          },
+          {
+            id: "msg-request",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "save it as an image",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+          {
+            id: "msg-clarify",
+            conversationId: "test-conversation",
+            role: "assistant",
+            content:
+              "Which uploaded file should I use? `first-robot.png`, `second-robot.png`",
+            timestamp: new Date().toISOString(),
+            metadata: null,
+          },
+        ]),
+      );
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("the latest one", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
+      const lastMessage = messages.at(-1);
+      expect(lastMessage?.role).toBe("user");
+      expect(lastMessage?.content).toContain("the latest one");
+      expect(lastMessage?.content).toContain('id: "upload-first"');
+      expect(lastMessage?.content).toContain('id: "upload-second"');
     });
 
     it("asks for intent when the user submits only a native file attachment", async () => {
@@ -384,14 +652,37 @@ describe("AgentService", () => {
             mediaType: "application/pdf",
             data: pdfBytes,
             sizeBytes: pdfBytes.byteLength,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       });
 
+      const expectedCards = [
+        {
+          kind: "actions" as const,
+          id: "actions:upload-intent",
+          title: "Try next",
+          defaultOpen: true,
+          actions: [
+            {
+              type: "prompt" as const,
+              id: "summarize-pdf",
+              label: "Summarize PDF",
+              prompt: "Summarize the uploaded PDF.",
+            },
+            {
+              type: "prompt" as const,
+              id: "save-document",
+              label: "Save document",
+              prompt: "Save the uploaded PDF as a document.",
+            },
+          ],
+        },
+      ];
       expect(response).toEqual({
         text: "I got `brief.pdf`. What would you like me to do with it?",
         toolResults: [],
+        cards: expectedCards,
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       });
       expect(mockGenerate).not.toHaveBeenCalled();
@@ -407,7 +698,7 @@ describe("AgentService", () => {
                 filename: "brief.pdf",
                 mediaType: "application/pdf",
                 sizeBytes: pdfBytes.byteLength,
-                source: { kind: "web-chat-upload", id: "upload-123" },
+                source: { kind: "upload", id: "upload-123" },
               },
             ],
           }),
@@ -418,8 +709,57 @@ describe("AgentService", () => {
         expect.objectContaining({
           role: "assistant",
           content: "I got `brief.pdf`. What would you like me to do with it?",
+          metadata: expect.objectContaining({ cards: expectedCards }),
         }),
       );
+    });
+
+    it("offers image-specific actions for image-only uploads", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const imageBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+
+      const response = await service.chat("", "test-conversation", {
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: imageBytes,
+            sizeBytes: imageBytes.byteLength,
+            source: { kind: "upload", id: "upload-image" },
+          },
+        ],
+      });
+
+      expect(response.cards).toEqual([
+        {
+          kind: "actions",
+          id: "actions:upload-intent",
+          title: "Try next",
+          defaultOpen: true,
+          actions: [
+            {
+              type: "prompt",
+              id: "describe-image",
+              label: "Describe image",
+              prompt: "Describe the uploaded image.",
+            },
+            {
+              type: "prompt",
+              id: "save-image",
+              label: "Save image",
+              prompt: "Save the uploaded image.",
+            },
+          ],
+        },
+      ]);
     });
 
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
@@ -440,7 +780,7 @@ describe("AgentService", () => {
             mediaType: "text/markdown",
             content: "# Durable Notes",
             sizeBytes: 16,
-            source: { kind: "web-chat-upload", id: "upload-123" },
+            source: { kind: "upload", id: "upload-123" },
           },
         ],
       });
@@ -450,7 +790,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content:
-          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- durable-notes.md: upload { kind: "web-chat-upload", id: "upload-123" }; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })',
+          'Summarize this\n\nUser uploaded a file "durable-notes.md":\n\n# Durable Notes\n\nAvailable upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user\'s request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a base entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n- durable-notes.md: upload { kind: "upload", id: "upload-123" }; mediaType: text/markdown',
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
@@ -464,7 +804,7 @@ describe("AgentService", () => {
                 filename: "durable-notes.md",
                 mediaType: "text/markdown",
                 sizeBytes: 16,
-                source: { kind: "web-chat-upload", id: "upload-123" },
+                source: { kind: "upload", id: "upload-123" },
               },
             ],
           }),
@@ -901,6 +1241,55 @@ describe("AgentService", () => {
       );
     });
 
+    it("returns retrieved context as source citation cards", async () => {
+      const agentContextProvider = mock(async () => [
+        {
+          id: "summary-1",
+          source: "conversation-memory",
+          title: "summary from #relay-team",
+          content: "The team decided to use explicit memory retrieval.",
+          provenance: {
+            entityType: "summary",
+            entityId: "summary-1",
+            conversationId: "relay-conv",
+          },
+        },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, agentContextProvider },
+      );
+
+      const response = await service.chat("What did we decide?", "relay-conv");
+
+      expect(response.cards).toEqual([
+        {
+          kind: "sources",
+          id: "sources:agent-context",
+          title: "Retrieved context",
+          sources: [
+            {
+              id: "summary-1",
+              title: "summary from #relay-team",
+              source: "conversation-memory",
+              entityType: "summary",
+              entityId: "summary-1",
+              excerpt: "The team decided to use explicit memory retrieval.",
+              provenance: {
+                entityType: "summary",
+                entityId: "summary-1",
+                conversationId: "relay-conv",
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     it("tells the agent when the context provider returns no relevant memory", async () => {
       const agentContextProvider = mock(async () => []);
       const service = AgentService.createFresh(
@@ -969,6 +1358,10 @@ describe("AgentService", () => {
 
   describe("confirmation flow", () => {
     // Helper: make the agent return a tool result with needsConfirmation
+    const anchorConfirmationContext = {
+      userPermissionLevel: "anchor" as const,
+      interfaceType: "evaluation",
+    };
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
       summary = "Delete note 'Meeting Notes'?",
@@ -1062,12 +1455,137 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:wrong-call",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
       );
 
       expect(response.text).toBe(
         "No pending action matches approval id 'approval:wrong-call'.",
       );
       expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
+    it("fails closed when confirmation caller context is missing", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "anchor",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+      const response = (await Reflect.apply(
+        service.confirmPendingAction,
+        service,
+        ["test-conversation", true, "approval:call-1"],
+      )) as Awaited<ReturnType<typeof service.confirmPendingAction>>;
+
+      expect(response.text).toBe("Confirmation requires caller context.");
+      expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
+    it("rejects confirmation from a different non-anchor actor in a shared conversation", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "anchor",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock((level) =>
+        level === "anchor" ? [{ pluginId: "test", tool: deleteTool }] : [],
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+
+      const publicResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-public-bob",
+            canonicalId: "bob",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      expect(publicResponse.text).toBe(
+        "You are not authorized to confirm this pending action.",
+      );
+      expect(publicResponse.pendingConfirmations?.map(({ id }) => id)).toEqual([
+        "approval:call-1",
+      ]);
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      const anchorResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-anchor-alice",
+            canonicalId: "alice",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      expect(anchorResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'",
+      );
+      expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
     it("does not return or persist misleading model completion text before confirmation", async () => {
@@ -1153,9 +1671,10 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
-      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'?");
+      expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
       expect(response.text).not.toContain("Result:");
       expect(response.text).not.toContain('"success": true');
       expect(response.toolResults).toEqual([
@@ -1183,6 +1702,249 @@ describe("AgentService", () => {
           content: response.text,
         }),
       );
+    });
+
+    it("stores confirmed update entity ids in conversation memory", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm title update.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_update",
+                input: {
+                  entityType: "base",
+                  id: "rizom-brains-provenance-token-concept-note",
+                  fields: { title: "Rizom Brains and Provenance" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_update",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: 'Update "Untitled"?',
+                  args: {
+                    entityType: "base",
+                    id: "rizom-brains-provenance-token-concept-note",
+                    fields: { title: "Rizom Brains and Provenance" },
+                    confirmed: true,
+                    contentHash: "hash-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const updateHandler = mock(async () => ({
+        success: true as const,
+        data: { updated: "rizom-brains-provenance-token-concept-note" },
+      }));
+      const updateTool: Tool = {
+        name: "system_update",
+        description: "Update entity",
+        inputSchema: { entityType: z.string(), id: z.string() },
+        visibility: "trusted",
+        handler: updateHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: updateTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("give it a title", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).toBe('Completed: Update "Untitled"');
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: response.text,
+          metadata: expect.objectContaining({
+            entityMemoryNote: expect.stringContaining(
+              'base "rizom-brains-provenance-token-concept-note" (updated)',
+            ),
+          }),
+        }),
+      );
+    });
+
+    it("includes attachment cards from confirmed create results", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm image generation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_create",
+                input: {
+                  entityType: "image",
+                  prompt: "Generate a mossy robot",
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Generate image?",
+                  args: {
+                    entityType: "image",
+                    prompt: "Generate a mossy robot",
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "mossy-robot",
+          status: "generating",
+          jobId: "job-1",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("generate an image", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        anchorConfirmationContext,
+      );
+
+      expect(response.cards).toEqual([
+        {
+          kind: "tool-approval",
+          id: "approval:call-1",
+          toolCallId: "call-1",
+          toolName: "system_create",
+          input: { entityType: "image", prompt: "Generate a mossy robot" },
+          summary: "Generate image?",
+          state: "output-available",
+          output: expect.objectContaining({ success: true }),
+        },
+        {
+          kind: "attachment",
+          id: "attachment:mossy-robot",
+          jobId: "job-1",
+          title: "mossy-robot.png",
+          description:
+            "image generation has been queued. This artifact will open once the job completes.",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=mossy-robot",
+            downloadUrl:
+              "/api/chat/attachments/image?id=mossy-robot&download=1",
+            filename: "mossy-robot.png",
+            source: {
+              entityType: "image",
+              entityId: "mossy-robot",
+              attachmentType: "generated",
+            },
+          },
+        },
+      ]);
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            entityMemoryNote: expect.stringContaining('image "mossy-robot"'),
+          }),
+        }),
+      );
+    });
+
+    it("removes confirmation punctuation from completed action text", async () => {
+      setupConfirmationResponse("Done.", 'Create "download"?');
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: mock(async () => ({ success: true as const, data: {} })),
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "notes", tool: deleteTool },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("save image", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        anchorConfirmationContext,
+      );
+
+      expect(response.text).toBe('Completed: Create "download"');
     });
 
     it("does not repeat destructive preview text after confirmation", async () => {
@@ -1225,11 +1987,10 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
-      expect(response.text).toContain(
-        "Completed: Delete note 'Meeting Notes'?",
-      );
+      expect(response.text).toContain("Completed: Delete note 'Meeting Notes'");
       expect(response.text).not.toContain("Sensitive content");
       const resolvedCard = response.cards?.[0];
       expect(resolvedCard?.kind).toBe("tool-approval");
@@ -1272,10 +2033,11 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBe(
-        "Failed: Delete note 'Meeting Notes'?\n\nEntity not found: base/woodchuck-note",
+        "Failed: Delete note 'Meeting Notes'\n\nEntity not found: base/woodchuck-note",
       );
       expect(response.text).not.toContain("Result:");
       expect(response.text).not.toContain('"success": false');
@@ -1350,6 +2112,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).not.toContain('"success": false');
@@ -1364,7 +2127,7 @@ describe("AgentService", () => {
       );
     });
 
-    it("should track pending confirmation for destructive operations", async () => {
+    it("should track pending confirmation for approval-gated actions", async () => {
       setupConfirmationResponse();
 
       const service = AgentService.createFresh(
@@ -1391,6 +2154,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBeDefined();
@@ -1484,8 +2248,9 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update",
+        anchorConfirmationContext,
       );
-      expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'?");
+      expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'");
       expect(updateHandler).toHaveBeenCalledWith(
         { noteId: "456", title: "New title" },
         expect.any(Object),
@@ -1496,9 +2261,10 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-delete",
+        anchorConfirmationContext,
       );
       expect(deleteResponse.text).toBe(
-        "Completed: Delete note 'Meeting Notes'?",
+        "Completed: Delete note 'Meeting Notes'",
       );
       expect(deleteHandler).toHaveBeenCalledWith(
         { noteId: "123" },
@@ -1526,6 +2292,7 @@ describe("AgentService", () => {
         "test-conversation",
         false,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toContain("cancelled");
@@ -1565,6 +2332,12 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        {
+          userPermissionLevel: "trusted",
+          interfaceType: "matrix",
+          channelId: "!room:example.org",
+          channelName: "Ops",
+        },
       );
 
       expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
@@ -1595,6 +2368,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:noop",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toContain("No pending");
@@ -1918,6 +2692,156 @@ describe("AgentService", () => {
 
       expect(response.toolResults).toBeDefined();
       expect(response.toolResults?.length).toBe(0);
+    });
+
+    it("caps and sorts structured entity search sources by score", async () => {
+      mockAgentGenerateResult = {
+        text: "Your notes describe resilience as graceful degradation.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-search",
+                toolName: "system_search",
+                input: { query: "resilience", entityType: "note" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-search",
+                toolName: "system_search",
+                output: {
+                  success: true,
+                  data: {
+                    results: [
+                      {
+                        entity: {
+                          id: "security",
+                          entityType: "base",
+                          content: "Security policy content.",
+                          metadata: { title: "Security Policy" },
+                        },
+                        score: 0.42,
+                        excerpt: "Security policy content.",
+                      },
+                      {
+                        entity: {
+                          id: "resilience-note",
+                          entityType: "note",
+                          content:
+                            "Resilience preserves essential function under stress.",
+                          metadata: { title: "Resilience Is Not Redundancy" },
+                        },
+                        score: 0.91,
+                        excerpt:
+                          "Resilience preserves essential function under stress.",
+                      },
+                      {
+                        entity: {
+                          id: "distributed-systems-primer",
+                          entityType: "base",
+                          content: "Distributed systems fail in partial ways.",
+                          metadata: {
+                            title: "Distributed Systems: A Practical Primer",
+                          },
+                        },
+                        score: 0.83,
+                        excerpt: "Distributed systems fail in partial ways.",
+                      },
+                      {
+                        entity: {
+                          id: "green-software",
+                          entityType: "base",
+                          content: "Carbon efficiency notes.",
+                          metadata: { title: "Green Software" },
+                        },
+                        score: 0.35,
+                        excerpt: "Carbon efficiency notes.",
+                      },
+                      {
+                        entity: {
+                          id: "resilience-post",
+                          entityType: "post",
+                          content: "Redundancy is not resilience.",
+                          metadata: { title: "More Replicas Are Not Enough" },
+                        },
+                        score: 0.87,
+                        excerpt: "Redundancy is not resilience.",
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 25, outputTokens: 40, totalTokens: 65 },
+      };
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat(
+        "what do we know about resilience?",
+        "test-conversation",
+      );
+
+      const expectedSourcesCard = {
+        kind: "sources" as const,
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "note:resilience-note",
+            title: "Resilience Is Not Redundancy",
+            source: "note",
+            entityType: "note",
+            entityId: "resilience-note",
+            excerpt: "Resilience preserves essential function under stress.",
+            provenance: { toolName: "system_search", score: 0.91 },
+          },
+          {
+            id: "post:resilience-post",
+            title: "More Replicas Are Not Enough",
+            source: "post",
+            entityType: "post",
+            entityId: "resilience-post",
+            excerpt: "Redundancy is not resilience.",
+            provenance: { toolName: "system_search", score: 0.87 },
+          },
+          {
+            id: "base:distributed-systems-primer",
+            title: "Distributed Systems: A Practical Primer",
+            source: "base",
+            entityType: "base",
+            entityId: "distributed-systems-primer",
+            excerpt: "Distributed systems fail in partial ways.",
+            provenance: { toolName: "system_search", score: 0.83 },
+          },
+        ],
+      };
+      expect(response.cards).toContainEqual(expectedSourcesCard);
+      expect(response.cards).not.toContainEqual(
+        expect.objectContaining({
+          sources: expect.arrayContaining([
+            expect.objectContaining({ entityId: "security" }),
+          ]),
+        }),
+      );
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          metadata: expect.objectContaining({
+            cards: [expectedSourcesCard],
+          }),
+        }),
+      );
     });
 
     it("should include multiple tool results when agent calls multiple tools", async () => {

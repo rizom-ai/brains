@@ -9,6 +9,7 @@ tags:
   - quality
   - conciseness
   - repetition
+  - preset-core
 
 turns:
   - userMessage: "Show me my identity and my profile"

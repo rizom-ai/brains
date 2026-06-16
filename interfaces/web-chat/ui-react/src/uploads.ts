@@ -7,7 +7,7 @@ export const defaultUploadFilename = defaultWebChatUploadFilename;
 export const uploadPartType = "data-upload";
 
 export const webChatUploadRefSchema = z.object({
-  kind: z.literal("web-chat-upload"),
+  kind: z.literal("upload"),
   id: z.string().min(1),
 });
 

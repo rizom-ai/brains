@@ -1,0 +1,83 @@
+id: multi-turn-web-chat-image-discussion-save-note
+name: Web chat image discussion saves as note content
+description: Verifies that after describing and discussing an uploaded image, "save this as a note" creates a normal note from conversation context instead of trying to import the raw image upload as markdown.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-image-discussion-note
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - image
+  - note
+  - regression
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: house-capitalism.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000911
+    successCriteria:
+      responseContains:
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Describe the uploaded image."
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseNotContains:
+        - "from the filename alone"
+        - "only the filename"
+        - "can't directly inspect"
+        - "can’t directly inspect"
+
+  - userMessage: "How does that relate to ecosystems?"
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseContains:
+        - "ecosystem"
+
+  - userMessage: "can you save this as a note for me?"
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+
+  - userMessage: "Confirm creation"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed:"
+      responseNotContains:
+        - "Only text, JSON, and PDF uploads can be imported as markdown notes"
+        - "Upload ref not found"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: base
+  responseNotContains:
+    - "Only text, JSON, and PDF uploads can be imported as markdown notes"
+    - "Upload ref not found"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 50000

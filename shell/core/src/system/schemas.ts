@@ -45,8 +45,8 @@ const createSourceAttachmentInputSchema = z.object({
 });
 
 const createUploadInputSchema = z.object({
-  kind: z.literal("web-chat-upload").describe("Runtime upload ref kind"),
-  id: z.string().min(1).describe("Runtime upload ID"),
+  kind: z.literal("upload").describe("Upload ref kind"),
+  id: z.string().min(1).describe("Upload ID"),
 });
 
 export const createInputSchema = z.object({
@@ -65,9 +65,14 @@ export const createInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Prompt for AI generation of a new entity. Do not use for status changes like 'make one draft' or 'change it to draft'.",
+      "Prompt for AI generation of a new entity. Do not use for finalized/exact/as-written content, and do not use for status changes like 'make one draft' or 'change it to draft'.",
     ),
-  content: z.string().optional().describe("Direct content to store"),
+  content: z
+    .string()
+    .optional()
+    .describe(
+      "Direct content to store. Use this for finalized/exact/as-written user-provided markdown, including deck markdown with frontmatter and slide separators; omit prompt in those cases.",
+    ),
   url: z
     .string()
     .optional()
@@ -77,7 +82,7 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Promote a runtime upload. Use only when this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "web-chat-upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, or url.',
+      'Promote an upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
     ),
   transform: z
     .string()
@@ -88,7 +93,7 @@ export const createInputSchema = z.object({
   sourceAttachment: createSourceAttachmentInputSchema
     .optional()
     .describe(
-      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Omit for ordinary direct creates that use content, prompt, or url.",
+      "Create from a source-derived entity artifact such as a deck carousel or post printable PDF. Use this instead of upload when the requested source is an existing entity artifact. Omit upload when using sourceAttachment. Omit for ordinary direct creates that use content, prompt, or url.",
     ),
   replace: z
     .boolean()
@@ -111,6 +116,11 @@ export const createInputSchema = z.object({
     .describe(
       "For creating a new entity with a cover image in the same request. Use { generate: true, prompt } or true. Do not make a separate image create call for the new entity.",
     ),
+  confirmed: z.literal(true).optional().describe("Confirm the creation"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
 });
 
 export const updateInputSchema = z.object({

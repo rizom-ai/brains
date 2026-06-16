@@ -13,7 +13,10 @@ import {
   documentAdapter,
   documentSchema,
 } from "@brains/document";
-import { DocumentGenerationJobHandler } from "../../src/handlers/documentGenerationHandler";
+import {
+  DocumentGenerationJobHandler,
+  getDocumentId,
+} from "../../src/handlers/documentGenerationHandler";
 
 const socialPostStubSchema = baseEntitySchema.extend({
   entityType: z.literal("social-post"),
@@ -152,6 +155,59 @@ describe("DocumentGenerationJobHandler", () => {
       documentId: "existing-doc",
       reused: true,
     });
+  });
+
+  it("creates the requested document id when a different deduped document exists", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "existing-doc",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "existing.pdf",
+          dedupKey: "same-key",
+        },
+      },
+    });
+
+    const requestedPdf = Buffer.from("%PDF-1.7\n%requested");
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => requestedPdf },
+    );
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/template/post-1",
+        sourceEntityType: "social-post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+        dedupKey: "same-key",
+        documentId: "requested-carousel",
+        filename: "requested-carousel.pdf",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    expect(result).toEqual({
+      success: true,
+      documentId: "requested-carousel",
+      reused: false,
+    });
+    const requested = await context.entityService.getEntity({
+      entityType: "document",
+      id: "requested-carousel",
+    });
+    expect(requested?.content).toBe(createPdfDataUrl(requestedPdf));
+
+    const existing = await context.entityService.getEntity({
+      entityType: "document",
+      id: "existing-doc",
+    });
+    expect(existing?.content).toBe(createPdfDataUrl(pdfBuffer));
   });
 
   it("attaches a reused deduped document to the requested target", async () => {
@@ -367,6 +423,31 @@ describe("DocumentGenerationJobHandler", () => {
       id: "source-hash-doc",
     });
     expect(document?.metadata["dedupKey"]).toContain(source.contentHash);
+  });
+
+  it("bounds generated document ids while keeping content-hash variants distinct", () => {
+    const data = {
+      sourceEntityType: "post",
+      sourceEntityId: "align-the-misaligned",
+      attachmentType: "printable",
+    };
+    const longHashA = "a".repeat(64);
+    const longHashB = "b".repeat(64);
+
+    const idA = getDocumentId(
+      data,
+      `printable:post:align-the-misaligned:resolved-attachment:${longHashA}`,
+    );
+    const idB = getDocumentId(
+      data,
+      `printable:post:align-the-misaligned:resolved-attachment:${longHashB}`,
+    );
+
+    expect(idA.length).toBeLessThanOrEqual(80);
+    expect(idA).toMatch(/^printable-post-align-the-misaligned/);
+    expect(idA).not.toContain(longHashA);
+    expect(idB.length).toBeLessThanOrEqual(80);
+    expect(idB).not.toBe(idA);
   });
 
   it("attaches the generated document to a target social post documents field", async () => {

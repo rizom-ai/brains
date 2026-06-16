@@ -27,6 +27,7 @@ describe("RemoteAgentService", () => {
       "conversation-1",
       true,
       "approval:delete",
+      { userPermissionLevel: "anchor", interfaceType: "evaluation" },
     );
 
     const call = fetchMock.mock.calls[0];
@@ -35,6 +36,7 @@ describe("RemoteAgentService", () => {
       conversationId: "conversation-1",
       confirmed: true,
       approvalId: "approval:delete",
+      context: { userPermissionLevel: "anchor", interfaceType: "evaluation" },
     });
   });
 

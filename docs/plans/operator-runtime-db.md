@@ -2,13 +2,15 @@
 
 ## Status
 
-Proposed foundation. This plan owns the shared runtime-state persistence service that several plugins consume. Auth-specific schema and migration details are tracked in [Auth runtime database](./auth-runtime-db.md); playbook run state is tracked as a consumer in [Rover chat-native onboarding](./rover-chat-native-onboarding.md). This plan remains the broader runtime-state ownership and persistence boundary.
+Proposed foundation. This plan owns the **operator/admin durable tier** of private, non-content persistence: identity and security state that must survive, be backed up, and stay locked down. Auth-specific schema and migration details are tracked in [Auth runtime database](./auth-runtime-db.md).
+
+Ephemeral operational state (chat subscriptions, playbook run state, delivery dedupe) is **not** owned here — it belongs to the [Runtime state store](./runtime-state-store.md), a separate tier with different durability, secrecy, and reset characteristics. This plan remains the ownership boundary for the durable operator/security tier and its hosted-persistence contract.
 
 ## Goal
 
 Introduce a shell-owned runtime-state persistence service for private, non-content state that today lives in scattered plugin-local files. It gives plugins a narrow, namespaced store so they can persist runtime state without each one opening its own database, inventing its own write-safety, or shipping its own migrations. This makes hosted Rover operations safer and easier to evolve without mixing operator, security, or runtime state into entity content — and without every plugin re-solving persistence by hand.
 
-Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md). Playbook run state ([Rover chat-native onboarding](./rover-chat-native-onboarding.md)) is a first-class consumer of this service, not plugin-private storage. The name "operator runtime database" is historical; the boundary is general runtime state, and any private non-content store that a plugin would otherwise hand-roll belongs here.
+Auth-specific schema and migration details are split out in [Auth runtime database](./auth-runtime-db.md). The boundary here is the **durable operator/security tier**: state whose loss is a security or lockout incident (credentials, sessions, tokens, identity bindings, audit). Ephemeral operational state that is recoverable on loss and carries no secrets — chat subscriptions, playbook runs, delivery dedupe — is owned by the [Runtime state store](./runtime-state-store.md) instead. Both tiers share the same engineering shape (a shell-owned, namespaced, migration-managed store under `dataDir`), but they are distinct physical stores so secret-bearing durable state is never co-located with disposable operational state.
 
 ## Source of truth
 
@@ -19,14 +21,18 @@ This plan owns the runtime-state boundary, storage-root/deploy persistence contr
 
 ## Scope
 
-The runtime-state DB is for runtime control-plane and plugin runtime state, not durable user-authored content. Initial candidates:
+The operator DB is for durable operator/security state, not durable user-authored content and not disposable operational state. Initial candidates:
 
-- notification delivery dedupe records
-- setup-email delivery dedupe records
 - auth/passkey/OAuth runtime stores
 - operator sessions, approval tokens, refresh tokens
-- playbook run state: runs, typed evidence rows, gate verdicts ([Rover chat-native onboarding](./rover-chat-native-onboarding.md))
+- identity bindings (e.g. `discord:<id>` → user)
 - future operator audit events and delivery history
+
+Moved to the [Runtime state store](./runtime-state-store.md) (ephemeral tier, not here):
+
+- chat thread subscriptions
+- playbook run state: runs, typed evidence rows, gate verdicts ([Rover chat-native onboarding](./rover-chat-native-onboarding.md))
+- notification / setup-email delivery dedupe records
 
 Out of scope for the first pass:
 
@@ -61,7 +67,7 @@ Plugins consume this service through a narrow, namespaced handle rather than a r
 
 This is the "shell-owned runtime persistence" the onboarding plan defers to. The relative-path default is not a playbooks quirk — auth-service (`./data/auth`) and the playbooks run store (`./data/playbooks`, `plugins/playbooks/src/plugin.ts`) both default to a plugin-relative root that resolves under the Docker `WORKDIR` instead of the canonical `dataDir`. The service closes that footgun by owning the path.
 
-Playbook runs become a worked example of a consumer: the hand-rolled `runs.json` store (`plugins/playbooks/src/run-store.ts` — an in-process write-queue, atomic temp+rename writes, manual evidence/verdict array merges, file-scan queries, version-pin-by-convention) collapses into normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables. Cross-process write safety, queryable typed evidence rows, and real migrations come from the service instead of plugin code. The plugin keeps its `PlaybookRun` schema and store API behind the interface; only the backing storage moves. The plugin stays a plugin — this service is the storage primitive it consumes, the same way content plugins consume `entity-service`.
+The same plugin-facing shape is shared by the [Runtime state store](./runtime-state-store.md); the difference is the physical store and tier, not the interface. Playbook runs are a worked example of that shape, but as an **ephemeral-tier** consumer they live in the runtime state store, not here: the hand-rolled `runs.json` store (`plugins/playbooks/src/run-store.ts`) collapses into normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables there. Within this operator plan, the worked example is auth: JSON/JWK files in `./data/auth` migrating onto the durable operator store.
 
 ## Incremental path
 
@@ -71,9 +77,8 @@ Playbook runs become a worked example of a consumer: the hand-rolled `runs.json`
 2. Add regression coverage that generated deploy templates persist the auth/operator-runtime storage path.
 3. Keep immediate Rover setup-email dedupe file-backed behind a small storage interface until the DB service exists.
 4. Define the operator DB service contract and ownership boundary in shell/app or a shared shell package.
-5. Move setup-email/notification dedupe to the operator DB as the first low-risk consumer.
-6. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven.
-7. Add optional audit/delivery history only after dedupe/auth use cases are stable.
+5. Migrate auth-service JSON runtime stores according to [Auth runtime database](./auth-runtime-db.md) once the DB lifecycle and backup/restore story is proven. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the [Runtime state store](./runtime-state-store.md).)
+6. Add optional audit/delivery history only after the auth migration is stable.
 
 ## Compatibility and migration notes
 
@@ -96,10 +101,18 @@ Existing hosted installs may already have auth state under `/app/data/auth`. The
 - What is the backup/restore policy for hosted operator state beyond "covered by the persisted runtime data root"?
 - Which data must be encrypted at rest versus protected by host/filesystem permissions?
 - Do we need cross-process locking now, or only when hosted deployments become multi-instance?
-- One shared runtime-state DB file with per-consumer table namespaces, or one DB file per consumer under the same `dataDir`? (Job-queue already uses a separate file by design; auth wants its own private file. Playbook runs have no such isolation requirement and could share.)
+
+## Resolved: store layout by tier
+
+The earlier open question — "one shared runtime-state DB file, or one per consumer?" — is resolved by splitting on tier rather than per consumer:
+
+- **Durable operator/security tier (this plan):** its own private file (e.g. `auth`/operator DB), strict permissions, backed up. Auth's isolation requirement is satisfied by the tier boundary.
+- **Ephemeral operational tier:** a single shared [Runtime state store](./runtime-state-store.md) file with per-consumer table namespaces (chat subscriptions, playbook runs, dedupe). No per-consumer files; they share a profile (tiny, secret-free, disposable).
+- **Already-separate by scale/lifecycle:** `brain-jobs.db` (job queue) and `embeddings.db` stay their own files; they are not folded into either tier.
 
 ## Related plans
 
+- [Runtime state store](./runtime-state-store.md) — the ephemeral operational tier this plan is deliberately not part of
 - [Auth runtime database](./auth-runtime-db.md)
 - [Rover chat-native onboarding](./rover-chat-native-onboarding.md)
 - [Multi-user and permissions](./multi-user.md)

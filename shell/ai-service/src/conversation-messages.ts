@@ -95,32 +95,24 @@ export function collectUploadRefsFromMessages(
   return refs;
 }
 
-export type ConversationUploadRefResolution =
-  | { kind: "selected"; refs: ConversationUploadRef[] }
-  | { kind: "clarify"; refs: ConversationUploadRef[] };
+export interface ConversationUploadContinuitySelection {
+  kind: "selected";
+  message: string;
+  refs: ConversationUploadRef[];
+  attachments: ChatAttachment[];
+}
 
-export function resolveConversationUploadRefs(
-  message: string,
-  uploadRefs: ConversationUploadRef[],
-): ConversationUploadRefResolution {
-  if (uploadRefs.length <= 1) {
-    return { kind: "selected", refs: uploadRefs };
-  }
-
-  const normalized = message.toLowerCase();
-  const named = uploadRefs.filter((ref) =>
-    normalized.includes(ref.filename.toLowerCase()),
-  );
-  if (named.length > 0) return { kind: "selected", refs: named };
-
-  if (/\b(first|oldest|earliest)\b/.test(normalized)) {
-    return { kind: "selected", refs: uploadRefs.slice(0, 1) };
-  }
-  if (/\b(latest|newest|most recent|last)\b/.test(normalized)) {
-    return { kind: "selected", refs: uploadRefs.slice(-1) };
-  }
-
-  return { kind: "clarify", refs: uploadRefs };
+export function resolveConversationUploadContinuity(params: {
+  message: string;
+  currentAttachments: ChatAttachment[];
+  historyMessages: Message[];
+}): ConversationUploadContinuitySelection {
+  return {
+    kind: "selected",
+    message: params.message,
+    refs: collectUploadRefsFromMessages(params.historyMessages),
+    attachments: params.currentAttachments,
+  };
 }
 
 export function buildMessageWithAttachments(
@@ -186,26 +178,20 @@ function formatUploadRefs(
     const key = `${ref.source.kind}:${ref.source.id}`;
     if (seen.has(key)) return [];
     seen.add(key);
+    const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
     return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }${formatUploadRefUsage(ref.mediaType)}`,
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}`,
     ];
   });
   return lines.length > 0
-    ? `Available runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n${lines.join("\n")}`
+    ? `Available upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user's request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_create with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_create with upload: { kind: "upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a base entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n${lines.join("\n")}`
     : "";
 }
 
-function formatUploadRefUsage(mediaType: string): string {
-  if (mediaType === "application/pdf") {
-    return '; raw promotion call: system_create({ entityType: "document", upload }) and omit transform';
-  }
-  if (mediaType.startsWith("image/")) {
-    return '; raw promotion call: system_create({ entityType: "image", upload }) and omit transform';
-  }
-  if (mediaType.startsWith("text/") || mediaType === "application/json") {
-    return '; markdown/note extraction call: system_create({ entityType: "base", upload, transform: "extract-markdown" })';
-  }
-  return "";
+function getRawSaveEntityType(mediaType: string): string | undefined {
+  if (mediaType.startsWith("image/")) return "image";
+  if (mediaType === "application/pdf") return "document";
+  return undefined;
 }
 
 export function buildAgentContextInstructions(

@@ -5,13 +5,14 @@ type: tool_invocation
 setup:
   permissionLevel: anchor
   interfaceType: web-chat
-  channelId: eval-web-chat-upload
+  channelId: eval-web-chat-file-upload
   channelName: Web Chat Eval
 tags:
   - web-chat
   - upload
   - pdf
   - regression
+  - preset-default
 
 turns:
   - userMessage: ""

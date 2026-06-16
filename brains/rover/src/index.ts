@@ -56,6 +56,7 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
+  "image",
   "note",
   "link",
   "wishlist",
@@ -78,7 +79,6 @@ const core = [
 
 const web = [
   ...core.filter((id) => id !== "dashboard-root"),
-  "image",
   "dashboard",
   "blog",
   "series",
@@ -104,6 +104,7 @@ const agentInstructions = [
   `Rover is a personal professional knowledge and publishing brain for an independent professional. Prioritize personal knowledge management, professional website content, essays, projects, decks, newsletters, and social distribution workflows.`,
   `Rover entity mappings: "blog post", "post", "essay", "article" → entityType: post; "case study", "portfolio piece", "project" → entityType: project; "presentation", "deck", "slides" → entityType: deck; "newsletter" → entityType: newsletter; "LinkedIn post", "social post" → entityType: social-post.`,
   `When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.`,
+  `Draft blog posts are only post entities with status draft. If the user asks whether draft blog posts exist, call only system_list for entityType post with status draft; do not also list social-post, newsletter, deck, or other draft entity types.`,
 ];
 
 export default defineBrain({
@@ -124,6 +125,7 @@ export default defineBrain({
     "webserver",
     "web-chat",
     "mcp",
+    "atproto",
     "analytics",
     "dashboard",
     "dashboard-root",

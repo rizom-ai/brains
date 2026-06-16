@@ -27,6 +27,54 @@ const CREATE_SOURCE_FIELDS = new Set([
   "sourceAttachment",
 ]);
 
+type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.null(),
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ]),
+);
+
+const attachmentToolOutputSchema = z
+  .object({
+    success: z.literal(true),
+    data: z
+      .object({
+        documentId: z.string().min(1).optional(),
+        entityId: z.string().min(1).optional(),
+        attachment: z
+          .object({
+            mediaType: z.string().min(1),
+            url: z.string().min(1),
+            downloadUrl: z.string().min(1).optional(),
+            previewUrl: z.string().min(1).optional(),
+            filename: z.string().min(1).optional(),
+            sizeBytes: z.number().nonnegative().optional(),
+            source: z
+              .object({
+                entityType: z.string().optional(),
+                entityId: z.string().optional(),
+                attachmentType: z.string().optional(),
+              })
+              .optional(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
   options: {
@@ -46,6 +94,49 @@ export function toModelVisibleInputSchema(
       return options.enableCreateSourceAttachment === true;
     }),
   );
+}
+
+export function toModelToolOutput(output: unknown): {
+  type: "json";
+  value: JsonValue;
+} {
+  const parsed = attachmentToolOutputSchema.safeParse(output);
+  if (!parsed.success) {
+    return { type: "json", value: toJsonValue(output) };
+  }
+
+  const { attachment } = parsed.data.data;
+  const safeAttachment = {
+    mediaType: attachment.mediaType,
+    ...(attachment.filename !== undefined
+      ? { filename: attachment.filename }
+      : {}),
+    ...(attachment.sizeBytes !== undefined
+      ? { sizeBytes: attachment.sizeBytes }
+      : {}),
+    ...(attachment.source !== undefined ? { source: attachment.source } : {}),
+  };
+
+  return {
+    type: "json",
+    value: toJsonValue({
+      ...parsed.data,
+      data: {
+        ...parsed.data.data,
+        attachment: safeAttachment,
+        artifactCard: {
+          rendered: true,
+          message:
+            "The UI has rendered this artifact as an attachment card with Open and Download controls. Do not print raw attachment URLs in the assistant response.",
+        },
+      },
+    }),
+  };
+}
+
+function toJsonValue(value: unknown): JsonValue {
+  if (value === undefined) return null;
+  return jsonValueSchema.parse(JSON.parse(JSON.stringify(value)));
 }
 
 export function convertToSDKTools(
@@ -95,6 +186,7 @@ export function convertToSDKTools(
         }),
       ),
       execute: wrappedExecute,
+      toModelOutput: ({ output }) => toModelToolOutput(output),
     });
   }
 

@@ -2,6 +2,7 @@ import type {
   DirectorySyncJobData,
   DirectoryExportJobData,
   DirectoryImportJobData,
+  DirectorySyncRequestJobData,
   DirectoryDeleteJobData,
   CoverImageConversionJobData,
   InlineImageConversionJobData,
@@ -13,6 +14,7 @@ import type {
 } from "../types";
 import type { ImageConversionResult } from "../handlers/image-conversion-handler";
 import type { InlineImageConversionResult } from "../handlers/inline-image-conversion-handler";
+import type { DirectorySyncRequestJobResult } from "../handlers/directorySyncRequestJobHandler";
 
 /**
  * Augment the PluginJobDefinitions interface to add directory sync job types
@@ -22,6 +24,10 @@ declare module "@brains/job-queue" {
     "directory-sync": {
       input: DirectorySyncJobData;
       output: SyncResult;
+    };
+    "directory-sync:sync-request": {
+      input: DirectorySyncRequestJobData;
+      output: DirectorySyncRequestJobResult;
     };
     "directory-export": {
       input: DirectoryExportJobData;

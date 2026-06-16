@@ -8,6 +8,7 @@ tags:
   - core
   - history
   - entity-type-resolution
+  - preset-default
 
 turns:
   - userMessage: "Show me the version history of the deck 'distributed-systems-primer'"

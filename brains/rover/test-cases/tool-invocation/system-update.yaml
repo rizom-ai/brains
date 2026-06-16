@@ -1,26 +1,43 @@
 id: tool-invocation-system-update
 name: Entity Update via system_update
-description: Verifies that the agent uses system_update to modify entity fields
+description: Verifies permission-aware behavior for modifying entity fields
 type: tool_invocation
 setup:
-  permissionLevel: anchor
+  interfaceType: evaluation
 tags:
   - core
   - system
   - entity-crud
+  - permissions
+  - preset-core
 
 turns:
   - userMessage: "Update the status of my note 'typescript-patterns' to draft"
 
-successCriteria:
-  expectedTools:
-    - toolName: system_update
-      shouldBeCalled: true
-  toolCountRange:
-    min: 1
-  responseNotContains:
-    - "I cannot"
-    - "I don't have access"
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: false
+    responseNotContains:
+      - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    responseNotContains:
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+    toolCountRange:
+      min: 1
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
 
 efficiency:
   maxToolCalls: 5

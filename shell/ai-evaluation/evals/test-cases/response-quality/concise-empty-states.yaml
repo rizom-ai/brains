@@ -9,6 +9,7 @@ tags:
   - quality
   - empty-state
   - user-experience
+  - preset-core
 
 turns:
   - userMessage: "List all base entities"

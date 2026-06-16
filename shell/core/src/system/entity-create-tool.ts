@@ -1,10 +1,10 @@
 import type {
-  BaseEntity,
   CreateCoverImageInput,
   CreateExecutionContext,
   CreateInput,
 } from "@brains/entity-service";
 import {
+  buildGenerationStubEntity,
   canWriteVisibility,
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
@@ -46,25 +46,38 @@ function buildCoverImagePrompt(
   return coverImage.prompt ?? `Editorial cover image for: ${title}. `;
 }
 
-function buildGenerationStubEntity(
-  services: SystemServices,
-  input: { entityType: string; id: string; title: string },
-): BaseEntity | undefined {
-  const adapter = services.entityRegistry.getAdapter(input.entityType);
-  if (!adapter.buildStub) return undefined;
-
-  const stub = adapter.buildStub({ id: input.id, title: input.title });
-  const now = new Date().toISOString();
-  return {
-    id: input.id,
-    entityType: input.entityType,
-    content: stub.content,
-    metadata: stub.metadata as Record<string, unknown>,
-    visibility: "public",
-    created: now,
-    updated: now,
-    contentHash: "",
+function buildCreateConfirmation(input: {
+  entityType: string;
+  title?: string;
+  prompt?: string;
+  content?: string;
+  url?: string;
+  upload?: { kind: string; id: string };
+  sourceAttachment?: {
+    sourceEntityType: string;
+    sourceEntityId: string;
+    attachmentType: string;
   };
+}): { summary: string; preview: string } {
+  const label = input.title ? ` "${input.title}"` : ` ${input.entityType}`;
+  const summary = `${input.prompt ? "Generate" : "Create"}${label}?`;
+  const previewParts = [
+    `Entity type: ${input.entityType}`,
+    ...(input.title ? [`Title: ${input.title}`] : []),
+    ...(input.url ? [`URL: ${input.url}`] : []),
+    ...(input.upload ? ["Upload: uploaded file"] : []),
+    ...(input.sourceAttachment
+      ? [
+          `Source attachment: ${input.sourceAttachment.sourceEntityType}/${input.sourceAttachment.sourceEntityId} (${input.sourceAttachment.attachmentType})`,
+        ]
+      : []),
+    ...(input.prompt ? [`Prompt: ${input.prompt}`] : []),
+    ...(input.content
+      ? [`Content preview: ${input.content.slice(0, 500)}`]
+      : []),
+  ];
+
+  return { summary, preview: previewParts.join("\n") };
 }
 
 async function enqueueCoverImageGeneration(
@@ -149,36 +162,88 @@ async function isUploadRefInConversation(
   return false;
 }
 
+interface NormalizedCreateSource {
+  prompt?: string;
+  content?: string;
+  url?: string;
+  from?: CreateInput["from"];
+  uploadRef?: { kind: "upload"; id: string };
+  transform?: CreateInput["transform"];
+}
+
+function normalizeCreateSource(input: {
+  prompt?: string | undefined;
+  content?: string | undefined;
+  url?: string | undefined;
+  upload?: { kind: "upload"; id: string } | undefined;
+  sourceAttachment?:
+    | {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        attachmentType: string;
+      }
+    | undefined;
+  transform?: string | undefined;
+}):
+  | { success: true; source: NormalizedCreateSource }
+  | { success: false; error: string } {
+  const prompt = normalizeOptionalString(input.prompt);
+  const content = normalizeOptionalString(input.content);
+  const url = normalizeOptionalString(input.url);
+  const hasDirectSource = Boolean(content ?? prompt ?? url);
+  const uploadRef =
+    input.sourceAttachment || hasDirectSource ? undefined : input.upload;
+  const from: CreateInput["from"] = input.sourceAttachment
+    ? { kind: "entity-attachment", ...input.sourceAttachment }
+    : uploadRef;
+  const rawTransform = normalizeOptionalString(input.transform);
+  const transform = hasDirectSource && input.upload ? undefined : rawTransform;
+
+  if (transform !== undefined && transform !== "extract-markdown") {
+    return {
+      success: false,
+      error:
+        'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
+    };
+  }
+
+  return {
+    success: true,
+    source: {
+      ...(prompt && { prompt }),
+      ...(content && { content }),
+      ...(url && { url }),
+      ...(from && { from }),
+      ...(uploadRef && { uploadRef }),
+      ...(transform && { transform }),
+    },
+  };
+}
+
 export function createEntityCreateTool(services: SystemServices): Tool {
   const { entityService, jobs, entityRegistry } = services;
+  const pendingConfirmationTokens = new Set<string>();
 
   return createSystemTool(
     "create",
-    "Create a new entity. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for runtime upload promotion, or sourceAttachment for source attachment saves.",
+    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
-      const prompt = normalizeOptionalString(input.prompt);
-      const content = normalizeOptionalString(input.content);
+      const normalizedSource = normalizeCreateSource(input);
+      if (!normalizedSource.success) return normalizedSource;
+      const { prompt, content, url, from, uploadRef, transform } =
+        normalizedSource.source;
       const title = normalizeOptionalString(input.title);
-      const url = normalizeOptionalString(input.url);
-      const uploadRef = input.upload;
-      const from: CreateInput["from"] =
-        uploadRef ??
-        (input.sourceAttachment
-          ? { kind: "entity-attachment", ...input.sourceAttachment }
-          : undefined);
-      const requestedTransform = normalizeOptionalString(input.transform);
       if (
-        requestedTransform !== undefined &&
-        requestedTransform !== "extract-markdown"
+        transform === "extract-markdown" &&
+        (!uploadRef || input.entityType !== "base")
       ) {
         return {
           success: false,
           error:
-            'Unsupported transform. Use "extract-markdown" only for upload-to-note imports, or omit transform.',
+            'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
         };
       }
-      const transform: CreateInput["transform"] = requestedTransform;
       const replace = input.replace === true;
       const targetEntityType = normalizeOptionalString(input.targetEntityType);
       const targetEntityId = normalizeOptionalString(input.targetEntityId);
@@ -195,7 +260,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (runtime upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
 
       if (uploadRef) {
@@ -261,6 +326,69 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const interceptor = services.entityRegistry.getCreateInterceptor(
         createInput.entityType,
       );
+
+      if (!createInput.content && !createInput.prompt && !interceptor) {
+        return {
+          success: false,
+          error:
+            "URL-only, upload-derived, or attachment-derived creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+        };
+      }
+
+      if (input.confirmed) {
+        const token = input.confirmationToken;
+        if (!token || !pendingConfirmationTokens.has(token)) {
+          return {
+            success: false,
+            error:
+              "No pending create confirmation found. Please request creation again and confirm the new approval.",
+          };
+        }
+        pendingConfirmationTokens.delete(token);
+      } else {
+        const confirmationToken = crypto.randomUUID();
+        pendingConfirmationTokens.add(confirmationToken);
+        const confirmation = buildCreateConfirmation({
+          entityType: input.entityType,
+          ...(title && { title }),
+          ...(prompt && { prompt }),
+          ...(content && { content }),
+          ...(url && { url }),
+          ...(uploadRef && { upload: uploadRef }),
+          ...(input.sourceAttachment && {
+            sourceAttachment: input.sourceAttachment,
+          }),
+        });
+        const confirmationArgs = {
+          entityType: createInput.entityType,
+          ...(createInput.title && { title: createInput.title }),
+          ...(createInput.prompt && { prompt: createInput.prompt }),
+          ...(createInput.content && { content: createInput.content }),
+          ...(createInput.url && { url: createInput.url }),
+          ...(uploadRef && { upload: uploadRef }),
+          ...(input.sourceAttachment && {
+            sourceAttachment: input.sourceAttachment,
+          }),
+          ...(createInput.transform && { transform: createInput.transform }),
+          ...(createInput.replace && { replace: createInput.replace }),
+          ...(createInput.targetEntityType && {
+            targetEntityType: createInput.targetEntityType,
+          }),
+          ...(createInput.targetEntityId && {
+            targetEntityId: createInput.targetEntityId,
+          }),
+          ...(createInput.coverImage && { coverImage: createInput.coverImage }),
+          confirmed: true,
+          confirmationToken,
+        };
+        return {
+          needsConfirmation: true,
+          toolName: "system_create",
+          summary: confirmation.summary,
+          preview: confirmation.preview,
+          args: confirmationArgs,
+        };
+      }
       if (interceptor) {
         const executionContext: CreateExecutionContext = {
           interfaceType: toolContext.interfaceType,
@@ -332,7 +460,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           };
         }
         const stubTitle = createInput.title ?? proposedId;
-        const stub = buildGenerationStubEntity(services, {
+        const stub = buildGenerationStubEntity(services.entityRegistry, {
           entityType: createInput.entityType,
           id: proposedId,
           title: stubTitle,
@@ -413,6 +541,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   markdown: createInput.content,
                 },
+                options: { deduplicateId: true },
               })
             : await entityService.createEntity({
                 entity: {
@@ -423,6 +552,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },
+                options: { deduplicateId: true },
               });
         if (coverImage) {
           await enqueueCoverImageGeneration(

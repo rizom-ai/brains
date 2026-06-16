@@ -1,0 +1,75 @@
+id: multi-turn-web-chat-file-upload-context-deck-carousel-preview
+name: Web chat upload context does not hijack deck carousel preview
+description: Verifies prior uploads remain passive when the user asks for a deck carousel preview from an existing deck.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-file-upload-context-deck-carousel
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - decks
+  - carousel
+  - document-generate
+  - regression
+  - preset-full
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjcK
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000951
+      - kind: file
+        filename: IMG_8963.jpeg
+        mediaType: image/jpeg
+        dataBase64: /9j/4AAQSkZJRg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000952
+    successCriteria:
+      responseContains:
+        - "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf"
+        - "IMG_8963.jpeg"
+        - "What would you like me to do"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Can you generate a preview of the carousel for deck 'distributed-systems-primer'? Use the deck, not the uploaded files."
+    successCriteria:
+      expectedTools:
+        - toolName: document_generate
+          shouldBeCalled: true
+          argsContain:
+            sourceEntityType: deck
+            sourceEntityId: distributed-systems-primer
+            attachmentType: carousel
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Which uploaded file should I use?"
+        - "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf"
+        - "IMG_8963.jpeg"
+
+successCriteria:
+  expectedTools:
+    - toolName: document_generate
+      shouldBeCalled: true
+      argsContain:
+        sourceEntityType: deck
+        sourceEntityId: distributed-systems-primer
+        attachmentType: carousel
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "Which uploaded file should I use?"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 50000

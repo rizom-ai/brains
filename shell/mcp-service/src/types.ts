@@ -79,7 +79,7 @@ export const toolErrorSchema = z
 
 /**
  * Confirmation response schema
- * Tools return this when a destructive operation needs user approval.
+ * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
 export const toolConfirmationSchema = z

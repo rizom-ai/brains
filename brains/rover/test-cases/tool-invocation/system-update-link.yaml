@@ -1,0 +1,49 @@
+id: tool-invocation-system-update-link
+name: Link Update via system_update
+description: Verifies permission-aware behavior for modifying link metadata.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - core
+  - system
+  - link
+  - entity-crud
+  - permissions
+  - preset-core
+
+turns:
+  - userMessage: "Change the title of my link 'green-software-foundation' to 'Green Software Foundation Resource'."
+
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: false
+    responseNotContains:
+      - "done"
+  trusted:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+        argsContain:
+          entityType: link
+          id: green-software-foundation
+    responseNotContains:
+      - "done"
+  anchor:
+    expectedTools:
+      - toolName: system_update
+        shouldBeCalled: true
+        argsContain:
+          entityType: link
+          id: green-software-foundation
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

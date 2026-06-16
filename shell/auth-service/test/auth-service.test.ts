@@ -269,6 +269,44 @@ describe("AuthService", () => {
     });
   });
 
+  it("keeps first-passkey setup tokens valid for 24 hours by default", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    const before = Math.floor(Date.now() / 1000);
+    await service.initialize();
+    const setup = await service.getOperatorSetupRequired();
+    const after = Math.floor(Date.now() / 1000);
+
+    expect(setup?.expiresAt).toBeGreaterThanOrEqual(before + 24 * 60 * 60);
+    expect(setup?.expiresAt).toBeLessThanOrEqual(after + 24 * 60 * 60);
+  });
+
+  it("allows configuring the first-passkey setup token lifetime", async () => {
+    const harness = new PluginTestHarness({ domain: "brain.example.com" });
+
+    const before = Math.floor(Date.now() / 1000);
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+        setupTokenTtlSeconds: 2 * 60 * 60,
+      }),
+    );
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    const after = Math.floor(Date.now() / 1000);
+
+    expectSuccess(response);
+    const setup = setupRequiredToolDataSchema.parse(response.data);
+    expect(setup.expiresAt).toBeGreaterThanOrEqual(before + 2 * 60 * 60);
+    expect(setup.expiresAt).toBeLessThanOrEqual(after + 2 * 60 * 60);
+  });
+
   it("does not log token-bearing setup URLs for hosted issuers", async () => {
     const storageDir = await tempStorageDir();
     const logFile = join(storageDir, "auth.log");

@@ -90,8 +90,8 @@ describe("DocumentPlugin", () => {
       .getMockShell()
       .getRuntimeUploadRegistry()
       .scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000101",
       });
@@ -109,7 +109,7 @@ describe("DocumentPlugin", () => {
       {
         entityType: "document",
         title: "Brief",
-        from: { kind: "web-chat-upload", id: record.ref.id },
+        from: { kind: "upload", id: record.ref.id },
       },
       { interfaceType: "web-chat", userId: "operator" },
     );
@@ -157,8 +157,8 @@ describe("DocumentPlugin", () => {
       .getMockShell()
       .getRuntimeUploadRegistry()
       .scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
+        namespace: "upload",
+        refKind: "upload",
         routePath: "/api/chat/uploads",
         createId: () => "upload-00000000-0000-4000-8000-000000000102",
       });
@@ -175,7 +175,7 @@ describe("DocumentPlugin", () => {
     const result = await interceptor(
       {
         entityType: "document",
-        from: { kind: "web-chat-upload", id: record.ref.id },
+        from: { kind: "upload", id: record.ref.id },
       },
       { interfaceType: "web-chat", userId: "operator" },
     );

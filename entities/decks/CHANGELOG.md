@@ -1,5 +1,185 @@
 # @brains/decks
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.122
+  - @brains/atproto-contracts@0.2.0-alpha.122
+  - @brains/content-formatters@0.2.0-alpha.122
+  - @brains/contracts@0.2.0-alpha.122
+  - @brains/image@0.2.0-alpha.122
+  - @brains/media-page-composer@0.2.0-alpha.122
+  - @brains/media-renderer@0.2.0-alpha.122
+  - @brains/ui-library@0.2.0-alpha.122
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/plugins@0.2.0-alpha.122
+
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.121
+  - @brains/atproto-contracts@0.2.0-alpha.121
+  - @brains/content-formatters@0.2.0-alpha.121
+  - @brains/contracts@0.2.0-alpha.121
+  - @brains/image@0.2.0-alpha.121
+  - @brains/media-page-composer@0.2.0-alpha.121
+  - @brains/media-renderer@0.2.0-alpha.121
+  - @brains/ui-library@0.2.0-alpha.121
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/plugins@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.120
+  - @brains/atproto-contracts@0.2.0-alpha.120
+  - @brains/content-formatters@0.2.0-alpha.120
+  - @brains/contracts@0.2.0-alpha.120
+  - @brains/image@0.2.0-alpha.120
+  - @brains/media-page-composer@0.2.0-alpha.120
+  - @brains/media-renderer@0.2.0-alpha.120
+  - @brains/ui-library@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/site-info@0.2.0-alpha.119
+  - @brains/atproto-contracts@0.2.0-alpha.119
+  - @brains/content-formatters@0.2.0-alpha.119
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/image@0.2.0-alpha.119
+  - @brains/media-page-composer@0.2.0-alpha.119
+  - @brains/media-renderer@0.2.0-alpha.119
+  - @brains/ui-library@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.118
+  - @brains/site-info@0.2.0-alpha.118
+  - @brains/atproto-contracts@0.2.0-alpha.118
+  - @brains/content-formatters@0.2.0-alpha.118
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/image@0.2.0-alpha.118
+  - @brains/media-page-composer@0.2.0-alpha.118
+  - @brains/media-renderer@0.2.0-alpha.118
+  - @brains/ui-library@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.117
+  - @brains/atproto-contracts@0.2.0-alpha.117
+  - @brains/content-formatters@0.2.0-alpha.117
+  - @brains/contracts@0.2.0-alpha.117
+  - @brains/image@0.2.0-alpha.117
+  - @brains/media-page-composer@0.2.0-alpha.117
+  - @brains/media-renderer@0.2.0-alpha.117
+  - @brains/ui-library@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/plugins@0.2.0-alpha.117
+
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.116
+  - @brains/site-info@0.2.0-alpha.116
+  - @brains/atproto-contracts@0.2.0-alpha.116
+  - @brains/content-formatters@0.2.0-alpha.116
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/image@0.2.0-alpha.116
+  - @brains/media-page-composer@0.2.0-alpha.116
+  - @brains/media-renderer@0.2.0-alpha.116
+  - @brains/ui-library@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- [`bf96062`](https://github.com/rizom-ai/brains/commit/bf96062769b9ce4e066443ce4bd0821ac0f4c0f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reduce PDF carousel slide heading weight so generated deck carousels match the lighter display typography.
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.115
+  - @brains/atproto-contracts@0.2.0-alpha.115
+  - @brains/content-formatters@0.2.0-alpha.115
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/image@0.2.0-alpha.115
+  - @brains/media-page-composer@0.2.0-alpha.115
+  - @brains/media-renderer@0.2.0-alpha.115
+  - @brains/ui-library@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.114
+  - @brains/atproto-contracts@0.2.0-alpha.114
+  - @brains/content-formatters@0.2.0-alpha.114
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/image@0.2.0-alpha.114
+  - @brains/media-page-composer@0.2.0-alpha.114
+  - @brains/media-renderer@0.2.0-alpha.114
+  - @brains/ui-library@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- [`7f9c3b1`](https://github.com/rizom-ai/brains/commit/7f9c3b191ee9d3979ec1bd922ef20664050bb783) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align PDF carousel inline emphasis with HTML deck styling by rendering italic markdown emphasis in the deck accent color.
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.113
+  - @brains/atproto-contracts@0.2.0-alpha.113
+  - @brains/content-formatters@0.2.0-alpha.113
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/image@0.2.0-alpha.113
+  - @brains/media-page-composer@0.2.0-alpha.113
+  - @brains/media-renderer@0.2.0-alpha.113
+  - @brains/ui-library@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/plugins@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.112
+  - @brains/atproto-contracts@0.2.0-alpha.112
+  - @brains/content-formatters@0.2.0-alpha.112
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/image@0.2.0-alpha.112
+  - @brains/media-page-composer@0.2.0-alpha.112
+  - @brains/media-renderer@0.2.0-alpha.112
+  - @brains/ui-library@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

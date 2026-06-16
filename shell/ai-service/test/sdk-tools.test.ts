@@ -12,7 +12,7 @@ describe("convertToSDKTools", () => {
       inputSchema: {
         entityType: z.string(),
         upload: z
-          .object({ kind: z.literal("web-chat-upload"), id: z.string() })
+          .object({ kind: z.literal("upload"), id: z.string() })
           .optional(),
         transform: z.string().optional(),
         sourceAttachment: z
@@ -86,6 +86,84 @@ describe("convertToSDKTools", () => {
       "entityType",
       "sourceAttachment",
     ]);
+  });
+
+  it("keeps attachment URLs out of model-visible tool output", async () => {
+    const tool: Tool = {
+      name: "document_generate",
+      description: "Generate document",
+      inputSchema: { sourceEntityId: z.string() },
+      visibility: "public",
+      handler: mock(
+        async (): Promise<{ success: true; data: unknown }> => ({
+          success: true,
+          data: {
+            jobId: "job-1",
+            documentId: "deck-carousel",
+            attachment: {
+              mediaType: "application/pdf",
+              url: "/api/chat/attachments/document?id=deck-carousel",
+              downloadUrl:
+                "/api/chat/attachments/document?id=deck-carousel&download=1",
+              filename: "deck-carousel.pdf",
+              source: {
+                entityType: "document",
+                entityId: "deck-carousel",
+                attachmentType: "carousel",
+              },
+            },
+          },
+        }),
+      ),
+    };
+
+    const sdkTool = convertToSDKTools(
+      [tool],
+      { conversationId: "conversation-1", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    )["document_generate"];
+    if (!sdkTool?.execute || !sdkTool.toModelOutput) {
+      throw new Error("Expected document_generate to be executable");
+    }
+
+    const result = await sdkTool.execute(
+      { sourceEntityId: "deck-1" },
+      { toolCallId: "call-1", messages: [] },
+    );
+    const modelOutput = await sdkTool.toModelOutput({
+      toolCallId: "call-1",
+      input: { sourceEntityId: "deck-1" },
+      output: result,
+    });
+
+    expect(JSON.stringify(result)).toContain(
+      "/api/chat/attachments/document?id=deck-carousel&download=1",
+    );
+    expect(JSON.stringify(modelOutput)).not.toContain("/api/chat/attachments");
+    expect(modelOutput).toEqual({
+      type: "json",
+      value: {
+        success: true,
+        data: {
+          jobId: "job-1",
+          documentId: "deck-carousel",
+          attachment: {
+            mediaType: "application/pdf",
+            filename: "deck-carousel.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-carousel",
+              attachmentType: "carousel",
+            },
+          },
+          artifactCard: {
+            rendered: true,
+            message:
+              "The UI has rendered this artifact as an attachment card with Open and Download controls. Do not print raw attachment URLs in the assistant response.",
+          },
+        },
+      },
+    });
   });
 
   it("passes coerced invalid registered tool responses through normal agent tool execution", async () => {

@@ -1,5 +1,141 @@
 # @brains/core
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.122
+  - @brains/image@0.2.0-alpha.122
+  - @brains/site-composition@0.2.0-alpha.122
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/plugins@0.2.0-alpha.122
+  - @brains/templates@0.2.0-alpha.122
+
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.121
+  - @brains/image@0.2.0-alpha.121
+  - @brains/site-composition@0.2.0-alpha.121
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/plugins@0.2.0-alpha.121
+  - @brains/templates@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.120
+  - @brains/image@0.2.0-alpha.120
+  - @brains/site-composition@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/plugins@0.2.0-alpha.120
+  - @brains/templates@0.2.0-alpha.120
+
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- [`d0716d4`](https://github.com/rizom-ai/brains/commit/d0716d40b16b33e63dcdcbd3e8dcb9c280aa6e58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid reusing stale upload refs when saving image discussions as notes or generating cover images from prior conversation context.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.119
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/image@0.2.0-alpha.119
+  - @brains/site-composition@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+  - @brains/templates@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.118
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/image@0.2.0-alpha.118
+  - @brains/site-composition@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+  - @brains/templates@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.117
+  - @brains/image@0.2.0-alpha.117
+  - @brains/site-composition@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/plugins@0.2.0-alpha.117
+  - @brains/templates@0.2.0-alpha.117
+
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.116
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/image@0.2.0-alpha.116
+  - @brains/site-composition@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/image@0.2.0-alpha.115
+  - @brains/site-composition@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/plugins@0.2.0-alpha.115
+  - @brains/templates@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/image@0.2.0-alpha.114
+  - @brains/site-composition@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/plugins@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/image@0.2.0-alpha.113
+  - @brains/site-composition@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/plugins@0.2.0-alpha.113
+  - @brains/templates@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- [`c6c7df5`](https://github.com/rizom-ai/brains/commit/c6c7df529c7fe7b23680934ce3dc1b1c1f4ae4f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent generated document artifacts from creating oversized MCP tool names. Document IDs derived from dedup keys are now bounded with a short deterministic hash suffix instead of embedding full content hashes, and the entity-detail MCP resource template no longer enumerates every entity instance as a discoverable resource.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/image@0.2.0-alpha.112
+  - @brains/site-composition@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/plugins@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

@@ -8,6 +8,7 @@ tags:
   - social-media
   - finalized-content
   - regression
+  - preset-full
 
 turns:
   - userMessage: |

@@ -1,5 +1,165 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.122
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.122
+  - @brains/utils@0.2.0-alpha.122
+  - @brains/conversation-service@0.2.0-alpha.122
+  - @brains/entity-service@0.2.0-alpha.122
+  - @brains/identity-service@0.2.0-alpha.122
+  - @brains/mcp-service@0.2.0-alpha.122
+  - @brains/messaging-service@0.2.0-alpha.122
+  - @brains/templates@0.2.0-alpha.122
+
+## 0.2.0-alpha.121
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.121
+  - @brains/utils@0.2.0-alpha.121
+  - @brains/conversation-service@0.2.0-alpha.121
+  - @brains/entity-service@0.2.0-alpha.121
+  - @brains/identity-service@0.2.0-alpha.121
+  - @brains/mcp-service@0.2.0-alpha.121
+  - @brains/messaging-service@0.2.0-alpha.121
+  - @brains/templates@0.2.0-alpha.121
+
+## 0.2.0-alpha.120
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.120
+  - @brains/utils@0.2.0-alpha.120
+  - @brains/conversation-service@0.2.0-alpha.120
+  - @brains/entity-service@0.2.0-alpha.120
+  - @brains/identity-service@0.2.0-alpha.120
+  - @brains/mcp-service@0.2.0-alpha.120
+  - @brains/messaging-service@0.2.0-alpha.120
+  - @brains/templates@0.2.0-alpha.120
+
+## 0.2.0-alpha.119
+
+### Patch Changes
+
+- [`d0716d4`](https://github.com/rizom-ai/brains/commit/d0716d40b16b33e63dcdcbd3e8dcb9c280aa6e58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid reusing stale upload refs when saving image discussions as notes or generating cover images from prior conversation context.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.119
+  - @brains/utils@0.2.0-alpha.119
+  - @brains/conversation-service@0.2.0-alpha.119
+  - @brains/entity-service@0.2.0-alpha.119
+  - @brains/identity-service@0.2.0-alpha.119
+  - @brains/mcp-service@0.2.0-alpha.119
+  - @brains/messaging-service@0.2.0-alpha.119
+  - @brains/templates@0.2.0-alpha.119
+
+## 0.2.0-alpha.118
+
+### Patch Changes
+
+- [`78171a4`](https://github.com/rizom-ai/brains/commit/78171a49698a9248fe12ceae6d8f45a5e5cc8b97) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix web-chat upload follow-ups so prior image uploads are rehydrated as native vision inputs, avoid generated-image copy for uploaded image saves, and clean completed confirmation text.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.118
+  - @brains/utils@0.2.0-alpha.118
+  - @brains/conversation-service@0.2.0-alpha.118
+  - @brains/entity-service@0.2.0-alpha.118
+  - @brains/identity-service@0.2.0-alpha.118
+  - @brains/mcp-service@0.2.0-alpha.118
+  - @brains/messaging-service@0.2.0-alpha.118
+  - @brains/templates@0.2.0-alpha.118
+
+## 0.2.0-alpha.117
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.117
+  - @brains/utils@0.2.0-alpha.117
+  - @brains/conversation-service@0.2.0-alpha.117
+  - @brains/entity-service@0.2.0-alpha.117
+  - @brains/identity-service@0.2.0-alpha.117
+  - @brains/mcp-service@0.2.0-alpha.117
+  - @brains/messaging-service@0.2.0-alpha.117
+  - @brains/templates@0.2.0-alpha.117
+
+## 0.2.0-alpha.116
+
+### Patch Changes
+
+- [`2688667`](https://github.com/rizom-ai/brains/commit/26886676251bcfab6f4bbeae7e743059746e737e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep raw attachment URLs out of model-visible tool results while preserving full artifact card data for chat UI rendering.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.116
+  - @brains/utils@0.2.0-alpha.116
+  - @brains/conversation-service@0.2.0-alpha.116
+  - @brains/entity-service@0.2.0-alpha.116
+  - @brains/identity-service@0.2.0-alpha.116
+  - @brains/mcp-service@0.2.0-alpha.116
+  - @brains/messaging-service@0.2.0-alpha.116
+  - @brains/templates@0.2.0-alpha.116
+
+## 0.2.0-alpha.115
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.115
+  - @brains/utils@0.2.0-alpha.115
+  - @brains/conversation-service@0.2.0-alpha.115
+  - @brains/entity-service@0.2.0-alpha.115
+  - @brains/identity-service@0.2.0-alpha.115
+  - @brains/mcp-service@0.2.0-alpha.115
+  - @brains/messaging-service@0.2.0-alpha.115
+  - @brains/templates@0.2.0-alpha.115
+
+## 0.2.0-alpha.114
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.114
+  - @brains/utils@0.2.0-alpha.114
+  - @brains/conversation-service@0.2.0-alpha.114
+  - @brains/entity-service@0.2.0-alpha.114
+  - @brains/identity-service@0.2.0-alpha.114
+  - @brains/mcp-service@0.2.0-alpha.114
+  - @brains/messaging-service@0.2.0-alpha.114
+  - @brains/templates@0.2.0-alpha.114
+
+## 0.2.0-alpha.113
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.113
+  - @brains/utils@0.2.0-alpha.113
+  - @brains/conversation-service@0.2.0-alpha.113
+  - @brains/entity-service@0.2.0-alpha.113
+  - @brains/identity-service@0.2.0-alpha.113
+  - @brains/mcp-service@0.2.0-alpha.113
+  - @brains/messaging-service@0.2.0-alpha.113
+  - @brains/templates@0.2.0-alpha.113
+
+## 0.2.0-alpha.112
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.112
+  - @brains/utils@0.2.0-alpha.112
+  - @brains/conversation-service@0.2.0-alpha.112
+  - @brains/entity-service@0.2.0-alpha.112
+  - @brains/identity-service@0.2.0-alpha.112
+  - @brains/mcp-service@0.2.0-alpha.112
+  - @brains/messaging-service@0.2.0-alpha.112
+  - @brains/templates@0.2.0-alpha.112
+
 ## 0.2.0-alpha.111
 
 ### Patch Changes

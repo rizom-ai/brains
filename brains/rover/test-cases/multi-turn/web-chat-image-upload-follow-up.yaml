@@ -5,7 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: anchor
   interfaceType: web-chat
-  channelId: eval-web-chat-upload
+  channelId: eval-web-chat-file-upload
   channelName: Web Chat Eval
 tags:
   - web-chat
@@ -13,6 +13,7 @@ tags:
   - image
   - regression
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: ""

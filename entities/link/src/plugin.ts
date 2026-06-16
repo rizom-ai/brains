@@ -10,7 +10,7 @@ import type {
   CreateExecutionContext,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z, slugify } from "@brains/utils";
 import {
@@ -18,6 +18,7 @@ import {
   linkSchema,
   type LinkConfig,
   type LinkEntity,
+  type LinkSource,
 } from "./schemas/link";
 import { linkAdapter } from "./adapters/link-adapter";
 import {
@@ -142,6 +143,13 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       }
 
       try {
+        const entityId = await this.createPendingLink(
+          url,
+          input.title,
+          executionContext,
+          context,
+        );
+
         const jobId = await this.shell.getJobQueueService().enqueue({
           type: "link-capture",
           data: {
@@ -172,7 +180,10 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
         });
         return {
           kind: "handled",
-          result: { success: true, data: { status: "generating", jobId } },
+          result: {
+            success: true,
+            data: { entityId, status: "generating", jobId },
+          },
         };
       } catch (error) {
         return {
@@ -268,6 +279,56 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       });
     });
   }
+  private async createPendingLink(
+    url: string,
+    title: string | undefined,
+    executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<string> {
+    const entityId = UrlUtils.generateEntityId(url);
+    const parsedUrl = new URL(url);
+    const now = new Date().toISOString();
+    const fallbackTitle = title?.trim() ? title.trim() : parsedUrl.hostname;
+    const content = this.adapter.createLinkContent({
+      status: "pending",
+      title: fallbackTitle,
+      url,
+      description: "Link capture is in progress.",
+      summary: `Pending link capture for ${url}.`,
+      domain: parsedUrl.hostname,
+      capturedAt: now,
+      source: this.resolveSource(executionContext),
+    });
+
+    const result = await createPendingEntity({
+      entityService: context.entityService,
+      entity: {
+        id: entityId,
+        entityType: "link",
+        content,
+        metadata: { status: "pending", title: fallbackTitle },
+        created: now,
+        updated: now,
+      },
+    });
+
+    return result.entityId;
+  }
+
+  private resolveSource(executionContext: CreateExecutionContext): LinkSource {
+    if (executionContext.channelId) {
+      return {
+        ref: `matrix:${executionContext.channelId}`,
+        label: executionContext.channelName ?? executionContext.channelId,
+      };
+    }
+
+    return {
+      ref: `${executionContext.interfaceType}:local`,
+      label: executionContext.interfaceType.toUpperCase(),
+    };
+  }
+
   private extractFirstUrl(
     ...values: Array<string | undefined>
   ): string | undefined {

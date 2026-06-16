@@ -5,7 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: anchor
   interfaceType: web-chat
-  channelId: eval-web-chat-upload-save
+  channelId: eval-web-chat-file-upload-save
   channelName: Web Chat Eval
 tags:
   - web-chat
@@ -14,6 +14,7 @@ tags:
   - document
   - regression
   - multi-turn
+  - preset-full
 
 turns:
   - userMessage: ""
@@ -23,12 +24,14 @@ turns:
         mediaType: application/pdf
         dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==
         source:
-          kind: web-chat-upload
+          kind: upload
           id: upload-00000000-0000-4000-8000-000000000501
     successCriteria:
       responseContains:
         - "raw-upload-handbook.pdf"
         - "What would you like me to do"
+      responseNotContains:
+        - "upload-00000000-0000-4000-8000-000000000501"
       toolCountRange:
         max: 0
 
@@ -39,7 +42,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: document
-            upload.kind: web-chat-upload
+            upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000501
           argsAbsent:
             - transform
@@ -60,7 +63,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: document
-        upload.kind: web-chat-upload
+        upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000501
       argsAbsent:
         - transform

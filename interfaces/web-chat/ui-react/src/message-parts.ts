@@ -15,6 +15,8 @@ export type RenderedPart =
   | { kind: "confirmation"; data: unknown }
   | { kind: "native-tool"; data: unknown }
   | { kind: "attachment"; data: unknown }
+  | { kind: "sources"; data: unknown }
+  | { kind: "actions"; data: unknown }
   | { kind: "progress"; data: unknown }
   | {
       kind: "file";
@@ -24,6 +26,32 @@ export type RenderedPart =
       downloadUrl?: string | undefined;
     }
   | { kind: "generic"; type: string; data: unknown };
+
+export interface MessagePartSections {
+  body: RenderedPart[];
+  sources: RenderedPart[];
+  actions: RenderedPart[];
+  details: RenderedPart[];
+}
+
+function getMessagePartSection(part: RenderedPart): keyof MessagePartSections {
+  switch (part.kind) {
+    case "sources":
+      return "sources";
+    case "actions":
+      return "actions";
+    case "tools":
+    case "native-tool":
+    case "generic":
+      return "details";
+    case "text":
+    case "attachment":
+    case "progress":
+    case "confirmation":
+    case "file":
+      return "body";
+  }
+}
 
 export function groupMessageParts(
   parts: readonly MessagePart[],
@@ -55,6 +83,14 @@ export function groupMessageParts(
       case "data-attachment":
         flush();
         out.push({ kind: "attachment", data: getPartData(part) });
+        break;
+      case "data-sources":
+        flush();
+        out.push({ kind: "sources", data: getPartData(part) });
+        break;
+      case "data-actions":
+        flush();
+        out.push({ kind: "actions", data: getPartData(part) });
         break;
       case "data-progress":
         flush();
@@ -98,4 +134,19 @@ export function groupMessageParts(
   }
   flush();
   return out;
+}
+
+export function groupMessagePartSections(
+  parts: readonly MessagePart[],
+): MessagePartSections {
+  const sections: MessagePartSections = {
+    body: [],
+    sources: [],
+    actions: [],
+    details: [],
+  };
+  for (const part of groupMessageParts(parts)) {
+    sections[getMessagePartSection(part)].push(part);
+  }
+  return sections;
 }

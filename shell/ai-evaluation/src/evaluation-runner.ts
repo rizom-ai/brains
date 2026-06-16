@@ -52,6 +52,9 @@ async function runEvaluationsWithReporters(
     testCasesDirectory: testCasesDir,
     reporters,
     evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
+    ...(options.runtimeUploads
+      ? { runtimeUploads: options.runtimeUploads }
+      : {}),
   });
 
   logEvaluationStart(options, testCasesDir, resultsDir);

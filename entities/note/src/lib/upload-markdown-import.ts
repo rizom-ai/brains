@@ -9,6 +9,27 @@ const textUploadMediaTypes = new Set([
   "application/json",
 ]);
 
+export function isSupportedMarkdownUploadMediaType(mediaType: string): boolean {
+  const normalized = mediaType.toLowerCase();
+  return (
+    normalized === "application/pdf" || textUploadMediaTypes.has(normalized)
+  );
+}
+
+export function getMarkdownImportIdentity(input: {
+  filename: string;
+  title?: string;
+}): { id: string; title: string } {
+  const title = getUploadTitle(input.title, input.filename);
+  const id = slugify(title);
+  if (!id) {
+    throw new Error(
+      "Could not derive a note id from the uploaded filename. Provide a title.",
+    );
+  }
+  return { id, title };
+}
+
 export interface MarkdownImportResult {
   id: string;
   title: string;
@@ -19,13 +40,10 @@ export async function extractMarkdownFromUpload(input: {
   upload: ResolvedRuntimeUpload;
   title?: string;
 }): Promise<MarkdownImportResult> {
-  const title = getUploadTitle(input.title, input.upload.record.filename);
-  const id = slugify(title);
-  if (!id) {
-    throw new Error(
-      "Could not derive a note id from the uploaded filename. Provide a title.",
-    );
-  }
+  const { id, title } = getMarkdownImportIdentity({
+    filename: input.upload.record.filename,
+    ...(input.title !== undefined ? { title: input.title } : {}),
+  });
 
   const markdown = await readUploadMarkdown(input.upload);
   return {

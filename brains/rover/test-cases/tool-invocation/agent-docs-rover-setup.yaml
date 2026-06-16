@@ -1,0 +1,45 @@
+id: tool-invocation-agent-docs-rover-setup
+name: Ask Saved Docs Agent for Rover Setup
+description: Tests that a direct request to ask docs.rizom.ai is handled by contacting the saved agent instead of answering from local memory or docs.
+type: tool_invocation
+setup:
+  permissionLevel: anchor
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+  - anti-fabrication
+  - preset-core
+
+turns:
+  - userMessage: "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover"
+
+successCriteria:
+  expectedTools:
+    - toolName: a2a_call
+      shouldBeCalled: true
+      argsContain:
+        agent: "docs.rizom.ai"
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_get
+      shouldBeCalled: false
+    - toolName: system_search
+      shouldBeCalled: false
+  responseNotContains:
+    - "I can't contact docs.rizom.ai directly"
+    - "I can’t contact docs.rizom.ai directly"
+    - "onboarding doc"
+    - "From the onboarding doc"
+    - "Discord is the default interface"
+    - "MCP is optional"
+    - "add/save it first"
+    - "Add it first"
+    - "Confirmation required"
+    - "Create a note"
+    - "Entity type: base"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

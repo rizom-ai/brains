@@ -157,13 +157,26 @@ describe("buildInstructions", () => {
     );
   });
 
-  it("should prohibit self-confirming destructive delete requests", () => {
+  it("should tell the agent to preserve finalized deck content without prompt generation", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "finalized deck markdown with frontmatter and slide separators must go in `content` only",
+    );
+    expect(instructions).toContain(
+      "including `prompt` would request generation",
+    );
+  });
+
+  it("should prohibit self-confirming durable write requests", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
       "never pass `confirmed: true` on the initial user request",
     );
     expect(instructions).toContain(
-      "Never self-confirm a destructive operation",
+      "Creating or generating entities with `system_create`",
+    );
+    expect(instructions).toContain(
+      "Never self-confirm a durable write operation",
     );
   });
 
@@ -174,6 +187,102 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "Only pass `targetEntityType`/`targetEntityId` when the user explicitly asks to set or replace a cover image, OG image, or other entity-attached image on an existing entity.",
+    );
+  });
+
+  it("should distinguish cover image operations from OG image operations", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"Cover image" means the entity\'s `coverImageId`; "OG image", "social preview", or "Open Graph image" means `ogImageId`.',
+    );
+    expect(instructions).toContain(
+      "Do not satisfy a cover-image request by reusing, setting, clearing, or mentioning `ogImageId`",
+    );
+    expect(instructions).toContain(
+      "Do not call `system_update` with an existing image id for a generate/new-cover request",
+    );
+    expect(instructions).toContain(
+      "For cover-image changes/removal, the field key is `coverImageId`",
+    );
+    expect(instructions).toContain(
+      "Do not clear `ogImageId` for cover-removal requests, even if `system_get` shows an `ogImageId` and no current `coverImageId`.",
+    );
+  });
+
+  it("should keep image discussion notes and cover images off upload import paths", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks to save an image description, image discussion, image interpretation, caption, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image upload and do not pass `upload` or `transform`.",
+    );
+    expect(instructions).toContain(
+      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
+    );
+    expect(instructions).toContain(
+      "Prior upload refs from the conversation are irrelevant to cover-image generation unless the user explicitly says to use the uploaded image as the cover.",
+    );
+  });
+
+  it("should distinguish artifact previews from durable artifact saves", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks only to preview/render/generate a preview and a `document_generate` tool is available, call `document_generate`",
+    );
+    expect(instructions).toContain(
+      "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
+    );
+  });
+
+  it("should prevent draft blog post checks from fanning out across draft entity types", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"Do I have any draft blog posts?" requires only `system_list({ entityType: "post", status: "draft" })`',
+    );
+    expect(instructions).toContain(
+      "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+  });
+
+  it("should teach the model to verify confirmed update state with system_get instead of looping", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks to show, display, read back, verify, or check the latest state of a known entity after an update/confirmation, call `system_get`",
+    );
+    expect(instructions).toContain(
+      "If a previous confirmed action returned a `Completed:` response or a successful tool result, treat it as completed.",
+    );
+  });
+
+  it("should tell the model to publish the entity just changed to draft", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'If a prior confirmed update changed an entity to draft, a follow-up like "publish it now" means publish that same entity',
+    );
+    expect(instructions).toContain("call `content-pipeline_publish`");
+    expect(instructions).toContain(
+      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ.",
+    );
+  });
+
+  it("should tell the model to act after resolving exact update targets", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "Once `system_get` returns a single matching entity for an exact title/slug",
+    );
+    expect(instructions).toContain(
+      "call the requested `system_update`/publish tool in the same turn",
+    );
+    expect(instructions).toContain(
+      "Do not ask which item, and do not add a broad list call",
+    );
+  });
+
+  it("should tell the model to choose a requested title and update it", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "If the user asks you to choose a missing title/name",
+    );
+    expect(instructions).toContain(
+      "call `system_update` with `fields.title` immediately",
     );
   });
 

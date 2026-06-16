@@ -39,12 +39,56 @@ export interface WebChatHistoryAttachmentCard {
   };
 }
 
+export interface WebChatHistorySourcesCard {
+  kind: "sources";
+  id: string;
+  title?: string | undefined;
+  sources: Array<{
+    id: string;
+    title?: string | undefined;
+    source: string;
+    url?: string | undefined;
+    entityType?: string | undefined;
+    entityId?: string | undefined;
+    excerpt?: string | undefined;
+    provenance?: Record<string, unknown> | undefined;
+  }>;
+}
+
+export interface WebChatHistoryActionsCard {
+  kind: "actions";
+  id: string;
+  title?: string | undefined;
+  defaultOpen?: boolean | undefined;
+  actions: Array<
+    | {
+        type: "prompt";
+        id: string;
+        label: string;
+        prompt: string;
+        description?: string | undefined;
+      }
+    | {
+        type: "event";
+        id: string;
+        label: string;
+        event: string;
+        description?: string | undefined;
+      }
+  >;
+}
+
+export type WebChatHistoryCard =
+  | WebChatHistoryAttachmentCard
+  | WebChatHistorySourcesCard
+  | WebChatHistoryActionsCard;
+
 export interface WebChatHistoryMessage {
   id: string;
   role: UIMessage["role"];
   content: string;
   attachments?: WebChatHistoryAttachment[];
-  cards?: WebChatHistoryAttachmentCard[];
+  cards?: WebChatHistoryCard[];
 }
 
 export interface WebChatMessagesResponse {
@@ -62,7 +106,15 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
     if (upload) parts.push(createUploadPart(upload));
   }
   for (const card of message.cards ?? []) {
-    parts.push({ type: "data-attachment", data: card });
+    parts.push({
+      type:
+        card.kind === "sources"
+          ? "data-sources"
+          : card.kind === "actions"
+            ? "data-actions"
+            : "data-attachment",
+      data: card,
+    });
   }
 
   return {
@@ -75,10 +127,10 @@ export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
 function toUploadResponse(
   attachment: WebChatHistoryAttachment,
 ): WebChatUploadResponse | null {
-  if (attachment.source?.kind !== "web-chat-upload") return null;
+  if (attachment.source?.kind !== "upload") return null;
   return {
     id: attachment.source.id,
-    ref: { kind: "web-chat-upload", id: attachment.source.id },
+    ref: { kind: "upload", id: attachment.source.id },
     filename: attachment.filename,
     mediaType: attachment.mediaType,
     sizeBytes: attachment.sizeBytes,

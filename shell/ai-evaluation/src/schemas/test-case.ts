@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
 import { UserPermissionLevelSchema } from "@brains/templates";
+import { ChatContextSchema } from "@brains/plugins";
 
 /**
  * Agent test case types (chat-based)
@@ -101,6 +102,12 @@ export const evalAttachmentSchema = z.discriminatedUnion("kind", [
 
 export type EvalAttachment = z.infer<typeof evalAttachmentSchema>;
 
+export const turnContextSchema = ChatContextSchema.omit({
+  attachments: true,
+}).partial();
+
+export type TurnContext = z.infer<typeof turnContextSchema>;
+
 /**
  * Single conversation turn
  */
@@ -129,6 +136,11 @@ export const turnSchema = z.object({
     .optional()
     .describe(
       "When true, passes the previous turn's attachments again with this turn, simulating interface-level deferred upload reuse.",
+    ),
+  context: turnContextSchema
+    .optional()
+    .describe(
+      "Per-turn chat context override for multi-user conversations. Attachments stay on the turn attachments fields.",
     ),
   successCriteria: successCriteriaSchema.optional(),
 });
@@ -159,6 +171,16 @@ export const efficiencySchema = z.object({
 
 export type Efficiency = z.infer<typeof efficiencySchema>;
 
+export const permissionMatrixSchema = z
+  .object({
+    public: successCriteriaSchema.optional(),
+    trusted: successCriteriaSchema.optional(),
+    anchor: successCriteriaSchema.optional(),
+  })
+  .partial();
+
+export type PermissionMatrix = z.infer<typeof permissionMatrixSchema>;
+
 /**
  * Base test case fields shared by all types
  */
@@ -183,6 +205,9 @@ export const agentTestCaseSchema = baseTestCaseSchema.extend({
 
   // Final success criteria (evaluated after all turns)
   successCriteria: successCriteriaSchema,
+
+  // Permission matrix expands one case into per-level runs.
+  permissions: permissionMatrixSchema.optional(),
 
   // Efficiency expectations
   efficiency: efficiencySchema.optional(),

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   buildMessageWithAttachments,
   collectUploadRefsFromMessages,
-  resolveConversationUploadRefs,
+  resolveConversationUploadContinuity,
 } from "../src/conversation-messages";
 
 describe("collectUploadRefsFromMessages", () => {
@@ -20,7 +20,7 @@ describe("collectUploadRefsFromMessages", () => {
               filename: "distributed-systems-primer.pdf",
               mediaType: "application/pdf",
               source: {
-                kind: "web-chat-upload",
+                kind: "upload",
                 id: "upload-00000000-0000-4000-8000-000000000401",
               },
             },
@@ -35,7 +35,7 @@ describe("collectUploadRefsFromMessages", () => {
         filename: "distributed-systems-primer.pdf",
         mediaType: "application/pdf",
         source: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000401",
         },
       },
@@ -43,48 +43,120 @@ describe("collectUploadRefsFromMessages", () => {
   });
 });
 
-describe("resolveConversationUploadRefs", () => {
+describe("resolveConversationUploadContinuity", () => {
   const uploadRefs = [
     {
-      filename: "alpha-guide.pdf",
+      filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
       mediaType: "application/pdf",
       source: {
-        kind: "web-chat-upload",
-        id: "upload-alpha",
+        kind: "upload",
+        id: "upload-pdf",
       },
     },
     {
-      filename: "beta-diagram.png",
-      mediaType: "image/png",
+      filename: "IMG_8963.jpeg",
+      mediaType: "image/jpeg",
       source: {
-        kind: "web-chat-upload",
-        id: "upload-beta",
+        kind: "upload",
+        id: "upload-image",
       },
     },
   ];
 
-  it("selects a prior upload by exact filename mention", () => {
-    const alpha = uploadRefs[0];
-    if (!alpha) throw new Error("Expected alpha upload fixture");
+  const historyMessages = uploadRefs.map((ref, index) => ({
+    id: `message-${index}`,
+    conversationId: "conversation-1",
+    role: "user" as const,
+    content: "",
+    metadata: JSON.stringify({
+      attachments: [
+        {
+          kind: "file",
+          filename: ref.filename,
+          mediaType: ref.mediaType,
+          source: ref.source,
+        },
+      ],
+    }),
+    timestamp: new Date().toISOString(),
+  }));
 
-    expect(
-      resolveConversationUploadRefs("save alpha-guide.pdf", uploadRefs),
-    ).toEqual({ kind: "selected", refs: [alpha] });
-  });
+  it("keeps prior uploads as passive refs instead of asking service-level clarification", () => {
+    const result = resolveConversationUploadContinuity({
+      message:
+        "Can you generate a preview of the innovation deck carousel for me?",
+      currentAttachments: [],
+      historyMessages,
+    });
 
-  it("selects a prior upload by explicit position", () => {
-    const beta = uploadRefs[1];
-    if (!beta) throw new Error("Expected beta upload fixture");
-
-    expect(
-      resolveConversationUploadRefs("use the latest one", uploadRefs),
-    ).toEqual({ kind: "selected", refs: [beta] });
-  });
-
-  it("returns a clarification state for multiple refs without a deterministic selector", () => {
-    expect(resolveConversationUploadRefs("save it", uploadRefs)).toEqual({
-      kind: "clarify",
+    expect(result).toEqual({
+      kind: "selected",
+      message:
+        "Can you generate a preview of the innovation deck carousel for me?",
       refs: uploadRefs,
+      attachments: [],
+    });
+  });
+
+  it("does not rewrite clarification replies or select files from text", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "neither, generate it from the deck",
+      currentAttachments: [],
+      historyMessages: [
+        ...historyMessages,
+        {
+          id: "message-request",
+          conversationId: "conversation-1",
+          role: "user",
+          content:
+            "Can you generate a preview of the innovation deck carousel for me?",
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "message-clarify",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content:
+            "Which uploaded file should I use? `file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf`, `IMG_8963.jpeg`",
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "neither, generate it from the deck",
+      refs: uploadRefs,
+      attachments: [],
+    });
+  });
+
+  it("passes current attachments through without deriving conversation control flow", () => {
+    const attachment = {
+      kind: "file" as const,
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      data: new Uint8Array([1, 2, 3]),
+      sizeBytes: 3,
+      source: {
+        kind: "upload",
+        id: "upload-current",
+      },
+    };
+
+    const result = resolveConversationUploadContinuity({
+      message: "summarize this",
+      currentAttachments: [attachment],
+      historyMessages,
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "summarize this",
+      refs: uploadRefs,
+      attachments: [attachment],
     });
   });
 });
@@ -100,7 +172,7 @@ describe("buildMessageWithAttachments", () => {
             filename: "distributed-systems-primer.pdf",
             mediaType: "application/pdf",
             source: {
-              kind: "web-chat-upload",
+              kind: "upload",
               id: "upload-00000000-0000-4000-8000-000000000401",
             },
           },
@@ -108,8 +180,12 @@ describe("buildMessageWithAttachments", () => {
       },
     );
 
-    expect(content).toBe(
-      'turn it into a note\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- distributed-systems-primer.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; raw promotion call: system_create({ entityType: "document", upload }) and omit transform',
+    expect(content).toContain("turn it into a note\n\nAvailable upload refs");
+    expect(content).toContain(
+      "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
+    );
+    expect(content).toContain(
+      '- distributed-systems-primer.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"',
     );
   });
 
@@ -122,7 +198,7 @@ describe("buildMessageWithAttachments", () => {
         data: new Uint8Array([1, 2, 3]),
         sizeBytes: 3,
         source: {
-          kind: "web-chat-upload",
+          kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000401",
         },
       },
@@ -131,7 +207,9 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toEqual([
       {
         type: "text",
-        text: 'save it as a document\n\nAvailable runtime upload refs from this conversation. When the user asks to act on the upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. For raw file saves/promotions, call system_create with upload: { kind: "web-chat-upload", id: <upload ID> } and the appropriate entityType (PDF -> document, image -> image). If the request names document, PDF, file, image, save, or promote, use raw promotion and omit transform. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only when the request names note, markdown, or text extraction.\n- brief.pdf: upload { kind: "web-chat-upload", id: "upload-00000000-0000-4000-8000-000000000401" }; raw promotion call: system_create({ entityType: "document", upload }) and omit transform',
+        text: expect.stringContaining(
+          '- brief.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"',
+        ),
       },
       {
         type: "file",
@@ -140,5 +218,9 @@ describe("buildMessageWithAttachments", () => {
         filename: "brief.pdf",
       },
     ]);
+    const textPart = Array.isArray(content) ? content[0] : undefined;
+    expect(textPart?.type === "text" ? textPart.text : "").toContain(
+      "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
+    );
   });
 });

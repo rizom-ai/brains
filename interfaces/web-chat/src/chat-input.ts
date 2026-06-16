@@ -1,10 +1,4 @@
-import {
-  parseStoredMessageMetadata,
-  selectReferencedAttachments,
-  type ChatAttachment,
-  type IConversationsNamespace,
-  type RuntimeUploadStore,
-} from "@brains/plugins";
+import { type ChatAttachment, type RuntimeUploadStore } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
@@ -70,13 +64,11 @@ export interface ParsedUserInput {
 }
 
 interface ChatInputDeps {
-  conversations: IConversationsNamespace;
   uploadStore: RuntimeUploadStore;
 }
 
 export async function extractLastUserInput(
   request: ChatRequest,
-  conversationId: string,
   deps: ChatInputDeps,
 ): Promise<ParsedUserInput | Response> {
   const lastUserMessage = findLastUserMessage(request);
@@ -122,26 +114,6 @@ export async function extractLastUserInput(
       ? messageParts.join("\n\n")
       : (lastUserMessage.content ?? "");
 
-  if (attachments.length === 0) {
-    const deferred = await resolveDeferredUploadReference(
-      request,
-      conversationId,
-      lastUserMessage,
-      message,
-      deps,
-    );
-    if (deferred instanceof Response) return deferred;
-    if (deferred !== null) {
-      return {
-        message: deferred.message ?? message,
-        attachments: deferred.attachments,
-        ...(deferred.responseText !== undefined
-          ? { responseText: deferred.responseText }
-          : {}),
-      };
-    }
-  }
-
   return {
     message,
     attachments,
@@ -164,96 +136,6 @@ export function extractLatestApprovalResponses(
     .map((result) => result.data.approval);
 }
 
-async function resolveDeferredUploadReference(
-  request: ChatRequest,
-  conversationId: string,
-  lastUserMessage: ChatRequest["messages"][number],
-  message: string,
-  deps: ChatInputDeps,
-): Promise<
-  | (Pick<ParsedUserInput, "attachments"> &
-      Partial<Pick<ParsedUserInput, "message" | "responseText">>)
-  | null
-> {
-  const uploadIds = await collectPriorUploadIds(
-    request,
-    conversationId,
-    lastUserMessage,
-    deps.conversations,
-  );
-  const attachments: ChatAttachment[] = [];
-  for (const uploadId of uploadIds) {
-    const attachment = await resolveReferencedUploadPart(
-      uploadId,
-      deps.uploadStore,
-    );
-    if (attachment instanceof Response) continue;
-    attachments.push(attachment);
-  }
-
-  if (attachments.length === 0) return null;
-
-  return {
-    message,
-    attachments: selectReferencedAttachments(message, attachments),
-  };
-}
-
-async function collectPriorUploadIds(
-  request: ChatRequest,
-  conversationId: string,
-  lastUserMessage: ChatRequest["messages"][number],
-  conversations: IConversationsNamespace,
-): Promise<string[]> {
-  const ids: string[] = [];
-  const seen = new Set<string>();
-  const add = (uploadId: string): void => {
-    if (seen.has(uploadId)) return;
-    seen.add(uploadId);
-    ids.push(uploadId);
-  };
-
-  const lastUserIndex = request.messages.indexOf(lastUserMessage);
-  const priorMessages = request.messages.slice(
-    0,
-    lastUserIndex === -1 ? request.messages.length : lastUserIndex,
-  );
-  for (const message of priorMessages) {
-    if (message.role !== "user") continue;
-    for (const part of message.parts ?? []) {
-      const parsedUploadRef = uploadRefPartSchema.safeParse(part);
-      if (parsedUploadRef.success) {
-        add(parsedUploadRef.data.data.ref.id);
-      }
-    }
-  }
-
-  const storedMessages = await conversations.getMessages(conversationId, {
-    limit: 50,
-  });
-  for (const message of storedMessages) {
-    if (message.role !== "user") continue;
-    const parsedMetadata = parseStoredMessageMetadata(message.metadata);
-    const attachments = parsedMetadata?.["attachments"];
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      if (!isRecord(attachment)) continue;
-      const source = attachment["source"];
-      if (!isRecord(source)) continue;
-      if (source["kind"] !== webChatUploadRefKind) continue;
-      const uploadId = source["id"];
-      if (
-        typeof uploadId === "string" &&
-        webChatUploadIdPattern.test(uploadId)
-      ) {
-        add(uploadId);
-      }
-    }
-  }
-
-  return ids;
-}
-
 function findLastUserMessage(
   request: ChatRequest,
 ): ChatRequest["messages"][number] | undefined {
@@ -270,8 +152,4 @@ function getPartType(part: unknown): string | undefined {
   }
   const type = part.type;
   return typeof type === "string" ? type : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,4 +1,6 @@
 import type { IAgentService, IAIService } from "@brains/ai-service";
+import type { IRuntimeUploadsNamespace } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/templates";
 
 import type {
   IEvaluationService,
@@ -23,6 +25,11 @@ import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 
 const DEFAULT_MAX_PARALLEL = 3;
+const PERMISSION_MATRIX_LEVELS: UserPermissionLevel[] = [
+  "public",
+  "trusted",
+  "anchor",
+];
 
 /**
  * Type guard to check if a test case is an agent test case
@@ -38,6 +45,33 @@ function isPluginTestCase(testCase: TestCase): testCase is PluginTestCase {
   return testCase.type === "plugin";
 }
 
+function expandPermissionMatrix(testCase: AgentTestCase): AgentTestCase[] {
+  if (!testCase.permissions) return [testCase];
+
+  return PERMISSION_MATRIX_LEVELS.flatMap((level) => {
+    const successCriteria = testCase.permissions?.[level];
+    if (!successCriteria) return [];
+
+    const { permissions: _permissions, ...baseTestCase } = testCase;
+    return [
+      {
+        ...baseTestCase,
+        id: `${testCase.id}@${level}`,
+        name: `${testCase.name} (${level})`,
+        setup: {
+          ...testCase.setup,
+          permissionLevel: level,
+        },
+        successCriteria,
+      },
+    ];
+  });
+}
+
+function baseId(id: string): string {
+  return id.split("@")[0] ?? id;
+}
+
 /**
  * Configuration for the evaluation service
  */
@@ -47,6 +81,7 @@ export interface EvaluationServiceConfig {
   testCasesDirectory: string | string[];
   reporters?: IReporter[];
   evalHandlerRegistry: EvalHandlerRegistry;
+  runtimeUploads?: IRuntimeUploadsNamespace;
 }
 
 /**
@@ -58,6 +93,7 @@ export class EvaluationService implements IEvaluationService {
   private readonly loader: ITestCaseLoader;
   private readonly reporters: IReporter[];
   private readonly evalHandlerRegistry: EvalHandlerRegistry;
+  private readonly runtimeUploads: IRuntimeUploadsNamespace | undefined;
 
   constructor(config: EvaluationServiceConfig) {
     this.agentService = config.agentService;
@@ -68,6 +104,7 @@ export class EvaluationService implements IEvaluationService {
     });
     this.reporters = config.reporters ?? [];
     this.evalHandlerRegistry = config.evalHandlerRegistry;
+    this.runtimeUploads = config.runtimeUploads;
   }
 
   /**
@@ -76,9 +113,15 @@ export class EvaluationService implements IEvaluationService {
   async runEvaluations(
     options: EvaluationOptions = {},
   ): Promise<EvaluationSummary> {
-    const testCases = await this.getFilteredTestCases(options);
-    const agentTestCases = this.getAgentTestCases(testCases, options);
-    const pluginTestCases = this.getPluginTestCases(testCases, options);
+    const testCases = await this.getTaggedTestCases(options);
+    const agentTestCases = this.filterByIds(
+      this.getAgentTestCases(testCases, options),
+      options.testCaseIds,
+    );
+    const pluginTestCases = this.filterByIds(
+      this.getPluginTestCases(testCases, options),
+      options.testCaseIds,
+    );
 
     const results = [
       ...(await this.runAgentTests(agentTestCases, options)),
@@ -108,21 +151,22 @@ export class EvaluationService implements IEvaluationService {
   /**
    * Load and filter test cases by shared evaluation options.
    */
-  private async getFilteredTestCases(
+  private async getTaggedTestCases(
     options: EvaluationOptions,
   ): Promise<TestCase[]> {
-    let testCases = await this.loader.loadTestCases();
-
-    if (options.testCaseIds?.length) {
-      testCases = this.filterByIds(testCases, options.testCaseIds);
-    }
-
-    return this.filterByTags(testCases, options.tags);
+    return this.filterByTags(await this.loader.loadTestCases(), options.tags);
   }
 
-  private filterByIds(testCases: TestCase[], ids: string[]): TestCase[] {
+  private filterByIds<TTestCase extends TestCase>(
+    testCases: TTestCase[],
+    ids: string[] | undefined,
+  ): TTestCase[] {
+    if (!ids?.length) return testCases;
+
     const idSet = new Set(ids);
-    return testCases.filter((testCase) => idSet.has(testCase.id));
+    return testCases.filter(
+      (testCase) => idSet.has(testCase.id) || idSet.has(baseId(testCase.id)),
+    );
   }
 
   private filterByTags(
@@ -143,7 +187,7 @@ export class EvaluationService implements IEvaluationService {
   ): AgentTestCase[] {
     return options.testType === "plugin"
       ? []
-      : testCases.filter(isAgentTestCase);
+      : testCases.filter(isAgentTestCase).flatMap(expandPermissionMatrix);
   }
 
   private getPluginTestCases(
@@ -167,6 +211,7 @@ export class EvaluationService implements IEvaluationService {
     const testRunner = TestRunner.createFresh(
       this.agentService,
       this.createLLMJudge(options),
+      this.runtimeUploads,
     );
     const runnerOptions = this.getRunnerOptions(options);
 

@@ -20,10 +20,12 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import {
+  ActionsPart,
   AttachmentPart,
   ConfirmationPart,
   GenericDataPart,
   NativeToolPart,
+  SourcesPart,
   ToolCallsGroup,
   ToolResultPart,
 } from "./ai-elements/data-parts";
@@ -41,7 +43,7 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "./ai-elements/prompt-input";
-import { groupMessageParts } from "./message-parts";
+import { groupMessagePartSections, type RenderedPart } from "./message-parts";
 import { toUiMessage, type WebChatMessagesResponse } from "./history-messages";
 import { classifySubmitError, prepareUploadSubmission } from "./uploads";
 import {
@@ -225,15 +227,15 @@ function UploadedFilePart({
 }): React.ReactElement {
   const content = (
     <>
-      <span className="web-chat-uploaded-file-kicker">attached</span>
-      <span className="web-chat-uploaded-file-name">{filename}</span>
+      <span className="web-chat-attached-file-kicker">attached</span>
+      <span className="web-chat-attached-file-name">{filename}</span>
     </>
   );
 
   if (url) {
     return (
       <a
-        className="web-chat-uploaded-file"
+        className="web-chat-attached-file"
         data-media-type={mediaType}
         href={url}
       >
@@ -243,7 +245,7 @@ function UploadedFilePart({
   }
 
   return (
-    <span className="web-chat-uploaded-file" data-media-type={mediaType}>
+    <span className="web-chat-attached-file" data-media-type={mediaType}>
       {content}
     </span>
   );
@@ -257,7 +259,7 @@ interface ProgressData {
   progress?: { current: number; total: number; percentage: number };
 }
 
-function isProgressData(data: unknown): data is ProgressData {
+export function isProgressData(data: unknown): data is ProgressData {
   if (typeof data !== "object" || data === null) return false;
   const record = data as Record<string, unknown>;
   return (
@@ -276,7 +278,7 @@ function formatOperationType(operationType: string): string {
     .join(" ");
 }
 
-function progressLabel(status: ProgressData["status"]): string {
+export function progressLabel(status: ProgressData["status"]): string {
   switch (status) {
     case "completed":
       return "completed";
@@ -289,7 +291,11 @@ function progressLabel(status: ProgressData["status"]): string {
   }
 }
 
-function ProgressPart({ data }: { data: unknown }): React.ReactElement | null {
+export function ProgressPart({
+  data,
+}: {
+  data: unknown;
+}): React.ReactElement | null {
   if (!isProgressData(data)) return null;
   const operation = formatOperationType(data.operationType);
   const title = data.operationTarget
@@ -412,6 +418,84 @@ export function App(): React.ReactElement {
   } = useChat({
     chat,
   });
+
+  function renderMessagePart(
+    group: RenderedPart,
+    key: string,
+  ): React.ReactElement | null {
+    if (group.kind === "text") {
+      return <MessageResponse key={key}>{group.text}</MessageResponse>;
+    }
+    if (group.kind === "tools") {
+      if (group.tools.length === 1) {
+        return <ToolResultPart key={key} data={group.tools[0]} />;
+      }
+      return <ToolCallsGroup key={key} tools={group.tools} />;
+    }
+    if (group.kind === "confirmation") {
+      return (
+        <ConfirmationPart
+          key={key}
+          data={group.data}
+          addToolApprovalResponse={addToolApprovalResponse}
+        />
+      );
+    }
+    if (group.kind === "native-tool") {
+      return <NativeToolPart key={key} data={group.data} />;
+    }
+    if (group.kind === "attachment") {
+      return <AttachmentPart key={key} data={group.data} />;
+    }
+    if (group.kind === "progress") {
+      return <ProgressPart key={key} data={group.data} />;
+    }
+    if (group.kind === "sources") {
+      return <SourcesPart key={key} data={group.data} />;
+    }
+    if (group.kind === "actions") {
+      return (
+        <ActionsPart
+          key={key}
+          data={group.data}
+          onPromptAction={(prompt) => void submitMessage(prompt)}
+        />
+      );
+    }
+    if (group.kind === "file") {
+      return (
+        <UploadedFilePart
+          key={key}
+          filename={group.filename}
+          mediaType={group.mediaType}
+          url={group.url}
+        />
+      );
+    }
+    return <GenericDataPart key={key} type={group.type} data={group.data} />;
+  }
+
+  function renderMessageSections(
+    parts: UIMessage["parts"],
+  ): React.ReactElement {
+    const sections = groupMessagePartSections(parts);
+    return (
+      <>
+        {sections.body.map((group, index) =>
+          renderMessagePart(group, `body-${index}`),
+        )}
+        {sections.sources.map((group, index) =>
+          renderMessagePart(group, `sources-${index}`),
+        )}
+        {sections.actions.map((group, index) =>
+          renderMessagePart(group, `actions-${index}`),
+        )}
+        {sections.details.map((group, index) =>
+          renderMessagePart(group, `details-${index}`),
+        )}
+      </>
+    );
+  }
 
   useEffect(() => {
     if (promptInputRef.current) {
@@ -1171,60 +1255,7 @@ export function App(): React.ReactElement {
                   data-role={message.role}
                 >
                   <MessageContent className="web-chat-message-bubble">
-                    {groupMessageParts(message.parts).map((group, index) => {
-                      if (group.kind === "text") {
-                        return (
-                          <MessageResponse key={index}>
-                            {group.text}
-                          </MessageResponse>
-                        );
-                      }
-                      if (group.kind === "tools") {
-                        if (group.tools.length === 1) {
-                          return (
-                            <ToolResultPart key={index} data={group.tools[0]} />
-                          );
-                        }
-                        return (
-                          <ToolCallsGroup key={index} tools={group.tools} />
-                        );
-                      }
-                      if (group.kind === "confirmation") {
-                        return (
-                          <ConfirmationPart
-                            key={index}
-                            data={group.data}
-                            addToolApprovalResponse={addToolApprovalResponse}
-                          />
-                        );
-                      }
-                      if (group.kind === "native-tool") {
-                        return <NativeToolPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "attachment") {
-                        return <AttachmentPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "progress") {
-                        return <ProgressPart key={index} data={group.data} />;
-                      }
-                      if (group.kind === "file") {
-                        return (
-                          <UploadedFilePart
-                            key={index}
-                            filename={group.filename}
-                            mediaType={group.mediaType}
-                            url={group.url}
-                          />
-                        );
-                      }
-                      return (
-                        <GenericDataPart
-                          key={index}
-                          type={group.type}
-                          data={group.data}
-                        />
-                      );
-                    })}
+                    {renderMessageSections(message.parts)}
                   </MessageContent>
                 </Message>
               ))
@@ -1253,7 +1284,7 @@ export function App(): React.ReactElement {
         ) : null}
 
         {uploadNotice ? (
-          <p className="web-chat-upload-notice" data-tone={uploadNotice.tone}>
+          <p className="web-chat-file-notice" data-tone={uploadNotice.tone}>
             {uploadNotice.message}
           </p>
         ) : null}

@@ -281,8 +281,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     const approvalResponses = extractLatestApprovalResponses(parsed.data);
     const userInput =
       approvalResponses.length === 0
-        ? await extractLastUserInput(parsed.data, conversationId, {
-            conversations: this.getContext().conversations,
+        ? await extractLastUserInput(parsed.data, {
             uploadStore: this.getContext().uploads.scoped(
               createWebChatUploadStoreScope(),
             ),
@@ -310,6 +309,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
               writer,
               conversationId,
               approvalResponses,
+              permissionLevel,
+              interfaceType: webChatInterfaceType,
             },
             streamDeps,
           );

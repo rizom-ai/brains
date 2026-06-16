@@ -8,6 +8,7 @@ tags:
   - skills
   - derivation
   - agent-card
+  - preset-core
 plugin: skill
 handler: deriveSkills
 

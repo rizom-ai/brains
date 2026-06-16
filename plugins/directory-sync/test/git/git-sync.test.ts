@@ -3,8 +3,38 @@ import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
+import { createServer, type AddressInfo, type Socket } from "net";
 import { GitSync } from "../../src/lib/git-sync";
+import { GitStallError } from "../../src/lib/git-stall";
 import { createSilentLogger } from "@brains/test-utils";
+
+/**
+ * TCP server that accepts connections but never replies — simulates a stalled
+ * git fetch/push. Destroys lingering sockets on close so aborted git children
+ * don't leak past the test.
+ */
+async function startUnresponsiveServer(): Promise<{
+  port: number;
+  close: () => Promise<void>;
+}> {
+  const sockets: Socket[] = [];
+  const server = createServer((socket) => {
+    sockets.push(socket);
+    socket.on("error", () => {});
+  });
+  await new Promise<void>((resolve) =>
+    server.listen(0, "127.0.0.1", () => resolve()),
+  );
+  const port = (server.address() as AddressInfo).port;
+  return {
+    port,
+    close: () =>
+      new Promise<void>((resolve) => {
+        for (const s of sockets) s.destroy();
+        server.close(() => resolve());
+      }),
+  };
+}
 
 describe("GitSync (simplified)", () => {
   let testDir: string;
@@ -35,7 +65,7 @@ describe("GitSync (simplified)", () => {
   });
 
   function createGitSync(
-    opts: { repo?: string; authToken?: string } = {},
+    opts: { repo?: string; authToken?: string; timeoutMs?: number } = {},
   ): GitSync {
     gitSync = new GitSync({
       logger: createSilentLogger(),
@@ -45,6 +75,7 @@ describe("GitSync (simplified)", () => {
       authorName: "Test",
       authorEmail: "test@example.com",
       authToken: opts.authToken,
+      timeoutMs: opts.timeoutMs,
     });
     return gitSync;
   }
@@ -236,6 +267,137 @@ describe("GitSync (simplified)", () => {
       const result = await gs.pull();
       expect(result.files).toEqual([]);
     });
+  });
+
+  describe("network stall timeout", () => {
+    const STALL_MS = 1000;
+
+    it("pull still succeeds and returns changes when a timeout is configured", async () => {
+      const gs = createGitSync({ timeoutMs: 10_000 });
+      await gs.initialize();
+
+      writeFileSync(join(dataDir, ".gitkeep"), "");
+      await gs.commit("initial");
+      await gs.push();
+
+      // Remote change pushed by another clone
+      const cloneDir = join(testDir, "clone");
+      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      writeFileSync(join(cloneDir, "remote-post.md"), "# Remote");
+      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
+      execSync(
+        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote change"',
+        { cwd: cloneDir, stdio: "ignore" },
+      );
+      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+
+      const result = await gs.pull();
+      expect(result.files).toContain("remote-post.md");
+    });
+
+    it("pull rejects with GitStallError when the remote is unresponsive", async () => {
+      const { port, close } = await startUnresponsiveServer();
+      try {
+        const gs = createGitSync({ timeoutMs: STALL_MS });
+        await gs.initialize();
+        writeFileSync(join(dataDir, ".gitkeep"), "");
+        await gs.commit("initial");
+
+        // Point origin at the unresponsive server.
+        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
+          cwd: dataDir,
+          stdio: "ignore",
+        });
+
+        const start = performance.now();
+        let error: unknown;
+        try {
+          await gs.pull();
+        } catch (e) {
+          error = e;
+        }
+        const elapsed = performance.now() - start;
+
+        // Rejected via the stall path specifically — not an instant failure.
+        expect(error).toBeInstanceOf(GitStallError);
+        // Waited roughly the stall window, and nowhere near hanging.
+        expect(elapsed).toBeGreaterThanOrEqual(STALL_MS * 0.8);
+        expect(elapsed).toBeLessThan(10_000);
+      } finally {
+        await close();
+      }
+    }, 20_000);
+
+    it("push rejects with GitStallError when the remote is unresponsive", async () => {
+      const { port, close } = await startUnresponsiveServer();
+      try {
+        const gs = createGitSync({ timeoutMs: STALL_MS });
+        await gs.initialize();
+        writeFileSync(join(dataDir, "note.md"), "# Note");
+        await gs.commit("initial");
+
+        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
+          cwd: dataDir,
+          stdio: "ignore",
+        });
+
+        const start = performance.now();
+        let error: unknown;
+        try {
+          await gs.push();
+        } catch (e) {
+          error = e;
+        }
+        const elapsed = performance.now() - start;
+
+        expect(error).toBeInstanceOf(GitStallError);
+        expect(elapsed).toBeGreaterThanOrEqual(STALL_MS * 0.8);
+        expect(elapsed).toBeLessThan(10_000);
+      } finally {
+        await close();
+      }
+    }, 20_000);
+
+    it("does not wedge: operations recover after a stalled pull", async () => {
+      const { port, close } = await startUnresponsiveServer();
+      try {
+        // Start with a working remote so we can prove recovery against it.
+        const gs = createGitSync({ timeoutMs: STALL_MS });
+        await gs.initialize();
+        writeFileSync(join(dataDir, ".gitkeep"), "");
+        await gs.commit("initial");
+        await gs.push();
+
+        // Stall a pull against the dead remote.
+        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
+          cwd: dataDir,
+          stdio: "ignore",
+        });
+        let stallError: unknown;
+        try {
+          await gs.pull();
+        } catch (e) {
+          stallError = e;
+        }
+        expect(stallError).toBeInstanceOf(GitStallError);
+
+        // Restore the working remote — subsequent operations must succeed
+        // promptly, proving the stalled task left no held lock or blocked
+        // git instance behind it.
+        execSync(`git remote set-url origin ${remoteDir}`, {
+          cwd: dataDir,
+          stdio: "ignore",
+        });
+
+        const status = await gs.getStatus();
+        expect(status.isRepo).toBe(true);
+
+        const result = await gs.pull();
+        expect(result.files).toEqual([]);
+      } finally {
+        await close();
+      }
+    }, 20_000);
   });
 
   describe("getStatus", () => {

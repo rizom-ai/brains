@@ -8,6 +8,7 @@ tags:
   - core
   - decks
   - anti-hallucination
+  - preset-default
 
 turns:
   - userMessage: "Create a new slide deck about machine learning"

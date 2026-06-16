@@ -9,6 +9,7 @@ tags:
   - system
   - link
   - intent-recognition
+  - preset-core
 
 turns:
   - userMessage: "Bookmark https://github.com/anthropics/claude-code"

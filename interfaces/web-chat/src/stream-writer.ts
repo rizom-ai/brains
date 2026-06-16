@@ -1,6 +1,46 @@
 import type { StructuredChatCard } from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isUploadRef(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    value["kind"] === "upload" &&
+    typeof value["id"] === "string"
+  );
+}
+
+export function redactUploadRefs(value: unknown): unknown {
+  if (isUploadRef(value)) return "uploaded file";
+  if (Array.isArray(value)) return value.map((item) => redactUploadRefs(item));
+  if (!isRecord(value)) return value;
+  return redactUploadRefsInRecord(value);
+}
+
+function redactUploadRefsInRecord(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, redactUploadRefs(entry)]),
+  );
+}
+
+function redactToolApprovalCard(card: StructuredChatCard): StructuredChatCard {
+  if (card.kind !== "tool-approval") return card;
+  return {
+    ...card,
+    ...(card.input !== undefined
+      ? { input: redactUploadRefsInRecord(card.input) }
+      : {}),
+    ...(card.output !== undefined
+      ? { output: redactUploadRefs(card.output) }
+      : {}),
+  };
+}
+
 export function writeTextPart(
   writer: UIMessageStreamWriter<UIMessage>,
   id: string,
@@ -15,10 +55,29 @@ export function writeStructuredCards(
   writer: UIMessageStreamWriter<UIMessage>,
   cards: StructuredChatCard[],
 ): void {
-  for (const card of cards) {
+  for (const rawCard of cards) {
+    const card = redactToolApprovalCard(rawCard);
     if (card.kind === "attachment") {
       writer.write({
         type: "data-attachment",
+        id: card.id,
+        data: card,
+      });
+      continue;
+    }
+
+    if (card.kind === "sources") {
+      writer.write({
+        type: "data-sources",
+        id: card.id,
+        data: card,
+      });
+      continue;
+    }
+
+    if (card.kind === "actions") {
+      writer.write({
+        type: "data-actions",
         id: card.id,
         data: card,
       });

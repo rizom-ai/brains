@@ -9,6 +9,7 @@ tags:
   - linkedin
   - agent
   - core
+  - preset-full
 
 turns:
   - userMessage: "Create a LinkedIn post about ecosystem architecture and how it differs from traditional organizational design"
