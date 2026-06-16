@@ -1206,7 +1206,25 @@ describe("PlaybooksPlugin", () => {
       "If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event",
     );
     expect(content).toContain(
-      "After a playbook event advances the run, answer from the new current state rather than repeating the previous state prompt",
+      "If the operator names or selects a valid event label or operator action",
+    );
+    expect(content).toContain(
+      "A playbook event does not replace ordinary domain tools requested in the same operator message",
+    );
+    expect(content).toContain(
+      "do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone",
+    );
+    expect(content).toContain(
+      "For find/show/retrieve requests, use system_get or system_search",
+    );
+    expect(content).toContain(
+      "After a playbook event advances the run, call playbook_status and answer from the refreshed current state",
+    );
+    expect(content).toContain(
+      "concrete request with the necessary content and target details",
+    );
+    expect(content).toContain(
+      "Do not infer missing setup details from memory or existing profile data",
     );
     expect(content).toContain(
       "Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat",

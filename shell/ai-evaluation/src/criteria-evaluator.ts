@@ -33,6 +33,7 @@ export function evaluateCriteria(
 ): CriteriaEvaluationResult[] {
   return [
     ...evaluateExpectedTools(criteria, toolCalls),
+    ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseNotContains(criteria, response.text),
@@ -182,6 +183,54 @@ function evaluateExpectedTools(
         ),
       );
     }
+  }
+
+  return results;
+}
+
+function evaluateExpectedAnyTool(
+  criteria: SuccessCriteria,
+  toolCalls: ToolCallRecord[],
+): CriteriaEvaluationResult[] {
+  const results: CriteriaEvaluationResult[] = [];
+
+  if (!criteria.expectedAnyTool) return results;
+
+  for (const expected of criteria.expectedAnyTool) {
+    const matchingNames = toolCalls
+      .map((toolCall) => toolCall.toolName)
+      .filter((toolName) => expected.toolNames.includes(toolName));
+    const wasCalled = matchingNames.length > 0;
+    const toolList = expected.toolNames.join(", ");
+
+    if (expected.shouldBeCalled && !wasCalled) {
+      results.push({
+        criterion: "expectedAnyTool",
+        expected: `One of [${toolList}] should be called`,
+        actual: `Called tools: ${toolCalls.map((toolCall) => toolCall.toolName).join(", ") || "none"}`,
+        message: `Expected one of [${toolList}] was not called`,
+        passed: false,
+      });
+      continue;
+    }
+
+    if (!expected.shouldBeCalled && wasCalled) {
+      results.push({
+        criterion: "expectedAnyTool",
+        expected: `None of [${toolList}] should be called`,
+        actual: `Called matching tools: ${matchingNames.join(", ")}`,
+        message: `One of [${toolList}] should not have been called`,
+        passed: false,
+      });
+      continue;
+    }
+
+    results.push({
+      criterion: "expectedAnyTool",
+      expected: expected.shouldBeCalled ? "one called" : "none called",
+      actual: wasCalled ? "one called" : "none called",
+      passed: true,
+    });
   }
 
   return results;

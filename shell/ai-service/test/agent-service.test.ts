@@ -2010,7 +2010,7 @@ describe("AgentService", () => {
           expect(params.messages.at(-1)).toEqual({
             role: "user",
             content:
-              "The operator approved the pending action. The system executed it successfully: Completed: Updated note. Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again.",
+              "The operator approved the pending action. The system executed it successfully: Completed: Updated note. Continue the conversation naturally. If an active playbook is underway, use the current playbook context as the source of truth, ask only for what is missing in the current playbook state, and give the next immediate action or question. Do not skip ahead or imply uncompleted playbook steps are done. Do not ask for the same confirmation again. Do not suggest repeating the same collection, save, or create task unless the current playbook context explicitly asks for another item. Do not offer a completed prior-state task as an alternative to the current playbook task. Do not say you found, retrieved, or showed an entity unless the approved action or latest tool result actually performed retrieval or display; after a save or update, say it was saved or updated.",
           });
           return {
             text: "Updated. Next, I can show you how I retrieve that note when you need it.",

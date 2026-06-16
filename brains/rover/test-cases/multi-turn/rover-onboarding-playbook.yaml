@@ -34,6 +34,7 @@ turns:
           argsContain:
             event: CHOICE_1
       responseNotContains:
+        - "Confirmation required"
         - "want to continue"
         - "continue onboarding"
         - "I cannot"
@@ -54,6 +55,8 @@ turns:
         - "Updated anchor profile"
       responseNotContains:
         - "Completed: Update \""
+        - "What should I call you"
+        - "what should I call you"
         - "I cannot"
         - "I don't have access"
 
@@ -63,6 +66,9 @@ turns:
         - "Confirmation required"
       responseNotContains:
         - "what is next"
+        - "What should I call you"
+        - "what should I call you"
+        - "role"
         - "I cannot"
         - "I don't have access"
 
@@ -74,6 +80,14 @@ turns:
           shouldBeCalled: true
       responseNotContains:
         - "what is next"
+        - "What should I call you"
+        - "what should I call you"
+        - "role"
+        - "I found it"
+        - "Found it"
+        - "another rough idea"
+        - "another rough"
+        - "another note"
         - "I cannot"
         - "I don't have access"
         - "playbook_status"
@@ -82,10 +96,18 @@ turns:
   - userMessage: "Use the Show me action and find that note now."
     successCriteria:
       expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
         - toolName: system_extract
           shouldBeCalled: false
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_search
+          shouldBeCalled: true
       responseContains:
-        - found
+        - post
+        - social
       responseNotContains:
         - "another first"
         - "share a first"
@@ -118,9 +140,11 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
       responseContains:
-        - ready
+        - Completed
       responseNotContains:
         - "transformation stage"
+        - "What should I call you"
+        - "what should I call you"
         - "I cannot"
         - "I don't have access"
 
@@ -149,4 +173,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 16
-  maxTokens: 160000
+  maxTokens: 220000

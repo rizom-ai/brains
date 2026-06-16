@@ -42,6 +42,13 @@ export const expectedToolCallSchema = z.object({
 
 export type ExpectedToolCall = z.infer<typeof expectedToolCallSchema>;
 
+export const expectedAnyToolCallSchema = z.object({
+  toolNames: z.array(z.string()).min(1),
+  shouldBeCalled: z.boolean().default(true),
+});
+
+export type ExpectedAnyToolCall = z.infer<typeof expectedAnyToolCallSchema>;
+
 /**
  * Tool count range for efficiency checks
  */
@@ -58,6 +65,7 @@ export type ToolCountRange = z.infer<typeof toolCountRangeSchema>;
 export const successCriteriaSchema = z.object({
   // Tool-based criteria
   expectedTools: z.array(expectedToolCallSchema).optional(),
+  expectedAnyTool: z.array(expectedAnyToolCallSchema).optional(),
   toolCountRange: toolCountRangeSchema.optional(),
 
   // Response-based criteria
