@@ -134,7 +134,7 @@ module.exports = {
     ],
     "@typescript-eslint/await-thenable": "error",
     "@typescript-eslint/consistent-type-imports": "error",
-    "@typescript-eslint/no-unnecessary-condition": "warn",
+    "@typescript-eslint/no-unnecessary-condition": "error",
     "no-return-await": "off",
     "@typescript-eslint/return-await": "error",
 

@@ -63,6 +63,8 @@ lint and typecheck pass. Another ESLint tightening slice promoted
 `@typescript-eslint/consistent-type-imports` to error; forced root lint and
 typecheck pass. Another ESLint tightening slice promoted
 `@typescript-eslint/prefer-nullish-coalescing` to error; forced root lint
+passes. Another ESLint tightening slice promoted
+`@typescript-eslint/no-unnecessary-condition` to error; forced root lint
 passes. Remaining outdated entries are deliberate holds/migrations from
 Phase 2b+.
 
@@ -308,6 +310,9 @@ Done in worktree:
   changes were needed after the previous zero-warning cleanup; forced full
   repo lint and root typecheck pass.
 - `@typescript-eslint/prefer-nullish-coalescing` is now an error. No code
+  changes were needed after the previous zero-warning cleanup; forced full
+  repo lint passes.
+- `@typescript-eslint/no-unnecessary-condition` is now an error. No code
   changes were needed after the previous zero-warning cleanup; forced full
   repo lint passes.
 
