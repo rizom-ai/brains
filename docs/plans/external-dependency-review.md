@@ -46,8 +46,10 @@ conversation, and job-queue services plus published optional dependency
 metadata; targeted DB/service checks pass. Another Phase 2b slice
 updated `drizzle-orm` 0.44 → 0.45 across the same DB services; targeted
 DB/service checks pass. Another Phase 2b slice updated `ink` 6 → 7 for
-`@brains/chat-repl`; package typecheck, lint, and tests pass. Remaining
-outdated entries are deliberate holds/migrations from Phase 2b+.
+`@brains/chat-repl`; package typecheck, lint, and tests pass. Another
+Phase 2b slice updated `varlock` 0.5 → 1.7 for `@brains/app`; package
+typecheck, lint, and tests pass. Remaining outdated entries are
+deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -234,6 +236,9 @@ Done in worktree:
   package typecheck, lint, and tests passing.
 - `ink` 6 → 7 for `@brains/chat-repl`; existing dynamic `render()` and
   component hook usage remains unchanged, with package typecheck, lint,
+  and tests passing.
+- `varlock` 0.5 → 1.7 for `@brains/app`; the internal graph-loader call
+  now uses v1's `entryFilePaths` option, with package typecheck, lint,
   and tests passing.
 
 ### Phase 3 — tooling majors, one slice each

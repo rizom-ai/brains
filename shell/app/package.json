@@ -28,7 +28,7 @@
     "@types/node": "^20.19.43",
     "eslint": "^8.57.1",
     "typescript": "^5.3.3",
-    "varlock": "^0.5.0"
+    "varlock": "^1.7.0"
   },
   "files": [
     "src",
