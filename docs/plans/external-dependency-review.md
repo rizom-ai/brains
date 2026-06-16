@@ -18,9 +18,11 @@ Progress as of 2026-06-15: Phases 1a, 1b, 1c, and 2 are implemented in
 the worktree and pass `deps:check`, `typecheck`, `lint`, and `test`.
 Rover evals were run with `bun run eval --skip-llm-judge --max-parallel
 1`; result was 157/161 passing, so the dependency work is not eval-green
-yet. Remaining outdated entries are deliberate holds/migrations from
-Phase 2b+ plus any newly surfaced patch drift after the sweep (for
-example `playwright-core` 1.60 → 1.61).
+yet. A 2026-06-16 follow-up safe-drift slice updated newly surfaced
+patch/minor drift for AI SDK React bindings, `ai`, TypeScript-ESLint,
+`radix-ui`, and `playwright-core`; targeted consumer checks and root
+lint pass. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 

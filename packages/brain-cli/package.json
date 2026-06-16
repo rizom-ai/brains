@@ -75,7 +75,7 @@
     "@tailwindcss/oxide": "^4.1.4",
     "better-sqlite3": "^11.8.1",
     "lightningcss": "^1.29.2",
-    "playwright-core": "^1.56.0",
+    "playwright-core": "^1.61.0",
     "react-devtools-core": "^6.1.1",
     "sharp": "^0.34.5"
   },

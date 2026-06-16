@@ -23,7 +23,7 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "ai": "^6.0.205",
+    "ai": "^6.0.206",
     "xstate": "^5.32.1"
   },
   "devDependencies": {

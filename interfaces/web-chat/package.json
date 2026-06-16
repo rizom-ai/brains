@@ -21,7 +21,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.207",
+    "@ai-sdk/react": "^3.0.208",
     "@brains/auth-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -29,12 +29,12 @@
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
-    "ai": "^6.0.205",
+    "ai": "^6.0.206",
     "class-variance-authority": "^0.7.0",
     "cmdk": "^1.1.1",
     "lucide-react": "^1.18.0",
     "nanoid": "^5.0.4",
-    "radix-ui": "^1.5.0",
+    "radix-ui": "^1.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "shiki": "^4.2.0",

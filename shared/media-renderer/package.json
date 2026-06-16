@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "playwright-core": "^1.56.0"
+    "playwright-core": "^1.61.0"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
