@@ -94,6 +94,100 @@ describe("TestRunner", () => {
       });
     });
 
+    it("should allow each turn to override chat context for multi-user conversations", async () => {
+      const testCase: TestCase = {
+        id: "test-multi-user-context",
+        name: "Multi-user Context Test",
+        type: "multi_turn",
+        setup: {
+          permissionLevel: "anchor",
+          interfaceType: "evaluation",
+          channelId: "shared-thread",
+        },
+        turns: [
+          {
+            userMessage: "Save this private note",
+            context: {
+              userPermissionLevel: "anchor",
+              actor: {
+                actorId: "alice-eval",
+                canonicalId: "alice",
+                interfaceType: "evaluation",
+                role: "user",
+                displayName: "Alice",
+              },
+              source: {
+                messageId: "msg-1",
+                channelId: "shared-thread",
+                threadId: "thread-1",
+              },
+            },
+          },
+          {
+            userMessage: "What private note did Alice save?",
+            context: {
+              userPermissionLevel: "public",
+              actor: {
+                actorId: "bob-eval",
+                canonicalId: "bob",
+                interfaceType: "evaluation",
+                role: "user",
+                displayName: "Bob",
+              },
+              source: {
+                messageId: "msg-2",
+                channelId: "shared-thread",
+                threadId: "thread-1",
+              },
+            },
+          },
+        ],
+        successCriteria: {},
+      };
+
+      await testRunner.runTest(testCase);
+
+      const calls = (
+        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
+      expect(calls[0]?.[2]).toEqual({
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        channelId: "shared-thread",
+        actor: {
+          actorId: "alice-eval",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+          displayName: "Alice",
+        },
+        source: {
+          messageId: "msg-1",
+          channelId: "shared-thread",
+          threadId: "thread-1",
+        },
+      });
+      expect(calls[1]?.[2]).toEqual({
+        userPermissionLevel: "public",
+        interfaceType: "evaluation",
+        channelId: "shared-thread",
+        actor: {
+          actorId: "bob-eval",
+          canonicalId: "bob",
+          interfaceType: "evaluation",
+          role: "user",
+          displayName: "Bob",
+        },
+        source: {
+          messageId: "msg-2",
+          channelId: "shared-thread",
+          threadId: "thread-1",
+        },
+      });
+    });
+
     it("should pass native turn attachments to chat", async () => {
       const testCase: TestCase = {
         id: "test-turn-attachments",

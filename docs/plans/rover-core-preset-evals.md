@@ -150,8 +150,13 @@ exact `system_get` restricted-content matrix. The restricted fixture was
 moved into the root eval-content set so core directory sync imports it
 as a `base` entity instead of leaving it under the legacy `note/` path.
 
-Remaining cases: per-turn permission matrices for multi-turn
-save/update/approve flows.
+Started next slice: turn-level chat context overrides let a single
+multi-turn eval model literal multi-user conversations in one shared
+conversation id. A turn can now override `userPermissionLevel`, actor,
+source, and channel metadata while inheriting case-level setup defaults.
+
+Remaining cases: multi-user save/read/update/approve flows that exercise
+shared-thread boundaries between anchor, trusted, and public callers.
 
 ### Phase 4 — fill the coverage
 
