@@ -176,13 +176,24 @@ interface MockSentMessage {
   edit: Mock<(newContent: string) => Promise<MockSentMessage>>;
 }
 
+type MockPostMessage =
+  | string
+  | {
+      markdown: string;
+      files?: Array<{
+        filename: string;
+        mimeType?: string;
+        data: ArrayBuffer | Buffer | Blob;
+      }>;
+    };
+
 interface MockThread {
   id: string;
   channelId: string;
   isDM: boolean;
   adapter: { name: string };
   subscribe: Mock<() => Promise<void>>;
-  post: Mock<(message: string) => Promise<MockSentMessage>>;
+  post: Mock<(message: MockPostMessage) => Promise<MockSentMessage>>;
   startTyping: Mock<() => Promise<void>>;
 }
 
@@ -245,7 +256,9 @@ function createThread(overrides: Partial<MockThread> = {}): MockThread {
     isDM: false,
     adapter: { name: "discord" },
     subscribe: mock(() => Promise.resolve()),
-    post: mock((_message: string) => Promise.resolve(createSentMessage())),
+    post: mock((_message: MockPostMessage) =>
+      Promise.resolve(createSentMessage()),
+    ),
     startTyping: mock(() => Promise.resolve()),
     ...overrides,
   };
@@ -1620,6 +1633,70 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenLastCalledWith("🚫 Declined");
   });
 
+  it("posts native Discord files for trusted artifacts returned by confirmations", async () => {
+    harness.addEntities([
+      {
+        id: "confirmed-deck",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF confirmed").toString("base64")}`,
+        metadata: { filename: "confirmed-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Approval required.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "generate_deck",
+          summary: "Generate deck",
+          args: {},
+        },
+      ],
+    });
+    agentService.confirmPendingAction.mockResolvedValueOnce({
+      text: "Deck generated.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Confirmed deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=confirmed-deck",
+            filename: "confirmed-deck.pdf",
+            source: { entityType: "document", entityId: "confirmed-deck" },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.mentions[0]?.(thread, createMessage({ text: "yes" }));
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            filename: "confirmed-deck.pdf",
+            mimeType: "application/pdf",
+          }),
+        ],
+      }),
+    );
+  });
+
   it("summarizes failed confirmed actions without raw JSON", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
@@ -2031,6 +2108,159 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("posts native Discord files for trusted generated document artifacts", async () => {
+    harness.addEntities([
+      {
+        id: "deck-native",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 test").toString("base64")}`,
+        metadata: { filename: "native-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Native deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-native",
+            filename: "native-deck.pdf",
+            source: { entityType: "document", entityId: "deck-native" },
+          },
+        },
+      ],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        markdown: [
+          "Generated the deck.",
+          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-native",
+        ].join("\n\n"),
+        files: [
+          expect.objectContaining({
+            filename: "native-deck.pdf",
+            mimeType: "application/pdf",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("posts native Discord image files resolved from artifact URLs", async () => {
+    harness.addEntities([
+      {
+        id: "image-native",
+        entityType: "image",
+        content: `data:image/png;base64,${Buffer.from("png-bytes").toString("base64")}`,
+        metadata: { filename: "native-image.png" },
+        visibility: "restricted",
+      },
+    ]);
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the image.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Native image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=image-native",
+            filename: "native-image.png",
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            filename: "native-image.png",
+            mimeType: "image/png",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("does not post native Discord artifact files for public users", async () => {
+    harness.addEntities([
+      {
+        id: "deck-public-denied",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 test").toString("base64")}`,
+        metadata: { filename: "denied-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Denied deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-public-denied",
+            filename: "denied-deck.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-public-denied",
+            },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the deck.",
+        "**Artifact:** Denied deck\nFile: denied-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-public-denied",
+      ].join("\n\n"),
+    );
+  });
+
   it("formats relative structured artifact links as absolute Discord-readable URLs", async () => {
     harness.reset();
     harness = createPluginHarness<ChatInterfaceInstance>({
@@ -2153,7 +2383,7 @@ describe("ChatInterface", () => {
   it("edits Discord tool activity status messages", async () => {
     const statusMessage = createSentMessage("status-1");
     const thread = createThread({
-      post: mock((_message: string) => Promise.resolve(statusMessage)),
+      post: mock((_message: MockPostMessage) => Promise.resolve(statusMessage)),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -2240,7 +2470,7 @@ describe("ChatInterface", () => {
     });
     const sentMessage = createSentMessage();
     const thread = createThread({
-      post: mock((_message: string) => Promise.resolve(sentMessage)),
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -2274,7 +2504,7 @@ describe("ChatInterface", () => {
     });
     const sentMessage = createSentMessage();
     const thread = createThread({
-      post: mock((_message: string) => Promise.resolve(sentMessage)),
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -2302,6 +2532,54 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("tracks Discord artifact card jobs for async progress", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Queued export.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          jobId: "artifact-job-123",
+          title: "Deck export",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-1",
+            filename: "deck.pdf",
+          },
+        },
+      ],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await new Promise((resolve) => setTimeout(resolve, 510));
+    await harness.sendMessage("job-progress", {
+      id: "artifact-job-123",
+      type: "job",
+      status: "processing",
+      message: "Rendering deck",
+      progress: { current: 1, total: 2, percentage: 50 },
+      metadata: {
+        rootJobId: "artifact-job-123",
+        operationType: "content_operations",
+        operationTarget: "Deck",
+        interfaceType: "discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledWith(
+      "🔄 **content operations: Deck** 1/2 (50%)\nRendering deck",
+    );
+  });
+
   it("edits tracked Discord agent responses when async jobs complete", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Queued build.",
@@ -2310,7 +2588,7 @@ describe("ChatInterface", () => {
     });
     const sentMessage = createSentMessage();
     const thread = createThread({
-      post: mock((_message: string) => Promise.resolve(sentMessage)),
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
@@ -2344,9 +2622,11 @@ describe("ChatInterface", () => {
     const agentSentMessage = createSentMessage("agent-sent-123");
     const progressSentMessage = createSentMessage("progress-sent-123");
     const thread = createThread({
-      post: mock((message: string) =>
+      post: mock((message: MockPostMessage) =>
         Promise.resolve(
-          message.startsWith("🔄") ? progressSentMessage : agentSentMessage,
+          typeof message === "string" && message.startsWith("🔄")
+            ? progressSentMessage
+            : agentSentMessage,
         ),
       ),
     });
@@ -2430,9 +2710,11 @@ describe("ChatInterface", () => {
     const agentSentMessage = createSentMessage("agent-sent-123");
     const progressSentMessage = createSentMessage("progress-sent-123");
     const thread = createThread({
-      post: mock((message: string) =>
+      post: mock((message: MockPostMessage) =>
         Promise.resolve(
-          message.startsWith("🔄") ? progressSentMessage : agentSentMessage,
+          typeof message === "string" && message.startsWith("🔄")
+            ? progressSentMessage
+            : agentSentMessage,
         ),
       ),
     });
@@ -2482,7 +2764,7 @@ describe("ChatInterface", () => {
     });
     const sentMessage = createSentMessage();
     const thread = createThread({
-      post: mock((_message: string) => Promise.resolve(sentMessage)),
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);

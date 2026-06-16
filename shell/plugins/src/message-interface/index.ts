@@ -45,6 +45,16 @@ export {
 } from "./artifact-display";
 
 export {
+  getArtifactEntityFilename,
+  parseArtifactDataUrl,
+  resolveArtifactEntityRefFromCard,
+  resolveArtifactEntityRefFromUrl,
+  type ArtifactEntityRef,
+  type ArtifactEntityType,
+  type ParsedArtifactDataUrl,
+} from "./artifact-entity";
+
+export {
   formatConfirmationResult,
   formatStructuredOutputSummary,
   type ConfirmationDecision,

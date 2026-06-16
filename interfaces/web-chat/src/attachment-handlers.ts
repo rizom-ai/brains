@@ -1,5 +1,7 @@
 import {
   formatContentDispositionHeader,
+  getArtifactEntityFilename,
+  parseArtifactDataUrl,
   type InterfacePluginContext,
 } from "@brains/plugins";
 
@@ -34,12 +36,17 @@ export async function handleDocumentAttachmentRequest(
     return new Response("Document not found", { status: 404 });
   }
 
-  const parsed = parsePdfDataUrl(document.content);
+  const parsed = parseArtifactDataUrl("document", document.content);
   if (!parsed) {
     return new Response("Document content is not a PDF", { status: 415 });
   }
 
-  const filename = getDocumentFilename(document.metadata, documentId);
+  const filename = getArtifactEntityFilename(
+    document.metadata,
+    documentId,
+    "document",
+    parsed.mimeType,
+  );
   return createBinaryAttachmentResponse({
     requestUrl: url,
     data: parsed.data,
@@ -70,12 +77,17 @@ export async function handleImageAttachmentRequest(
     return new Response("Image not found", { status: 404 });
   }
 
-  const parsed = parseImageDataUrl(image.content);
+  const parsed = parseArtifactDataUrl("image", image.content);
   if (!parsed) {
     return new Response("Image content is not an image", { status: 415 });
   }
 
-  const filename = getImageFilename(image.metadata, imageId, parsed.mimeType);
+  const filename = getArtifactEntityFilename(
+    image.metadata,
+    imageId,
+    "image",
+    parsed.mimeType,
+  );
   return createBinaryAttachmentResponse({
     requestUrl: url,
     data: parsed.data,
@@ -101,68 +113,4 @@ function createBinaryAttachmentResponse(input: {
     }),
   });
   return new Response(input.data, { headers });
-}
-
-function parseBase64DataUrl(
-  dataUrl: string,
-  mediaTypePattern: RegExp,
-): { mimeType: string; data: ArrayBuffer } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/i);
-  if (!match) return null;
-  const [, mimeType, encoded] = match;
-  if (!mimeType || !encoded || !mediaTypePattern.test(mimeType)) {
-    return null;
-  }
-  const buffer = Buffer.from(encoded, "base64");
-  const data = buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength,
-  );
-  return {
-    mimeType,
-    data,
-  };
-}
-
-function parsePdfDataUrl(
-  dataUrl: string,
-): { mimeType: "application/pdf"; data: ArrayBuffer } | null {
-  const parsed = parseBase64DataUrl(dataUrl, /^application\/pdf$/i);
-  if (parsed?.mimeType.toLowerCase() !== "application/pdf") {
-    return null;
-  }
-  return { mimeType: "application/pdf", data: parsed.data };
-}
-
-function parseImageDataUrl(
-  dataUrl: string,
-): { mimeType: string; data: ArrayBuffer } | null {
-  return parseBase64DataUrl(dataUrl, /^image\/[a-z0-9.+-]+$/i);
-}
-
-function getDocumentFilename(
-  metadata: Record<string, unknown> | null | undefined,
-  documentId: string,
-): string {
-  const filename = metadata?.["filename"];
-  return typeof filename === "string" && filename.length > 0
-    ? filename
-    : `${documentId}.pdf`;
-}
-
-function getImageFilename(
-  metadata: Record<string, unknown> | null | undefined,
-  imageId: string,
-  mimeType: string,
-): string {
-  const filename = metadata?.["filename"];
-  if (typeof filename === "string" && filename.length > 0) return filename;
-
-  const format = metadata?.["format"];
-  if (typeof format === "string" && format.length > 0) {
-    return `${imageId}.${format === "jpeg" ? "jpg" : format}`;
-  }
-
-  const subtype = mimeType.split("/")[1];
-  return `${imageId}.${subtype && subtype.length > 0 ? subtype : "png"}`;
 }

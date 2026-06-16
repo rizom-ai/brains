@@ -4,6 +4,9 @@ import {
   collectUploadIdsFromStoredMessages,
   formatArtifactDisplay,
   formatConfirmationResult,
+  getArtifactEntityFilename,
+  parseArtifactDataUrl,
+  resolveArtifactEntityRefFromCard,
   formatContentDispositionHeader,
   formatStructuredOutputSummary,
   getMessageUploadKind,
@@ -30,7 +33,13 @@ import type {
   JobProgressEvent,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { Chat, type Message, type SentMessage, type Thread } from "chat";
+import {
+  Chat,
+  type FileUpload,
+  type Message,
+  type SentMessage,
+  type Thread,
+} from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { chunkMessage } from "@brains/utils";
@@ -55,6 +64,7 @@ const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
+const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 interface AgentInput {
   message: string;
   attachments: ChatAttachment[];
@@ -497,6 +507,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           conversationId,
           thread,
           pendingApprovalIds,
+          userPermissionLevel,
         );
         return;
       }
@@ -532,24 +543,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         );
       }
 
-      const messageId = await this.sendMessageWithId({
+      const nativeArtifactFiles = await this.resolveNativeArtifactFiles(
+        response.cards,
+        userPermissionLevel,
+      );
+      const messageId = await this.sendAgentResponseWithFiles({
+        thread,
         channelId,
         message: this.formatAgentResponseText(
           response.text,
           response.cards,
           response.pendingConfirmations,
         ),
+        files: nativeArtifactFiles,
       });
 
-      if (messageId && response.toolResults) {
-        for (const toolResult of response.toolResults) {
-          if (toolResult.jobId) {
-            this.trackAgentResponseForJob(
-              toolResult.jobId,
-              messageId,
-              channelId,
-            );
-          }
+      if (messageId) {
+        for (const jobId of this.getResponseJobIds(response)) {
+          this.trackAgentResponseForJob(jobId, messageId, channelId);
         }
       }
     } catch (error: unknown) {
@@ -596,6 +607,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     conversationId: string,
     thread: Thread,
     approvalIds: Set<string>,
+    userPermissionLevel: string,
   ): Promise<void> {
     const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
@@ -642,13 +654,19 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         response,
         approvalId,
       );
-      await thread.post(
-        this.formatConfirmationResponseText(
+      await this.sendAgentResponseWithFiles({
+        thread,
+        channelId: thread.id,
+        message: this.formatConfirmationResponseText(
           response,
           parsed.confirmed,
           this.getRemainingApprovalHelp(conversationId, response),
         ),
-      );
+        files: await this.resolveNativeArtifactFiles(
+          response.cards,
+          userPermissionLevel,
+        ),
+      });
     }
   }
 
@@ -743,6 +761,108 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     ]
       .filter((part): part is string => Boolean(part?.trim()))
       .join("\n\n");
+  }
+
+  private async sendAgentResponseWithFiles(input: {
+    thread: Thread;
+    channelId: string;
+    message: string;
+    files: FileUpload[];
+  }): Promise<string | undefined> {
+    if (input.files.length === 0) {
+      return this.sendMessageWithId({
+        channelId: input.channelId,
+        message: input.message,
+      });
+    }
+
+    const chunks = this.chunkForChannel(input.channelId, input.message);
+    let lastSent: SentMessage | undefined;
+    for (const [index, chunk] of chunks.entries()) {
+      const isLastChunk = index === chunks.length - 1;
+      lastSent = await input.thread.post(
+        isLastChunk
+          ? {
+              markdown: chunk || "Generated artifacts attached.",
+              files: input.files,
+            }
+          : chunk,
+      );
+      this.threadRegistry.trackMessage(input.channelId, lastSent);
+    }
+    return lastSent?.id;
+  }
+
+  private async resolveNativeArtifactFiles(
+    cards: StructuredChatCard[] | undefined,
+    userLevel: string,
+  ): Promise<FileUpload[]> {
+    if (userLevel !== "anchor" && userLevel !== "trusted") return [];
+    if (!cards || !this.context) return [];
+
+    const files: FileUpload[] = [];
+    for (const card of cards) {
+      if (card.kind !== "attachment") continue;
+      const file = await this.resolveNativeArtifactFile(card).catch(
+        (error: unknown) => {
+          this.logger.debug("Failed to resolve Discord artifact file", {
+            error,
+            cardId: card.id,
+          });
+          return undefined;
+        },
+      );
+      if (file) files.push(file);
+    }
+    return files;
+  }
+
+  private async resolveNativeArtifactFile(
+    card: Extract<StructuredChatCard, { kind: "attachment" }>,
+  ): Promise<FileUpload | undefined> {
+    if (!this.context) return undefined;
+    const entityRef = resolveArtifactEntityRefFromCard(
+      card,
+      this.getPreferredDisplayBaseUrl(),
+    );
+    if (!entityRef) return undefined;
+
+    const entity = await this.context.entityService.getEntity(entityRef);
+    if (!entity || typeof entity.content !== "string") return undefined;
+
+    const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
+    if (!parsed) return undefined;
+    if (parsed.data.byteLength > DISCORD_NATIVE_ARTIFACT_MAX_BYTES) {
+      this.logger.debug("Skipping oversized Discord artifact upload", {
+        cardId: card.id,
+        sizeBytes: parsed.data.byteLength,
+      });
+      return undefined;
+    }
+
+    return {
+      data: parsed.data,
+      filename:
+        card.attachment.filename ??
+        getArtifactEntityFilename(
+          entity.metadata,
+          entityRef.id,
+          entityRef.entityType,
+          parsed.mimeType,
+        ),
+      mimeType: parsed.mimeType,
+    };
+  }
+
+  private getResponseJobIds(response: AgentResponse): string[] {
+    const jobIds = new Set<string>();
+    for (const toolResult of response.toolResults ?? []) {
+      if (toolResult.jobId) jobIds.add(toolResult.jobId);
+    }
+    for (const card of response.cards ?? []) {
+      if (card.kind === "attachment" && card.jobId) jobIds.add(card.jobId);
+    }
+    return [...jobIds];
   }
 
   private getRemainingApprovalHelp(
