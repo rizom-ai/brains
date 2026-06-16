@@ -4,7 +4,7 @@
   "devDependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
     "@ai-sdk/openai": "^3.0.71",
-    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
     "@manypkg/cli": "^0.25.1",
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -29,8 +29,9 @@ A third Phase 2b slice updated `tailwind-merge` 2 → 3 for UI packages
 and added the missing direct dependency declaration for `@brains/web-chat`;
 UI typecheck/lint/test/build checks pass. A fourth Phase 2b slice updated
 `lucide-preact` 0.x → 1.x for `@brains/product-site-content`; package
-checks pass. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+checks pass. A small tooling slice updated `@changesets/changelog-github`
+0.6 → 0.7 and verified Changesets status. Remaining outdated entries are
+deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -202,6 +203,11 @@ In rough order of value:
 3. `lint-staged` 15 → 17.
 4. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
    it can surface new diagnostics repo-wide.
+
+Done in worktree:
+
+- `@changesets/changelog-github` 0.6 → 0.7; config remains unchanged and
+  `changeset status --since=HEAD` passes.
 
 ### Phase 4 — zod 4 migration
 
