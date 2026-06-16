@@ -28,7 +28,7 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.44.4"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

@@ -24,7 +24,7 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.44.4"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
