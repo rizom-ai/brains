@@ -649,6 +649,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       conversationId,
       parsed.confirmed,
       approvalId,
+      {
+        userPermissionLevel,
+        interfaceType: "discord",
+        channelId: thread.id,
+        channelName: thread.isDM ? "DM" : thread.channelId,
+      },
     );
     this.removePendingApproval(conversationId, approvalId);
     if (response) {
@@ -963,12 +969,30 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return lines.join("\n");
     }
 
-    const lines = [`**Approval:** ${card.summary || card.toolName}`];
-    lines.push(`Status: ${card.state}`);
-    if (card.preview) lines.push(card.preview);
-    const output = this.formatCardOutput(card.output);
-    if (output) lines.push(`Result: ${output}`);
-    if (card.error) lines.push(`Error: ${card.error}`);
+    if (card.kind === "tool-approval") {
+      const lines = [`**Approval:** ${card.summary || card.toolName}`];
+      lines.push(`Status: ${card.state}`);
+      if (card.preview) lines.push(card.preview);
+      const output = this.formatCardOutput(card.output);
+      if (output) lines.push(`Result: ${output}`);
+      if (card.error) lines.push(`Error: ${card.error}`);
+      return lines.join("\n");
+    }
+
+    if (card.kind === "sources") {
+      const lines = [`**Sources:** ${card.title ?? "Retrieved context"}`];
+      for (const source of card.sources) {
+        lines.push(
+          `- ${source.title ?? source.source}${source.url ? ` — ${source.url}` : ""}`,
+        );
+      }
+      return lines.join("\n");
+    }
+
+    const lines = [`**Actions:** ${card.title ?? "Suggested actions"}`];
+    for (const action of card.actions) {
+      lines.push(`- ${action.label}`);
+    }
     return lines.join("\n");
   }
 

@@ -301,6 +301,17 @@ const baseDiscordConfig: DiscordChatAdapterConfig = {
   captureUrlEmoji: "🔖",
 };
 
+function expectDiscordConfirmationContext(
+  userPermissionLevel: "anchor" | "trusted" | "public" = "public",
+): unknown {
+  return expect.objectContaining({
+    channelId: "discord:guild-123:channel-123:thread-456",
+    channelName: "discord:guild-123:channel-123",
+    interfaceType: "discord",
+    userPermissionLevel,
+  });
+}
+
 function createPlugin(
   discordConfig: Partial<DiscordChatAdapterConfig> = {},
 ): ChatInterfaceInstance {
@@ -1354,6 +1365,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       "✅ Approved · Action confirmed.",
@@ -1405,12 +1417,14 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
     expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+      expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenCalledWith(
       [
@@ -1629,6 +1643,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       false,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenLastCalledWith("🚫 Declined");
   });
@@ -1776,6 +1791,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
   });
 
@@ -1826,6 +1842,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+      expectDiscordConfirmationContext(),
     );
   });
 
@@ -1868,12 +1885,14 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
     expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+      expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenCalledWith(
       "✅ Approved · Action confirmed.\n\nRemaining pending approval ids: `approval-2`.",
@@ -1919,12 +1938,14 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       false,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
     expect(agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
+      expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenCalledWith(
       "🚫 Declined\n\nRemaining pending approval ids: `approval-2`.",
@@ -1965,6 +1986,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval:call-10",
+      expectDiscordConfirmationContext(),
     );
   });
 
@@ -2002,6 +2024,7 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-10",
+      expectDiscordConfirmationContext(),
     );
   });
 
@@ -2055,6 +2078,7 @@ describe("ChatInterface", () => {
       conversationId,
       true,
       "approval-1",
+      expectDiscordConfirmationContext(),
     );
   });
 
