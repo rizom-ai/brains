@@ -194,7 +194,7 @@ Syncpack keeps the version aligned across workspaces.
 
 From the workspace-majors table: chokidar 5, marked 18, pdfjs-dist 6,
 @libsql/client 0.17, drizzle-orm 0.45, ink 7, @clack/prompts 1.x,
-tailwind-merge 3, lucide 1.x, vite 8, and optional/runtime majors such
+tailwind-merge 3, lucide 1.x, and optional/runtime majors such
 as sharp 0.35. None is urgent; take each only when touching its consumer
 package. Decide the Node runtime baseline before
 touching `@types/node` 25 (the type package should track the deploy
@@ -254,6 +254,9 @@ Done in worktree:
 - `react-devtools-core` 6 → 7 for `@rizom/brain`, generated model
   package optional deps, and Docker runtime metadata; it remains
   externalized for Ink, with app/CLI checks passing.
+- `vite` 7 → 8 for `@brains/web-chat`; the minimal alias-only config
+  remains unchanged, with package typecheck, lint, tests, and UI build
+  passing.
 
 ### Phase 3 — tooling majors, one slice each
 
