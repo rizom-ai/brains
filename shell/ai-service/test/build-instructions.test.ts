@@ -70,6 +70,19 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("generally cannot create, update, delete");
   });
 
+  it("should not disclose profile identity when answering whether caller is anchor", () => {
+    const instructions = buildInstructions(identity, "public", undefined, {
+      name: "Jan Hein",
+      kind: "professional" as const,
+    });
+    expect(instructions).toContain(
+      "Do not name or disclose the anchor/profile identity in that answer",
+    );
+    expect(instructions).toContain(
+      "Do not confirm or deny by revealing the configured profile details",
+    );
+  });
+
   it("should show trusted user context for trusted users", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("trusted user");
@@ -150,10 +163,10 @@ describe("buildInstructions", () => {
   it("should protect identity/profile singletons from vague delete requests", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "`brain-character` and `anchor-profile` are protected singleton identity/profile records",
+      "`brain-character` and `anchor-profile` are protected singletons",
     );
     expect(instructions).toContain(
-      'Do not interpret vague phrases like "old brain" as `brain-character`',
+      'For vague phrases like "old brain", ask which saved agent/brain contact the user means or resolve `agent`',
     );
   });
 
@@ -230,6 +243,9 @@ describe("buildInstructions", () => {
     expect(instructions).toContain(
       "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
     );
+    expect(instructions).toContain(
+      "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+    );
   });
 
   it("should prevent draft blog post checks from fanning out across draft entity types", () => {
@@ -239,6 +255,25 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+    expect(instructions).toContain(
+      "if the prior draft list was empty, list published posts and ask which one to convert",
+    );
+    expect(instructions).toContain(
+      'Never choose a published item yourself, never call `system_update` for an ambiguous "make one draft" follow-up, never offer to create a draft instead',
+    );
+  });
+
+  it("should allow anchors to read restricted tool results", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "reading restricted/private content returned by tools",
+    );
+    expect(instructions).toContain(
+      "when an anchor asks to show/read a record, include the requested content exactly as you would for public content",
+    );
+    expect(instructions).toContain(
+      "Public/trusted callers must not receive restricted content from denied tools or higher-permission conversation turns",
     );
   });
 
@@ -283,6 +318,16 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "call `system_update` with `fields.title` immediately",
+    );
+  });
+
+  it("should not substitute search for unavailable extract actions", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain(
+      "If `system_extract` is not available to the current caller, do not substitute `system_search`",
+    );
+    expect(instructions).toContain(
+      "say the caller cannot generate/extract topics with their current permissions",
     );
   });
 
