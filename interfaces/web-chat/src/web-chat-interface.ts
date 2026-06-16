@@ -299,6 +299,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
               writer,
               conversationId,
               approvalResponses,
+              permissionLevel,
+              interfaceType: webChatInterfaceType,
             },
             streamDeps,
           );

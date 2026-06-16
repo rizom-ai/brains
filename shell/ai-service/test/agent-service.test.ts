@@ -1358,6 +1358,10 @@ describe("AgentService", () => {
 
   describe("confirmation flow", () => {
     // Helper: make the agent return a tool result with needsConfirmation
+    const anchorConfirmationContext = {
+      userPermissionLevel: "anchor" as const,
+      interfaceType: "evaluation",
+    };
     const setupConfirmationResponse = (
       text = "Are you sure you want to delete this note?",
       summary = "Delete note 'Meeting Notes'?",
@@ -1451,12 +1455,137 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:wrong-call",
+        { userPermissionLevel: "anchor", interfaceType: "evaluation" },
       );
 
       expect(response.text).toBe(
         "No pending action matches approval id 'approval:wrong-call'.",
       );
       expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
+    it("fails closed when confirmation caller context is missing", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "anchor",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+      const response = (await Reflect.apply(
+        service.confirmPendingAction,
+        service,
+        ["test-conversation", true, "approval:call-1"],
+      )) as Awaited<ReturnType<typeof service.confirmPendingAction>>;
+
+      expect(response.text).toBe("Confirmation requires caller context.");
+      expect(deleteHandler).not.toHaveBeenCalled();
+    });
+
+    it("rejects confirmation from a different non-anchor actor in a shared conversation", async () => {
+      setupConfirmationResponse("Deleted.");
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "anchor",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock((level) =>
+        level === "anchor" ? [{ pluginId: "test", tool: deleteTool }] : [],
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "anchor",
+        interfaceType: "evaluation",
+        actor: {
+          actorId: "eval-anchor-alice",
+          canonicalId: "alice",
+          interfaceType: "evaluation",
+          role: "user",
+        },
+      });
+
+      const publicResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-public-bob",
+            canonicalId: "bob",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      expect(publicResponse.text).toBe(
+        "You are not authorized to confirm this pending action.",
+      );
+      expect(publicResponse.pendingConfirmations?.map(({ id }) => id)).toEqual([
+        "approval:call-1",
+      ]);
+      expect(deleteHandler).not.toHaveBeenCalled();
+
+      const anchorResponse = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+          actor: {
+            actorId: "eval-anchor-alice",
+            canonicalId: "alice",
+            interfaceType: "evaluation",
+            role: "user",
+          },
+        },
+      );
+
+      expect(anchorResponse.text).toBe(
+        "Completed: Delete note 'Meeting Notes'",
+      );
+      expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
     it("does not return or persist misleading model completion text before confirmation", async () => {
@@ -1542,6 +1671,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBe("Completed: Delete note 'Meeting Notes'");
@@ -1642,6 +1772,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBe('Completed: Update "Untitled"');
@@ -1740,6 +1871,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.cards).toEqual([
@@ -1809,6 +1941,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBe('Completed: Create "download"');
@@ -1854,6 +1987,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toContain("Completed: Delete note 'Meeting Notes'");
@@ -1899,6 +2033,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBe(
@@ -1977,6 +2112,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).not.toContain('"success": false');
@@ -2018,6 +2154,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toBeDefined();
@@ -2111,6 +2248,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-update",
+        anchorConfirmationContext,
       );
       expect(updateResponse.text).toBe("Completed: Update note 'Roadmap'");
       expect(updateHandler).toHaveBeenCalledWith(
@@ -2123,6 +2261,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-delete",
+        anchorConfirmationContext,
       );
       expect(deleteResponse.text).toBe(
         "Completed: Delete note 'Meeting Notes'",
@@ -2153,6 +2292,7 @@ describe("AgentService", () => {
         "test-conversation",
         false,
         "approval:call-1",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toContain("cancelled");
@@ -2192,6 +2332,12 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:call-1",
+        {
+          userPermissionLevel: "trusted",
+          interfaceType: "matrix",
+          channelId: "!room:example.org",
+          channelName: "Ops",
+        },
       );
 
       expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
@@ -2222,6 +2368,7 @@ describe("AgentService", () => {
         "test-conversation",
         true,
         "approval:noop",
+        anchorConfirmationContext,
       );
 
       expect(response.text).toContain("No pending");

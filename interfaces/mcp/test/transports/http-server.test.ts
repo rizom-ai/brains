@@ -448,6 +448,7 @@ describe("StreamableHTTPServer", () => {
           _conversationId: string,
           _confirmed: boolean,
           _approvalId?: string,
+          _context?: unknown,
         ) => ({
           text: "Action confirmed.",
           usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
@@ -474,6 +475,10 @@ describe("StreamableHTTPServer", () => {
             conversationId: "conversation-1",
             confirmed: false,
             approvalId: "approval:delete",
+            context: {
+              userPermissionLevel: "anchor",
+              interfaceType: "evaluation",
+            },
           }),
         }),
       );
@@ -487,6 +492,10 @@ describe("StreamableHTTPServer", () => {
         "conversation-1",
         false,
         "approval:delete",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
       );
     });
   });

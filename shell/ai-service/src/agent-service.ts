@@ -1,6 +1,7 @@
 import type { AgentContextItem } from "@brains/contracts";
 import { type Logger, getErrorMessage } from "@brains/utils";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
+import { PermissionService } from "@brains/templates";
 import type {
   ConversationMessageActor,
   ConversationMessageSource,
@@ -24,6 +25,8 @@ import {
   emptyUsage,
   type ProcessMessageInput,
   type ExecuteActionInput,
+  type RuntimePendingConfirmation,
+  type AgentMachineContext,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
 import {
@@ -398,6 +401,7 @@ export class AgentService implements IAgentService {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse> {
     const actor = this.conversationActors.get(conversationId);
     if (!actor) {
@@ -416,13 +420,35 @@ export class AgentService implements IAgentService {
       };
     }
 
-    const matchesApproval =
-      snapshotBeforeConfirm.context.pendingConfirmations.some(
+    const pendingConfirmation =
+      snapshotBeforeConfirm.context.pendingConfirmations.find(
         (confirmation) => confirmation.id === approvalId,
-      );
-    if (!matchesApproval) {
+      ) ?? null;
+    if (!pendingConfirmation) {
       return {
         text: `No pending action matches approval id '${approvalId}'.`,
+        usage: emptyUsage,
+      };
+    }
+
+    const confirmationContext = this.resolveConfirmationContext(
+      context,
+      snapshotBeforeConfirm.context,
+    );
+    if (!confirmationContext) {
+      return {
+        text: "Confirmation requires caller context.",
+        usage: emptyUsage,
+      };
+    }
+
+    if (
+      !this.canConfirmPendingAction(pendingConfirmation, confirmationContext)
+    ) {
+      return {
+        text: "You are not authorized to confirm this pending action.",
+        pendingConfirmations:
+          snapshotBeforeConfirm.context.pendingConfirmations,
         usage: emptyUsage,
       };
     }
@@ -430,6 +456,12 @@ export class AgentService implements IAgentService {
     actor.send({
       type: confirmed ? "CONFIRM" : "CANCEL",
       approvalId,
+      interfaceType: confirmationContext.interfaceType,
+      channelId: confirmationContext.channelId,
+      channelName: confirmationContext.channelName,
+      userPermissionLevel: confirmationContext.userPermissionLevel,
+      actor: confirmationContext.actor,
+      source: confirmationContext.source,
     });
 
     const snapshot = await waitFor(
@@ -447,6 +479,56 @@ export class AgentService implements IAgentService {
         usage: emptyUsage,
       }
     );
+  }
+
+  private resolveConfirmationContext(
+    context: ChatContext | undefined,
+    previousContext: AgentMachineContext,
+  ): {
+    interfaceType: string;
+    channelId: string;
+    channelName: string;
+    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+    actor: ConversationMessageActor | null;
+    source: ConversationMessageSource | null;
+  } | null {
+    if (!context?.userPermissionLevel) return null;
+
+    return {
+      interfaceType: context.interfaceType ?? previousContext.interfaceType,
+      channelId: context.channelId ?? previousContext.channelId,
+      channelName: context.channelName ?? previousContext.channelName,
+      userPermissionLevel: context.userPermissionLevel,
+      actor: context.actor ?? null,
+      source: context.source ?? null,
+    };
+  }
+
+  private canConfirmPendingAction(
+    pendingConfirmation: RuntimePendingConfirmation,
+    context: {
+      userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+      actor: ConversationMessageActor | null;
+    },
+  ): boolean {
+    if (context.userPermissionLevel === "anchor") return true;
+
+    const requesterActorKey = pendingConfirmation.requester.actorKey;
+    if (requesterActorKey) {
+      const callerActorKey = this.actorKey(context.actor);
+      if (callerActorKey !== requesterActorKey) return false;
+    }
+
+    return PermissionService.hasPermission(
+      context.userPermissionLevel,
+      pendingConfirmation.requester.userPermissionLevel,
+    );
+  }
+
+  private actorKey(
+    actor: ConversationMessageActor | null | undefined,
+  ): string | undefined {
+    return actor?.canonicalId ?? actor?.actorId;
   }
 
   private async processMessage(
