@@ -154,9 +154,15 @@ Started next slice: turn-level chat context overrides let a single
 multi-turn eval model literal multi-user conversations in one shared
 conversation id. A turn can now override `userPermissionLevel`, actor,
 source, and channel metadata while inheriting case-level setup defaults.
+Added initial multi-user cases covering anchor-to-public restricted read
+replay, anchor confirmed restricted update followed by public read, trusted
+update denial in a shared anchor thread, and public create denial in a shared
+anchor thread.
 
-Remaining cases: multi-user save/read/update/approve flows that exercise
-shared-thread boundaries between anchor, trusted, and public callers.
+Remaining case: approval hijack boundaries in literal multi-user threads
+(public/trusted cannot confirm or consume anchor-only pending approvals). The
+current `confirmPendingAction` API does not yet accept chat context, so this
+needs a small runtime/harness contract change before it can be evaled.
 
 ### Phase 4 — fill the coverage
 
