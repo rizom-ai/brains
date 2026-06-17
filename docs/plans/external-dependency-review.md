@@ -71,8 +71,10 @@ passes. The TypeScript tooling-major slice updated `typescript` 5.9 →
 explicit; root typecheck passes. A TypeScript strictness slice enabled
 `noUncheckedSideEffectImports`; root typecheck passes without code changes.
 Another TypeScript strictness slice enabled `moduleDetection: "force"`;
-root typecheck passes without code changes. Remaining outdated entries are
-deliberate holds/migrations from Phase 2b+.
+root typecheck passes without code changes. Another TypeScript strictness
+slice enabled `verbatimModuleSyntax`; root typecheck passes without code
+changes. Remaining outdated entries are deliberate holds/migrations from
+Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -323,6 +325,8 @@ Done in worktree:
 - `noUncheckedSideEffectImports` is now enabled. No code changes were
   needed; root typecheck passes.
 - `moduleDetection: "force"` is now enabled. No code changes were needed;
+  root typecheck passes.
+- `verbatimModuleSyntax` is now enabled. No code changes were needed;
   root typecheck passes.
 
 ### Phase 4 — zod 4 migration

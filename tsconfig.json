@@ -30,6 +30,7 @@
     "types": ["bun-types"],
     "module": "ESNext",
     "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
     "lib": ["ES2022"]
   },
   "exclude": ["node_modules"]
