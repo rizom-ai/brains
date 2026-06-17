@@ -29,6 +29,7 @@
     "target": "ES2022",
     "types": ["bun-types"],
     "module": "ESNext",
+    "moduleDetection": "force",
     "lib": ["ES2022"]
   },
   "exclude": ["node_modules"]

@@ -70,7 +70,9 @@ passes. The TypeScript tooling-major slice updated `typescript` 5.9 →
 `baseUrl` deprecation window, and made the shared Bun ambient types
 explicit; root typecheck passes. A TypeScript strictness slice enabled
 `noUncheckedSideEffectImports`; root typecheck passes without code changes.
-Remaining outdated entries are deliberate holds/migrations from Phase 2b+.
+Another TypeScript strictness slice enabled `moduleDetection: "force"`;
+root typecheck passes without code changes. Remaining outdated entries are
+deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -320,6 +322,8 @@ Done in worktree:
   migrated before TypeScript 7. Root typecheck passes.
 - `noUncheckedSideEffectImports` is now enabled. No code changes were
   needed; root typecheck passes.
+- `moduleDetection: "force"` is now enabled. No code changes were needed;
+  root typecheck passes.
 
 ### Phase 4 — zod 4 migration
 
