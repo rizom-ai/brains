@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Rover core-preset evals](./rover-core-preset-evals.md) — proposed; exhaustive, hermetic eval suite for the core preset (preset-aware runner, permission matrix, coverage ledger); runs in its own worktree
+- [Rover core-preset evals](./rover-core-preset-evals.md) — landing; the preset-aware harness (inheritable suites, coverage ledger, permission matrix, multi-user context) is merged. Remaining work is the behavioral coverage fill (status/insights/check-job-status, conversation tools, core multi-turn recall)
 
 ### Public surface and framework cleanup
 
@@ -28,7 +28,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Pending entity ingestion](./pending-entity-ingestion.md) — proposed/partial; shared pending→draft/failed lifecycle for async entity ingestion across links, images, uploads, PDFs, audio, and video
+- [Pending entity ingestion](./pending-entity-ingestion.md) — partial; shared `shell/plugins` pending→draft/failed ingestion helper and the `entities/link` adopter (plus evals) are shipped. Extending the same lifecycle to images, uploads, PDFs, audio, and video is the remaining work
 - [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
 - [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
 

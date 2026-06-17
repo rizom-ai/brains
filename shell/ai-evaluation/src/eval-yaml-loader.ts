@@ -136,6 +136,7 @@ export async function loadPluginEvalConfig(
       database: { url: `file:${evalDbBase}.db` },
       jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
       conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
+      runtimeStateDatabase: { url: `file:${evalDbBase}-runtime-state.db` },
       dataDir: `${evalDbBase}-data`,
     },
   });

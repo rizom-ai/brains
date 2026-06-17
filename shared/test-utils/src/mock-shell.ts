@@ -50,6 +50,12 @@ import {
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
 import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
@@ -108,6 +114,73 @@ function createDefaultMockAgentService(): IAgentService {
   };
 }
 
+function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
+  const namespaces = new Map<
+    string,
+    Map<string, { value: unknown; createdAt: Date; updatedAt: Date }>
+  >();
+
+  return {
+    scoped: <T>(
+      options: RuntimeStateScopeOptions<T>,
+    ): IRuntimeStateStore<T> => {
+      if (!namespaces.has(options.namespace)) {
+        namespaces.set(options.namespace, new Map());
+      }
+      const records = namespaces.get(options.namespace);
+      if (!records) throw new Error("Runtime state namespace missing");
+
+      return {
+        get: async (key): Promise<T | null> => {
+          const record = records.get(key);
+          return record ? options.schema.parse(record.value) : null;
+        },
+        has: async (key): Promise<boolean> => records.has(key),
+        set: async (key, value): Promise<void> => {
+          const parsed = options.schema.parse(value);
+          const existing = records.get(key);
+          const now = new Date();
+          records.set(key, {
+            value: parsed,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now,
+          });
+        },
+        setIfNotExists: async (key, value): Promise<boolean> => {
+          if (records.has(key)) return false;
+          const parsed = options.schema.parse(value);
+          const now = new Date();
+          records.set(key, { value: parsed, createdAt: now, updatedAt: now });
+          return true;
+        },
+        delete: async (key): Promise<boolean> => records.delete(key),
+        list: async ({ keyPrefix } = {}): Promise<
+          RuntimeStateRecordValue<T>[]
+        > =>
+          Array.from(records.entries())
+            .filter(
+              ([key]) => keyPrefix === undefined || key.startsWith(keyPrefix),
+            )
+            .map(
+              ([key, record]): RuntimeStateRecordValue<T> => ({
+                key,
+                value: options.schema.parse(record.value),
+                createdAt: record.createdAt,
+                updatedAt: record.updatedAt,
+              }),
+            ),
+        clear: async ({ keyPrefix } = {}): Promise<number> => {
+          const keys = Array.from(records.keys()).filter(
+            (key) => keyPrefix === undefined || key.startsWith(keyPrefix),
+          );
+          for (const key of keys) records.delete(key);
+          return keys.length;
+        },
+      };
+    },
+  };
+}
+
 function createDefaultMockConversationService(): IConversationService {
   return {
     startConversation: async () => `conv-${Date.now()}`,
@@ -139,6 +212,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const runtimeUploadRegistry = RuntimeUploadRegistry.createFresh({
     dataDir: options.dataDir ?? "/tmp/mock-shell-test-data",
   });
+  const runtimeState = createMemoryRuntimeStateNamespace();
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -596,6 +670,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
+    getRuntimeState: () => runtimeState,
     getConversationService: () => conversationService,
     getMCPService: () =>
       ({

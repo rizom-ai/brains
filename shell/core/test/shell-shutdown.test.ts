@@ -8,6 +8,8 @@ import { createTestDirectory } from "./helpers/test-db";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
+import { z } from "@brains/utils";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
@@ -15,6 +17,7 @@ function createTestConfig(dir: string): ShellConfigInput {
     database: { url: `file:${dir}/test.db` },
     jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
     conversationDatabase: { url: `file:${dir}/test-conv.db` },
+    runtimeStateDatabase: { url: `file:${dir}/test-runtime-state.db` },
     embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
     ai: {
       model: "claude-haiku-4-5",
@@ -31,6 +34,7 @@ async function runMigrations(dir: string): Promise<void> {
   await migrateEntities({ url: `file:${dir}/test.db` });
   await migrateJobQueue({ url: `file:${dir}/test-jobs.db` });
   await migrateConversations({ url: `file:${dir}/test-conv.db` });
+  await migrateRuntimeState({ url: `file:${dir}/test-runtime-state.db` });
 }
 
 const mockEmbeddingService = {
@@ -120,6 +124,34 @@ describe("Shell shutdown", () => {
     let threw = false;
     try {
       await jobQueueService.getStats();
+    } catch (e: unknown) {
+      threw = true;
+      const fullError =
+        String(e) + (e instanceof Error && e.cause ? String(e.cause) : "");
+      expect(fullError).toContain("CLIENT_CLOSED");
+    }
+    expect(threw).toBe(true);
+  });
+
+  it("should close runtime state database connection on shutdown", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestConfig(testDir.dir);
+    const shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    const runtimeState = shell.getRuntimeState().scoped({
+      namespace: "shutdown.test",
+      schema: z.string(),
+    });
+
+    await runtimeState.set("key", "value");
+    expect(await runtimeState.get("key")).toBe("value");
+
+    await shell.shutdown();
+
+    let threw = false;
+    try {
+      await runtimeState.get("key");
     } catch (e: unknown) {
       threw = true;
       const fullError =

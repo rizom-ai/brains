@@ -1,5 +1,18 @@
 # @brains/blog
 
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.123
+  - @brains/atproto-contracts@0.2.0-alpha.123
+  - @brains/contracts@0.2.0-alpha.123
+  - @brains/media-page-composer@0.2.0-alpha.123
+  - @brains/media-renderer@0.2.0-alpha.123
+  - @brains/ui-library@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes

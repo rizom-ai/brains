@@ -57,6 +57,7 @@ export class App {
       database: this.config.shellConfig?.database?.url ?? this.config.database,
       jobQueueDatabase: this.config.shellConfig?.jobQueueDatabase?.url,
       conversationDatabase: this.config.shellConfig?.conversationDatabase?.url,
+      runtimeStateDatabase: this.config.shellConfig?.runtimeStateDatabase?.url,
     });
   }
 

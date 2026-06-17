@@ -1,5 +1,25 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- [`ce28ba0`](https://github.com/rizom-ai/brains/commit/ce28ba0e9b36119ff4c5e8dcad3b1d8a02391461) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden the assistant instructions on identity disclosure and tool routing:
+  - never reveal the configured anchor/profile identity when answering "am I your anchor?" or "am I {name}?" — answer from the current permission level only, without confirming or denying via the configured profile details
+  - treat an ambiguous "make one draft" follow-up as a clarification, never self-selecting a published item and never firing `system_update` to resolve it
+  - for source-derived artifact saves, resolve a source named by title or slug through `system_get` first, then continue to `system_create` with the returned canonical id in the same turn instead of retrying guessed slugs or stopping after the lookup
+  - when `system_extract` is unavailable to the caller, say the caller cannot generate/extract topics with their current permissions instead of substituting `system_search` and presenting existing topics as newly generated
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+  - @brains/conversation-service@0.2.0-alpha.123
+  - @brains/entity-service@0.2.0-alpha.123
+  - @brains/identity-service@0.2.0-alpha.123
+  - @brains/mcp-service@0.2.0-alpha.123
+  - @brains/messaging-service@0.2.0-alpha.123
+  - @brains/templates@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes

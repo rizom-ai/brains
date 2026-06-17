@@ -24,4 +24,5 @@ export async function shutdownShellServices(
   services.entityService.close();
   services.jobQueueService.close();
   services.conversationService.close();
+  services.runtimeStateService.close();
 }

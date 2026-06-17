@@ -1,6 +1,6 @@
 {
   "name": "@brains/plugins",
-  "version": "0.2.0-alpha.122",
+  "version": "0.2.0-alpha.123",
   "private": true,
   "description": "Core plugin system implementation for Brains",
   "main": "./src/index.ts",
@@ -40,6 +40,7 @@
     "@brains/identity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/messaging-service": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
