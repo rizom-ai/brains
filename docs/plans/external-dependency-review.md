@@ -358,6 +358,13 @@ customization, record/enum typing — `conversation-service` and the
 entity schemas use passthrough deliberately). Use the `zod/v4` subpath
 for incremental, package-by-package migration behind the
 `@brains/utils` re-export; migrate leaf packages first, contracts last.
+Before changing the repo default, keep the import boundary clean: internal
+implementation packages should import `z` through `@brains/utils`; public
+SDK/contract surfaces that feed generated `@rizom/brain` declarations may
+import `zod` directly to avoid leaking private `@brains/*` packages into
+published declarations. The public `@rizom/brain` root export owns the
+external authoring boundary by re-exporting blessed `z`, so external plugins
+should not declare their own `zod` dependency.
 
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 

@@ -1,5 +1,5 @@
 import * as yaml from "js-yaml";
-import type { z } from "zod";
+import type { z } from "./zod";
 
 /**
  * Convert an object to YAML string

@@ -1,4 +1,4 @@
-import { PLUGIN_API_VERSION } from "@rizom/brain";
+import { PLUGIN_API_VERSION, z } from "@rizom/brain";
 import {
   EntityPlugin,
   InterfacePlugin,
@@ -31,7 +31,6 @@ import type {
   EntityTypeConfig,
 } from "@rizom/brain/entities";
 import type { WebRouteDefinition } from "@rizom/brain/interfaces";
-import { z } from "zod";
 
 interface ExamplePluginConfig {
   greeting?: string;

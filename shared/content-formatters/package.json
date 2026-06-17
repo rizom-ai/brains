@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/utils": "workspace:*",
     "js-yaml": "^4.2.0",
-    "remark": "^15.0.1",
-    "zod": "^3.25.76"
+    "remark": "^15.0.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
