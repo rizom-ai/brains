@@ -1125,11 +1125,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       }
 
       try {
-        const contentBuffer = attachment.fetchData
-          ? await attachment.fetchData()
-          : undefined;
-        if (!contentBuffer) continue;
-        const content = Buffer.from(contentBuffer);
+        const content = await this.readMessageAttachmentData(attachment);
+        if (!content) continue;
         const validation = validateMessageUpload({
           filename,
           mediaType,
@@ -1159,6 +1156,22 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
 
     return agentInput;
+  }
+
+  private async readMessageAttachmentData(
+    attachment: Message["attachments"][number],
+  ): Promise<Buffer | undefined> {
+    if (attachment.fetchData) return attachment.fetchData();
+    if (!attachment.url) return undefined;
+
+    const response = await fetch(attachment.url);
+    if (!response.ok) {
+      throw new Error(
+        `Attachment download failed with status ${response.status}`,
+      );
+    }
+    const data = await response.arrayBuffer();
+    return Buffer.from(new Uint8Array(data));
   }
 
   private async createChatAttachmentFromUpload(input: {

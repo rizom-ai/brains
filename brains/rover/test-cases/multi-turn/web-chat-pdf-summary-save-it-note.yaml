@@ -1,0 +1,107 @@
+id: multi-turn-web-chat-pdf-summary-save-it-note
+name: Web chat PDF summary save-it creates note content
+description: Verifies that after summarizing an uploaded PDF, a bare "save it" follow-up saves the visible summary as a base note instead of trying to promote/import the stale PDF upload ref.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: eval-web-chat-pdf-summary-save-it-note
+  channelName: Web Chat Eval
+tags:
+  - web-chat
+  - upload
+  - pdf
+  - note
+  - summary
+  - regression
+  - multi-turn
+  - preset-default
+
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: file
+        filename: distributed-systems-primer.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000731
+    successCriteria:
+      responseContains:
+        - "distributed-systems-primer.pdf"
+        - "What would you like me to do"
+      responseNotContains:
+        - "upload-00000000-0000-4000-8000-000000000731"
+      toolCountRange:
+        max: 0
+
+  - userMessage: "Summarize the uploaded PDF."
+    successCriteria:
+      toolCountRange:
+        max: 0
+      responseContains:
+        - "Distributed Systems"
+      responseNotContains:
+        - "Confirmation required"
+        - "saved"
+        - "system create"
+
+  - userMessage: "can you save it"
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+          argsAbsent:
+            - upload
+            - transform
+            - from
+            - fromUpload
+            - sourceAttachment
+      responseNotContains:
+        - "uploaded PDF reference is no longer accessible"
+        - "upload ref isn't accessible"
+        - "upload ref isn’t accessible"
+        - "upload reference isn't accessible"
+        - "upload reference isn’t accessible"
+        - "file reference isn't accessible"
+        - "file reference isn’t accessible"
+        - "re-attach"
+        - "re-upload"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: base
+      argsAbsent:
+        - upload
+        - transform
+        - from
+        - fromUpload
+        - sourceAttachment
+    - toolName: document_generate
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "uploaded PDF reference is no longer accessible"
+    - "upload ref isn't accessible"
+    - "upload ref isn’t accessible"
+    - "upload reference isn't accessible"
+    - "upload reference isn’t accessible"
+    - "file reference isn't accessible"
+    - "file reference isn’t accessible"
+    - "Please re-upload"
+    - "re-upload"
+
+efficiency:
+  maxToolCalls: 1
+  maxTokens: 50000

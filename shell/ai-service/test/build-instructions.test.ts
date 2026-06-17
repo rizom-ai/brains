@@ -234,10 +234,13 @@ describe("buildInstructions", () => {
     );
   });
 
-  it("should keep image discussion notes and cover images off upload import paths", () => {
+  it("should keep discussion and summary notes off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "If the user asks to save an image description, image discussion, image interpretation, caption, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image upload and do not pass `upload` or `transform`.",
+      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image/PDF/file upload and do not pass `upload` or `transform`.",
+    );
+    expect(instructions).toContain(
+      "After you summarize/read/describe/analyze an uploaded file, follow-ups like “save it”, “save that”, “save the note”, or “save the summary” refer to the visible summary/notes you just wrote unless the user explicitly says to save/import/promote the uploaded PDF/file/document itself.",
     );
     expect(instructions).toContain(
       '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',

@@ -72,13 +72,6 @@ function isTextAttachment(attachment: ChatAttachment): boolean {
   return attachment.kind === "text" || attachment.mediaType.startsWith("text/");
 }
 
-function shouldHydratePriorUploads(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return /\b(describe|summari[sz]e|inspect|look at|view|read|see|analy[sz]e|what(?:'s| is)? in|what does|can you look)\b/.test(
-    normalized,
-  );
-}
-
 function buildAttachmentOnlyActionsCard(
   attachments: ChatAttachment[],
 ): StructuredChatCard | undefined {
@@ -598,7 +591,6 @@ export class AgentService implements IAgentService {
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await this.hydrateUploadAttachments({
-      message: effectiveMessage,
       currentAttachments: uploadContinuity.attachments,
       uploadRefs: uploadContinuity.refs,
     });
@@ -719,14 +711,12 @@ export class AgentService implements IAgentService {
   }
 
   private async hydrateUploadAttachments(params: {
-    message: string;
     currentAttachments: ChatAttachment[];
     uploadRefs: { source: NonNullable<ChatAttachment["source"]> }[];
   }): Promise<ChatAttachment[]> {
     if (params.currentAttachments.length > 0) return params.currentAttachments;
     if (!this.uploadAttachmentResolver) return params.currentAttachments;
-    if (!shouldHydratePriorUploads(params.message))
-      return params.currentAttachments;
+    if (params.uploadRefs.length === 0) return params.currentAttachments;
 
     const hydrated: ChatAttachment[] = [];
     for (const ref of params.uploadRefs.slice().reverse()) {

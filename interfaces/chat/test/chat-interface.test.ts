@@ -995,6 +995,62 @@ describe("ChatInterface", () => {
     ]);
   });
 
+  it("downloads trusted Discord gateway attachments from URL-only metadata", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const pdf = Buffer.from("%PDF-1.7 live attachment");
+    const originalFetch = globalThis.fetch;
+    const fetchMock = mock((_url: string) =>
+      Promise.resolve(new Response(pdf, { status: 200 })),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    try {
+      await chat?.handlers.mentions[0]?.(
+        createThread(),
+        createMessage({
+          text: "Can you summarize this PDF?",
+          attachments: [
+            {
+              name: "distributed-systems-primer.pdf",
+              mimeType: "application/pdf",
+              size: pdf.byteLength,
+              url: "https://cdn.discordapp.com/attachments/file.pdf",
+            },
+          ],
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://cdn.discordapp.com/attachments/file.pdf",
+    );
+    expect(agentService.chat.mock.calls[0]?.[0]).toBe(
+      "Can you summarize this PDF?",
+    );
+    expect(agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+      {
+        kind: "file",
+        filename: "distributed-systems-primer.pdf",
+        mediaType: "application/pdf",
+        data: pdf,
+        sizeBytes: pdf.byteLength,
+        source: {
+          kind: "discord-chat-upload",
+          id: expect.stringMatching(/^upload-/),
+        },
+      },
+    ]);
+  });
+
   it("reports unsupported, oversized, and spoofed uploads", async () => {
     harness.setPermissionService(
       new PermissionService({
