@@ -99,6 +99,9 @@ describe("buildInstructions", () => {
       '"note", "notes", "memo", "base" → entityType: `base`',
     );
     expect(instructions).not.toContain('"note", "memo" → entityType: `note`');
+    expect(instructions).toContain(
+      'When they ask for a type **about** a topic (for example "notes about TypeScript"), use one `system_search` scoped to that entity type/topic',
+    );
   });
 
   it("should keep default shell instructions brain-neutral", () => {
@@ -189,6 +192,12 @@ describe("buildInstructions", () => {
       "Creating or generating entities with `system_create`",
     );
     expect(instructions).toContain(
+      "For one create request, call `system_create` once only; never issue duplicate create calls",
+    );
+    expect(instructions).toContain(
+      "For delete confirmation responses, explicitly say the item has not been deleted yet and needs confirmation",
+    );
+    expect(instructions).toContain(
       "Never self-confirm a durable write operation",
     );
   });
@@ -212,6 +221,9 @@ describe("buildInstructions", () => {
       "Do not satisfy a cover-image request by reusing, setting, clearing, or mentioning `ogImageId`",
     );
     expect(instructions).toContain(
+      'use one `system_create` call with `entityType: "image"`, a `prompt`, and pass `targetEntityType`/`targetEntityId`',
+    );
+    expect(instructions).toContain(
       "Do not call `system_update` with an existing image id for a generate/new-cover request",
     );
     expect(instructions).toContain(
@@ -231,6 +243,18 @@ describe("buildInstructions", () => {
       '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
     );
     expect(instructions).toContain(
+      'raw image upload saves use `entityType: "image"` and must omit `prompt`, `content`, `url`, and `transform`',
+    );
+    expect(instructions).toContain(
+      "Use that ref's raw-save entityType and call exactly one `system_create`",
+    );
+    expect(instructions).toContain(
+      "If generating a social post from prior image discussion, use conversation text in `prompt`/`content` and omit `upload`",
+    );
+    expect(instructions).toContain(
+      "If your image-generation args include `upload`, they are wrong unless the user explicitly said to use that uploaded image as the cover.",
+    );
+    expect(instructions).toContain(
       "Prior upload refs from the conversation are irrelevant to cover-image generation unless the user explicitly says to use the uploaded image as the cover.",
     );
   });
@@ -245,6 +269,22 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+    );
+  });
+
+  it("should summarize listed items from retrieved content, not titles alone", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'For follow-ups asking for full content/details of a listed item ("first one", "that post"), call `system_get` with the remembered listed ID',
+    );
+    expect(instructions).toContain(
+      "In inventory-style overviews, report exact titles/counts/statuses from tool metadata; do not infer, rename, or summarize items from titles alone",
+    );
+    expect(instructions).toContain(
+      "If the user asks to summarize listed items and the list result lacks body content, follow up with `system_get`",
+    );
+    expect(instructions).toContain(
+      "summarize from the retrieved content rather than inferring from titles",
     );
   });
 
@@ -280,10 +320,16 @@ describe("buildInstructions", () => {
   it("should stop after one lookup when write tools are unavailable", () => {
     const instructions = buildInstructions(identity, "public");
     expect(instructions).toContain(
-      "If the requested write/action tool is unavailable to the current caller, do not loop through read tools",
+      "For questions about the caller's own permission level, answer from Current User/available tools without tool calls",
     );
     expect(instructions).toContain(
-      "after at most one target lookup, state that the caller cannot perform that action with current permissions",
+      "If a requested write/action tool is unavailable, do not loop through reads",
+    );
+    expect(instructions).toContain(
+      'For public create/update/delete requests, do not call read tools merely to compensate, and avoid "done", "saved", "created", or "deleted" phrasing even in negated forms',
+    );
+    expect(instructions).toContain(
+      "after at most one target lookup, state the caller cannot perform that action with current permissions",
     );
   });
 
@@ -304,7 +350,10 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain("call `content-pipeline_publish`");
     expect(instructions).toContain(
-      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ.",
+      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ",
+    );
+    expect(instructions).toContain(
+      'if metadata says `status: "draft"`, do not answer that it is already published',
     );
   });
 

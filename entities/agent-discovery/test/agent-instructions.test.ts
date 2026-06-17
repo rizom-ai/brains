@@ -10,6 +10,20 @@ describe("getAgentDiscoveryInstructions", () => {
     expect(instructions).toContain(
       "rather than answering from local saved agent metadata",
     );
+    expect(instructions).toContain(
+      "a follow-up like `what skills does it have`",
+    );
+    expect(instructions).toContain(
+      "even if the previous remote response was a refusal or error",
+    );
+  });
+
+  it("keeps save-first refusals from mentioning wishlist fallback internals", () => {
+    const instructions = getAgentDiscoveryInstructions();
+
+    expect(instructions).toContain(
+      "Do not mention wishes, wishlist, backlog, or fallback entities in that response.",
+    );
   });
 
   it("treats bare affirmative follow-ups after save-first refusal as consent to save", () => {
