@@ -37,14 +37,13 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
   SelectPhotoJobData,
   SelectPhotoJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly deps: SelectPhotoHandlerDeps,
-  ) {
+  private readonly deps: SelectPhotoHandlerDeps;
+  constructor(logger: Logger, deps: SelectPhotoHandlerDeps) {
     super(logger, {
       schema: selectPhotoJobSchema,
       jobTypeName: "select-photo",
     });
+    this.deps = deps;
   }
 
   async process(

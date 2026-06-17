@@ -3,6 +3,7 @@
   "display": "Default",
   "compilerOptions": {
     "declaration": true,
+    "erasableSyntaxOnly": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,

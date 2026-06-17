@@ -4,9 +4,12 @@ import { z } from "zod";
  * Shared database configuration — used by all services (entity, embedding,
  * job queue, conversation).
  */
-export const dbConfigSchema = z.object({
+export interface DbConfig {
+  url: string;
+  authToken?: string | undefined;
+}
+
+export const dbConfigSchema: z.ZodType<DbConfig> = z.object({
   url: z.string(),
   authToken: z.string().optional(),
 });
-
-export type DbConfig = z.infer<typeof dbConfigSchema>;

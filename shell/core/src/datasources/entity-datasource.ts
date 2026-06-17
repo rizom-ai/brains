@@ -11,11 +11,14 @@ const entityQuerySchema = z.object({
 });
 
 export class EntityDataSource implements DataSource {
+  private entityService: IEntityService;
   readonly id = SHELL_DATASOURCE_IDS.ENTITIES;
   readonly name = "Entity DataSource";
   readonly description = "Fetches entity content from the entity service";
 
-  constructor(private entityService: IEntityService) {}
+  constructor(entityService: IEntityService) {
+    this.entityService = entityService;
+  }
 
   async fetch<T>(
     query: unknown,

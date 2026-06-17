@@ -81,10 +81,15 @@ export function inferBitwardenProjectName(cwd: string): string {
 }
 
 export class BitwardenSecretsManagerClient implements BitwardenSecretsClient {
+  private readonly runBwsCommand: RunBwsCommand;
+  private readonly secretWriter: BitwardenSecretWriter;
   constructor(
-    private readonly runBwsCommand: RunBwsCommand = runBwsCliCommand,
-    private readonly secretWriter: BitwardenSecretWriter = new SdkBitwardenSecretWriter(),
-  ) {}
+    runBwsCommand: RunBwsCommand = runBwsCliCommand,
+    secretWriter: BitwardenSecretWriter = new SdkBitwardenSecretWriter(),
+  ) {
+    this.runBwsCommand = runBwsCommand;
+    this.secretWriter = secretWriter;
+  }
 
   async pushSecrets(
     projectName: string,

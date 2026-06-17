@@ -48,12 +48,21 @@ export type DynamicRouteEntityDisplayMap = Record<string, EntityDisplayEntry>;
  * Generates dynamic routes for entity types that have matching templates
  */
 export class DynamicRouteGenerator {
+  private readonly services: DynamicRouteGeneratorServices;
+  private readonly routeRegistry: RouteRegistry;
+  private readonly entityDisplay: DynamicRouteEntityDisplayMap | undefined;
+  private readonly options: DynamicRouteGeneratorOptions;
   constructor(
-    private readonly services: DynamicRouteGeneratorServices,
-    private readonly routeRegistry: RouteRegistry,
-    private readonly entityDisplay?: DynamicRouteEntityDisplayMap,
-    private readonly options: DynamicRouteGeneratorOptions = {},
-  ) {}
+    services: DynamicRouteGeneratorServices,
+    routeRegistry: RouteRegistry,
+    entityDisplay?: DynamicRouteEntityDisplayMap,
+    options: DynamicRouteGeneratorOptions = {},
+  ) {
+    this.services = services;
+    this.routeRegistry = routeRegistry;
+    this.entityDisplay = entityDisplay;
+    this.options = options;
+  }
 
   private listOptions(
     extra: Omit<NonNullable<ListEntitiesRequest["options"]>, "filter"> &

@@ -197,6 +197,10 @@ function buildAttachmentOnlyActionsCard(
 type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
 
 export class AgentService implements IAgentService {
+  private mcpService: IMCPService;
+  private conversationService: IConversationService;
+  private identityService: IBrainCharacterService;
+  private profileService: IAnchorProfileService;
   private static instance: AgentService | null = null;
   private logger: Logger;
   private stepLimit: number;
@@ -285,13 +289,17 @@ export class AgentService implements IAgentService {
    * Private constructor to enforce factory methods
    */
   private constructor(
-    private mcpService: IMCPService,
-    private conversationService: IConversationService,
-    private identityService: IBrainCharacterService,
-    private profileService: IAnchorProfileService,
+    mcpService: IMCPService,
+    conversationService: IConversationService,
+    identityService: IBrainCharacterService,
+    profileService: IAnchorProfileService,
     logger: Logger,
     config: AgentConfig,
   ) {
+    this.mcpService = mcpService;
+    this.conversationService = conversationService;
+    this.identityService = identityService;
+    this.profileService = profileService;
     this.logger = logger.child("AgentService");
     this.stepLimit = config.stepLimit ?? DEFAULT_STEP_LIMIT;
     this.agentFactory = config.agentFactory;

@@ -73,8 +73,10 @@ explicit; root typecheck passes. A TypeScript strictness slice enabled
 Another TypeScript strictness slice enabled `moduleDetection: "force"`;
 root typecheck passes without code changes. Another TypeScript strictness
 slice enabled `verbatimModuleSyntax`; root typecheck passes without code
-changes. Remaining outdated entries are deliberate holds/migrations from
-Phase 2b+.
+changes. Another TypeScript strictness slice enabled `erasableSyntaxOnly`
+and removed runtime TypeScript-only syntax such as enums and constructor
+parameter properties; forced root typecheck and lint pass. Remaining
+outdated entries are deliberate holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -328,6 +330,14 @@ Done in worktree:
   root typecheck passes.
 - `verbatimModuleSyntax` is now enabled. No code changes were needed;
   root typecheck passes.
+- `erasableSyntaxOnly` is now enabled. Runtime TypeScript-only syntax was
+  removed by replacing enums with const-object unions and expanding
+  constructor parameter properties into explicit fields/assignments;
+  exported schemas touched for declaration checks now use domain types where
+  safe and Zod object annotations where schema composition requires methods
+  like `.extend()`. Forced root typecheck and lint pass.
+- `isolatedDeclarations` was probed and remains a follow-up strictness slice;
+  it requires broad exported-schema/object annotations across many packages.
 
 ### Phase 4 — zod 4 migration
 

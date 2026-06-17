@@ -2,24 +2,43 @@ import { z } from "zod";
 
 export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
 
-export const agentContextPermissionLevelSchema = z.enum([
-  "anchor",
-  "trusted",
-  "public",
-]);
+export type AgentContextPermissionLevel = "anchor" | "trusted" | "public";
 
-export const agentContextRequestSchema = z.object({
-  conversationId: z.string().min(1),
-  message: z.string(),
-  interfaceType: z.string().min(1),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  userPermissionLevel: agentContextPermissionLevelSchema,
-});
+export interface AgentContextRequest {
+  conversationId: string;
+  message: string;
+  interfaceType: string;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  userPermissionLevel: AgentContextPermissionLevel;
+}
 
-export type AgentContextRequest = z.infer<typeof agentContextRequestSchema>;
+export interface AgentContextItem {
+  id: string;
+  source: string;
+  title?: string | undefined;
+  content: string;
+  provenance?: Record<string, unknown> | undefined;
+}
 
-export const agentContextItemSchema = z.object({
+export interface AgentContextResponse {
+  items: AgentContextItem[];
+}
+
+export const agentContextPermissionLevelSchema: z.ZodType<AgentContextPermissionLevel> =
+  z.enum(["anchor", "trusted", "public"]);
+
+export const agentContextRequestSchema: z.ZodType<AgentContextRequest> =
+  z.object({
+    conversationId: z.string().min(1),
+    message: z.string(),
+    interfaceType: z.string().min(1),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    userPermissionLevel: agentContextPermissionLevelSchema,
+  });
+
+export const agentContextItemSchema: z.ZodType<AgentContextItem> = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   title: z.string().optional(),
@@ -27,13 +46,13 @@ export const agentContextItemSchema = z.object({
   provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type AgentContextItem = z.infer<typeof agentContextItemSchema>;
-
-export const agentContextResponseSchema = z.object({
+export const agentContextResponseSchema: z.ZodType<
+  AgentContextResponse,
+  z.ZodTypeDef,
+  { items?: AgentContextItem[] | undefined }
+> = z.object({
   items: z.array(agentContextItemSchema).default([]),
 });
-
-export type AgentContextResponse = z.infer<typeof agentContextResponseSchema>;
 
 /**
  * Parse a context-provider response leniently: drop individual items that fail

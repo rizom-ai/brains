@@ -133,6 +133,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const DEFAULT_LINKEDIN_REST_API_VERSION = "202604";
 
 export class LinkedInClient implements PublishProvider {
+  private config: LinkedinConfig;
+  private logger: Logger;
   public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
   private readonly restApiBaseUrl = "https://api.linkedin.com/rest";
@@ -140,10 +142,12 @@ export class LinkedInClient implements PublishProvider {
   private cachedUserId: string | null = null;
 
   constructor(
-    private config: LinkedinConfig,
-    private logger: Logger,
+    config: LinkedinConfig,
+    logger: Logger,
     deps: LinkedInClientDeps = {},
   ) {
+    this.config = config;
+    this.logger = logger;
     this.fetch = deps.fetch ?? globalThis.fetch.bind(globalThis);
   }
 

@@ -12,12 +12,15 @@ const adapter = new SiteInfoAdapter();
  * Navigation is NOT included — layouts get that from site-builder's NavigationDataSource.
  */
 export class SiteInfoDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "site-info:entities";
   public readonly name = "Site Info DataSource";
   public readonly description =
     "Provides site metadata (title, description, CTA) and profile social links";
 
-  constructor(private readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   async fetch<T>(
     _query: unknown,

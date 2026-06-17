@@ -31,6 +31,7 @@ import packageJson from "../package.json";
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
 
 export class DecksPlugin extends EntityPlugin<DeckEntity> {
+  private readonly deps: DecksPluginDeps;
   readonly entityType = deckAdapter.entityType;
   readonly schema = deckAdapter.schema;
   readonly adapter = deckAdapter;
@@ -38,8 +39,9 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(private readonly deps: DecksPluginDeps = {}) {
+  constructor(deps: DecksPluginDeps = {}) {
     super("decks", packageJson);
+    this.deps = deps;
   }
 
   protected override createGenerationHandler(

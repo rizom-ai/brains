@@ -15,14 +15,15 @@ const navigationQuerySchema = z.object({
  * Supports querying specific navigation slots
  */
 export class NavigationDataSource implements DataSource {
+  private readonly routeRegistry: RouteRegistry;
+  private readonly logger: Logger;
   public readonly id = "site:navigation";
   public readonly name = "Site Navigation DataSource";
   public readonly description = "Provides navigation items for site menus";
 
-  constructor(
-    private readonly routeRegistry: RouteRegistry,
-    private readonly logger: Logger,
-  ) {
+  constructor(routeRegistry: RouteRegistry, logger: Logger) {
+    this.routeRegistry = routeRegistry;
+    this.logger = logger;
     this.logger.debug("NavigationDataSource initialized");
   }
 

@@ -9,14 +9,20 @@ import rizomBaseSite from ".";
 import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
+  private readonly contentNamespace: string;
+  private readonly extraTemplates: Record<string, Template>;
+  private readonly dataSources: DataSource[];
   constructor(
     packageName: string,
     config: Record<string, unknown>,
-    private readonly contentNamespace: string,
-    private readonly extraTemplates: Record<string, Template>,
-    private readonly dataSources: DataSource[] = [],
+    contentNamespace: string,
+    extraTemplates: Record<string, Template>,
+    dataSources: DataSource[] = [],
   ) {
     super(packageName, config);
+    this.contentNamespace = contentNamespace;
+    this.extraTemplates = extraTemplates;
+    this.dataSources = dataSources;
   }
 
   protected override async onRegister(

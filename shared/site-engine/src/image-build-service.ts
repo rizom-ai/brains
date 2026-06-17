@@ -25,16 +25,18 @@ export type BuildImageMap = SiteImageMap;
  *   const img = imageService.get("my-cover-image");
  */
 export class ImageBuildService {
+  private entityService: Pick<IEntityService, "getEntity">;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
   private optimizer: ImageOptimizer;
 
   constructor(
-    private entityService: Pick<IEntityService, "getEntity">,
+    entityService: Pick<IEntityService, "getEntity">,
     logger: Logger,
     imagesDir: string,
   ) {
+    this.entityService = entityService;
     this.logger = logger.child("ImageBuildService");
     this.imagesDir = imagesDir;
     this.optimizer = new ImageOptimizer(this.imagesDir, this.logger);

@@ -30,14 +30,16 @@ class InterfacePluginDelegate<
   TConfig,
   TTrackingInfo extends BaseJobTrackingInfo,
 > extends RuntimeInterfacePlugin<TConfig, TTrackingInfo> {
+  private readonly hooks: InterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: Partial<TConfig>,
     configSchema: z.ZodTypeAny,
-    private readonly hooks: InterfacePluginHooks,
+    hooks: InterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override onRegister(

@@ -19,13 +19,17 @@ export interface JobQueueStats {
  * Keeps persistence details out of JobQueueService orchestration logic.
  */
 export class JobQueueRepository {
+  private db: LibSQLDatabase<Record<string, unknown>>;
+  private claimTimeoutMs: number;
   private logger: Logger;
 
   constructor(
-    private db: LibSQLDatabase<Record<string, unknown>>,
+    db: LibSQLDatabase<Record<string, unknown>>,
     logger: Logger,
-    private claimTimeoutMs: number = 300_000,
+    claimTimeoutMs: number = 300_000,
   ) {
+    this.db = db;
+    this.claimTimeoutMs = claimTimeoutMs;
     this.logger = logger.child("JobQueueRepository");
   }
 

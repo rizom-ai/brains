@@ -76,7 +76,10 @@ interface MemoryCandidate {
 }
 
 export class ConversationMemoryRetriever {
-  constructor(private readonly context: EntityPluginContext) {}
+  private readonly context: EntityPluginContext;
+  constructor(context: EntityPluginContext) {
+    this.context = context;
+  }
 
   public async retrieve(
     input: RetrieveConversationMemoryInput,

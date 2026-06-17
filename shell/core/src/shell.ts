@@ -96,6 +96,7 @@ import type { ShellDependencies } from "./types/shell-types";
 export type { ShellDependencies };
 
 export class Shell implements IShell {
+  private config: ShellConfig;
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
   private readonly bootloader: ShellBootloader;
@@ -131,10 +132,8 @@ export class Shell implements IShell {
     return new Shell(fullConfig, dependencies);
   }
 
-  private constructor(
-    private config: ShellConfig,
-    dependencies?: ShellDependencies,
-  ) {
+  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
+    this.config = config;
     const shellInitializer = ShellInitializer.getInstance(
       dependencies?.logger ?? Logger.getInstance(),
       this.config,

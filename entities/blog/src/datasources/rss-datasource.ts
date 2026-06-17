@@ -22,12 +22,14 @@ const rssFeedQuerySchema = z.object({
  * DataSource for generating RSS feed from blog posts
  */
 export class RSSDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "blog:rss";
   public readonly name = "Blog RSS Feed DataSource";
   public readonly description =
     "Generates RSS 2.0 feed XML from published blog posts";
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("RSSDataSource initialized");
   }
 

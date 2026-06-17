@@ -83,20 +83,22 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
   DocumentGenerationJobData,
   DocumentGenerationResult
 > {
+  private readonly context: Pick<
+    ServicePluginContext,
+    "entityService" | "attachments"
+  >;
   private readonly renderPdf: RenderPdf;
 
   constructor(
     logger: Logger,
-    private readonly context: Pick<
-      ServicePluginContext,
-      "entityService" | "attachments"
-    >,
+    context: Pick<ServicePluginContext, "entityService" | "attachments">,
     deps: DocumentGenerationHandlerDeps = {},
   ) {
     super(logger, {
       schema: documentGenerationJobSchema,
       jobTypeName: "document-generate",
     });
+    this.context = context;
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
   }
 

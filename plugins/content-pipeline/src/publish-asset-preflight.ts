@@ -25,7 +25,10 @@ export interface PublishAssetPreflightDeps {
  * hashes when generated assets update the source entity frontmatter.
  */
 export class PublishAssetPreflight {
-  constructor(private readonly deps: PublishAssetPreflightDeps) {}
+  private readonly deps: PublishAssetPreflightDeps;
+  constructor(deps: PublishAssetPreflightDeps) {
+    this.deps = deps;
+  }
 
   public async ensureForEntity(
     entity: BaseEntity,

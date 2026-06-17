@@ -60,11 +60,10 @@ export type RuntimeUploadStoreErrorCode =
   | "invalid_metadata";
 
 export class RuntimeUploadStoreError extends Error {
-  constructor(
-    public readonly code: RuntimeUploadStoreErrorCode,
-    message: string,
-  ) {
+  public readonly code: RuntimeUploadStoreErrorCode;
+  constructor(code: RuntimeUploadStoreErrorCode, message: string) {
     super(message);
+    this.code = code;
     this.name = "RuntimeUploadStoreError";
   }
 }
@@ -124,12 +123,14 @@ export interface RuntimeUploadStoreOptions extends RuntimeUploadScopeOptions {
 }
 
 export class RuntimeUploadStore {
+  private readonly options: RuntimeUploadStoreOptions;
   private readonly retentionMs: number;
   private readonly maxCount: number;
   private readonly createUploadId: () => string;
   private readonly getNow: () => Date;
 
-  constructor(private readonly options: RuntimeUploadStoreOptions) {
+  constructor(options: RuntimeUploadStoreOptions) {
+    this.options = options;
     this.retentionMs = options.retentionMs ?? defaultRuntimeUploadRetentionMs;
     this.maxCount = options.maxCount ?? defaultRuntimeUploadMaxCount;
     this.createUploadId =

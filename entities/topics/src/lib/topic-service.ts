@@ -21,12 +21,13 @@ export interface TopicMergeCandidate {
 }
 
 export class TopicService {
+  private readonly entityService: IEntityService;
+  private readonly logger: Logger;
   private adapter: TopicAdapter;
 
-  constructor(
-    private readonly entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(entityService: IEntityService, logger: Logger) {
+    this.entityService = entityService;
+    this.logger = logger;
     this.adapter = new TopicAdapter();
   }
 

@@ -34,10 +34,12 @@ export class SeriesGenerationHandler implements JobHandler<
   string,
   SeriesGenerationJobData
 > {
-  constructor(
-    private readonly logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {}
+  private readonly logger: Logger;
+  private readonly context: EntityPluginContext;
+  constructor(logger: Logger, context: EntityPluginContext) {
+    this.logger = logger;
+    this.context = context;
+  }
 
   async process(data: SeriesGenerationJobData): Promise<unknown> {
     const seriesId = data.seriesId ?? data.title;

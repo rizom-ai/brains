@@ -32,11 +32,18 @@ export interface ShellBootloaderHooks {
  * lifecycle semantics are explicit and testable.
  */
 export class ShellBootloader {
+  private readonly config: ShellConfig;
+  private readonly services: ShellServices;
+  private readonly hooks: ShellBootloaderHooks;
   constructor(
-    private readonly config: ShellConfig,
-    private readonly services: ShellServices,
-    private readonly hooks: ShellBootloaderHooks,
-  ) {}
+    config: ShellConfig,
+    services: ShellServices,
+    hooks: ShellBootloaderHooks,
+  ) {
+    this.config = config;
+    this.services = services;
+    this.hooks = hooks;
+  }
 
   public async boot(options?: ShellBootloaderOptions): Promise<void> {
     this.services.logger.debug("Starting Shell boot");

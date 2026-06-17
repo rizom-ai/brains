@@ -27,6 +27,10 @@ export type JobProgressEvent = z.infer<typeof JobProgressEventSchema>;
  * without complex polling or state tracking.
  */
 export class JobProgressMonitor implements IJobProgressMonitor {
+  private jobQueueService: IJobQueueService;
+  private messageBus: MessageBus;
+  private batchJobManager: IBatchJobManager;
+  private logger: Logger;
   private static instance: JobProgressMonitor | null = null;
 
   /**
@@ -75,11 +79,16 @@ export class JobProgressMonitor implements IJobProgressMonitor {
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    private jobQueueService: IJobQueueService,
-    private messageBus: MessageBus,
-    private batchJobManager: IBatchJobManager,
-    private logger: Logger,
-  ) {}
+    jobQueueService: IJobQueueService,
+    messageBus: MessageBus,
+    batchJobManager: IBatchJobManager,
+    logger: Logger,
+  ) {
+    this.jobQueueService = jobQueueService;
+    this.messageBus = messageBus;
+    this.batchJobManager = batchJobManager;
+    this.logger = logger;
+  }
 
   /**
    * Start monitoring - now a no-op since we're event-driven

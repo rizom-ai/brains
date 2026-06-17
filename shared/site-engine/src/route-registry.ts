@@ -12,9 +12,12 @@ import { ensureArray, type Logger } from "@brains/utils";
  * This registry is owned by the site engine and populated by site-builder.
  */
 export class RouteRegistry {
+  private readonly logger: Logger;
   private routes = new Map<string, RouteDefinition>();
 
-  constructor(private readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   /**
    * Register one or more route definitions

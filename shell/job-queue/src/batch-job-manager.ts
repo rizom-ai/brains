@@ -14,6 +14,8 @@ const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
  * the individual jobs and provides aggregated status.
  */
 export class BatchJobManager {
+  private jobQueue: IJobQueueService;
+  private logger: Logger;
   private static instance: BatchJobManager | null = null;
 
   // In-memory tracking of batch metadata
@@ -57,10 +59,10 @@ export class BatchJobManager {
     return new BatchJobManager(jobQueue, logger);
   }
 
-  private constructor(
-    private jobQueue: IJobQueueService,
-    private logger: Logger,
-  ) {}
+  private constructor(jobQueue: IJobQueueService, logger: Logger) {
+    this.jobQueue = jobQueue;
+    this.logger = logger;
+  }
 
   /**
    * Start the periodic cleanup timer. Idempotent — repeated calls reuse the

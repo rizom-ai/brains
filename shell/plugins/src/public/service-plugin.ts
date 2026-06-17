@@ -18,14 +18,16 @@ interface ServicePluginHooks {
 }
 
 class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
+  private readonly hooks: ServicePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: Partial<TConfig>,
     configSchema: z.ZodTypeAny,
-    private readonly hooks: ServicePluginHooks,
+    hooks: ServicePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override onRegister(

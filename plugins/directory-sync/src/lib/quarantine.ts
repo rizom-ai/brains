@@ -5,10 +5,12 @@ import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 
 export class Quarantine {
-  constructor(
-    private logger: Logger,
-    private syncPath: string,
-  ) {}
+  private logger: Logger;
+  private syncPath: string;
+  constructor(logger: Logger, syncPath: string) {
+    this.logger = logger;
+    this.syncPath = syncPath;
+  }
 
   isValidationError(error: unknown): boolean {
     if (error instanceof z.ZodError) {

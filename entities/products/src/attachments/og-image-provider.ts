@@ -18,13 +18,21 @@ export interface ProductOgImageAttachmentProviderDeps {
 }
 
 export class ProductOgImageAttachmentProvider implements AttachmentProvider {
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
+  private readonly deps: ProductOgImageAttachmentProviderDeps;
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    private readonly deps: ProductOgImageAttachmentProviderDeps = {},
-  ) {}
+    deps: ProductOgImageAttachmentProviderDeps = {},
+  ) {
+    this.context = context;
+    this.deps = deps;
+  }
 
   async resolve(request: {
     sourceEntityType: string;

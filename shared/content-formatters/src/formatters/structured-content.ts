@@ -48,12 +48,17 @@ export interface FormatterConfig {
  * to convert between structured data and human-readable markdown.
  */
 export class StructuredContentFormatter<T> implements ContentFormatter<T> {
+  private schema: z.ZodType<T, z.ZodTypeDef, unknown>;
+  private config: FormatterConfig;
   private processor = remark();
 
   constructor(
-    private schema: z.ZodType<T, z.ZodTypeDef, unknown>,
-    private config: FormatterConfig,
-  ) {}
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+    config: FormatterConfig,
+  ) {
+    this.schema = schema;
+    this.config = config;
+  }
 
   /**
    * Get section labels from the formatter configuration.

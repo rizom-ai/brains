@@ -33,16 +33,21 @@ export interface DeckCarouselAttachmentProviderDeps {
 }
 
 export class DeckCarouselAttachmentProvider implements AttachmentProvider {
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
   private readonly renderPdf: RenderPdf;
   private readonly getThemeMode: GetThemeMode;
 
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
+    this.context = context;
     this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
     this.getThemeMode =
       deps.getThemeMode ?? (async (): Promise<"light" | "dark"> => "dark");

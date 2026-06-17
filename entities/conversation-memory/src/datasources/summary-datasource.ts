@@ -19,6 +19,7 @@ const entityFetchQuerySchema = z.object({
 });
 
 export class SummaryDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = SUMMARY_DATASOURCE_ID;
   public readonly name = "Summary Entity DataSource";
   public readonly description =
@@ -26,7 +27,8 @@ export class SummaryDataSource implements DataSource {
 
   private readonly adapter = new SummaryAdapter();
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("SummaryDataSource initialized");
   }
 

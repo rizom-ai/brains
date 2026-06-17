@@ -25,19 +25,29 @@ function normalizeSiteBaseUrl(
 }
 
 export class AIContentDataSource implements DataSource {
+  private readonly aiService: IAIService;
+  private readonly entityService: IEntityService;
+  private readonly templateRegistry: TemplateRegistry;
+  private readonly getIdentityContent: () => string;
+  private readonly getProfileContent: () => string;
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
   readonly description =
     "Generates content using AI based on templates and prompts";
 
   constructor(
-    private readonly aiService: IAIService,
-    private readonly entityService: IEntityService,
-    private readonly templateRegistry: TemplateRegistry,
-    private readonly getIdentityContent: () => string,
-    private readonly getProfileContent: () => string,
+    aiService: IAIService,
+    entityService: IEntityService,
+    templateRegistry: TemplateRegistry,
+    getIdentityContent: () => string,
+    getProfileContent: () => string,
     siteBaseUrl?: string,
   ) {
+    this.aiService = aiService;
+    this.entityService = entityService;
+    this.templateRegistry = templateRegistry;
+    this.getIdentityContent = getIdentityContent;
+    this.getProfileContent = getProfileContent;
     this.siteBaseUrl = normalizeSiteBaseUrl(siteBaseUrl);
   }
 

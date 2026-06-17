@@ -78,11 +78,14 @@ function parseSeriesData(entity: Series): SeriesWithData {
  * Cross-content: counts entities from ALL types with seriesName metadata.
  */
 export class SeriesDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "series:entities";
   public readonly name = "Series DataSource";
   public readonly description = "Fetches series list and detail data";
 
-  constructor(private readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   async fetch<T>(
     query: unknown,

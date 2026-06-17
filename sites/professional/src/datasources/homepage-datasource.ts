@@ -42,15 +42,17 @@ interface HomepageDataSourceOutput {
  * Fetches profile, recent published posts, and recent decks for homepage display
  */
 export class HomepageListDataSource implements DataSource {
+  private readonly postsListUrl: string;
+  private readonly decksListUrl: string;
   public readonly id = "professional:homepage-list";
   public readonly name = "Homepage List DataSource";
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  constructor(
-    private readonly postsListUrl: string,
-    private readonly decksListUrl: string,
-  ) {}
+  constructor(postsListUrl: string, decksListUrl: string) {
+    this.postsListUrl = postsListUrl;
+    this.decksListUrl = decksListUrl;
+  }
 
   /**
    * Fetch homepage data

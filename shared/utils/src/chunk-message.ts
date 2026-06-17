@@ -40,7 +40,7 @@ export function chunkMessage(
     }
 
     // Oversized block — split at line boundaries
-    splitOversizedBlock(block, maxLength, chunks, (remainder) => {
+    splitOversizedBlock(block, maxLength, chunks, (remainder: string) => {
       current = remainder;
     });
   }

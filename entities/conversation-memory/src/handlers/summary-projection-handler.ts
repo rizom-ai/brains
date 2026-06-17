@@ -35,13 +35,17 @@ export class SummaryProjectionHandler implements JobHandler<
   SummaryProjectionJobData,
   SummaryProjectionResult
 > {
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
   private readonly projector: SummaryProjector;
 
   constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
+    context: EntityPluginContext,
+    logger: Logger,
     config: SummaryConfig,
   ) {
+    this.context = context;
+    this.logger = logger;
     this.projector = new SummaryProjector(context, logger, config);
   }
 

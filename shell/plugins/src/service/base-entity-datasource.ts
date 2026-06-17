@@ -97,13 +97,16 @@ export abstract class BaseEntityDataSource<
   TEntity extends BaseEntity = BaseEntity,
   TTransformed = TEntity,
 > implements DataSource {
+  protected readonly logger: Logger;
   abstract readonly id: string;
   abstract readonly name: string;
   abstract readonly description: string;
 
   protected abstract readonly config: EntityDataSourceConfig;
 
-  constructor(protected readonly logger: Logger) {}
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   /**
    * Transform a raw entity into the display format used by templates.

@@ -39,14 +39,13 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
   SourceImageRenderJobData,
   SourceImageRenderResult
 > {
-  constructor(
-    private readonly context: EntityPluginContext,
-    logger: Logger,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
       schema: sourceImageRenderJobDataSchema,
       jobTypeName: "image-render-source",
     });
+    this.context = context;
   }
 
   async process(

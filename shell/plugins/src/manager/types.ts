@@ -49,12 +49,13 @@ export interface PluginManager {
 /**
  * Plugin status types
  */
-export enum PluginStatus {
-  REGISTERED = "registered",
-  INITIALIZED = "initialized",
-  ERROR = "error",
-  DISABLED = "disabled",
-}
+export const PluginStatus = {
+  REGISTERED: "registered",
+  INITIALIZED: "initialized",
+  ERROR: "error",
+  DISABLED: "disabled",
+} as const;
+export type PluginStatus = (typeof PluginStatus)[keyof typeof PluginStatus];
 
 /**
  * Plugin metadata with status
@@ -69,14 +70,15 @@ export interface PluginInfo {
 /**
  * Plugin lifecycle event types
  */
-export enum PluginEvent {
-  REGISTERED = "plugin:registered",
-  BEFORE_INITIALIZE = "plugin:before_initialize",
-  INITIALIZED = "plugin:initialized",
-  ERROR = "plugin:error",
-  DISABLED = "plugin:disabled",
-  ENABLED = "plugin:enabled",
-}
+export const PluginEvent = {
+  REGISTERED: "plugin:registered",
+  BEFORE_INITIALIZE: "plugin:before_initialize",
+  INITIALIZED: "plugin:initialized",
+  ERROR: "plugin:error",
+  DISABLED: "plugin:disabled",
+  ENABLED: "plugin:enabled",
+} as const;
+export type PluginEvent = (typeof PluginEvent)[keyof typeof PluginEvent];
 
 /**
  * Typed event map for PluginManager events

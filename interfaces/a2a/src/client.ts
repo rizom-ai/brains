@@ -319,15 +319,19 @@ async function readStreamToCompletion(
 }
 
 class A2ARequestTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`request timed out after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2ARequestTimeoutError";
   }
 }
 
 class A2AStreamIdleTimeoutError extends Error {
-  constructor(readonly timeoutMs: number) {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`A2A stream stalled waiting for final event after ${timeoutMs}ms`);
+    this.timeoutMs = timeoutMs;
     this.name = "A2AStreamIdleTimeoutError";
   }
 }

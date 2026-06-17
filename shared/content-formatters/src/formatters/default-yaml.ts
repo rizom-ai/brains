@@ -10,7 +10,7 @@ import * as yaml from "js-yaml";
 export class DefaultYamlFormatter implements ContentFormatter<
   Record<string, unknown>
 > {
-  protected yaml = yaml;
+  protected yaml: typeof yaml = yaml;
 
   format(data: Record<string, unknown>): string {
     const yamlContent = this.yaml

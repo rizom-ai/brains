@@ -33,13 +33,12 @@ export interface LinkServiceOptions {
  * Core service for link operations
  */
 export class LinkService {
+  private context: EntityPluginContext;
   private linkAdapter: LinkAdapter;
   private urlFetcher: UrlFetcher;
 
-  constructor(
-    private context: EntityPluginContext,
-    options?: LinkServiceOptions,
-  ) {
+  constructor(context: EntityPluginContext, options?: LinkServiceOptions) {
+    this.context = context;
     this.linkAdapter = new LinkAdapter();
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,

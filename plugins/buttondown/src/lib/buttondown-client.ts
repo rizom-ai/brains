@@ -89,10 +89,12 @@ interface ButtondownError {
  * @see https://api.buttondown.email/v1/docs
  */
 export class ButtondownClient {
-  constructor(
-    private config: ButtondownConfig,
-    private logger: Logger,
-  ) {}
+  private config: ButtondownConfig;
+  private logger: Logger;
+  constructor(config: ButtondownConfig, logger: Logger) {
+    this.config = config;
+    this.logger = logger;
+  }
 
   /**
    * Make an authenticated request to the Buttondown API

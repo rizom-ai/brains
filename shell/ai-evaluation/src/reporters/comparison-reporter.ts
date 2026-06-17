@@ -20,7 +20,10 @@ interface MetricRow {
 }
 
 export class ComparisonReporter implements IReporter {
-  constructor(private options: ComparisonReporterOptions) {}
+  private options: ComparisonReporterOptions;
+  constructor(options: ComparisonReporterOptions) {
+    this.options = options;
+  }
 
   async report(summary: EvaluationSummary): Promise<void> {
     await mkdir(this.options.outputDirectory, { recursive: true });

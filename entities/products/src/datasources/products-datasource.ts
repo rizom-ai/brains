@@ -79,6 +79,7 @@ function parseOverviewData(
  * Products are sorted by order field. Overview is a singleton entity.
  */
 export class ProductsDataSource implements DataSource {
+  private readonly logger: Logger;
   public readonly id = "products:entities";
   public readonly name = "Products Entity DataSource";
   public readonly description =
@@ -87,7 +88,8 @@ export class ProductsDataSource implements DataSource {
   private readonly overviewFormatter = new OverviewBodyFormatter();
   private readonly productFormatter = new ProductBodyFormatter();
 
-  constructor(private readonly logger: Logger) {
+  constructor(logger: Logger) {
+    this.logger = logger;
     this.logger.debug("ProductsDataSource initialized");
   }
 

@@ -11,7 +11,10 @@ import type { GenerateOptions } from "../schemas/generate-options";
 export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;
 
 export class SiteContentOperations {
-  constructor(private readonly context: ServicePluginContext) {}
+  private readonly context: ServicePluginContext;
+  constructor(context: ServicePluginContext) {
+    this.context = context;
+  }
 
   private createJobOptions(
     metadata: Partial<JobContext> | undefined,

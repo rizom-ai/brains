@@ -27,12 +27,14 @@ export interface WishCreateResult {
  * Semantic dedup — if a similar wish exists, increments its count instead of creating.
  */
 export class WishCreateHandler {
+  private readonly logger: Logger;
+  private readonly context: EntityPluginContext;
   private readonly adapter = new WishAdapter();
 
-  constructor(
-    private readonly logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {}
+  constructor(logger: Logger, context: EntityPluginContext) {
+    this.logger = logger;
+    this.context = context;
+  }
 
   async process(
     data: WishCreateData,

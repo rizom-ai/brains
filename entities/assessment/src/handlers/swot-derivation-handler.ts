@@ -327,12 +327,14 @@ export class SwotDerivationHandler implements JobHandler<
   SwotDerivationJobData,
   { entityId: string }
 > {
+  private readonly logger: Logger;
+  private readonly context: EntityPluginContext;
   private readonly adapter = new SwotAdapter();
 
-  constructor(
-    private readonly logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {}
+  constructor(logger: Logger, context: EntityPluginContext) {
+    this.logger = logger;
+    this.context = context;
+  }
 
   validateAndParse(data: unknown): SwotDerivationJobData | null {
     const result = swotDerivationJobSchema.safeParse(data ?? {});

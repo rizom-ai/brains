@@ -30,14 +30,13 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
   UploadMarkdownImportJobData,
   UploadMarkdownImportJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, {
       schema: uploadMarkdownImportJobSchema,
       jobTypeName: "upload-import",
     });
+    this.context = context;
   }
 
   async process(

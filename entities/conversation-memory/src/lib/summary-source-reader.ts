@@ -13,10 +13,12 @@ export interface SummarySource {
 }
 
 export class SummarySourceReader {
-  constructor(
-    private readonly context: EntityPluginContext,
-    private readonly config: SummaryConfig,
-  ) {}
+  private readonly context: EntityPluginContext;
+  private readonly config: SummaryConfig;
+  constructor(context: EntityPluginContext, config: SummaryConfig) {
+    this.context = context;
+    this.config = config;
+  }
 
   public async readConversation(
     conversationId: string,

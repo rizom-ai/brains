@@ -58,7 +58,10 @@ export interface PublishExecutorDeps {
  * execution can be moved here without changing tool behavior.
  */
 export class PublishExecutor implements PublishEntityExecutor {
-  constructor(private readonly deps: PublishExecutorDeps) {}
+  private readonly deps: PublishExecutorDeps;
+  constructor(deps: PublishExecutorDeps) {
+    this.deps = deps;
+  }
 
   public async resolveCandidate(
     input: PublishEntityInput,

@@ -13,14 +13,20 @@ import { PluginError } from "../errors";
  * Extracted from PluginManager for single responsibility
  */
 export class PluginLifecycle {
+  private plugins: Map<string, PluginInfo>;
+  private events: EventEmitter;
+  private daemonRegistry: IDaemonRegistry;
   private logger: Logger;
 
   constructor(
-    private plugins: Map<string, PluginInfo>,
-    private events: EventEmitter,
-    private daemonRegistry: IDaemonRegistry,
+    plugins: Map<string, PluginInfo>,
+    events: EventEmitter,
+    daemonRegistry: IDaemonRegistry,
     logger: Logger,
   ) {
+    this.plugins = plugins;
+    this.events = events;
+    this.daemonRegistry = daemonRegistry;
     this.logger = logger.child("PluginLifecycle");
   }
 

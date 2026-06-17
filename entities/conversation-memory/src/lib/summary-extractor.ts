@@ -26,11 +26,18 @@ export interface SummaryExtraction {
 }
 
 export class SummaryExtractor {
+  private readonly context: EntityPluginContext;
+  private readonly logger: Logger;
+  private readonly config: SummaryConfig;
   constructor(
-    private readonly context: EntityPluginContext,
-    private readonly logger: Logger,
-    private readonly config: SummaryConfig,
-  ) {}
+    context: EntityPluginContext,
+    logger: Logger,
+    config: SummaryConfig,
+  ) {
+    this.context = context;
+    this.logger = logger;
+    this.config = config;
+  }
 
   public async extract(messages: Message[]): Promise<SummaryExtraction> {
     if (messages.length === 0) {

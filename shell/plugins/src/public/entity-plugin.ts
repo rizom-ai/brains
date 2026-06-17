@@ -38,14 +38,16 @@ class EntityPluginDelegate<
   TEntity extends BaseEntity,
   TConfig,
 > extends RuntimeEntityPlugin<TEntity, TConfig> {
+  private readonly hooks: EntityPluginHooks<TEntity>;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: Partial<TConfig>,
     configSchema: z.ZodTypeAny,
-    private readonly hooks: EntityPluginHooks<TEntity>,
+    hooks: EntityPluginHooks<TEntity>,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   override get entityType(): string {

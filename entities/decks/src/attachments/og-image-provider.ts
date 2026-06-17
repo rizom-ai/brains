@@ -18,13 +18,21 @@ export interface DeckOgImageAttachmentProviderDeps {
 }
 
 export class DeckOgImageAttachmentProvider implements AttachmentProvider {
+  private readonly context: Pick<
+    EntityPluginContext,
+    "entityService" | "themeCSS" | "identity" | "domain"
+  >;
+  private readonly deps: DeckOgImageAttachmentProviderDeps;
   constructor(
-    private readonly context: Pick<
+    context: Pick<
       EntityPluginContext,
       "entityService" | "themeCSS" | "identity" | "domain"
     >,
-    private readonly deps: DeckOgImageAttachmentProviderDeps = {},
-  ) {}
+    deps: DeckOgImageAttachmentProviderDeps = {},
+  ) {
+    this.context = context;
+    this.deps = deps;
+  }
 
   async resolve(request: {
     sourceEntityType: string;

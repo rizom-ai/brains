@@ -27,14 +27,13 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
   UploadPromotionJobData,
   UploadPromotionJobResult
 > {
-  constructor(
-    logger: Logger,
-    private readonly context: EntityPluginContext,
-  ) {
+  private readonly context: EntityPluginContext;
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, {
       schema: uploadPromotionJobSchema,
       jobTypeName: "upload-promote",
     });
+    this.context = context;
   }
 
   async process(

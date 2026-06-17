@@ -34,15 +34,19 @@ export class SiteBuildJobHandler extends BaseJobHandler<
   SiteBuildJobData,
   SiteBuildJobResult
 > {
+  private sendMessage: ServicePluginContext["messaging"]["send"];
+  private cfg: SiteBuildJobHandlerConfig;
   constructor(
     logger: Logger,
-    private sendMessage: ServicePluginContext["messaging"]["send"],
-    private cfg: SiteBuildJobHandlerConfig,
+    sendMessage: ServicePluginContext["messaging"]["send"],
+    cfg: SiteBuildJobHandlerConfig,
   ) {
     super(logger, {
       schema: siteBuildJobSchema,
       jobTypeName: "site-build",
     });
+    this.sendMessage = sendMessage;
+    this.cfg = cfg;
   }
 
   async process(

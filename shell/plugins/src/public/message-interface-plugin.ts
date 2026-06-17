@@ -44,14 +44,16 @@ class MessageInterfacePluginDelegate<
   TConfig,
   TTrackingInfo extends MessageJobTrackingInfo,
 > extends RuntimeMessageInterfacePlugin<TConfig, TTrackingInfo> {
+  private readonly hooks: MessageInterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
     config: Partial<TConfig>,
     configSchema: z.ZodTypeAny,
-    private readonly hooks: MessageInterfacePluginHooks,
+    hooks: MessageInterfacePluginHooks,
   ) {
     super(id, packageJson, config, configSchema);
+    this.hooks = hooks;
   }
 
   protected override async onRegister(

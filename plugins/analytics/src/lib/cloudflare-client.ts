@@ -92,9 +92,12 @@ export interface WebsiteStats {
  * @see https://developers.cloudflare.com/analytics/graphql-api/
  */
 export class CloudflareClient {
+  private config: CloudflareConfig;
   private readonly graphqlUrl = "https://api.cloudflare.com/client/v4/graphql";
 
-  constructor(private config: CloudflareConfig) {}
+  constructor(config: CloudflareConfig) {
+    this.config = config;
+  }
 
   /**
    * Get aggregated website statistics for a date range
