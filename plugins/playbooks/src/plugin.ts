@@ -1154,6 +1154,12 @@ If the operator names or selects a valid event label or operator action (for exa
 A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, use system_get or system_search.
 After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If the same operator message includes a concrete request with the necessary content and target details for the new state, satisfy that request in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
+Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
+Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
+Teach by doing real actions with existing tools.
+After meaningful tool actions, explain what happened and why it matters.
+Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts. Runtime evidence from those actions is attached to the active run automatically where supported.
+Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
 Completed states:
 ${completedStates || "- none"}
@@ -1190,24 +1196,8 @@ ${blockedEvents || "- none"}`,
       .join("\n");
 
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
-When a playbook run is active, use playbook_status before deciding what to do next.
-Treat playbook_status and active-playbook context as the source of truth for the current state and completed states.
-Raw playbook state IDs are for tool use only. Do not mention them to the operator; use state titles or natural-language task descriptions instead.
-Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
-Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text.
-Follow the playbook's current state instructions, operating rules, and Done When conditions.
-Do not redo completed state work or ask for evidence already captured; ask only for what is missing in the current state.
-After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state. Do not leave the operator needing to ask "what is next?".
-If the operator says yes, continue, or otherwise accepts the current playbook step, send the matching valid event instead of starting the playbook again.
-If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering.
-A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, use system_get or system_search.
-After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If the same operator message includes a concrete request with the necessary content and target details for the new state, satisfy that request in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
-When the operator gives an ambiguous continuation like "go ahead" after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
-Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
-Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
-Teach by doing real actions with existing tools.
-After meaningful tool actions, explain what happened and why it matters.
-Use existing entity tools for durable profile, site, notes, links, posts, projects, newsletters, and social drafts. Runtime evidence from those actions is attached to the active run automatically where supported.
+When active-playbook context is present, follow its current state instructions, Done When conditions, valid events, and operating guidance.
+A playbook event does not replace ordinary domain tools requested in the same operator message; if the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer.
 Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
 Configured lifecycle playbooks:
