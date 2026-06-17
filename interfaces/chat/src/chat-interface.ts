@@ -51,6 +51,7 @@ import {
   type DiscordChatAdapterConfig,
 } from "./config";
 import { ThreadRegistry } from "./thread-registry";
+import { createDiscordSubscriptionStateAdapter } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
 import { CHAT_PLATFORMS } from "./types";
 import type {
@@ -115,7 +116,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    this.app = this.createChatApp();
+    this.app = this.createChatApp(context);
     this.registerChatHandlers(this.app);
   }
 
@@ -366,7 +367,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return CHAT_PLATFORMS.find((candidate) => candidate === platform);
   }
 
-  private createChatApp(): ChatSdkApp {
+  private createChatApp(context: InterfacePluginContext): ChatSdkApp {
     const discord = this.config.adapters.discord;
     if (!discord) {
       return new Chat({
@@ -387,7 +388,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return new Chat({
       userName: this.config.userName,
       adapters: { discord: discordAdapter } satisfies ChatAdapterMap,
-      state: createMemoryState(),
+      state: createDiscordSubscriptionStateAdapter(context.runtimeState),
     });
   }
 

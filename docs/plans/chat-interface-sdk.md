@@ -14,35 +14,13 @@ Prefer **shared pure helpers in `shell/plugins/src/message-interface/`** plus in
 
 Shared candidates should be escalated when they are independent of Discord threads, browser sessions, routes, or UI components. Keep Discord-specific posting, editing, routing, gateway, and permission-context behavior in `interfaces/chat`.
 
+## Completed automated slices
+
+- Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Only `subscribe` / `unsubscribe` / `isSubscribed` are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
+
 ## Remaining work
 
-### 1. Persist Discord thread subscriptions
-
-Discord thread continuation depends on Chat SDK operational state. Today `@brains/chat` uses `createMemoryState()` at both `createChatApp` branches (`interfaces/chat/src/chat-interface.ts`), so subscribed-thread state is lost on process restart — a user may need to mention the bot again after restart before unmentioned thread follow-ups route correctly.
-
-Only **subscriptions** need to survive restart. The Chat SDK documents `subscribe(threadId)` as persistent; locks are held by live in-flight handlers (a restart should clear them, not restore stale ones), and cache/queues are transient. So the fix is narrow: persist subscriptions, keep the in-memory adapter semantics for everything else.
-
-This is not web-chat state, and it is not the operator/admin tier. It is **ephemeral operational state** owned by the [Runtime state store](./runtime-state-store.md); chat is that store's first consumer. The store (shell-owned, namespaced, local libSQL) is built in its own worktree and merged in; this plan does not design a chat-specific database.
-
-Required implementation:
-
-- Back `subscribe` / `unsubscribe` / `isSubscribed` with a namespaced subscriptions table in the runtime state store.
-- Keep `acquireLock`/`extendLock`/`releaseLock`/`forceReleaseLock`, `get`/`set`/`setIfNotExists`/`delete`, `appendToList`/`getList`, and `enqueue`/`dequeue`/`queueDepth` on the SDK memory adapter.
-- Implement the adapter's `connect()` / `disconnect()` against the store the runtime provides.
-- Wire both `createChatApp` branches to use the store-backed adapter when the runtime provides one, falling back to `createMemoryState()` when it does not.
-- Do **not** store this state in conversation/message metadata.
-
-Acceptance criteria:
-
-- Subscribed Discord threads continue routing unmentioned follow-up messages after process restart.
-- Locks/cache/queues remain in-memory; a restart does not resurrect stale locks.
-- Subscription rows are namespaced so other runtime-store consumers do not collide.
-- Tests cover store recreation to simulate restart.
-- Revisit persisting queues only if live validation shows queued-inbound-message loss across restart actually matters.
-
-Depends on the [Runtime state store](./runtime-state-store.md) landing (built in its own worktree, chat-first).
-
-### 2. Live Discord trial
+### 1. Live Discord trial
 
 Run an end-to-end Rover trial with `@brains/chat` replacing `@brains/discord`.
 
@@ -108,7 +86,7 @@ Checks:
 Blockers / rollback path:
 ```
 
-### 3. Public/external generated artifact access policy
+### 2. Public/external generated artifact access policy
 
 Trusted/anchor Discord users can receive generated image/PDF artifacts as native Discord files when the artifact resolves to a visible stored entity. Remaining policy work is only for cases where native Discord delivery is not appropriate or possible.
 
@@ -122,7 +100,7 @@ Acceptance criteria:
 - Fallback links do not expose restricted artifacts outside the intended permission scope.
 - The final policy is documented before `@brains/chat` replaces `@brains/discord`.
 
-### 4. Rover migration decision
+### 3. Rover migration decision
 
 After DB-backed Chat SDK state and live validation are complete, decide whether Rover can switch Discord implementation from `@brains/discord` to `@brains/chat`.
 

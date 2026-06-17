@@ -11,6 +11,7 @@ import type {
   GatewayListenerOptions,
 } from "../src/types";
 import type { Mock } from "bun:test";
+import type { StateAdapter } from "chat";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type HarnessAgentResponse = Awaited<ReturnType<HarnessAgentService["chat"]>>;
@@ -82,6 +83,7 @@ const createMemoryStateMock = mock(() => ({
 
 interface MockChatSdkConfig {
   adapters: ChatAdapterMap;
+  state?: StateAdapter;
   userName?: string;
 }
 
@@ -361,6 +363,13 @@ describe("ChatInterface", () => {
     expect(MockChatSdk.instances[0]?.config).toMatchObject({
       userName: "brain",
     });
+    const state = MockChatSdk.instances[0]?.config.state;
+    expect(state).toBeDefined();
+    if (!state) throw new Error("Expected Chat SDK state adapter");
+    await state.subscribe("discord:guild-123:channel-123:thread-456");
+    expect(
+      await state.isSubscribed("discord:guild-123:channel-123:thread-456"),
+    ).toBe(true);
   });
 
   it("does not create a Discord adapter or daemon when Discord is not configured", async () => {
