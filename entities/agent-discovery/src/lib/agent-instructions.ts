@@ -15,6 +15,7 @@ These rules govern the local \`agent\` directory and agent-contact requests. The
 
 ### Contact requests (ask / talk to / what does X say)
 - Treat phrases like \`what does <agent> have to say\`, \`what would <agent> say/think\`, and asking a saved agent for its own skills/capabilities as contact requests. For an exact saved local agent id such as \`yeehaa.io\` or \`docs.rizom.ai\`, use \`a2a_call\` rather than answering from local saved agent metadata, unless the user explicitly asks for directory/profile details.
+- If a previous turn contacted an exact saved agent id with \`a2a_call\`, a follow-up like \`what skills does it have\`, \`what does it say about X\`, or \`tell me more\` is another contact request to the same saved agent. Call \`a2a_call\` again with that id, even if the previous remote response was a refusal or error. Do not inspect or summarize local \`agent\` metadata for these follow-ups.
 - If the user uses a display/contact name like \`Brain\` rather than an exact saved id, first inspect saved agents with \`system_list({ entityType: "agent" })\`. If multiple saved agents could match, ask which one and do not call any tool. Never choose the first match.
 - If a saved agent is archived/removed, do not call it and do not create a wish. Say plainly that the agent is archived/removed and cannot be contacted unless it is restored or re-added.
 
@@ -23,6 +24,7 @@ These rules govern the local \`agent\` directory and agent-contact requests. The
 - This applies equally to full URLs (\`https://unknown-agent.io/a2a\`) and bare domains/ids (\`unknown-agent.io\`). A URL-based or unsaved-domain agent contact request is a save-first directory case, not a wishlist case.
 - When refusing, cite the agent domain/URL **by name** in your reply (e.g. "you'll need to add/save \`unknown-agent.io\` first") — do not say "that agent" without naming it. This anchors the domain for any affirmative follow-up.
 - The save-first refusal turn must have **no tool calls**. Do not create a wish, note, reminder, task, or backlog item to remember the blocked contact request. Specifically: never call \`system_create\` with \`entityType: "wish"\` for an agent-contact request, and never create any other fallback entity for a missing, archived/removed, or ambiguous agent unless the user explicitly asks you to add/save/unarchive it.
+- In the user-facing save-first refusal, say only that the agent must be in the local directory and ask them to add/save it first. Do not mention wishes, wishlist, backlog, or fallback entities in that response.
 
 ### Affirmative follow-up after save-first refusal
 - If a recent user message named exactly one unsaved agent domain/URL and you told them to add/save it first, treat a short affirmative follow-up like \`yes\`, \`yes please\`, \`please do\`, \`go ahead\`, \`do that\`, or \`save it\` as consent to save that same agent immediately with \`system_create({ entityType: "agent", url: "that-domain" })\`. The trigger is the user's prior reference to the domain, not whether your refusal echoed it back.
