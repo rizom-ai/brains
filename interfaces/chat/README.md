@@ -4,7 +4,7 @@ Discord Chat SDK interface for Brains.
 
 ## Status
 
-First implementation slice. Discord is the only enabled adapter in this package today. Rover, Ranger, and Relay still use `@brains/discord` until this package reaches full production parity.
+Active Discord implementation. Discord is the only enabled adapter in this package today. Rover, Ranger, and Relay still use `@brains/discord` until live Discord validation confirms this package is safe to adopt.
 
 ## Discord configuration
 
@@ -86,13 +86,13 @@ Discord source uploads use runtime upload storage and unguessable `upload-<uuid>
 - route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`;
 - route responses include both safe fallback `filename` and encoded `filename*` content-disposition parameters.
 
-Generated image/PDF artifact cards are posted as native Discord files for trusted/anchor users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as a fallback. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose restricted artifacts. Public users do not receive native protected artifact files; use signed or authenticated routes before exposing non-public generated PDFs/images outside operator-only contexts.
+Generated image/PDF artifact cards are posted as native Discord files for trusted/anchor users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as the only fallback; this package does not add signed or Discord-authenticated artifact routes. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose protected artifacts. Public users do not receive native protected artifact files or fallback links to shared/restricted generated artifacts.
 
 ## Current Discord parity coverage
 
 Covered by tests:
 
-- Discord adapter credentials and memory state wiring
+- Discord adapter credentials and subscription-state wiring
 - no Discord adapter or daemon registration when Discord is not configured
 - non-Discord Chat SDK threads ignored
 - Discord-scoped permission lookup (`discord:*`, not `chat:*`)
@@ -117,9 +117,12 @@ Covered by tests:
 - stored Discord upload download route
 - abortable direct-mode gateway loop
 
+## Runtime state policy
+
+Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Chat SDK locks, queues, caches, lists, and other operational state remain memory-backed.
+
 ## Known gaps before replacing `@brains/discord`
 
-- Chat SDK adapter state still uses memory state. If live validation shows subscribed-thread state must survive restart, add a DB-backed Chat SDK state adapter in/near the conversation service rather than local file state or conversation metadata.
-- Generated artifact delivery still needs live validation. Trusted/anchor image/PDF artifact cards can be posted as native Discord files when resolvable from stored entities; signed/authenticated routes for public or external protected artifact access are not implemented yet.
-- Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, and webhooks.
+- Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, generated artifact delivery, and webhooks.
+- Public/external access to protected generated artifacts is intentionally not implemented; fallback links are only rendered when they do not point at an out-of-scope stored artifact.
 - Shared gateway mode is not implemented here yet.

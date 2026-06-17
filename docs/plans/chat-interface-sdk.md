@@ -17,6 +17,7 @@ Shared candidates should be escalated when they are independent of Discord threa
 ## Completed automated slices
 
 - Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Only `subscribe` / `unsubscribe` / `isSubscribed` are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
+- Public/external generated artifact policy is documented in `interfaces/chat/README.md`: keep fallback links only, do not add signed or Discord-authenticated artifact routes in this slice, post native files only for trusted/anchor callers when the artifact entity is visible, and suppress fallback link/metadata for any resolved artifact that exists outside the caller's visibility scope.
 
 ## Remaining work
 
@@ -86,21 +87,7 @@ Checks:
 Blockers / rollback path:
 ```
 
-### 2. Public/external generated artifact access policy
-
-Trusted/anchor Discord users can receive generated image/PDF artifacts as native Discord files when the artifact resolves to a visible stored entity. Remaining policy work is only for cases where native Discord delivery is not appropriate or possible.
-
-Required decision:
-
-- Keep fallback links only, or add signed/authenticated routes for public/external generated artifact access.
-
-Acceptance criteria:
-
-- Non-operator/public users cannot fetch protected artifacts.
-- Fallback links do not expose restricted artifacts outside the intended permission scope.
-- The final policy is documented before `@brains/chat` replaces `@brains/discord`.
-
-### 3. Rover migration decision
+### 2. Rover migration decision
 
 After DB-backed Chat SDK state and live validation are complete, decide whether Rover can switch Discord implementation from `@brains/discord` to `@brains/chat`.
 
@@ -134,5 +121,4 @@ This plan is complete when:
 
 - DB-backed Chat SDK state preserves subscribed Discord thread routing after restart.
 - Live Discord validation passes.
-- Generated artifact fallback policy is documented.
 - Rover can safely switch to `@brains/chat`, or the remaining blocker is explicit and tracked.

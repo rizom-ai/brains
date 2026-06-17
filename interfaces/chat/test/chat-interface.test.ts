@@ -345,7 +345,7 @@ describe("ChatInterface", () => {
     harness.reset();
   });
 
-  it("creates a Chat SDK app with Discord adapter credentials and memory state", async () => {
+  it("creates a Chat SDK app with Discord adapter credentials and subscription state", async () => {
     const plugin = createPlugin();
 
     await harness.installPlugin(plugin);
@@ -2365,6 +2365,53 @@ describe("ChatInterface", () => {
             source: {
               entityType: "document",
               entityId: "deck-public-denied",
+            },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the deck.",
+        "**Artifact:** Not available at your access level.",
+      ].join("\n\n"),
+    );
+  });
+
+  it("suppresses shared artifact fallback links for public Discord users", async () => {
+    harness.addEntities([
+      {
+        id: "deck-public-shared-denied",
+        entityType: "document",
+        content: `data:application/pdf;base64,${Buffer.from("%PDF-1.4 test").toString("base64")}`,
+        metadata: { filename: "shared-denied-deck.pdf" },
+        visibility: "shared",
+      },
+    ]);
+    agentService.chat.mockResolvedValueOnce({
+      text: "Generated the deck.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Shared denied deck",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/chat/attachments/document?id=deck-public-shared-denied",
+            downloadUrl:
+              "/api/chat/attachments/document?id=deck-public-shared-denied&download=1",
+            filename: "shared-denied-deck.pdf",
+            source: {
+              entityType: "document",
+              entityId: "deck-public-shared-denied",
             },
           },
         },
