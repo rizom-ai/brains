@@ -75,8 +75,14 @@ root typecheck passes without code changes. Another TypeScript strictness
 slice enabled `verbatimModuleSyntax`; root typecheck passes without code
 changes. Another TypeScript strictness slice enabled `erasableSyntaxOnly`
 and removed runtime TypeScript-only syntax such as enums and constructor
-parameter properties; forced root typecheck and lint pass. Remaining
-outdated entries are deliberate holds/migrations from Phase 2b+.
+parameter properties; forced root typecheck and lint pass. A follow-up
+`isolatedDeclarations` probe was reverted on 2026-06-17: the first pass
+made exported Zod schemas more maintenance-hostile by spelling large Zod
+internal object shapes in public annotations. Do not continue that direction.
+Sequence Zod 4 before retrying `isolatedDeclarations`, then treat declaration
+strictness as public API-boundary cleanup rather than schema-internal type
+annotation work. Remaining outdated entries are deliberate holds/migrations
+from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -332,12 +338,14 @@ Done in worktree:
   root typecheck passes.
 - `erasableSyntaxOnly` is now enabled. Runtime TypeScript-only syntax was
   removed by replacing enums with const-object unions and expanding
-  constructor parameter properties into explicit fields/assignments;
-  exported schemas touched for declaration checks now use domain types where
-  safe and Zod object annotations where schema composition requires methods
-  like `.extend()`. Forced root typecheck and lint pass.
-- `isolatedDeclarations` was probed and remains a follow-up strictness slice;
-  it requires broad exported-schema/object annotations across many packages.
+  constructor parameter properties into explicit fields/assignments. Forced
+  root typecheck and lint pass.
+- `isolatedDeclarations` was probed and explicitly deferred. The reverted
+  probe showed that enabling it directly on the current Zod 3-heavy public
+  API pushes the repo toward broad, ugly annotations of Zod internals. That
+  is the wrong direction. Do not use broad codemods, casts, blanket `as const`,
+  invented domain literals, or giant `z.ZodObject<{ ... }>` annotations as the
+  migration strategy.
 
 ### Phase 4 — zod 4 migration
 
@@ -350,6 +358,24 @@ customization, record/enum typing — `conversation-service` and the
 entity schemas use passthrough deliberately). Use the `zod/v4` subpath
 for incremental, package-by-package migration behind the
 `@brains/utils` re-export; migrate leaf packages first, contracts last.
+
+### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
+
+Revisit `isolatedDeclarations` only after the Zod 4 migration has settled.
+The objective is clean public declarations, not making every exported runtime
+schema expose its inferred implementation type. Preferred fixes, in order:
+
+1. Stop exporting raw schemas that are not public API; keep them private and
+   export typed parser/validator functions instead.
+2. For schemas that are intentionally public and parse-only, annotate with a
+   domain type such as `z.ZodType<DomainType, ...>` when it preserves behavior.
+3. For schemas that callers compose with `.extend()`, `.merge()`, `.shape`,
+   etc., treat that as an API design question: either expose an intentional
+   schema factory/composition helper, or keep composition inside the owning
+   package. Avoid publishing hand-written Zod-internal shape types as the
+   solution.
+4. Enable and validate one package at a time, with visible manual edits and
+   rationale.
 
 ## Cadence policy
 
