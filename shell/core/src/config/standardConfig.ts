@@ -10,6 +10,7 @@ export interface StandardConfig {
   database: DbConfig;
   jobQueueDatabase: DbConfig;
   conversationDatabase: DbConfig;
+  runtimeStateDatabase: DbConfig;
   embeddingDatabase: DbConfig;
   embedding: {
     cacheDir: string;
@@ -36,6 +37,9 @@ export function createStandardConfig(paths: StandardPaths): StandardConfig {
     },
     conversationDatabase: {
       url: `file:${paths.dataDir}/conversations.db`,
+    },
+    runtimeStateDatabase: {
+      url: `file:${paths.dataDir}/runtime-state.db`,
     },
     embeddingDatabase: {
       url: `file:${paths.dataDir}/embeddings.db`,

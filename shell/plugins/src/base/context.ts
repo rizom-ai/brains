@@ -21,6 +21,7 @@ import type { AppInfo } from "../contracts/app-info";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
@@ -250,6 +251,13 @@ export interface BasePluginContext {
   readonly uploads: IRuntimeUploadsNamespace;
 
   // ============================================================================
+  // Runtime State
+  // ============================================================================
+
+  /** Disposable, secret-free operational state namespace. */
+  readonly runtimeState: IRuntimeStateNamespace;
+
+  // ============================================================================
   // Conversations (Read-Only)
   // ============================================================================
 
@@ -341,6 +349,7 @@ export function createBasePluginContext(
   const getAppInfo = createAppInfoGetter(shell);
   const attachments = shell.getAttachmentRegistry();
   const uploads = shell.getRuntimeUploadRegistry();
+  const runtimeState = shell.getRuntimeState();
 
   return {
     pluginId,
@@ -369,6 +378,8 @@ export function createBasePluginContext(
     attachments,
 
     uploads,
+
+    runtimeState,
 
     conversations: createConversationsNamespace(shell),
 

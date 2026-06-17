@@ -22,6 +22,7 @@ import {
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import { AttachmentRegistry, PluginManager } from "@brains/plugins";
+import { RuntimeStateService } from "@brains/runtime-state";
 import { RenderService, TemplateRegistry } from "@brains/templates";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -47,4 +48,5 @@ export function resetCoreServiceSingletons(): void {
   JobQueueWorker.resetInstance();
   JobProgressMonitor.resetInstance();
   AttachmentRegistry.resetInstance();
+  RuntimeStateService.resetInstance();
 }

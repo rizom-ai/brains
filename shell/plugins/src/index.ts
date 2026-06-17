@@ -87,6 +87,12 @@ export type {
   IInsightsNamespace,
 } from "./base/context";
 export type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
+export type {
   InterfacePluginContext,
   IPermissionsNamespace,
   IDaemonsNamespace,

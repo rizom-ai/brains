@@ -45,6 +45,7 @@ describe("standard shell paths", () => {
     expect(config.database.url).toBe("file:/data/brain.db");
     expect(config.jobQueueDatabase.url).toBe("file:/data/brain-jobs.db");
     expect(config.conversationDatabase.url).toBe("file:/data/conversations.db");
+    expect(config.runtimeStateDatabase.url).toBe("file:/data/runtime-state.db");
     expect(config.embeddingDatabase.url).toBe("file:/data/embeddings.db");
   });
 
@@ -53,6 +54,7 @@ describe("standard shell paths", () => {
       DATABASE_AUTH_TOKEN: "db-secret",
       JOB_QUEUE_DATABASE_AUTH_TOKEN: "jobs-secret",
       CONVERSATION_DATABASE_AUTH_TOKEN: "conversation-secret",
+      RUNTIME_STATE_DATABASE_AUTH_TOKEN: "runtime-state-secret",
     });
 
     const config = getStandardConfig();
@@ -61,5 +63,6 @@ describe("standard shell paths", () => {
     expect(config.embeddingDatabase.authToken).toBeUndefined();
     expect(config.jobQueueDatabase.authToken).toBeUndefined();
     expect(config.conversationDatabase.authToken).toBeUndefined();
+    expect(config.runtimeStateDatabase.authToken).toBeUndefined();
   });
 });
