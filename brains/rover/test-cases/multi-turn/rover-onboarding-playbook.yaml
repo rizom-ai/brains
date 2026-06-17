@@ -11,6 +11,7 @@ tags:
   - onboarding
   - playbooks
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: "Start the Rover onboarding playbook."
@@ -106,8 +107,8 @@ turns:
             - system_search
           shouldBeCalled: true
       responseContains:
-        - post
-        - social
+        - note
+        - outline
       responseNotContains:
         - "another first"
         - "share a first"
@@ -121,13 +122,13 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Do that as a post outline."
+  - userMessage: "Do that as an outline."
     successCriteria:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: post
+            entityType: base
       responseContains:
         - "Confirmation required"
       responseNotContains:
@@ -138,7 +139,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Approve creating the post outline."
+  - userMessage: "Approve creating the outline."
     confirmPendingAction: true
     successCriteria:
       expectedTools:

@@ -90,7 +90,7 @@ To do:
 - If the operator chooses the Show me action in chat, send the Show me event and retrieve the saved note with system_get or system_search before saying you found it; do not rely only on conversation memory.
 - If the operator says they will ask, explain they can search their own knowledge in natural language, then continue to Make something.
 - Do not stop after retrieval; end by offering the transformation options from Make something.
-- When offering the next transformation, name concrete options such as blog post outline, social draft, and newsletter idea; do not end with only a generic statement that drafts are possible.
+- When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline, short draft, or reusable brief; store the result as a note.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 
 Choices:
@@ -100,19 +100,19 @@ Choices:
 
 ### Make something
 
-Say: Let’s turn your raw knowledge into something useful — a blog post outline, a social draft, a newsletter idea, a topic suggestion, or a project angle. Which would you like?
+Say: Let’s turn a note into something useful — an outline, a short draft, or a reusable brief. Which would you like?
 
 To do:
 
-- Offer two or three transformations: blog post outline, social draft, newsletter idea, topic suggestion, or project angle.
-- Create a draft entity only after the operator chooses one.
-- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn for the chosen draft type.
+- Offer two or three transformations in the manual onboarding style: outline, short draft, or reusable brief.
+- Create the chosen artifact only after the operator chooses one; in core, store it as a base note entity.
+- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "base" for the chosen draft artifact.
 - Do not only say you will create the draft; the tool call is the action that should produce the approval request.
 - A response to "Do that as..." or another transformation choice must include system_create; a search-only, retrieval-only, or explanation-only response is not sufficient.
-- Do not write the outline, social draft, newsletter idea, topic suggestion, or project angle inline in chat before calling system_create; if the operator says "Do that as a post outline", call system_create for a post outline instead of composing the outline yourself.
-- If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat the draft as ready to review yet.
-- After the draft is ready, show it or offer to review it before moving on.
-- Explain how Rover helps move from raw thinking to public output without leaving the brain.
+- Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "base" for an outline instead of composing it yourself.
+- If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.
+- After the draft artifact is ready, show it or offer to review it before moving on.
+- Explain how Rover helps move from raw thinking to reusable knowledge and publishing-ready drafts without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
 Done when:
@@ -131,7 +131,7 @@ To do:
 ## Next Prompts
 
 - Save this idea as a note...
-- Turn my latest note into a post outline.
+- Turn my latest note into an outline.
 - What topics am I circling lately?
 - Draft a LinkedIn post from this essay.
 - Show me what is ready to publish.

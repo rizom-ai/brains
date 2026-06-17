@@ -97,7 +97,7 @@ describe("Rover onboarding playbook seed", () => {
       "Do not stop after retrieval; end by offering the transformation options from Make something.",
     );
     expect(seeItComeBack?.instructions).toContain(
-      "When offering the next transformation, name concrete options such as blog post outline, social draft, and newsletter idea; do not end with only a generic statement that drafts are possible.",
+      "When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline, short draft, or reusable brief; store the result as a note.",
     );
     expect(seeItComeBack?.instructions).toContain(
       "If the operator chooses the Show me action in chat, send the Show me event and retrieve the saved note with system_get or system_search before saying you found it; do not rely only on conversation memory.",
@@ -120,16 +120,16 @@ describe("Rover onboarding playbook seed", () => {
       },
     ]);
     expect(makeSomething?.instructions).toContain(
-      'When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn for the chosen draft type.',
+      'When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "base" for the chosen draft artifact.',
     );
     expect(makeSomething?.instructions).toContain(
       "Do not only say you will create the draft; the tool call is the action that should produce the approval request.",
     );
     expect(makeSomething?.instructions).toContain(
-      'Do not write the outline, social draft, newsletter idea, topic suggestion, or project angle inline in chat before calling system_create; if the operator says "Do that as a post outline", call system_create for a post outline instead of composing the outline yourself.',
+      'Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "base" for an outline instead of composing it yourself.',
     );
     expect(makeSomething?.instructions).toContain(
-      "If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat the draft as ready to review yet.",
+      "If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.",
     );
     expect(makeSomething?.doneWhen).toEqual([
       "A transformation draft is ready to review.",
