@@ -277,6 +277,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should stop after one lookup when write tools are unavailable", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain(
+      "If the requested write/action tool is unavailable to the current caller, do not loop through read tools",
+    );
+    expect(instructions).toContain(
+      "after at most one target lookup, state that the caller cannot perform that action with current permissions",
+    );
+  });
+
   it("should teach the model to verify confirmed update state with system_get instead of looping", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
