@@ -23,7 +23,7 @@
         "prettier": "^3.8.4",
         "syncpack": "^15.3.2",
         "turbo": "^2.9.18",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "brains/ranger": {
@@ -53,7 +53,7 @@
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "brains/relay": {
@@ -98,7 +98,7 @@
         "@brains/ai-evaluation": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "brains/rover": {
@@ -146,7 +146,7 @@
       "devDependencies": {
         "@brains/ai-evaluation": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/agent-discovery": {
@@ -169,7 +169,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/assessment": {
@@ -188,7 +188,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/blog": {
@@ -210,7 +210,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/conversation-memory": {
@@ -233,7 +233,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.19.43",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/decks": {
@@ -258,7 +258,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/doc": {
@@ -275,7 +275,7 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/document": {
@@ -291,7 +291,7 @@
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/image": {
@@ -309,7 +309,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/link": {
@@ -329,7 +329,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/newsletter": {
@@ -350,7 +350,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/note": {
@@ -370,7 +370,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/portfolio": {
@@ -392,7 +392,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/products": {
@@ -414,7 +414,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/prompt": {
@@ -428,7 +428,7 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/rizom-ecosystem": {
@@ -446,7 +446,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/series": {
@@ -468,7 +468,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/site-info": {
@@ -487,7 +487,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/social-media": {
@@ -505,7 +505,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/topics": {
@@ -524,7 +524,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "entities/wishlist": {
@@ -540,7 +540,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "interfaces/a2a": {
@@ -556,7 +556,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "interfaces/chat-repl": {
@@ -576,7 +576,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/react": "^19.2.17",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "interfaces/discord": {
@@ -610,7 +610,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/cors": "^2.8.17",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "interfaces/web-chat": {
@@ -644,7 +644,7 @@
         "@types/bun": "^1.3.14",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.0.3",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
         "vite": "^8.0.16",
       },
     },
@@ -663,7 +663,7 @@
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "packages/brain-cli": {
@@ -703,7 +703,7 @@
         "@types/bun": "^1.3.14",
         "rollup": "^4.62.0",
         "rollup-plugin-dts": "^6.4.1",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
       "optionalDependencies": {
         "@bitwarden/sdk-napi": "^1.0.0",
@@ -730,7 +730,7 @@
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/analytics": {
@@ -747,7 +747,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/atproto": {
@@ -765,7 +765,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/atproto-registry": {
@@ -783,7 +783,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/buttondown": {
@@ -800,7 +800,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/cms": {
@@ -819,7 +819,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/content-pipeline": {
@@ -836,7 +836,7 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/dashboard": {
@@ -856,7 +856,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/directory-sync": {
@@ -875,7 +875,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/email-resend": {
@@ -893,7 +893,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/examples": {
@@ -906,7 +906,7 @@
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/hackmd": {
@@ -921,7 +921,7 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/newsletter": {
@@ -940,7 +940,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/notifications": {
@@ -958,7 +958,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/notion": {
@@ -973,7 +973,7 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/obsidian-vault": {
@@ -989,7 +989,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/site-builder": {
@@ -1012,7 +1012,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/site-content": {
@@ -1031,7 +1031,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/stock-photo": {
@@ -1049,7 +1049,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/atproto-contracts": {
@@ -1065,7 +1065,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/cms-config": {
@@ -1079,7 +1079,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/content-formatters": {
@@ -1098,7 +1098,7 @@
         "@types/js-yaml": "^4.0.9",
         "@types/node": "^20.19.43",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/contracts": {
@@ -1111,7 +1111,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/deploy-support": {
@@ -1124,7 +1124,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/document": {
@@ -1139,7 +1139,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.19.43",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/email-contracts": {
@@ -1152,7 +1152,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/eslint-config": {
@@ -1179,7 +1179,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/mcp-bridge": {
@@ -1195,7 +1195,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/media-page-composer": {
@@ -1213,7 +1213,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/media-renderer": {
@@ -1226,7 +1226,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.19.43",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/product-site-content": {
@@ -1245,7 +1245,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/rizom-ui": {
@@ -1261,7 +1261,7 @@
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
         "preact": "^10.27.2",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
       "peerDependencies": {
         "preact": "^10.27.2",
@@ -1277,7 +1277,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/site-engine": {
@@ -1300,7 +1300,7 @@
         "@types/bun": "^1.3.14",
         "@types/sharp": "^0.32.0",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/test-utils": {
@@ -1320,7 +1320,7 @@
         "@types/node": "^20.19.43",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/theme-base": {
@@ -1330,7 +1330,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/theme-default": {
@@ -1343,7 +1343,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/theme-rizom": {
@@ -1357,7 +1357,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shared/typescript-config": {
@@ -1384,7 +1384,7 @@
         "postcss": "^8.5.15",
         "preact": "^10.27.2",
         "tailwindcss": "^4.3.1",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
       "peerDependencies": {
         "preact": "^10.27.2",
@@ -1409,7 +1409,7 @@
         "@types/node": "^20.19.43",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/ai-evaluation": {
@@ -1433,7 +1433,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/ai-service": {
@@ -1458,7 +1458,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/app": {
@@ -1483,7 +1483,7 @@
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
         "varlock": "^1.7.0",
       },
     },
@@ -1502,7 +1502,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/content-service": {
@@ -1521,7 +1521,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/conversation-service": {
@@ -1538,7 +1538,7 @@
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
         "drizzle-kit": "^0.31.10",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/core": {
@@ -1565,7 +1565,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/entity-service": {
@@ -1585,7 +1585,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "drizzle-kit": "^0.31.10",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/identity-service": {
@@ -1599,7 +1599,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/job-queue": {
@@ -1619,7 +1619,7 @@
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
         "drizzle-kit": "^0.31.10",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/mcp-service": {
@@ -1636,7 +1636,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "@types/node": "^20.19.43",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/messaging-service": {
@@ -1651,7 +1651,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/plugins": {
@@ -1675,7 +1675,7 @@
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
         "ts-pattern": "^5.0.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "shell/templates": {
@@ -1689,7 +1689,7 @@
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
         "bun-types": "^1.3.14",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "sites/default": {
@@ -1702,7 +1702,7 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "sites/personal": {
@@ -1726,7 +1726,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "sites/professional": {
@@ -1751,7 +1751,7 @@
         "@types/bun": "^1.3.14",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
     "sites/rizom": {
@@ -1771,7 +1771,7 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
         "eslint": "^10.5.0",
-        "typescript": "^5.3.3",
+        "typescript": "^6.0.3",
       },
     },
   },
@@ -3940,7 +3940,7 @@
 
     "type-is": ["type-is@2.0.1", "", { "dependencies": { "content-type": "^1.0.5", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw=="],
 
-    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "undici": ["undici@6.24.1", "", {}, "sha512-sC+b0tB1whOCzbtlx20fx3WgCXwkW627p4EA9uM+/tNNPkSS+eSEld6pAs9nDv7WbY1UUljBMYPtu9BCOrCWKA=="],
 

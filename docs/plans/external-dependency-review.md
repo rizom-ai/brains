@@ -65,8 +65,11 @@ typecheck pass. Another ESLint tightening slice promoted
 `@typescript-eslint/prefer-nullish-coalescing` to error; forced root lint
 passes. Another ESLint tightening slice promoted
 `@typescript-eslint/no-unnecessary-condition` to error; forced root lint
-passes. Remaining outdated entries are deliberate holds/migrations from
-Phase 2b+.
+passes. The TypeScript tooling-major slice updated `typescript` 5.9 →
+6.0 across synced workspace devDependency ranges, acknowledged the TS6
+`baseUrl` deprecation window, and made the shared Bun ambient types
+explicit; root typecheck passes. Remaining outdated entries are deliberate
+holds/migrations from Phase 2b+.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
@@ -273,11 +276,6 @@ Done in worktree:
 
 ### Phase 3 — tooling majors, one slice each
 
-In rough order of value:
-
-1. `typescript` 5.9 → 6.0 — last, after lint tooling is stable, since
-   it can surface new diagnostics repo-wide.
-
 Done in worktree:
 
 - `@changesets/changelog-github` 0.6 → 0.7; config remains unchanged and
@@ -315,6 +313,10 @@ Done in worktree:
 - `@typescript-eslint/no-unnecessary-condition` is now an error. No code
   changes were needed after the previous zero-warning cleanup; forced full
   repo lint passes.
+- `typescript` 5.9 → 6.0.3 across synced workspace devDependency ranges;
+  root config now explicitly includes Bun ambient types and acknowledges
+  the TS6 `baseUrl` deprecation window until path/baseUrl config is
+  migrated before TypeScript 7. Root typecheck passes.
 
 ### Phase 4 — zod 4 migration
 

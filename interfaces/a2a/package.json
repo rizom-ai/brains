@@ -25,6 +25,6 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
   }
 }

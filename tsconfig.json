@@ -9,6 +9,7 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
+    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -25,6 +26,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
+    "types": ["bun-types"],
     "module": "ESNext",
     "lib": ["ES2022"]
   },
