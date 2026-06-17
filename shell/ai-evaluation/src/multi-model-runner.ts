@@ -94,6 +94,7 @@ async function runSingleModelIteration(
 
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
+    config: options.config,
     cloneData: options.cloneData,
     suffix: model.replace(/[^a-z0-9-]/gi, "-"),
   });

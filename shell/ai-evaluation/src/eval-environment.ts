@@ -7,6 +7,7 @@ import type { EvalHandlerRegistry } from "./eval-handler-registry";
 
 export interface PrepareEvalEnvironmentOptions {
   brainModelPath?: string | undefined;
+  config?: AppConfig | undefined;
   cloneData?: boolean;
   suffix?: string;
 }
@@ -25,14 +26,14 @@ export interface BootEvalAppOptions {
 export function prepareEvalEnvironment(
   options: PrepareEvalEnvironmentOptions = {},
 ): string {
-  const { brainModelPath, cloneData = false, suffix } = options;
+  const { brainModelPath, config, cloneData = false, suffix } = options;
   const evalDbBase = `/tmp/brain-eval-${Date.now()}${suffix ? `-${suffix}` : ""}`;
 
   if (cloneData) {
     cloneEvaluationData(evalDbBase);
   }
 
-  copyEvaluationContent(evalDbBase, brainModelPath);
+  copyEvaluationContent(evalDbBase, brainModelPath, config);
   createEvalGitRemote(evalDbBase);
 
   return evalDbBase;
@@ -88,9 +89,13 @@ function cloneEvaluationData(evalDbBase: string): void {
 function copyEvaluationContent(
   evalDbBase: string,
   brainModelPath: string | undefined,
+  config: AppConfig | undefined,
 ): void {
   const evalDataDir = `${evalDbBase}-data`;
-  const contentDir = findEvaluationContentDirectory(brainModelPath);
+  const contentDir = findEvaluationContentDirectory(
+    brainModelPath,
+    getConfiguredSeedContentPath(config),
+  );
   if (!contentDir) return;
 
   mkdirSync(evalDataDir, { recursive: true });
@@ -109,14 +114,34 @@ function copyEvaluationContent(
 
 function findEvaluationContentDirectory(
   brainModelPath: string | undefined,
+  configuredSeedContentPath: string | undefined,
 ): string | undefined {
+  const configuredDirs = configuredSeedContentPath
+    ? [
+        resolvePath(process.cwd(), configuredSeedContentPath),
+        ...(brainModelPath
+          ? [resolvePath(brainModelPath, configuredSeedContentPath)]
+          : []),
+      ]
+    : [];
   const candidateDirs = [
+    ...configuredDirs,
     resolvePath(process.cwd(), "eval-content"),
     ...(brainModelPath ? [resolvePath(brainModelPath, "eval-content")] : []),
     resolvePath(process.cwd(), "seed-content"),
   ];
 
   return candidateDirs.find((directory) => existsSync(directory));
+}
+
+function getConfiguredSeedContentPath(
+  config: AppConfig | undefined,
+): string | undefined {
+  const directorySync = config?.plugins?.find(
+    (plugin) => plugin.id === "directory-sync",
+  ) as { config?: { seedContentPath?: unknown } } | undefined;
+  const seedContentPath = directorySync?.config?.seedContentPath;
+  return typeof seedContentPath === "string" ? seedContentPath : undefined;
 }
 
 function createEvalGitRemote(evalDbBase: string): void {

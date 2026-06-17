@@ -241,11 +241,15 @@ export default defineBrain({
     [
       "directory-sync",
       directorySync,
-      {
+      (_env, context): PluginConfig => ({
         seedContent: true,
-        seedContentPath: join(import.meta.dir, "..", "seed-content"),
+        seedContentPath: join(
+          import.meta.dir,
+          "..",
+          context.preset === "core" ? "seed-content-core" : "seed-content",
+        ),
         initialSync: true,
-      },
+      }),
     ],
     ["analytics", analyticsPlugin, {}],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],

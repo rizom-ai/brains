@@ -3,7 +3,7 @@ preset: core
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-core
     autoSync: true
     initialSync: true
     git:

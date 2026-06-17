@@ -3,6 +3,30 @@ import { describe, expect, it } from "bun:test";
 import { playbookAdapter } from "@brains/playbook";
 
 describe("Rover onboarding playbook seed", () => {
+  it("keeps core and default onboarding seed playbooks aligned", async () => {
+    const defaultSeed = await readFile(
+      new URL("../seed-content/playbook/rover-onboarding.md", import.meta.url),
+      "utf8",
+    );
+    const coreSeed = await readFile(
+      new URL(
+        "../seed-content-core/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const coreEvalSeed = await readFile(
+      new URL(
+        "../eval-content-core/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(coreSeed).toBe(defaultSeed);
+    expect(coreEvalSeed).toBe(defaultSeed);
+  });
+
   it("compiles readable steps into gated completion and authored choices", async () => {
     const seedMarkdown = await readFile(
       new URL("../seed-content/playbook/rover-onboarding.md", import.meta.url),

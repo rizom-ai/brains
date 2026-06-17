@@ -30,6 +30,7 @@ export async function runSingleModelEvaluation(
 ): Promise<void> {
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
+    config: options.config,
     cloneData: options.cloneData,
   });
   if (options.cloneData) console.log("Cloned data for eval");

@@ -107,7 +107,6 @@ turns:
             - system_search
           shouldBeCalled: true
       responseContains:
-        - note
         - outline
       responseNotContains:
         - "another first"

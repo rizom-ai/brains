@@ -62,16 +62,11 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
  *    then apply add/remove
  * 2. If no presets: all IDs are active
  */
-function resolveActiveIds(
+function resolveActivePresetName(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
-): Set<string> | null {
-  const allIds = new Set([
-    ...definition.capabilities.map(([id]) => id),
-    ...definition.interfaces.map(([id]) => id),
-  ]);
-
-  if (!definition.presets) return null;
+): PresetName | undefined {
+  if (!definition.presets) return undefined;
 
   const presetName: PresetName =
     overrides?.preset ?? definition.defaultPreset ?? "default";
@@ -83,7 +78,22 @@ function resolveActiveIds(
     );
   }
 
-  const activeIds = new Set(preset);
+  return presetName;
+}
+
+function resolveActiveIds(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): Set<string> | null {
+  const allIds = new Set([
+    ...definition.capabilities.map(([id]) => id),
+    ...definition.interfaces.map(([id]) => id),
+  ]);
+
+  const presetName = resolveActivePresetName(definition, overrides);
+  if (!definition.presets || !presetName) return null;
+
+  const activeIds = new Set(definition.presets[presetName]);
 
   // Eval mode: remove plugins with external side effects
   if (overrides?.mode === "eval" && definition.evalDisable) {
@@ -253,6 +263,7 @@ function instantiateCapabilities(
   definition: BrainDefinition,
   env: BrainEnvironment,
   activeIds: ActiveIds,
+  activePreset: PresetName | undefined,
   pluginOverrides: PluginOverrides,
   logger?: Logger,
 ): Plugin[] {
@@ -262,7 +273,9 @@ function instantiateCapabilities(
     if (!isActive(activeIds, id)) continue;
 
     const baseConfig =
-      typeof config === "function" ? config(env) : (config ?? {});
+      typeof config === "function"
+        ? config(env, { ...(activePreset ? { preset: activePreset } : {}) })
+        : (config ?? {});
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(baseConfig, override) : baseConfig;
     try {
@@ -434,6 +447,7 @@ export function resolve(
   overrides?: Omit<InstanceOverrides, "brain">,
   logger?: Logger,
 ): AppConfig {
+  const activePreset = resolveActivePresetName(definition, overrides);
   const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(
     getPluginConfigOverrides(overrides?.plugins),
@@ -474,6 +488,7 @@ export function resolve(
       definition,
       env,
       activeIds,
+      activePreset,
       pluginOverrides,
       logger,
     ),

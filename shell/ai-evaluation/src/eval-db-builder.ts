@@ -17,6 +17,7 @@ export async function buildEvalDatabase(
 ): Promise<void> {
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,
+    config: options.config,
     cloneData: options.cloneData,
     suffix: "build-db",
   });

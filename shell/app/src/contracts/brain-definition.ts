@@ -15,9 +15,13 @@ export interface Plugin {
   requiresDaemonStartup?(): boolean;
 }
 
+export interface CapabilityContext {
+  preset?: PresetName;
+}
+
 export type CapabilityConfig =
   | PluginConfig
-  | ((env: BrainEnvironment) => PluginConfig)
+  | ((env: BrainEnvironment, context: CapabilityContext) => PluginConfig)
   | undefined;
 
 export type PluginFactory = (config: PluginConfig) => Plugin | Plugin[];

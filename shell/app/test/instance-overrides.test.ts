@@ -2218,6 +2218,31 @@ describe("resolve with presets", () => {
     expect(pluginIds).not.toContain("blog");
   });
 
+  test("should pass active preset to capability config callbacks", () => {
+    const [systemFactory, configs] = createMockFactory("system");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        core: ["system"],
+        default: ["system"],
+      },
+      capabilities: [
+        [
+          "system",
+          systemFactory,
+          (_env, context): PluginConfig => ({ seedPath: context.preset }),
+        ],
+      ],
+      interfaces: [],
+    });
+
+    resolve(def, {}, { preset: "core" });
+
+    expect(configs).toEqual([{ seedPath: "core" }]);
+  });
+
   test("should add IDs on top of preset", () => {
     const [systemFactory] = createMockFactory("system");
     const [noteFactory] = createMockFactory("note");
