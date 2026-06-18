@@ -398,7 +398,9 @@ Incremental migration progress:
   failures at the schema boundary.
 - Audited schema-owned service plugin config inputs for `dashboard` and
   `content-pipeline`; runtime config uses `z.output<typeof schema>`, while
-  constructors and factories accept `z.input<typeof schema>`.
+  constructors and factories accept `z.input<typeof schema>`. Nested
+  content-pipeline publish registration payloads use schema input, while parsed
+  publish/generation configs use schema output.
 - Audited defaulted entity plugin config inputs for `blog`, `note`, and
   `products`; their parsed configs use `z.output<typeof schema>` and caller
   inputs use `z.input<typeof schema>`.

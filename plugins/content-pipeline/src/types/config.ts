@@ -21,7 +21,8 @@ export const publishConfigSchema = z
     enabled: z.boolean().optional(),
   })
   .strict();
-export type PublishConfig = z.infer<typeof publishConfigSchema>;
+export type PublishConfig = z.output<typeof publishConfigSchema>;
+export type PublishConfigInput = z.input<typeof publishConfigSchema>;
 
 /**
  * Default configuration values
@@ -70,7 +71,10 @@ export const generationConditionSchema = z.object({
   sourceEntityType: z.string().optional(),
 });
 
-export type GenerationCondition = z.infer<typeof generationConditionSchema>;
+export type GenerationCondition = z.output<typeof generationConditionSchema>;
+export type GenerationConditionInput = z.input<
+  typeof generationConditionSchema
+>;
 
 /**
  * Plugin configuration schema
