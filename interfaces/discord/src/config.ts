@@ -29,4 +29,13 @@ export const discordConfigSchema = z.object({
   captureUrlEmoji: z.string().default("🔖"),
 });
 
-export type DiscordConfig = z.infer<typeof discordConfigSchema>;
+export type DiscordConfig = z.output<typeof discordConfigSchema>;
+export type DiscordConfigInput = z.input<typeof discordConfigSchema>;
+
+/**
+ * Raw config passed by the brain model resolver after env/default config and
+ * brain.yaml plugin overrides have been merged. Required secrets such as
+ * botToken may be supplied by that dynamic merge, so the constructor accepts
+ * this pre-parse framework boundary and lets the schema validate it.
+ */
+export type DiscordConstructorConfig = Record<string, unknown>;

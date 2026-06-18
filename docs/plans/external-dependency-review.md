@@ -423,6 +423,9 @@ Incremental migration progress:
   named `ShellConfigInput` pre-parse contract.
 - Added a named `AppConfigInput` caller contract for `App.create`/`App.run`
   instead of exposing raw `Partial<AppConfig>` at that boundary.
+- Audited Discord by deriving runtime/direct schema input types and replacing
+  `Partial<DiscordConfig>` with an explicit raw constructor config boundary for
+  the post-merge brain model resolver path.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

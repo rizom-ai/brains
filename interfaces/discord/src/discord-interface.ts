@@ -19,7 +19,7 @@ import {
   type Message,
 } from "discord.js";
 import { discordConfigSchema } from "./config";
-import type { DiscordConfig } from "./config";
+import type { DiscordConfig, DiscordConstructorConfig } from "./config";
 import packageJson from "../package.json";
 
 const DISCORD_MAX_LENGTH = 2000;
@@ -71,7 +71,7 @@ export interface DiscordDeps {
  */
 export class DiscordInterface extends MessageInterfacePlugin<
   DiscordConfig,
-  Partial<DiscordConfig>
+  DiscordConstructorConfig
 > {
   declare protected config: DiscordConfig;
   private client: Client | null = null;
@@ -80,7 +80,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
   private pendingConfirmations = new Map<string, Set<string>>();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
-  constructor(config: Partial<DiscordConfig>, deps: DiscordDeps = {}) {
+  constructor(config: DiscordConstructorConfig, deps: DiscordDeps = {}) {
     super("discord", packageJson, config, discordConfigSchema);
     this.fetchText = deps.fetchText ?? fetchAsText;
   }
