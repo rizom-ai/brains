@@ -299,6 +299,16 @@ function createSentMessage(id = "sent-123"): MockSentMessage {
   return sentMessage;
 }
 
+function createFetchStub(
+  originalFetch: typeof fetch,
+  handler: (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1],
+  ) => Promise<Response>,
+): typeof fetch {
+  return Object.assign(handler, { preconnect: originalFetch.preconnect });
+}
+
 function createThread(overrides: Partial<MockThread> = {}): MockThread {
   return {
     id: "discord:guild-123:channel-123:thread-456",
@@ -379,17 +389,23 @@ function createPlugin(
 describe("ChatInterface", () => {
   let harness: PluginTestHarness<ChatInterfaceInstance>;
   let agentService: MockAgentService;
+  let originalFetch: typeof fetch;
 
   beforeEach(() => {
     MockChatSdk.instances = [];
     createDiscordAdapterMock.mockClear();
     createMemoryStateMock.mockClear();
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
+      Promise.resolve(new Response("{}")),
+    );
     agentService = createAgentService();
     harness = createPluginHarness<ChatInterfaceInstance>();
     harness.setAgentService(agentService);
   });
 
   afterEach(() => {
+    globalThis.fetch = originalFetch;
     harness.reset();
   });
 
@@ -1095,7 +1111,9 @@ describe("ChatInterface", () => {
     const fetchMock = mock((_url: string) =>
       Promise.resolve(new Response(pdf, { status: 200 })),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    globalThis.fetch = createFetchStub(originalFetch, (input) =>
+      fetchMock(String(input)),
+    );
 
     try {
       await chat?.handlers.mentions[0]?.(
@@ -1589,47 +1607,69 @@ describe("ChatInterface", () => {
         );
       }),
     });
-
-    await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await chat?.handlers.actions[0]?.handler({
-      actionId: "approval.confirm",
-      adapter: { name: "discord" },
-      messageId: "approval-message-1",
-      openModal: mock(() => Promise.resolve(undefined)),
-      raw: {},
-      thread,
-      threadId: thread.id,
-      user: {
-        userId: "user-789",
-        userName: "mira",
-        fullName: "Mira Ops",
-        isBot: false,
-        isMe: false,
-      },
-      value: "approval-1",
-    } as MockActionEvent);
-
-    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
-      "discord-discord:guild-123:channel-123:thread-456",
-      true,
-      "approval-1",
-      expectDiscordConfirmationContext(),
+    const originalFetch = globalThis.fetch;
+    const fetchMock = mock((_url: string, _init?: RequestInit) =>
+      Promise.resolve(new Response("{}")),
     );
-    expect(approvalMessage.edit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fallbackText: "Approval confirmed: Delete thing",
-        card: expect.objectContaining({
-          type: "card",
-          title: "Approval confirmed",
-          children: expect.not.arrayContaining([
-            expect.objectContaining({ type: "actions" }),
-          ]),
+    globalThis.fetch = createFetchStub(originalFetch, (input, init) =>
+      fetchMock(String(input), init ?? undefined),
+    );
+
+    try {
+      await chat?.handlers.mentions[0]?.(thread, createMessage());
+      await chat?.handlers.actions[0]?.handler({
+        actionId: "approval.confirm",
+        adapter: { name: "discord" },
+        messageId: "approval-message-1",
+        openModal: mock(() => Promise.resolve(undefined)),
+        raw: {},
+        thread,
+        threadId: thread.id,
+        user: {
+          userId: "user-789",
+          userName: "mira",
+          fullName: "Mira Ops",
+          isBot: false,
+          isMe: false,
+        },
+        value: "approval-1",
+      } as MockActionEvent);
+
+      expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+        "discord-discord:guild-123:channel-123:thread-456",
+        true,
+        "approval-1",
+        expectDiscordConfirmationContext(),
+      );
+      expect(approvalMessage.edit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fallbackText: "Approval confirmed: Delete thing",
+          card: expect.objectContaining({
+            type: "card",
+            title: "Approval confirmed",
+            children: expect.not.arrayContaining([
+              expect.objectContaining({ type: "actions" }),
+            ]),
+          }),
         }),
-      }),
-    );
-    expect(thread.post).toHaveBeenLastCalledWith(
-      "✅ Approved · Action confirmed.",
-    );
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://discord.com/api/v10/channels/thread-456/messages/approval-message-1",
+        expect.objectContaining({
+          method: "PATCH",
+          headers: expect.objectContaining({
+            Authorization: "Bot discord-token",
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({ components: [] }),
+        }),
+      );
+      expect(thread.post).toHaveBeenLastCalledWith(
+        "✅ Approved · Action confirmed.",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("continues chained pending confirmations returned by a confirmed action", async () => {

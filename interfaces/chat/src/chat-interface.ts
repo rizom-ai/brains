@@ -74,6 +74,7 @@ const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
+const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
@@ -115,7 +116,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private readonly pendingConfirmations = new Map<string, Set<string>>();
   private readonly approvalCardMessages = new Map<
     string,
-    { message: SentMessage; summary: string }
+    { message: SentMessage; summary: string; threadId: string }
   >();
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
   private readonly toolActivityMessages = new Map<
@@ -1169,6 +1170,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.approvalCardMessages.set(confirmation.id, {
       message: sent,
       summary: confirmation.summary,
+      threadId: thread.id,
     });
   }
 
@@ -1217,6 +1219,45 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       card: this.buildResolvedApprovalCard(tracked.summary, confirmed),
       fallbackText: `Approval ${label}: ${tracked.summary}`,
     });
+    await this.clearDiscordMessageComponents(
+      tracked.threadId,
+      tracked.message.id,
+    );
+  }
+
+  private async clearDiscordMessageComponents(
+    threadId: string,
+    messageId: string,
+  ): Promise<void> {
+    const ids = this.getThreadIdParts(threadId);
+    const channelId = ids.threadId ?? ids.channelId;
+    if (!channelId || !this.config.adapters.discord) return;
+    try {
+      const response = await fetch(
+        `${DISCORD_API_BASE}/channels/${channelId}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bot ${this.config.adapters.discord.botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ components: [] }),
+        },
+      );
+      if (!response.ok) {
+        this.logger.debug("Failed to clear Discord message components", {
+          messageId,
+          channelId,
+          status: response.status,
+        });
+      }
+    } catch (error) {
+      this.logger.debug("Failed to clear Discord message components", {
+        error,
+        messageId,
+        channelId,
+      });
+    }
   }
 
   private buildResolvedApprovalCard(
