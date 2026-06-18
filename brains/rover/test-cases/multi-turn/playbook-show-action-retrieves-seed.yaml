@@ -1,0 +1,115 @@
+id: multi-turn-playbook-show-action-retrieves-seed
+name: Playbook Show Action Retrieves Saved Seed
+description: Verifies that a playbook Show me action does not answer from playbook runtime evidence alone; Rover must use normal retrieval tools before saying it found the saved seed.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-show
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start the Rover onboarding playbook."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Use the Set up Rover action and continue to identity setup."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: CHOICE_1
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Use the Skip for now action."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: SKIP
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Save this first idea: low-friction incident reviews are climate work because they prevent repeated waste in compute and human attention."
+    successCriteria:
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that seed."
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+      responseNotContains:
+        - "another seed"
+        - "another note"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Use the Show me action and find that note now."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+        - toolName: system_extract
+          shouldBeCalled: false
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_search
+          shouldBeCalled: true
+      responseContains:
+        - climate
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+        - "playbook_status"
+        - "playbook_send_event"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+    - toolName: playbook_send_event
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: true
+  expectedAnyTool:
+    - toolNames:
+        - system_get
+        - system_search
+      shouldBeCalled: true
+  toolCountRange:
+    min: 4
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "playbook_status"
+    - "playbook_send_event"
+
+efficiency:
+  maxToolCalls: 12
+  maxTokens: 180000
