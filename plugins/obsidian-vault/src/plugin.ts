@@ -8,7 +8,11 @@ import {
 } from "@brains/plugins";
 import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { obsidianVaultConfigSchema, type ObsidianVaultConfig } from "./config";
+import {
+  obsidianVaultConfigSchema,
+  type ObsidianVaultConfig,
+  type ObsidianVaultConfigInput,
+} from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";
 import { generateFileClass } from "./lib/fileclass-generator";
@@ -40,12 +44,12 @@ const syncInputSchema = z.object({
 
 export class ObsidianVaultPlugin extends ServicePlugin<
   ObsidianVaultConfig,
-  Partial<ObsidianVaultConfig>
+  ObsidianVaultConfigInput
 > {
   private readonly deps: ObsidianVaultDeps;
 
   constructor(
-    config: Partial<ObsidianVaultConfig> = {},
+    config: ObsidianVaultConfigInput = {},
     deps: Partial<ObsidianVaultDeps> = {},
   ) {
     super("obsidian-vault", packageJson, config, obsidianVaultConfigSchema);
@@ -202,7 +206,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<
 }
 
 export function obsidianVaultPlugin(
-  config?: Partial<ObsidianVaultConfig>,
+  config: ObsidianVaultConfigInput = {},
   deps?: Partial<ObsidianVaultDeps>,
 ): ObsidianVaultPlugin {
   return new ObsidianVaultPlugin(config, deps);

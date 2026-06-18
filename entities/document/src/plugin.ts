@@ -22,7 +22,8 @@ import packageJson from "../package.json";
 
 const documentPluginConfigSchema = z.object({});
 
-type DocumentPluginConfig = z.infer<typeof documentPluginConfigSchema>;
+type DocumentPluginConfig = z.output<typeof documentPluginConfigSchema>;
+type DocumentPluginConfigInput = z.input<typeof documentPluginConfigSchema>;
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -71,7 +72,7 @@ function buildUploadedDocumentAttachment(input: {
 
 export class DocumentPlugin extends ServicePlugin<
   DocumentPluginConfig,
-  Partial<DocumentPluginConfig>
+  DocumentPluginConfigInput
 > {
   readonly entityType = documentAdapter.entityType;
   readonly schema = documentSchema;

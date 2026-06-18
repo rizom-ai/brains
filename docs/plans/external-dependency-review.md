@@ -408,6 +408,9 @@ Incremental migration progress:
 - Audited more schema-owned entity plugin config inputs for `portfolio`,
   `newsletter`, and `social-media`, including defaulted constructor/factory
   inputs where every caller-provided field is optional before parsing.
+- Audited schema-owned config inputs for `link`, `document`, `obsidian-vault`,
+  and `cms`; callers now use schema-derived input types and parsed runtime
+  config remains schema output.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

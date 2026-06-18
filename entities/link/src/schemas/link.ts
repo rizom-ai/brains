@@ -71,5 +71,6 @@ export type LinkSource = z.infer<typeof linkSourceSchema>;
 export type LinkStatus = z.infer<typeof linkStatusSchema>;
 export type LinkFrontmatter = z.infer<typeof linkFrontmatterSchema>;
 export type LinkEntity = z.infer<typeof linkSchema>;
-export type LinkConfig = z.infer<typeof linkConfigSchema>;
+export type LinkConfig = z.output<typeof linkConfigSchema>;
+export type LinkConfigInput = z.input<typeof linkConfigSchema>;
 export type LinkMetadata = z.infer<typeof linkMetadataSchema>;

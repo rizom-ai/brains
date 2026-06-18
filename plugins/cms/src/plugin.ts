@@ -59,7 +59,8 @@ const cmsPluginConfigSchema = z
     },
   );
 
-type CmsPluginConfig = z.infer<typeof cmsPluginConfigSchema>;
+type CmsPluginConfig = z.output<typeof cmsPluginConfigSchema>;
+type CmsPluginConfigInput = z.input<typeof cmsPluginConfigSchema>;
 
 interface EnabledGithubOAuthConfig {
   clientId: string;
@@ -180,9 +181,9 @@ export async function buildCmsConfigYaml(
 
 export class CmsPlugin extends ServicePlugin<
   CmsPluginConfig,
-  Partial<CmsPluginConfig>
+  CmsPluginConfigInput
 > {
-  constructor(config: Partial<CmsPluginConfig> = {}) {
+  constructor(config: CmsPluginConfigInput = {}) {
     super("cms", packageJson, config, cmsPluginConfigSchema);
   }
 
@@ -419,7 +420,7 @@ export class CmsPlugin extends ServicePlugin<
   }
 }
 
-export function cmsPlugin(config?: Partial<CmsPluginConfig>): CmsPlugin {
+export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {
   return new CmsPlugin(config);
 }
 

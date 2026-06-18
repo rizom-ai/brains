@@ -17,6 +17,7 @@ import {
   linkConfigSchema,
   linkSchema,
   type LinkConfig,
+  type LinkConfigInput,
   type LinkEntity,
 } from "./schemas/link";
 import { linkAdapter } from "./adapters/link-adapter";
@@ -36,7 +37,7 @@ import packageJson from "../package.json";
 export class LinkPlugin extends EntityPlugin<
   LinkEntity,
   LinkConfig,
-  Partial<LinkConfig>
+  LinkConfigInput
 > {
   readonly entityType = linkAdapter.entityType;
   readonly schema = linkSchema;
@@ -44,7 +45,7 @@ export class LinkPlugin extends EntityPlugin<
   private shell?: IShell;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: Partial<LinkConfig> = {}) {
+  constructor(config: LinkConfigInput = {}) {
     super("link", packageJson, config, linkConfigSchema);
   }
 
@@ -290,7 +291,7 @@ export class LinkPlugin extends EntityPlugin<
   }
 }
 
-export function createLinkPlugin(config: Partial<LinkConfig> = {}): Plugin {
+export function createLinkPlugin(config: LinkConfigInput = {}): Plugin {
   return new LinkPlugin(config);
 }
 
