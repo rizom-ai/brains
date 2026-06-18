@@ -21,6 +21,8 @@ export {
   type ToolActivityHandlers,
 } from "./tool-event-handler";
 
+export type { ToolStatusState, ToolStatusUpdate } from "./tool-status";
+
 export {
   parseConfirmationResponse,
   formatConfirmationPrompt,

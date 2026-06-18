@@ -635,8 +635,71 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(body).toContain("data-status");
-    expect(body).toContain("tool-invoking");
+    expect(body).toContain("tool-running");
     expect(body).toContain("Using search_notes…");
+  });
+
+  it("streams awaiting approval when a completed tool returns a pending confirmation", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("tool:invoking", {
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "web-chat",
+          channelId: conversationId,
+        });
+        await harness.sendMessage("tool:completed", {
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "web-chat",
+          channelId: conversationId,
+        });
+        return {
+          text: "Approval needed.",
+          pendingConfirmations: [
+            {
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Create note",
+              args: {},
+            },
+          ],
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Create note" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("tool-running");
+    expect(body).not.toContain("tool-completed");
+    expect(body).toContain("tool-awaiting-approval");
+    expect(body).toContain("system_create is awaiting approval.");
   });
 
   it("ignores tool activity outside the active web-chat channel", async () => {
@@ -683,7 +746,7 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(body).not.toContain("background_tool");
-    expect(body).not.toContain("tool-invoking");
+    expect(body).not.toContain("tool-running");
   });
 
   it("ignores progress notifications outside the active web-chat channel", async () => {

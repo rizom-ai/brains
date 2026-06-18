@@ -26,6 +26,7 @@ import {
   type PermissionLookupContext,
   type RuntimeUploadStore,
   type ToolActivityEvent,
+  type ToolStatusUpdate,
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type {
@@ -119,13 +120,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     { message: SentMessage; summary: string; threadId: string }
   >();
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
-  private readonly toolActivityMessages = new Map<
+  private readonly toolStatusMessages = new Map<
     string,
-    { channelId: string; messageId: string }
-  >();
-  private readonly completedToolActivities = new Map<
-    string,
-    ToolActivityEvent
+    { channelId: string; message: SentMessage }
   >();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
@@ -319,83 +316,131 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   protected override async handleToolActivityEvent(
     event: ToolActivityEvent,
   ): Promise<void> {
-    if (event.interfaceType !== this.id) {
-      if (!this.isEnabledPlatform(event.interfaceType)) return;
-    }
-    const channelId = event.channelId;
-    if (!channelId) return;
-
-    const key = this.getToolActivityKey(event);
-    const label = this.formatToolName(event.toolName);
-    if (event.type === "tool:invoking") {
-      const messageId = await this.sendMessageWithId({
-        channelId,
-        message: `⏳ **${label}** running…`,
-      });
-      if (messageId)
-        this.toolActivityMessages.set(key, { channelId, messageId });
+    if (event.interfaceType === this.id) {
+      await super.handleToolActivityEvent(event);
       return;
     }
+    if (!this.isEnabledPlatform(event.interfaceType)) return;
 
-    if (event.type === "tool:completed") {
-      this.completedToolActivities.set(key, event);
-      return;
-    }
-
-    this.completedToolActivities.delete(key);
-    await this.updateToolActivityMessage(
-      key,
-      `❌ **${label}** failed${event.error ? `: ${event.error}` : "."}`,
-      channelId,
-    );
+    await super.handleToolActivityEvent({
+      ...event,
+      interfaceType: this.id,
+    });
   }
 
-  private async finalizeToolActivityMessages(
-    conversationId: string,
-    response: AgentResponse,
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
   ): Promise<void> {
-    const pendingApprovalToolNames = new Set(
-      (response.pendingConfirmations ?? []).map(
-        (confirmation) => confirmation.toolName,
-      ),
-    );
+    if (update.interfaceType !== this.id || !update.channelId) return;
 
-    for (const [key, event] of [...this.completedToolActivities]) {
-      if (event.conversationId !== conversationId) continue;
-      this.completedToolActivities.delete(key);
-      const label = this.formatToolName(event.toolName);
-      await this.updateToolActivityMessage(
-        key,
-        pendingApprovalToolNames.has(event.toolName)
-          ? `⏸️ **${label}** awaiting approval.`
-          : `✅ **${label}** completed.`,
-        event.channelId,
-      );
+    const key = this.getToolStatusKey(update);
+    if (update.state === "running") {
+      await this.sendToolStatusMessage(key, update);
+      return;
     }
+
+    await this.updateToolStatusMessage(key, update);
   }
 
-  private async updateToolActivityMessage(
+  private async sendToolStatusMessage(
     key: string,
-    message: string,
-    fallbackChannelId?: string,
+    update: ToolStatusUpdate,
   ): Promise<void> {
-    const tracked = this.toolActivityMessages.get(key);
+    const channelId = update.channelId;
+    if (!channelId) return;
+    const thread = this.threadRegistry.get(channelId);
+    if (!thread) return;
+
+    const sent = await thread.post(this.formatToolStatusPayload(update));
+    this.threadRegistry.trackMessage(channelId, sent);
+    this.toolStatusMessages.set(key, { channelId, message: sent });
+  }
+
+  private async updateToolStatusMessage(
+    key: string,
+    update: ToolStatusUpdate,
+  ): Promise<void> {
+    const payload = this.formatToolStatusPayload(update);
+    const tracked = this.toolStatusMessages.get(key);
     if (tracked) {
-      await this.editMessage({
-        channelId: tracked.channelId,
-        messageId: tracked.messageId,
-        newMessage: message,
-      });
-      this.toolActivityMessages.delete(key);
+      const edited = await tracked.message.edit(payload);
+      this.threadRegistry.trackMessage(tracked.channelId, edited);
+      this.toolStatusMessages.delete(key);
       return;
     }
-    if (fallbackChannelId) {
-      this.sendMessageToChannel({ channelId: fallbackChannelId, message });
+
+    const channelId = update.channelId;
+    if (!channelId) return;
+    const thread = this.threadRegistry.get(channelId);
+    if (!thread) return;
+    const sent = await thread.post(payload);
+    this.threadRegistry.trackMessage(channelId, sent);
+  }
+
+  private formatToolStatusPayload(update: ToolStatusUpdate): {
+    card: CardElement;
+    fallbackText: string;
+  } {
+    const label = this.formatToolName(update.toolName);
+    return {
+      card: this.buildToolStatusCard(update, label),
+      fallbackText: this.formatToolStatusFallback(update, label),
+    };
+  }
+
+  private buildToolStatusCard(
+    update: ToolStatusUpdate,
+    label: string,
+  ): CardElement {
+    const children: CardChild[] = [{ type: "text", content: label }];
+    if (update.error) {
+      children.push({ type: "text", content: update.error });
+    }
+    return {
+      type: "card",
+      title: this.getToolStatusTitle(update.state),
+      children,
+    };
+  }
+
+  private formatToolStatusFallback(
+    update: ToolStatusUpdate,
+    label: string,
+  ): string {
+    const base = `${this.getToolStatusFallbackPrefix(update.state)}: ${label}`;
+    return update.error ? `${base}: ${update.error}` : base;
+  }
+
+  private getToolStatusTitle(state: ToolStatusUpdate["state"]): string {
+    switch (state) {
+      case "running":
+        return "Tool running";
+      case "completed":
+        return "Tool completed";
+      case "awaiting-approval":
+        return "Approval required";
+      case "failed":
+        return "Tool failed";
     }
   }
 
-  private getToolActivityKey(event: ToolActivityEvent): string {
-    return `${event.conversationId}:${event.toolName}`;
+  private getToolStatusFallbackPrefix(
+    state: ToolStatusUpdate["state"],
+  ): string {
+    switch (state) {
+      case "running":
+        return "Tool running";
+      case "completed":
+        return "Tool completed";
+      case "awaiting-approval":
+        return "Tool awaiting approval";
+      case "failed":
+        return "Tool failed";
+    }
+  }
+
+  private getToolStatusKey(update: ToolStatusUpdate): string {
+    return `${update.conversationId}:${update.toolName}`;
   }
 
   private formatToolName(toolName: string): string {
@@ -672,7 +717,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         );
       }
 
-      await this.finalizeToolActivityMessages(conversationId, response);
+      await this.handleAgentResponseToolStatuses(response, conversationId);
       const artifactDelivery = await this.resolveArtifactDelivery(
         response.cards,
         userPermissionLevel,
@@ -818,7 +863,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response,
       input.approvalId,
     );
-    await this.finalizeToolActivityMessages(input.conversationId, response);
+    await this.handleAgentResponseToolStatuses(response, input.conversationId);
     const artifactDelivery = await this.resolveArtifactDelivery(
       response.cards,
       input.userPermissionLevel,
@@ -1860,7 +1905,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     this.gatewayAbortController = undefined;
     this.threadRegistry.clear();
     this.recentUploads.clear();
-    this.toolActivityMessages.clear();
+    this.toolStatusMessages.clear();
     await this.app?.shutdown();
   }
 

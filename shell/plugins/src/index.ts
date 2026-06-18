@@ -418,6 +418,8 @@ export {
   type ValidateUploadInput,
   type ToolActivityEvent,
   type ToolActivityEventType,
+  type ToolStatusState,
+  type ToolStatusUpdate,
 } from "./message-interface";
 
 // ============================================================================

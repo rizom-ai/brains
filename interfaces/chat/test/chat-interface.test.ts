@@ -2970,56 +2970,51 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
-
-    await chat?.handlers.mentions[0]?.(thread, createMessage());
-    thread.post.mockClear();
-    statusMessage.edit.mockClear();
-    postCount = 0;
-
-    await toolInterface.handleToolActivityEvent({
-      type: "tool:invoking",
-      toolName: "system_publish",
-      conversationId: "discord-discord:guild-123:channel-123:thread-456",
-      interfaceType: "discord",
-      channelId: thread.id,
-    });
-    await toolInterface.handleToolActivityEvent({
-      type: "tool:completed",
-      toolName: "system_publish",
-      conversationId: "discord-discord:guild-123:channel-123:thread-456",
-      interfaceType: "discord",
-      channelId: thread.id,
-    });
-
-    expect(thread.post).toHaveBeenCalledWith("⏳ **system publish** running…");
-    expect(statusMessage.edit).not.toHaveBeenCalledWith(
-      "✅ **system publish** completed.",
+    agentService.chat.mockImplementationOnce(
+      async (_message, conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:invoking",
+          toolName: "system_publish",
+          conversationId,
+          interfaceType: "discord",
+          channelId: thread.id,
+        });
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:completed",
+          toolName: "system_publish",
+          conversationId,
+          interfaceType: "discord",
+          channelId: thread.id,
+        });
+        expect(statusMessage.edit).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            fallbackText: "Tool completed: system publish",
+          }),
+        );
+        return {
+          text: "Agent response text.",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        };
+      },
     );
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Tool running: system publish",
+        card: expect.objectContaining({ title: "Tool running" }),
+      }),
+    );
     expect(statusMessage.edit).toHaveBeenCalledWith(
-      "✅ **system publish** completed.",
+      expect.objectContaining({
+        fallbackText: "Tool completed: system publish",
+        card: expect.objectContaining({ title: "Tool completed" }),
+      }),
     );
   });
 
   it("does not mark approval-requested tools as completed before confirmation", async () => {
-    agentService.chat.mockResolvedValueOnce({
-      text: "Initial response.",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-    });
-    agentService.chat.mockResolvedValueOnce({
-      text: "Confirmation required.",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      pendingConfirmations: [
-        {
-          id: "approval-1",
-          toolName: "system_create",
-          summary: "Generate image?",
-          args: {},
-        },
-      ],
-    });
     const statusMessage = createSentMessage("status-1");
     const responseMessage = createSentMessage("response-1");
     let postCount = 0;
@@ -3035,34 +3030,49 @@ describe("ChatInterface", () => {
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
-
-    await chat?.handlers.mentions[0]?.(thread, createMessage());
-    thread.post.mockClear();
-    statusMessage.edit.mockClear();
-    postCount = 0;
-
-    await toolInterface.handleToolActivityEvent({
-      type: "tool:invoking",
-      toolName: "system_create",
-      conversationId: "discord-discord:guild-123:channel-123:thread-456",
-      interfaceType: "discord",
-      channelId: thread.id,
-    });
-    await toolInterface.handleToolActivityEvent({
-      type: "tool:completed",
-      toolName: "system_create",
-      conversationId: "discord-discord:guild-123:channel-123:thread-456",
-      interfaceType: "discord",
-      channelId: thread.id,
-    });
+    agentService.chat.mockImplementationOnce(
+      async (_message, conversationId) => {
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:invoking",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "discord",
+          channelId: thread.id,
+        });
+        await toolInterface.handleToolActivityEvent({
+          type: "tool:completed",
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "discord",
+          channelId: thread.id,
+        });
+        return {
+          text: "Confirmation required.",
+          usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+          pendingConfirmations: [
+            {
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Generate image?",
+              args: {},
+            },
+          ],
+        };
+      },
+    );
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
     expect(statusMessage.edit).not.toHaveBeenCalledWith(
-      "✅ **system create** completed.",
+      expect.objectContaining({
+        fallbackText: "Tool completed: system create",
+      }),
     );
     expect(statusMessage.edit).toHaveBeenCalledWith(
-      "⏸️ **system create** awaiting approval.",
+      expect.objectContaining({
+        fallbackText: "Tool awaiting approval: system create",
+        card: expect.objectContaining({ title: "Approval required" }),
+      }),
     );
   });
 
@@ -3109,7 +3119,10 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).toHaveBeenCalledWith(
-      "❌ **system publish** failed: Publish failed",
+      expect.objectContaining({
+        fallbackText: "Tool failed: system publish: Publish failed",
+        card: expect.objectContaining({ title: "Tool failed" }),
+      }),
     );
   });
 
