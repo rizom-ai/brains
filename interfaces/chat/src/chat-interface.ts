@@ -123,6 +123,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     string,
     { channelId: string; messageId: string }
   >();
+  private readonly completedToolActivities = new Map<
+    string,
+    ToolActivityEvent
+  >();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
   private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
   private gatewayAbortController: AbortController | undefined;
@@ -334,15 +338,40 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
 
     if (event.type === "tool:completed") {
-      await this.updateToolActivityMessage(key, `✅ **${label}** completed.`);
+      this.completedToolActivities.set(key, event);
       return;
     }
 
+    this.completedToolActivities.delete(key);
     await this.updateToolActivityMessage(
       key,
       `❌ **${label}** failed${event.error ? `: ${event.error}` : "."}`,
       channelId,
     );
+  }
+
+  private async finalizeToolActivityMessages(
+    conversationId: string,
+    response: AgentResponse,
+  ): Promise<void> {
+    const pendingApprovalToolNames = new Set(
+      (response.pendingConfirmations ?? []).map(
+        (confirmation) => confirmation.toolName,
+      ),
+    );
+
+    for (const [key, event] of [...this.completedToolActivities]) {
+      if (event.conversationId !== conversationId) continue;
+      this.completedToolActivities.delete(key);
+      const label = this.formatToolName(event.toolName);
+      await this.updateToolActivityMessage(
+        key,
+        pendingApprovalToolNames.has(event.toolName)
+          ? `⏸️ **${label}** awaiting approval.`
+          : `✅ **${label}** completed.`,
+        event.channelId,
+      );
+    }
   }
 
   private async updateToolActivityMessage(
@@ -643,6 +672,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         );
       }
 
+      await this.finalizeToolActivityMessages(conversationId, response);
       const artifactDelivery = await this.resolveArtifactDelivery(
         response.cards,
         userPermissionLevel,
@@ -788,6 +818,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response,
       input.approvalId,
     );
+    await this.finalizeToolActivityMessages(input.conversationId, response);
     const artifactDelivery = await this.resolveArtifactDelivery(
       response.cards,
       input.userPermissionLevel,

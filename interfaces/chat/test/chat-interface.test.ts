@@ -2954,20 +2954,28 @@ describe("ChatInterface", () => {
     expect(thread.post.mock.calls[0]?.[0]).not.toContain("internal");
   });
 
-  it("edits Discord tool activity status messages", async () => {
+  it("edits Discord tool activity status messages after the agent response", async () => {
     const statusMessage = createSentMessage("status-1");
+    const responseMessage = createSentMessage("response-1");
+    let postCount = 0;
     const thread = createThread({
-      post: mock((_message: MockPostMessage) => Promise.resolve(statusMessage)),
+      post: mock((_message: MockPostMessage) => {
+        postCount += 1;
+        return Promise.resolve(
+          postCount === 1 ? statusMessage : responseMessage,
+        );
+      }),
     });
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     thread.post.mockClear();
     statusMessage.edit.mockClear();
+    postCount = 0;
 
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
     await toolInterface.handleToolActivityEvent({
       type: "tool:invoking",
       toolName: "system_publish",
@@ -2984,8 +2992,77 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).toHaveBeenCalledWith("⏳ **system publish** running…");
+    expect(statusMessage.edit).not.toHaveBeenCalledWith(
+      "✅ **system publish** completed.",
+    );
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
     expect(statusMessage.edit).toHaveBeenCalledWith(
       "✅ **system publish** completed.",
+    );
+  });
+
+  it("does not mark approval-requested tools as completed before confirmation", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Initial response.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    });
+    agentService.chat.mockResolvedValueOnce({
+      text: "Confirmation required.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_create",
+          summary: "Generate image?",
+          args: {},
+        },
+      ],
+    });
+    const statusMessage = createSentMessage("status-1");
+    const responseMessage = createSentMessage("response-1");
+    let postCount = 0;
+    const thread = createThread({
+      post: mock((_message: MockPostMessage) => {
+        postCount += 1;
+        return Promise.resolve(
+          postCount === 1 ? statusMessage : responseMessage,
+        );
+      }),
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    statusMessage.edit.mockClear();
+    postCount = 0;
+
+    await toolInterface.handleToolActivityEvent({
+      type: "tool:invoking",
+      toolName: "system_create",
+      conversationId: "discord-discord:guild-123:channel-123:thread-456",
+      interfaceType: "discord",
+      channelId: thread.id,
+    });
+    await toolInterface.handleToolActivityEvent({
+      type: "tool:completed",
+      toolName: "system_create",
+      conversationId: "discord-discord:guild-123:channel-123:thread-456",
+      interfaceType: "discord",
+      channelId: thread.id,
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(statusMessage.edit).not.toHaveBeenCalledWith(
+      "✅ **system create** completed.",
+    );
+    expect(statusMessage.edit).toHaveBeenCalledWith(
+      "⏸️ **system create** awaiting approval.",
     );
   });
 
