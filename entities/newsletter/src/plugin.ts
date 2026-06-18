@@ -21,7 +21,8 @@ import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../package.json";
 
 const newsletterConfigSchema = z.object({});
-type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
+type NewsletterConfig = z.output<typeof newsletterConfigSchema>;
+type NewsletterConfigInput = z.input<typeof newsletterConfigSchema>;
 
 /**
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
@@ -32,13 +33,13 @@ type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
 export class NewsletterPlugin extends EntityPlugin<
   Newsletter,
   NewsletterConfig,
-  Partial<NewsletterConfig>
+  NewsletterConfigInput
 > {
   readonly entityType = "newsletter";
   readonly schema = newsletterSchema;
   readonly adapter = newsletterAdapter;
 
-  constructor(config: Partial<NewsletterConfig> = {}) {
+  constructor(config: NewsletterConfigInput = {}) {
     super("newsletter", packageJson, config, newsletterConfigSchema);
   }
 
@@ -216,8 +217,6 @@ export class NewsletterPlugin extends EntityPlugin<
   }
 }
 
-export function newsletterPlugin(
-  config: Partial<NewsletterConfig> = {},
-): Plugin {
+export function newsletterPlugin(config: NewsletterConfigInput = {}): Plugin {
   return new NewsletterPlugin(config);
 }

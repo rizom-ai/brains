@@ -38,12 +38,12 @@ export const socialMediaConfigSchema = z.object({
 /**
  * Social media plugin configuration type (output, with all defaults applied)
  */
-export type SocialMediaConfig = z.infer<typeof socialMediaConfigSchema>;
+export type SocialMediaConfig = z.output<typeof socialMediaConfigSchema>;
 
 /**
  * Social media plugin configuration input type (allows optional fields with defaults)
  */
-export type SocialMediaConfigInput = Partial<SocialMediaConfig>;
+export type SocialMediaConfigInput = z.input<typeof socialMediaConfigSchema>;
 
 /**
  * LinkedIn configuration type

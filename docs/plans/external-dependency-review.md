@@ -405,6 +405,9 @@ Incremental migration progress:
 - Audited additional defaulted/empty entity plugin config inputs for
   `conversation-memory`, `topics`, `wishlist`, and `image`; removed visible
   `Partial<Config>` markers where the schema now owns the input contract.
+- Audited more schema-owned entity plugin config inputs for `portfolio`,
+  `newsletter`, and `social-media`, including defaulted constructor/factory
+  inputs where every caller-provided field is optional before parsing.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

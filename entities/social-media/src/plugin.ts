@@ -41,7 +41,7 @@ export class SocialMediaPlugin extends EntityPlugin<
   private providers = new Map<string, PublishProvider>();
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: SocialMediaConfigInput) {
+  constructor(config: SocialMediaConfigInput = {}) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
   }
 
@@ -112,7 +112,7 @@ export class SocialMediaPlugin extends EntityPlugin<
 }
 
 export function socialMediaPlugin(
-  config: SocialMediaConfigInput,
+  config: SocialMediaConfigInput = {},
 ): SocialMediaPlugin {
   return new SocialMediaPlugin(config);
 }

@@ -69,7 +69,7 @@ function extractProjectYear(
 export class PortfolioPlugin extends EntityPlugin<
   Project,
   PortfolioConfig,
-  Partial<PortfolioConfig>
+  PortfolioConfigInput
 > {
   readonly entityType = projectAdapter.entityType;
   readonly schema = projectSchema;

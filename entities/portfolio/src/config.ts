@@ -10,9 +10,9 @@ export const portfolioConfigSchema = z.object({
 /**
  * Portfolio plugin configuration type (output, with all defaults applied)
  */
-export type PortfolioConfig = z.infer<typeof portfolioConfigSchema>;
+export type PortfolioConfig = z.output<typeof portfolioConfigSchema>;
 
 /**
  * Portfolio plugin configuration input type (allows optional fields with defaults)
  */
-export type PortfolioConfigInput = Partial<PortfolioConfig>;
+export type PortfolioConfigInput = z.input<typeof portfolioConfigSchema>;
