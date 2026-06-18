@@ -12,9 +12,9 @@ export const noteConfigSchema = z.object({
 /**
  * Note plugin configuration type (output, with all defaults applied)
  */
-export type NoteConfig = z.infer<typeof noteConfigSchema>;
+export type NoteConfig = z.output<typeof noteConfigSchema>;
 
 /**
  * Note plugin configuration input type (allows optional fields with defaults)
  */
-export type NoteConfigInput = Partial<NoteConfig>;
+export type NoteConfigInput = z.input<typeof noteConfigSchema>;

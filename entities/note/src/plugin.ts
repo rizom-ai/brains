@@ -33,7 +33,7 @@ const webChatUploadsScope = {
 export class NotePlugin extends EntityPlugin<
   Note,
   NoteConfig,
-  Partial<NoteConfig>
+  NoteConfigInput
 > {
   readonly entityType = noteAdapter.entityType;
   readonly schema = noteSchema;

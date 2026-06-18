@@ -31,7 +31,7 @@ import packageJson from "../package.json";
 export class BlogPlugin extends EntityPlugin<
   BlogPost,
   BlogConfig,
-  Partial<BlogConfig>
+  BlogConfigInput
 > {
   readonly entityType = blogPostAdapter.entityType;
   readonly schema = blogPostSchema;

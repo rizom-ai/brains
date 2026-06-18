@@ -399,6 +399,9 @@ Incremental migration progress:
 - Audited schema-owned service plugin config inputs for `dashboard` and
   `content-pipeline`; runtime config uses `z.output<typeof schema>`, while
   constructors and factories accept `z.input<typeof schema>`.
+- Audited defaulted entity plugin config inputs for `blog`, `note`, and
+  `products`; their parsed configs use `z.output<typeof schema>` and caller
+  inputs use `z.input<typeof schema>`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

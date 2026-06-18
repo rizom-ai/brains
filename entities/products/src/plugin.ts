@@ -44,7 +44,7 @@ const productDetailSchema = z.object({
 export class ProductsPlugin extends EntityPlugin<
   Product,
   ProductsConfig,
-  Partial<ProductsConfig>
+  ProductsConfigInput
 > {
   readonly entityType = productAdapter.entityType;
   readonly schema = productSchema;

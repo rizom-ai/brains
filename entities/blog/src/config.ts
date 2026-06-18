@@ -16,9 +16,9 @@ export const blogConfigSchema = z.object({
 /**
  * Blog plugin configuration type (output, with all defaults applied)
  */
-export type BlogConfig = z.infer<typeof blogConfigSchema>;
+export type BlogConfig = z.output<typeof blogConfigSchema>;
 
 /**
  * Blog plugin configuration input type (allows optional fields with defaults)
  */
-export type BlogConfigInput = Partial<BlogConfig>;
+export type BlogConfigInput = z.input<typeof blogConfigSchema>;
