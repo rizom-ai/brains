@@ -14,7 +14,8 @@ const emailResendConfigSchema = z.object({
   from: z.string().min(1).optional(),
 });
 
-type EmailResendConfig = z.infer<typeof emailResendConfigSchema>;
+type EmailResendConfig = z.output<typeof emailResendConfigSchema>;
+type EmailResendConfigInput = z.input<typeof emailResendConfigSchema>;
 
 export type EmailSendResult = SendEmailResult;
 
@@ -24,12 +25,12 @@ export interface EmailResendPluginDependencies {
 
 export class EmailResendPlugin extends ServicePlugin<
   EmailResendConfig,
-  Partial<EmailResendConfig>
+  EmailResendConfigInput
 > {
   private readonly fetchImpl: FetchLike;
 
   constructor(
-    config: Partial<EmailResendConfig> = {},
+    config: EmailResendConfigInput = {},
     dependencies: EmailResendPluginDependencies = {},
   ) {
     super("email-resend", packageJson, config, emailResendConfigSchema);
@@ -105,7 +106,7 @@ export class EmailResendPlugin extends ServicePlugin<
 }
 
 export function emailResendPlugin(
-  config: Partial<EmailResendConfig> = {},
+  config: EmailResendConfigInput = {},
 ): EmailResendPlugin {
   return new EmailResendPlugin(config);
 }

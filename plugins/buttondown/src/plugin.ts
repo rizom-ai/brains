@@ -25,7 +25,8 @@ const buttondownConfigSchema = z.object({
     .describe("Automatically send newsletter when a blog post is published"),
 });
 
-type ButtondownConfig = z.infer<typeof buttondownConfigSchema>;
+type ButtondownConfig = z.output<typeof buttondownConfigSchema>;
+type ButtondownConfigInput = z.input<typeof buttondownConfigSchema>;
 
 /**
  * Buttondown integration plugin — subscriber management and API routes.
@@ -33,9 +34,9 @@ type ButtondownConfig = z.infer<typeof buttondownConfigSchema>;
  */
 export class ButtondownPlugin extends ServicePlugin<
   ButtondownConfig,
-  Partial<ButtondownConfig>
+  ButtondownConfigInput
 > {
-  constructor(config: Partial<ButtondownConfig> = {}) {
+  constructor(config: ButtondownConfigInput = {}) {
     super("buttondown", packageJson, config, buttondownConfigSchema);
   }
 
@@ -117,7 +118,7 @@ export class ButtondownPlugin extends ServicePlugin<
 }
 
 export function buttondownPlugin(
-  config: Partial<ButtondownConfig> = {},
+  config: ButtondownConfigInput = {},
 ): ButtondownPlugin {
   return new ButtondownPlugin(config);
 }

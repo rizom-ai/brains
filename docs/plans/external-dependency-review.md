@@ -389,6 +389,9 @@ Incremental migration progress:
   boundaries. `discord` remains a visible `Partial<Config>` marker because its
   required `botToken` crosses the dynamic brain-model `PluginConfig` constructor
   boundary and should be handled as a separate framework-boundary cleanup.
+- Audited service plugin config inputs for `analytics`, `buttondown`,
+  `email-resend`, and `stock-photo`; factory/constructor inputs now use
+  schema-derived input types, while runtime config remains parsed schema output.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

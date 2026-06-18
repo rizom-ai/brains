@@ -18,19 +18,17 @@ const stockPhotoConfigSchema = z.object({
   apiKey: z.string().optional().describe("Stock photo provider API key"),
 });
 
-type StockPhotoConfig = z.infer<typeof stockPhotoConfigSchema>;
+type StockPhotoConfig = z.output<typeof stockPhotoConfigSchema>;
+type StockPhotoConfigInput = z.input<typeof stockPhotoConfigSchema>;
 
 export class StockPhotoPlugin extends ServicePlugin<
   StockPhotoConfig,
-  Partial<StockPhotoConfig>
+  StockPhotoConfigInput
 > {
   private readonly deps: StockPhotoDeps;
   private cachedTools: Tool[] | null = null;
 
-  constructor(
-    config: Partial<StockPhotoConfig> = {},
-    deps: StockPhotoDeps = {},
-  ) {
+  constructor(config: StockPhotoConfigInput = {}, deps: StockPhotoDeps = {}) {
     super("stock-photo", packageJson, config, stockPhotoConfigSchema);
     this.deps = deps;
   }
@@ -75,7 +73,7 @@ export class StockPhotoPlugin extends ServicePlugin<
 }
 
 export function stockPhotoPlugin(
-  config: Partial<StockPhotoConfig> = {},
+  config: StockPhotoConfigInput = {},
   deps: StockPhotoDeps = {},
 ): StockPhotoPlugin {
   return new StockPhotoPlugin(config, deps);

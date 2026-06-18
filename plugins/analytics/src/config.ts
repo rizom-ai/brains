@@ -19,5 +19,6 @@ export const analyticsConfigSchema = z.object({
   cloudflare: cloudflareConfigSchema.optional(),
 });
 
-export type CloudflareConfig = z.infer<typeof cloudflareConfigSchema>;
-export type AnalyticsConfig = z.infer<typeof analyticsConfigSchema>;
+export type CloudflareConfig = z.output<typeof cloudflareConfigSchema>;
+export type AnalyticsConfig = z.output<typeof analyticsConfigSchema>;
+export type AnalyticsConfigInput = z.input<typeof analyticsConfigSchema>;
