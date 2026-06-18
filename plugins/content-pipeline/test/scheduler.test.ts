@@ -8,9 +8,7 @@ import { TestSchedulerBackend } from "../src/scheduler-backend";
 import type { PublishProvider } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 
-type SchedulerConfigOverrides = {
-  [K in keyof SchedulerConfig]?: SchedulerConfig[K];
-};
+type SchedulerConfigOverrides = Partial<SchedulerConfig>;
 
 function executorResult(
   entityType: string,

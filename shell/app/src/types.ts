@@ -108,6 +108,4 @@ export type AppConfig = Omit<
   spaces?: string[];
 };
 
-export type AppConfigInput = {
-  [K in keyof AppConfig]?: AppConfig[K];
-};
+export type AppConfigInput = Partial<AppConfig>;

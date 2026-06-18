@@ -4,9 +4,7 @@ import type { SiteBuilderServices } from "../src/lib/site-builder";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
 
-type SiteBuilderConfigOverrides = {
-  [K in keyof SiteBuilderConfig]?: SiteBuilderConfig[K];
-};
+type SiteBuilderConfigOverrides = Partial<SiteBuilderConfig>;
 
 /**
  * Minimal layout for testing

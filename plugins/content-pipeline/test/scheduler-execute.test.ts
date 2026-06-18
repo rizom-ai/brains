@@ -9,9 +9,7 @@ import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 
-type SchedulerConfigOverrides = {
-  [K in keyof SchedulerConfig]?: SchedulerConfig[K];
-};
+type SchedulerConfigOverrides = Partial<SchedulerConfig>;
 
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {

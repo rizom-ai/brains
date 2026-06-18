@@ -11,9 +11,7 @@ import {
   createMockMessageSender,
 } from "@brains/test-utils";
 
-type SiteBuildJobHandlerConfigOverrides = {
-  [K in keyof SiteBuildJobHandlerConfig]?: SiteBuildJobHandlerConfig[K];
-};
+type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
 
 /**
  * Tests that SiteBuildJobHandler uses siteUrl/previewUrl from its config

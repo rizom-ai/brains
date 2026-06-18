@@ -18,9 +18,7 @@ export interface AIModelConfig {
   webSearch?: boolean;
 }
 
-export type AIModelConfigUpdate = {
-  [K in keyof AIModelConfig]?: AIModelConfig[K];
-};
+export type AIModelConfigUpdate = Partial<AIModelConfig>;
 
 /**
  * AI Service interface for generating text and structured objects
