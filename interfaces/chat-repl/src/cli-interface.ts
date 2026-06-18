@@ -10,7 +10,7 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
 import type { AgentNamespace } from "@brains/plugins";
 import type { Instance } from "ink";
-import { cliConfigSchema, type CLIConfig } from "./config";
+import { cliConfigSchema, type CLIConfig, type CLIConfigInput } from "./config";
 import packageJson from "../package.json";
 
 /**
@@ -24,7 +24,7 @@ import packageJson from "../package.json";
  */
 export class CLIInterface extends MessageInterfacePlugin<
   CLIConfig,
-  Partial<CLIConfig>
+  CLIConfigInput
 > {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
@@ -34,7 +34,7 @@ export class CLIInterface extends MessageInterfacePlugin<
   // Track pending confirmation approval ids
   private pendingConfirmationIds: string[] = [];
 
-  constructor(config: Partial<CLIConfig> = {}) {
+  constructor(config: CLIConfigInput = {}) {
     super("cli", packageJson, config, cliConfigSchema);
   }
 

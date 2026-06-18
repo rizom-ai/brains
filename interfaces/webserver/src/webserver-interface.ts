@@ -8,7 +8,11 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";
-import { webserverConfigSchema, type WebserverConfig } from "./config";
+import {
+  webserverConfigSchema,
+  type WebserverConfig,
+  type WebserverConfigInput,
+} from "./config";
 import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
 
@@ -19,13 +23,13 @@ import packageJson from "../package.json";
  */
 export class WebserverInterface extends InterfacePlugin<
   WebserverConfig,
-  Partial<WebserverConfig>
+  WebserverConfigInput
 > {
   private serverManager?: ServerManager;
   private siteUrl: string | undefined;
   private previewUrl: string | undefined;
 
-  constructor(config: Partial<WebserverConfig> = {}) {
+  constructor(config: WebserverConfigInput = {}) {
     super("webserver", packageJson, config, webserverConfigSchema);
   }
 

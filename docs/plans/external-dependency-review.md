@@ -384,6 +384,11 @@ Incremental migration progress:
   and `site-rizom`. Professional site config now has an explicit Post/Deck
   homepage entity-display default so the optional `SitePackage` plugin callback
   stays schema-true without `Partial<Config>`.
+- Audited interface plugin configs for `a2a`, `webserver`, and `chat-repl`.
+  Defaulted interface config fields now use schema input types at constructor
+  boundaries. `discord` remains a visible `Partial<Config>` marker because its
+  required `botToken` crosses the dynamic brain-model `PluginConfig` constructor
+  boundary and should be handled as a separate framework-boundary cleanup.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

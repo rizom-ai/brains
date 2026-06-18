@@ -26,4 +26,5 @@ export const a2aConfigSchema = z.object({
   maxNetworkAttempts: z.number().int().positive().default(2),
 });
 
-export type A2AConfig = z.infer<typeof a2aConfigSchema>;
+export type A2AConfig = z.output<typeof a2aConfigSchema>;
+export type A2AConfigInput = z.input<typeof a2aConfigSchema>;

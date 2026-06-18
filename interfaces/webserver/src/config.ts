@@ -33,4 +33,5 @@ export const webserverConfigSchema = z.object({
     .default(3335),
 });
 
-export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
+export type WebserverConfig = z.output<typeof webserverConfigSchema>;
+export type WebserverConfigInput = z.input<typeof webserverConfigSchema>;

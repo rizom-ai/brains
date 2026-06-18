@@ -22,4 +22,5 @@ export const cliConfigSchema = z.object({
     }),
 });
 
-export type CLIConfig = z.infer<typeof cliConfigSchema>;
+export type CLIConfig = z.output<typeof cliConfigSchema>;
+export type CLIConfigInput = z.input<typeof cliConfigSchema>;
