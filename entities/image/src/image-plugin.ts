@@ -8,7 +8,11 @@ import type {
   JobHandler,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
+import {
+  createPendingEntity,
+  EntityPlugin,
+  resolveEntityOrError,
+} from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -24,6 +28,9 @@ import {
   webChatUploadsScope,
 } from "./lib/upload-promotion";
 import packageJson from "../package.json";
+
+const PENDING_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 const imageConfigSchema = z.object({
   defaultAspectRatio: z
@@ -191,17 +198,22 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       if (!prompt) return { kind: "continue", input };
 
       const title = normalizeText(input.title) ?? imageTargetTitle;
+      const entityId = getPredictedImageId({
+        prompt,
+        ...(title && { title }),
+      });
+      await this.createPendingImage(context, {
+        id: entityId,
+        title: title ?? prompt.slice(0, 60).trim(),
+        alt: title ?? prompt.slice(0, 60).trim(),
+        attachmentType: "generated",
+      });
       const jobId = await context.jobs.enqueue({
         type: "image-generate",
         data: {
           prompt,
           ...(title && { title }),
         },
-      });
-
-      const entityId = getPredictedImageId({
-        prompt,
-        ...(title && { title }),
       });
       return {
         kind: "handled",
@@ -240,6 +252,19 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     }
 
     const entityContent = getDistillableEntityContent(resolved.entity.content);
+    const entityId = getPredictedImageId({
+      prompt,
+      ...(input.title && { title: input.title }),
+      targetEntityId: resolved.entity.id,
+    });
+    await this.createPendingImage(context, {
+      id: entityId,
+      title: input.title ?? `cover-${resolved.entity.id}`,
+      alt: input.title ?? `cover-${resolved.entity.id}`,
+      attachmentType: "generated",
+      sourceEntityType: targetEntityType,
+      sourceEntityId: resolved.entity.id,
+    });
     const jobId = await context.jobs.enqueue({
       type: "image-generate",
       data: {
@@ -253,12 +278,6 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
             : resolved.entity.id,
         ...(entityContent && { entityContent }),
       },
-    });
-
-    const entityId = getPredictedImageId({
-      prompt,
-      ...(input.title && { title: input.title }),
-      targetEntityId: resolved.entity.id,
     });
     return {
       kind: "handled",
@@ -325,11 +344,22 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
+    await this.createPendingImage(context, {
+      id: identity.id,
+      title: identity.title,
+      alt: identity.title,
+      sourceUploadId: uploadId,
+      sourceFilename: uploadRecord.filename,
+      sourceMediaType: uploadRecord.mediaType,
+      attachmentType: "uploaded",
+    });
+
     const jobId = await context.jobs.enqueue({
       type: "upload-promote",
       data: {
         uploadId,
-        ...(input.title !== undefined ? { title: input.title } : {}),
+        imageId: identity.id,
+        title: identity.title,
       },
     });
 
@@ -410,6 +440,15 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
     const dedupKey = await getSourceDedupKey(context, sourceInput);
     const imageId = getPredictedSourceImageId(sourceInput);
+    await this.createPendingImage(context, {
+      id: imageId,
+      title: imageId,
+      alt: imageId,
+      sourceEntityType: sourceInput.sourceEntityType,
+      sourceEntityId: sourceInput.sourceEntityId,
+      attachmentType,
+      dedupKey,
+    });
     const jobId = await context.jobs.enqueue({
       type: "image-render-source",
       data: {
@@ -435,6 +474,49 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
         },
       },
     };
+  }
+
+  private async createPendingImage(
+    context: EntityPluginContext,
+    input: {
+      id: string;
+      title: string;
+      alt: string;
+      attachmentType: string;
+      sourceEntityType?: string;
+      sourceEntityId?: string;
+      sourceUploadId?: string;
+      sourceFilename?: string;
+      sourceMediaType?: string;
+      dedupKey?: string;
+    },
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const entityData = imageAdapter.createImageEntity({
+      dataUrl: PENDING_IMAGE_DATA_URL,
+      title: input.title,
+      alt: input.alt,
+      status: "pending",
+      attachmentType: input.attachmentType,
+      ...(input.sourceEntityType && {
+        sourceEntityType: input.sourceEntityType,
+      }),
+      ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+      ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
+      ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
+      ...(input.sourceMediaType && { sourceMediaType: input.sourceMediaType }),
+      ...(input.dedupKey && { dedupKey: input.dedupKey }),
+    });
+
+    await createPendingEntity({
+      entityService: context.entityService,
+      entity: {
+        id: input.id,
+        ...entityData,
+        created: now,
+        updated: now,
+      },
+    });
   }
 
   protected override async getInstructions(): Promise<string> {

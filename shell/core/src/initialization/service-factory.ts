@@ -11,6 +11,7 @@ import {
   PluginManager,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
+import { RuntimeStateService } from "@brains/runtime-state";
 import {
   PermissionService,
   RenderService,
@@ -70,6 +71,12 @@ export function createShellServices(options: {
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
     RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
+  const runtimeStateService =
+    dependencies?.runtimeStateService ??
+    RuntimeStateService.createFresh(
+      createDatabaseConfig(config.runtimeStateDatabase),
+      logger,
+    );
   const mcpService =
     dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
@@ -161,5 +168,6 @@ export function createShellServices(options: {
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,
+    runtimeStateService,
   };
 }

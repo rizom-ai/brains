@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -135,7 +137,15 @@ describe("ImagePlugin", () => {
       entityType: "image",
       id: "robot",
     });
-    expect(entity).toBeNull();
+    expect(entity?.metadata).toMatchObject({
+      title: "Robot",
+      alt: "Robot",
+      status: "pending",
+      sourceUploadId: record.ref.id,
+      sourceFilename: "robot.png",
+      sourceMediaType: "image/png",
+      attachmentType: "uploaded",
+    });
 
     await runQueuedUploadPromotion();
 
@@ -150,6 +160,71 @@ describe("ImagePlugin", () => {
       title: "Robot",
       alt: "Robot",
       format: "png",
+      status: "draft",
+      sourceUploadId: record.ref.id,
+      sourceFilename: "robot.png",
+      sourceMediaType: "image/png",
+      attachmentType: "uploaded",
+    });
+  });
+
+  it("marks a pending uploaded image failed when promotion processing fails", async () => {
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000203",
+      });
+    const record = await store.save({
+      filename: "broken.png",
+      mediaType: "image/png",
+      content: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+
+    await interceptor(
+      {
+        entityType: "image",
+        title: "Broken",
+        from: { kind: "upload", id: record.ref.id },
+      },
+      {
+        interfaceType: "web-chat",
+        userId: "operator",
+      },
+    );
+    await rm(join(store.getUploadDir(record.ref.id), "content"));
+
+    const handler = registeredHandlers.get("image:upload-promote");
+    if (!handler) throw new Error("image:upload-promote handler missing");
+    const job = enqueuedJobs[0];
+    if (!job) throw new Error("upload promotion job not queued");
+    const reporter = ProgressReporter.from(async () => {});
+    if (!reporter) throw new Error("progress reporter not created");
+
+    const result = await handler.process(
+      job.data,
+      "queued-image-job",
+      reporter,
+    );
+
+    expect(result).toMatchObject({ success: false });
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "image",
+      id: "broken",
+    });
+    expect(entity?.metadata).toMatchObject({
+      status: "failed",
+      processingError: expect.stringContaining("Upload not found"),
     });
   });
 

@@ -28,7 +28,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Pending entity ingestion](./pending-entity-ingestion.md) — partial; shared `shell/plugins` pending→draft/failed ingestion helper and the `entities/link` adopter (plus evals) are shipped. Extending the same lifecycle to images, uploads, PDFs, audio, and video is the remaining work
+- [System upload-save tool](./upload-save-tool.md) — proposed; split raw upload preservation into a confirmed system tool with plugin-registered document/image handlers, leaving `system_create` for content creation
 - [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
 - [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
 - [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference for playbook gate and eval-readiness behavior
@@ -51,7 +51,9 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### New interfaces, renderers, and runtimes
 
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
+- [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
+- [OKF interop](./okf-interop.md) — proposed; export/import the entity store as Google's Open Knowledge Format bundles via the `directory-sync` layer, for interchange with external OKF producers/consumers

@@ -5,7 +5,7 @@ import type {
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { createPendingEntity, ServicePlugin } from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import {
   documentAdapter,
@@ -19,6 +19,10 @@ import {
 } from "./handlers/documentGenerationHandler";
 import { createDocumentTools } from "./tools";
 import packageJson from "../package.json";
+
+const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
+  "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
+).toString("base64")}`;
 
 const documentPluginConfigSchema = z.object({});
 
@@ -140,6 +144,17 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
         ? undefined
         : await this.findExistingDocument(dedupKey, context);
     const documentId = existing?.id ?? getDocumentId(generationData, dedupKey);
+    if (!existing) {
+      await this.createPendingDocument(context, {
+        id: documentId,
+        title: generationData.title ?? documentId,
+        filename: `${documentId}.pdf`,
+        sourceEntityType: generationData.sourceEntityType,
+        sourceEntityId: generationData.sourceEntityId,
+        attachmentType: generationData.attachmentType,
+        dedupKey,
+      });
+    }
     const jobId = await context.jobs.enqueue({
       type: "generate",
       data: { ...generationData, dedupKey, documentId },
@@ -222,6 +237,10 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
       dataUrl: toDataUrl(upload.record.mediaType, upload.content),
       filename: upload.record.filename,
       title,
+      status: "draft",
+      sourceUploadId: uploadRef.id,
+      sourceFilename: upload.record.filename,
+      sourceMediaType: upload.record.mediaType,
       attachmentType: "uploaded",
       dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
     });
@@ -249,6 +268,41 @@ export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
         },
       },
     };
+  }
+
+  private async createPendingDocument(
+    context: ServicePluginContext,
+    input: {
+      id: string;
+      title: string;
+      filename: string;
+      sourceEntityType: string;
+      sourceEntityId: string;
+      attachmentType: string;
+      dedupKey: string;
+    },
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const entityData = documentAdapter.createDocumentEntity({
+      dataUrl: PENDING_PDF_DATA_URL,
+      filename: input.filename,
+      title: input.title,
+      status: "pending",
+      sourceEntityType: input.sourceEntityType,
+      sourceEntityId: input.sourceEntityId,
+      attachmentType: input.attachmentType,
+      dedupKey: input.dedupKey,
+    });
+
+    await createPendingEntity({
+      entityService: context.entityService,
+      entity: {
+        id: input.id,
+        ...entityData,
+        created: now,
+        updated: now,
+      },
+    });
   }
 
   private async getDedupKey(

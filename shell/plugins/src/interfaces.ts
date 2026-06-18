@@ -57,6 +57,7 @@ import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAttachmentsNamespace } from "./service/attachment-registry";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type {
   ImageGenerationOptions,
@@ -250,6 +251,7 @@ export interface IShell {
   getAgentService(): IAgentService;
   getAttachmentRegistry(): IAttachmentsNamespace;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
+  getRuntimeState(): IRuntimeStateNamespace;
 
   // Identity and Profile
   getIdentity(): BrainCharacter;

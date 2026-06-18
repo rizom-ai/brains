@@ -108,7 +108,8 @@
     "@brains/web-chat": "0.2.0-alpha.84",
     "@brains/atproto": "0.2.0-alpha.94",
     "@brains/atproto-registry": "0.2.0-alpha.94",
-    "@brains/atproto-contracts": "0.2.0-alpha.94"
+    "@brains/atproto-contracts": "0.2.0-alpha.94",
+    "@brains/runtime-state": "0.2.0-alpha.123"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -221,6 +222,7 @@
     "rizom-unified-type-and-ecosystem",
     "rover-a2a-anchor-directory",
     "rover-agent-directory-approval",
+    "rover-instruction-disclosure-and-routing-guards",
     "rover-setup-email-scaffold",
     "runtime-node-env-production",
     "setup-email-onboarding-copy",

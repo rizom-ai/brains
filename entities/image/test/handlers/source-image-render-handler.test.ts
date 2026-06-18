@@ -31,7 +31,7 @@ describe("SourceImageRenderJobHandler", () => {
     const context = createMockEntityPluginContext({
       returns: {
         entityService: {
-          getEntity: target,
+          getEntity: null,
         },
         attachmentsResolve: async () => ({
           type: "image" as const,
@@ -40,6 +40,8 @@ describe("SourceImageRenderJobHandler", () => {
           filename: "post-og.png",
         }),
       },
+      listEntitiesImpl: async (request) =>
+        request.entityType === "post" ? [target] : [],
     });
 
     const handler = new SourceImageRenderJobHandler(
@@ -65,9 +67,7 @@ describe("SourceImageRenderJobHandler", () => {
       imageId: "og-post-post-1",
       reused: false,
     });
-    // Replace in place (not delete-then-create) when the image already exists,
-    // so a failure can't leave the target without an image.
-    expect(context.entityService.updateEntity).toHaveBeenCalledWith({
+    expect(context.entityService.createEntity).toHaveBeenCalledWith({
       entity: expect.objectContaining({
         id: "og-post-post-1",
         entityType: "image",

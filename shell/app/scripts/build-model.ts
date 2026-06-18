@@ -153,6 +153,10 @@ const migrationSources = [
     path: join(monorepoRoot, "shell/conversation-service/drizzle"),
   },
   { name: "job-queue", path: join(monorepoRoot, "shell/job-queue/drizzle") },
+  {
+    name: "runtime-state",
+    path: join(monorepoRoot, "shell/runtime-state/drizzle"),
+  },
 ];
 
 for (const { name, path } of migrationSources) {

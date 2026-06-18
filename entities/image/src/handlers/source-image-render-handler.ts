@@ -1,5 +1,10 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { BaseJobHandler, findEntityByIdentifier } from "@brains/plugins";
+import {
+  BaseJobHandler,
+  failPendingEntity,
+  findEntityByIdentifier,
+  saveProcessedEntity,
+} from "@brains/plugins";
 import type { ProgressReporter, Logger } from "@brains/utils";
 import { getErrorMessage, z } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
@@ -112,27 +117,17 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       const entityData = imageAdapter.createImageEntity({
         dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
         title: data.imageId,
+        status: "draft",
         sourceEntityType: data.sourceEntityType,
         sourceEntityId: data.sourceEntityId,
         attachmentType: data.attachmentType,
         ...(data.dedupKey && { dedupKey: data.dedupKey }),
       });
 
-      // Replace in place rather than delete-then-create: a delete followed by a
-      // failed create would leave the target with no image at all. updateEntity
-      // recomputes the content hash, so replacing the content is sufficient.
-      const entity = { ...entityData, id: data.imageId };
-      const existing = await this.context.entityService.getEntity<Image>({
-        entityType: "image",
-        id: data.imageId,
+      await saveProcessedEntity({
+        entityService: this.context.entityService,
+        entity: { ...entityData, id: data.imageId },
       });
-      if (existing) {
-        await this.context.entityService.updateEntity<Image>({
-          entity: { ...existing, ...entity },
-        });
-      } else {
-        await this.context.entityService.createEntity({ entity });
-      }
 
       await this.updateTarget(data, data.imageId);
 
@@ -143,9 +138,16 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
 
       return { success: true, imageId: data.imageId, reused: false };
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Source image render job failed", {
         jobId,
-        error: getErrorMessage(error),
+        error: errorMessage,
+      });
+      await failPendingEntity({
+        entityService: this.context.entityService,
+        entityType: "image",
+        id: data.imageId,
+        error: errorMessage,
       });
       return JobResult.failure(error);
     }
@@ -158,7 +160,11 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       entityType: "image",
       options: { filter: { metadata: { dedupKey } } },
     });
-    return images[0];
+    return images.find(
+      (image) =>
+        image.metadata.status !== "pending" &&
+        image.metadata.status !== "failed",
+    );
   }
 
   private async updateTarget(

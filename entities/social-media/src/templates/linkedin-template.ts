@@ -50,7 +50,8 @@ When source content (blog post, deck, etc.) is explicitly provided as the genera
 URL inclusion:
 - Include a URL when the user asks you to share/reference existing content, or when a specific source entity is provided with a URL.
 - If the prompt topic directly matches a URL-bearing context item from the knowledge base, include exactly one relevant URL.
-- For general prompt-only posts, do not force a URL. Only include one if it directly strengthens the post and does not distract from the requested topic.
+- For general prompt-only posts, use the prompt as the source of truth. Do not introduce URLs, blog/project/deck themes, source references, or specialized framing from adjacent knowledge context unless the prompt explicitly asks for existing content or a knowledge-base URL.
+- Only include a URL if it directly strengthens the post and does not distract from the requested topic.
 - Do not include URLs for merely adjacent analogies or loosely related context.
 
 LinkedIn-specific guidelines:

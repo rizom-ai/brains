@@ -23,6 +23,10 @@ describe("MigrationManager", () => {
       url: "file:conversation.db",
       authToken: "conv-token",
     },
+    runtimeStateDatabase: {
+      url: "file:runtime-state.db",
+      authToken: "runtime-state-token",
+    },
     embeddingDatabase: {
       url: "file:embeddings.db",
       authToken: "emb-token",
@@ -40,6 +44,7 @@ describe("MigrationManager", () => {
       migrateEntities: mock(() => Promise.resolve()),
       migrateJobQueue: mock(() => Promise.resolve()),
       migrateConversations: mock(() => Promise.resolve()),
+      migrateRuntimeState: mock(() => Promise.resolve()),
     };
 
     migrationManager = new MigrationManager(mockLogger, mockMigrations);
@@ -60,6 +65,9 @@ describe("MigrationManager", () => {
       );
       expect(mockLogger.debug).toHaveBeenCalledWith(
         "Running conversation database migrations...",
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Running runtime state database migrations...",
       );
       expect(mockLogger.debug).toHaveBeenCalledWith(
         "All database migrations completed successfully",
@@ -88,6 +96,14 @@ describe("MigrationManager", () => {
         },
         mockLogger,
       );
+
+      expect(mockMigrations.migrateRuntimeState).toHaveBeenCalledWith(
+        {
+          url: mockConfig.runtimeStateDatabase.url,
+          authToken: mockConfig.runtimeStateDatabase.authToken,
+        },
+        mockLogger,
+      );
     });
 
     it("should propagate config errors", async () => {
@@ -111,6 +127,10 @@ describe("MigrationManager", () => {
         },
         conversationDatabase: {
           url: "file:conversation.db",
+          authToken: undefined,
+        },
+        runtimeStateDatabase: {
+          url: "file:runtime-state.db",
           authToken: undefined,
         },
         embeddingDatabase: {
@@ -148,6 +168,13 @@ describe("MigrationManager", () => {
         },
         mockLogger,
       );
+
+      expect(mockMigrations.migrateRuntimeState).toHaveBeenCalledWith(
+        {
+          url: configWithoutTokens.runtimeStateDatabase.url,
+        },
+        mockLogger,
+      );
     });
 
     it("should propagate migration errors", async () => {
@@ -166,6 +193,7 @@ describe("MigrationManager", () => {
         database: "file:/tmp/test-entities.db",
         jobQueueDatabase: "file:/tmp/test-jobs.db",
         conversationDatabase: "file:/tmp/test-conv.db",
+        runtimeStateDatabase: "file:/tmp/test-runtime-state.db",
       };
 
       await migrationManager.runAllMigrations(overrides);
@@ -183,6 +211,11 @@ describe("MigrationManager", () => {
 
       expect(mockMigrations.migrateConversations).toHaveBeenCalledWith(
         expect.objectContaining({ url: overrides.conversationDatabase }),
+        mockLogger,
+      );
+
+      expect(mockMigrations.migrateRuntimeState).toHaveBeenCalledWith(
+        expect.objectContaining({ url: overrides.runtimeStateDatabase }),
         mockLogger,
       );
     });

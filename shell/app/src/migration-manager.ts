@@ -6,6 +6,7 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 
 /**
  * Database configuration with URL and optional auth token
@@ -23,12 +24,14 @@ export interface IMigrationFunctions {
   migrateEntities(config: DatabaseConfig, logger?: Logger): Promise<void>;
   migrateJobQueue(config: DatabaseConfig, logger?: Logger): Promise<void>;
   migrateConversations(config: DatabaseConfig, logger?: Logger): Promise<void>;
+  migrateRuntimeState(config: DatabaseConfig, logger?: Logger): Promise<void>;
 }
 
 export interface DatabaseUrlOverrides {
   database?: string | undefined;
   jobQueueDatabase?: string | undefined;
   conversationDatabase?: string | undefined;
+  runtimeStateDatabase?: string | undefined;
 }
 
 export class MigrationManager {
@@ -42,6 +45,7 @@ export class MigrationManager {
       migrateEntities,
       migrateJobQueue,
       migrateConversations,
+      migrateRuntimeState,
     };
   }
 
@@ -66,11 +70,15 @@ export class MigrationManager {
     if (overrides?.conversationDatabase) {
       config.conversationDatabase.url = overrides.conversationDatabase;
     }
+    if (overrides?.runtimeStateDatabase) {
+      config.runtimeStateDatabase.url = overrides.runtimeStateDatabase;
+    }
 
     // Run each migration
     await this.migrateEntityDatabase(config);
     await this.migrateJobQueueDatabase(config);
     await this.migrateConversationDatabase(config);
+    await this.migrateRuntimeStateDatabase(config);
 
     this.logger.debug("All database migrations completed successfully");
   }
@@ -110,6 +118,21 @@ export class MigrationManager {
         url: config.conversationDatabase.url,
         ...(config.conversationDatabase.authToken && {
           authToken: config.conversationDatabase.authToken,
+        }),
+      },
+      this.logger,
+    );
+  }
+
+  private async migrateRuntimeStateDatabase(
+    config: StandardConfig,
+  ): Promise<void> {
+    this.logger.debug("Running runtime state database migrations...");
+    await this.migrations.migrateRuntimeState(
+      {
+        url: config.runtimeStateDatabase.url,
+        ...(config.runtimeStateDatabase.authToken && {
+          authToken: config.runtimeStateDatabase.authToken,
         }),
       },
       this.logger,

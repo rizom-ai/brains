@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import type { ServicePluginContext } from "@brains/plugins";
-import { BaseJobHandler } from "@brains/plugins";
+import {
+  BaseJobHandler,
+  failPendingEntity,
+  saveProcessedEntity,
+} from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
@@ -225,24 +229,15 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         filename,
         ...(data.title && { title: data.title }),
         ...(pageCount !== undefined && { pageCount }),
+        status: "draft",
         sourceEntityType: data.sourceEntityType,
         sourceEntityId: data.sourceEntityId,
         attachmentType: data.attachmentType,
         dedupKey,
       });
 
-      const current = await this.context.entityService.getEntity({
-        entityType: "document",
-        id: documentId,
-      });
-      if (current) {
-        await this.context.entityService.deleteEntity({
-          entityType: "document",
-          id: documentId,
-        });
-      }
-
-      await this.context.entityService.createEntity({
+      await saveProcessedEntity({
+        entityService: this.context.entityService,
         entity: {
           ...entityData,
           id: documentId,
@@ -265,9 +260,16 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 
       return { success: true, documentId, reused: false };
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Document generation failed", {
         jobId,
-        error: getErrorMessage(error),
+        error: errorMessage,
+      });
+      await failPendingEntity({
+        entityService: this.context.entityService,
+        entityType: "document",
+        id: documentId,
+        error: errorMessage,
       });
       throw error;
     }
@@ -330,9 +332,15 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         preferredDocumentId,
       });
     }
+    const reusableDocuments = documents.filter(
+      (document) =>
+        document.metadata.status !== "pending" &&
+        document.metadata.status !== "failed",
+    );
     return (
-      documents.find((document) => document.id === preferredDocumentId) ??
-      documents[0]
+      reusableDocuments.find(
+        (document) => document.id === preferredDocumentId,
+      ) ?? reusableDocuments[0]
     );
   }
 
