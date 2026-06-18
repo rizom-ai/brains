@@ -44,14 +44,18 @@ import {
 } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
-import { chunkMessage, z } from "@brains/utils";
+import { chunkMessage } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
   type DiscordChatAdapterConfig,
 } from "./config";
 import { ThreadRegistry } from "./thread-registry";
-import { createDiscordSubscriptionStateAdapter } from "./subscription-state";
+import {
+  createDiscordSubscriptionStateAdapter,
+  createDiscordThreadSubscriptionStore,
+  type DiscordThreadSubscriptionStore,
+} from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
 import { CHAT_PLATFORMS } from "./types";
 import type {
@@ -68,19 +72,6 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
-const DISCORD_OWNED_THREAD_NAMESPACE = "chat.discord.ownedThreads";
-const discordOwnedThreadSchema = z.object({
-  createdAt: z.string().datetime(),
-  sourceMessageId: z.string().optional(),
-});
-
-interface DiscordOwnedThreadStore {
-  set(
-    key: string,
-    value: z.infer<typeof discordOwnedThreadSchema>,
-  ): Promise<void>;
-  has(key: string): Promise<boolean>;
-}
 
 interface AgentInput {
   message: string;
@@ -119,7 +110,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     { channelId: string; messageId: string }
   >();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
-  private discordOwnedThreads: DiscordOwnedThreadStore | undefined;
+  private discordSubscriptions: DiscordThreadSubscriptionStore | undefined;
   private gatewayAbortController: AbortController | undefined;
   private gatewayLoopPromise: Promise<void> | undefined;
 
@@ -131,10 +122,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    this.discordOwnedThreads = context.runtimeState.scoped({
-      namespace: DISCORD_OWNED_THREAD_NAMESPACE,
-      schema: discordOwnedThreadSchema,
-    });
+    this.discordSubscriptions = createDiscordThreadSubscriptionStore(
+      context.runtimeState,
+    );
     this.app = this.createChatApp(context);
     this.registerChatHandlers(this.app);
   }
@@ -456,9 +446,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     try {
       await thread.subscribe();
-      await this.discordOwnedThreads?.set(thread.id, {
-        createdAt: new Date().toISOString(),
-        sourceMessageId: message.id,
+      await this.discordSubscriptions?.set(thread.id, {
+        subscribedAt: new Date().toISOString(),
       });
     } catch (error) {
       this.logger.debug("Discord thread subscription failed", {
@@ -471,7 +460,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private async shouldRouteSubscribedMessage(thread: Thread): Promise<boolean> {
     if (this.getPlatform(thread) !== "discord") return false;
     if (thread.isDM) return true;
-    return (await this.discordOwnedThreads?.has(thread.id)) === true;
+    return (await this.discordSubscriptions?.has(thread.id)) === true;
   }
 
   private isBotCreatedDiscordThread(thread: Thread, message: Message): boolean {

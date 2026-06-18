@@ -3,15 +3,30 @@ import type { IRuntimeStateNamespace } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 
-const discordSubscriptionStateSchema = z.object({
+export const discordThreadSubscriptionStateSchema = z.object({
   subscribedAt: z.string().datetime(),
 });
 
 export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
 
 export type DiscordThreadSubscriptionState = z.infer<
-  typeof discordSubscriptionStateSchema
+  typeof discordThreadSubscriptionStateSchema
 >;
+
+export interface DiscordThreadSubscriptionStore {
+  set(key: string, value: DiscordThreadSubscriptionState): Promise<void>;
+  has(key: string): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+}
+
+export function createDiscordThreadSubscriptionStore(
+  runtimeState: IRuntimeStateNamespace,
+): DiscordThreadSubscriptionStore {
+  return runtimeState.scoped({
+    namespace: discordThreadSubscriptionNamespace,
+    schema: discordThreadSubscriptionStateSchema,
+  });
+}
 
 /**
  * Create Chat SDK state where only Discord thread subscriptions are durable.
@@ -25,10 +40,7 @@ export function createDiscordSubscriptionStateAdapter(
   runtimeState: IRuntimeStateNamespace,
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
-  const subscriptions = runtimeState.scoped({
-    namespace: discordThreadSubscriptionNamespace,
-    schema: discordSubscriptionStateSchema,
-  });
+  const subscriptions = createDiscordThreadSubscriptionStore(runtimeState);
 
   return new DiscordSubscriptionStateAdapter(memoryState, subscriptions);
 }
@@ -36,11 +48,7 @@ export function createDiscordSubscriptionStateAdapter(
 class DiscordSubscriptionStateAdapter implements StateAdapter {
   constructor(
     private readonly memoryState: StateAdapter,
-    private readonly subscriptions: {
-      set(key: string, value: DiscordThreadSubscriptionState): Promise<void>;
-      has(key: string): Promise<boolean>;
-      delete(key: string): Promise<boolean>;
-    },
+    private readonly subscriptions: DiscordThreadSubscriptionStore,
   ) {}
 
   connect(): Promise<void> {
