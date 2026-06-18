@@ -396,6 +396,9 @@ Incremental migration progress:
   bridge subclasses now spell their config input type explicitly. `notion` and
   `hackmd` keep required token inputs schema-true and test missing-token
   failures at the schema boundary.
+- Audited schema-owned service plugin config inputs for `dashboard` and
+  `content-pipeline`; runtime config uses `z.output<typeof schema>`, while
+  constructors and factories accept `z.input<typeof schema>`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

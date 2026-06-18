@@ -34,7 +34,8 @@ const dashboardConfigSchema = z.object({
   themeCSS: z.string().optional(),
 });
 
-type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
+export type DashboardConfig = z.output<typeof dashboardConfigSchema>;
+export type DashboardConfigInput = z.input<typeof dashboardConfigSchema>;
 
 const registerWidgetPayloadSchema = z
   .object({
@@ -85,15 +86,15 @@ function createRegisteredWidget(
 
 export class DashboardPlugin extends ServicePlugin<
   DashboardConfig,
-  Partial<DashboardConfig>
+  DashboardConfigInput
 > {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
 
-  constructor(config?: Partial<DashboardConfig>) {
-    super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
+  constructor(config: DashboardConfigInput = {}) {
+    super("dashboard", packageJson, config, dashboardConfigSchema);
   }
 
   protected override async onRegister(
@@ -273,7 +274,7 @@ export class DashboardPlugin extends ServicePlugin<
 }
 
 export function dashboardPlugin(
-  config?: Partial<DashboardConfig>,
+  config: DashboardConfigInput = {},
 ): DashboardPlugin {
   return new DashboardPlugin(config);
 }

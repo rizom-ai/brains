@@ -118,4 +118,9 @@ export const contentPipelineConfigSchema = z.object({
     .optional(),
 });
 
-export type ContentPipelineConfig = z.infer<typeof contentPipelineConfigSchema>;
+export type ContentPipelineConfig = z.output<
+  typeof contentPipelineConfigSchema
+>;
+export type ContentPipelineConfigInput = z.input<
+  typeof contentPipelineConfigSchema
+>;
