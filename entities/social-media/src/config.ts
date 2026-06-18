@@ -48,4 +48,5 @@ export type SocialMediaConfigInput = z.input<typeof socialMediaConfigSchema>;
 /**
  * LinkedIn configuration type
  */
-export type LinkedinConfig = z.infer<typeof linkedinConfigSchema>;
+export type LinkedinConfig = z.output<typeof linkedinConfigSchema>;
+export type LinkedinConfigInput = z.input<typeof linkedinConfigSchema>;

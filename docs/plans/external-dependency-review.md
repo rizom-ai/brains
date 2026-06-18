@@ -409,7 +409,9 @@ Incremental migration progress:
   `Partial<Config>` markers where the schema now owns the input contract.
 - Audited more schema-owned entity plugin config inputs for `portfolio`,
   `newsletter`, and `social-media`, including defaulted constructor/factory
-  inputs where every caller-provided field is optional before parsing.
+  inputs where every caller-provided field is optional before parsing. Nested
+  social-media LinkedIn config now exposes runtime output and caller input
+  aliases separately.
 - Audited schema-owned config inputs for `link`, `document`, `obsidian-vault`,
   and `cms`; callers now use schema-derived input types and parsed runtime
   config remains schema output.
