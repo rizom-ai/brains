@@ -18,13 +18,13 @@ File-backed content synchronization for brain instances.
 
 ```text
 brain-data/
-  README.md                    # entityType: base, id: README
+  README.md                    # entityType: note, id: README
   post/my-first-post.md         # entityType: post, id: my-first-post
   site-content/home/hero.md     # entityType: site-content, id: home:hero
   image/cover.png               # entityType: image
 ```
 
-Root markdown files become `base` note entities. Files under `brain-data/<entity-type>/` use the first path segment as the entity type. Nested paths below that directory become colon-separated ids.
+Root markdown files become `note` note entities. Files under `brain-data/<entity-type>/` use the first path segment as the entity type. Nested paths below that directory become colon-separated ids.
 
 ## Typical brain.yaml config
 

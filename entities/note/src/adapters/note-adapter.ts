@@ -15,7 +15,7 @@ import {
 export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
   constructor() {
     super({
-      entityType: "base",
+      entityType: "note",
       schema: noteSchema,
       frontmatterSchema: noteFrontmatterSchema,
     });
@@ -42,7 +42,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
     const title = frontmatter.title ?? this.extractH1(markdown) ?? "Untitled";
     return {
       content: markdown,
-      entityType: "base",
+      entityType: "note",
       metadata: {
         title,
         ...(frontmatter.status && { status: frontmatter.status }),

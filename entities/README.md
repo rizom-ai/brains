@@ -41,7 +41,7 @@ Projection jobs own their sync/source lifecycle and are queued by the projection
 | ------------ | ------------- | ---------- | -------------------------------------------------------- |
 | blog         | `post`        |            | Blog posts with frontmatter, publish pipeline, RSS       |
 | decks        | `deck`        |            | Slide decks with markdown directives                     |
-| note         | `base`        |            | Personal notes with markdown-first workflow              |
+| note         | `note`        |            | Personal notes with markdown-first workflow              |
 | link         | `link`        |            | Web links with AI-powered content extraction             |
 | portfolio    | `project`     |            | Portfolio projects with structured case studies          |
 | newsletter   | `newsletter`  |            | Email newsletters with publish pipeline                  |

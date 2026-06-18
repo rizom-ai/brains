@@ -64,7 +64,7 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 
 | Package                        | Purpose                                                           |
 | ------------------------------ | ----------------------------------------------------------------- |
-| `entities/note`                | Knowledge capture (base entity type)                              |
+| `entities/note`                | Knowledge capture (note entity type)                              |
 | `entities/blog`                | Essays and articles                                               |
 | `entities/decks`               | Presentations                                                     |
 | `entities/link`                | Curated bookmarks + URL capture                                   |

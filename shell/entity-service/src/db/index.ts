@@ -55,6 +55,9 @@ export async function ensureFtsTable(client: Client): Promise<void> {
       content
     )
   `);
+  await client.execute(
+    "UPDATE entity_fts SET entity_type = 'note' WHERE entity_type = 'base'",
+  );
 }
 
 /**

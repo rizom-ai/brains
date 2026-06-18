@@ -1,5 +1,5 @@
 import { formatLabel, pluralize, type z } from "@brains/utils";
-import { BASE_ENTITY_TYPE } from "@brains/entity-service";
+import { NOTE_ENTITY_TYPE } from "@brains/entity-service";
 
 /**
  * Per-entity-type display metadata accepted by the generator.
@@ -228,7 +228,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     const hasBody = adapter?.hasBody !== false;
     const routeConfig = options.entityDisplay?.[entityType];
     const defaultLabel =
-      entityType === BASE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
+      entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
     const label = routeConfig?.label ?? defaultLabel;
     const pluralLabel = routeConfig?.pluralName ?? pluralizeLabel(label);
 
@@ -246,7 +246,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     // frontmatter. Treat them as raw Markdown so horizontal rules (`---`) in
     // note bodies are not mistaken for YAML frontmatter delimiters by the CMS.
     // Title extraction still happens on the brain side.
-    if (entityType === BASE_ENTITY_TYPE) {
+    if (entityType === NOTE_ENTITY_TYPE) {
       collections.push({
         name: entityType,
         label: pluralLabel,

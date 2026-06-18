@@ -18,7 +18,7 @@ turns:
         - toolName: system_update
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
             id: rizom-brains-provenance-token-concept-note
           argsAbsent:
             - confirmed
@@ -40,7 +40,7 @@ turns:
         - toolName: system_get
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
             id: rizom-brains-provenance-token-concept-note
         - toolName: system_update
           shouldBeCalled: false

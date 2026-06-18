@@ -73,7 +73,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/image`               | `image`                              | AI image generation                   |
 | `entities/link`                | `link`                               | URL capture and extraction            |
 | `entities/newsletter`          | `newsletter`                         | Newsletter content                    |
-| `entities/note`                | `base`                               | General markdown notes / base notes   |
+| `entities/note`                | `note`                               | General markdown notes / notes        |
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries    |
 | `entities/products`            | `product`, `products-overview`       | Product catalog content               |
 | `entities/prompt`              | `prompt`                             | Editable AI prompt entities           |
@@ -125,7 +125,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | Area             | Current packages                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------------------ |
 | `sites/`         | `default`, `personal`, `professional`, `rizom` (site compositions; may inherit from other sites) |
-| `shared/theme-*` | `base`, `default`, `rizom`                                                                       |
+| `shared/theme-*` | `note`, `default`, `rizom`                                                                       |
 | `brains/`        | `rover`, `ranger`, `relay`                                                                       |
 | `packages/`      | `brain-cli` (published as `@rizom/brain`), `brains-ops` (published as `@rizom/ops`)              |
 

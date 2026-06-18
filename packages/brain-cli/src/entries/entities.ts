@@ -3,7 +3,7 @@
 export {
   BaseEntityAdapter,
   baseEntitySchema,
-  BASE_ENTITY_TYPE,
+  NOTE_ENTITY_TYPE,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,

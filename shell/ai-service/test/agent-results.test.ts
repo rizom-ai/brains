@@ -7,12 +7,12 @@ describe("buildEntityMemoryNote", () => {
     const note = buildEntityMemoryNote([
       {
         toolName: "system_update",
-        args: { entityType: "base", id: "rizom-note" },
+        args: { entityType: "note", id: "rizom-note" },
         data: { updated: "rizom-note" },
       },
     ]);
 
-    expect(note).toContain('base "rizom-note" (updated)');
+    expect(note).toContain('note "rizom-note" (updated)');
     expect(note).toContain("Reference these IDs directly in follow-ups");
   });
 

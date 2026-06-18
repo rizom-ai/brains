@@ -23,7 +23,7 @@ export interface GenerationJobHandlerConfig<TInput> {
   schema: z.ZodSchema<TInput>;
   /** Job type name for logging */
   jobTypeName: string;
-  /** Entity type being generated (e.g., "post", "base", "deck") */
+  /** Entity type being generated (e.g., "post", "note", "deck") */
   entityType: string;
 }
 
@@ -136,7 +136,7 @@ function withoutStubLifecycleFields(
  *     super(logger, context, {
  *       schema: noteJobSchema,
  *       jobTypeName: "note-generation",
- *       entityType: "base",
+ *       entityType: "note",
  *     });
  *   }
  *

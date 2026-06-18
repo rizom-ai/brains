@@ -6,7 +6,7 @@
 
 Directory sync maps files in `brain-data/` to entities by path:
 
-- root markdown files are note entities with `entityType: "base"`
+- root markdown files are note entities with `entityType: "note"`
 - files under `brain-data/<entity-type>/` use that directory name as the entity type
 - nested paths below the entity-type directory become colon-separated ids: `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
@@ -30,7 +30,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | ------------------- | ----------------------------- | ------------- | ----------- | ----------- | -------------------------------------------------------------------------------- |
 | `anchor-profile`    | identity service              | all presets   | all presets | all presets | Singleton identity/profile for the person, team, or collective behind the brain. |
 | `brain-character`   | identity service              | all presets   | all presets | all presets | Singleton persona/instructions source for the brain.                             |
-| `base`              | `@brains/note`                | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                 |
+| `note`              | `@brains/note`                | all presets   | all presets | default     | Root-level notes and general markdown knowledge.                                 |
 | `prompt`            | `@brains/prompt`              | all presets   | all presets | default     | Prompt/template overrides.                                                       |
 | `link`              | `@brains/link`                | all presets   | all presets | default     | Captured links and extracted summaries.                                          |
 | `wish`              | `@brains/wishlist`            | all presets   | —           | default     | User requests and roadmap wishes.                                                |
@@ -100,15 +100,15 @@ Key fields:
 
 ## Core knowledge entities
 
-### `base` — notes
+### `note` — notes
 
 Root-level markdown files in `brain-data/` become note entities.
 
 Example paths:
 
 ```text
-brain-data/README.md          # id: README, entityType: base
-brain-data/research/idea.md   # id: research:idea, entityType: base
+brain-data/README.md          # id: README, entityType: note
+brain-data/research/idea.md   # id: research:idea, entityType: note
 ```
 
 Key frontmatter:

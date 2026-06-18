@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-pdf-upload-save-action
 name: Web chat PDF upload Save document action promotes document
-description: Verifies the suggested Save document action calls system_upload_save with the prior upload ref, not a base note.
+description: Verifies the suggested Save document action calls system_upload_save with the prior upload ref, not a note.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -50,7 +50,7 @@ turns:
       responseContains:
         - "Confirmation required"
       responseNotContains:
-        - "entityType: base"
+        - "entityType: note"
         - "Notes on distributed systems primer"
         - "Failed: Create"
 
@@ -74,7 +74,7 @@ successCriteria:
     - toolName: system_update
       shouldBeCalled: false
   responseNotContains:
-    - "entityType: base"
+    - "entityType: note"
     - "Notes on distributed systems primer"
     - "Failed: Create"
 

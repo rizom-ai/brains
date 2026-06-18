@@ -7,7 +7,7 @@ import type { Note } from "../src/schemas/note";
 
 const note: Note = {
   id: "note-1",
-  entityType: "base",
+  entityType: "note",
   content:
     "---\ntitle: Networked Knowledge\n---\n# Networked Knowledge\n\nA note body.",
   created: "2026-05-28T10:00:00.000Z",
@@ -39,7 +39,7 @@ describe("note ATProto projection", () => {
       body: "# Networked Knowledge\n\nA note body.",
       format: "text/markdown",
       brainDid: "did:web:brain.example.com",
-      sourceEntityType: "base",
+      sourceEntityType: "note",
       sourceEntityId: "note-1",
       createdAt: "2026-05-28T10:00:00.000Z",
       updatedAt: "2026-05-28T11:00:00.000Z",
@@ -66,7 +66,7 @@ describe("note ATProto projection", () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
     await harness.installPlugin(new NotePlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("base");
+    const projection = AtprotoProjectionRegistry.getInstance().get("note");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.note");

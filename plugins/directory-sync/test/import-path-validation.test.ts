@@ -19,7 +19,7 @@ describe("Import Path Validation", () => {
     mkdirSync(testDir, { recursive: true });
 
     mockEntityService = createMockEntityService({
-      entityTypes: ["post", "base"],
+      entityTypes: ["post", "note"],
     });
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(

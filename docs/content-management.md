@@ -19,7 +19,7 @@ mybrain/
 
 Directory sync maps paths to entities:
 
-- root markdown files are note entities with `entityType: "base"`
+- root markdown files are note entities with `entityType: "note"`
 - files under `brain-data/<entity-type>/` use that directory as their entity type
 - nested paths below the entity-type directory become colon-separated ids, for example `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
@@ -72,7 +72,7 @@ Common tools:
 Examples:
 
 ```bash
-brain tool system_create '{"entityType":"base","title":"Idea","content":"# Idea\n\nA short note."}'
+brain tool system_create '{"entityType":"note","title":"Idea","content":"# Idea\n\nA short note."}'
 brain tool system_search '{"query":"recent published posts","entityType":"post"}'
 brain tool system_list '{"entityType":"post","status":"draft"}'
 ```

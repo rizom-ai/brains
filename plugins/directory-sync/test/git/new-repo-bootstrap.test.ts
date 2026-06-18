@@ -72,8 +72,8 @@ describe("GitSync new-repo bootstrap regression", () => {
 
   it("initializes cleanly when default files already exist and the remote is empty", async () => {
     writeDefault();
-    mkdirSync(join(dataDir, "base"), { recursive: true });
-    writeFileSync(join(dataDir, "base", "welcome.md"), "# Welcome");
+    mkdirSync(join(dataDir, "note"), { recursive: true });
+    writeFileSync(join(dataDir, "note", "welcome.md"), "# Welcome");
 
     const gs = createGitSync();
     await gs.initialize();
@@ -83,7 +83,7 @@ describe("GitSync new-repo bootstrap regression", () => {
 
     const tracked = listTracked(dataDir);
     expect(tracked).toContain("default.md");
-    expect(tracked).toContain("base/welcome.md");
+    expect(tracked).toContain("note/welcome.md");
   });
 
   it("repairs an invalid HEAD left by a broken bootstrap", async () => {

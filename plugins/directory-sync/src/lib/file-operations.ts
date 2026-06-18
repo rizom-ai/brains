@@ -194,7 +194,7 @@ export class FileOperations {
     entity: BaseEntity,
     filePath: string,
   ): Promise<void> {
-    if (entity.entityType !== "base") {
+    if (entity.entityType !== "note") {
       await mkdir(dirname(filePath), { recursive: true });
     }
   }

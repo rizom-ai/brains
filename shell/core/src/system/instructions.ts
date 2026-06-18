@@ -27,7 +27,7 @@ export function createSystemInstructions(services: SystemServices): string {
     "When a user asks to create content, determine the entity type from context:",
     '- "Write a blog post" → entityType: "post"',
     '- "Create a presentation/deck" → entityType: "deck"',
-    '- "Save this as a note" → entityType: "base"',
+    '- "Save this as a note" → entityType: "note"',
     '- "Draft a LinkedIn post" → entityType: "social-post"',
     '- "Create a newsletter" → entityType: "newsletter"',
     '- "Add a project" → entityType: "project"',

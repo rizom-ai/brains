@@ -21,10 +21,10 @@ describe("FileOperations.parseEntityFromPath", () => {
   });
 
   describe("root level files", () => {
-    it("should parse simple root level file as base entity", () => {
+    it("should parse simple root level file as note entity", () => {
       const result = fileOps.parseEntityFromPath("/test/brain-data/my-note.md");
       expect(result).toEqual({
-        entityType: "base",
+        entityType: "note",
         id: "my-note",
       });
     });
@@ -32,7 +32,7 @@ describe("FileOperations.parseEntityFromPath", () => {
     it("should handle root file with relative path", () => {
       const result = fileOps.parseEntityFromPath("my-note.md");
       expect(result).toEqual({
-        entityType: "base",
+        entityType: "note",
         id: "my-note",
       });
     });

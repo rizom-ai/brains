@@ -26,7 +26,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: "base"
+            entityType: "note"
       responseNotContains:
         - "ticket"
         - "issue tracker"
@@ -58,7 +58,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: "base"
+        entityType: "note"
     - toolName: system_search
       shouldBeCalled: true
   minHelpfulnessScore: 4

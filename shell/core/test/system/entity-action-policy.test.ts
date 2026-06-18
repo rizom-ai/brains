@@ -76,7 +76,7 @@ describe("entity action policy", () => {
         },
       }),
     });
-    services.addEntities([makeEntity("base", "team-note")]);
+    services.addEntities([makeEntity("note", "team-note")]);
     services.addEntities([makeEntity("summary", "weekly-summary")]);
     tools = createSystemTools(services);
   });
@@ -90,7 +90,7 @@ describe("entity action policy", () => {
   it("allows trusted create for default team-authored entity types after confirmation", async () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_create").handler(
-        { entityType: "base", title: "Team note", content: "Team note body" },
+        { entityType: "note", title: "Team note", content: "Team note body" },
         baseContext("trusted"),
       ),
     );
@@ -108,12 +108,12 @@ describe("entity action policy", () => {
 
   it("denies public create for default team-authored entity types", async () => {
     const result = await getTool("system_create").handler(
-      { entityType: "base", title: "Public note", content: "Body" },
+      { entityType: "note", title: "Public note", content: "Body" },
       baseContext("public"),
     );
 
     const error = expectError(result);
-    expect(error).toContain("Creating `base` requires Collaborator/trusted");
+    expect(error).toContain("Creating `note` requires Collaborator/trusted");
     expect(error).toContain("Public/public");
   });
 
@@ -121,7 +121,7 @@ describe("entity action policy", () => {
     expectConfirmation(
       await getTool("system_update").handler(
         {
-          entityType: "base",
+          entityType: "note",
           id: "team-note",
           fields: { title: "Edited" },
         },
@@ -162,12 +162,12 @@ describe("entity action policy", () => {
 
   it("denies trusted delete for default entity types", async () => {
     const result = await getTool("system_delete").handler(
-      { entityType: "base", id: "team-note" },
+      { entityType: "note", id: "team-note" },
       baseContext("trusted"),
     );
 
     const error = expectError(result);
-    expect(error).toContain("Deleting `base` requires Owner/anchor");
+    expect(error).toContain("Deleting `note` requires Owner/anchor");
     expect(error).toContain("Collaborator/trusted");
   });
 
@@ -185,7 +185,7 @@ describe("entity action policy", () => {
 
     expectConfirmation(
       await getTool("system_delete").handler(
-        { entityType: "base", id: "team-note" },
+        { entityType: "note", id: "team-note" },
         baseContext("anchor"),
       ),
     );
@@ -193,7 +193,7 @@ describe("entity action policy", () => {
 
   it("rechecks create policy after interceptors change the effective entity type", async () => {
     services.entityRegistry.registerCreateInterceptor(
-      "base",
+      "note",
       async (input: CreateInput): Promise<CreateInterceptionResult> => ({
         kind: "continue",
         input: { ...input, entityType: "summary" },
@@ -203,7 +203,7 @@ describe("entity action policy", () => {
     const confirmArgs = expectConfirmation(
       await getTool("system_create").handler(
         {
-          entityType: "base",
+          entityType: "note",
           title: "Intercepted Summary",
           content: "Team note body",
         },
