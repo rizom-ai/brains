@@ -107,3 +107,7 @@ export type AppConfig = Omit<
   // Shared conversation spaces for this brain/team
   spaces?: string[];
 };
+
+export type AppConfigInput = {
+  [K in keyof AppConfig]?: AppConfig[K];
+};

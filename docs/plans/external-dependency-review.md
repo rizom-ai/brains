@@ -421,6 +421,8 @@ Incremental migration progress:
   `z.output<typeof schema>` and caller input with `z.input<typeof schema>`.
 - Replaced `Shell.getInstance`'s raw `Partial<ShellConfig>` parameter with the
   named `ShellConfigInput` pre-parse contract.
+- Added a named `AppConfigInput` caller contract for `App.create`/`App.run`
+  instead of exposing raw `Partial<AppConfig>` at that boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

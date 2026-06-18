@@ -5,6 +5,7 @@ export { SeedDataManager } from "./seed-data-manager";
 export { MigrationManager } from "./migration-manager";
 export type {
   AppConfig,
+  AppConfigInput,
   DeploymentConfig,
   DeploymentConfigInput,
 } from "./types";

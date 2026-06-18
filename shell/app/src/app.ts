@@ -1,6 +1,6 @@
 import { Shell } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
-import { appConfigSchema, type AppConfig } from "./types";
+import { appConfigSchema, type AppConfig, type AppConfigInput } from "./types";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 
@@ -21,7 +21,7 @@ export class App {
   private isShuttingDown = false;
   private hasCLI = false;
 
-  public static create(config?: Partial<AppConfig>, shell?: Shell): App {
+  public static create(config?: AppConfigInput, shell?: Shell): App {
     const validatedConfig = appConfigSchema.parse(config ?? {});
 
     // Follow Shell's pattern: validate schema then add full Plugin objects
@@ -251,7 +251,7 @@ export class App {
    * Static convenience method to create and run an app in one call
    */
   public static async run(
-    config?: Partial<AppConfig>,
+    config?: AppConfigInput,
     shell?: Shell,
   ): Promise<void> {
     const app = App.create(config, shell);
