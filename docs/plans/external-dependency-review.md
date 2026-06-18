@@ -411,6 +411,9 @@ Incremental migration progress:
 - Audited schema-owned config inputs for `link`, `document`, `obsidian-vault`,
   and `cms`; callers now use schema-derived input types and parsed runtime
   config remains schema output.
+- Audited `site-content` config by typing its shallow schema validator against
+  the existing rich `SiteContentDefinition` contract, then deriving runtime and
+  caller config types from that schema.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

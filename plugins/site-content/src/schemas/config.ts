@@ -1,9 +1,14 @@
 import { z } from "@brains/utils";
+import type { SiteContentDefinition } from "../definitions";
 
-const siteContentDefinitionConfigSchema = z.object({
+const siteContentDefinitionShapeSchema = z.object({
   namespace: z.string(),
   sections: z.record(z.any()),
 });
+
+const siteContentDefinitionConfigSchema = z.custom<SiteContentDefinition>(
+  (value) => siteContentDefinitionShapeSchema.safeParse(value).success,
+);
 
 export const siteContentPluginConfigSchema = z.object({
   definitions: z
@@ -13,3 +18,10 @@ export const siteContentPluginConfigSchema = z.object({
     ])
     .optional(),
 });
+
+export type SiteContentPluginConfig = z.output<
+  typeof siteContentPluginConfigSchema
+>;
+export type SiteContentPluginConfigInput = z.input<
+  typeof siteContentPluginConfigSchema
+>;

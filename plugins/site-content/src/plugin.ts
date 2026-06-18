@@ -5,18 +5,21 @@ import { siteContentSchema } from "./schemas/site-content";
 import { siteContentAdapter } from "./adapters/site-content-adapter";
 import { SiteContentService } from "./lib/site-content-service";
 import { createSiteContentTemplates } from "./lib/site-content-definitions";
-import type { SiteContentPluginConfig } from "./definitions";
-import { siteContentPluginConfigSchema } from "./schemas/config";
+import {
+  siteContentPluginConfigSchema,
+  type SiteContentPluginConfig,
+  type SiteContentPluginConfigInput,
+} from "./schemas/config";
 import { createSiteContentTools } from "./tools";
 import packageJson from "../package.json";
 
 export class SiteContentPlugin extends ServicePlugin<
   SiteContentPluginConfig,
-  Partial<SiteContentPluginConfig>
+  SiteContentPluginConfigInput
 > {
   private siteContentService: SiteContentService | undefined;
 
-  constructor(config: SiteContentPluginConfig = {}) {
+  constructor(config: SiteContentPluginConfigInput = {}) {
     super("site-content", packageJson, config, siteContentPluginConfigSchema);
   }
 
@@ -45,7 +48,7 @@ export class SiteContentPlugin extends ServicePlugin<
 }
 
 export function siteContentPlugin(
-  config: SiteContentPluginConfig = {},
+  config: SiteContentPluginConfigInput = {},
 ): SiteContentPlugin {
   return new SiteContentPlugin(config);
 }
