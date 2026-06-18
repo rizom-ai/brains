@@ -4,6 +4,7 @@ import {
   documentSchema,
   type DocumentEntity,
   type DocumentMetadata,
+  type DocumentIngestionStatus,
 } from "../schemas/document";
 import { parseDocumentDataUrl } from "../lib/document-utils";
 
@@ -12,8 +13,12 @@ export interface CreateDocumentInput {
   filename: string;
   title?: string;
   pageCount?: number;
+  status?: DocumentIngestionStatus;
   sourceEntityType?: string;
   sourceEntityId?: string;
+  sourceUploadId?: string;
+  sourceFilename?: string;
+  sourceMediaType?: string;
   attachmentType?: string;
   dedupKey?: string;
 }

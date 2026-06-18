@@ -19,15 +19,28 @@ export type ImageFormat = z.infer<typeof imageFormatSchema>;
  * All fields required (auto-detected on upload)
  * sourceUrl is optional - used for deduplication when importing from URLs
  */
+export const imageIngestionStatusSchema = z.enum([
+  "pending",
+  "draft",
+  "failed",
+]);
+export type ImageIngestionStatus = z.infer<typeof imageIngestionStatusSchema>;
+
 export const imageMetadataSchema = z.object({
   title: z.string().optional(),
   alt: z.string().optional(),
   format: imageFormatSchema,
   width: z.number(),
   height: z.number(),
+  status: imageIngestionStatusSchema.optional(),
+  processingJobId: z.string().optional(),
+  processingError: z.string().optional(),
   sourceUrl: z.string().url().optional(),
   sourceEntityType: z.string().optional(),
   sourceEntityId: z.string().optional(),
+  sourceUploadId: z.string().optional(),
+  sourceFilename: z.string().optional(),
+  sourceMediaType: z.string().optional(),
   attachmentType: z.string().optional(),
   dedupKey: z.string().optional(),
 });

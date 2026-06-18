@@ -183,7 +183,67 @@ describe("ImageGenerationJobHandler", () => {
       });
     });
 
-    it("should delete existing image before creating when regenerating", async () => {
+    it("should update an existing pending image when generation completes", async () => {
+      const existingImage: BaseEntity = {
+        id: "sunset-image",
+        entityType: "image",
+        content: VALID_PNG_DATA_URL,
+        visibility: "public",
+        metadata: {
+          title: "Sunset Image",
+          alt: "Sunset Image",
+          format: "png",
+          width: 1,
+          height: 1,
+          status: "pending",
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "pending-hash",
+      };
+
+      const pendingContext = createMockEntityPluginContext({
+        returns: {
+          entityService: {
+            getEntity: existingImage,
+            updateEntity: { entityId: "sunset-image", jobId: "job-123" },
+          },
+          ai: {
+            canGenerateImages: true,
+            generateImage: {
+              base64: VALID_PNG_BASE64,
+              dataUrl: VALID_PNG_DATA_URL,
+            },
+          },
+        },
+      });
+      const pendingHandler = new ImageGenerationJobHandler(
+        pendingContext,
+        logger,
+      );
+
+      const result = await pendingHandler.process(
+        createValidJobData(),
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(pendingContext.entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          id: "sunset-image",
+          content: VALID_PNG_DATA_URL,
+          metadata: expect.objectContaining({
+            title: "Sunset Image",
+            status: "draft",
+          }),
+        }),
+      });
+      expect(pendingContext.entityService.createEntity).not.toHaveBeenCalled();
+      expect(pendingContext.entityService.deleteEntity).not.toHaveBeenCalled();
+    });
+
+    it("should update existing image in place when regenerating", async () => {
       // Setup: existing image with same ID
       const existingImage: BaseEntity = {
         id: "sunset-image",
@@ -222,13 +282,15 @@ describe("ImageGenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      // Should have deleted the existing image
-      expect(regenContext.entityService.deleteEntity).toHaveBeenCalledWith({
-        entityType: "image",
-        id: "sunset-image",
+      expect(regenContext.entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          id: "sunset-image",
+          content: VALID_PNG_DATA_URL,
+          metadata: expect.objectContaining({ status: "draft" }),
+        }),
       });
-      // Should have created the new image
-      expect(regenContext.entityService.createEntity).toHaveBeenCalled();
+      expect(regenContext.entityService.deleteEntity).not.toHaveBeenCalled();
+      expect(regenContext.entityService.createEntity).not.toHaveBeenCalled();
     });
 
     it("should pass aspectRatio option to AI service", async () => {
