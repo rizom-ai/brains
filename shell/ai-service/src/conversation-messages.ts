@@ -107,12 +107,33 @@ export function resolveConversationUploadContinuity(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
+  const refs = collectUploadRefsFromMessages(params.historyMessages);
   return {
     kind: "selected",
     message: params.message,
-    refs: collectUploadRefsFromMessages(params.historyMessages),
+    refs: shouldNarrowToLatestUploadRef(params.message, refs)
+      ? refs.slice(-1)
+      : refs,
     attachments: params.currentAttachments,
   };
+}
+
+function shouldNarrowToLatestUploadRef(
+  message: string,
+  refs: ConversationUploadRef[],
+): boolean {
+  if (refs.length < 2) return false;
+  const normalized = message.trim().toLowerCase();
+  const hasSingularReference =
+    /\b(it|this|that|file|upload|image|pdf|document)\b/.test(normalized);
+  const asksToPersist =
+    /\b(save|store|import|promote|attach|preserve|keep|capture)\b/.test(
+      normalized,
+    );
+  const namesKnownFile = refs.some((ref) =>
+    normalized.includes(ref.filename.toLowerCase()),
+  );
+  return hasSingularReference && asksToPersist && !namesKnownFile;
 }
 
 export function buildMessageWithAttachments(
