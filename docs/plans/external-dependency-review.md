@@ -444,6 +444,9 @@ Incremental migration progress:
   validation/normalization.
 - Audited the plugin eval `eval.yaml` parser boundary the same way: parsed eval
   configs use schema output and the input alias represents pre-parse YAML data.
+- Audited template permission entity-action policy schemas: stored policy types
+  use schema output, while `PermissionConfig` accepts schema input before the
+  service parses it.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

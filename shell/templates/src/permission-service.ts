@@ -52,10 +52,16 @@ export const entityActionPolicyConfigSchema = z.record(
   entityActionPolicyRuleSchema,
 );
 
-export type EntityActionPolicyRule = z.infer<
+export type EntityActionPolicyRule = z.output<
   typeof entityActionPolicyRuleSchema
 >;
-export type EntityActionPolicyConfig = z.infer<
+export type EntityActionPolicyRuleInput = z.input<
+  typeof entityActionPolicyRuleSchema
+>;
+export type EntityActionPolicyConfig = z.output<
+  typeof entityActionPolicyConfigSchema
+>;
+export type EntityActionPolicyConfigInput = z.input<
   typeof entityActionPolicyConfigSchema
 >;
 export type EntityActionPolicyEntry = EntityActionPolicyRule;
@@ -97,7 +103,7 @@ export interface PermissionConfig {
   anchors?: string[];
   trusted?: string[];
   rules?: PermissionRule[];
-  entityActions?: EntityActionPolicyConfig;
+  entityActions?: EntityActionPolicyConfigInput;
 }
 
 export class EntityActionPermissionError extends Error {
