@@ -453,6 +453,8 @@ Incremental migration progress:
 - Named the shell config schema output used by the runtime `ShellConfig` type;
   the existing named partial `ShellConfigInput` remains the visible pre-parse
   override boundary.
+- Clarified plugin config helper aliases so `PluginConfigInput<T>` is schema
+  input and runtime `PluginConfig<T>` is schema output.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

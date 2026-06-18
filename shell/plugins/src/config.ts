@@ -13,4 +13,4 @@ export const basePluginConfigSchema = z.object({
  * Type helpers for plugin configuration
  */
 export type PluginConfigInput<T extends z.ZodType> = z.input<T>;
-export type PluginConfig<T extends z.ZodType> = z.infer<T>;
+export type PluginConfig<T extends z.ZodType> = z.output<T>;
