@@ -2,13 +2,18 @@
 
 ## Status
 
-Partial. The shared helper and link adopter are shipped. The media slice now covers current image and PDF/document async paths:
+Current in-repo scope is implemented.
 
-- Image create flows create durable `pending` placeholders before queueing upload promotion, AI generation, or source-render jobs, then update the same entity to `draft` or `failed`.
-- Source-derived PDF/document generation creates a durable `pending` document before queueing and updates that same entity to `draft` or `failed`.
-- Raw PDF upload promotion is already synchronous and now writes `draft` ingestion metadata.
+Shipped coverage:
 
-Remaining work is limited to future media/upload processors that are not represented by current entity packages yet (for example audio/video-specific entities or OCR/caption pipelines beyond the existing image/document paths) plus broader eval coverage.
+- Shared pending-ingestion helpers in `shell/plugins` preserve entity IDs across `pending` → `draft` / `failed` transitions.
+- `entities/link` creates durable pending placeholders before queued capture and updates the same entity on completion/failure.
+- `entities/image` creates durable pending placeholders before queued upload promotion, AI generation, and source-image rendering, then updates the same image entity to `draft` or `failed`.
+- `entities/document` creates durable pending placeholders before queued source-derived PDF generation, then updates the same document entity to `draft` or `failed`.
+- Raw PDF upload promotion is synchronous and now records `draft` ingestion/source metadata.
+- Unit coverage exists for immediate placeholders, same-ID completion, and failure-to-`failed` behavior on image and document paths.
+
+No current in-repo async entity ingestion path is known to still accept work while leaving the accepted entity invisible. Future audio/video-specific entity packages or new OCR/caption/thumbnail processors should adopt the same lifecycle when they are introduced.
 
 ## Problem
 
@@ -39,17 +44,13 @@ Recommended optional fields:
 - source reference, e.g. channel/upload/URL
 - media or source metadata needed for follow-up lookup
 
-## Remaining work
+## Future follow-up trigger
 
-1. Extend the lifecycle to any future media/upload entity packages and processors:
-   - audio/video-specific entities when added
-   - OCR/caption/thumbnail processors if they become separate async enrichment jobs
-   - any upload flows that currently accept work before durable entity creation
+Open a new implementation slice when a new entity/upload path accepts asynchronous media work before durable persistence, especially:
 
-2. Add broader evals for the media path:
-   - upload/save an image then immediately refer to it
-   - processing failure leaves a visible pending/failed entity
-   - source-derived PDF/image artifact save then immediate follow-up by returned entity ID
+- audio/video entity packages
+- separate OCR/caption/thumbnail enrichment jobs
+- new upload promotion flows outside image/document/link
 
 ## Notes
 
