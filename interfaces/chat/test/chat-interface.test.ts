@@ -429,6 +429,44 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
+  it("does not subscribe mentions that occur inside existing Discord threads", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const message = createMessage({
+      raw: {
+        guild_id: "guild-123",
+        channel_id: "thread-456",
+      },
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, message);
+
+    expect(thread.subscribe).not.toHaveBeenCalled();
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "Hello bot",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("ignores subscribed Discord thread messages that were not subscribed by this interface", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ isMention: false, text: "unmentioned follow-up" }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
   it("routes Discord mentions even when thread subscription fails", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);

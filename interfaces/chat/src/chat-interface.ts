@@ -44,7 +44,7 @@ import {
 } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
-import { chunkMessage } from "@brains/utils";
+import { chunkMessage, z } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
@@ -68,6 +68,20 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const DISCORD_OWNED_THREAD_NAMESPACE = "chat.discord.ownedThreads";
+const discordOwnedThreadSchema = z.object({
+  createdAt: z.string().datetime(),
+  sourceMessageId: z.string().optional(),
+});
+
+interface DiscordOwnedThreadStore {
+  set(
+    key: string,
+    value: z.infer<typeof discordOwnedThreadSchema>,
+  ): Promise<void>;
+  has(key: string): Promise<boolean>;
+}
+
 interface AgentInput {
   message: string;
   attachments: ChatAttachment[];
@@ -105,6 +119,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     { channelId: string; messageId: string }
   >();
   private discordGatewayAdapter: DiscordChatAdapter | undefined;
+  private discordOwnedThreads: DiscordOwnedThreadStore | undefined;
   private gatewayAbortController: AbortController | undefined;
   private gatewayLoopPromise: Promise<void> | undefined;
 
@@ -116,6 +131,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    this.discordOwnedThreads = context.runtimeState.scoped({
+      namespace: DISCORD_OWNED_THREAD_NAMESPACE,
+      schema: discordOwnedThreadSchema,
+    });
     this.app = this.createChatApp(context);
     this.registerChatHandlers(this.app);
   }
@@ -405,17 +424,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         !thread.isDM &&
         platformConfig.useThreads
       ) {
-        await thread.subscribe().catch((error: unknown) =>
-          this.logger.debug("Discord thread subscription failed", {
-            error,
-            threadId: thread.id,
-          }),
-        );
+        await this.subscribeOwnedDiscordThread(thread, message);
       }
       await this.handleRoutedMessage(thread, message);
     });
 
     app.onSubscribedMessage(async (thread, message) => {
+      if (!(await this.shouldRouteSubscribedMessage(thread))) return;
       await this.handleRoutedMessage(thread, message);
     });
 
@@ -431,6 +446,47 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     app.onNewMessage(URL_PATTERN, async (thread, message) => {
       await this.handlePassiveUrlCapture(thread, message);
     });
+  }
+
+  private async subscribeOwnedDiscordThread(
+    thread: Thread,
+    message: Message,
+  ): Promise<void> {
+    if (!this.isBotCreatedDiscordThread(thread, message)) return;
+
+    try {
+      await thread.subscribe();
+      await this.discordOwnedThreads?.set(thread.id, {
+        createdAt: new Date().toISOString(),
+        sourceMessageId: message.id,
+      });
+    } catch (error) {
+      this.logger.debug("Discord thread subscription failed", {
+        error,
+        threadId: thread.id,
+      });
+    }
+  }
+
+  private async shouldRouteSubscribedMessage(thread: Thread): Promise<boolean> {
+    if (this.getPlatform(thread) !== "discord") return false;
+    if (thread.isDM) return true;
+    return (await this.discordOwnedThreads?.has(thread.id)) === true;
+  }
+
+  private isBotCreatedDiscordThread(thread: Thread, message: Message): boolean {
+    if (thread.isDM) return false;
+    const ids = this.getThreadIdParts(thread.id);
+    if (!ids.threadId) return false;
+    const rawChannelId = this.getRawDiscordChannelId(message);
+    return rawChannelId !== undefined && rawChannelId !== ids.threadId;
+  }
+
+  private getRawDiscordChannelId(message: Message): string | undefined {
+    const raw = message.raw;
+    if (typeof raw !== "object" || raw === null) return undefined;
+    const value = (raw as Record<string, unknown>)["channel_id"];
+    return typeof value === "string" ? value : undefined;
   }
 
   private async handleRoutedMessage(
