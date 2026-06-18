@@ -32,6 +32,7 @@ export const brainCallOptionsSchema = z.object({
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
   enableCreateSourceAttachment: z.boolean().optional(),
+  enableUploadSave: z.boolean().optional(),
   disableDocumentGenerate: z.boolean().optional(),
   disableSystemCreate: z.boolean().optional(),
 });
@@ -111,6 +112,10 @@ export function createBrainAgentFactory(
               !(
                 callOptions.disableSystemCreate === true &&
                 tool.name === "system_create"
+              ) &&
+              !(
+                callOptions.enableUploadSave !== true &&
+                tool.name === "system_upload_save"
               ),
           );
         const allowedToolNames = allowedTools.map((t) => t.name);

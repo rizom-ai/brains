@@ -3,6 +3,7 @@ import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import type {
   BaseEntity,
   CreateInterceptor,
+  UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
@@ -20,6 +21,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
+  private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<
     string,
@@ -217,6 +219,27 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined {
     return this.createInterceptors.get(type);
+  }
+
+  registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {
+    this.uploadSaveHandlers = [
+      ...this.uploadSaveHandlers.filter(
+        (existing) => existing.entityType !== registration.entityType,
+      ),
+      registration,
+    ];
+  }
+
+  getUploadSaveHandler(
+    mediaType: string,
+  ): UploadSaveHandlerRegistration | undefined {
+    return this.uploadSaveHandlers.find((registration) =>
+      registration.mediaTypes.some((pattern) =>
+        pattern.endsWith("/*")
+          ? mediaType.startsWith(`${pattern.slice(0, -1)}`)
+          : mediaType === pattern,
+      ),
+    );
   }
 
   registerPersistValidator(type: string, validator: PersistValidator): void {

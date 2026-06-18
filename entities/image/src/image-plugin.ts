@@ -8,7 +8,11 @@ import type {
   JobHandler,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin, resolveEntityOrError } from "@brains/plugins";
+import {
+  createPendingEntity,
+  EntityPlugin,
+  resolveEntityOrError,
+} from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -24,6 +28,9 @@ import {
   webChatUploadsScope,
 } from "./lib/upload-promotion";
 import packageJson from "../package.json";
+
+const PENDING_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 const imageConfigSchema = z.object({
   defaultAspectRatio: z
@@ -191,17 +198,22 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       if (!prompt) return { kind: "continue", input };
 
       const title = normalizeText(input.title) ?? imageTargetTitle;
+      const entityId = getPredictedImageId({
+        prompt,
+        ...(title && { title }),
+      });
+      await this.createPendingImage(context, {
+        id: entityId,
+        title: title ?? prompt.slice(0, 60).trim(),
+        alt: title ?? prompt.slice(0, 60).trim(),
+        attachmentType: "generated",
+      });
       const jobId = await context.jobs.enqueue({
         type: "image-generate",
         data: {
           prompt,
           ...(title && { title }),
         },
-      });
-
-      const entityId = getPredictedImageId({
-        prompt,
-        ...(title && { title }),
       });
       return {
         kind: "handled",
@@ -240,6 +252,19 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     }
 
     const entityContent = getDistillableEntityContent(resolved.entity.content);
+    const entityId = getPredictedImageId({
+      prompt,
+      ...(input.title && { title: input.title }),
+      targetEntityId: resolved.entity.id,
+    });
+    await this.createPendingImage(context, {
+      id: entityId,
+      title: input.title ?? `cover-${resolved.entity.id}`,
+      alt: input.title ?? `cover-${resolved.entity.id}`,
+      attachmentType: "generated",
+      sourceEntityType: targetEntityType,
+      sourceEntityId: resolved.entity.id,
+    });
     const jobId = await context.jobs.enqueue({
       type: "image-generate",
       data: {
@@ -253,12 +278,6 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
             : resolved.entity.id,
         ...(entityContent && { entityContent }),
       },
-    });
-
-    const entityId = getPredictedImageId({
-      prompt,
-      ...(input.title && { title: input.title }),
-      targetEntityId: resolved.entity.id,
     });
     return {
       kind: "handled",
@@ -325,11 +344,22 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       };
     }
 
+    await this.createPendingImage(context, {
+      id: identity.id,
+      title: identity.title,
+      alt: identity.title,
+      sourceUploadId: uploadId,
+      sourceFilename: uploadRecord.filename,
+      sourceMediaType: uploadRecord.mediaType,
+      attachmentType: "uploaded",
+    });
+
     const jobId = await context.jobs.enqueue({
       type: "upload-promote",
       data: {
         uploadId,
-        ...(input.title !== undefined ? { title: input.title } : {}),
+        imageId: identity.id,
+        title: identity.title,
       },
     });
 
@@ -410,6 +440,15 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
     const dedupKey = await getSourceDedupKey(context, sourceInput);
     const imageId = getPredictedSourceImageId(sourceInput);
+    await this.createPendingImage(context, {
+      id: imageId,
+      title: imageId,
+      alt: imageId,
+      sourceEntityType: sourceInput.sourceEntityType,
+      sourceEntityId: sourceInput.sourceEntityId,
+      attachmentType,
+      dedupKey,
+    });
     const jobId = await context.jobs.enqueue({
       type: "image-render-source",
       data: {
@@ -437,8 +476,51 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     };
   }
 
+  private async createPendingImage(
+    context: EntityPluginContext,
+    input: {
+      id: string;
+      title: string;
+      alt: string;
+      attachmentType: string;
+      sourceEntityType?: string;
+      sourceEntityId?: string;
+      sourceUploadId?: string;
+      sourceFilename?: string;
+      sourceMediaType?: string;
+      dedupKey?: string;
+    },
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const entityData = imageAdapter.createImageEntity({
+      dataUrl: PENDING_IMAGE_DATA_URL,
+      title: input.title,
+      alt: input.alt,
+      status: "pending",
+      attachmentType: input.attachmentType,
+      ...(input.sourceEntityType && {
+        sourceEntityType: input.sourceEntityType,
+      }),
+      ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+      ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
+      ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
+      ...(input.sourceMediaType && { sourceMediaType: input.sourceMediaType }),
+      ...(input.dedupKey && { dedupKey: input.dedupKey }),
+    });
+
+    await createPendingEntity({
+      entityService: context.entityService,
+      entity: {
+        id: input.id,
+        ...entityData,
+        created: now,
+        updated: now,
+      },
+    });
+  }
+
   protected override async getInstructions(): Promise<string> {
-    return `For durable raw image saves/promotions from uploaded images, call system_create with entityType: "image", the exact upload object shown in the current turn or conversation "Available upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the uploaded image file itself. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. Saving an image description, discussion, interpretation, or caption as a note should create a base entity with content from the conversation, not upload/transform. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images and cover images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely unless the user explicitly asks to reuse the uploaded image file.`;
+    return `For durable raw image saves/promotions from uploaded images, call system_upload_save with the exact upload object shown in the current turn or conversation "Available upload refs" hint. Do this only after the user explicitly asks to save/import/promote the uploaded image file itself. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. Saving an image description, discussion, interpretation, or caption as a note should create a base entity with content from the conversation, not upload/transform. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images and cover images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely unless the user explicitly asks to reuse the uploaded image file.`;
   }
 
   protected override createGenerationHandler(
@@ -454,6 +536,24 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    context.entities.registerUploadSaveHandler({
+      entityType: this.entityType,
+      mediaTypes: ["image/*"],
+      handler: async (input) => {
+        const interception = await this.promoteUpload(
+          {
+            entityType: this.entityType,
+            ...(input.title !== undefined ? { title: input.title } : {}),
+            from: input.upload,
+          },
+          context,
+        );
+        return interception.kind === "handled"
+          ? interception.result
+          : { success: false, error: "Image upload save was not handled" };
+      },
+    });
+
     const handler = new ImageGenerationJobHandler(context, this.logger);
     context.jobs.registerHandler("image-generate", handler);
     context.jobs.registerHandler(

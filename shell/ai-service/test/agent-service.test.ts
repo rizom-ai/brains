@@ -12,7 +12,11 @@ import type {
   ConversationMessageActor,
   IConversationService,
 } from "@brains/conversation-service";
-import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
+import type {
+  BrainAgent,
+  BrainAgentResult,
+  ChatAttachment,
+} from "../src/agent-types";
 import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
 import type { ModelMessage } from "ai";
 
@@ -37,6 +41,25 @@ const mockAgentFactory = mock(
 
 function expectNoSystemMessages(messages: ModelMessage[]): void {
   expect(messages.some((message) => message.role === "system")).toBe(false);
+}
+
+function createUploadAttachmentResolver(
+  records: Record<string, { filename: string; mediaType: string }>,
+): (
+  source: NonNullable<ChatAttachment["source"]>,
+) => Promise<ChatAttachment | null> {
+  return mock(async (source) => {
+    const record = records[source.id];
+    if (!record) return null;
+    return {
+      kind: "file" as const,
+      filename: record.filename,
+      mediaType: record.mediaType,
+      data: new Uint8Array([1, 2, 3, 4]),
+      sizeBytes: 4,
+      source,
+    };
+  });
 }
 
 // Mock BrainCharacterService
@@ -471,6 +494,48 @@ describe("AgentService", () => {
       );
     });
 
+    it("hides stale prior upload refs when runtime upload content is unavailable", async () => {
+      mockConversationService.getMessages = mock(() =>
+        Promise.resolve([
+          {
+            id: "msg-stale-upload",
+            conversationId: "test-conversation",
+            role: "user",
+            content: "",
+            timestamp: new Date().toISOString(),
+            metadata: JSON.stringify({
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "missing.pdf",
+                  mediaType: "application/pdf",
+                  source: { kind: "upload", id: "upload-missing" },
+                },
+              ],
+            }),
+          },
+        ]),
+      );
+      const uploadAttachmentResolver = createUploadAttachmentResolver({});
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
+      );
+
+      await service.chat("save it as a document", "test-conversation");
+
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      expect(callArgs?.options.enableUploadSave).toBeUndefined();
+      expect(callArgs?.options.enableCreateUpload).toBeUndefined();
+      const lastMessage = callArgs?.messages.at(-1);
+      expect(lastMessage?.content).not.toContain("Available upload refs");
+      expect(lastMessage?.content).not.toContain("upload-missing");
+    });
+
     it("does not ask service-level upload clarification for deck carousel requests", async () => {
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
@@ -510,13 +575,23 @@ describe("AgentService", () => {
           },
         ]),
       );
+      const uploadAttachmentResolver = createUploadAttachmentResolver({
+        "upload-pdf": {
+          filename: "file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+          mediaType: "application/pdf",
+        },
+        "upload-image": {
+          filename: "IMG_8963.jpeg",
+          mediaType: "image/jpeg",
+        },
+      });
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
-        { agentFactory: mockAgentFactory },
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
       );
 
       const response = await service.chat(
@@ -528,6 +603,7 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       const callArgs = mockGenerate.mock.calls[0]?.[0];
       expect(callArgs?.options.enableCreateUpload).toBeUndefined();
+      expect(callArgs?.options.enableUploadSave).toBeUndefined();
       expect(callArgs?.options.enableCreateSourceAttachment).toBeUndefined();
       expect(callArgs?.options.disableDocumentGenerate).toBeUndefined();
       const lastMessage = callArgs?.messages.at(-1);
@@ -634,13 +710,23 @@ describe("AgentService", () => {
           },
         ]),
       );
+      const uploadAttachmentResolver = createUploadAttachmentResolver({
+        "upload-first": {
+          filename: "first-robot.png",
+          mediaType: "image/png",
+        },
+        "upload-second": {
+          filename: "second-robot.png",
+          mediaType: "image/png",
+        },
+      });
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
-        { agentFactory: mockAgentFactory },
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
       );
 
       await service.chat("the latest one", "test-conversation");

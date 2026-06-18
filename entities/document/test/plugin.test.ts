@@ -33,8 +33,20 @@ describe("DocumentPlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
-  it("handles system_create document from a source attachment by enqueueing generation", async () => {
+  it("registers a PDF upload-save handler", async () => {
     const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+
+    const registration = harness
+      .getEntityRegistry()
+      .getUploadSaveHandler("application/pdf");
+    expect(registration?.entityType).toBe("document");
+  });
+
+  it("handles system_create document from a source attachment by enqueueing generation", async () => {
+    const harness = createPluginHarness<DocumentPlugin>({
+      dataDir: `/tmp/test-document-source-${crypto.randomUUID()}`,
+    });
     await harness.installPlugin(new DocumentPlugin());
     const interceptor = harness
       .getEntityRegistry()
@@ -57,12 +69,16 @@ describe("DocumentPlugin", () => {
       { interfaceType: "test", userId: "test-user" },
     );
 
+    if (result.kind !== "handled" || !result.result.success) {
+      throw new Error("Expected handled success");
+    }
+    const entityId = result.result.data.entityId;
     expect(result).toMatchObject({
       kind: "handled",
       result: {
         success: true,
         data: {
-          entityId: expect.any(String),
+          entityId,
           jobId: expect.any(String),
           status: "generating",
           attachment: {
@@ -74,12 +90,22 @@ describe("DocumentPlugin", () => {
             filename: expect.stringMatching(/\.pdf$/),
             source: {
               entityType: "document",
-              entityId: expect.any(String),
+              entityId,
               attachmentType: "carousel",
             },
           },
         },
       },
+    });
+    const documents = await harness.getEntityService().listEntities({
+      entityType: "document",
+    });
+    const pending = documents.find((document) => document.id === entityId);
+    expect(pending?.metadata).toMatchObject({
+      status: "pending",
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
     });
   });
 

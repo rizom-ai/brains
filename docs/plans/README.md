@@ -28,7 +28,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
 - [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
 - [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Pending entity ingestion](./pending-entity-ingestion.md) — partial; shared `shell/plugins` pending→draft/failed ingestion helper and the `entities/link` adopter (plus evals) are shipped. Extending the same lifecycle to images, uploads, PDFs, audio, and video is the remaining work
 - [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
 - [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
 
@@ -50,7 +49,9 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### New interfaces, renderers, and runtimes
 
 - [Discord Chat SDK / web chat feature parity](./chat-interface-sdk.md) — active plan to bring `@brains/chat` Discord workflows up to web-chat parity for uploads, confirmations, progress, artifacts, and restart-safe state
+- [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
+- [OKF interop](./okf-interop.md) — proposed; export/import the entity store as Google's Open Knowledge Format bundles via the `directory-sync` layer, for interchange with external OKF producers/consumers

@@ -230,6 +230,22 @@ export type CreateInterceptor = (
   executionContext: CreateExecutionContext,
 ) => Promise<CreateInterceptionResult>;
 
+export interface UploadSaveInput {
+  upload: CreateFromUploadInput;
+  title?: string;
+}
+
+export type UploadSaveHandler = (
+  input: UploadSaveInput,
+  executionContext: CreateExecutionContext,
+) => Promise<CreateResult>;
+
+export interface UploadSaveHandlerRegistration {
+  entityType: string;
+  mediaTypes: string[];
+  handler: UploadSaveHandler;
+}
+
 /**
  * Called before an entity is persisted (on create or update). Throws to reject
  * the write with an operator-facing error. Use this for cross-entity invariants
@@ -534,6 +550,9 @@ export interface IEntitiesNamespace {
     entityType: string,
     interceptor: CreateInterceptor,
   ): void;
+
+  /** Register a raw-upload durable save handler for this plugin's entity type */
+  registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 }
 
 export interface EntityService extends ICoreEntityService {
@@ -613,6 +632,12 @@ export interface EntityRegistry {
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined;
+
+  registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
+
+  getUploadSaveHandler(
+    mediaType: string,
+  ): UploadSaveHandlerRegistration | undefined;
 
   registerPersistValidator(type: string, validator: PersistValidator): void;
 

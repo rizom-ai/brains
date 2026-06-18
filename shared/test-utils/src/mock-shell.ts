@@ -47,6 +47,7 @@ import {
   type DataSourceRegistry,
   type DataSource,
   type EntityAdapter,
+  type UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -423,6 +424,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     string,
     (input: unknown, executionContext: unknown) => Promise<unknown>
   >();
+  const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
 
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
@@ -467,6 +469,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       createInterceptors.get(type) as ReturnType<
         IEntityRegistry["getCreateInterceptor"]
       >,
+    registerUploadSaveHandler: (registration): void => {
+      uploadSaveHandlers.push(registration);
+    },
+    getUploadSaveHandler: (mediaType) =>
+      uploadSaveHandlers.find((registration) =>
+        registration.mediaTypes.some((pattern) =>
+          pattern.endsWith("/*")
+            ? mediaType.startsWith(pattern.slice(0, -1))
+            : mediaType === pattern,
+        ),
+      ),
     registerPersistValidator: (): void => {},
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},

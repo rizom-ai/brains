@@ -34,6 +34,7 @@ import {
   buildMessageWithAttachments,
   buildModelMessages,
   resolveConversationUploadContinuity,
+  type ConversationUploadRef,
 } from "./conversation-messages";
 import {
   buildSourcesCardFromContextItems,
@@ -588,11 +589,14 @@ export class AgentService implements IAgentService {
       currentAttachments: attachments,
       historyMessages,
     });
+    const liveUploadRefs = await this.filterLiveUploadRefs(
+      uploadContinuity.refs,
+    );
 
     const effectiveMessage = uploadContinuity.message;
     const effectiveAttachments = await this.hydrateUploadAttachments({
       currentAttachments: uploadContinuity.attachments,
-      uploadRefs: uploadContinuity.refs,
+      uploadRefs: liveUploadRefs,
     });
     const contextItems = await this.fetchAgentContext({
       conversationId,
@@ -607,7 +611,7 @@ export class AgentService implements IAgentService {
       effectiveMessage,
       effectiveAttachments,
       {
-        uploadRefs: uploadContinuity.refs,
+        uploadRefs: liveUploadRefs,
       },
     );
     const messages = buildModelMessages(historyMessages, modelMessage);
@@ -640,7 +644,7 @@ export class AgentService implements IAgentService {
       (attachment) => attachment.source !== undefined,
     );
     const hasAccessibleUploads =
-      hasCurrentUploadAttachments || uploadContinuity.refs.length > 0;
+      hasCurrentUploadAttachments || liveUploadRefs.length > 0;
     const callOptions = buildBrainCallOptions({
       message,
       hasAccessibleUploads,
@@ -708,6 +712,33 @@ export class AgentService implements IAgentService {
     }
 
     return response;
+  }
+
+  private async filterLiveUploadRefs(
+    refs: ConversationUploadRef[],
+  ): Promise<ConversationUploadRef[]> {
+    if (refs.length === 0) return [];
+    if (!this.uploadAttachmentResolver) return [];
+
+    const liveRefs: ConversationUploadRef[] = [];
+    for (const ref of refs) {
+      try {
+        const attachment = await this.uploadAttachmentResolver(ref.source);
+        if (!attachment) continue;
+        liveRefs.push({
+          filename: attachment.filename,
+          mediaType: attachment.mediaType,
+          source: ref.source,
+        });
+      } catch (error) {
+        this.logger.debug("Skipped unavailable prior upload ref", {
+          uploadKind: ref.source.kind,
+          uploadId: ref.source.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return liveRefs;
   }
 
   private async hydrateUploadAttachments(params: {
