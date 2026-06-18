@@ -4,6 +4,10 @@ import type { SiteBuilderServices } from "../src/lib/site-builder";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
 
+type SiteBuilderConfigOverrides = {
+  [K in keyof SiteBuilderConfig]?: SiteBuilderConfig[K];
+};
+
 /**
  * Minimal layout for testing
  */
@@ -29,7 +33,7 @@ export function createSiteBuilderServices(
 }
 
 export function createTestConfig(
-  overrides?: Partial<SiteBuilderConfig>,
+  overrides?: SiteBuilderConfigOverrides,
 ): SiteBuilderConfig {
   const defaultConfig: SiteBuilderConfig = {
     previewOutputDir: "./dist/site-preview",

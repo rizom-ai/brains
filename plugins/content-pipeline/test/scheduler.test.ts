@@ -8,6 +8,10 @@ import { TestSchedulerBackend } from "../src/scheduler-backend";
 import type { PublishProvider } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 
+type SchedulerConfigOverrides = {
+  [K in keyof SchedulerConfig]?: SchedulerConfig[K];
+};
+
 function executorResult(
   entityType: string,
   entityId: string,
@@ -54,7 +58,7 @@ describe("ContentScheduler", () => {
   let mockOnFailed: ReturnType<typeof mock>;
   let mockExecutorPublish: ReturnType<typeof mock>;
 
-  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+  function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
     return {
       queueManager,
       providerRegistry,

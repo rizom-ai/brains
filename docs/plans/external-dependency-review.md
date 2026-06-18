@@ -428,6 +428,8 @@ Incremental migration progress:
   the post-merge brain model resolver path.
 - Named the AI service's partial runtime update contract as
   `AIModelConfigUpdate` instead of exposing raw `Partial<AIModelConfig>`.
+- Replaced remaining test helper `Partial<...Config>` markers with named
+  `...Overrides` or schema-derived input contracts.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

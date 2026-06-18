@@ -7,11 +7,8 @@ const testConfigSchema = z.object({
   testOption: z.string().default("default"),
 });
 
-interface TestMessageInterfaceConfig {
-  testOption: string;
-}
-
-type TestMessageInterfaceConfigInput = Partial<TestMessageInterfaceConfig>;
+type TestMessageInterfaceConfig = z.output<typeof testConfigSchema>;
+type TestMessageInterfaceConfigInput = z.input<typeof testConfigSchema>;
 
 class TestMessageInterface extends MessageInterfacePlugin<
   TestMessageInterfaceConfig,
