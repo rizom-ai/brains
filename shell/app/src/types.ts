@@ -63,7 +63,7 @@ export const deploymentConfigSchema = z.object({
     .default({}),
 });
 
-export type DeploymentConfig = z.infer<typeof deploymentConfigSchema>;
+export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
 
 // Input type for deployment config (allows partial config, defaults applied by schema)
 export type DeploymentConfigInput = z.input<typeof deploymentConfigSchema>;
@@ -91,13 +91,13 @@ export const appConfigSchema = z.object({
   deployment: deploymentConfigSchema.default({}),
 });
 
-export type AppConfig = Omit<
-  z.infer<typeof appConfigSchema>,
+type AppConfigSchemaOutput = Omit<
+  z.output<typeof appConfigSchema>,
   "plugins" | "deployment" | "spaces"
-> & {
+>;
+
+interface AppConfigExtensions {
   plugins?: Plugin[];
-  // Deployment configuration (optional - accepts partial config, defaults applied by schema)
-  deployment?: DeploymentConfigInput;
   // Advanced: Pass through any Shell config for testing/advanced use cases
   shellConfig?: Parameters<typeof Shell.createFresh>[0];
   // CLI-specific configuration (used when --cli flag is present)
@@ -106,6 +106,10 @@ export type AppConfig = Omit<
   permissions?: PermissionConfig;
   // Shared conversation spaces for this brain/team
   spaces?: string[];
-};
+}
 
-export type AppConfigInput = Partial<AppConfig>;
+export type AppConfig = AppConfigSchemaOutput &
+  AppConfigExtensions & { deployment: DeploymentConfig };
+
+export type AppConfigInput = Partial<AppConfigSchemaOutput> &
+  AppConfigExtensions & { deployment?: DeploymentConfigInput };

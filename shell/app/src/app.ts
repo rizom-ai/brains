@@ -161,11 +161,11 @@ export class App {
     shellConfig.version = this.config.version;
 
     // Set site base URL from deployment domain for entity link generation
-    if (this.config.deployment?.domain) {
+    if (this.config.deployment.domain) {
       shellConfig.siteBaseUrl = this.config.deployment.domain;
     }
 
-    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment?.ports?.production ?? 8080}`;
+    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment.ports.production}`;
     shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
   }
 

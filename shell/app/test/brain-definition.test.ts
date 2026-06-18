@@ -491,6 +491,6 @@ describe("resolve", () => {
     const config = resolve(def, {});
 
     expect(config.permissions?.anchors).toEqual(["matrix:@user:server"]);
-    expect(config.deployment?.domain).toBe("example.com");
+    expect(config.deployment.domain).toBe("example.com");
   });
 });

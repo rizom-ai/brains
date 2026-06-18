@@ -1,4 +1,4 @@
-import type { AppConfig, DeploymentConfigInput } from "./types";
+import type { AppConfig } from "./types";
 import type { App as AppClass } from "./app";
 import type { ToolResponse } from "@brains/mcp-service";
 
@@ -109,41 +109,41 @@ async function invokeCliTool(
  * This is used by deploy scripts to extract config without starting the app
  */
 function exportDeployConfig(config: AppConfig): void {
-  const deployment: DeploymentConfigInput = config.deployment ?? {};
+  const deployment = config.deployment;
 
   const deployConfig = {
     name: config.name,
     version: config.version,
     // Server
-    provider: deployment.provider ?? "hetzner",
-    serverSize: deployment.serverSize ?? "cx33",
-    location: deployment.location ?? "fsn1",
+    provider: deployment.provider,
+    serverSize: deployment.serverSize,
+    location: deployment.location,
     domain: deployment.domain,
     // Docker
     docker: {
-      enabled: deployment.docker?.enabled ?? true,
-      image: deployment.docker?.image ?? config.name,
+      enabled: deployment.docker.enabled,
+      image: deployment.docker.image ?? config.name,
     },
     // Ports
     ports: {
-      default: deployment.ports?.default ?? 3333,
-      preview: deployment.ports?.preview ?? 4321,
-      production: deployment.ports?.production ?? 8080,
+      default: deployment.ports.default,
+      preview: deployment.ports.preview,
+      production: deployment.ports.production,
     },
     // CDN
     cdn: {
-      enabled: deployment.cdn?.enabled ?? false,
-      provider: deployment.cdn?.provider ?? "none",
+      enabled: deployment.cdn.enabled,
+      provider: deployment.cdn.provider,
     },
     // DNS
     dns: {
-      enabled: deployment.dns?.enabled ?? false,
-      provider: deployment.dns?.provider ?? "none",
+      enabled: deployment.dns.enabled,
+      provider: deployment.dns.provider,
     },
     // Paths (compute defaults based on app name)
     paths: {
-      install: deployment.paths?.install ?? `/opt/${config.name}`,
-      data: deployment.paths?.data ?? `/opt/${config.name}/data`,
+      install: deployment.paths.install ?? `/opt/${config.name}`,
+      data: deployment.paths.data ?? `/opt/${config.name}/data`,
     },
   };
 

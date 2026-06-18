@@ -421,9 +421,10 @@ Incremental migration progress:
   `z.output<typeof schema>` and caller input with `z.input<typeof schema>`.
 - Replaced `Shell.getInstance`'s raw `Partial<ShellConfig>` parameter with the
   named `ShellConfigInput` pre-parse contract.
-- Added a named `AppConfigInput` caller contract for `App.create`/`App.run`;
-  it remains a partial app-level override because that boundary is not a plugin
-  schema parse contract.
+- Added a named `AppConfigInput` caller contract for `App.create`/`App.run`,
+  then split app config runtime/input around defaulted deployment parsing:
+  runtime `AppConfig` carries schema output, while callers can still provide
+  `DeploymentConfigInput` before defaults.
 - Audited Discord by deriving runtime/direct schema input types and replacing
   `Partial<DiscordConfig>` with an explicit raw constructor config boundary for
   the post-merge brain model resolver path.

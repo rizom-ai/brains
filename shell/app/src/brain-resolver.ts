@@ -12,7 +12,7 @@ import type {
   PluginFactory,
   PresetName,
 } from "./brain-definition";
-import type { AppConfig, DeploymentConfigInput } from "./types";
+import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   getExternalPluginDeclarations,
@@ -320,7 +320,7 @@ function instantiateInterfaces(
 
 function buildIdentity(
   definition: BrainDefinition,
-): AppConfig["identity"] | undefined {
+): AppConfigInput["identity"] | undefined {
   return definition.identity
     ? {
         name: definition.identity.characterName,
@@ -355,7 +355,7 @@ function buildDeployment(
 function buildRuntimeOverrides(
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
-): Partial<Pick<AppConfig, "database" | "logFile" | "logLevel">> {
+): Partial<Pick<AppConfigInput, "database" | "logFile" | "logLevel">> {
   return {
     // Log level: yaml overrides > env > undefined
     ...(overrides?.logLevel
@@ -381,7 +381,7 @@ function buildRuntimeOverrides(
 }
 
 function applyExtraConfig(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   definition: BrainDefinition,
 ): void {
   if (definition.extra) {
@@ -390,7 +390,7 @@ function applyExtraConfig(
 }
 
 function applySharedTheme(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   themeCSS: string | undefined,
 ): void {
   if (themeCSS === undefined) return;
@@ -402,7 +402,7 @@ function applySharedTheme(
 }
 
 function applySiteEntityDisplay(
-  appConfig: AppConfig,
+  appConfig: AppConfigInput,
   site: SitePackage | undefined,
 ): void {
   if (!site) return;
@@ -482,7 +482,7 @@ export function resolve(
   const deployment = buildDeployment(definition, overrides);
 
   // Build the app config
-  const appConfig: AppConfig = {
+  const appConfig: AppConfigInput = {
     name: overrides?.name ?? definition.name,
     version: definition.version,
     plugins: [...capabilities, ...interfaces],
