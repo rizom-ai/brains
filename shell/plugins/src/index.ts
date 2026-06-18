@@ -360,6 +360,8 @@ export {
   urlCaptureConfigSchema,
   type ToolActivityEvent,
   type ToolActivityEventType,
+  type ToolStatusState,
+  type ToolStatusUpdate,
 } from "./message-interface";
 
 // ============================================================================

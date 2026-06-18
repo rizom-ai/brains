@@ -1,4 +1,8 @@
-import type { AgentNamespace, ChatAttachment } from "@brains/plugins";
+import type {
+  AgentNamespace,
+  AgentResponse,
+  ChatAttachment,
+} from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
 import {
@@ -16,6 +20,10 @@ interface StreamDeps {
   agent: AgentNamespace;
   startProcessingInput(conversationId: string): void;
   endProcessingInput(): void;
+  handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void>;
   createId(prefix: string): string;
 }
 
@@ -54,6 +62,7 @@ export async function handleStreamedChat(
       },
     );
 
+    await deps.handleAgentResponseToolStatuses(response, input.conversationId);
     writeText(input.writer, response.text, "text", deps.createId);
     for (const toolResult of response.toolResults ?? []) {
       input.writer.write({
@@ -105,6 +114,10 @@ export async function handleStreamedConfirmations(
           channelId: input.conversationId,
           channelName: "Web Chat",
         },
+      );
+      await deps.handleAgentResponseToolStatuses(
+        response,
+        input.conversationId,
       );
       writeText(input.writer, response.text, "text", deps.createId);
       writeStructuredCards(input.writer, response.cards ?? []);

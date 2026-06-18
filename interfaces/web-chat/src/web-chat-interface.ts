@@ -1,6 +1,7 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  type AgentResponse,
   type EditMessageRequest,
   type InterfacePluginContext,
   type JobContext,
@@ -8,7 +9,7 @@ import {
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   type WebRouteDefinition,
-  type ToolActivityEvent,
+  type ToolStatusUpdate,
 } from "@brains/plugins";
 import {
   createUIMessageStream,
@@ -192,23 +193,23 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  protected override async handleToolActivityEvent(
-    event: ToolActivityEvent,
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
   ): Promise<void> {
     if (
-      event.interfaceType !== webChatInterfaceType ||
-      typeof event.channelId !== "string"
+      update.interfaceType !== webChatInterfaceType ||
+      typeof update.channelId !== "string"
     ) {
       return;
     }
 
-    const stream = this.getActiveStream(event.channelId);
+    const stream = this.getActiveStream(update.channelId);
     if (!stream) return;
 
     stream.writer.write({
       type: "data-status",
       id: this.createId("tool-status"),
-      data: toToolStatusData(event),
+      data: toToolStatusData(update),
       transient: true,
     });
   }
@@ -289,6 +290,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       agent: this.getContext().agent,
       startProcessingInput: (id: string): void => this.startProcessingInput(id),
       endProcessingInput: (): void => this.endProcessingInput(),
+      handleAgentResponseToolStatuses: (
+        response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+        id: string,
+      ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
     };
     const stream = createUIMessageStream<UIMessage>({

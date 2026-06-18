@@ -1,6 +1,7 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext } from "../interface/context";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import type { AgentResponse } from "../contracts/agent";
 import type { PermissionLookupContext } from "@brains/templates";
 import type { BaseJobTrackingInfo } from "../interfaces";
 import {
@@ -12,6 +13,11 @@ import {
   setupToolActivityHandler,
   type ToolActivityEvent,
 } from "./tool-event-handler";
+import {
+  responseHasPendingConfirmationForTool,
+  toToolStatusUpdate,
+  type ToolStatusUpdate,
+} from "./tool-status";
 import {
   extractCaptureableUrls,
   formatFileUploadMessage,
@@ -243,6 +249,12 @@ export abstract class MessageInterfacePlugin<
    * Maps jobId to the message tracking info
    */
   private agentResponseTracking = new Map<string, ProgressMessageTracking>();
+
+  /**
+   * Tool completions whose final status depends on the agent response.
+   * Keyed by interface/conversation/tool so failed retries clear stale state.
+   */
+  private pendingToolCompletions = new Map<string, ToolActivityEvent>();
 
   /**
    * Register progress callback for reactive UI updates
@@ -593,12 +605,79 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Override point for tool activity events emitted during agent turns.
+   * Derive semantic status updates from raw tool activity events.
    */
   protected async handleToolActivityEvent(
-    _event: ToolActivityEvent,
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    if (event.interfaceType !== this.id) {
+      return;
+    }
+
+    switch (event.type) {
+      case "tool:invoking":
+        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "running"));
+        return;
+      case "tool:completed":
+        if (this.isProcessingInput) {
+          this.pendingToolCompletions.set(
+            this.getToolCompletionKey(event),
+            event,
+          );
+          return;
+        }
+        await this.handleToolStatusUpdate(
+          toToolStatusUpdate(event, "completed"),
+        );
+        return;
+      case "tool:failed":
+        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "failed"));
+        return;
+    }
+  }
+
+  /**
+   * Override point for transport-specific rendering of semantic tool statuses.
+   */
+  protected async handleToolStatusUpdate(
+    _update: ToolStatusUpdate,
   ): Promise<void> {
     // Default: no additional handling
+  }
+
+  /**
+   * Resolve deferred tool completions after an agent response is available.
+   */
+  protected async handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void> {
+    if (this.pendingToolCompletions.size === 0) {
+      return;
+    }
+
+    const completions = Array.from(this.pendingToolCompletions.values()).filter(
+      (event) =>
+        event.interfaceType === this.id &&
+        event.conversationId === conversationId,
+    );
+
+    for (const event of completions) {
+      this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+      const state = responseHasPendingConfirmationForTool(
+        response,
+        event.toolName,
+      )
+        ? "awaiting-approval"
+        : "completed";
+      await this.handleToolStatusUpdate(toToolStatusUpdate(event, state));
+    }
+  }
+
+  private getToolCompletionKey(event: ToolActivityEvent): string {
+    return `${event.interfaceType}:${event.conversationId}:${event.toolName}`;
   }
 
   /**
