@@ -455,6 +455,11 @@ Incremental migration progress:
   override boundary.
 - Clarified plugin config helper aliases so `PluginConfigInput<T>` is schema
   input and runtime `PluginConfig<T>` is schema output.
+- Completed the originally identified config-boundary `z.infer` inventory. The
+  remaining `z.infer` uses are mostly domain DTOs, tool payloads, and exported
+  schemas composed across package boundaries; explicit `@brains/utils/zod-v4`
+  migration should happen at those composition boundaries instead of mixing v3
+  and v4 schemas inside a single schema tree.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
