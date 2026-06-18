@@ -37,6 +37,9 @@ import type {
 } from "@brains/plugins";
 import {
   Chat,
+  type ActionEvent,
+  type CardChild,
+  type CardElement,
   type FileUpload,
   type Message,
   type SentMessage,
@@ -72,6 +75,8 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
   discord: 2000,
 };
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const APPROVAL_CONFIRM_ACTION = "approval.confirm";
+const APPROVAL_CANCEL_ACTION = "approval.cancel";
 
 interface AgentInput {
   message: string;
@@ -95,6 +100,10 @@ interface ChatSdkApp {
   ): void;
   onSubscribedMessage(
     handler: (thread: Thread, message: Message) => Promise<void>,
+  ): void;
+  onAction(
+    actionIds: string[] | string,
+    handler: (event: ActionEvent) => Promise<void>,
   ): void;
 }
 
@@ -436,6 +445,44 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     app.onNewMessage(URL_PATTERN, async (thread, message) => {
       await this.handlePassiveUrlCapture(thread, message);
     });
+
+    app.onAction(
+      [APPROVAL_CONFIRM_ACTION, APPROVAL_CANCEL_ACTION],
+      async (event) => {
+        await this.handleApprovalAction(event);
+      },
+    );
+  }
+
+  private async handleApprovalAction(event: ActionEvent): Promise<void> {
+    if (!this.context || !event.thread || !event.value) return;
+    const platform = event.adapter.name;
+    if (!this.isEnabledPlatform(platform)) return;
+
+    const conversationId = this.getConversationId(platform, event.thread.id);
+    const approvalIds = await this.getPendingApprovalIds(conversationId);
+    if (!approvalIds.has(event.value)) {
+      await event.thread.post("_That approval is no longer pending._");
+      return;
+    }
+
+    const ids = this.getThreadIdParts(event.thread.id);
+    const userPermissionLevel = this.context.permissions.getUserLevel(
+      platform,
+      event.user.userId,
+      {
+        channelId: ids.channelId ?? event.thread.channelId,
+        isBot: Boolean(event.user.isBot),
+      },
+    );
+
+    await this.confirmApproval({
+      thread: event.thread as Thread,
+      conversationId,
+      approvalId: event.value,
+      confirmed: event.actionId === APPROVAL_CONFIRM_ACTION,
+      userPermissionLevel,
+    });
   }
 
   private async subscribeOwnedDiscordThread(
@@ -606,6 +653,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         ),
         files: artifactDelivery.files,
       });
+      await this.sendPendingConfirmationCards(
+        thread,
+        response.pendingConfirmations,
+      );
 
       if (messageId) {
         for (const jobId of this.getResponseJobIds(response)) {
@@ -691,40 +742,60 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const response = await this.context?.agent.confirmPendingAction(
+    await this.confirmApproval({
+      thread,
       conversationId,
-      parsed.confirmed,
       approvalId,
+      confirmed: parsed.confirmed,
+      userPermissionLevel,
+    });
+  }
+
+  private async confirmApproval(input: {
+    thread: Thread;
+    conversationId: string;
+    approvalId: string;
+    confirmed: boolean;
+    userPermissionLevel: UserPermissionLevel;
+  }): Promise<void> {
+    const response = await this.context?.agent.confirmPendingAction(
+      input.conversationId,
+      input.confirmed,
+      input.approvalId,
       {
-        userPermissionLevel,
+        userPermissionLevel: input.userPermissionLevel,
         interfaceType: "discord",
-        channelId: thread.id,
-        channelName: thread.isDM ? "DM" : thread.channelId,
+        channelId: input.thread.id,
+        channelName: input.thread.isDM ? "DM" : input.thread.channelId,
       },
     );
-    this.removePendingApproval(conversationId, approvalId);
-    if (response) {
-      this.syncPendingConfirmationsFromResponse(
-        conversationId,
+    this.removePendingApproval(input.conversationId, input.approvalId);
+    if (!response) return;
+
+    this.syncPendingConfirmationsFromResponse(
+      input.conversationId,
+      response,
+      input.approvalId,
+    );
+    const artifactDelivery = await this.resolveArtifactDelivery(
+      response.cards,
+      input.userPermissionLevel,
+    );
+    await this.sendAgentResponseWithFiles({
+      thread: input.thread,
+      channelId: input.thread.id,
+      message: this.formatConfirmationResponseText(
         response,
-        approvalId,
-      );
-      const artifactDelivery = await this.resolveArtifactDelivery(
-        response.cards,
-        userPermissionLevel,
-      );
-      await this.sendAgentResponseWithFiles({
-        thread,
-        channelId: thread.id,
-        message: this.formatConfirmationResponseText(
-          response,
-          parsed.confirmed,
-          this.getRemainingApprovalHelp(conversationId, response),
-          artifactDelivery.deniedCardIds,
-        ),
-        files: artifactDelivery.files,
-      });
-    }
+        input.confirmed,
+        this.getRemainingApprovalHelp(input.conversationId, response),
+        artifactDelivery.deniedCardIds,
+      ),
+      files: artifactDelivery.files,
+    });
+    await this.sendPendingConfirmationCards(
+      input.thread,
+      response.pendingConfirmations,
+    );
   }
 
   private parseConfirmationIntent(
@@ -779,11 +850,16 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     pendingConfirmations?: PendingConfirmation[],
     deniedCardIds?: Set<string>,
   ): string {
-    const cardSummaries = (cards ?? []).map((card) =>
-      this.formatStructuredCard(card, deniedCardIds),
-    );
+    const suppressApprovalCards = Boolean(pendingConfirmations?.length);
+    const cardSummaries = (cards ?? [])
+      .filter(
+        (card) => !(suppressApprovalCards && card.kind === "tool-approval"),
+      )
+      .map((card) => this.formatStructuredCard(card, deniedCardIds));
     const pendingHelp =
-      this.formatPendingConfirmationHelp(pendingConfirmations);
+      pendingConfirmations && pendingConfirmations.length > 1
+        ? this.formatPendingConfirmationHelp(pendingConfirmations)
+        : undefined;
     return [text, ...cardSummaries, pendingHelp]
       .filter((part): part is string => Boolean(part?.trim()))
       .join("\n\n");
@@ -808,9 +884,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const attachmentSummaries = (response.cards ?? [])
       .filter((card) => card.kind === "attachment")
       .map((card) => this.formatStructuredCard(card, deniedCardIds));
-    const pendingHelp = this.formatPendingConfirmationHelp(
-      response.pendingConfirmations,
-    );
+    const pendingHelp =
+      response.pendingConfirmations && response.pendingConfirmations.length > 1
+        ? this.formatPendingConfirmationHelp(response.pendingConfirmations)
+        : undefined;
 
     return [
       `${icon} ${display.label}`,
@@ -966,6 +1043,58 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       .join(", ")}.`;
   }
 
+  private async sendPendingConfirmationCards(
+    thread: Thread,
+    pendingConfirmations: PendingConfirmation[] | undefined,
+  ): Promise<void> {
+    if (pendingConfirmations?.length !== 1) return;
+    const confirmation = pendingConfirmations[0];
+    if (!confirmation) return;
+    const fallbackText =
+      this.formatPendingConfirmationHelp(pendingConfirmations);
+    await thread.post(
+      fallbackText
+        ? {
+            card: this.buildPendingConfirmationCard(confirmation),
+            fallbackText,
+          }
+        : this.buildPendingConfirmationCard(confirmation),
+    );
+  }
+
+  private buildPendingConfirmationCard(
+    confirmation: PendingConfirmation,
+  ): CardElement {
+    const children: CardChild[] = [
+      { type: "text", content: confirmation.summary },
+      {
+        type: "text",
+        content:
+          "Confirm this action, or cancel it. You can also reply yes/no.",
+      },
+      {
+        type: "actions",
+        children: [
+          {
+            type: "button",
+            id: APPROVAL_CONFIRM_ACTION,
+            label: "Confirm",
+            style: "primary",
+            value: confirmation.id,
+          },
+          {
+            type: "button",
+            id: APPROVAL_CANCEL_ACTION,
+            label: "Cancel",
+            style: "danger",
+            value: confirmation.id,
+          },
+        ],
+      },
+    ];
+    return { type: "card", title: "Approval required", children };
+  }
+
   private formatPendingConfirmationHelp(
     pendingConfirmations: PendingConfirmation[] | undefined,
   ): string | undefined {
@@ -976,8 +1105,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const confirmation = pendingConfirmations[0];
       if (!confirmation) return undefined;
       return [
-        `**Pending approval:** ${confirmation.summary}`,
-        `Approval id: \`${confirmation.id}\``,
+        `**Approval required:** ${confirmation.summary}`,
         "Reply with **yes** to confirm or **no/cancel** to abort.",
       ].join("\n");
     }
@@ -1009,9 +1137,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const previewUrl = this.resolveDisplayUrl(display.previewUrl);
       const openUrl = this.resolveDisplayUrl(display.url);
       const downloadUrl = this.resolveDisplayUrl(display.downloadUrl);
-      if (previewUrl) lines.push(`Preview: ${previewUrl}`);
-      if (openUrl) lines.push(`Open: ${openUrl}`);
-      if (downloadUrl) lines.push(`Download: ${downloadUrl}`);
+      if (previewUrl && !this.isLocalDisplayUrl(previewUrl)) {
+        lines.push(`Preview: ${previewUrl}`);
+      }
+      if (openUrl && !this.isLocalDisplayUrl(openUrl)) {
+        lines.push(`Open: ${openUrl}`);
+      }
+      if (downloadUrl && !this.isLocalDisplayUrl(downloadUrl)) {
+        lines.push(`Download: ${downloadUrl}`);
+      }
       return lines.join("\n");
     }
 
@@ -1062,6 +1196,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const baseUrl = this.getPreferredDisplayBaseUrl();
       if (!baseUrl) return url;
       return new URL(url, baseUrl).toString();
+    }
+  }
+
+  private isLocalDisplayUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    } catch {
+      return url.startsWith("/");
     }
   }
 

@@ -11,7 +11,7 @@ import type {
   GatewayListenerOptions,
 } from "../src/types";
 import type { Mock } from "bun:test";
-import type { StateAdapter } from "chat";
+import type { ActionEvent, CardElement, StateAdapter } from "chat";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type HarnessAgentResponse = Awaited<ReturnType<HarnessAgentService["chat"]>>;
@@ -99,6 +99,10 @@ interface RegisteredHandlers {
   subscribedMessages: Array<
     (thread: MockThread, message: MockMessage) => Promise<void>
   >;
+  actions: Array<{
+    actionIds: string[] | string;
+    handler: (event: MockActionEvent) => Promise<void>;
+  }>;
 }
 
 class MockChatSdk {
@@ -109,6 +113,7 @@ class MockChatSdk {
     mentions: [],
     messagePatterns: [],
     subscribedMessages: [],
+    actions: [],
   };
   readonly webhooks: {
     discord?: Mock<(request: Request) => Promise<Response>>;
@@ -152,10 +157,35 @@ class MockChatSdk {
   ): void {
     this.handlers.subscribedMessages.push(handler);
   }
+
+  onAction(
+    actionIds: string[] | string,
+    handler: (event: MockActionEvent) => Promise<void>,
+  ): void {
+    this.handlers.actions.push({ actionIds, handler });
+  }
 }
 
 void mock.module("chat", () => ({
   Chat: MockChatSdk,
+  Card: (options = {}): Record<string, unknown> => ({
+    type: "card",
+    children: [],
+    ...options,
+  }),
+  Text: (content: string, options = {}): Record<string, unknown> => ({
+    type: "text",
+    content,
+    ...options,
+  }),
+  Actions: (children: unknown[]): Record<string, unknown> => ({
+    type: "actions",
+    children,
+  }),
+  Button: (options: Record<string, unknown>): Record<string, unknown> => ({
+    type: "button",
+    ...options,
+  }),
 }));
 
 void mock.module("@chat-adapter/discord", () => ({
@@ -187,6 +217,15 @@ type MockPostMessage =
         mimeType?: string;
         data: ArrayBuffer | Buffer | Blob;
       }>;
+    }
+  | {
+      card: CardElement;
+      fallbackText?: string;
+      files?: Array<{
+        filename: string;
+        mimeType?: string;
+        data: ArrayBuffer | Buffer | Blob;
+      }>;
     };
 
 interface MockThread {
@@ -197,6 +236,15 @@ interface MockThread {
   subscribe: Mock<() => Promise<void>>;
   post: Mock<(message: MockPostMessage) => Promise<MockSentMessage>>;
   startTyping: Mock<() => Promise<void>>;
+}
+
+interface MockActionEvent extends Omit<
+  ActionEvent,
+  "thread" | "adapter" | "openModal"
+> {
+  adapter: { name: string };
+  thread: MockThread | null;
+  openModal: ActionEvent["openModal"];
 }
 
 interface MockMessage {
@@ -1434,7 +1482,87 @@ describe("ChatInterface", () => {
     ]);
   });
 
-  it("continues pending confirmations in the same conversation", async () => {
+  it("posts single pending approvals as concise SDK cards with yes/no fallback", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "tool-approval",
+          id: "approval-card-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          preview: "This will delete the thing.",
+          state: "approval-requested",
+          input: { entityId: "thing-1" },
+        },
+      ],
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Please confirm.");
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("**Approval:**");
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("approval-requested");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Approval required:** Delete thing\nReply with **yes** to confirm or **no/cancel** to abort.",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Approval required",
+          children: expect.arrayContaining([
+            expect.objectContaining({ type: "text", content: "Delete thing" }),
+            expect.objectContaining({
+              type: "actions",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  type: "button",
+                  id: "approval.confirm",
+                  label: "Confirm",
+                  value: "approval-1",
+                }),
+                expect.objectContaining({
+                  type: "button",
+                  id: "approval.cancel",
+                  label: "Cancel",
+                  value: "approval-1",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "yes", isMention: false }),
+    );
+
+    expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-1",
+      expectDiscordConfirmationContext(),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      "✅ Approved · Action confirmed.",
+    );
+  });
+
+  it("confirms pending approvals from SDK card buttons", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -1453,16 +1581,23 @@ describe("ChatInterface", () => {
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Please confirm.",
-        "**Pending approval:** Delete thing\nApproval id: `approval-1`\nReply with **yes** to confirm or **no/cancel** to abort.",
-      ].join("\n\n"),
-    );
-    await chat?.handlers.subscribedMessages[0]?.(
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "discord" },
+      messageId: "sent-123",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
       thread,
-      createMessage({ text: "yes", isMention: false }),
-    );
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
 
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
@@ -1529,11 +1664,20 @@ describe("ChatInterface", () => {
       "approval-2",
       expectDiscordConfirmationContext(),
     );
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "✅ Approved · First action confirmed.",
-        "**Pending approval:** Delete second thing\nApproval id: `approval-2`\nReply with **yes** to confirm or **no/cancel** to abort.",
-      ].join("\n\n"),
+    expect(thread.post).toHaveBeenNthCalledWith(
+      3,
+      "✅ Approved · First action confirmed.",
+    );
+    expect(thread.post).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        fallbackText:
+          "**Approval required:** Delete second thing\nReply with **yes** to confirm or **no/cancel** to abort.",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Approval required",
+        }),
+      }),
     );
   });
 
@@ -2281,7 +2425,7 @@ describe("ChatInterface", () => {
       expect.objectContaining({
         markdown: [
           "Generated the deck.",
-          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-native",
+          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf",
         ].join("\n\n"),
         files: [
           expect.objectContaining({
@@ -2393,7 +2537,7 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("renders the artifact link when the referenced entity does not exist", async () => {
+  it("does not render relative-only artifact links when the referenced entity does not exist", async () => {
     // A card whose entity is not stored must not be mistaken for an
     // out-of-scope artifact: its link still renders rather than being
     // suppressed as denied.
@@ -2429,9 +2573,10 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf\nOpen: /api/chat/attachments/document?id=deck-missing",
+        "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf",
       ].join("\n\n"),
     );
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("Open:");
   });
 
   it("does not post native Discord artifact files for public users", async () => {
@@ -2565,7 +2710,7 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("prefers local site URLs for relative structured artifact links when configured", async () => {
+  it("does not expose localhost artifact links in Discord summaries", async () => {
     harness.reset();
     harness = createPluginHarness<ChatInterfaceInstance>({
       domain: "brain.test",
@@ -2599,9 +2744,11 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated local preview.",
-        "**Artifact:** Local robot\nFile: robot.png\nType: image/png\nOpen: http://localhost:4321/api/chat/attachments/image?id=robot-local",
+        "**Artifact:** Local robot\nFile: robot.png\nType: image/png",
       ].join("\n\n"),
     );
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("localhost");
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("Open:");
   });
 
   it("formats structured approval cards without raw JSON", async () => {
