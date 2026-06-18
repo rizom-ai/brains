@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -14,7 +13,12 @@ import {
   expectError,
   expectSuccess,
 } from "@brains/plugins/test";
-import { playbooksPlugin, type GoalCheck, type GoalCheckInput } from "../src";
+import {
+  playbookRunSchema,
+  playbooksPlugin,
+  type GoalCheck,
+  type GoalCheckInput,
+} from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "brains-playbooks-"));
@@ -167,9 +171,7 @@ function goalCheck(evaluate: GoalCheck["evaluate"]): {
 
 async function installHarness(): Promise<PluginHarness> {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(
-    playbooksPlugin({ storageDir: await tempStorageDir() }),
-  );
+  await harness.installPlugin(playbooksPlugin({}));
   addPlaybookEntity(harness);
   return harness;
 }
@@ -192,27 +194,23 @@ async function startRun(
 }
 
 describe("PlaybooksPlugin", () => {
-  it("stores runs under runtime data by default, not content dataDir", async () => {
-    const previousCwd = process.cwd();
-    const runtimeDir = await tempStorageDir();
-    const contentDataDir = await tempStorageDir();
-    process.chdir(runtimeDir);
-    try {
-      const harness = createPluginHarness({ dataDir: contentDataDir });
-      await harness.installPlugin(playbooksPlugin({}));
-      addPlaybookEntity(harness);
+  it("stores runs in runtime state", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness);
 
-      await startRun(harness, "conversation-uses-runtime-data-dir");
+    await startRun(harness, "conversation-uses-runtime-state");
 
-      expect(
-        existsSync(join(runtimeDir, "data", "playbooks", "runs.json")),
-      ).toBe(true);
-      expect(existsSync(join(contentDataDir, "playbooks", "runs.json"))).toBe(
-        false,
-      );
-    } finally {
-      process.chdir(previousCwd);
-    }
+    const records = await harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema })
+      .list();
+
+    expect(records).toHaveLength(1);
+    expect(records[0]?.value.conversationId).toBe(
+      "conversation-uses-runtime-state",
+    );
   });
 
   it("registers a generic goalCheck eval handler", async () => {
@@ -233,12 +231,7 @@ describe("PlaybooksPlugin", () => {
     };
 
     const evaluate = mock(async () => ({ met: true, reason: "goal met" }));
-    await harness.installPlugin(
-      playbooksPlugin(
-        { storageDir: await tempStorageDir() },
-        goalCheck(evaluate),
-      ),
-    );
+    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
 
     const handler = handlers.get("playbooks:goalCheck");
     expect(handler).toBeDefined();
@@ -276,9 +269,7 @@ describe("PlaybooksPlugin", () => {
 
   it("keeps conversation routing out of model-visible playbook tool schemas", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
 
     for (const tool of capabilities.tools) {
       if (!tool.name.startsWith("playbook_")) continue;
@@ -288,9 +279,7 @@ describe("PlaybooksPlugin", () => {
 
   it("exposes only the small model-facing playbook tool surface", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
 
     const toolNames = capabilities.tools
       .map((tool) => tool.name)
@@ -306,9 +295,7 @@ describe("PlaybooksPlugin", () => {
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
     const statusTool = capabilities.tools.find(
       (tool) => tool.name === "playbook_status",
     );
@@ -324,9 +311,7 @@ describe("PlaybooksPlugin", () => {
 
   it("preserves an active run lifecycle when playbook_start is called again", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
 
     const conversationId = "resume-preserve-lifecycle";
@@ -349,9 +334,7 @@ describe("PlaybooksPlugin", () => {
 
   it("deduplicates concurrent playbook_start calls for the same conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
 
     const conversationId = "concurrent-start-same-conversation";
@@ -391,7 +374,6 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin({
-        storageDir: await tempStorageDir(),
         lifecycle: {
           onboarding: {
             trigger: "first-anchor-web-chat",
@@ -559,9 +541,7 @@ describe("PlaybooksPlugin", () => {
 
   it("starts and reports runs within the current conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
 
     const first = await harness.executeTool(
@@ -596,9 +576,7 @@ describe("PlaybooksPlugin", () => {
 
   it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
@@ -649,7 +627,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin(
-        { storageDir: await tempStorageDir() },
+        {},
         goalCheck(async () => ({
           met: false,
           reason: "No matching evidence.",
@@ -711,9 +689,7 @@ describe("PlaybooksPlugin", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     }));
     Object.assign(harness.getMockShell(), { judge });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -768,9 +744,7 @@ describe("PlaybooksPlugin", () => {
         throw new Error("judge unavailable");
       }),
     });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -825,12 +799,7 @@ describe("PlaybooksPlugin", () => {
       return { met: true, reason: "The seed note was recorded." };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        { storageDir: await tempStorageDir() },
-        goalCheck(evaluate),
-      ),
-    );
+    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -879,12 +848,7 @@ describe("PlaybooksPlugin", () => {
       };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        { storageDir: await tempStorageDir() },
-        goalCheck(evaluate),
-      ),
-    );
+    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -946,7 +910,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin(
-        { storageDir: await tempStorageDir() },
+        {},
         goalCheck(async () => ({
           met: false,
           reason: "No matching evidence.",
@@ -1004,7 +968,7 @@ describe("PlaybooksPlugin", () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(
       playbooksPlugin(
-        { storageDir: await tempStorageDir() },
+        {},
         goalCheck(async () => ({
           met: true,
           reason: "The profile exists in the KB.",
@@ -1197,9 +1161,7 @@ describe("PlaybooksPlugin", () => {
 
   it("injects actionable run identity and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ storageDir: await tempStorageDir() }),
-    );
+    await harness.installPlugin(playbooksPlugin({}));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [

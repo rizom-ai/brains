@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
@@ -54,7 +53,6 @@ const lifecycleConfigSchema = z
 
 const playbooksConfigSchema = z
   .object({
-    storageDir: z.string().optional(),
     lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
   })
   .strict();
@@ -195,7 +193,7 @@ export interface PlaybooksPluginDeps {
 }
 
 export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
-  private store: PlaybookRunStore;
+  private store!: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
@@ -206,9 +204,6 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     deps: PlaybooksPluginDeps = {},
   ) {
     super("playbooks", packageJson, config, playbooksConfigSchema);
-    this.store = new PlaybookRunStore(
-      this.config.storageDir ?? "./data/playbooks",
-    );
     this.injectedGoalCheck = deps.goalCheck;
     this.goalCheck = deps.goalCheck ?? defaultGoalCheck;
   }
@@ -218,9 +213,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   ): Promise<void> {
     await super.onRegister(context);
     this.ctx = context;
-    this.store = new PlaybookRunStore(
-      this.config.storageDir ?? join("data", "playbooks"),
-    );
+    this.store = new PlaybookRunStore(context.runtimeState);
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
 
     context.registerInstructions(this.buildInstructions());

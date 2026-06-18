@@ -17,6 +17,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/playbook": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/utils": "workspace:*",
     "xstate": "^5.28.0"
   },

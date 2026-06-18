@@ -20,7 +20,6 @@ export {
   playbookRunEvidenceSchema,
   playbookRunSchema,
   playbookRunStatusSchema,
-  playbookRunsFileSchema,
   type PlaybookGateVerdict,
   type PlaybookRun,
   type PlaybookRunEvidence,

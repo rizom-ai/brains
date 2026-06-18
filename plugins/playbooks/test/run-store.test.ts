@@ -1,7 +1,5 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
+import { createMockShell } from "@brains/test-utils";
 import {
   PlaybookRunStore,
   createPlaybookRun,
@@ -9,8 +7,8 @@ import {
   type PlaybookRunEvidence,
 } from "../src/run-store";
 
-async function tempStorageDir(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "brains-playbook-run-store-"));
+function createStore(): PlaybookRunStore {
+  return new PlaybookRunStore(createMockShell().getRuntimeState());
 }
 
 function evidence(id: string): PlaybookRunEvidence {
@@ -35,7 +33,7 @@ function verdict(): PlaybookGateVerdict {
 
 describe("PlaybookRunStore", () => {
   it("appends evidence without reverting newer scalar run state", async () => {
-    const store = new PlaybookRunStore(await tempStorageDir());
+    const store = createStore();
     const run = createPlaybookRun({
       playbookId: "rover-onboarding",
       playbookVersion: "version-1",
@@ -51,7 +49,7 @@ describe("PlaybookRunStore", () => {
   });
 
   it("preserves existing evidence when a stale run snapshot updates state", async () => {
-    const store = new PlaybookRunStore(await tempStorageDir());
+    const store = createStore();
     const run = createPlaybookRun({
       playbookId: "rover-onboarding",
       playbookVersion: "version-1",
@@ -67,7 +65,7 @@ describe("PlaybookRunStore", () => {
   });
 
   it("preserves existing gate results when a stale run snapshot updates state", async () => {
-    const store = new PlaybookRunStore(await tempStorageDir());
+    const store = createStore();
     const run = createPlaybookRun({
       playbookId: "rover-onboarding",
       playbookVersion: "version-1",

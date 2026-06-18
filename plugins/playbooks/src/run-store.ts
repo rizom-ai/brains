@@ -1,5 +1,7 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+} from "@brains/runtime-state";
 import { createPrefixedId, z } from "@brains/utils";
 
 export const playbookRunStatusSchema = z.enum([
@@ -49,32 +51,33 @@ export const playbookRunSchema = z
   })
   .strict();
 
-export const playbookRunsFileSchema = z
-  .object({
-    runs: z.array(playbookRunSchema).default([]),
-  })
-  .strict();
-
 export type PlaybookRun = z.infer<typeof playbookRunSchema>;
 export type PlaybookRunStatus = z.infer<typeof playbookRunStatusSchema>;
 export type PlaybookRunEvidence = z.infer<typeof playbookRunEvidenceSchema>;
 export type PlaybookGateVerdict = z.infer<typeof playbookGateVerdictSchema>;
 
+const playbookRunsNamespace = "playbooks.runs";
+const playbookRunStorageSchema = playbookRunSchema as z.ZodType<PlaybookRun>;
+
 export class PlaybookRunStore {
-  private readonly filePath: string;
+  private readonly store: IRuntimeStateStore<PlaybookRun>;
   private writeQueue: Promise<void> = Promise.resolve();
 
-  constructor(storageDir: string) {
-    this.filePath = join(storageDir, "runs.json");
+  constructor(runtimeState: IRuntimeStateNamespace) {
+    this.store = runtimeState.scoped<PlaybookRun>({
+      namespace: playbookRunsNamespace,
+      schema: playbookRunStorageSchema,
+    });
   }
 
   async list(): Promise<PlaybookRun[]> {
     await this.waitForWrites();
-    return (await this.readFile()).runs;
+    const records = await this.store.list();
+    return records.map((record) => record.value);
   }
 
   async findById(runId: string): Promise<PlaybookRun | undefined> {
-    return (await this.list()).find((run) => run.id === runId);
+    return (await this.store.get(runId)) ?? undefined;
   }
 
   async findActiveByPlaybook(
@@ -109,8 +112,7 @@ export class PlaybookRunStore {
 
   async upsert(run: PlaybookRun): Promise<PlaybookRun> {
     return this.enqueueMutation(async () => {
-      const file = await this.readFile();
-      const existing = file.runs.find((candidate) => candidate.id === run.id);
+      const existing = await this.store.get(run.id);
       const nextRun = playbookRunSchema.parse({
         ...run,
         evidence: mergeEvidence(existing?.evidence ?? [], run.evidence),
@@ -120,16 +122,7 @@ export class PlaybookRunStore {
         ),
         updatedAt: new Date().toISOString(),
       });
-      const existingIndex = file.runs.findIndex(
-        (candidate) => candidate.id === run.id,
-      );
-      const runs =
-        existingIndex === -1
-          ? [...file.runs, nextRun]
-          : file.runs.map((candidate, index) =>
-              index === existingIndex ? nextRun : candidate,
-            );
-      await this.writeFile({ runs });
+      await this.store.set(nextRun.id, nextRun);
       return nextRun;
     });
   }
@@ -139,10 +132,8 @@ export class PlaybookRunStore {
     evidence: PlaybookRunEvidence,
   ): Promise<PlaybookRun> {
     return this.enqueueMutation(async () => {
-      const file = await this.readFile();
-      const existingIndex = file.runs.findIndex((run) => run.id === runId);
-      const existing = file.runs[existingIndex];
-      if (existingIndex === -1 || !existing) {
+      const existing = await this.store.get(runId);
+      if (!existing) {
         throw new Error(`Playbook run not found: ${runId}`);
       }
       const nextRun = playbookRunSchema.parse({
@@ -150,11 +141,7 @@ export class PlaybookRunStore {
         evidence: mergeEvidence(existing.evidence, [evidence]),
         updatedAt: new Date().toISOString(),
       });
-      await this.writeFile({
-        runs: file.runs.map((run, index) =>
-          index === existingIndex ? nextRun : run,
-        ),
-      });
+      await this.store.set(nextRun.id, nextRun);
       return nextRun;
     });
   }
@@ -162,13 +149,10 @@ export class PlaybookRunStore {
   async reset(runId?: string): Promise<void> {
     await this.enqueueMutation(async () => {
       if (!runId) {
-        await this.writeFile({ runs: [] });
+        await this.store.clear();
         return;
       }
-      const file = await this.readFile();
-      await this.writeFile({
-        runs: file.runs.filter((run) => run.id !== runId),
-      });
+      await this.store.delete(runId);
     });
   }
 
@@ -189,24 +173,6 @@ export class PlaybookRunStore {
 
   private async waitForWrites(): Promise<void> {
     await this.writeQueue;
-  }
-
-  private async readFile(): Promise<{ runs: PlaybookRun[] }> {
-    try {
-      const content = await readFile(this.filePath, "utf8");
-      return playbookRunsFileSchema.parse(JSON.parse(content));
-    } catch (error) {
-      if (isMissingFileError(error)) return { runs: [] };
-      throw error;
-    }
-  }
-
-  private async writeFile(file: { runs: PlaybookRun[] }): Promise<void> {
-    const parsed = playbookRunsFileSchema.parse(file);
-    await mkdir(dirname(this.filePath), { recursive: true });
-    const tempPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
-    await writeFile(tempPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
-    await rename(tempPath, this.filePath);
   }
 }
 
@@ -264,13 +230,4 @@ function mergeGateVerdicts(
 
 function gateVerdictKey(verdict: PlaybookGateVerdict): string {
   return [verdict.stateId, ...verdict.goal].join("\u0000");
-}
-
-function isMissingFileError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ENOENT"
-  );
 }

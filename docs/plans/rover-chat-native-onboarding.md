@@ -438,18 +438,14 @@ durable content — that's the `playbook` entity.
 
 ### Run store
 
-Operational state ships in the existing JSON run store for this branch. This is a
-conscious MVP tradeoff, not the final storage architecture.
-
-Why JSON is acceptable now: onboarding has low run volume, single-process writes are
-the expected deployment shape, and this branch is still proving the playbook/gate
-runtime. The immediate fix is to make the JSON store safer, not to invent plugin-owned
-SQLite or a new shell runtime database under deadline.
+Operational state uses the shell-owned runtime-state service, scoped under the
+`playbooks.runs` namespace. Playbook runs are not durable content and should not be
+stored in content directories.
 
 Required now:
 
-- Keep the JSON file scoped to playbook runtime state (`runs.json`), not durable
-  content.
+- Store run records through `context.runtimeState`, not `runs.json` or plugin-private
+  SQLite.
 - Serialize writes through a store-level queue so overlapping tool/event handlers do
   not interleave read-modify-write cycles inside one process.
 - Preserve evidence and verdict arrays across run updates; appending evidence/verdicts
@@ -457,20 +453,16 @@ Required now:
 - Each run pins the playbook **version (content hash)** it started under; a
   transition against a changed definition fails loudly rather than drifting.
 
-Known JSON limits, accepted for this branch:
+Current runtime-state shape:
 
-- No cross-process write safety.
-- Evidence/verdict auditability is enforced by code conventions, not storage shape.
-- Queries scan the file.
-- Schema migration is Zod/default based.
+- Namespace: `playbooks.runs`
+- Key: playbook run id
+- Value: the validated `PlaybookRun` record
 
-Long-term storage is the shell-owned runtime-state service designed in
-[Runtime state store](./runtime-state-store.md); migrating `runs.json` onto it (as
-normalized `playbook_runs` / `playbook_evidence` / `playbook_gate_verdicts` tables) is
-deferred until that service exists — it is built first for chat subscriptions, then
-merged into this worktree as the second consumer. Do **not** add plugin-private SQLite,
-plugin-specific migration packaging, or a generic migration abstraction only for playbooks
-in the meantime.
+Future normalization into dedicated `playbook_runs` / `playbook_evidence` /
+`playbook_gate_verdicts` tables is optional and should happen only if query volume or
+audit requirements justify it. Do **not** add plugin-private SQLite, plugin-specific
+migration packaging, or a generic migration abstraction only for playbooks.
 
 ```ts
 interface PlaybookRun {
