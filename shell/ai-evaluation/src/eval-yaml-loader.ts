@@ -9,7 +9,8 @@ const evalYamlSchema = z.object({
   config: z.record(z.unknown()).optional(),
 });
 
-export type EvalYamlConfig = z.infer<typeof evalYamlSchema>;
+export type EvalYamlConfig = z.output<typeof evalYamlSchema>;
+export type EvalYamlConfigInput = z.input<typeof evalYamlSchema>;
 
 /**
  * Parse an eval.yaml string. Returns the config if it has a `plugin` field,
