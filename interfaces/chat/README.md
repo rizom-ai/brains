@@ -97,6 +97,7 @@ Covered by tests:
 - non-Discord Chat SDK threads ignored
 - Discord-scoped permission lookup (`discord:*`, not `chat:*`)
 - mentions and subscribed thread routing
+- existing Discord thread safety: a mention inside an arbitrary existing thread gets a one-time response but does not subscribe the thread, and subscribed-message routing is gated by the persisted subscription record
 - thread subscription policy when `useThreads` is disabled or subscription fails
 - typing indicator policy when `showTypingIndicator` is disabled
 - unmentioned channel routing when `requireMention: false`
@@ -119,7 +120,7 @@ Covered by tests:
 
 ## Runtime state policy
 
-Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Chat SDK locks, queues, caches, lists, and other operational state remain memory-backed.
+Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Chat SDK locks, queues, caches, lists, and other operational state remain memory-backed.
 
 ## Known gaps before replacing `@brains/discord`
 
