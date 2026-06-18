@@ -205,7 +205,7 @@ type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
 
 interface MockSentMessage {
   id: string;
-  edit: Mock<(newContent: string) => Promise<MockSentMessage>>;
+  edit: Mock<(newContent: unknown) => Promise<MockSentMessage>>;
 }
 
 type MockPostMessage =
@@ -294,7 +294,7 @@ function createAgentService(): MockAgentService {
 function createSentMessage(id = "sent-123"): MockSentMessage {
   const sentMessage: MockSentMessage = {
     id,
-    edit: mock((_newContent: string) => Promise.resolve(sentMessage)),
+    edit: mock((_newContent: unknown) => Promise.resolve(sentMessage)),
   };
   return sentMessage;
 }
@@ -1562,7 +1562,7 @@ describe("ChatInterface", () => {
     );
   });
 
-  it("confirms pending approvals from SDK card buttons", async () => {
+  it("confirms pending approvals from SDK card buttons and removes the buttons", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -1578,13 +1578,23 @@ describe("ChatInterface", () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const thread = createThread();
+    const approvalMessage = createSentMessage("approval-message-1");
+    const resultMessage = createSentMessage("result-message-1");
+    let postCount = 0;
+    const thread = createThread({
+      post: mock((_message: MockPostMessage) => {
+        postCount += 1;
+        return Promise.resolve(
+          postCount === 2 ? approvalMessage : resultMessage,
+        );
+      }),
+    });
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     await chat?.handlers.actions[0]?.handler({
       actionId: "approval.confirm",
       adapter: { name: "discord" },
-      messageId: "sent-123",
+      messageId: "approval-message-1",
       openModal: mock(() => Promise.resolve(undefined)),
       raw: {},
       thread,
@@ -1604,6 +1614,18 @@ describe("ChatInterface", () => {
       true,
       "approval-1",
       expectDiscordConfirmationContext(),
+    );
+    expect(approvalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval confirmed: Delete thing",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Approval confirmed",
+          children: expect.not.arrayContaining([
+            expect.objectContaining({ type: "actions" }),
+          ]),
+        }),
+      }),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       "✅ Approved · Action confirmed.",

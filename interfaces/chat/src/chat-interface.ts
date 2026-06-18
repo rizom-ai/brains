@@ -113,6 +113,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private app: ChatSdkApp | undefined;
   private readonly threadRegistry = new ThreadRegistry();
   private readonly pendingConfirmations = new Map<string, Set<string>>();
+  private readonly approvalCardMessages = new Map<
+    string,
+    { message: SentMessage; summary: string }
+  >();
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
   private readonly toolActivityMessages = new Map<
     string,
@@ -787,6 +791,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.cards,
       input.userPermissionLevel,
     );
+    await this.resolveApprovalCard(input.approvalId, input.confirmed);
     await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.thread.id,
@@ -1153,7 +1158,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!confirmation) return;
     const fallbackText =
       this.formatPendingConfirmationHelp(pendingConfirmations);
-    await thread.post(
+    const sent = await thread.post(
       fallbackText
         ? {
             card: this.buildPendingConfirmationCard(confirmation),
@@ -1161,6 +1166,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           }
         : this.buildPendingConfirmationCard(confirmation),
     );
+    this.approvalCardMessages.set(confirmation.id, {
+      message: sent,
+      summary: confirmation.summary,
+    });
   }
 
   private buildPendingConfirmationCard(
@@ -1194,6 +1203,39 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       },
     ];
     return { type: "card", title: "Approval required", children };
+  }
+
+  private async resolveApprovalCard(
+    approvalId: string,
+    confirmed: boolean,
+  ): Promise<void> {
+    const tracked = this.approvalCardMessages.get(approvalId);
+    if (!tracked) return;
+    this.approvalCardMessages.delete(approvalId);
+    const label = confirmed ? "confirmed" : "cancelled";
+    await tracked.message.edit({
+      card: this.buildResolvedApprovalCard(tracked.summary, confirmed),
+      fallbackText: `Approval ${label}: ${tracked.summary}`,
+    });
+  }
+
+  private buildResolvedApprovalCard(
+    summary: string,
+    confirmed: boolean,
+  ): CardElement {
+    return {
+      type: "card",
+      title: confirmed ? "Approval confirmed" : "Approval cancelled",
+      children: [
+        { type: "text", content: summary },
+        {
+          type: "text",
+          content: confirmed
+            ? "This action was confirmed."
+            : "This action was cancelled.",
+        },
+      ],
+    };
   }
 
   private formatPendingConfirmationHelp(
