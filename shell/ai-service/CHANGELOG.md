@@ -1,5 +1,21 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- [`f9d1dc9`](https://github.com/rizom-ai/brains/commit/f9d1dc9ed7ac15f131d912202ce9d44fb4f11e32) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stabilize Rover eval flows by preserving listed entity IDs for follow-up reads, narrowing singular upload follow-ups to the latest upload ref, and rejecting placeholder cover-image updates before confirmation.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+  - @brains/conversation-service@0.2.0-alpha.125
+  - @brains/entity-service@0.2.0-alpha.125
+  - @brains/identity-service@0.2.0-alpha.125
+  - @brains/mcp-service@0.2.0-alpha.125
+  - @brains/messaging-service@0.2.0-alpha.125
+  - @brains/templates@0.2.0-alpha.125
+
 ## 0.2.0-alpha.124
 
 ### Patch Changes
