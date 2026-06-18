@@ -12,9 +12,10 @@ import { z } from "@brains/utils";
 const testConfigSchema = z.object({
   token: z.string().default("test-token"),
 });
-type TestConfig = z.infer<typeof testConfigSchema>;
+type TestConfig = z.output<typeof testConfigSchema>;
+type TestConfigInput = z.input<typeof testConfigSchema>;
 
-class TestBridgePlugin extends MCPBridgePlugin<TestConfig> {
+class TestBridgePlugin extends MCPBridgePlugin<TestConfig, TestConfigInput> {
   /** Expose for test control */
   public allowedTools = ["search", "read_page"];
   public instructions = "Use test_* tools for testing.";
@@ -23,7 +24,7 @@ class TestBridgePlugin extends MCPBridgePlugin<TestConfig> {
     args: ["test"],
   };
 
-  constructor(config: Partial<TestConfig> = {}) {
+  constructor(config: TestConfigInput = {}) {
     super(
       "test-bridge",
       { name: "@brains/test-bridge", version: "0.1.0" },

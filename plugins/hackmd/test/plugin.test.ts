@@ -43,8 +43,8 @@ describe("HackMDPlugin", () => {
       expect(result.success).toBe(true);
     });
 
-    it("throws when constructing without a token", () => {
-      expect(() => new HackMDPlugin({})).toThrow();
+    it("throws when parsing config without a token", () => {
+      expect(() => hackmdConfigSchema.parse({})).toThrow();
     });
   });
 

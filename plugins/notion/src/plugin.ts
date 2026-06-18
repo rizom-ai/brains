@@ -1,6 +1,10 @@
 import { MCPBridgePlugin } from "@brains/mcp-bridge";
 import type { ServerCommand } from "@brains/mcp-bridge";
-import { notionConfigSchema, type NotionConfig } from "./config";
+import {
+  notionConfigSchema,
+  type NotionConfig,
+  type NotionConfigInput,
+} from "./config";
 import packageJson from "../package.json";
 
 /**
@@ -9,8 +13,11 @@ import packageJson from "../package.json";
  * Spawns the official @notionhq/notion-mcp-server as a child process,
  * connects via MCP SDK, and exposes only read tools to the agent.
  */
-export class NotionPlugin extends MCPBridgePlugin<NotionConfig> {
-  constructor(config: Partial<NotionConfig> = {}) {
+export class NotionPlugin extends MCPBridgePlugin<
+  NotionConfig,
+  NotionConfigInput
+> {
+  constructor(config: NotionConfigInput) {
     super("notion", packageJson, config, notionConfigSchema);
   }
 

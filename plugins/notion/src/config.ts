@@ -8,4 +8,5 @@ export const notionConfigSchema = z.object({
   token: z.string().min(1),
 });
 
-export type NotionConfig = z.infer<typeof notionConfigSchema>;
+export type NotionConfig = z.output<typeof notionConfigSchema>;
+export type NotionConfigInput = z.input<typeof notionConfigSchema>;

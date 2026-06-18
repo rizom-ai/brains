@@ -43,8 +43,8 @@ describe("NotionPlugin", () => {
       expect(result.success).toBe(true);
     });
 
-    it("throws when constructing without a token", () => {
-      expect(() => new NotionPlugin({})).toThrow();
+    it("throws when parsing config without a token", () => {
+      expect(() => notionConfigSchema.parse({})).toThrow();
     });
   });
 

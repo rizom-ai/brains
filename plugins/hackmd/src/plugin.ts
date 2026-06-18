@@ -1,6 +1,10 @@
 import { MCPBridgePlugin } from "@brains/mcp-bridge";
 import type { ServerCommand } from "@brains/mcp-bridge";
-import { hackmdConfigSchema, type HackMDConfig } from "./config";
+import {
+  hackmdConfigSchema,
+  type HackMDConfig,
+  type HackMDConfigInput,
+} from "./config";
 import packageJson from "../package.json";
 
 /**
@@ -9,8 +13,11 @@ import packageJson from "../package.json";
  * Spawns the hackmd-mcp server as a child process, connects via
  * MCP SDK, and exposes only read tools to the agent.
  */
-export class HackMDPlugin extends MCPBridgePlugin<HackMDConfig> {
-  constructor(config: Partial<HackMDConfig> = {}) {
+export class HackMDPlugin extends MCPBridgePlugin<
+  HackMDConfig,
+  HackMDConfigInput
+> {
+  constructor(config: HackMDConfigInput) {
     super("hackmd", packageJson, config, hackmdConfigSchema);
   }
 

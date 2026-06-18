@@ -392,6 +392,10 @@ Incremental migration progress:
 - Audited service plugin config inputs for `analytics`, `buttondown`,
   `email-resend`, and `stock-photo`; factory/constructor inputs now use
   schema-derived input types, while runtime config remains parsed schema output.
+- Removed the hidden `Partial<TConfig>` input from the `MCPBridgePlugin` base;
+  bridge subclasses now spell their config input type explicitly. `notion` and
+  `hackmd` keep required token inputs schema-true and test missing-token
+  failures at the schema boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

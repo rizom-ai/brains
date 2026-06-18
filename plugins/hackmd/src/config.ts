@@ -8,4 +8,5 @@ export const hackmdConfigSchema = z.object({
   token: z.string().min(1),
 });
 
-export type HackMDConfig = z.infer<typeof hackmdConfigSchema>;
+export type HackMDConfig = z.output<typeof hackmdConfigSchema>;
+export type HackMDConfigInput = z.input<typeof hackmdConfigSchema>;

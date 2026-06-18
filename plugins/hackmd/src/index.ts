@@ -1,12 +1,16 @@
 import { HackMDPlugin } from "./plugin";
-import type { HackMDConfig } from "./config";
+import type { HackMDConfigInput } from "./config";
 
 export { HackMDPlugin };
-export { hackmdConfigSchema, type HackMDConfig } from "./config";
+export {
+  hackmdConfigSchema,
+  type HackMDConfig,
+  type HackMDConfigInput,
+} from "./config";
 
 /**
  * Create a HackMD plugin instance
  */
-export function hackmdPlugin(config: Partial<HackMDConfig> = {}): HackMDPlugin {
+export function hackmdPlugin(config: HackMDConfigInput): HackMDPlugin {
   return new HackMDPlugin(config);
 }
