@@ -653,14 +653,20 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         ),
         files: artifactDelivery.files,
       });
+      const artifactMessageId = await this.sendArtifactCards(
+        thread,
+        response.cards,
+        artifactDelivery.deniedCardIds,
+      );
       await this.sendPendingConfirmationCards(
         thread,
         response.pendingConfirmations,
       );
 
-      if (messageId) {
+      const progressMessageId = artifactMessageId ?? messageId;
+      if (progressMessageId) {
         for (const jobId of this.getResponseJobIds(response)) {
-          this.trackAgentResponseForJob(jobId, messageId, channelId);
+          this.trackAgentResponseForJob(jobId, progressMessageId, channelId);
         }
       }
     } catch (error: unknown) {
@@ -792,6 +798,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       ),
       files: artifactDelivery.files,
     });
+    await this.sendArtifactCards(
+      input.thread,
+      response.cards,
+      artifactDelivery.deniedCardIds,
+    );
     await this.sendPendingConfirmationCards(
       input.thread,
       response.pendingConfirmations,
@@ -852,9 +863,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): string {
     const suppressApprovalCards = Boolean(pendingConfirmations?.length);
     const cardSummaries = (cards ?? [])
-      .filter(
-        (card) => !(suppressApprovalCards && card.kind === "tool-approval"),
-      )
+      .filter((card) => {
+        if (suppressApprovalCards && card.kind === "tool-approval") {
+          return false;
+        }
+        if (card.kind === "attachment" && !deniedCardIds?.has(card.id)) {
+          return false;
+        }
+        return true;
+      })
       .map((card) => this.formatStructuredCard(card, deniedCardIds));
     const pendingHelp =
       pendingConfirmations && pendingConfirmations.length > 1
@@ -882,7 +899,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           ? "🚫"
           : "✅";
     const attachmentSummaries = (response.cards ?? [])
-      .filter((card) => card.kind === "attachment")
+      .filter(
+        (card) => card.kind === "attachment" && deniedCardIds?.has(card.id),
+      )
       .map((card) => this.formatStructuredCard(card, deniedCardIds));
     const pendingHelp =
       response.pendingConfirmations && response.pendingConfirmations.length > 1
@@ -1041,6 +1060,88 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return `Remaining pending approval ids: ${[...remainingIds]
       .map((approvalId) => `\`${approvalId}\``)
       .join(", ")}.`;
+  }
+
+  private async sendArtifactCards(
+    thread: Thread,
+    cards: StructuredChatCard[] | undefined,
+    deniedCardIds?: Set<string>,
+  ): Promise<string | undefined> {
+    let lastMessageId: string | undefined;
+    for (const card of cards ?? []) {
+      if (card.kind !== "attachment" || deniedCardIds?.has(card.id)) continue;
+      const display = formatArtifactDisplay(card);
+      if (!display) continue;
+      const sent = await thread.post({
+        card: this.buildArtifactCard(display),
+        fallbackText: this.formatArtifactFallback(display),
+      });
+      this.threadRegistry.trackMessage(thread.id, sent);
+      lastMessageId = sent.id;
+    }
+    return lastMessageId;
+  }
+
+  private buildArtifactCard(
+    display: NonNullable<ReturnType<typeof formatArtifactDisplay>>,
+  ): CardElement {
+    const children: CardChild[] = [];
+    if (display.description) {
+      children.push({ type: "text", content: display.description });
+    }
+
+    const fields = [
+      display.filename
+        ? { type: "field" as const, label: "File", value: display.filename }
+        : undefined,
+      display.mediaType
+        ? { type: "field" as const, label: "Type", value: display.mediaType }
+        : undefined,
+      display.sizeLabel
+        ? { type: "field" as const, label: "Size", value: display.sizeLabel }
+        : undefined,
+    ].filter(
+      (field): field is { type: "field"; label: string; value: string } =>
+        Boolean(field),
+    );
+    if (fields.length > 0) children.push({ type: "fields", children: fields });
+
+    const actions = [
+      this.buildArtifactLinkButton("Preview", display.previewUrl),
+      this.buildArtifactLinkButton("Open", display.url),
+      this.buildArtifactLinkButton("Download", display.downloadUrl),
+    ].filter(
+      (button): button is { type: "link-button"; label: string; url: string } =>
+        Boolean(button),
+    );
+    if (actions.length > 0)
+      children.push({ type: "actions", children: actions });
+
+    return {
+      type: "card",
+      title: display.title,
+      children,
+    };
+  }
+
+  private buildArtifactLinkButton(
+    label: string,
+    url: string | undefined,
+  ): { type: "link-button"; label: string; url: string } | undefined {
+    const resolvedUrl = this.resolveDisplayUrl(url);
+    if (!resolvedUrl || this.isLocalDisplayUrl(resolvedUrl)) return undefined;
+    return { type: "link-button", label, url: resolvedUrl };
+  }
+
+  private formatArtifactFallback(
+    display: NonNullable<ReturnType<typeof formatArtifactDisplay>>,
+  ): string {
+    const lines = [`**Artifact:** ${display.title}`];
+    if (display.description) lines.push(display.description);
+    if (display.filename) lines.push(`File: ${display.filename}`);
+    if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
+    if (display.sizeLabel) lines.push(`Size: ${display.sizeLabel}`);
+    return lines.join("\n");
   }
 
   private async sendPendingConfirmationCards(

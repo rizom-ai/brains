@@ -2341,7 +2341,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("**Error:** Agent failed");
   });
 
-  it("formats structured artifact cards as Discord-readable summaries", async () => {
+  it("posts structured artifact cards as SDK cards with concise fallback text", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Generated the deck.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -2371,11 +2371,58 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Generated the deck.",
-        "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB\nPreview: https://brain.test/api/chat/attachments/document?id=deck-1&preview=1\nOpen: https://brain.test/api/chat/attachments/document?id=deck-1\nDownload: https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
-      ].join("\n\n"),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Deck carousel",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "text",
+              content: "Ready to review.",
+            }),
+            expect.objectContaining({
+              type: "fields",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  type: "field",
+                  label: "File",
+                  value: "deck-carousel.pdf",
+                }),
+                expect.objectContaining({
+                  type: "field",
+                  label: "Type",
+                  value: "application/pdf",
+                }),
+                expect.objectContaining({
+                  type: "field",
+                  label: "Size",
+                  value: "1.2 KB",
+                }),
+              ]),
+            }),
+            expect.objectContaining({
+              type: "actions",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Open",
+                  url: "https://brain.test/api/chat/attachments/document?id=deck-1",
+                }),
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Download",
+                  url: "https://brain.test/api/chat/attachments/document?id=deck-1&download=1",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      }),
     );
   });
 
@@ -2421,18 +2468,27 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith(
+    expect(thread.post).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
-        markdown: [
-          "Generated the deck.",
-          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf",
-        ].join("\n\n"),
+        markdown: "Generated the deck.",
         files: [
           expect.objectContaining({
             filename: "native-deck.pdf",
             mimeType: "application/pdf",
           }),
         ],
+      }),
+    );
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Native deck",
+        }),
       }),
     );
   });
@@ -2570,13 +2626,21 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Generated the deck.",
-        "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf",
-      ].join("\n\n"),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Missing deck",
+          children: expect.not.arrayContaining([
+            expect.objectContaining({ type: "actions" }),
+          ]),
+        }),
+      }),
     );
-    expect(thread.post.mock.calls[0]?.[0]).not.toContain("Open:");
   });
 
   it("does not post native Discord artifact files for public users", async () => {
@@ -2702,11 +2766,39 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Generated the image.",
-        "**Artifact:** Robot image\nFile: robot.png\nType: image/png\nPreview: https://brain.test/api/chat/attachments/image?id=robot-1&preview=1\nOpen: https://brain.test/api/chat/attachments/image?id=robot-1\nDownload: https://brain.test/api/chat/attachments/image?id=robot-1&download=1",
-      ].join("\n\n"),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the image.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Artifact:** Robot image\nFile: robot.png\nType: image/png",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Robot image",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "actions",
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Preview",
+                  url: "https://brain.test/api/chat/attachments/image?id=robot-1&preview=1",
+                }),
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Open",
+                  url: "https://brain.test/api/chat/attachments/image?id=robot-1",
+                }),
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Download",
+                  url: "https://brain.test/api/chat/attachments/image?id=robot-1&download=1",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      }),
     );
   });
 
@@ -2741,14 +2833,22 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Generated local preview.",
-        "**Artifact:** Local robot\nFile: robot.png\nType: image/png",
-      ].join("\n\n"),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated local preview.");
+    expect(thread.post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        fallbackText:
+          "**Artifact:** Local robot\nFile: robot.png\nType: image/png",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Local robot",
+          children: expect.not.arrayContaining([
+            expect.objectContaining({ type: "actions" }),
+          ]),
+        }),
+      }),
     );
-    expect(thread.post.mock.calls[0]?.[0]).not.toContain("localhost");
-    expect(thread.post.mock.calls[0]?.[0]).not.toContain("Open:");
+    expect(JSON.stringify(thread.post.mock.calls)).not.toContain("localhost");
   });
 
   it("formats structured approval cards without raw JSON", async () => {
