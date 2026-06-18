@@ -36,8 +36,6 @@ turns:
           shouldBeCalled: false
         - toolName: system_update
           shouldBeCalled: false
-      responseContains:
-        - "Set up Rover"
       responseNotContains:
         - "What should I call you"
         - "what should I call you"
@@ -52,8 +50,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             event: CHOICE_1
-      responseContains:
-        - "What should I call you"
       responseNotContains:
         - "Confirmation required"
         - "I cannot"

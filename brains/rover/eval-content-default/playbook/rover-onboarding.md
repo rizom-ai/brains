@@ -71,7 +71,7 @@ To do:
 - Save it as the appropriate durable entity, usually a note or link.
 - Use "note" as the operator-facing term for base knowledge entries.
 - Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.
-- After saving the first seed, ask whether to find or show that saved note next; do not ask for another rough idea, link, note, or fragment during onboarding.
+- After saving the first seed, say it was saved or captured, then ask whether to find or show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
 - Explain how Rover can retrieve, connect, summarize, and repurpose it later.
 

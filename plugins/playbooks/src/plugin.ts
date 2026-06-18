@@ -125,6 +125,7 @@ export interface PlaybookStatusResponse {
   body?: PlaybookBody | undefined;
   currentState?: PlaybookState | undefined;
   validEvents?: PlaybookTransition[] | undefined;
+  operatorActions?: PlaybookTransition[] | undefined;
   blockedEvents?: PlaybookTransition[] | undefined;
   guidance?: string | undefined;
   cards?: ActionsCard[] | undefined;
@@ -337,7 +338,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_send_event",
         description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
+          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
         handler: async (
@@ -744,10 +745,16 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       parsedPlaybook && activeRun
         ? this.getState(parsedPlaybook.body, activeRun.currentState)
         : undefined;
-    const validEvents =
+    const allValidTransitions =
       currentState && activeRun && parsedPlaybook
         ? this.getValidTransitions(activeRun, parsedPlaybook.body, currentState)
         : (currentState?.transitions ?? []);
+    const validEvents = allValidTransitions.filter(
+      (transition) => transition.operatorAction !== true,
+    );
+    const operatorActions = allValidTransitions.filter(
+      (transition) => transition.operatorAction === true,
+    );
     const blockedEvents =
       currentState && activeRun && parsedPlaybook
         ? this.getBlockedTransitions(
@@ -761,15 +768,12 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ? this.buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
         : undefined;
 
-    const operatorEvents = validEvents.filter(
-      (transition) => transition.operatorAction === true,
-    );
     const actionsCard =
-      activeRun && parsedPlaybook && operatorEvents.length > 0
+      activeRun && parsedPlaybook && operatorActions.length > 0
         ? buildPlaybookActionsCard({
             run: activeRun,
             title: parsedPlaybook.entity.metadata.title,
-            transitions: operatorEvents,
+            transitions: operatorActions,
           })
         : undefined;
 
@@ -782,6 +786,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
       ...(currentState ? { currentState } : {}),
       ...(validEvents.length > 0 ? { validEvents } : {}),
+      ...(operatorActions.length > 0 ? { operatorActions } : {}),
       ...(blockedEvents.length > 0 ? { blockedEvents } : {}),
       ...(guidance ? { guidance } : {}),
       ...(actionsCard ? { cards: [actionsCard] } : {}),
@@ -794,7 +799,13 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     body: PlaybookBody,
     state: PlaybookState,
   ): string {
-    const validTransitions = this.getValidTransitions(run, body, state);
+    const allValidTransitions = this.getValidTransitions(run, body, state);
+    const validTransitions = allValidTransitions.filter(
+      (transition) => transition.operatorAction !== true,
+    );
+    const operatorActions = allValidTransitions.filter(
+      (transition) => transition.operatorAction === true,
+    );
     const blockedTransitions = this.getBlockedTransitions(run, body, state);
     const verdict = run.gateVerdicts.find(
       (candidate) =>
@@ -813,11 +824,24 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       verdict
         ? `- ${verdict.met ? "Met" : "Not yet met"}: ${verdict.reason}`
         : "- Not checked yet.",
-      "Valid events:",
+      "Current-state information rules:",
+      "- If this state asks the operator for information, ask the operator for the missing current-run information.",
+      "- Do not answer the state's operator-facing prompt from memory, existing durable records, profile data, search, or retrieval tools.",
+      "- Setup facts must come from current-run evidence or current operator input, not ambient records.",
+      "Event selection rules:",
+      "- If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.",
+      '- Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection.',
+      "- If multiple events are available, ask the operator to pick one labeled action.",
+      "- A Skip-style operator action is never a default continuation; send it only when the operator positively selects or asks to skip.",
+      "Valid continuation events:",
       ...(validTransitions.length > 0
         ? validTransitions.map((transition) =>
             this.formatTransition(transition),
           )
+        : ["- none"]),
+      "Available operator actions:",
+      ...(operatorActions.length > 0
+        ? operatorActions.map((transition) => this.formatTransition(transition))
         : ["- none"]),
       "Blocked events:",
       ...(blockedTransitions.length > 0
@@ -1099,13 +1123,19 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
     const state = this.getState(playbook.body, run.currentState);
     if (!state) return undefined;
 
-    const validTransitions = this.getValidTransitions(
+    const allValidTransitions = this.getValidTransitions(
       run,
       playbook.body,
       state,
     );
+    const validTransitions = allValidTransitions.filter(
+      (transition) => transition.operatorAction !== true,
+    );
+    const operatorActions = allValidTransitions.filter(
+      (transition) => transition.operatorAction === true,
+    );
     const validTransitionKeys = new Set(
-      validTransitions.map(
+      allValidTransitions.map(
         (transition) => `${transition.event}\u0000${transition.target}`,
       ),
     );
@@ -1116,6 +1146,9 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         ),
     );
     const validEvents = validTransitions
+      .map((transition) => this.formatTransition(transition))
+      .join("\n");
+    const operatorActionEvents = operatorActions
       .map((transition) => this.formatTransition(transition))
       .join("\n");
     const blockedEvents = blockedTransitions
@@ -1144,14 +1177,15 @@ Do not mention raw playbook state IDs to the operator; use the state title or na
 Avoid state-machine phrasing like stage, state, or run progress in operator-facing chat; describe the task or outcome in natural language instead.
 Call playbook tools silently; never write tool names like playbook_status or playbook_send_event in operator-facing text.
 After meaningful tool actions, refresh playbook_status before your final answer when the run may have advanced, then end the turn with the next immediate question or action for the current state. If runtime evidence already advanced the run, do not send an extra NEXT for the new state.
-If exactly one valid event is available and the operator clearly accepts it, send that event instead of starting the playbook again. If multiple valid events are available, generic continuation like "yes", "next", or "continue" is not a valid selection; ask the operator to pick one of the labeled actions.
+If exactly one non-operator continuation event is available and the operator clearly accepts it, send that event instead of starting the playbook again. Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection. If multiple events are available, ask the operator to pick one labeled action. If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.
+A Skip-style operator action is never a default continuation. Send a Skip event only when the operator positively selects or asks to skip.
 If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering.
 A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, use system_get or system_search.
 After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If the same operator message includes a concrete request with the necessary content and target details for the new state, satisfy that request in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
-When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records.
+When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.
 Teach by doing real actions with existing tools.
 After meaningful tool actions, explain what happened and why it matters.
@@ -1170,8 +1204,11 @@ ${doneWhen || "- none"}
 Goal status:
 ${goalStatus}
 
-Valid events:
+Valid continuation events:
 ${validEvents || "- none"}
+
+Available operator actions:
+${operatorActionEvents || "- none"}
 
 Blocked events:
 ${blockedEvents || "- none"}`,
@@ -1180,6 +1217,7 @@ ${blockedEvents || "- none"}`,
         runId: run.id,
         currentState: run.currentState,
         validEvents: validTransitions.map((transition) => transition.event),
+        operatorActions: operatorActions.map((transition) => transition.event),
       },
     };
   }

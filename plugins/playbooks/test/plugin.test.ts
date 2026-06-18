@@ -142,6 +142,7 @@ const playbookToolDataSchema = z
     runs: z.array(runSummarySchema).default([]),
     activeRun: runSummarySchema,
     validEvents: z.array(transitionSchema).default([]),
+    operatorActions: z.array(transitionSchema).default([]),
     blockedEvents: z.array(transitionSchema).default([]),
     guidance: z.string().optional(),
     cards: z
@@ -591,7 +592,8 @@ describe("PlaybooksPlugin", () => {
     const startedData = parsePlaybookToolData(started.data);
     const runId = startedData.activeRun.id;
     expect(startedData.activeRun.currentState).toBe("welcome");
-    expect(startedData.validEvents.map((event) => event.event)).toEqual([
+    expect(startedData.validEvents.map((event) => event.event)).toEqual([]);
+    expect(startedData.operatorActions.map((event) => event.event)).toEqual([
       "NEXT",
       "SKIP",
     ]);
@@ -677,6 +679,7 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.validEvents.map((event) => event.event)).toEqual(["SKIP"]);
+    expect(data.operatorActions.map((event) => event.event)).toEqual([]);
     expect(data.blockedEvents.map((event) => event.event)).toEqual(["NEXT"]);
     expect(data.guidance).toContain("Current state: identity");
     expect(data.guidance).toContain("No matching evidence.");
@@ -1231,7 +1234,8 @@ describe("PlaybooksPlugin", () => {
     );
     expect(content).toContain("Goal status:");
     expect(content).toContain("Not yet met");
-    expect(content).toContain("Valid events:");
+    expect(content).toContain("Valid continuation events:");
+    expect(content).toContain("Available operator actions:");
     expect(content).toContain("SKIP -> seed: Skip for now");
     expect(content).toContain("Blocked events:");
     expect(content).toContain("NEXT -> seed");

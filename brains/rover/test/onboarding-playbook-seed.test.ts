@@ -139,7 +139,7 @@ describe("Rover onboarding playbook seed", () => {
       "Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.",
     );
     expect(firstNote?.instructions).toContain(
-      "After saving the first seed, ask whether to find or show that saved note next; do not ask for another rough idea, link, note, or fragment during onboarding.",
+      "After saving the first seed, say it was saved or captured, then ask whether to find or show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.",
     );
     expect(seeItComeBack?.prompt).toBe(
       "Want me to find that note now, or would you rather ask for it yourself?",
