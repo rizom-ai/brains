@@ -774,8 +774,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         : undefined;
 
     return {
-      runs: input.conversationId ? conversationRuns : runs,
-      ...(activeRun ? { activeRun } : {}),
+      runs: (input.conversationId ? conversationRuns : runs).map(
+        sanitizeRunForModelOutput,
+      ),
+      ...(activeRun ? { activeRun: sanitizeRunForModelOutput(activeRun) } : {}),
       ...(parsedPlaybook ? { playbook: parsedPlaybook.entity } : {}),
       ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
       ...(currentState ? { currentState } : {}),
@@ -1196,6 +1198,26 @@ Do not publish content unless the operator explicitly asks and confirms the publ
 Configured lifecycle playbooks:
 ${lifecycleSummary || "- none"}`;
   }
+}
+
+function sanitizeRunForModelOutput(run: PlaybookRun): PlaybookRun {
+  return {
+    ...run,
+    evidence: run.evidence.map((evidence) => ({
+      ...evidence,
+      data: sanitizeEvidenceData(evidence.data),
+    })),
+  };
+}
+
+function sanitizeEvidenceData(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    ["entityType", "entityId", "operation"].flatMap((key) =>
+      data[key] !== undefined ? [[key, data[key]]] : [],
+    ),
+  );
 }
 
 function buildPlaybookActionsCard(input: {

@@ -836,6 +836,14 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.activeRun.currentState).toBe("complete");
+    const visibleEvidenceData = (
+      data.activeRun.evidence[0] as { data?: Record<string, unknown> }
+    ).data;
+    expect(visibleEvidenceData).toEqual({
+      entityType: "base",
+      entityId: "seed-note",
+      operation: "created",
+    });
     expect(evaluate).toHaveBeenCalledTimes(1);
   });
 
