@@ -9,6 +9,8 @@ tags:
 
 turns:
   - userMessage: |
+      Please save this uploaded markdown file as a note.
+
       User uploaded a file "meeting-notes.md":
 
       ---
