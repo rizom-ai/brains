@@ -100,7 +100,7 @@ export class NotificationsPlugin extends ServicePlugin<
 }
 
 export function notificationsPlugin(
-  config: Partial<NotificationsConfig> = {},
+  config: NotificationsConfigInput = {},
 ): NotificationsPlugin {
   return new NotificationsPlugin(config);
 }

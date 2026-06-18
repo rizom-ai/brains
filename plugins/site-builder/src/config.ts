@@ -131,7 +131,9 @@ export const siteBuilderConfigSchema = z.object({
 });
 
 /** Zod-inferred parsed config — serializable fields only. */
-type SiteBuilderSchemaConfig = z.infer<typeof siteBuilderConfigSchema>;
+type SiteBuilderSchemaConfig = z.output<typeof siteBuilderConfigSchema>;
+
+type SiteBuilderSchemaConfigInput = z.input<typeof siteBuilderConfigSchema>;
 
 /**
  * Full site-builder config with properly typed runtime fields.
@@ -146,6 +148,16 @@ export type SiteBuilderConfig = Omit<
   "templates" | "layouts" | "routes" | "entityDisplay"
 > & {
   siteInfo: SiteMetadata;
+  templates?: Record<string, Template>;
+  layouts?: Record<string, LayoutComponent>;
+  routes?: RouteDefinitionInput[];
+  entityDisplay?: EntityDisplayMap;
+};
+
+export type SiteBuilderConfigInput = Omit<
+  SiteBuilderSchemaConfigInput,
+  "templates" | "layouts" | "routes" | "entityDisplay"
+> & {
   templates?: Record<string, Template>;
   layouts?: Record<string, LayoutComponent>;
   routes?: RouteDefinitionInput[];

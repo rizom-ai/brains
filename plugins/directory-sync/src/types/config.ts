@@ -100,4 +100,7 @@ export const directorySyncConfigSchema = z.object({
     .optional(),
 });
 
-export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
+export type DirectorySyncConfig = z.output<typeof directorySyncConfigSchema>;
+export type DirectorySyncConfigInput = z.input<
+  typeof directorySyncConfigSchema
+>;

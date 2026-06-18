@@ -35,5 +35,5 @@ export const atprotoConfigSchema = z.object({
     ),
 });
 
-export type AtprotoConfig = z.infer<typeof atprotoConfigSchema>;
-export type AtprotoConfigInput = Partial<AtprotoConfig>;
+export type AtprotoConfig = z.output<typeof atprotoConfigSchema>;
+export type AtprotoConfigInput = z.input<typeof atprotoConfigSchema>;

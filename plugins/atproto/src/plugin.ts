@@ -105,7 +105,7 @@ const MAX_DISCOVERY_REPOS = 50;
 
 export class AtprotoPlugin extends ServicePlugin<
   AtprotoConfig,
-  Partial<AtprotoConfig>
+  AtprotoConfigInput
 > {
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;

@@ -17,8 +17,12 @@ export const atprotoRegistryConfigSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
-export type AtprotoRegistryConfig = z.infer<typeof atprotoRegistryConfigSchema>;
-export type AtprotoRegistryConfigInput = Partial<AtprotoRegistryConfig>;
+export type AtprotoRegistryConfig = z.output<
+  typeof atprotoRegistryConfigSchema
+>;
+export type AtprotoRegistryConfigInput = z.input<
+  typeof atprotoRegistryConfigSchema
+>;
 
 export interface AtprotoLexiconRegistryEntry extends AtprotoLexiconMetadata {
   path: string;
@@ -38,7 +42,7 @@ function jsonResponse(value: unknown): Response {
 
 export class AtprotoRegistryPlugin extends ServicePlugin<
   AtprotoRegistryConfig,
-  Partial<AtprotoRegistryConfig>
+  AtprotoRegistryConfigInput
 > {
   constructor(config: AtprotoRegistryConfigInput = {}) {
     super("atproto-registry", packageJson, config, atprotoRegistryConfigSchema);

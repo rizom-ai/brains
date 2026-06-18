@@ -374,6 +374,12 @@ Incremental migration progress:
   `@brains/utils/zod-v4`. This is intentionally narrow: avoid switching
   APIs that accept schemas from other packages until both sides of that
   boundary move together.
+- Split more defaulted plugin configs into parsed output and caller input:
+  `directory-sync`, `atproto`, `atproto-registry`, and `site-builder` now use
+  `z.output<typeof schema>` for runtime config and `z.input<typeof schema>` for
+  constructor/factory input. `site-builder` keeps its typed runtime fields
+  (`templates`, `layouts`, `routes`, `entityDisplay`) while still allowing
+  defaulted schema fields to be omitted by callers.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
