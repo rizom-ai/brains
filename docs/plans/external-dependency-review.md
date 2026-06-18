@@ -447,6 +447,9 @@ Incremental migration progress:
 - Audited template permission entity-action policy schemas: stored policy types
   use schema output, while `PermissionConfig` accepts schema input before the
   service parses it.
+- Audited `brains-ops` YAML registry config aliases (`pilot`, `user`, and
+  `cohort`) so runtime config uses schema output and input aliases represent
+  pre-parse YAML shapes.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

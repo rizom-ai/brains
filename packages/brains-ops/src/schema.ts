@@ -105,7 +105,10 @@ export const cohortSchema = z
     }
   });
 
-export type PilotConfig = z.infer<typeof pilotSchema>;
-export type UserConfig = z.infer<typeof userSchema>;
-export type CohortConfig = z.infer<typeof cohortSchema>;
+export type PilotConfig = z.output<typeof pilotSchema>;
+export type PilotConfigInput = z.input<typeof pilotSchema>;
+export type UserConfig = z.output<typeof userSchema>;
+export type UserConfigInput = z.input<typeof userSchema>;
+export type CohortConfig = z.output<typeof cohortSchema>;
+export type CohortConfigInput = z.input<typeof cohortSchema>;
 export type PilotPreset = z.infer<typeof presetSchema>;
