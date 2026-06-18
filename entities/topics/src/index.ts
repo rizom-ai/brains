@@ -13,6 +13,7 @@ import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
+  type TopicsPluginConfigInput,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { topicExtractionTemplate } from "./templates/extraction-template";
@@ -48,7 +49,7 @@ const topicAdapter = new TopicAdapter();
 export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
   TopicsPluginConfig,
-  Partial<TopicsPluginConfig>
+  TopicsPluginConfigInput
 > {
   readonly entityType = TOPIC_ENTITY_TYPE;
   readonly schema = topicEntitySchema;
@@ -58,7 +59,7 @@ export class TopicsPlugin extends EntityPlugin<
   declare protected config: TopicsPluginConfig;
   private readonly sourceBatch = new TopicSourceBatchBuffer();
 
-  constructor(config: Partial<TopicsPluginConfig> = {}) {
+  constructor(config: TopicsPluginConfigInput = {}) {
     super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
   }
 
@@ -244,12 +245,15 @@ export class TopicsPlugin extends EntityPlugin<
 export default TopicsPlugin;
 
 export function topicsPlugin(
-  config?: Partial<TopicsPluginConfig>,
+  config: TopicsPluginConfigInput = {},
 ): TopicsPlugin {
   return new TopicsPlugin(config);
 }
 
-export type { TopicsPluginConfig } from "./schemas/config";
+export type {
+  TopicsPluginConfig,
+  TopicsPluginConfigInput,
+} from "./schemas/config";
 export type { TopicEntity } from "./types";
 export {
   buildTopicAtprotoRecord,

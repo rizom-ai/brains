@@ -32,7 +32,8 @@ const imageConfigSchema = z.object({
     .describe("Default aspect ratio for generated images"),
 });
 
-type ImageConfig = z.infer<typeof imageConfigSchema>;
+type ImageConfig = z.output<typeof imageConfigSchema>;
+type ImageConfigInput = z.input<typeof imageConfigSchema>;
 
 function normalizeText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -157,13 +158,13 @@ function buildUploadedImageAttachment(input: {
 export class ImagePlugin extends EntityPlugin<
   Image,
   ImageConfig,
-  Partial<ImageConfig>
+  ImageConfigInput
 > {
   readonly entityType = imageAdapter.entityType;
   readonly schema = imageSchema;
   readonly adapter = imageAdapter;
 
-  constructor(config: Partial<ImageConfig> = {}) {
+  constructor(config: ImageConfigInput = {}) {
     super("image", packageJson, config, imageConfigSchema);
   }
 
@@ -474,6 +475,6 @@ export class ImagePlugin extends EntityPlugin<
   }
 }
 
-export function imagePlugin(config?: Partial<ImageConfig>): Plugin {
+export function imagePlugin(config: ImageConfigInput = {}): Plugin {
   return new ImagePlugin(config);
 }

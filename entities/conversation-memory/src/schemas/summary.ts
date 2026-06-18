@@ -106,4 +106,5 @@ export const summaryConfigSchema = z.object({
   ),
 });
 
-export type SummaryConfig = z.infer<typeof summaryConfigSchema>;
+export type SummaryConfig = z.output<typeof summaryConfigSchema>;
+export type SummaryConfigInput = z.input<typeof summaryConfigSchema>;

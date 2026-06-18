@@ -49,4 +49,5 @@ export const topicsPluginConfigSchema = z.object({
   sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
 });
 
-export type TopicsPluginConfig = z.infer<typeof topicsPluginConfigSchema>;
+export type TopicsPluginConfig = z.output<typeof topicsPluginConfigSchema>;
+export type TopicsPluginConfigInput = z.input<typeof topicsPluginConfigSchema>;

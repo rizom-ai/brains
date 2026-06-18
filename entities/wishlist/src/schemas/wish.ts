@@ -61,4 +61,5 @@ export type WishPriority = z.infer<typeof wishPrioritySchema>;
 export type WishFrontmatter = z.infer<typeof wishFrontmatterSchema>;
 export type WishMetadata = z.infer<typeof wishMetadataSchema>;
 export type WishEntity = z.infer<typeof wishSchema>;
-export type WishlistConfig = z.infer<typeof wishlistConfigSchema>;
+export type WishlistConfig = z.output<typeof wishlistConfigSchema>;
+export type WishlistConfigInput = z.input<typeof wishlistConfigSchema>;

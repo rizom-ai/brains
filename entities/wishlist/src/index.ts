@@ -10,6 +10,7 @@ import {
   wishlistConfigSchema,
   wishSchema,
   type WishlistConfig,
+  type WishlistConfigInput,
   type WishEntity,
 } from "./schemas/wish";
 import { wishAdapter } from "./adapters/wish-adapter";
@@ -20,13 +21,13 @@ import packageJson from "../package.json";
 export class WishlistPlugin extends EntityPlugin<
   WishEntity,
   WishlistConfig,
-  Partial<WishlistConfig>
+  WishlistConfigInput
 > {
   readonly entityType = wishAdapter.entityType;
   readonly schema = wishSchema;
   readonly adapter = wishAdapter;
 
-  constructor(config: Partial<WishlistConfig> = {}) {
+  constructor(config: WishlistConfigInput = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
   }
 
@@ -126,9 +127,7 @@ export class WishlistPlugin extends EntityPlugin<
   }
 }
 
-export function createWishlistPlugin(
-  config: Partial<WishlistConfig> = {},
-): Plugin {
+export function createWishlistPlugin(config: WishlistConfigInput = {}): Plugin {
   return new WishlistPlugin(config);
 }
 
@@ -136,6 +135,7 @@ export const wishlistPlugin = createWishlistPlugin;
 
 export type {
   WishlistConfig,
+  WishlistConfigInput,
   WishEntity,
   WishFrontmatter,
   WishMetadata,

@@ -15,6 +15,7 @@ import {
   summaryConfigSchema,
   summarySchema,
   type SummaryConfig,
+  type SummaryConfigInput,
   type SummaryEntity,
 } from "./schemas/summary";
 import { SummaryAdapter } from "./adapters/summary-adapter";
@@ -58,7 +59,7 @@ const conversationMessageAddedSchema = z.object({
 export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryEntity,
   SummaryConfig,
-  Partial<SummaryConfig>
+  SummaryConfigInput
 > {
   readonly entityType = SUMMARY_ENTITY_TYPE;
   readonly schema = summarySchema;
@@ -66,7 +67,7 @@ export class ConversationMemoryPlugin extends EntityPlugin<
 
   declare protected config: SummaryConfig;
 
-  constructor(config: Partial<SummaryConfig> = {}) {
+  constructor(config: SummaryConfigInput = {}) {
     super(SUMMARY_PLUGIN_ID, packageJson, config, summaryConfigSchema);
   }
 
@@ -234,7 +235,7 @@ export class ConversationMemoryPlugin extends EntityPlugin<
 }
 
 export function conversationMemoryPlugin(
-  config?: Partial<SummaryConfig>,
+  config: SummaryConfigInput = {},
 ): ConversationMemoryPlugin {
   return new ConversationMemoryPlugin(config);
 }
