@@ -18,6 +18,10 @@ export interface AIModelConfig {
   webSearch?: boolean;
 }
 
+export type AIModelConfigUpdate = {
+  [K in keyof AIModelConfig]?: AIModelConfig[K];
+};
+
 /**
  * AI Service interface for generating text and structured objects
  */
@@ -47,7 +51,7 @@ export interface IAIService {
     };
   }>;
 
-  updateConfig(config: Partial<AIModelConfig>): void;
+  updateConfig(config: AIModelConfigUpdate): void;
 
   getConfig(): AIModelConfig;
 

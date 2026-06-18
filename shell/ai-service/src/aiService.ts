@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
   AIModelConfig,
+  AIModelConfigUpdate,
   IAIService,
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -161,7 +162,7 @@ export class AIService implements IAIService {
   /**
    * Update configuration
    */
-  public updateConfig(config: Partial<AIModelConfig>): void {
+  public updateConfig(config: AIModelConfigUpdate): void {
     const previousModel = this.config.model;
     this.config = withAIModelDefaults({ ...this.config, ...config });
     const modelChanged = this.config.model !== previousModel;

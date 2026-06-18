@@ -1,4 +1,9 @@
-import type { IAIService, AIModelConfig, ImageGenerationResult } from "../src";
+import type {
+  IAIService,
+  AIModelConfig,
+  AIModelConfigUpdate,
+  ImageGenerationResult,
+} from "../src";
 import type { LanguageModel } from "ai";
 import type { z } from "@brains/utils";
 
@@ -97,7 +102,7 @@ export function createMockAIService(): IAIService {
       };
     },
 
-    updateConfig: (_config: Partial<AIModelConfig>): void => {
+    updateConfig: (_config: AIModelConfigUpdate): void => {
       // Mock implementation - does nothing
     },
 
