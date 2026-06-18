@@ -243,10 +243,10 @@ describe("buildInstructions", () => {
       '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
     );
     expect(instructions).toContain(
-      'raw image upload saves use `entityType: "image"` and must omit `prompt`, `content`, `url`, and `transform`',
+      "Call exactly one `system_upload_save`; do not also create an alternate document/image entity",
     );
     expect(instructions).toContain(
-      "Use that ref's raw-save entityType and call exactly one `system_create`",
+      "Do not use `system_create` for status-only requests such as making an existing post a draft or for raw uploaded file preservation.",
     );
     expect(instructions).toContain(
       "If generating a social post from prior image discussion, use conversation text in `prompt`/`content` and omit `upload`",

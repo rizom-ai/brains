@@ -33,6 +33,16 @@ describe("DocumentPlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
+  it("registers a PDF upload-save handler", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+
+    const registration = harness
+      .getEntityRegistry()
+      .getUploadSaveHandler("application/pdf");
+    expect(registration?.entityType).toBe("document");
+  });
+
   it("handles system_create document from a source attachment by enqueueing generation", async () => {
     const harness = createPluginHarness<DocumentPlugin>({
       dataDir: `/tmp/test-document-source-${crypto.randomUUID()}`,

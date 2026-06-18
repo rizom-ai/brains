@@ -520,7 +520,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable raw image saves/promotions from uploaded images, call system_create with entityType: "image", the exact upload object shown in the current turn or conversation "Available upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the uploaded image file itself. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. Saving an image description, discussion, interpretation, or caption as a note should create a base entity with content from the conversation, not upload/transform. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images and cover images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely unless the user explicitly asks to reuse the uploaded image file.`;
+    return `For durable raw image saves/promotions from uploaded images, call system_upload_save with the exact upload object shown in the current turn or conversation "Available upload refs" hint. Do this only after the user explicitly asks to save/import/promote the uploaded image file itself. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Describing or summarizing an uploaded image should use it as chat context, not create an image entity. Saving an image description, discussion, interpretation, or caption as a note should create a base entity with content from the conversation, not upload/transform. After a bare upload acknowledgement, a short label/title-only follow-up is ambiguous; ask what to do with the upload instead of turning that label into an AI image-generation prompt. For AI-generated images and cover images, call system_create with entityType: "image" and a prompt, and omit upload/sourceAttachment entirely unless the user explicitly asks to reuse the uploaded image file.`;
   }
 
   protected override createGenerationHandler(
@@ -536,6 +536,24 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    context.entities.registerUploadSaveHandler({
+      entityType: this.entityType,
+      mediaTypes: ["image/*"],
+      handler: async (input) => {
+        const interception = await this.promoteUpload(
+          {
+            entityType: this.entityType,
+            ...(input.title !== undefined ? { title: input.title } : {}),
+            from: input.upload,
+          },
+          context,
+        );
+        return interception.kind === "handled"
+          ? interception.result
+          : { success: false, error: "Image upload save was not handled" };
+      },
+    });
+
     const handler = new ImageGenerationJobHandler(context, this.logger);
     context.jobs.registerHandler("image-generate", handler);
     context.jobs.registerHandler(
