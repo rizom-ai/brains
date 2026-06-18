@@ -108,7 +108,7 @@ export class Shell implements IShell {
 
   public readonly jobs: IJobsNamespace;
 
-  public static getInstance(config?: Partial<ShellConfig>): Shell {
+  public static getInstance(config?: ShellConfigInput): Shell {
     Shell.instance ??= new Shell(createShellConfig(config ?? {}));
     return Shell.instance;
   }
