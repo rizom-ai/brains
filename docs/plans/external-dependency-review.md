@@ -380,6 +380,10 @@ Incremental migration progress:
   constructor/factory input. `site-builder` keeps its typed runtime fields
   (`templates`, `layouts`, `routes`, `entityDisplay`) while still allowing
   defaulted schema fields to be omitted by callers.
+- Audited site plugin config inputs for `site-personal`, `site-professional`,
+  and `site-rizom`. Professional site config now has an explicit Post/Deck
+  homepage entity-display default so the optional `SitePackage` plugin callback
+  stays schema-true without `Partial<Config>`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

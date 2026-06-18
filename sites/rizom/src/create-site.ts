@@ -6,7 +6,11 @@ import {
 } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import rizomBaseSite from ".";
-import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
+import {
+  RizomRuntimePlugin,
+  type RizomRuntimeConfigInput,
+  type RizomThemeProfile,
+} from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
   private readonly contentNamespace: string;
@@ -14,7 +18,7 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
   private readonly dataSources: DataSource[];
   constructor(
     packageName: string,
-    config: Record<string, unknown>,
+    config: RizomRuntimeConfigInput,
     contentNamespace: string,
     extraTemplates: Record<string, Template>,
     dataSources: DataSource[] = [],
@@ -48,9 +52,9 @@ export interface CreateRizomSiteOptions {
 
 export function createRizomSite(
   options: CreateRizomSiteOptions,
-): SitePackage<Record<string, unknown>, Plugin> {
-  const plugin: SitePackage<Record<string, unknown>, Plugin>["plugin"] = (
-    config?: Record<string, unknown>,
+): SitePackage<RizomRuntimeConfigInput, Plugin> {
+  const plugin: SitePackage<RizomRuntimeConfigInput, Plugin>["plugin"] = (
+    config?: RizomRuntimeConfigInput,
   ): Plugin =>
     new RizomVariantPlugin(
       options.packageName,

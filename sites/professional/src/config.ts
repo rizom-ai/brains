@@ -8,19 +8,27 @@ const entityDisplayItemSchema = z.object({
     .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
 });
 
+export const professionalSiteDefaultEntityDisplay = {
+  post: { label: "Post" },
+  deck: { label: "Deck" },
+};
+
 export const professionalSiteConfigSchema = z.object({
   entityDisplay: z
     .object({
       post: entityDisplayItemSchema,
       deck: entityDisplayItemSchema,
     })
+    .default(professionalSiteDefaultEntityDisplay)
     .describe(
-      "Display metadata for post and deck entity types (required for homepage)",
+      "Display metadata for post and deck entity types used by the homepage",
     ),
 });
 
-export type ProfessionalSiteConfig = z.infer<
+export type ProfessionalSiteConfig = z.output<
   typeof professionalSiteConfigSchema
 >;
 
-export type ProfessionalSiteConfigInput = Partial<ProfessionalSiteConfig>;
+export type ProfessionalSiteConfigInput = z.input<
+  typeof professionalSiteConfigSchema
+>;

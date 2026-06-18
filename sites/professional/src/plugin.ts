@@ -39,7 +39,7 @@ import packageJson from "../package.json";
  */
 export class ProfessionalSitePlugin extends ServicePlugin<
   ProfessionalSiteConfig,
-  Partial<ProfessionalSiteConfig>
+  ProfessionalSiteConfigInput
 > {
   public readonly dependencies = ["blog", "decks"];
 

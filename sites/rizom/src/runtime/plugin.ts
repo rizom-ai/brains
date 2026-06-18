@@ -19,7 +19,8 @@ export const rizomRuntimeConfigSchema = z.object({
   theme: z.string().optional(),
 });
 
-export type RizomRuntimeConfig = z.infer<typeof rizomRuntimeConfigSchema>;
+export type RizomRuntimeConfig = z.output<typeof rizomRuntimeConfigSchema>;
+export type RizomRuntimeConfigInput = z.input<typeof rizomRuntimeConfigSchema>;
 export type RizomThemeProfile = NonNullable<RizomRuntimeConfig["themeProfile"]>;
 
 const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
@@ -53,9 +54,9 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
 
 export class RizomRuntimePlugin extends ServicePlugin<
   RizomRuntimeConfig,
-  Partial<RizomRuntimeConfig>
+  RizomRuntimeConfigInput
 > {
-  constructor(packageName: string, config: Record<string, unknown> = {}) {
+  constructor(packageName: string, config: RizomRuntimeConfigInput = {}) {
     super(
       "rizom-site",
       { name: packageName, version: "0.1.0" },

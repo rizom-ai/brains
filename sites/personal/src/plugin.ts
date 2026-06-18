@@ -29,9 +29,9 @@ const personalSiteConfigSchema = z.object({
     .default({}),
 });
 
-type PersonalSiteConfig = z.infer<typeof personalSiteConfigSchema>;
+type PersonalSiteConfig = z.output<typeof personalSiteConfigSchema>;
 
-export type PersonalSiteConfigInput = Partial<PersonalSiteConfig>;
+export type PersonalSiteConfigInput = z.input<typeof personalSiteConfigSchema>;
 
 /**
  * Personal Site Plugin
@@ -39,7 +39,7 @@ export type PersonalSiteConfigInput = Partial<PersonalSiteConfig>;
  */
 export class PersonalSitePlugin extends ServicePlugin<
   PersonalSiteConfig,
-  Partial<PersonalSiteConfig>
+  PersonalSiteConfigInput
 > {
   public readonly dependencies = ["blog"];
 
