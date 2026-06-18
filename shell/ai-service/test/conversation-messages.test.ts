@@ -3,7 +3,33 @@ import {
   buildMessageWithAttachments,
   collectUploadRefsFromMessages,
   resolveConversationUploadContinuity,
+  toModelMessages,
 } from "../src/conversation-messages";
+
+describe("toModelMessages", () => {
+  it("does not reintroduce footer-shaped entity memory into model message text", () => {
+    const messages = toModelMessages([
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        role: "assistant",
+        content: "Completed: Updated anchor profile.",
+        metadata: JSON.stringify({
+          entityMemoryNote:
+            '\n\n[Entities affected this turn: anchor-profile "anchor-profile" (updated). Reference these IDs directly in follow-ups instead of searching for them.]',
+        }),
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    expect(JSON.stringify(messages)).not.toContain(
+      "Entities affected this turn",
+    );
+    expect(JSON.stringify(messages)).not.toContain(
+      "Reference these IDs directly",
+    );
+  });
+});
 
 describe("collectUploadRefsFromMessages", () => {
   it("collects prior upload refs from stored conversation metadata without inferring intent", () => {

@@ -47,9 +47,11 @@ To do:
 
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
 - Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.
+- A name by itself is not enough to update the profile; after receiving only a name, ask for the operator's role next.
+- Do not update the anchor profile until name, role, audience, expertise, and tone have all been provided in the current onboarding run.
 - If the operator gives multiple details at once, use them; do not re-ask fields already provided.
 - Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.
-- When enough details are known, summarize once and ask for confirmation before saving.
+- When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
 - When the operator only chooses setup or asks to continue to identity setup, ask the Identity prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.

@@ -39,8 +39,9 @@ import {
 import {
   buildSourcesCardFromContextItems,
   extractToolResults,
-  buildEntityMemoryNote,
+  buildEntityMemoryRefs,
   buildToolResultPromptFallback,
+  type EntityMemoryRef,
 } from "./agent-results";
 import { buildAssistantActor } from "./assistant-actor";
 import { buildBrainCallOptions } from "./call-options";
@@ -716,16 +717,16 @@ export class AgentService implements IAgentService {
         : result.text.trim().length > 0
           ? result.text
           : (buildToolResultPromptFallback(toolResults) ?? result.text);
-    const entityMemoryNote =
-      pendingConfirmations.length > 0 ? "" : buildEntityMemoryNote(toolResults);
+    const entityMemoryRefs =
+      pendingConfirmations.length > 0 ? [] : buildEntityMemoryRefs(toolResults);
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
     // the action has actually been confirmed and executed.
     //
-    // Store a memory note of entities this turn created/updated so their IDs
-    // stay addressable next turn. The note is injected into model history from
-    // metadata only; visible assistant content stays clean.
+    // Store structured refs for entities this turn created/updated so their IDs
+    // stay addressable next turn. These refs are injected into model history
+    // from metadata only; visible assistant content stays clean.
     if (responseText.trim()) {
       await this.conversationService.addMessage({
         conversationId,
@@ -735,7 +736,7 @@ export class AgentService implements IAgentService {
           actor: this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
           cards: responseCards,
-          entityMemoryNote,
+          entityMemoryRefs,
         }),
       });
     }
@@ -902,13 +903,13 @@ export class AgentService implements IAgentService {
         : outcome.resultText;
     const cards = [...outcome.cards, ...(response?.cards ?? [])];
     const toolResults = [outcome.toolResult, ...(response?.toolResults ?? [])];
-    const followUpEntityMemoryNote = response
-      ? buildEntityMemoryNote(response.toolResults ?? [])
-      : "";
-    const entityMemoryNote = [
-      outcome.entityMemoryNote,
-      followUpEntityMemoryNote,
-    ].join("");
+    const followUpEntityMemoryRefs = response
+      ? buildEntityMemoryRefs(response.toolResults ?? [])
+      : [];
+    const entityMemoryRefs = [
+      ...outcome.entityMemoryRefs,
+      ...followUpEntityMemoryRefs,
+    ];
 
     await this.conversationService.addMessage({
       conversationId,
@@ -918,7 +919,7 @@ export class AgentService implements IAgentService {
         actor: this.getAssistantActor(),
         source: this.buildAssistantSource(channelId, channelName),
         cards,
-        entityMemoryNote,
+        entityMemoryRefs,
       }),
     });
 
@@ -998,7 +999,7 @@ export class AgentService implements IAgentService {
     source: ConversationMessageSource | null;
     attachments?: ChatAttachment[];
     cards?: StructuredChatCard[];
-    entityMemoryNote?: string;
+    entityMemoryRefs?: EntityMemoryRef[];
   }): { metadata: Record<string, unknown> } | Record<string, never> {
     return withMessageMetadata(
       buildMessageMetadata({

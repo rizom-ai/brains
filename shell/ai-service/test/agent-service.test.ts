@@ -312,8 +312,6 @@ describe("AgentService", () => {
     });
 
     it("injects stored entity memory metadata into the model turn without polluting visible history text", async () => {
-      const entityMemoryNote =
-        '\n\n[Entities affected this turn: image "wild-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
       mockConversationService.getMessages = mock(() =>
         Promise.resolve([
           {
@@ -322,7 +320,15 @@ describe("AgentService", () => {
             role: "assistant",
             content: "Queued image generation.",
             timestamp: new Date().toISOString(),
-            metadata: JSON.stringify({ entityMemoryNote }),
+            metadata: JSON.stringify({
+              entityMemoryRefs: [
+                {
+                  entityType: "image",
+                  entityId: "wild-robot",
+                  operation: "generating",
+                },
+              ],
+            }),
           },
         ]),
       );
@@ -344,10 +350,13 @@ describe("AgentService", () => {
         content: [
           {
             type: "text",
-            text: `Queued image generation.${entityMemoryNote}`,
+            text: "Queued image generation.\n\nInternal entity refs from the previous assistant turn for follow-up resolution:\n- image wild-robot (generating)",
           },
         ],
       });
+      expect(JSON.stringify(callArgs?.messages[0])).not.toContain(
+        "Entities affected this turn",
+      );
     });
 
     it("adds native file attachments to the current model turn without mutating stored user text", async () => {
@@ -1891,9 +1900,13 @@ describe("AgentService", () => {
           role: "assistant",
           content: response.text,
           metadata: expect.objectContaining({
-            entityMemoryNote: expect.stringContaining(
-              'base "rizom-brains-provenance-token-concept-note" (updated)',
-            ),
+            entityMemoryRefs: [
+              {
+                entityType: "base",
+                entityId: "rizom-brains-provenance-token-concept-note",
+                operation: "updated",
+              },
+            ],
           }),
         }),
       );
@@ -2019,7 +2032,13 @@ describe("AgentService", () => {
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            entityMemoryNote: expect.stringContaining('image "mossy-robot"'),
+            entityMemoryRefs: [
+              {
+                entityType: "image",
+                entityId: "mossy-robot",
+                operation: "generating",
+              },
+            ],
           }),
         }),
       );
@@ -2512,7 +2531,10 @@ describe("AgentService", () => {
         usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
       };
 
-      const updateHandler = mock(async () => ({ success: true as const }));
+      const updateHandler = mock(async () => ({
+        success: true as const,
+        data: { updated: "anchor-profile" },
+      }));
       const updateTool: Tool = {
         name: "system_update",
         description: "Update entity",
@@ -2548,6 +2570,22 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toBe("Completed: Updated anchor profile.");
+      expect(response.text).not.toContain("Entities affected this turn");
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Completed: Updated anchor profile.",
+          metadata: expect.objectContaining({
+            entityMemoryRefs: [
+              {
+                entityType: "anchor-profile",
+                entityId: "anchor-profile",
+                operation: "updated",
+              },
+            ],
+          }),
+        }),
+      );
       expect(updateHandler).toHaveBeenCalledWith(
         {
           entityType: "anchor-profile",
@@ -3137,15 +3175,19 @@ describe("AgentService", () => {
         },
       ];
       expect(response.cards).toEqual(expectedCards);
-      const entityMemoryNote =
-        '\n\n[Entities affected this turn: image "mossy-robot" (generating). Reference these IDs directly in follow-ups instead of searching for them.]';
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
         expect.objectContaining({
           role: "assistant",
           content: "Queued image generation.",
           metadata: expect.objectContaining({
             cards: expectedCards,
-            entityMemoryNote,
+            entityMemoryRefs: [
+              {
+                entityType: "image",
+                entityId: "mossy-robot",
+                operation: "generating",
+              },
+            ],
           }),
         }),
       );

@@ -2,6 +2,10 @@ import type { AgentContextItem } from "@brains/contracts";
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
+import {
+  buildEntityMemoryContext,
+  type EntityMemoryRef,
+} from "./agent-results";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -21,8 +25,30 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
 
 function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
-  const value = parsedMetadata?.["entityMemoryNote"];
-  return typeof value === "string" ? value : "";
+  const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
+  return buildEntityMemoryContext(refs);
+}
+
+function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): EntityMemoryRef[] => {
+    if (!isRecord(item)) return [];
+    const entityId = item["entityId"];
+    if (typeof entityId !== "string" || entityId.length === 0) return [];
+    const entityType = item["entityType"];
+    const operation = item["operation"];
+    return [
+      {
+        entityId,
+        ...(typeof entityType === "string" && entityType.length > 0
+          ? { entityType }
+          : {}),
+        ...(typeof operation === "string" && operation.length > 0
+          ? { operation }
+          : {}),
+      },
+    ];
+  });
 }
 
 function parseMessageMetadata(

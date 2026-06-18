@@ -469,18 +469,22 @@ const entityRefArgsSchema = z.object({
   id: z.string().optional(),
 });
 
+export interface EntityMemoryRef {
+  entityType?: string | undefined;
+  entityId: string;
+  operation?: string | undefined;
+}
+
 /**
- * Build a compact memory note listing the entities a turn created or updated.
- *
- * Conversation history is text-only, so tool results (and the entity IDs they
- * return) are otherwise lost after a turn — a follow-up like "add a cover image
- * to that post" then has no ID to reference and is forced to search. Appending
- * this note to the stored assistant message keeps those IDs addressable on the
- * next turn. Returns "" when no tool produced an addressable entity.
+ * Extract structured entity references from tool results so follow-up turns can
+ * resolve phrases like "that post" without searching. These refs are stored in
+ * message metadata, never appended to user-visible assistant text.
  */
-export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
+export function buildEntityMemoryRefs(
+  toolResults: ToolResultData[],
+): EntityMemoryRef[] {
   const seen = new Set<string>();
-  const refs: string[] = [];
+  const refs: EntityMemoryRef[] = [];
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
     if (!data.success) continue;
@@ -497,9 +501,21 @@ export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
       : data.data.deleted
         ? "deleted"
         : status;
-    const label = entityType ? `${entityType} "${entityId}"` : `"${entityId}"`;
-    refs.push(operation ? `${label} (${operation})` : label);
+    refs.push({
+      ...(entityType ? { entityType } : {}),
+      entityId,
+      ...(operation ? { operation } : {}),
+    });
   }
+  return refs;
+}
+
+export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
   if (refs.length === 0) return "";
-  return `\n\n[Entities affected this turn: ${refs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.]`;
+  const lines = refs.map((ref) => {
+    const typePrefix = ref.entityType ? `${ref.entityType} ` : "";
+    const operationSuffix = ref.operation ? ` (${ref.operation})` : "";
+    return `- ${typePrefix}${ref.entityId}${operationSuffix}`;
+  });
+  return `\n\nInternal entity refs from the previous assistant turn for follow-up resolution:\n${lines.join("\n")}`;
 }

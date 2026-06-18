@@ -115,7 +115,7 @@ describe("Rover onboarding playbook seed", () => {
       "Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.",
     );
     expect(identity?.instructions).toContain(
-      "When enough details are known, summarize once and ask for confirmation before saving.",
+      "When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.",
     );
     expect(identity?.instructions).toContain(
       'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',

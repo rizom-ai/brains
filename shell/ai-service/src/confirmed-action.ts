@@ -6,7 +6,8 @@ import type {
 } from "./agent-types";
 import {
   buildAttachmentCardFromToolData,
-  buildEntityMemoryNote,
+  buildEntityMemoryRefs,
+  type EntityMemoryRef,
 } from "./agent-results";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +49,7 @@ export interface ConfirmedActionResult {
   resultText: string;
   toolResult: ToolResultData;
   cards: StructuredChatCard[];
-  entityMemoryNote: string;
+  entityMemoryRefs: EntityMemoryRef[];
 }
 
 /**
@@ -107,14 +108,14 @@ export function buildConfirmedActionResult(
     approvalCard,
     ...(attachmentCard ? [attachmentCard] : []),
   ];
-  const entityMemoryNote = successResult.success
-    ? buildEntityMemoryNote([
+  const entityMemoryRefs = successResult.success
+    ? buildEntityMemoryRefs([
         {
           ...toolResult,
           data: successResult.data.data,
         },
       ])
-    : "";
+    : [];
 
-  return { resultText, toolResult, cards, entityMemoryNote };
+  return { resultText, toolResult, cards, entityMemoryRefs };
 }

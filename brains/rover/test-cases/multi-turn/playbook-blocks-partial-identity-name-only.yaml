@@ -1,0 +1,75 @@
+id: multi-turn-playbook-blocks-partial-identity-name-only
+name: Playbook Blocks Partial Identity Name Only
+description: Verifies that Rover does not update the anchor profile or advance onboarding after receiving only the operator name during Identity.
+type: multi_turn
+setup:
+  permissionLevel: anchor
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-partial-identity
+  channelName: Web Chat Eval
+tags:
+  - onboarding
+  - playbooks
+  - multi-turn
+  - preset-core
+
+turns:
+  - userMessage: "Start the Rover onboarding playbook."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_start
+          shouldBeCalled: true
+          argsContain:
+            playbookId: rover-onboarding
+      responseContains:
+        - Rover
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Use the Set up Rover action."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: CHOICE_1
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Yeehaa"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
+        - toolName: system_update
+          shouldBeCalled: false
+        - toolName: playbook_send_event
+          shouldBeCalled: false
+      responseContains:
+        - role
+      responseNotContains:
+        - "Confirmation required"
+        - "Updated anchor profile"
+        - "rough idea"
+        - "seed"
+        - "fragment"
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_start
+      shouldBeCalled: true
+  toolCountRange:
+    max: 8
+  responseNotContains:
+    - "Confirmation required"
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 120000
