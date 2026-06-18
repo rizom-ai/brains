@@ -246,6 +246,7 @@
     "tailwind-runtime-deps",
     "themes-export",
     "upload-action-routing",
+    "upload-save-tool",
     "web-chat-bundled-ui",
     "web-chat-follow-up-upload-reuse",
     "web-chat-generated-image-attachments",
