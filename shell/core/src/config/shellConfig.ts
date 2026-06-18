@@ -90,10 +90,9 @@ export const shellConfigSchema = z.object({
     .optional(),
 });
 
-export type ShellConfig = Omit<
-  z.infer<typeof shellConfigSchema>,
-  "entityDisplay"
-> & {
+export type ShellConfigSchemaOutput = z.output<typeof shellConfigSchema>;
+
+export type ShellConfig = Omit<ShellConfigSchemaOutput, "entityDisplay"> & {
   plugins: Plugin[];
   permissions: PermissionConfig;
   identity?: BrainCharacter;
