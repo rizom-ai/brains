@@ -17,7 +17,7 @@ suites:
       - preset-default
     plugins:
       directory-sync:
-        seedContentPath: eval-content
+        seedContentPath: eval-content-default
   full:
     extends: default
     preset: full
@@ -25,7 +25,7 @@ suites:
       - preset-full
     plugins:
       directory-sync:
-        seedContentPath: eval-content
+        seedContentPath: eval-content-full
 
 # Single model eval with OpenAI LLM judge
 models:
@@ -53,6 +53,6 @@ permissions:
 
 plugins:
   directory-sync:
-    seedContentPath: eval-content
+    seedContentPath: eval-content-full
     git:
       gitUrl: "file://${EVAL_GIT_REMOTE}"

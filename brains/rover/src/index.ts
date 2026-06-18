@@ -48,7 +48,7 @@ import packageJson from "../package.json" with { type: "json" };
  * Manages blog posts, presentations, portfolio projects, social media,
  * newsletters, and a professional website.
  *
- * Identity is defined in seed-content/ (brain-character, site-info,
+ * Identity is defined in preset-scoped seed-content-* directories (brain-character, site-info,
  * anchor-profile) — editable at runtime, single source of truth.
  *
  * Instance-specific config (homeserver, userId, repo, domain,
@@ -246,7 +246,11 @@ export default defineBrain({
         seedContentPath: join(
           import.meta.dir,
           "..",
-          context.preset === "core" ? "seed-content-core" : "seed-content",
+          context.preset === "core"
+            ? "seed-content-core"
+            : context.preset === "default"
+              ? "seed-content-default"
+              : "seed-content-full",
         ),
         initialSync: true,
       }),

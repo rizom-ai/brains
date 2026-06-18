@@ -1,6 +1,13 @@
 #!/usr/bin/env bun
 import { build } from "bun";
-import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  cpSync,
+  mkdirSync,
+  readdirSync,
+} from "fs";
 import { generateEntrypoint } from "../src/generate-entrypoint";
 import { join, basename, dirname } from "path";
 
@@ -125,24 +132,33 @@ if (existsSync(brainYamlPath)) {
   console.log("Copied brain.yaml");
 }
 
-// Copy seed-content: prefer app-level, fall back to brain model package
-let seedContentPath = join(cwd, "seed-content");
-if (!existsSync(seedContentPath) && brainPackage) {
+// Copy seed-content*: prefer app-level, fall back to brain model package
+let seedContentRoot = cwd;
+let seedContentDirs = readdirSync(seedContentRoot).filter((entry) =>
+  entry.startsWith("seed-content"),
+);
+if (seedContentDirs.length === 0 && brainPackage) {
   try {
     const brainPkgDir = dirname(
       require.resolve(`${brainPackage}/package.json`),
     );
-    const brainSeedPath = join(brainPkgDir, "seed-content");
-    if (existsSync(brainSeedPath)) {
-      seedContentPath = brainSeedPath;
+    const brainSeedContentDirs = readdirSync(brainPkgDir).filter((entry) =>
+      entry.startsWith("seed-content"),
+    );
+    if (brainSeedContentDirs.length > 0) {
+      seedContentRoot = brainPkgDir;
+      seedContentDirs = brainSeedContentDirs;
     }
   } catch {
     // Brain package not resolvable — skip
   }
 }
-if (existsSync(seedContentPath)) {
-  cpSync(seedContentPath, join(distDir, "seed-content"), { recursive: true });
-  console.log(`Copied seed-content from ${seedContentPath}`);
+for (const entry of seedContentDirs) {
+  const seedContentPath = join(seedContentRoot, entry);
+  if (existsSync(seedContentPath)) {
+    cpSync(seedContentPath, join(distDir, entry), { recursive: true });
+    console.log(`Copied ${entry} from ${seedContentPath}`);
+  }
 }
 
 const outputName = existsSync(brainYamlPath)

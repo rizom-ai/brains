@@ -4,7 +4,7 @@ domain: alex.example.com
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-full
     autoSync: true
     initialSync: true
     git:

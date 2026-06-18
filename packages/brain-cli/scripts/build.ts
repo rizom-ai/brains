@@ -318,9 +318,14 @@ const seedDir = join(outdir, "seed-content");
 mkdirSync(seedDir, { recursive: true });
 
 for (const model of readdirSync(brainsDir)) {
-  const seedPath = join(brainsDir, model, "seed-content");
-  if (existsSync(seedPath)) {
-    cpSync(seedPath, join(seedDir, model), { recursive: true });
+  const modelDir = join(brainsDir, model);
+  for (const entry of readdirSync(modelDir)) {
+    if (!entry.startsWith("seed-content")) continue;
+    const seedPath = join(modelDir, entry);
+    if (existsSync(seedPath)) {
+      const targetName = entry === "seed-content" ? model : `${model}-${entry}`;
+      cpSync(seedPath, join(seedDir, targetName), { recursive: true });
+    }
   }
 }
 

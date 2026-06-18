@@ -326,7 +326,7 @@ interface PlaybookBody {
 
 Authors write [steps and choices](./playbooks.md#steps-and-choices-the-authoring-surface),
 not raw transitions; the adapter lowers them into `PlaybookBody`. Seed at
-`brains/rover/seed-content/playbook/rover-onboarding.md`:
+`brains/rover/seed-content-full/playbook/rover-onboarding.md`:
 
 ```md
 ---

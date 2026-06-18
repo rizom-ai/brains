@@ -3,14 +3,24 @@ import { describe, expect, it } from "bun:test";
 import { playbookAdapter } from "@brains/playbook";
 
 describe("Rover onboarding playbook seed", () => {
-  it("keeps core and default onboarding seed playbooks aligned", async () => {
-    const defaultSeed = await readFile(
-      new URL("../seed-content/playbook/rover-onboarding.md", import.meta.url),
+  it("keeps preset onboarding seed playbooks aligned", async () => {
+    const fullSeed = await readFile(
+      new URL(
+        "../seed-content-full/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
       "utf8",
     );
     const coreSeed = await readFile(
       new URL(
         "../seed-content-core/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const defaultPresetSeed = await readFile(
+      new URL(
+        "../seed-content-default/playbook/rover-onboarding.md",
         import.meta.url,
       ),
       "utf8",
@@ -22,14 +32,34 @@ describe("Rover onboarding playbook seed", () => {
       ),
       "utf8",
     );
+    const defaultEvalSeed = await readFile(
+      new URL(
+        "../eval-content-default/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const fullEvalSeed = await readFile(
+      new URL(
+        "../eval-content-full/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
+      "utf8",
+    );
 
-    expect(coreSeed).toBe(defaultSeed);
-    expect(coreEvalSeed).toBe(defaultSeed);
+    expect(coreSeed).toBe(fullSeed);
+    expect(defaultPresetSeed).toBe(fullSeed);
+    expect(coreEvalSeed).toBe(fullSeed);
+    expect(defaultEvalSeed).toBe(fullSeed);
+    expect(fullEvalSeed).toBe(fullSeed);
   });
 
   it("compiles readable steps into gated completion and authored choices", async () => {
     const seedMarkdown = await readFile(
-      new URL("../seed-content/playbook/rover-onboarding.md", import.meta.url),
+      new URL(
+        "../seed-content-full/playbook/rover-onboarding.md",
+        import.meta.url,
+      ),
       "utf8",
     );
     const { body } = playbookAdapter.parsePlaybookContent(seedMarkdown);

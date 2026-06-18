@@ -1,12 +1,12 @@
 /**
- * Build pre-populated eval database from eval-content.
+ * Build pre-populated eval database from eval-content-full.
  *
  * Delegates to `brain-eval --build-db` which reuses the same
  * environment setup, config loading, and App boot as eval runs.
  *
  * Usage: bun brains/rover/scripts/build-eval-db.ts
  *
- * Re-run whenever eval-content changes.
+ * Re-run whenever eval-content-full changes.
  */
 import { spawn } from "child_process";
 

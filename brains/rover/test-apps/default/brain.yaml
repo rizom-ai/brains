@@ -9,7 +9,7 @@ site:
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content
+    seedContentPath: ../../eval-content-default
     autoSync: true
     initialSync: true
     git:
