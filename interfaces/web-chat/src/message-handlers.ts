@@ -2,7 +2,7 @@ import type {
   InterfacePluginContext,
   StructuredChatCard,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
 const storedChatAttachmentSchema = z.object({
@@ -57,7 +57,7 @@ const storedSourcesCardSchema = z.object({
         entityType: z.string().min(1).optional(),
         entityId: z.string().min(1).optional(),
         excerpt: z.string().min(1).optional(),
-        provenance: z.record(z.unknown()).optional(),
+        provenance: z.record(z.string(), z.unknown()).optional(),
       }),
     )
     .min(1),

@@ -22,7 +22,10 @@ import packageJson from "../package.json";
  * - Extends MessageInterfacePlugin for common progress handling
  * - Keeps local UI commands (/exit, /clear, /progress) for CLI-specific controls
  */
-export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
+export class CLIInterface extends MessageInterfacePlugin<
+  CLIConfig,
+  Partial<CLIConfig>
+> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;

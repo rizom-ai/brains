@@ -82,9 +82,10 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
  * - onProgressUpdate(): Handle progress updates (optional override)
  */
 export abstract class MessageInterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
-> extends InterfacePlugin<TConfig, TTrackingInfo> {
+> extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   /**
    * Check if a file is a supported text file for upload
    */

@@ -49,7 +49,8 @@ export interface CoreContext {
  * Base abstract class for plugins that provides common functionality
  */
 export abstract class BasePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TContext extends CoreContext = CoreContext,
 > implements Plugin {
   public readonly id: string;
@@ -70,7 +71,7 @@ export abstract class BasePlugin<
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    partialConfig: Partial<TConfig>,
+    partialConfig: TConfigInput,
     configSchema: z.ZodTypeAny,
   ) {
     this.id = id;

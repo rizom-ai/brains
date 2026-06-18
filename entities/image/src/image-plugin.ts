@@ -154,7 +154,11 @@ function buildUploadedImageAttachment(input: {
  * - system_create { entityType: "image", prompt: "..." } — AI generation
  * - system_update { fields: { coverImageId } } — set cover image references
  */
-export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
+export class ImagePlugin extends EntityPlugin<
+  Image,
+  ImageConfig,
+  Partial<ImageConfig>
+> {
   readonly entityType = imageAdapter.entityType;
   readonly schema = imageSchema;
   readonly adapter = imageAdapter;

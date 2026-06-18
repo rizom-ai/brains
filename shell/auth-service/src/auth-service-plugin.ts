@@ -61,7 +61,10 @@ export function getActiveAuthService(): AuthService | undefined {
   return activeAuthService;
 }
 
-export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
+export class AuthServicePlugin extends ServicePlugin<
+  AuthServiceConfig,
+  Partial<AuthServiceConfig>
+> {
   private service: AuthService | undefined;
 
   constructor(config: Partial<AuthServiceConfig> = {}) {

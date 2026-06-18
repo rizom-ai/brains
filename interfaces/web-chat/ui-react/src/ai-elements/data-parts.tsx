@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import {
   Tool,
   ToolContent,
@@ -657,7 +657,7 @@ const sourceCitationSchema = z.object({
   entityType: z.string().min(1).optional(),
   entityId: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
-  provenance: z.record(z.unknown()).optional(),
+  provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
 const sourcesCardSchema = z.object({
@@ -681,8 +681,7 @@ function getSourceScore(
   source: z.infer<typeof sourceCitationSchema>,
 ): number | undefined {
   const parsed = z
-    .object({ score: z.number().finite() })
-    .passthrough()
+    .looseObject({ score: z.number().finite() })
     .safeParse(source.provenance);
   return parsed.success ? parsed.data.score : undefined;
 }

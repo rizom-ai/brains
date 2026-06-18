@@ -30,7 +30,11 @@ const webChatUploadsScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
-export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
+export class NotePlugin extends EntityPlugin<
+  Note,
+  NoteConfig,
+  Partial<NoteConfig>
+> {
   readonly entityType = noteAdapter.entityType;
   readonly schema = noteSchema;
   readonly adapter = noteAdapter;

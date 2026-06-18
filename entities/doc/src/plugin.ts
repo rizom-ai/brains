@@ -6,7 +6,11 @@ import { DocDataSource } from "./datasources/doc-datasource";
 import { getTemplates } from "./lib/register-templates";
 import packageJson from "../package.json";
 
-export class DocsPlugin extends EntityPlugin<Doc> {
+export class DocsPlugin extends EntityPlugin<
+  Doc,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = docAdapter.entityType;
   readonly schema = docSchema;
   readonly adapter = docAdapter;

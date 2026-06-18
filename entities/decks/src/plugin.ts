@@ -30,7 +30,11 @@ import packageJson from "../package.json";
 
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
 
-export class DecksPlugin extends EntityPlugin<DeckEntity> {
+export class DecksPlugin extends EntityPlugin<
+  DeckEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   private readonly deps: DecksPluginDeps;
   readonly entityType = deckAdapter.entityType;
   readonly schema = deckAdapter.schema;
@@ -40,7 +44,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(deps: DecksPluginDeps = {}) {
-    super("decks", packageJson);
+    super("decks", packageJson, {});
     this.deps = deps;
   }
 

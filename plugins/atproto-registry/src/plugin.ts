@@ -36,7 +36,10 @@ function jsonResponse(value: unknown): Response {
   });
 }
 
-export class AtprotoRegistryPlugin extends ServicePlugin<AtprotoRegistryConfig> {
+export class AtprotoRegistryPlugin extends ServicePlugin<
+  AtprotoRegistryConfig,
+  Partial<AtprotoRegistryConfig>
+> {
   constructor(config: AtprotoRegistryConfigInput = {}) {
     super("atproto-registry", packageJson, config, atprotoRegistryConfigSchema);
   }

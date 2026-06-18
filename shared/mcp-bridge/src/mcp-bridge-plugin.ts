@@ -68,9 +68,10 @@ type RemoteTool = z.infer<typeof remoteToolSchema>;
  *
  * If the child process crashes, tools return errors — the brain doesn't crash.
  */
-export abstract class MCPBridgePlugin<
-  TConfig = unknown,
-> extends ServicePlugin<TConfig> {
+export abstract class MCPBridgePlugin<TConfig = unknown> extends ServicePlugin<
+  TConfig,
+  Partial<TConfig>
+> {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private remoteTools: RemoteTool[] = [];

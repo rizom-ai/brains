@@ -33,7 +33,10 @@ import packageJson from "../package.json";
  * Site Builder Plugin
  * Provides static site generation capabilities
  */
-export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
+export class SiteBuilderPlugin extends ServicePlugin<
+  SiteBuilderConfig,
+  Partial<SiteBuilderConfig>
+> {
   private siteBuilder?: SiteBuilder;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;

@@ -66,7 +66,11 @@ function extractProjectYear(
   return null;
 }
 
-export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
+export class PortfolioPlugin extends EntityPlugin<
+  Project,
+  PortfolioConfig,
+  Partial<PortfolioConfig>
+> {
   readonly entityType = projectAdapter.entityType;
   readonly schema = projectSchema;
   readonly adapter = projectAdapter;

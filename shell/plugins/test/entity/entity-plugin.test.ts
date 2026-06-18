@@ -43,23 +43,31 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
 }
 
 // Minimal EntityPlugin subclass (no derive)
-class TestEntityPlugin extends EntityPlugin<TestEntity> {
+class TestEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "test-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("test-item", testPkg);
+    super("test-item", testPkg, {});
   }
 }
 
-class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
+class InterceptingEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "intercepting-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("intercepting-item", testPkg);
+    super("intercepting-item", testPkg, {});
   }
 
   protected override async interceptCreate(input: {
@@ -76,13 +84,17 @@ class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
   }
 }
 
-class ProjectionEntityPlugin extends EntityPlugin<TestEntity> {
+class ProjectionEntityPlugin extends EntityPlugin<
+  TestEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "projection-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
 
   constructor() {
-    super("projection-item", testPkg);
+    super("projection-item", testPkg, {});
   }
 
   protected override getDerivedEntityProjections(

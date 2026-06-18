@@ -31,7 +31,8 @@ import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
   SocialPost,
-  SocialMediaConfig
+  SocialMediaConfig,
+  SocialMediaConfigInput
 > {
   readonly entityType = socialPostAdapter.entityType;
   readonly schema = socialPostSchema;

@@ -51,7 +51,10 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
   "/boot.js": bootScript,
 };
 
-export class RizomRuntimePlugin extends ServicePlugin<RizomRuntimeConfig> {
+export class RizomRuntimePlugin extends ServicePlugin<
+  RizomRuntimeConfig,
+  Partial<RizomRuntimeConfig>
+> {
   constructor(packageName: string, config: Record<string, unknown> = {}) {
     super(
       "rizom-site",

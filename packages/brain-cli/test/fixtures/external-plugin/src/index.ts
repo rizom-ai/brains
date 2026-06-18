@@ -87,7 +87,11 @@ const exampleSender: MessageSender<
 };
 void [exampleSender, extensionMetadata, PLUGIN_API_VERSION];
 
-export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
+export class ExampleEntityPlugin extends EntityPlugin<
+  ExampleEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "example";
   readonly schema = exampleEntitySchema;
   readonly adapter = exampleEntityAdapter;
@@ -101,7 +105,10 @@ export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
   }
 }
 
-export class ExampleInterfacePlugin extends InterfacePlugin {
+export class ExampleInterfacePlugin extends InterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super("example-interface", packageJson, {}, z.object({}));
   }
@@ -127,7 +134,10 @@ export class ExampleInterfacePlugin extends InterfacePlugin {
   }
 }
 
-export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
+export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   private readonly sentMessages: string[] = [];
 
   constructor() {
@@ -177,7 +187,10 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
   }
 }
 
-export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
+export class ExampleExternalPlugin extends ServicePlugin<
+  ExamplePluginConfig,
+  Partial<ExamplePluginConfig>
+> {
   private readonly greeting: string;
 
   constructor(config: Partial<ExamplePluginConfig> = {}) {

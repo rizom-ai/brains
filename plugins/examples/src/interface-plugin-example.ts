@@ -36,6 +36,7 @@ type WebserverConfigInput = Partial<WebserverConfig>;
  */
 export class ExampleInterfacePlugin extends InterfacePlugin<
   WebserverConfig,
+  WebserverConfigInput,
   WebserverTrackingInfo
 > {
   declare protected config: WebserverConfig;

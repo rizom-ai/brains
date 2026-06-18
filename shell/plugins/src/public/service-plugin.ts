@@ -17,12 +17,15 @@ interface ServicePluginHooks {
   getInstructions(): Promise<string | undefined>;
 }
 
-class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
+class ServicePluginDelegate<TConfig, TConfigInput> extends RuntimeServicePlugin<
+  TConfig,
+  TConfigInput
+> {
   private readonly hooks: ServicePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
     hooks: ServicePluginHooks,
   ) {
@@ -59,18 +62,18 @@ class ServicePluginDelegate<TConfig> extends RuntimeServicePlugin<TConfig> {
   }
 }
 
-export abstract class ServicePlugin<TConfig = unknown> implements Plugin {
+export abstract class ServicePlugin<TConfig, TConfigInput> implements Plugin {
   public readonly type = "service" as const;
   public readonly id: string;
   public readonly version: string;
   public readonly packageName: string;
   public readonly description?: string;
-  private readonly delegate: ServicePluginDelegate<TConfig>;
+  private readonly delegate: ServicePluginDelegate<TConfig, TConfigInput>;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
   ) {
     this.id = id;

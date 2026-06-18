@@ -17,7 +17,10 @@ import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
-export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
+export class DirectorySyncPlugin extends ServicePlugin<
+  DirectorySyncConfig,
+  Partial<DirectorySyncConfig>
+> {
   private directorySync?: DirectorySync;
   private gitSync?: GitSync;
   private gitCleanups: Array<() => void> = [];

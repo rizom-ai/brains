@@ -103,7 +103,10 @@ const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const MAX_DISCOVERY_REPOS = 50;
 
-export class AtprotoPlugin extends ServicePlugin<AtprotoConfig> {
+export class AtprotoPlugin extends ServicePlugin<
+  AtprotoConfig,
+  Partial<AtprotoConfig>
+> {
   private readonly deps: AtprotoPluginDeps;
   private readonly projectionRegistry: AtprotoProjectionRegistry;
 

@@ -12,4 +12,5 @@ export const mcpConfigSchema = z.object({
     .optional(),
 });
 
-export type MCPConfig = z.infer<typeof mcpConfigSchema>;
+export type MCPConfig = z.output<typeof mcpConfigSchema>;
+export type MCPConfigInput = z.input<typeof mcpConfigSchema>;

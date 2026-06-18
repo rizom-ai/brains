@@ -17,7 +17,10 @@ import packageJson from "../package.json";
  *
  * Runs in-process via Bun.serve() on the shared host.
  */
-export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
+export class WebserverInterface extends InterfacePlugin<
+  WebserverConfig,
+  Partial<WebserverConfig>
+> {
   private serverManager?: ServerManager;
   private siteUrl: string | undefined;
   private previewUrl: string | undefined;

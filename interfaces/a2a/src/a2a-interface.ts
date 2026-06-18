@@ -35,7 +35,10 @@ const A2A_CORS_HEADERS = {
  * Serves an Agent Card for discovery and accepts tasks via JSON-RPC 2.0.
  * Routes tasks through AgentService (conversational, like Matrix/Discord).
  */
-export class A2AInterface extends InterfacePlugin<A2AConfig> {
+export class A2AInterface extends InterfacePlugin<
+  A2AConfig,
+  Partial<A2AConfig>
+> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();

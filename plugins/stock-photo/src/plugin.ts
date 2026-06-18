@@ -20,7 +20,10 @@ const stockPhotoConfigSchema = z.object({
 
 type StockPhotoConfig = z.infer<typeof stockPhotoConfigSchema>;
 
-export class StockPhotoPlugin extends ServicePlugin<StockPhotoConfig> {
+export class StockPhotoPlugin extends ServicePlugin<
+  StockPhotoConfig,
+  Partial<StockPhotoConfig>
+> {
   private readonly deps: StockPhotoDeps;
   private cachedTools: Tool[] | null = null;
 

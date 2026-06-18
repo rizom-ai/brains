@@ -141,7 +141,10 @@ describe("Shell register-only mode", () => {
   });
 
   it("should fail initialization when a required daemon cannot start", async () => {
-    class RequiredDaemonInterface extends InterfacePlugin {
+    class RequiredDaemonInterface extends InterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
       constructor() {
         super(
           "required-daemon",
@@ -177,7 +180,10 @@ describe("Shell register-only mode", () => {
     let daemonStarted = false;
 
     // Real InterfacePlugin subclass — matches how webserver/mcp/a2a work
-    class TestDaemonInterface extends InterfacePlugin {
+    class TestDaemonInterface extends InterfacePlugin<
+      Record<string, never>,
+      Record<string, never>
+    > {
       constructor() {
         super(
           "test-daemon",

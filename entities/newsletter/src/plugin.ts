@@ -31,7 +31,8 @@ type NewsletterConfig = z.infer<typeof newsletterConfigSchema>;
  */
 export class NewsletterPlugin extends EntityPlugin<
   Newsletter,
-  NewsletterConfig
+  NewsletterConfig,
+  Partial<NewsletterConfig>
 > {
   readonly entityType = "newsletter";
   readonly schema = newsletterSchema;

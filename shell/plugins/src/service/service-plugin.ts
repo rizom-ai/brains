@@ -25,8 +25,9 @@ import type { WebRouteDefinition } from "../types/web-routes";
  * Base class for service plugins
  * Service plugins extend core functionality with entity management, job queuing, and AI generation
  */
-export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
+export abstract class ServicePlugin<TConfig, TConfigInput> extends BasePlugin<
   TConfig,
+  TConfigInput,
   ServicePluginContext
 > {
   public readonly type = "service" as const;

@@ -33,7 +33,11 @@ import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
+export class LinkPlugin extends EntityPlugin<
+  LinkEntity,
+  LinkConfig,
+  Partial<LinkConfig>
+> {
   readonly entityType = linkAdapter.entityType;
   readonly schema = linkSchema;
   readonly adapter = linkAdapter;

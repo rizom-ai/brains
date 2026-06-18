@@ -38,7 +38,10 @@ const syncInputSchema = z.object({
     .describe("Entity types to generate templates for (default: all)"),
 });
 
-export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
+export class ObsidianVaultPlugin extends ServicePlugin<
+  ObsidianVaultConfig,
+  Partial<ObsidianVaultConfig>
+> {
   private readonly deps: ObsidianVaultDeps;
 
   constructor(

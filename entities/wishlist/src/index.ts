@@ -17,7 +17,11 @@ import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
-export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
+export class WishlistPlugin extends EntityPlugin<
+  WishEntity,
+  WishlistConfig,
+  Partial<WishlistConfig>
+> {
   readonly entityType = wishAdapter.entityType;
   readonly schema = wishSchema;
   readonly adapter = wishAdapter;

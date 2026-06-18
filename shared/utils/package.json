@@ -12,6 +12,10 @@
     "./hash": {
       "types": "./src/hash.ts",
       "default": "./src/hash.ts"
+    },
+    "./zod-v4": {
+      "types": "./src/zod-v4.ts",
+      "default": "./src/zod-v4.ts"
     }
   },
   "scripts": {

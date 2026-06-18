@@ -13,7 +13,11 @@ import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
 
-export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
+export class SwotAssessmentPlugin extends EntityPlugin<
+  SwotEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "swot";
   readonly schema = swotEntitySchema;
   readonly adapter = swotAdapter;
@@ -21,7 +25,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
   private initialSyncComplete = false;
 
   constructor() {
-    super("swot", packageJson);
+    super("swot", packageJson, {});
   }
 
   protected override async onRegister(

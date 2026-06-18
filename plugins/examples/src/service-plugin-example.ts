@@ -37,7 +37,10 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
  * - Job queue for async calculations
  * - Routes for web UI
  */
-export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
+export class CalculatorServicePlugin extends ServicePlugin<
+  CalculatorConfig,
+  Partial<CalculatorConfig>
+> {
   constructor(config: CalculatorConfigInput = {}) {
     super(
       "calculator-service",

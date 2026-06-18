@@ -31,7 +31,10 @@ type ButtondownConfig = z.infer<typeof buttondownConfigSchema>;
  * Buttondown integration plugin — subscriber management and API routes.
  * Newsletter entity management is in entities/newsletter.
  */
-export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
+export class ButtondownPlugin extends ServicePlugin<
+  ButtondownConfig,
+  Partial<ButtondownConfig>
+> {
   constructor(config: Partial<ButtondownConfig> = {}) {
     super("buttondown", packageJson, config, buttondownConfigSchema);
   }

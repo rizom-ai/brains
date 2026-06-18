@@ -42,13 +42,14 @@ interface MessageInterfacePluginHooks {
 
 class MessageInterfacePluginDelegate<
   TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo,
-> extends RuntimeMessageInterfacePlugin<TConfig, TTrackingInfo> {
+> extends RuntimeMessageInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   private readonly hooks: MessageInterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
     hooks: MessageInterfacePluginHooks,
   ) {
@@ -149,18 +150,20 @@ class MessageInterfacePluginDelegate<
 }
 
 export abstract class MessageInterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
-> extends InterfacePlugin<TConfig, TTrackingInfo> {
+> extends InterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   private readonly messageDelegate: MessageInterfacePluginDelegate<
     TConfig,
+    TConfigInput,
     TTrackingInfo
   >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
   ) {
     super(id, packageJson, config, configSchema);

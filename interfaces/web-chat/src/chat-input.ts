@@ -1,5 +1,5 @@
 import { type ChatAttachment, type RuntimeUploadStore } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
@@ -18,15 +18,13 @@ const filePartSchema = z.object({
   url: z.string(),
 });
 
-const approvalResponsePartSchema = z
-  .object({
-    state: z.literal("approval-responded"),
-    approval: z.object({
-      id: z.string(),
-      approved: z.boolean(),
-    }),
-  })
-  .passthrough();
+const approvalResponsePartSchema = z.looseObject({
+  state: z.literal("approval-responded"),
+  approval: z.object({
+    id: z.string(),
+    approved: z.boolean(),
+  }),
+});
 
 const uiMessageSchema = z.object({
   role: z.string(),

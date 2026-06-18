@@ -5,4 +5,5 @@ export const webChatConfigSchema = z.object({
   apiPath: z.string().default("/api/chat"),
 });
 
-export type WebChatConfig = z.infer<typeof webChatConfigSchema>;
+export type WebChatConfig = z.output<typeof webChatConfigSchema>;
+export type WebChatConfigInput = z.input<typeof webChatConfigSchema>;

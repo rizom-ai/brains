@@ -31,7 +31,8 @@ const sendNotificationSchema = z
   })
   .strict();
 
-type NotificationsConfig = z.infer<typeof notificationsConfigSchema>;
+type NotificationsConfig = z.output<typeof notificationsConfigSchema>;
+type NotificationsConfigInput = z.input<typeof notificationsConfigSchema>;
 
 export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
 
@@ -49,8 +50,11 @@ export type SendNotificationResult = z.infer<
   typeof sendNotificationResultSchema
 >;
 
-export class NotificationsPlugin extends ServicePlugin<NotificationsConfig> {
-  constructor(config: Partial<NotificationsConfig> = {}) {
+export class NotificationsPlugin extends ServicePlugin<
+  NotificationsConfig,
+  NotificationsConfigInput
+> {
+  constructor(config: NotificationsConfigInput = {}) {
     super("notifications", packageJson, config, notificationsConfigSchema);
   }
 

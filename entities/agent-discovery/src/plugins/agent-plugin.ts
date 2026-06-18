@@ -23,13 +23,17 @@ import packageJson from "../../package.json";
 
 const agentAdapter = new AgentAdapter();
 
-export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
+export class AgentDiscoveryPlugin extends EntityPlugin<
+  AgentEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = AGENT_ENTITY_TYPE;
   readonly schema = agentEntitySchema;
   readonly adapter = agentAdapter;
 
   constructor() {
-    super(AGENT_DISCOVERY_PLUGIN_ID, packageJson);
+    super(AGENT_DISCOVERY_PLUGIN_ID, packageJson, {});
   }
 
   protected override interceptCreate(

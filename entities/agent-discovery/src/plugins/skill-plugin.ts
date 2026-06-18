@@ -22,13 +22,17 @@ import packageJson from "../../package.json";
 
 const skillAdapter = new SkillAdapter();
 
-export class SkillPlugin extends EntityPlugin<SkillEntity> {
+export class SkillPlugin extends EntityPlugin<
+  SkillEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = SKILL_ENTITY_TYPE;
   readonly schema = skillEntitySchema;
   readonly adapter = skillAdapter;
 
   constructor() {
-    super(SKILL_PLUGIN_ID, packageJson);
+    super(SKILL_PLUGIN_ID, packageJson, {});
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

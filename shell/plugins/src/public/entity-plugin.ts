@@ -37,12 +37,13 @@ interface EntityPluginHooks<TEntity extends BaseEntity> {
 class EntityPluginDelegate<
   TEntity extends BaseEntity,
   TConfig,
-> extends RuntimeEntityPlugin<TEntity, TConfig> {
+  TConfigInput,
+> extends RuntimeEntityPlugin<TEntity, TConfig, TConfigInput> {
   private readonly hooks: EntityPluginHooks<TEntity>;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
     hooks: EntityPluginHooks<TEntity>,
   ) {
@@ -100,8 +101,9 @@ class EntityPluginDelegate<
 }
 
 export abstract class EntityPlugin<
-  TEntity extends BaseEntity = BaseEntity,
-  TConfig = unknown,
+  TEntity extends BaseEntity,
+  TConfig,
+  TConfigInput,
 > implements Plugin {
   public readonly type = "entity" as const;
   public readonly id: string;
@@ -111,12 +113,16 @@ export abstract class EntityPlugin<
   public abstract readonly entityType: string;
   public abstract readonly schema: z.ZodSchema<TEntity>;
   public abstract readonly adapter: EntityAdapter<TEntity>;
-  private readonly delegate: EntityPluginDelegate<TEntity, TConfig>;
+  private readonly delegate: EntityPluginDelegate<
+    TEntity,
+    TConfig,
+    TConfigInput
+  >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
   ) {
     this.id = id;

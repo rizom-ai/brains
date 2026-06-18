@@ -69,7 +69,10 @@ describe("API Route Definition Schema", () => {
 });
 
 // Test plugin class with API routes
-class TestPluginWithRoutes extends ServicePlugin {
+class TestPluginWithRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "test-plugin",
@@ -99,7 +102,10 @@ class TestPluginWithRoutes extends ServicePlugin {
 }
 
 // Test plugin class without API routes (uses default empty array)
-class TestPluginWithoutRoutes extends ServicePlugin {
+class TestPluginWithoutRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "test-plugin-no-routes",

@@ -83,7 +83,10 @@ function createRegisteredWidget(
   };
 }
 
-export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
+export class DashboardPlugin extends ServicePlugin<
+  DashboardConfig,
+  Partial<DashboardConfig>
+> {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;

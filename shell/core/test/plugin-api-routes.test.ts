@@ -4,7 +4,10 @@ import { ServicePlugin, type ApiRouteDefinition } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 // Test plugin with API routes
-class PluginWithRoutes extends ServicePlugin {
+class PluginWithRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "plugin-with-routes",
@@ -28,7 +31,10 @@ class PluginWithRoutes extends ServicePlugin {
 }
 
 // Test plugin without API routes
-class PluginWithoutRoutes extends ServicePlugin {
+class PluginWithoutRoutes extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "plugin-without-routes",

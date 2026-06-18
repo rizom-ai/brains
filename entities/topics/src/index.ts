@@ -47,7 +47,8 @@ const topicAdapter = new TopicAdapter();
 
 export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
-  TopicsPluginConfig
+  TopicsPluginConfig,
+  Partial<TopicsPluginConfig>
 > {
   readonly entityType = TOPIC_ENTITY_TYPE;
   readonly schema = topicEntitySchema;

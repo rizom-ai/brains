@@ -69,7 +69,10 @@ export interface DiscordDeps {
  * Routes all messages to AgentService, supports threads, file uploads,
  * and message chunking for Discord's 2000 char limit.
  */
-export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
+export class DiscordInterface extends MessageInterfacePlugin<
+  DiscordConfig,
+  Partial<DiscordConfig>
+> {
   declare protected config: DiscordConfig;
   private client: Client | null = null;
   private readonly fetchText: (url: string) => Promise<string>;

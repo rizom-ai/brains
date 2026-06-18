@@ -366,6 +366,27 @@ published declarations. The public `@rizom/brain` root export owns the
 external authoring boundary by re-exporting blessed `z`, so external plugins
 should not declare their own `zod` dependency.
 
+Incremental migration progress:
+
+- Added `@brains/utils/zod-v4` as an explicit opt-in wrapper around the
+  `zod/v4` subpath while the repo default remains Zod 3.
+- Migrated self-contained web-chat request/upload/card payload schemas to
+  `@brains/utils/zod-v4`. This is intentionally narrow: avoid switching
+  APIs that accept schemas from other packages until both sides of that
+  boundary move together.
+- Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
+  not just to swap imports. Defaulted schemas must be audited as two contracts:
+  `z.input<typeof schema>` for caller-provided config/options before defaults,
+  and `z.output<typeof schema>`/`z.infer<typeof schema>` for parsed values after
+  defaults. Do not hide this behind compatibility generic defaults in plugin
+  base classes. Plugin base classes should make config input types explicit; if
+  a package is not yet audited, spell the temporary debt as `Partial<Config>` at
+  the subclass boundary so it remains visible. Other verified examples: object
+  fields using `z.unknown()` infer as required under Zod 4, loose objects should
+  use `z.looseObject(...)` instead of `.passthrough()`, and record schemas
+  should state both key and value schemas explicitly
+  (`z.record(z.string(), z.unknown())`).
+
 ### Phase 5 — `isolatedDeclarations` after API-boundary cleanup
 
 Revisit `isolatedDeclarations` only after the Zod 4 migration has settled.

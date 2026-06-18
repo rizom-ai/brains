@@ -8,7 +8,11 @@ import { ecosystemSectionSchema } from "./schemas/ecosystem-section";
 import { ecosystemTemplate } from "./templates/ecosystem-template";
 import packageJson from "../package.json";
 
-export class RizomEcosystemPlugin extends EntityPlugin<EcosystemSection> {
+export class RizomEcosystemPlugin extends EntityPlugin<
+  EcosystemSection,
+  Record<string, never>,
+  Record<string, never>
+> {
   public readonly entityType = "ecosystem-section";
   public readonly schema = ecosystemSectionSchema;
   public readonly adapter = ecosystemSectionAdapter;

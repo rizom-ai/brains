@@ -48,7 +48,11 @@ type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
  * Cross-content: watches entity events across ALL types, not just blog posts.
  * Uses explicit projection jobs for event-driven and batch synchronization.
  */
-export class SeriesPlugin extends EntityPlugin<Series> {
+export class SeriesPlugin extends EntityPlugin<
+  Series,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "series";
   readonly schema = seriesSchema;
   readonly adapter = seriesAdapter;
@@ -56,7 +60,7 @@ export class SeriesPlugin extends EntityPlugin<Series> {
   private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
-    super("series", packageJson);
+    super("series", packageJson, {});
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

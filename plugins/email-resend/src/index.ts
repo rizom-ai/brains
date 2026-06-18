@@ -22,7 +22,10 @@ export interface EmailResendPluginDependencies {
   fetchImpl?: FetchLike;
 }
 
-export class EmailResendPlugin extends ServicePlugin<EmailResendConfig> {
+export class EmailResendPlugin extends ServicePlugin<
+  EmailResendConfig,
+  Partial<EmailResendConfig>
+> {
   private readonly fetchImpl: FetchLike;
 
   constructor(

@@ -178,7 +178,10 @@ export async function buildCmsConfigYaml(
   return toYaml(await buildCmsConfig(context, options));
 }
 
-export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
+export class CmsPlugin extends ServicePlugin<
+  CmsPluginConfig,
+  Partial<CmsPluginConfig>
+> {
   constructor(config: Partial<CmsPluginConfig> = {}) {
     super("cms", packageJson, config, cmsPluginConfigSchema);
   }

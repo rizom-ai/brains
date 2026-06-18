@@ -37,7 +37,10 @@ import packageJson from "../package.json";
  * Professional Site Plugin
  * Provides homepage template and datasource for professional brain
  */
-export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig> {
+export class ProfessionalSitePlugin extends ServicePlugin<
+  ProfessionalSiteConfig,
+  Partial<ProfessionalSiteConfig>
+> {
   public readonly dependencies = ["blog", "decks"];
 
   constructor(config: ProfessionalSiteConfigInput) {

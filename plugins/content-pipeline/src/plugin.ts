@@ -20,7 +20,10 @@ import { rebuildQueueFromEntities } from "./lib/queue-rebuild";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
 import packageJson from "../package.json";
 
-export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> {
+export class ContentPipelinePlugin extends ServicePlugin<
+  ContentPipelineConfig,
+  Partial<ContentPipelineConfig>
+> {
   private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;

@@ -69,7 +69,10 @@ function buildUploadedDocumentAttachment(input: {
   };
 }
 
-export class DocumentPlugin extends ServicePlugin<DocumentPluginConfig> {
+export class DocumentPlugin extends ServicePlugin<
+  DocumentPluginConfig,
+  Partial<DocumentPluginConfig>
+> {
   readonly entityType = documentAdapter.entityType;
   readonly schema = documentSchema;
   readonly adapter = documentAdapter;

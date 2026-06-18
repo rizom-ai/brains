@@ -37,9 +37,10 @@ interface TrackingEntry<T> {
  * Provides generic job tracking and rootJobId inheritance for progress routing
  */
 export abstract class InterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo = BaseJobTrackingInfo,
-> extends BasePlugin<TConfig, InterfacePluginContext> {
+> extends BasePlugin<TConfig, TConfigInput, InterfacePluginContext> {
   public readonly type = "interface" as const;
 
   /**

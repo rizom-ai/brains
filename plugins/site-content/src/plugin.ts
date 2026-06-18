@@ -10,7 +10,10 @@ import { siteContentPluginConfigSchema } from "./schemas/config";
 import { createSiteContentTools } from "./tools";
 import packageJson from "../package.json";
 
-export class SiteContentPlugin extends ServicePlugin<SiteContentPluginConfig> {
+export class SiteContentPlugin extends ServicePlugin<
+  SiteContentPluginConfig,
+  Partial<SiteContentPluginConfig>
+> {
   private siteContentService: SiteContentService | undefined;
 
   constructor(config: SiteContentPluginConfig = {}) {

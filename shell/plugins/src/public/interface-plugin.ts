@@ -28,13 +28,14 @@ interface InterfacePluginHooks {
 
 class InterfacePluginDelegate<
   TConfig,
+  TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo,
-> extends RuntimeInterfacePlugin<TConfig, TTrackingInfo> {
+> extends RuntimeInterfacePlugin<TConfig, TConfigInput, TTrackingInfo> {
   private readonly hooks: InterfacePluginHooks;
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
     hooks: InterfacePluginHooks,
   ) {
@@ -80,7 +81,8 @@ class InterfacePluginDelegate<
 }
 
 export abstract class InterfacePlugin<
-  TConfig = unknown,
+  TConfig,
+  TConfigInput,
   TTrackingInfo extends BaseJobTrackingInfo = BaseJobTrackingInfo,
 > implements Plugin {
   public readonly type = "interface" as const;
@@ -88,12 +90,16 @@ export abstract class InterfacePlugin<
   public readonly version: string;
   public readonly packageName: string;
   public readonly description?: string;
-  private readonly delegate: InterfacePluginDelegate<TConfig, TTrackingInfo>;
+  private readonly delegate: InterfacePluginDelegate<
+    TConfig,
+    TConfigInput,
+    TTrackingInfo
+  >;
 
   protected constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny,
   ) {
     this.id = id;

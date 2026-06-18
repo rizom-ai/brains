@@ -13,7 +13,10 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
 /**
  * Example ServicePlugin — demonstrates messaging and tool registration.
  */
-export class ExampleServicePlugin extends ServicePlugin<CalculatorConfig> {
+export class ExampleServicePlugin extends ServicePlugin<
+  CalculatorConfig,
+  Partial<CalculatorConfig>
+> {
   constructor(config: CalculatorConfigInput = {}) {
     super(
       "calculator",

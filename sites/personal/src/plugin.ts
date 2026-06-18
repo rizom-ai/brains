@@ -37,7 +37,10 @@ export type PersonalSiteConfigInput = Partial<PersonalSiteConfig>;
  * Personal Site Plugin
  * Simple blog-focused homepage — no decks, no portfolio dependencies
  */
-export class PersonalSitePlugin extends ServicePlugin<PersonalSiteConfig> {
+export class PersonalSitePlugin extends ServicePlugin<
+  PersonalSiteConfig,
+  Partial<PersonalSiteConfig>
+> {
   public readonly dependencies = ["blog"];
 
   constructor(config: PersonalSiteConfigInput = {}) {

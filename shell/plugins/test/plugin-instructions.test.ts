@@ -3,7 +3,10 @@ import { ServicePlugin } from "../src/service/service-plugin";
 import { createPluginHarness } from "../src/test/harness";
 import { z } from "@brains/utils";
 
-class PluginWithInstructions extends ServicePlugin<Record<string, never>> {
+class PluginWithInstructions extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "instructed-plugin",
@@ -18,7 +21,10 @@ class PluginWithInstructions extends ServicePlugin<Record<string, never>> {
   }
 }
 
-class PluginWithoutInstructions extends ServicePlugin<Record<string, never>> {
+class PluginWithoutInstructions extends ServicePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
   constructor() {
     super(
       "plain-plugin",
@@ -30,6 +36,7 @@ class PluginWithoutInstructions extends ServicePlugin<Record<string, never>> {
 }
 
 class ServicePluginWithInstructions extends ServicePlugin<
+  Record<string, never>,
   Record<string, never>
 > {
   constructor() {

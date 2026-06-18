@@ -20,7 +20,10 @@ import packageJson from "../package.json";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
+export class AnalyticsPlugin extends ServicePlugin<
+  AnalyticsConfig,
+  Partial<AnalyticsConfig>
+> {
   private cloudflareClient: CloudflareClient | undefined;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {

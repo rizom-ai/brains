@@ -14,7 +14,11 @@ import packageJson from "../package.json";
  * Prompts are excluded from search embeddings — they're system
  * configuration, not user content.
  */
-export class PromptPlugin extends EntityPlugin<Prompt> {
+export class PromptPlugin extends EntityPlugin<
+  Prompt,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = promptAdapter.entityType;
   readonly schema = promptSchema;
   readonly adapter = promptAdapter;

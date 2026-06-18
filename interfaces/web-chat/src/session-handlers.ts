@@ -2,7 +2,7 @@ import {
   coerceConversationMetadata,
   type InterfacePluginContext,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;

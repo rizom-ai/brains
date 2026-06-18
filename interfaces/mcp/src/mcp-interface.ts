@@ -12,7 +12,7 @@ import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
 import { getActiveAuthService } from "@brains/auth-service";
-import { mcpConfigSchema, type MCPConfig } from "./config";
+import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
 import packageJson from "../package.json";
@@ -26,7 +26,7 @@ import packageJson from "../package.json";
  * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3333 })
  * - For both: Add two instances with different configs
  */
-export class MCPInterface extends InterfacePlugin<MCPConfig> {
+export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
   // After validation with defaults, config is complete
   declare protected config: MCPConfig;
 
@@ -35,7 +35,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private httpServer: StreamableHTTPServer | undefined;
   private domain: string | undefined;
 
-  constructor(config: Partial<MCPConfig> = {}) {
+  constructor(config: MCPConfigInput = {}) {
     // Default authToken from environment if not provided
     const configWithDefaults = {
       ...config,

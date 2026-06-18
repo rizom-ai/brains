@@ -33,9 +33,10 @@ const emptyConfigSchema = z.object({});
  * EntityPlugins don't expose tools — all entity CRUD goes through system_create/update/delete.
  */
 export abstract class EntityPlugin<
-  TEntity extends BaseEntity = BaseEntity,
-  TConfig = Record<string, never>,
-> extends BasePlugin<TConfig, EntityPluginContext> {
+  TEntity extends BaseEntity,
+  TConfig,
+  TConfigInput,
+> extends BasePlugin<TConfig, TConfigInput, EntityPluginContext> {
   public readonly type = "entity" as const;
 
   /** The entity type name (e.g. "post", "deck", "note") */
@@ -52,7 +53,7 @@ export abstract class EntityPlugin<
   constructor(
     id: string,
     packageJson: { name: string; version: string; description?: string },
-    config: Partial<TConfig> = {} as Partial<TConfig>,
+    config: TConfigInput,
     configSchema: z.ZodTypeAny = emptyConfigSchema,
     entityActionPolicy?: EntityActionPolicyConfig,
   ) {

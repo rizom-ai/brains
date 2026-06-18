@@ -27,7 +27,11 @@ const siteInfoAdapter = new SiteInfoAdapter();
  * Singleton entity (id: "site-info"). Created with defaults on first boot.
  * Zero tools — edited via system_update or CMS.
  */
-export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
+export class SiteInfoPlugin extends EntityPlugin<
+  SiteInfoEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
   readonly entityType = "site-info";
   readonly schema = siteInfoSchema;
   readonly adapter = siteInfoAdapter;
@@ -35,7 +39,7 @@ export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
   private defaultSiteInfo: Partial<SiteInfoBody>;
 
   constructor(config?: { siteInfo?: Partial<SiteInfoBody> }) {
-    super("site-info", packageJson);
+    super("site-info", packageJson, {});
     this.defaultSiteInfo = config?.siteInfo ?? {};
   }
 

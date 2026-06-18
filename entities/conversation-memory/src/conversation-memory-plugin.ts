@@ -57,7 +57,8 @@ const conversationMessageAddedSchema = z.object({
 
 export class ConversationMemoryPlugin extends EntityPlugin<
   SummaryEntity,
-  SummaryConfig
+  SummaryConfig,
+  Partial<SummaryConfig>
 > {
   readonly entityType = SUMMARY_ENTITY_TYPE;
   readonly schema = summarySchema;
