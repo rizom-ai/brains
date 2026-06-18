@@ -417,6 +417,8 @@ Incremental migration progress:
 - Updated plugin examples and the external public plugin fixture to use
   schema-derived config input/output types, so authoring examples match the
   production plugin config boundary.
+- Audited `auth-service` config by deriving parsed runtime config with
+  `z.output<typeof schema>` and caller input with `z.input<typeof schema>`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

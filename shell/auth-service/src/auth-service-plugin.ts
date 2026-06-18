@@ -53,7 +53,8 @@ type PasskeySetupToolData =
   | { status: "complete" }
   | { status: "unavailable"; reason: string };
 
-export type AuthServiceConfig = z.infer<typeof authServiceConfigSchema>;
+export type AuthServiceConfig = z.output<typeof authServiceConfigSchema>;
+export type AuthServiceConfigInput = z.input<typeof authServiceConfigSchema>;
 
 let activeAuthService: AuthService | undefined;
 
@@ -63,11 +64,11 @@ export function getActiveAuthService(): AuthService | undefined {
 
 export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfig,
-  Partial<AuthServiceConfig>
+  AuthServiceConfigInput
 > {
   private service: AuthService | undefined;
 
-  constructor(config: Partial<AuthServiceConfig> = {}) {
+  constructor(config: AuthServiceConfigInput = {}) {
     super("auth-service", packageJson, config, authServiceConfigSchema);
   }
 
@@ -378,7 +379,7 @@ function interpolateSetupEmailTemplate(
 }
 
 export function authServicePlugin(
-  config?: Partial<AuthServiceConfig>,
+  config: AuthServiceConfigInput = {},
 ): AuthServicePlugin {
   return new AuthServicePlugin(config);
 }
