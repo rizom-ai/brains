@@ -21,7 +21,10 @@ export const newsletterCompositeConfigSchema = z.object({
     .describe("Automatically send newsletter when a blog post is published"),
 });
 
-export type NewsletterCompositeConfig = z.infer<
+export type NewsletterCompositeConfig = z.output<
+  typeof newsletterCompositeConfigSchema
+>;
+export type NewsletterCompositeConfigInput = z.input<
   typeof newsletterCompositeConfigSchema
 >;
 
@@ -40,7 +43,9 @@ export type NewsletterCompositeConfig = z.infer<
  * The composite is gated by the capability id `newsletter` — adding or removing
  * it from a preset enables or disables both sub-plugins.
  */
-export function newsletter(config: NewsletterCompositeConfig = {}): Plugin[] {
+export function newsletter(
+  config: NewsletterCompositeConfigInput = {},
+): Plugin[] {
   const parsed = newsletterCompositeConfigSchema.parse(config);
   return [
     newsletterPlugin({}),

@@ -431,6 +431,9 @@ Incremental migration progress:
   `AIModelConfigUpdate`.
 - Replaced remaining test helper inline `Partial<...Config>` markers with named
   `...Overrides` aliases or schema-derived input contracts.
+- Audited composite factory config inputs for `agent-discovery`, `assessment`,
+  and `newsletter`; factories now accept schema input while exported runtime
+  config aliases remain schema output.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

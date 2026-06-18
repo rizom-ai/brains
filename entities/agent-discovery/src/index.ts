@@ -18,7 +18,10 @@ export {
  */
 export const agentDiscoveryCompositeConfigSchema = z.object({}).strict();
 
-export type AgentDiscoveryCompositeConfig = z.infer<
+export type AgentDiscoveryCompositeConfig = z.output<
+  typeof agentDiscoveryCompositeConfigSchema
+>;
+export type AgentDiscoveryCompositeConfigInput = z.input<
   typeof agentDiscoveryCompositeConfigSchema
 >;
 
@@ -31,7 +34,7 @@ export type AgentDiscoveryCompositeConfig = z.infer<
  * agent/skill evidence.
  */
 export function agentDiscovery(
-  config: AgentDiscoveryCompositeConfig = {},
+  config: AgentDiscoveryCompositeConfigInput = {},
 ): Plugin[] {
   agentDiscoveryCompositeConfigSchema.parse(config);
   return [agentDiscoveryPlugin(), skillPlugin()];

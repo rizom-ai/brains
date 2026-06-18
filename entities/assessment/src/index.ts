@@ -6,9 +6,10 @@ export { SwotAssessmentPlugin, swotAssessmentPlugin } from "./plugin";
 export { createSwotEvalPlugin } from "./eval/swot-eval-plugin";
 
 export const assessmentConfigSchema = z.object({}).strict();
-export type AssessmentConfig = z.infer<typeof assessmentConfigSchema>;
+export type AssessmentConfig = z.output<typeof assessmentConfigSchema>;
+export type AssessmentConfigInput = z.input<typeof assessmentConfigSchema>;
 
-export function assessment(config: AssessmentConfig = {}): Plugin[] {
+export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
   assessmentConfigSchema.parse(config);
   return [swotAssessmentPlugin()];
 }
