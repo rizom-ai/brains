@@ -49,6 +49,18 @@ const createUploadInputSchema = z.object({
   id: z.string().min(1).describe("Upload ID"),
 });
 
+export const uploadSaveInputSchema = z.object({
+  upload: createUploadInputSchema.describe(
+    'Exact upload ref to save, copied from the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }.',
+  ),
+  title: z.string().optional().describe("Optional title for the saved file"),
+  confirmed: z.literal(true).optional().describe("Confirm the upload save"),
+  confirmationToken: z
+    .string()
+    .optional()
+    .describe("Internal confirmation token returned by the confirmation flow"),
+});
+
 export const createInputSchema = z.object({
   entityType: z
     .string()
@@ -82,7 +94,7 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Promote an upload. Use only when the user asks to act on an uploaded file and this model turn shows an exact upload ref in the current message or conversation upload refs hint, e.g. { kind: "upload", id: "upload-..." }. For raw uploaded PDFs use entityType "document" with no transform; for raw uploaded images use entityType "image" with no transform. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
+      'Use only with transform: "extract-markdown" to turn an uploaded text, JSON, markdown, or PDF file into a base note. For raw uploaded file preservation use system_upload_save instead. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
     ),
   transform: z
     .string()

@@ -60,6 +60,13 @@ describe("ImagePlugin", () => {
     expect(interceptor).toBeDefined();
   });
 
+  it("should register an image upload-save handler", () => {
+    const registration = harness
+      .getEntityRegistry()
+      .getUploadSaveHandler("image/png");
+    expect(registration?.entityType).toBe("image");
+  });
+
   async function runQueuedUploadPromotion(): Promise<void> {
     const handler = registeredHandlers.get("image:upload-promote");
     if (!handler) throw new Error("image:upload-promote handler missing");

@@ -50,13 +50,13 @@ turns:
   - userMessage: "save it"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_upload_save
           shouldBeCalled: true
           argsContain:
-            entityType: image
             upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000902
           argsAbsent:
+            - entityType
             - sourceAttachment
         - toolName: document_generate
           shouldBeCalled: false
@@ -68,14 +68,16 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_upload_save
       shouldBeCalled: true
       argsContain:
-        entityType: image
         upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000902
       argsAbsent:
+        - entityType
         - sourceAttachment
+    - toolName: system_create
+      shouldBeCalled: false
     - toolName: document_generate
       shouldBeCalled: false
   responseNotContains:

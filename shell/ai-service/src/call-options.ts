@@ -123,7 +123,11 @@ export function buildBrainCallOptions(params: {
     channelName: params.channelName,
     interfaceType: params.interfaceType,
     ...(params.hasAccessibleUploads
-      ? { enableCreateUpload: true, enableCreateTransform: true }
+      ? {
+          enableCreateUpload: true,
+          enableCreateTransform: true,
+          enableUploadSave: true,
+        }
       : {}),
     ...(enableCreateSourceAttachment
       ? { enableCreateSourceAttachment: true }

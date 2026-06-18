@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-pdf-upload-save-action
 name: Web chat PDF upload Save document action promotes document
-description: Verifies the suggested Save document action calls system_create with entityType document and the prior upload ref, not a base note.
+description: Verifies the suggested Save document action calls system_upload_save with the prior upload ref, not a base note.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -36,14 +36,14 @@ turns:
   - userMessage: "Save the uploaded PDF as a document."
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_upload_save
           shouldBeCalled: true
           argsContain:
-            entityType: document
             upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000702
           argsAbsent:
             - transform
+            - entityType
             - from
             - fromUpload
             - sourceAttachment
@@ -56,17 +56,19 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_upload_save
       shouldBeCalled: true
       argsContain:
-        entityType: document
         upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000702
       argsAbsent:
         - transform
+        - entityType
         - from
         - fromUpload
         - sourceAttachment
+    - toolName: system_create
+      shouldBeCalled: false
     - toolName: document_generate
       shouldBeCalled: false
     - toolName: system_update

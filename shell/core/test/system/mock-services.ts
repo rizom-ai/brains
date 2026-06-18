@@ -52,6 +52,11 @@ export function createMockSystemServices(
     string,
     (...args: unknown[]) => Promise<unknown>
   >();
+  const uploadSaveHandlers: Array<{
+    entityType: string;
+    mediaTypes: string[];
+    handler: (...args: unknown[]) => Promise<unknown>;
+  }> = [];
 
   const defaultFrontmatterSchema = z.object({
     title: z.string().optional(),
@@ -172,6 +177,21 @@ export function createMockSystemServices(
       createInterceptors.set(type, interceptor);
     },
     getCreateInterceptor: (type: string) => createInterceptors.get(type),
+    registerUploadSaveHandler: (registration: {
+      entityType: string;
+      mediaTypes: string[];
+      handler: (...args: unknown[]) => Promise<unknown>;
+    }) => {
+      uploadSaveHandlers.push(registration);
+    },
+    getUploadSaveHandler: (mediaType: string) =>
+      uploadSaveHandlers.find((registration) =>
+        registration.mediaTypes.some((pattern) =>
+          pattern.endsWith("/*")
+            ? mediaType.startsWith(pattern.slice(0, -1))
+            : mediaType === pattern,
+        ),
+      ),
   } as unknown as SystemServices["entityRegistry"];
 
   const markdownCreates: Array<{
@@ -322,11 +342,26 @@ export function createMockSystemServices(
     getMessages: async () => [],
   } as unknown as SystemServices["conversationService"];
 
+  const runtimeUploads = {
+    scoped: (): {
+      readRecord: () => Promise<never>;
+      read: () => Promise<never>;
+    } => ({
+      readRecord: async (): Promise<never> => {
+        throw new Error("Upload ref not found");
+      },
+      read: async (): Promise<never> => {
+        throw new Error("Upload ref not found");
+      },
+    }),
+  } as unknown as SystemServices["runtimeUploads"];
+
   return {
     entityService,
     entityRegistry,
     jobs,
     conversationService,
+    runtimeUploads,
     logger: createSilentLogger("system-test"),
     query: async () => ({ message: "Mock response", summary: "Mock" }),
     getIdentity: () => ({

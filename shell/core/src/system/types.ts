@@ -4,7 +4,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import type { Logger } from "@brains/utils";
-import type { RuntimeAppInfo } from "@brains/plugins";
+import type { IRuntimeUploadsNamespace, RuntimeAppInfo } from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
 import type { PermissionService } from "@brains/templates";
 
@@ -17,6 +17,7 @@ export interface SystemServices {
   entityRegistry: IEntityRegistry;
   jobs: JobsNamespace;
   conversationService: IConversationService;
+  runtimeUploads: IRuntimeUploadsNamespace;
   logger: Logger;
 
   /** AI query — direct service call */

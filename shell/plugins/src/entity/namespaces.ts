@@ -2,6 +2,7 @@ import type {
   BaseEntity,
   CreateInterceptor,
   DataSource,
+  UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityTypeConfig,
   IEntityService,
@@ -52,6 +53,11 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
       interceptor: CreateInterceptor,
     ): void => {
       entityRegistry.registerCreateInterceptor(entityType, interceptor);
+    },
+    registerUploadSaveHandler: (
+      registration: UploadSaveHandlerRegistration,
+    ): void => {
+      entityRegistry.registerUploadSaveHandler(registration);
     },
     update: async <T extends BaseEntity>(
       entity: T,

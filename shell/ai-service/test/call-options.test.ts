@@ -155,6 +155,7 @@ describe("buildBrainCallOptions", () => {
 
     expect(options.enableCreateUpload).toBe(true);
     expect(options.enableCreateTransform).toBe(true);
+    expect(options.enableUploadSave).toBe(true);
     expect(options.enableCreateSourceAttachment).toBeUndefined();
   });
 
@@ -167,6 +168,7 @@ describe("buildBrainCallOptions", () => {
 
     expect(options.enableCreateUpload).toBe(true);
     expect(options.enableCreateTransform).toBe(true);
+    expect(options.enableUploadSave).toBe(true);
     expect(options.disableSystemCreate).toBe(true);
   });
 

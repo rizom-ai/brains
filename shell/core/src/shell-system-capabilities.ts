@@ -42,6 +42,7 @@ export function registerShellSystemCapabilities(
         registerHandler: createRegisterHandlerFn(jobQueueService, "system"),
       },
       conversationService: services.conversationService,
+      runtimeUploads: services.runtimeUploadRegistry,
       logger: systemLogger,
       query,
       getIdentity: () => services.identityService.getCharacter(),
