@@ -14,7 +14,8 @@ const brainYamlSchema = z
   })
   .passthrough();
 
-export type BrainYamlConfig = z.infer<typeof brainYamlSchema>;
+export type BrainYamlConfig = z.output<typeof brainYamlSchema>;
+export type BrainYamlConfigInput = z.input<typeof brainYamlSchema>;
 
 /**
  * Parse brain.yaml from a directory.

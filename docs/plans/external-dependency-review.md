@@ -439,6 +439,9 @@ Incremental migration progress:
 - Audited composite factory config inputs for `agent-discovery`, `assessment`,
   and `newsletter`; factories now accept schema input while exported runtime
   config aliases remain schema output.
+- Audited the public `brain.yaml` parser boundary: parsed configs use schema
+  output and the exported input alias represents the raw YAML shape before
+  validation/normalization.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
