@@ -25,8 +25,8 @@ const calculatorConfigSchema = z.object({
     .default(100),
 });
 
-type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
-type CalculatorConfigInput = Partial<CalculatorConfig>;
+type CalculatorConfig = z.output<typeof calculatorConfigSchema>;
+type CalculatorConfigInput = z.input<typeof calculatorConfigSchema>;
 
 /**
  * Example Calculator Service Plugin
@@ -39,7 +39,7 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
  */
 export class CalculatorServicePlugin extends ServicePlugin<
   CalculatorConfig,
-  Partial<CalculatorConfig>
+  CalculatorConfigInput
 > {
   constructor(config: CalculatorConfigInput = {}) {
     super(
@@ -337,7 +337,7 @@ export class CalculatorServicePlugin extends ServicePlugin<
 
 // Export a factory function for easy instantiation
 export function calculatorServicePlugin(
-  config?: CalculatorConfigInput,
+  config: CalculatorConfigInput = {},
 ): CalculatorServicePlugin {
   return new CalculatorServicePlugin(config);
 }

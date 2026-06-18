@@ -414,6 +414,9 @@ Incremental migration progress:
 - Audited `site-content` config by typing its shallow schema validator against
   the existing rich `SiteContentDefinition` contract, then deriving runtime and
   caller config types from that schema.
+- Updated plugin examples and the external public plugin fixture to use
+  schema-derived config input/output types, so authoring examples match the
+  production plugin config boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

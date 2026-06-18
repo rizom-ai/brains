@@ -7,15 +7,15 @@ const calculatorConfigSchema = z.object({
   debug: z.boolean().describe("Enable debug logging").default(false),
 });
 
-type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
-type CalculatorConfigInput = Partial<CalculatorConfig>;
+type CalculatorConfig = z.output<typeof calculatorConfigSchema>;
+type CalculatorConfigInput = z.input<typeof calculatorConfigSchema>;
 
 /**
  * Example ServicePlugin — demonstrates messaging and tool registration.
  */
 export class ExampleServicePlugin extends ServicePlugin<
   CalculatorConfig,
-  Partial<CalculatorConfig>
+  CalculatorConfigInput
 > {
   constructor(config: CalculatorConfigInput = {}) {
     super(
@@ -93,7 +93,7 @@ export class ExampleServicePlugin extends ServicePlugin<
 }
 
 export function calculatorPlugin(
-  config?: CalculatorConfigInput,
+  config: CalculatorConfigInput = {},
 ): ExampleServicePlugin {
   return new ExampleServicePlugin(config);
 }

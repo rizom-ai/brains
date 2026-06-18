@@ -32,10 +32,6 @@ import type {
 } from "@rizom/brain/entities";
 import type { WebRouteDefinition } from "@rizom/brain/interfaces";
 
-interface ExamplePluginConfig {
-  greeting?: string;
-}
-
 interface ExampleEntity extends BaseEntity<{ title: string }> {
   entityType: "example";
   metadata: { title: string };
@@ -66,6 +62,9 @@ const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
 const configSchema = z.object({
   greeting: z.optional(z.string()),
 });
+
+type ExamplePluginConfig = z.output<typeof configSchema>;
+type ExamplePluginConfigInput = z.input<typeof configSchema>;
 
 const extensionMetadata = ExtensionMetadataSchema.parse({ source: "fixture" });
 
@@ -189,11 +188,11 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<
 
 export class ExampleExternalPlugin extends ServicePlugin<
   ExamplePluginConfig,
-  Partial<ExamplePluginConfig>
+  ExamplePluginConfigInput
 > {
   private readonly greeting: string;
 
-  constructor(config: Partial<ExamplePluginConfig> = {}) {
+  constructor(config: ExamplePluginConfigInput = {}) {
     super("example-external", packageJson, config, configSchema);
     this.greeting = config.greeting ?? "hello";
   }

@@ -22,8 +22,8 @@ const webserverConfigSchema = z.object({
   debug: z.boolean().describe("Enable debug logging").default(false),
 });
 
-type WebserverConfig = z.infer<typeof webserverConfigSchema>;
-type WebserverConfigInput = Partial<WebserverConfig>;
+type WebserverConfig = z.output<typeof webserverConfigSchema>;
+type WebserverConfigInput = z.input<typeof webserverConfigSchema>;
 
 /**
  * Example Webserver Interface Plugin
