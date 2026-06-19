@@ -520,6 +520,8 @@ Incremental migration progress:
   handler inputs typed as schema output and Zod 4 record syntax.
 - Migrated the plugins tool-activity message parser to explicit Zod 4 while
   keeping exported event contracts as plain TypeScript types.
+- Migrated the plugins runtime-upload metadata parser to explicit Zod 4 while
+  keeping the exported upload contracts as plain TypeScript interfaces.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

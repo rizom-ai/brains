@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 export const runtimeUploadIdPattern =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -68,7 +68,7 @@ export class RuntimeUploadStoreError extends Error {
   }
 }
 
-const runtimeUploadRecordSchema: z.ZodType<RuntimeUploadRecord> = z.object({
+const runtimeUploadRecordSchema = z.object({
   id: z.string().regex(runtimeUploadIdPattern),
   ref: z.object({
     kind: z.string().min(1),
