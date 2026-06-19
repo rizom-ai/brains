@@ -497,6 +497,8 @@ Incremental migration progress:
   explicit Zod 4 with `z.looseObject` for enriched runtime objects.
 - Migrated shared UI widget render-time data guards to explicit Zod 4 and used
   Zod 4 `z.record(z.string(), value)` syntax for open widget data maps.
+- Migrated the ai-evaluation `eval.yaml` local parse schema to explicit Zod 4,
+  while leaving AI-service/template-composed schemas on the current boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

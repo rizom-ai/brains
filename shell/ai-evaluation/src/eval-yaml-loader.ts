@@ -1,4 +1,5 @@
-import { z, fromYaml } from "@brains/utils";
+import { fromYaml } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { defineConfig, type AppConfig } from "@brains/app";
 import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
@@ -6,7 +7,7 @@ import { resolveProviderKey } from "./multi-model";
 const evalYamlSchema = z.object({
   plugin: z.string(),
   model: z.string().optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type EvalYamlConfig = z.output<typeof evalYamlSchema>;
