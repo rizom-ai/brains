@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import type { VNode } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { BaseWidgetProps } from "./index";
 
 const pipelineItemSchema = z.object({
@@ -22,7 +22,7 @@ const pipelineDataSchema = z.object({
   items: z.array(pipelineItemSchema),
 });
 
-type PipelineItem = z.infer<typeof pipelineItemSchema>;
+type PipelineItem = z.output<typeof pipelineItemSchema>;
 
 export type PipelineWidgetProps = BaseWidgetProps;
 
