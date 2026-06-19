@@ -500,6 +500,8 @@ Incremental migration progress:
   including list/system widget parsers.
 - Migrated the ai-evaluation `eval.yaml` local parse schema to explicit Zod 4,
   while leaving AI-service/template-composed schemas on the current boundary.
+- Migrated dashboard widget-card render-time data guards to explicit Zod 4,
+  keeping registry schemas on the existing permission-schema boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

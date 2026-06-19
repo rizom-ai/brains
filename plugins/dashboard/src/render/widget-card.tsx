@@ -1,5 +1,6 @@
 /** @jsxImportSource preact */
-import { formatLabel, z } from "@brains/utils";
+import { formatLabel } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
 
@@ -42,9 +43,9 @@ const pipelineWidgetDataSchema = z.object({
   items: z.array(pipelineItemSchema),
 });
 
-type ListItem = z.infer<typeof listItemSchema>;
-type PipelineStatus = z.infer<typeof pipelineStatusSchema>;
-type PipelineItem = z.infer<typeof pipelineItemSchema>;
+type ListItem = z.output<typeof listItemSchema>;
+type PipelineStatus = z.output<typeof pipelineStatusSchema>;
+type PipelineItem = z.output<typeof pipelineItemSchema>;
 
 interface RendererProps {
   widget: RenderableWidgetData;
