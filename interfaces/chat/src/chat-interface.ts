@@ -1423,14 +1423,40 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private buildSourcesSummaryCard(
     card: Extract<StructuredChatCard, { kind: "sources" }>,
   ): CardElement {
+    const children: CardChild[] = card.sources.map((source) => ({
+      type: "text" as const,
+      content: source.title ?? source.source,
+    }));
+    const linkButtons = card.sources
+      .map((source, index) =>
+        this.buildSourceLinkButton(
+          card.sources.length === 1 ? "Open source" : `Open ${index + 1}`,
+          source.url,
+        ),
+      )
+      .filter(
+        (
+          button,
+        ): button is { type: "link-button"; label: string; url: string } =>
+          Boolean(button),
+      );
+    if (linkButtons.length > 0) {
+      children.push({ type: "actions", children: linkButtons });
+    }
     return {
       type: "card",
       title: card.title ?? "Sources",
-      children: card.sources.map((source) => ({
-        type: "text" as const,
-        content: `${source.title ?? source.source}${source.url ? ` — ${source.url}` : ""}`,
-      })),
+      children,
     };
+  }
+
+  private buildSourceLinkButton(
+    label: string,
+    url: string | undefined,
+  ): { type: "link-button"; label: string; url: string } | undefined {
+    const resolvedUrl = this.resolveDisplayUrl(url);
+    if (!resolvedUrl || this.isLocalDisplayUrl(resolvedUrl)) return undefined;
+    return { type: "link-button", label, url: resolvedUrl };
   }
 
   private buildActionsSummaryCard(
@@ -1742,9 +1768,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (card.kind === "sources") {
       const lines = [`Sources: ${card.title ?? "Retrieved context"}`];
       for (const source of card.sources) {
-        lines.push(
-          `- ${source.title ?? source.source}${source.url ? ` — ${source.url}` : ""}`,
-        );
+        const resolvedUrl = this.resolveDisplayUrl(source.url);
+        const displayUrl =
+          resolvedUrl && !this.isLocalDisplayUrl(resolvedUrl)
+            ? ` — ${resolvedUrl}`
+            : "";
+        lines.push(`- ${source.title ?? source.source}${displayUrl}`);
       }
       return lines.join("\n");
     }

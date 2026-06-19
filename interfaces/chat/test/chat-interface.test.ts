@@ -2991,6 +2991,12 @@ describe("ChatInterface", () => {
               source: "document",
               url: "https://example.com/launch",
             },
+            {
+              id: "source-2",
+              title: "Local Draft",
+              source: "document",
+              url: "http://localhost:3000/documents/local-draft",
+            },
           ],
         },
         {
@@ -3020,10 +3026,25 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
         fallbackText:
-          "Sources: References\n- Launch Plan — https://example.com/launch",
-        card: expect.objectContaining({ title: "References" }),
+          "Sources: References\n- Launch Plan — https://example.com/launch\n- Local Draft",
+        card: expect.objectContaining({
+          title: "References",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "actions",
+              children: [
+                expect.objectContaining({
+                  type: "link-button",
+                  label: "Open 1",
+                  url: "https://example.com/launch",
+                }),
+              ],
+            }),
+          ]),
+        }),
       }),
     );
+    expect(JSON.stringify(thread.post.mock.calls)).not.toContain("localhost");
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
         fallbackText: "Actions: Next actions\n- Draft announcement",
