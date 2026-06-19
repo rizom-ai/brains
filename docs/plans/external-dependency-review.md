@@ -506,6 +506,7 @@ Incremental migration progress:
   while leaving entity-composed widget data builders on the existing boundary.
 - Migrated directory-sync cover-image frontmatter detection to explicit Zod 4
   and used the Zod 4 `z.url()` string helper.
+- Migrated the series optional metadata field guard to explicit Zod 4.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

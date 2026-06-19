@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Helpers for reading the opt-in series fields that any entity type may carry
@@ -12,7 +12,7 @@ const seriesSourceMetadataSchema = z.object({
   seriesIndex: z.number().optional(),
 });
 
-export type SeriesSourceFields = z.infer<typeof seriesSourceMetadataSchema>;
+export type SeriesSourceFields = z.output<typeof seriesSourceMetadataSchema>;
 
 /** Parse the series fields out of a raw metadata object (or event payload). */
 export function parseSeriesFields(metadata: unknown): SeriesSourceFields {
