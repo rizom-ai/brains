@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
@@ -12,7 +12,7 @@ const messagePartsSchema = z.array(
   z.object({
     kind: z.string(),
     text: z.string().optional(),
-    data: z.record(z.unknown()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
   }),
 );
 
@@ -73,10 +73,11 @@ export const jsonrpcRequestSchema = z.object({
   jsonrpc: z.string(),
   id: z.union([z.string(), z.number()]),
   method: z.string(),
-  params: z.record(z.unknown()).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type JsonRpcRequest = z.infer<typeof jsonrpcRequestSchema>;
+export type JsonRpcRequest = z.output<typeof jsonrpcRequestSchema>;
+export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 
 // -- Handler context --
 
@@ -194,6 +195,9 @@ export const streamParamsSchema = z.object({
   }),
 });
 
+export type StreamParams = z.output<typeof streamParamsSchema>;
+export type StreamParamsInput = z.input<typeof streamParamsSchema>;
+
 interface StreamResult {
   taskId: string;
   stream: ReadableStream<Uint8Array>;
@@ -210,7 +214,7 @@ interface StreamOptions {
  */
 export function handleStreamMessage(
   requestId: string | number,
-  message: z.infer<typeof streamParamsSchema>["message"],
+  message: StreamParams["message"],
   context: JsonRpcHandlerContext,
   options: StreamOptions = {},
 ): StreamResult {

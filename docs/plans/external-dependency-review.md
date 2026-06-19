@@ -471,6 +471,8 @@ Incremental migration progress:
   input from parsed payload output where schema defaults apply.
 - Migrated A2A client response parsing to explicit Zod 4 with
   `z.looseObject` for intentionally open response parts.
+- Migrated A2A JSON-RPC request and stream parameter protocol schemas to
+  explicit Zod 4, with named input/output aliases for request boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
