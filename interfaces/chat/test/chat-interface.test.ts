@@ -2975,6 +2975,63 @@ describe("ChatInterface", () => {
     expect(JSON.stringify(thread.post.mock.calls)).not.toContain("localhost");
   });
 
+  it("posts source and action cards as supplemental SDK cards", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Here are the next steps.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "sources",
+          id: "sources-1",
+          title: "References",
+          sources: [
+            {
+              id: "source-1",
+              title: "Launch Plan",
+              source: "document",
+              url: "https://example.com/launch",
+            },
+          ],
+        },
+        {
+          kind: "actions",
+          id: "actions-1",
+          title: "Next actions",
+          actions: [
+            {
+              type: "prompt",
+              id: "action-1",
+              label: "Draft announcement",
+              prompt: "Draft an announcement",
+              description: "Prepare launch copy",
+            },
+          ],
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith("Here are the next steps.");
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText:
+          "Sources: References\n- Launch Plan — https://example.com/launch",
+        card: expect.objectContaining({ title: "References" }),
+      }),
+    );
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Actions: Next actions\n- Draft announcement",
+        card: expect.objectContaining({ title: "Next actions" }),
+      }),
+    );
+  });
+
   it("formats structured approval cards without raw JSON", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Approval needed.",
@@ -3006,14 +3063,21 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
+    expect(thread.post).toHaveBeenCalledWith("Approval needed.");
     expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Approval needed.",
-        "Approval: Publish Launch Post\nStatus: approval-requested\nThis will publish the draft post.",
-        "Approval: Publish Follow-up\nStatus: output-available",
-      ].join("\n\n"),
+      expect.objectContaining({
+        fallbackText:
+          "Approval: Publish Launch Post\nStatus: approval-requested\nThis will publish the draft post.",
+        card: expect.objectContaining({ title: "Approval required" }),
+      }),
     );
-    expect(thread.post.mock.calls[0]?.[0]).not.toContain("internal");
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval: Publish Follow-up\nStatus: output-available",
+        card: expect.objectContaining({ title: "Approval status" }),
+      }),
+    );
+    expect(JSON.stringify(thread.post.mock.calls)).not.toContain("internal");
   });
 
   it("edits Discord tool activity status messages after the agent response", async () => {

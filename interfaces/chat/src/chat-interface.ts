@@ -868,6 +868,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         response.cards,
         artifactDelivery.deniedCardIds,
       );
+      await this.sendSupplementalCards(
+        thread,
+        response.cards,
+        response.pendingConfirmations,
+      );
       await this.sendPendingConfirmationCards(
         thread,
         response.pendingConfirmations,
@@ -1023,6 +1028,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.cards,
       artifactDelivery.deniedCardIds,
     );
+    await this.sendSupplementalCards(
+      input.thread,
+      response.cards,
+      response.pendingConfirmations,
+    );
     await this.sendPendingConfirmationCards(
       input.thread,
       response.pendingConfirmations,
@@ -1110,10 +1120,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         if (suppressApprovalCards && card.kind === "tool-approval") {
           return false;
         }
-        if (card.kind === "attachment" && !deniedCardIds?.has(card.id)) {
-          return false;
-        }
-        return true;
+        return card.kind === "attachment" && deniedCardIds?.has(card.id);
       })
       .map((card) => this.formatStructuredCard(card, deniedCardIds));
     return [text, ...cardSummaries]
@@ -1346,6 +1353,99 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       lastMessageId = sent.id;
     }
     return lastMessageId;
+  }
+
+  private async sendSupplementalCards(
+    thread: Thread,
+    cards: StructuredChatCard[] | undefined,
+    pendingConfirmations?: PendingConfirmation[],
+  ): Promise<void> {
+    const suppressRequestedApprovals = Boolean(pendingConfirmations?.length);
+    for (const card of cards ?? []) {
+      if (card.kind === "attachment") continue;
+      if (
+        suppressRequestedApprovals &&
+        card.kind === "tool-approval" &&
+        card.state === "approval-requested"
+      ) {
+        continue;
+      }
+      const built = this.buildSupplementalCard(card);
+      if (!built) continue;
+      const sent = await thread.post({
+        card: built,
+        fallbackText: this.formatStructuredCard(card),
+      });
+      this.threadRegistry.trackMessage(thread.id, sent);
+    }
+  }
+
+  private buildSupplementalCard(
+    card: StructuredChatCard,
+  ): CardElement | undefined {
+    switch (card.kind) {
+      case "attachment":
+        return undefined;
+      case "tool-approval":
+        return this.buildToolApprovalSummaryCard(card);
+      case "sources":
+        return this.buildSourcesSummaryCard(card);
+      case "actions":
+        return this.buildActionsSummaryCard(card);
+    }
+  }
+
+  private buildToolApprovalSummaryCard(
+    card: Extract<StructuredChatCard, { kind: "tool-approval" }>,
+  ): CardElement {
+    const children: CardChild[] = [
+      {
+        type: "text",
+        content: card.summary || this.formatToolName(card.toolName),
+      },
+      { type: "text", content: `Status: ${card.state}` },
+    ];
+    if (card.preview) children.push({ type: "text", content: card.preview });
+    const output = this.formatCardOutput(card.output);
+    if (output) children.push({ type: "text", content: `Result: ${output}` });
+    if (card.error)
+      children.push({ type: "text", content: `Error: ${card.error}` });
+    return {
+      type: "card",
+      title:
+        card.state === "approval-requested"
+          ? "Approval required"
+          : "Approval status",
+      children,
+    };
+  }
+
+  private buildSourcesSummaryCard(
+    card: Extract<StructuredChatCard, { kind: "sources" }>,
+  ): CardElement {
+    return {
+      type: "card",
+      title: card.title ?? "Sources",
+      children: card.sources.map((source) => ({
+        type: "text" as const,
+        content: `${source.title ?? source.source}${source.url ? ` — ${source.url}` : ""}`,
+      })),
+    };
+  }
+
+  private buildActionsSummaryCard(
+    card: Extract<StructuredChatCard, { kind: "actions" }>,
+  ): CardElement {
+    return {
+      type: "card",
+      title: card.title ?? "Suggested actions",
+      children: card.actions.map((action) => ({
+        type: "text" as const,
+        content: action.description
+          ? `${action.label} — ${action.description}`
+          : action.label,
+      })),
+    };
   }
 
   private buildArtifactCard(
