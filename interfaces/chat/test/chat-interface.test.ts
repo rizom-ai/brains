@@ -1939,7 +1939,10 @@ describe("ChatInterface", () => {
 
     expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenCalledWith(
-      "**Error:** Temporary approval failure",
+      expect.objectContaining({
+        fallbackText: "Message failed: Temporary approval failure",
+        card: expect.objectContaining({ title: "Message failed" }),
+      }),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -2443,7 +2446,12 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenCalledWith("**Error:** Agent failed");
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Message failed: Agent failed",
+        card: expect.objectContaining({ title: "Message failed" }),
+      }),
+    );
   });
 
   it("posts structured artifact cards as SDK cards with concise fallback text", async () => {

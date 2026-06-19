@@ -881,7 +881,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       this.logger.error("Error handling chat message", { error, channelId });
       this.sendMessageToChannel({
         channelId,
-        message: `**Error:** ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: this.formatErrorPayload(error),
       });
     } finally {
       this.endProcessingInput();
@@ -1063,6 +1063,18 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private hasExplicitApprovalReference(message: string): boolean {
     return /(^|[^a-z0-9_-])approval[:-][a-z0-9_-]+/i.test(message);
+  }
+
+  private formatErrorPayload(error: unknown): MessageInterfaceOutput {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return {
+      card: {
+        type: "card",
+        title: "Message failed",
+        children: [{ type: "text", content: message }],
+      },
+      fallbackText: `Message failed: ${message}`,
+    };
   }
 
   private formatAgentResponseText(
