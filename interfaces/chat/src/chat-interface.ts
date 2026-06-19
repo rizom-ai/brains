@@ -710,55 +710,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           channelName: event.thread.isDM ? "DM" : event.thread.channelId,
         },
       );
-      if (
-        response.pendingConfirmations &&
-        response.pendingConfirmations.length > 0
-      ) {
-        this.pendingConfirmations.set(
-          conversationId,
-          new Set(
-            response.pendingConfirmations.map(
-              (confirmation) => confirmation.id,
-            ),
-          ),
-        );
-      }
-      await this.handleAgentResponseToolStatuses(response, conversationId);
-      const artifactDelivery = await this.resolveArtifactDelivery(
-        response.cards,
-        userPermissionLevel,
-      );
-      const messageId = await this.sendAgentResponseWithFiles({
+      await this.renderAgentResponse({
         thread: event.thread as Thread,
         channelId,
-        message: this.formatAgentResponseText(
-          response.text,
-          response.cards,
-          response.pendingConfirmations,
-          artifactDelivery.deniedCardIds,
-        ),
-        files: artifactDelivery.files,
+        conversationId,
+        response,
+        userPermissionLevel,
       });
-      const artifactMessageId = await this.sendArtifactCards(
-        event.thread as Thread,
-        response.cards,
-        artifactDelivery.deniedCardIds,
-      );
-      await this.sendSupplementalCards(
-        event.thread as Thread,
-        response.cards,
-        response.pendingConfirmations,
-      );
-      await this.sendPendingConfirmationCards(
-        event.thread as Thread,
-        response.pendingConfirmations,
-      );
-      const progressMessageId = artifactMessageId ?? messageId;
-      if (progressMessageId) {
-        for (const jobId of this.getResponseJobIds(response)) {
-          this.trackAgentResponseForJob(jobId, progressMessageId, channelId);
-        }
-      }
     } catch (error: unknown) {
       this.logger.error("Error handling chat prompt action", {
         error,
@@ -945,57 +903,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
       this.rememberUploadAttachments(conversationId, sameTurnUploads);
 
-      if (
-        response.pendingConfirmations &&
-        response.pendingConfirmations.length > 0
-      ) {
-        this.pendingConfirmations.set(
-          conversationId,
-          new Set(
-            response.pendingConfirmations.map(
-              (confirmation) => confirmation.id,
-            ),
-          ),
-        );
-      }
-
-      await this.handleAgentResponseToolStatuses(response, conversationId);
-      const artifactDelivery = await this.resolveArtifactDelivery(
-        response.cards,
-        userPermissionLevel,
-      );
-      const messageId = await this.sendAgentResponseWithFiles({
+      await this.renderAgentResponse({
         thread,
         channelId,
-        message: this.formatAgentResponseText(
-          response.text,
-          response.cards,
-          response.pendingConfirmations,
-          artifactDelivery.deniedCardIds,
-        ),
-        files: artifactDelivery.files,
+        conversationId,
+        response,
+        userPermissionLevel,
       });
-      const artifactMessageId = await this.sendArtifactCards(
-        thread,
-        response.cards,
-        artifactDelivery.deniedCardIds,
-      );
-      await this.sendSupplementalCards(
-        thread,
-        response.cards,
-        response.pendingConfirmations,
-      );
-      await this.sendPendingConfirmationCards(
-        thread,
-        response.pendingConfirmations,
-      );
-
-      const progressMessageId = artifactMessageId ?? messageId;
-      if (progressMessageId) {
-        for (const jobId of this.getResponseJobIds(response)) {
-          this.trackAgentResponseForJob(jobId, progressMessageId, channelId);
-        }
-      }
     } catch (error: unknown) {
       this.logger.error("Error handling chat message", { error, channelId });
       this.sendMessageToChannel({
@@ -1005,6 +919,81 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     } finally {
       this.endProcessingInput();
     }
+  }
+
+  private async renderAgentResponse(input: {
+    thread: Thread;
+    channelId: string;
+    conversationId: string;
+    response: AgentResponse;
+    userPermissionLevel: UserPermissionLevel;
+  }): Promise<void> {
+    this.rememberPendingConfirmationsFromResponse(
+      input.conversationId,
+      input.response,
+    );
+    await this.handleAgentResponseToolStatuses(
+      input.response,
+      input.conversationId,
+    );
+    const artifactDelivery = await this.resolveArtifactDelivery(
+      input.response.cards,
+      input.userPermissionLevel,
+    );
+    const messageId = await this.sendAgentResponseWithFiles({
+      thread: input.thread,
+      channelId: input.channelId,
+      message: this.formatAgentResponseText(
+        input.response.text,
+        input.response.cards,
+        input.response.pendingConfirmations,
+        artifactDelivery.deniedCardIds,
+      ),
+      files: artifactDelivery.files,
+    });
+    const artifactMessageId = await this.sendArtifactCards(
+      input.thread,
+      input.response.cards,
+      artifactDelivery.deniedCardIds,
+    );
+    await this.sendSupplementalCards(
+      input.thread,
+      input.response.cards,
+      input.response.pendingConfirmations,
+    );
+    await this.sendPendingConfirmationCards(
+      input.thread,
+      input.response.pendingConfirmations,
+    );
+
+    const progressMessageId = artifactMessageId ?? messageId;
+    if (progressMessageId) {
+      for (const jobId of this.getResponseJobIds(input.response)) {
+        this.trackAgentResponseForJob(
+          jobId,
+          progressMessageId,
+          input.channelId,
+        );
+      }
+    }
+  }
+
+  private rememberPendingConfirmationsFromResponse(
+    conversationId: string,
+    response: AgentResponse,
+  ): void {
+    if (
+      !response.pendingConfirmations ||
+      response.pendingConfirmations.length === 0
+    ) {
+      return;
+    }
+    this.pendingConfirmations.set(
+      conversationId,
+      new Set(
+        response.pendingConfirmations.map((confirmation) => confirmation.id),
+      ),
+    );
   }
 
   private async getPendingApprovalIds(
