@@ -1,16 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { describe, expect, it } from "bun:test";
 import { playbookAdapter } from "@brains/playbook";
 
 describe("Rover onboarding playbook seed", () => {
-  it("keeps preset onboarding seed playbooks aligned", async () => {
-    const fullSeed = await readFile(
-      new URL(
-        "../seed-content-full/playbook/rover-onboarding.md",
-        import.meta.url,
-      ),
-      "utf8",
-    );
+  it("uses the core seed playbook as the single live onboarding source", async () => {
     const coreSeed = await readFile(
       new URL(
         "../seed-content-core/playbook/rover-onboarding.md",
@@ -18,12 +11,13 @@ describe("Rover onboarding playbook seed", () => {
       ),
       "utf8",
     );
-    const defaultPresetSeed = await readFile(
-      new URL(
-        "../seed-content-default/playbook/rover-onboarding.md",
-        import.meta.url,
-      ),
-      "utf8",
+    const defaultLiveSeed = new URL(
+      "../seed-content-default/playbook/rover-onboarding.md",
+      import.meta.url,
+    );
+    const fullLiveSeed = new URL(
+      "../seed-content-full/playbook/rover-onboarding.md",
+      import.meta.url,
     );
     const coreEvalSeed = await readFile(
       new URL(
@@ -47,17 +41,17 @@ describe("Rover onboarding playbook seed", () => {
       "utf8",
     );
 
-    expect(coreSeed).toBe(fullSeed);
-    expect(defaultPresetSeed).toBe(fullSeed);
-    expect(coreEvalSeed).toBe(fullSeed);
-    expect(defaultEvalSeed).toBe(fullSeed);
-    expect(fullEvalSeed).toBe(fullSeed);
+    await expect(access(defaultLiveSeed)).rejects.toThrow();
+    await expect(access(fullLiveSeed)).rejects.toThrow();
+    expect(coreEvalSeed).toBe(coreSeed);
+    expect(defaultEvalSeed).toBe(coreSeed);
+    expect(fullEvalSeed).toBe(coreSeed);
   });
 
   it("compiles readable steps into gated completion and authored choices", async () => {
     const seedMarkdown = await readFile(
       new URL(
-        "../seed-content-full/playbook/rover-onboarding.md",
+        "../seed-content-core/playbook/rover-onboarding.md",
         import.meta.url,
       ),
       "utf8",

@@ -241,17 +241,9 @@ export default defineBrain({
     [
       "directory-sync",
       directorySync,
-      (_env, context): PluginConfig => ({
+      (): PluginConfig => ({
         seedContent: true,
-        seedContentPath: join(
-          import.meta.dir,
-          "..",
-          context.preset === "core"
-            ? "seed-content-core"
-            : context.preset === "default"
-              ? "seed-content-default"
-              : "seed-content-full",
-        ),
+        seedContentPath: join(import.meta.dir, "..", "seed-content-core"),
         initialSync: true,
       }),
     ],
