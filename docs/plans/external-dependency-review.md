@@ -516,6 +516,8 @@ Incremental migration progress:
   handler inputs typed as schema output.
 - Migrated agent-discovery skill eval-handler input parsing to explicit Zod 4
   while leaving entity/template schemas on their existing composition boundary.
+- Migrated topics eval-handler input parsers to explicit Zod 4 with parsed
+  handler inputs typed as schema output and Zod 4 record syntax.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
