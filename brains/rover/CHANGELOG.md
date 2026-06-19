@@ -1,5 +1,50 @@
 # @brains/rover
 
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- [`a639043`](https://github.com/rizom-ai/brains/commit/a63904322440b3ce695f90fd650e2e72edcedd82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Enable document support in Rover core so raw PDF uploads can be saved as durable document entities.
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.126
+  - @brains/assessment@0.2.0-alpha.126
+  - @brains/blog@0.2.0-alpha.126
+  - @brains/decks@0.2.0-alpha.126
+  - @brains/document-plugin@0.2.0-alpha.126
+  - @brains/image-plugin@0.2.0-alpha.126
+  - @brains/link@0.2.0-alpha.126
+  - @brains/note@0.2.0-alpha.126
+  - @brains/portfolio@0.2.0-alpha.126
+  - @brains/prompt@0.2.0-alpha.126
+  - @brains/rizom-ecosystem@0.2.0-alpha.126
+  - @brains/series@0.2.0-alpha.126
+  - @brains/site-info@0.2.0-alpha.126
+  - @brains/social-media@0.2.0-alpha.126
+  - @brains/topics@0.2.0-alpha.126
+  - @brains/wishlist@0.2.0-alpha.126
+  - @brains/a2a@0.2.0-alpha.126
+  - @brains/discord@0.2.0-alpha.126
+  - @brains/mcp@0.2.0-alpha.126
+  - @brains/web-chat@0.2.0-alpha.126
+  - @brains/webserver@0.2.0-alpha.126
+  - @brains/analytics@0.2.0-alpha.126
+  - @brains/atproto@0.2.0-alpha.126
+  - @brains/cms@0.2.0-alpha.126
+  - @brains/content-pipeline@0.2.0-alpha.126
+  - @brains/dashboard@0.2.0-alpha.126
+  - @brains/directory-sync@0.2.0-alpha.126
+  - @brains/email-resend@0.2.0-alpha.126
+  - @brains/newsletter@0.2.0-alpha.126
+  - @brains/notifications@0.2.0-alpha.126
+  - @brains/obsidian-vault@0.2.0-alpha.126
+  - @brains/site-builder-plugin@0.2.0-alpha.126
+  - @brains/stock-photo@0.2.0-alpha.126
+  - @brains/theme-default@0.2.0-alpha.126
+  - @brains/app@0.2.0-alpha.126
+  - @brains/auth-service@0.2.0-alpha.126
+  - @brains/site-default@0.2.0-alpha.126
+
 ## 0.2.0-alpha.125
 
 ### Patch Changes
