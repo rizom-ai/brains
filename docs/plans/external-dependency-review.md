@@ -485,6 +485,8 @@ Incremental migration progress:
   Zod 4 with `z.strictObject`.
 - Migrated auth-service OAuth dynamic client registration request parsing to
   explicit Zod 4 while keeping plugin config schemas on the main Zod boundary.
+- Migrated conversation metadata JSON coercion to explicit Zod 4 and the Zod 4
+  `z.record(z.string(), value)` form.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
