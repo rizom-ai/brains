@@ -1000,7 +1000,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.thread.id,
-      message: this.formatConfirmationResponseText(
+      message: this.formatConfirmationResponsePayload(
         response,
         input.confirmed,
         this.getRemainingApprovalHelp(input.conversationId, response),
@@ -1092,22 +1092,16 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       .join("\n\n");
   }
 
-  private formatConfirmationResponseText(
+  private formatConfirmationResponsePayload(
     response: AgentResponse,
     confirmed: boolean,
     remainingApprovalHelp?: string,
     deniedCardIds?: Set<string>,
-  ): string {
+  ): MessageInterfaceOutput {
     const display = formatConfirmationResult(
       response,
       confirmed ? "approved" : "declined",
     );
-    const icon =
-      display.variant === "error"
-        ? "❌"
-        : display.variant === "declined"
-          ? "🚫"
-          : "✅";
     const attachmentSummaries = (response.cards ?? [])
       .filter(
         (card) => card.kind === "attachment" && deniedCardIds?.has(card.id),
@@ -1117,21 +1111,40 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.pendingConfirmations && response.pendingConfirmations.length > 1
         ? this.formatPendingConfirmationHelp(response.pendingConfirmations)
         : undefined;
-
-    return [
-      `${icon} ${display.label}`,
+    const parts = [
+      display.label,
       ...attachmentSummaries,
       pendingHelp,
       remainingApprovalHelp,
-    ]
-      .filter((part): part is string => Boolean(part?.trim()))
-      .join("\n\n");
+    ].filter((part): part is string => Boolean(part?.trim()));
+
+    return {
+      card: {
+        type: "card",
+        title: this.getConfirmationResultTitle(display.variant),
+        children: parts.map((content) => ({ type: "text", content })),
+      },
+      fallbackText: parts.join("\n\n"),
+    };
+  }
+
+  private getConfirmationResultTitle(
+    variant: ReturnType<typeof formatConfirmationResult>["variant"],
+  ): string {
+    switch (variant) {
+      case "success":
+        return "Approval confirmed";
+      case "declined":
+        return "Approval declined";
+      case "error":
+        return "Action failed";
+    }
   }
 
   private async sendAgentResponseWithFiles(input: {
     thread: Thread;
     channelId: string;
-    message: string;
+    message: MessageInterfaceOutput;
     files: FileUpload[];
   }): Promise<string | undefined> {
     if (input.files.length === 0) {
@@ -1141,7 +1154,21 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       });
     }
 
-    const chunks = this.chunkForChannel(input.channelId, input.message);
+    const cardOutput = this.toDiscordCardOutput(input.message);
+    if (cardOutput) {
+      const sent = await input.thread.post({
+        ...cardOutput,
+        files: input.files,
+      });
+      this.threadRegistry.trackMessage(input.channelId, sent);
+      return sent.id;
+    }
+
+    const text =
+      typeof input.message === "string"
+        ? input.message
+        : "Generated artifacts attached.";
+    const chunks = this.chunkForChannel(input.channelId, text);
     let lastSent: SentMessage | undefined;
     for (const [index, chunk] of chunks.entries()) {
       const isLastChunk = index === chunks.length - 1;

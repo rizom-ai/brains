@@ -1589,7 +1589,10 @@ describe("ChatInterface", () => {
       expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
-      "✅ Approved · Action confirmed.",
+      expect.objectContaining({
+        fallbackText: "Approved · Action confirmed.",
+        card: expect.objectContaining({ title: "Approval confirmed" }),
+      }),
     );
   });
 
@@ -1678,7 +1681,10 @@ describe("ChatInterface", () => {
         }),
       );
       expect(thread.post).toHaveBeenLastCalledWith(
-        "✅ Approved · Action confirmed.",
+        expect.objectContaining({
+          fallbackText: "Approved · Action confirmed.",
+          card: expect.objectContaining({ title: "Approval confirmed" }),
+        }),
       );
     } finally {
       globalThis.fetch = originalFetch;
@@ -1741,7 +1747,10 @@ describe("ChatInterface", () => {
     );
     expect(thread.post).toHaveBeenNthCalledWith(
       3,
-      "✅ Approved · First action confirmed.",
+      expect.objectContaining({
+        fallbackText: "Approved · First action confirmed.",
+        card: expect.objectContaining({ title: "Approval confirmed" }),
+      }),
     );
     expect(thread.post).toHaveBeenNthCalledWith(
       4,
@@ -1933,7 +1942,10 @@ describe("ChatInterface", () => {
       "**Error:** Temporary approval failure",
     );
     expect(thread.post).toHaveBeenLastCalledWith(
-      "✅ Approved · Action confirmed.",
+      expect.objectContaining({
+        fallbackText: "Approved · Action confirmed.",
+        card: expect.objectContaining({ title: "Approval confirmed" }),
+      }),
     );
   });
 
@@ -1967,7 +1979,12 @@ describe("ChatInterface", () => {
       "approval-1",
       expectDiscordConfirmationContext(),
     );
-    expect(thread.post).toHaveBeenLastCalledWith("🚫 Declined");
+    expect(thread.post).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        fallbackText: "Declined",
+        card: expect.objectContaining({ title: "Approval declined" }),
+      }),
+    );
   });
 
   it("posts native Discord files for trusted artifacts returned by confirmations", async () => {
@@ -2072,9 +2089,14 @@ describe("ChatInterface", () => {
     );
 
     expect(thread.post).toHaveBeenLastCalledWith(
-      "❌ Delete failed · Entity not found: base/woodchuck-note",
+      expect.objectContaining({
+        fallbackText: "Delete failed · Entity not found: base/woodchuck-note",
+        card: expect.objectContaining({ title: "Action failed" }),
+      }),
     );
-    expect(thread.post.mock.calls.at(-1)?.[0]).not.toContain('"success"');
+    expect(JSON.stringify(thread.post.mock.calls.at(-1)?.[0])).not.toContain(
+      '"success"',
+    );
   });
 
   it("keeps pending confirmations open after unrecognized replies", async () => {
@@ -2217,7 +2239,11 @@ describe("ChatInterface", () => {
       expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenCalledWith(
-      "✅ Approved · Action confirmed.\n\nRemaining pending approval ids: `approval-2`.",
+      expect.objectContaining({
+        fallbackText:
+          "Approved · Action confirmed.\n\nRemaining pending approval ids: `approval-2`.",
+        card: expect.objectContaining({ title: "Approval confirmed" }),
+      }),
     );
   });
 
@@ -2270,7 +2296,11 @@ describe("ChatInterface", () => {
       expectDiscordConfirmationContext(),
     );
     expect(thread.post).toHaveBeenCalledWith(
-      "🚫 Declined\n\nRemaining pending approval ids: `approval-2`.",
+      expect.objectContaining({
+        fallbackText:
+          "Declined\n\nRemaining pending approval ids: `approval-2`.",
+        card: expect.objectContaining({ title: "Approval declined" }),
+      }),
     );
   });
 
