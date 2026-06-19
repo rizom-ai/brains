@@ -34,6 +34,10 @@ export interface FrontmatterConfig<T extends BaseEntity> {
   };
 }
 
+export interface FrontmatterValidationSchema<T> {
+  parse(data: unknown): T;
+}
+
 // Default system fields that should not be in frontmatter
 const DEFAULT_SYSTEM_FIELDS: Array<keyof BaseEntity> = [
   "id",
@@ -144,7 +148,7 @@ function convertDatesToStrings(obj: unknown): unknown {
  */
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
-  schema: z.ZodSchema<T>,
+  schema: FrontmatterValidationSchema<T>,
 ): {
   content: string;
   metadata: T;
