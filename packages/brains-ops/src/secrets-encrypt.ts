@@ -8,21 +8,20 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { toYaml, z } from "@brains/utils";
+import { toYaml } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 
-const encryptedUserSecretsSchema = z
-  .object({
-    gitSyncToken: z.string().min(1).optional(),
-    discordBotToken: z.string().min(1).optional(),
-    aiApiKey: z.string().min(1).optional(),
-    atprotoAppPassword: z.string().min(1).optional(),
-  })
-  .strict();
+const encryptedUserSecretsSchema = z.strictObject({
+  gitSyncToken: z.string().min(1).optional(),
+  discordBotToken: z.string().min(1).optional(),
+  aiApiKey: z.string().min(1).optional(),
+  atprotoAppPassword: z.string().min(1).optional(),
+});
 
-export type EncryptedUserSecrets = z.infer<typeof encryptedUserSecretsSchema>;
+export type EncryptedUserSecrets = z.output<typeof encryptedUserSecretsSchema>;
 
 export interface SecretsEncryptOptions {
   env?: NodeJS.ProcessEnv | undefined;
