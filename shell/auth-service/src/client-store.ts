@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { RegisteredOAuthClient } from "./types";
 
 const DEFAULT_CLIENT_STORE_FILE = "oauth-clients.json";

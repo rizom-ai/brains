@@ -483,6 +483,8 @@ Incremental migration progress:
 - Made `parseYamlDocument` structural over `safeParse` so YAML callers can pass
   either Zod generation, then migrated ops registry YAML schemas to explicit
   Zod 4 with `z.strictObject`.
+- Migrated auth-service OAuth dynamic client registration request parsing to
+  explicit Zod 4 while keeping plugin config schemas on the main Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
