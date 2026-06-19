@@ -477,6 +477,9 @@ Incremental migration progress:
   using `z.looseObject` for third-party JSON objects with additional fields.
 - Migrated Brain CLI Origin CA bootstrap environment parsing to explicit Zod 4,
   using `z.looseObject` for `process.env`.
+- Made the Brain CLI `parseJsonResponse` helper structural over `safeParse` so
+  local callers can pass either Zod generation, then migrated Hetzner SSH key
+  response schemas to explicit Zod 4.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -1,5 +1,3 @@
-import type { z } from "@brains/utils";
-
 /**
  * Safely parse a Response body as JSON. Empty body returns undefined;
  * non-JSON body returns the raw text so error formatters can inspect
@@ -29,11 +27,17 @@ export interface ParseJsonResponseOptions {
  * Callers can supply formatError to customize the error suffix (e.g.
  * to extract provider-specific error fields from the payload).
  */
-export async function parseJsonResponse<Schema extends z.ZodTypeAny>(
+interface JsonResponseSchema<TOutput> {
+  safeParse(
+    payload: unknown,
+  ): { success: true; data: TOutput } | { success: false };
+}
+
+export async function parseJsonResponse<TOutput>(
   response: Response,
-  schema: Schema,
+  schema: JsonResponseSchema<TOutput>,
   options: ParseJsonResponseOptions,
-): Promise<z.infer<Schema>> {
+): Promise<TOutput> {
   const payload = await readJsonBody(response);
   const parsed = schema.safeParse(payload);
 
