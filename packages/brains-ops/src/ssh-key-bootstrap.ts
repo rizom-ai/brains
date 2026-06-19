@@ -13,7 +13,8 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "@brains/deploy-support";
-import { parseJsonResponse, z } from "@brains/utils";
+import { parseJsonResponse } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { type FetchLike } from "@brains/deploy-support/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
@@ -40,13 +41,13 @@ export interface SshKeygen {
   derivePublicKey: (privateKeyPath: string) => string;
 }
 
-const hetznerSshKeySchema = z.object({
+const hetznerSshKeySchema = z.looseObject({
   id: z.number(),
   name: z.string(),
   public_key: z.string(),
 });
 
-const hetznerSshKeysResponseSchema = z.object({
+const hetznerSshKeysResponseSchema = z.looseObject({
   ssh_keys: z.array(hetznerSshKeySchema),
 });
 
@@ -228,7 +229,7 @@ async function ensureHetznerSshKey(options: {
   );
   await parseJsonResponse(
     createResponse,
-    z.object({ ssh_key: hetznerSshKeySchema }),
+    z.looseObject({ ssh_key: hetznerSshKeySchema }),
     {
       label: "Hetzner SSH key create failed",
     },

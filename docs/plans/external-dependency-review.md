@@ -490,6 +490,9 @@ Incremental migration progress:
 - Migrated ops health-check response parsing and encrypted user-secret parsing
   to explicit Zod 4, using `z.looseObject` for third-party health JSON and
   `z.strictObject` for sealed secret files.
+- Made shared `parseJsonResponse` structural over `safeParse`, then migrated
+  deploy-support Cloudflare Origin CA responses and ops Hetzner SSH key
+  responses to explicit Zod 4 with `z.looseObject` for provider JSON.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
