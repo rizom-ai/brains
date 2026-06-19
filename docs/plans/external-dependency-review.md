@@ -480,6 +480,9 @@ Incremental migration progress:
 - Made the Brain CLI `parseJsonResponse` helper structural over `safeParse` so
   local callers can pass either Zod generation, then migrated Hetzner SSH key
   response schemas to explicit Zod 4.
+- Made `parseYamlDocument` structural over `safeParse` so YAML callers can pass
+  either Zod generation, then migrated ops registry YAML schemas to explicit
+  Zod 4 with `z.strictObject`.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

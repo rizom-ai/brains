@@ -1,7 +1,7 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
-import { parseYamlDocument, type ZodType } from "@brains/utils";
+import { parseYamlDocument, type YamlValidationSchema } from "@brains/utils";
 
 import {
   type CohortConfig,
@@ -332,7 +332,7 @@ async function listYamlFiles(dirPath: string): Promise<string[]> {
 
 async function readYamlFile<T>(
   filePath: string,
-  schema: ZodType<T>,
+  schema: YamlValidationSchema<T>,
 ): Promise<T> {
   const content = await readFile(filePath, "utf8");
   const result = parseYamlDocument(content, schema);

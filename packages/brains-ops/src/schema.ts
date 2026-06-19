@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 const exactVersionPattern =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -14,80 +14,65 @@ export const handleSchema = z
 export const secretNameSchema = z.string().min(1);
 export const agePublicKeySchema = z.string().startsWith("age1").min(1);
 
-export const pilotSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    brainVersion: exactVersionSchema,
-    model: z.literal("rover"),
-    githubOrg: z.string().min(1),
-    contentRepoPrefix: z.string().min(1),
-    domainSuffix: z.string().min(1),
-    preset: presetSchema,
-    aiApiKey: secretNameSchema,
-    gitSyncToken: secretNameSchema,
-    contentRepoAdminToken: secretNameSchema,
-    agePublicKey: agePublicKeySchema,
-  })
-  .strict();
+export const pilotSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  brainVersion: exactVersionSchema,
+  model: z.literal("rover"),
+  githubOrg: z.string().min(1),
+  contentRepoPrefix: z.string().min(1),
+  domainSuffix: z.string().min(1),
+  preset: presetSchema,
+  aiApiKey: secretNameSchema,
+  gitSyncToken: secretNameSchema,
+  contentRepoAdminToken: secretNameSchema,
+  agePublicKey: agePublicKeySchema,
+});
 
-const anchorProfileSocialLinkSchema = z
-  .object({
-    platform: z.enum(["github", "instagram", "linkedin", "email", "website"]),
-    url: z.string().min(1),
-    label: z.string().min(1).optional(),
-  })
-  .strict();
+const anchorProfileSocialLinkSchema = z.strictObject({
+  platform: z.enum(["github", "instagram", "linkedin", "email", "website"]),
+  url: z.string().min(1),
+  label: z.string().min(1).optional(),
+});
 
-const anchorProfileSchema = z
-  .object({
-    name: z.string().min(1).optional(),
-    description: z.string().min(1).optional(),
-    website: z.string().min(1).optional(),
-    email: z.string().min(1).optional(),
-    story: z.string().min(1).optional(),
-    socialLinks: z.array(anchorProfileSocialLinkSchema).optional(),
-  })
-  .strict();
+const anchorProfileSchema = z.strictObject({
+  name: z.string().min(1).optional(),
+  description: z.string().min(1).optional(),
+  website: z.string().min(1).optional(),
+  email: z.string().min(1).optional(),
+  story: z.string().min(1).optional(),
+  socialLinks: z.array(anchorProfileSocialLinkSchema).optional(),
+});
 
-const setupDeliverySchema = z
-  .object({
-    delivery: z.literal("email"),
-    email: z.string().email(),
-  })
-  .strict();
+const setupDeliverySchema = z.strictObject({
+  delivery: z.literal("email"),
+  email: z.string().email(),
+});
 
-const atprotoSchema = z
-  .object({
-    identifier: z.string().min(1),
-  })
-  .strict();
+const atprotoSchema = z.strictObject({
+  identifier: z.string().min(1),
+});
 
-export const userSchema = z
-  .object({
-    handle: handleSchema,
-    discord: z
-      .object({
-        enabled: z.boolean(),
-        anchorUserId: z.string().min(1).optional(),
-      })
-      .strict(),
-    aiApiKeyOverride: secretNameSchema.optional(),
-    gitSyncTokenOverride: secretNameSchema.optional(),
-    setup: setupDeliverySchema.optional(),
-    atproto: atprotoSchema.optional(),
-    anchorProfile: anchorProfileSchema.optional(),
-  })
-  .strict();
+export const userSchema = z.strictObject({
+  handle: handleSchema,
+  discord: z.strictObject({
+    enabled: z.boolean(),
+    anchorUserId: z.string().min(1).optional(),
+  }),
+  aiApiKeyOverride: secretNameSchema.optional(),
+  gitSyncTokenOverride: secretNameSchema.optional(),
+  setup: setupDeliverySchema.optional(),
+  atproto: atprotoSchema.optional(),
+  anchorProfile: anchorProfileSchema.optional(),
+});
 
 export const cohortSchema = z
-  .object({
+  .strictObject({
     members: z.array(handleSchema).min(1),
     brainVersionOverride: exactVersionSchema.optional(),
     presetOverride: presetSchema.optional(),
     aiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
   })
-  .strict()
   .superRefine((value, context) => {
     const seen = new Set<string>();
 
@@ -111,4 +96,4 @@ export type UserConfig = z.output<typeof userSchema>;
 export type UserConfigInput = z.input<typeof userSchema>;
 export type CohortConfig = z.output<typeof cohortSchema>;
 export type CohortConfigInput = z.input<typeof cohortSchema>;
-export type PilotPreset = z.infer<typeof presetSchema>;
+export type PilotPreset = z.output<typeof presetSchema>;

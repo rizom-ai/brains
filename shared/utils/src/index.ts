@@ -29,6 +29,7 @@ export type {
 
 // YAML utilities
 export { toYaml, fromYaml, isValidYaml, parseYamlDocument } from "./yaml";
+export type { YamlValidationSchema } from "./yaml";
 
 // ID generation utilities
 export { createId, createPrefixedId, createBatchId } from "./id";
