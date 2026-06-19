@@ -1,6 +1,7 @@
 export {
   MessageInterfacePlugin,
   type EditMessageRequest,
+  type MessageInterfaceOutput,
   type MessageJobTrackingInfo,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,

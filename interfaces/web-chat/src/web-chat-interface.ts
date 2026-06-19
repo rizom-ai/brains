@@ -6,6 +6,7 @@ import {
   type InterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
+  type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   type WebRouteDefinition,
@@ -151,7 +152,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): void {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return;
-    this.writeText(stream.writer, request.message, "progress");
+    this.writeText(
+      stream.writer,
+      this.toTextOutput(request.message),
+      "progress",
+    );
   }
 
   protected override async sendMessageWithId(
@@ -159,7 +164,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<string | undefined> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return undefined;
-    return this.writeText(stream.writer, request.message, "progress");
+    return this.writeText(
+      stream.writer,
+      this.toTextOutput(request.message),
+      "progress",
+    );
   }
 
   protected override async editMessage(
@@ -170,7 +179,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     stream.writer.write({
       type: "data-progress",
       id: request.messageId,
-      data: { message: request.newMessage },
+      data: { message: this.toTextOutput(request.newMessage) },
       transient: true,
     });
     return true;
@@ -178,6 +187,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   protected override supportsMessageEditing(): boolean {
     return true;
+  }
+
+  private toTextOutput(output: MessageInterfaceOutput): string {
+    return typeof output === "string" ? output : (output.fallbackText ?? "");
   }
 
   protected override async handleProgressEvent(

@@ -30,11 +30,18 @@ import {
 
 export { urlCaptureConfigSchema };
 
+export type MessageInterfaceOutput =
+  | string
+  | {
+      card: unknown;
+      fallbackText?: string;
+    };
+
 export interface SendMessageToChannelRequest {
   /** The channel/room to send to (null for single-channel interfaces like CLI) */
   channelId: string | null;
-  /** The message to send */
-  message: string;
+  /** The message or structured output to send */
+  message: MessageInterfaceOutput;
 }
 
 export type SendMessageWithIdRequest = SendMessageToChannelRequest;
@@ -42,7 +49,7 @@ export type SendMessageWithIdRequest = SendMessageToChannelRequest;
 export interface EditMessageRequest {
   channelId: string | null;
   messageId: string;
-  newMessage: string;
+  newMessage: MessageInterfaceOutput;
 }
 
 /**
@@ -233,7 +240,7 @@ export abstract class MessageInterfacePlugin<
    * Each entry includes the message and target channel
    */
   private bufferedCompletionMessages: Array<{
-    message: string;
+    message: MessageInterfaceOutput;
     channelId: string | null;
   }> = [];
 
@@ -426,7 +433,7 @@ export abstract class MessageInterfacePlugin<
       return true;
     }
 
-    const progressMessage = formatProgressMessage(event);
+    const progressMessage = this.formatProgressOutput(event);
     const existingTracking = this.progressMessageTracking.get(rootJobId);
     const now = Date.now();
 
@@ -464,7 +471,7 @@ export abstract class MessageInterfacePlugin<
     await this.editMessage({
       channelId: tracking.channelId,
       messageId: tracking.messageId,
-      newMessage: formatProgressMessage(event),
+      newMessage: this.formatProgressOutput(event),
     });
     tracking.lastUpdate = now;
   }
@@ -472,7 +479,7 @@ export abstract class MessageInterfacePlugin<
   private async sendInitialProgressMessage(
     rootJobId: string,
     targetChannelId: string,
-    progressMessage: string,
+    progressMessage: MessageInterfaceOutput,
     now: number,
   ): Promise<void> {
     // Only send NEW progress messages after agent response is sent.
@@ -502,7 +509,7 @@ export abstract class MessageInterfacePlugin<
     targetChannelId: string | null,
     rootJobId: string,
   ): Promise<void> {
-    const completionMessage = formatCompletionMessage(event);
+    const completionMessage = this.formatCompletionOutput(event);
     const progressTracking = this.progressMessageTracking.get(rootJobId);
     const agentTracking = this.agentResponseTracking.get(event.id);
 
@@ -535,7 +542,7 @@ export abstract class MessageInterfacePlugin<
 
   private async updateTrackedCompletion(
     event: JobProgressEvent,
-    completionMessage: string,
+    completionMessage: MessageInterfaceOutput,
     progressTracking: ProgressMessageTracking | undefined,
     agentTracking: ProgressMessageTracking | undefined,
     rootJobId: string,
@@ -567,7 +574,7 @@ export abstract class MessageInterfacePlugin<
   }
 
   private sendOrBufferCompletionMessage(
-    message: string,
+    message: MessageInterfaceOutput,
     channelId: string,
   ): void {
     // Buffer completion messages while processing input.
@@ -594,6 +601,26 @@ export abstract class MessageInterfacePlugin<
       operationType: event.metadata.operationType,
       targetChannel: event.metadata.channelId,
     });
+  }
+
+  /**
+   * Format in-flight progress output. Interfaces may override to render native
+   * cards/components while preserving the shared progress lifecycle.
+   */
+  protected formatProgressOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return formatProgressMessage(event);
+  }
+
+  /**
+   * Format terminal progress output. Interfaces may override to render native
+   * cards/components while preserving the shared progress lifecycle.
+   */
+  protected formatCompletionOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return formatCompletionMessage(event);
   }
 
   /**

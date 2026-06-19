@@ -12,6 +12,7 @@ import type {
 } from "../src/types";
 import type { Mock } from "bun:test";
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
+import { z } from "zod";
 
 type HarnessAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type HarnessAgentResponse = Awaited<ReturnType<HarnessAgentService["chat"]>>;
@@ -227,6 +228,18 @@ type MockPostMessage =
         data: ArrayBuffer | Buffer | Blob;
       }>;
     };
+
+const jobProcessingPostSchema = z
+  .object({
+    fallbackText: z
+      .string()
+      .refine((value) => value.startsWith("Job processing")),
+  })
+  .passthrough();
+
+function isJobProcessingPost(message: MockPostMessage): boolean {
+  return jobProcessingPostSchema.safeParse(message).success;
+}
 
 interface MockThread {
   id: string;
@@ -3192,7 +3205,11 @@ describe("ChatInterface", () => {
     });
 
     expect(sentMessage.edit).toHaveBeenCalledWith(
-      "🔄 **content operations: Site** 2/4 (50%)\nBuilding routes",
+      expect.objectContaining({
+        fallbackText:
+          "Job processing: content operations: Site 2/4 (50%)\nBuilding routes",
+        card: expect.objectContaining({ title: "Job processing" }),
+      }),
     );
   });
 
@@ -3240,7 +3257,11 @@ describe("ChatInterface", () => {
     });
 
     expect(sentMessage.edit).toHaveBeenCalledWith(
-      "🔄 **content operations: Deck** 1/2 (50%)\nRendering deck",
+      expect.objectContaining({
+        fallbackText:
+          "Job processing: content operations: Deck 1/2 (50%)\nRendering deck",
+        card: expect.objectContaining({ title: "Job processing" }),
+      }),
     );
   });
 
@@ -3274,7 +3295,10 @@ describe("ChatInterface", () => {
     });
 
     expect(sentMessage.edit).toHaveBeenCalledWith(
-      "✅ **content operations: Site** completed\nDone",
+      expect.objectContaining({
+        fallbackText: "Job completed: content operations: Site\nDone",
+        card: expect.objectContaining({ title: "Job completed" }),
+      }),
     );
   });
 
@@ -3288,9 +3312,7 @@ describe("ChatInterface", () => {
     const thread = createThread({
       post: mock((message: MockPostMessage) =>
         Promise.resolve(
-          typeof message === "string" && message.startsWith("🔄")
-            ? progressSentMessage
-            : agentSentMessage,
+          isJobProcessingPost(message) ? progressSentMessage : agentSentMessage,
         ),
       ),
     });
@@ -3328,10 +3350,17 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).toHaveBeenCalledWith(
-      "🔄 **content operations: Deck** 1/2 (50%)\nRendering PDF",
+      expect.objectContaining({
+        fallbackText:
+          "Job processing: content operations: Deck 1/2 (50%)\nRendering PDF",
+        card: expect.objectContaining({ title: "Job processing" }),
+      }),
     );
     expect(progressSentMessage.edit).toHaveBeenCalledWith(
-      "✅ **content operations: Deck** completed\nDeck ready",
+      expect.objectContaining({
+        fallbackText: "Job completed: content operations: Deck\nDeck ready",
+        card: expect.objectContaining({ title: "Job completed" }),
+      }),
     );
   });
 
@@ -3362,7 +3391,10 @@ describe("ChatInterface", () => {
     });
 
     expect(thread.post).toHaveBeenCalledWith(
-      "❌ **content operations: Deck** failed\nExport failed",
+      expect.objectContaining({
+        fallbackText: "Job failed: content operations: Deck\nExport failed",
+        card: expect.objectContaining({ title: "Job failed" }),
+      }),
     );
   });
 
@@ -3376,9 +3408,7 @@ describe("ChatInterface", () => {
     const thread = createThread({
       post: mock((message: MockPostMessage) =>
         Promise.resolve(
-          typeof message === "string" && message.startsWith("🔄")
-            ? progressSentMessage
-            : agentSentMessage,
+          isJobProcessingPost(message) ? progressSentMessage : agentSentMessage,
         ),
       ),
     });
@@ -3416,7 +3446,10 @@ describe("ChatInterface", () => {
     });
 
     expect(progressSentMessage.edit).toHaveBeenCalledWith(
-      "❌ **content operations: Deck** failed\nRender failed",
+      expect.objectContaining({
+        fallbackText: "Job failed: content operations: Deck\nRender failed",
+        card: expect.objectContaining({ title: "Job failed" }),
+      }),
     );
   });
 
@@ -3450,7 +3483,11 @@ describe("ChatInterface", () => {
     });
 
     expect(sentMessage.edit).toHaveBeenCalledWith(
-      "❌ **content operations: Site** failed\nBuild failed: missing template",
+      expect.objectContaining({
+        fallbackText:
+          "Job failed: content operations: Site\nBuild failed: missing template",
+        card: expect.objectContaining({ title: "Job failed" }),
+      }),
     );
   });
 

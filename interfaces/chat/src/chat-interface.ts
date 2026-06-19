@@ -21,6 +21,7 @@ import {
   type AgentResponse,
   type ChatAttachment,
   type InterfacePluginContext,
+  type MessageInterfaceOutput,
   type PendingConfirmation,
   type StructuredChatCard,
   type PermissionLookupContext,
@@ -46,6 +47,7 @@ import {
   type SentMessage,
   type Thread,
 } from "chat";
+import { z } from "zod";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { chunkMessage } from "@brains/utils";
@@ -79,6 +81,28 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
+
+interface DiscordCardOutput {
+  card: CardElement;
+  fallbackText?: string;
+}
+
+const chatCardElementSchema = z
+  .object({
+    type: z.literal("card"),
+    children: z.array(z.object({ type: z.string() }).passthrough()),
+    imageUrl: z.string().optional(),
+    subtitle: z.string().optional(),
+    title: z.string().optional(),
+  })
+  .passthrough();
+
+const discordCardOutputSchema = z.object({
+  card: z.custom<CardElement>(
+    (value) => chatCardElementSchema.safeParse(value).success,
+  ),
+  fallbackText: z.string().optional(),
+});
 
 interface AgentInput {
   message: string;
@@ -237,10 +261,21 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     message,
   }: {
     channelId: string | null;
-    message: string;
+    message: MessageInterfaceOutput;
   }): void {
     const thread = this.threadRegistry.get(channelId);
     if (!thread) return;
+    const cardOutput = this.toDiscordCardOutput(message);
+    if (cardOutput) {
+      thread.post(cardOutput).catch((error: unknown) =>
+        this.logger.error("Failed to send chat message", {
+          error,
+          channelId,
+        }),
+      );
+      return;
+    }
+    if (typeof message !== "string") return;
     for (const chunk of this.chunkForChannel(channelId, message)) {
       thread.post(chunk).catch((error: unknown) =>
         this.logger.error("Failed to send chat message", {
@@ -256,10 +291,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     message,
   }: {
     channelId: string | null;
-    message: string;
+    message: MessageInterfaceOutput;
   }): Promise<string | undefined> {
     const thread = this.threadRegistry.get(channelId);
     if (!thread) return undefined;
+    const cardOutput = this.toDiscordCardOutput(message);
+    if (cardOutput) {
+      const sent = await thread.post(cardOutput);
+      this.threadRegistry.trackMessage(thread.id, sent);
+      return sent.id;
+    }
+    if (typeof message !== "string") return undefined;
     let lastSent: SentMessage | undefined;
     for (const chunk of this.chunkForChannel(channelId, message)) {
       lastSent = await thread.post(chunk);
@@ -275,12 +317,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }: {
     channelId: string | null;
     messageId: string;
-    newMessage: string;
+    newMessage: MessageInterfaceOutput;
   }): Promise<boolean> {
     const sent = this.threadRegistry.getMessage(channelId, messageId);
     if (!sent) return false;
     try {
-      const edited = await sent.edit(newMessage);
+      const edited = await sent.edit(
+        this.toDiscordCardOutput(newMessage) ??
+          (typeof newMessage === "string" ? newMessage : ""),
+      );
       if (channelId) this.threadRegistry.trackMessage(channelId, edited);
       return true;
     } catch {
@@ -290,6 +335,89 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   protected override supportsMessageEditing(): boolean {
     return true;
+  }
+
+  private toDiscordCardOutput(
+    output: MessageInterfaceOutput,
+  ): DiscordCardOutput | undefined {
+    const parsed = discordCardOutputSchema.safeParse(output);
+    if (!parsed.success) return undefined;
+
+    const { card, fallbackText } = parsed.data;
+    if (fallbackText === undefined) return { card };
+    return { card, fallbackText };
+  }
+
+  protected override formatProgressOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return this.formatProgressPayload(event);
+  }
+
+  protected override formatCompletionOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return this.formatProgressPayload(event);
+  }
+
+  private formatProgressPayload(event: JobProgressEvent): {
+    card: CardElement;
+    fallbackText: string;
+  } {
+    const label = this.formatProgressLabel(event);
+    const children: CardChild[] = [{ type: "text", content: label }];
+    const progress = this.formatProgressAmount(event);
+    if (progress) {
+      children.push({ type: "text", content: progress });
+    }
+    if (event.message) {
+      children.push({ type: "text", content: event.message });
+    }
+
+    return {
+      card: {
+        type: "card",
+        title: this.getProgressTitle(event.status),
+        children,
+      },
+      fallbackText: this.formatProgressFallback(event, label, progress),
+    };
+  }
+
+  private formatProgressLabel(event: JobProgressEvent): string {
+    const operationType = event.metadata.operationType.replace(/_/g, " ");
+    return event.metadata.operationTarget
+      ? `${operationType}: ${event.metadata.operationTarget}`
+      : operationType;
+  }
+
+  private formatProgressAmount(event: JobProgressEvent): string | undefined {
+    if (!event.progress || event.progress.total <= 0) return undefined;
+    return `${event.progress.current}/${event.progress.total} (${event.progress.percentage}%)`;
+  }
+
+  private formatProgressFallback(
+    event: JobProgressEvent,
+    label: string,
+    progress?: string,
+  ): string {
+    const firstLine = progress
+      ? `${this.getProgressTitle(event.status)}: ${label} ${progress}`
+      : `${this.getProgressTitle(event.status)}: ${label}`;
+    return event.message ? `${firstLine}\n${event.message}` : firstLine;
+  }
+
+  private getProgressTitle(status: JobProgressEvent["status"]): string {
+    switch (status) {
+      case "pending":
+        return "Job queued";
+      case "processing":
+        return "Job processing";
+      case "completed":
+        return "Job completed";
+      case "failed":
+        return "Job failed";
+    }
   }
 
   protected override async handleProgressEvent(

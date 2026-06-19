@@ -352,6 +352,7 @@ export type { ProgressCallback } from "@brains/utils";
 export {
   MessageInterfacePlugin,
   type EditMessageRequest,
+  type MessageInterfaceOutput,
   type MessageJobTrackingInfo,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
