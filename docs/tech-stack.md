@@ -51,16 +51,16 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - Type-safe database queries
   - Migration management
   - Lightweight and performant
-- **[Drizzle-Zod](https://orm.drizzle.team/docs/zod)** - Schema validation
+- **[Zod](https://zod.dev/)** - Schema validation
   - Runtime type validation
-  - Automatic TypeScript types from schemas
+  - Inferred TypeScript types from schemas
 
 ## AI & Machine Learning
 
 ### AI Models
 
 - **Configurable** — single `AI_API_KEY` env var, provider auto-detected from model name
-  - Default text model: **`gpt-4.1`** (OpenAI)
+  - Default text model: **`gpt-5.4-mini`** (OpenAI)
   - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini)
   - Default embedding model: **`text-embedding-3-small`** (OpenAI)
   - Optional separate `AI_IMAGE_KEY` for image generation
@@ -117,7 +117,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### CLI Interface
 
 - **[React](https://react.dev/)** - Component framework
-  - Version 19.0.0
+  - Version ^19.2.x
   - Functional components with hooks
 - **[Ink](https://github.com/vadimdemedes/ink)** - React for CLIs
   - Terminal UI components
@@ -131,7 +131,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - Used for static site generation
   - Server-side rendering
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS
-  - Version 4.0.0
+  - Version ^4.1.x
   - JIT compilation
   - Component styling
 

@@ -4,7 +4,7 @@ Last updated: 2026-05-11
 
 ## Status
 
-Active. Relay reference plan, refreshed to match `brains/relay/src/index.ts`: `core` currently has 15 configured capabilities, `conversation-memory` is the plugin id, and the agent-directory composite is registered as `agents`.
+Active. Relay reference plan, refreshed to match `brains/relay/src/index.ts`: `core` currently has 18 configured capabilities, `conversation-memory` is the plugin id, and the agent-directory composite is registered as `agents`.
 
 ## Context
 
@@ -36,7 +36,7 @@ each tier is a strict superset of the one below it.
 
 ## Shipping now
 
-### `core` (15 capabilities)
+### `core` (18 capabilities)
 
 ```
 prompt              ─ AI templates
@@ -48,10 +48,13 @@ conversation-memory ─ durable summaries, decisions, and action items
 agents              ─ agent + skill directory for peer brains
 assessment          ─ derived SWOT/capability assessment from agents + skills
 auth-service        ─ OAuth/passkey identity for operators and editors
+notifications       ─ operator notification delivery
+email-resend        ─ transactional email (setup/notification delivery)
 cms                 ─ browser authoring surface
 dashboard           ─ operator dashboard widgets
 mcp                 ─ MCP interface (tool access)
 webserver           ─ shared HTTP/admin surface
+web-chat            ─ bundled in-browser chat surface
 discord             ─ team chat interface (skipped if no bot token)
 a2a                 ─ agent-to-agent transport (brain↔brain collab)
 ```

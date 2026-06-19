@@ -39,7 +39,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `skill`             | `@brains/agent-discovery`     | all presets   | all presets | —           | Derived advertised skills for agent cards.                                       |
 | `swot`              | `@brains/assessment`          | all presets   | all presets | —           | Derived assessment output from agent/skill evidence.                             |
 | `image`             | `@brains/image-plugin`        | default, full | default     | —           | Uploaded or generated image assets.                                              |
-| `document`          | `@brains/document`            | full          | —           | default     | Generated PDF documents, including saved deck carousel artifacts.                |
+| `document`          | `@brains/document-plugin`     | full          | —           | default     | Generated PDF documents, including saved deck carousel artifacts.                |
 | `site-info`         | `@brains/site-info`           | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
 | `site-content`      | `@brains/site-content`        | —             | default     | default     | Route/section content blocks for configurable sites.                             |
 | `doc`               | `@brains/doc`                 | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
@@ -48,7 +48,8 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `deck`              | `@brains/decks`               | default, full | full        | —           | Presentation decks.                                                              |
 | `project`           | `@brains/portfolio`           | full          | —           | —           | Portfolio/case-study projects.                                                   |
 | `social-post`       | `@brains/social-media`        | full          | —           | default     | Social publishing drafts and history.                                            |
-| `newsletter`        | `@brains/newsletter`          | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
+| `newsletter`        | `@brains/newsletter-entity`   | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
+| `ecosystem-section` | `@brains/rizom-ecosystem`     | all presets   | all presets | —           | Rizom ecosystem section content block (eyebrow, headline, cards).                |
 | `product`           | `@brains/products`            | —             | —           | default     | Product detail pages.                                                            |
 | `products-overview` | `@brains/products`            | —             | —           | default     | Products landing/overview page.                                                  |
 | `summary`           | `@brains/conversation-memory` | —             | all presets | —           | Narrative conversation summaries for Relay team memory.                          |
@@ -323,6 +324,22 @@ Key metadata:
 
 Documents are non-embeddable publishable artifacts. A common flow is rendering a deck carousel into a durable PDF document, attaching it to `social-post.documents[]`, and publishing it as a native LinkedIn document/carousel post.
 
+### `ecosystem-section`
+
+Rizom ecosystem section content blocks, rendered as a site section by Rover and Relay.
+
+Key metadata:
+
+- `title`
+- `slug`
+- `status`: `draft` or `published`
+
+Structured body fields:
+
+- `eyebrow`
+- `headline`
+- `cards`: array of `{ suffix, title, body, linkLabel, linkHref }` (each card's `suffix` is one of `ai`, `foundation`, or `work`)
+
 ## Content and marketing entities
 
 ### `post`
@@ -333,7 +350,7 @@ Key frontmatter:
 
 - `title`
 - `slug`
-- `status`: `draft`, `queued`, or `published`
+- `status`: `generating`, `draft`, `queued`, `published`, or `failed`
 - `publishedAt`
 - `excerpt`
 - `author`
@@ -363,7 +380,7 @@ Key frontmatter:
 - `slug`
 - `description`
 - `author`
-- `status`: `draft`, `queued`, or `published`
+- `status`: `generating`, `draft`, `queued`, `published`, or `failed`
 - `publishedAt`
 - `event`
 - `coverImageId`
@@ -376,7 +393,7 @@ Key frontmatter:
 
 - `title`
 - `slug`
-- `status`: `draft` or `published`
+- `status`: `generating`, `draft`, `published`, or `failed`
 - `publishedAt`
 - `description`
 - `year`
@@ -398,7 +415,7 @@ Key frontmatter:
 
 - `title`
 - `platform`: currently `linkedin`
-- `status`: `draft`, `queued`, `published`, or `failed`
+- `status`: `generating`, `draft`, `queued`, `published`, or `failed`
 - `coverImageId`
 - `documents`: array of `{ id }` references to `document` entities for native document/PDF posts
 - `publishedAt`
@@ -410,12 +427,12 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata.
+Newsletter entities store email drafts and delivery metadata. The entity type is defined in `@brains/newsletter-entity`; the `@brains/newsletter` package (`plugins/newsletter`) is a composite plugin that re-exports it alongside the generation and send workflows.
 
 Key frontmatter:
 
 - `subject`
-- `status`: `draft`, `queued`, `published`, or `failed`
+- `status`: `generating`, `draft`, `queued`, `published`, or `failed`
 - `entityIds`
 - `scheduledFor`
 - `sentAt`

@@ -38,7 +38,7 @@ Our theming system uses a **2-tier hierarchy** that provides both flexibility an
 
 - Raw color values that never change
 - Named by color family, not by purpose
-- Examples: `--palette-brand-blue`, `--palette-orange`, `--palette-black`
+- Examples (from `theme-default`): `--palette-paper`, `--palette-ink`, `--palette-amber`
 
 **Tier 2: Semantic Tokens** - The interface
 
@@ -60,30 +60,41 @@ Our theming system uses a **2-tier hierarchy** that provides both flexibility an
 
 ### CSS Variable Flow
 
+Tokens live inside CSS cascade layers. `theme-base` declares the layer order
+(`@layer theme-base, theme-override;`), themes wrap their tokens in
+`@layer theme { :root {...} }`, and theme-specific utility overrides go in
+`@layer theme-override`. **Dark mode is the default**: `:root` holds the
+dark-mode values, and `[data-theme="light"]`/`[data-theme="dark"]` selectors
+adjust from there. The example below uses the real `theme-default` palette
+(warm paper/ink/amber):
+
 ```css
-/* ===== TIER 1: PALETTE (Never changes) ===== */
-:root {
-  --palette-brand-blue: #3921d7;
-  --palette-orange: #ea580c;
-  --palette-black: #000000;
-  --palette-white: #ffffff;
-}
+@layer theme {
+  /* ===== TIER 1: PALETTE (Never changes) ===== */
+  :root {
+    --palette-paper: #f4ede0;
+    --palette-ink: #18132a;
+    --palette-amber: #b8410c;
+    --palette-amber-light: #ff8b3d;
+    --palette-white: #ffffff;
+  }
 
-/* ===== TIER 2: SEMANTIC (Changes at runtime) ===== */
-:root {
-  /* Light mode defaults */
-  --color-brand: var(--palette-brand-blue);
-  --color-accent: var(--palette-orange);
-  --color-bg: var(--palette-white);
-  --color-text: var(--palette-brand-blue-dark-2);
-}
+  /* ===== TIER 2: SEMANTIC (Changes at runtime) ===== */
+  :root {
+    /* Dark mode is the default; these are the dark-mode values */
+    --color-brand: var(--palette-amber);
+    --color-accent: var(--palette-amber);
+    --color-bg: var(--palette-paper);
+    --color-text: var(--palette-ink);
+  }
 
-[data-theme="dark"] {
-  /* Dark mode overrides */
-  --color-brand: var(--palette-orange); /* Swapped! */
-  --color-accent: var(--palette-brand-yellow);
-  --color-bg: var(--palette-black);
-  --color-text: var(--palette-white);
+  [data-theme="dark"] {
+    /* Dark mode overrides */
+    --color-brand: var(--palette-amber-light);
+    --color-accent: var(--palette-amber-light);
+    --color-bg: #0a0819;
+    --color-text: var(--palette-paper);
+  }
 }
 
 /* ===== EXPOSE TO TAILWIND ===== */
@@ -122,10 +133,12 @@ Our theming system uses a **2-tier hierarchy** that provides both flexibility an
 
 ### Special Utilities
 
-Some utilities need custom logic and can't be auto-generated:
+Some utilities need custom logic and can't be auto-generated. Shared ones live
+in `@layer theme-base` (in `theme-base.css`); theme-specific overrides live in
+`@layer theme-override`:
 
 ```css
-@layer utilities {
+@layer theme-base {
   /* bg-theme and text-theme use DIFFERENT variables */
   .bg-theme {
     background-color: var(--color-bg);
@@ -133,7 +146,9 @@ Some utilities need custom logic and can't be auto-generated:
   .text-theme {
     color: var(--color-text);
   }
+}
 
+@layer theme-override {
   /* Conditional utilities that change in dark mode */
   .text-nav {
     color: var(--color-brand);
@@ -152,26 +167,30 @@ Some utilities need custom logic and can't be auto-generated:
 
 ```css
 /* shared/theme-default/src/theme.css */
-:root {
-  /* Add new palette color */
-  --palette-success-green: #10b981;
-  --palette-danger-red: #ef4444;
+@layer theme {
+  :root {
+    /* Add new palette color */
+    --palette-success-green: #10b981;
+    --palette-danger-red: #ef4444;
+  }
 }
 ```
 
 ### Step 2: Add Semantic Token
 
 ```css
-/* Add semantic tokens for both light and dark modes */
-:root {
-  --color-success: var(--palette-success-green);
-  --color-danger: var(--palette-danger-red);
-}
+/* Add semantic tokens; :root is the default (dark), then adjust per mode */
+@layer theme {
+  :root {
+    --color-success: var(--palette-success-green);
+    --color-danger: var(--palette-danger-red);
+  }
 
-[data-theme="dark"] {
-  /* Adjust for dark mode if needed */
-  --color-success: #34d399; /* Lighter for dark backgrounds */
-  --color-danger: #f87171;
+  [data-theme="dark"] {
+    /* Adjust for dark mode if needed */
+    --color-success: #34d399; /* Lighter for dark backgrounds */
+    --color-danger: #f87171;
+  }
 }
 ```
 
@@ -231,30 +250,32 @@ shared/theme-mytheme/
 **2. Create theme.css**:
 
 ```css
-/* ===== TIER 1: PALETTE TOKENS ===== */
-:root {
-  /* Define your color palette */
-  --palette-primary: #6366f1;
-  --palette-secondary: #ec4899;
-  --palette-light: #f8fafc;
-  --palette-dark: #0f172a;
-}
+@layer theme {
+  /* ===== TIER 1: PALETTE TOKENS ===== */
+  :root {
+    /* Define your color palette */
+    --palette-primary: #6366f1;
+    --palette-secondary: #ec4899;
+    --palette-light: #f8fafc;
+    --palette-dark: #0f172a;
+  }
 
-/* ===== TIER 2: SEMANTIC TOKENS ===== */
-:root {
-  /* Light mode (default) */
-  --color-brand: var(--palette-primary);
-  --color-accent: var(--palette-secondary);
-  --color-bg: var(--palette-light);
-  --color-text: var(--palette-dark);
+  /* ===== TIER 2: SEMANTIC TOKENS ===== */
+  :root {
+    /* Dark mode is the default; :root holds the dark-mode values */
+    --color-brand: var(--palette-primary);
+    --color-accent: var(--palette-secondary);
+    --color-bg: var(--palette-dark);
+    --color-text: var(--palette-light);
 
-  /* More semantic tokens... */
-}
+    /* More semantic tokens... */
+  }
 
-[data-theme="dark"] {
-  /* Dark mode overrides */
-  --color-bg: var(--palette-dark);
-  --color-text: var(--palette-light);
+  [data-theme="light"] {
+    /* Light mode overrides */
+    --color-bg: var(--palette-light);
+    --color-text: var(--palette-dark);
+  }
 }
 
 /* ===== EXPOSE TO TAILWIND ===== */
@@ -264,14 +285,13 @@ shared/theme-mytheme/
   /* Expose all colors you want utilities for */
 }
 
-/* ===== SPECIAL UTILITIES ===== */
-@layer utilities {
-  /* Theme utilities where bg/text need different variables */
-  .bg-theme {
-    background-color: var(--color-bg);
-  }
-  .text-theme {
-    color: var(--color-text);
+/* ===== SPECIAL UTILITIES =====
+   Shared bg-theme/text-theme already ship in theme-base.css under
+   @layer theme-base; only add theme-specific overrides here. */
+@layer theme-override {
+  /* Theme-specific utilities go here */
+  .text-logo {
+    color: var(--color-brand);
   }
 }
 ```
@@ -313,13 +333,16 @@ site:
 **✅ DO**:
 
 ```css
-/* Semantic tokens that swap at runtime */
-:root {
-  --color-text: var(--palette-gray-900);
-}
+/* Semantic tokens that swap at runtime. Dark is the default, so :root
+   holds the dark value and [data-theme="light"] overrides it. */
+@layer theme {
+  :root {
+    --color-text: var(--palette-gray-100);
+  }
 
-[data-theme="dark"] {
-  --color-text: var(--palette-gray-100);
+  [data-theme="light"] {
+    --color-text: var(--palette-gray-900);
+  }
 }
 ```
 
@@ -378,11 +401,13 @@ The brain resolver loads `site.package` and `site.theme` independently. App-spec
 
 ### Site Builder Integration
 
-The site builder concatenates CSS in the correct order:
+The site builder composes CSS in the correct order via `composeTheme()`
+(`shared/theme-base/src/index.ts`), which prepends the shared base before the
+chosen theme:
 
-1. **base.css** - Tailwind setup, plugins, font fallbacks
-2. **theme CSS** - Your chosen theme with `@theme inline` blocks
-3. **Tailwind processing** - Generates utilities from both
+1. **theme-base.css** - shared `@theme inline` exposure, `@layer theme-base` utilities, status colors, layer-order declaration
+2. **theme CSS** - your chosen theme's `@layer theme` tokens and `@layer theme-override` styles
+3. **Tailwind processing** - generates utilities from both
 
 **Result**: Each site gets its own theme, but all use the same component code!
 
@@ -472,7 +497,7 @@ const variantClasses = {
 ```css
 /* ❌ WRONG - resolves at build time */
 @theme {
-  --color-brand: #3921d7;
+  --color-brand: #b8410c;
 }
 
 /* ✅ CORRECT - resolves at runtime */

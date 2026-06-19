@@ -1,6 +1,9 @@
 # Cost Estimates
 
-Estimated monthly API costs per brain using **gpt-4.1-mini** ($0.40/M input, $1.60/M output).
+Estimated monthly API costs per brain using **gpt-5.4-mini** (the default text
+model across all brains). Dollar figures below are illustrative — assuming
+roughly $0.40/M input, $1.60/M output — and meant to convey order of magnitude,
+not exact billing.
 
 Embeddings via OpenAI `text-embedding-3-small` (1536d): $0.02/M tokens. A brain with 500 entities ≈ $0.001 to embed everything. Re-embedding on model change is negligible.
 
@@ -41,21 +44,25 @@ Most brains generate 0–5 images/day (cover images for posts, social media).
 
 ## Eval Costs
 
-Running the Rover eval suite (86 test cases):
+Running the Rover eval suite (126 test cases). Rover's `brain.eval.yaml` runs
+both the agent under test and the LLM judge on `gpt-5.4-mini`. Figures are
+illustrative:
 
-| Component        | Model            | Cost per run |
-| ---------------- | ---------------- | ------------ |
-| Agent under test | gpt-4.1-mini     | ~$0.25       |
-| LLM judge        | claude-haiku-4-5 | ~$1.05       |
-| **Total**        |                  | **~$1.30**   |
+| Component        | Model        | Cost per run |
+| ---------------- | ------------ | ------------ |
+| Agent under test | gpt-5.4-mini | ~$0.35       |
+| LLM judge        | gpt-5.4-mini | ~$0.35       |
+| **Total**        |              | **~$0.70**   |
 
 ## Model Comparison
 
-Measured from eval runs (86 test cases, avg tokens per test):
+Illustrative per-test cost from eval runs (126 test cases, avg tokens per
+test). `gpt-5.4-mini` is the configured agent and judge model; an Anthropic
+model is shown for comparison only:
 
 | Model            | Avg tokens/test | Input price | Output price | Cost/test | Relative |
 | ---------------- | --------------- | ----------- | ------------ | --------- | -------- |
-| gpt-4.1-mini     | 3,762           | $0.40/M     | $1.60/M      | $0.003    | 1x       |
+| gpt-5.4-mini     | 3,762           | $0.40/M     | $1.60/M      | $0.003    | 1x       |
 | claude-haiku-4-5 | 6,679           | $0.80/M     | $4.00/M      | $0.012    | 4x       |
 
 ## Bottom Line
