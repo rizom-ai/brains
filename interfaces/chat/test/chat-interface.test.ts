@@ -1544,7 +1544,7 @@ describe("ChatInterface", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     expect(thread.post).toHaveBeenNthCalledWith(1, "Please confirm.");
-    expect(thread.post.mock.calls[0]?.[0]).not.toContain("**Approval:**");
+    expect(thread.post.mock.calls[0]?.[0]).not.toContain("Approval:");
     expect(thread.post.mock.calls[0]?.[0]).not.toContain("approval-requested");
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
@@ -2502,7 +2502,7 @@ describe("ChatInterface", () => {
       2,
       expect.objectContaining({
         fallbackText:
-          "**Artifact:** Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
+          "Artifact: Deck carousel\nReady to review.\nFile: deck-carousel.pdf\nType: application/pdf\nSize: 1.2 KB",
         card: expect.objectContaining({
           type: "card",
           title: "Deck carousel",
@@ -2610,7 +2610,7 @@ describe("ChatInterface", () => {
       2,
       expect.objectContaining({
         fallbackText:
-          "**Artifact:** Native deck\nFile: native-deck.pdf\nType: application/pdf",
+          "Artifact: Native deck\nFile: native-deck.pdf\nType: application/pdf",
         card: expect.objectContaining({
           type: "card",
           title: "Native deck",
@@ -2714,7 +2714,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Not available at your access level.",
+        "Artifact: Not available at your access level.",
       ].join("\n\n"),
     );
   });
@@ -2757,7 +2757,7 @@ describe("ChatInterface", () => {
       2,
       expect.objectContaining({
         fallbackText:
-          "**Artifact:** Missing deck\nFile: missing-deck.pdf\nType: application/pdf",
+          "Artifact: Missing deck\nFile: missing-deck.pdf\nType: application/pdf",
         card: expect.objectContaining({
           type: "card",
           title: "Missing deck",
@@ -2809,7 +2809,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Not available at your access level.",
+        "Artifact: Not available at your access level.",
       ].join("\n\n"),
     );
   });
@@ -2856,7 +2856,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
-        "**Artifact:** Not available at your access level.",
+        "Artifact: Not available at your access level.",
       ].join("\n\n"),
     );
   });
@@ -2896,8 +2896,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        fallbackText:
-          "**Artifact:** Robot image\nFile: robot.png\nType: image/png",
+        fallbackText: "Artifact: Robot image\nFile: robot.png\nType: image/png",
         card: expect.objectContaining({
           type: "card",
           title: "Robot image",
@@ -2963,8 +2962,7 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        fallbackText:
-          "**Artifact:** Local robot\nFile: robot.png\nType: image/png",
+        fallbackText: "Artifact: Local robot\nFile: robot.png\nType: image/png",
         card: expect.objectContaining({
           type: "card",
           title: "Local robot",
@@ -3011,8 +3009,8 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Approval needed.",
-        "**Approval:** Publish Launch Post\nStatus: approval-requested\nThis will publish the draft post.",
-        "**Approval:** Publish Follow-up\nStatus: output-available",
+        "Approval: Publish Launch Post\nStatus: approval-requested\nThis will publish the draft post.",
+        "Approval: Publish Follow-up\nStatus: output-available",
       ].join("\n\n"),
     );
     expect(thread.post.mock.calls[0]?.[0]).not.toContain("internal");

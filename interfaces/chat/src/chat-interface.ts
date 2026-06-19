@@ -1402,7 +1402,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private formatArtifactFallback(
     display: NonNullable<ReturnType<typeof formatArtifactDisplay>>,
   ): string {
-    const lines = [`**Artifact:** ${display.title}`];
+    const lines = [`Artifact: ${display.title}`];
     if (display.description) lines.push(display.description);
     if (display.filename) lines.push(`File: ${display.filename}`);
     if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
@@ -1605,11 +1605,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): string {
     if (card.kind === "attachment") {
       if (deniedCardIds?.has(card.id)) {
-        return "**Artifact:** Not available at your access level.";
+        return "Artifact: Not available at your access level.";
       }
       const display = formatArtifactDisplay(card);
-      if (!display) return "**Artifact:** Generated artifact";
-      const lines = [`**Artifact:** ${display.title}`];
+      if (!display) return "Artifact: Generated artifact";
+      const lines = [`Artifact: ${display.title}`];
       if (display.description) lines.push(display.description);
       if (display.filename) lines.push(`File: ${display.filename}`);
       if (display.mediaType) lines.push(`Type: ${display.mediaType}`);
@@ -1630,7 +1630,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
 
     if (card.kind === "tool-approval") {
-      const lines = [`**Approval:** ${card.summary || card.toolName}`];
+      const lines = [`Approval: ${card.summary || card.toolName}`];
       lines.push(`Status: ${card.state}`);
       if (card.preview) lines.push(card.preview);
       const output = this.formatCardOutput(card.output);
@@ -1640,7 +1640,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
 
     if (card.kind === "sources") {
-      const lines = [`**Sources:** ${card.title ?? "Retrieved context"}`];
+      const lines = [`Sources: ${card.title ?? "Retrieved context"}`];
       for (const source of card.sources) {
         lines.push(
           `- ${source.title ?? source.source}${source.url ? ` — ${source.url}` : ""}`,
@@ -1649,7 +1649,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return lines.join("\n");
     }
 
-    const lines = [`**Actions:** ${card.title ?? "Suggested actions"}`];
+    const lines = [`Actions: ${card.title ?? "Suggested actions"}`];
     for (const action of card.actions) {
       lines.push(`- ${action.label}`);
     }
