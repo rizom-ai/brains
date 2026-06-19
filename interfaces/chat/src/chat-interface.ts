@@ -669,7 +669,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const conversationId = this.getConversationId(platform, event.thread.id);
     const approvalIds = await this.getPendingApprovalIds(conversationId);
     if (!approvalIds.has(event.value)) {
-      await event.thread.post("_That approval is no longer pending._");
+      await event.thread.post(
+        this.formatNoticePayload("That approval is no longer pending."),
+      );
       return;
     }
 
@@ -926,25 +928,31 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
       await thread.post(
-        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+        this.formatNoticePayload(
+          "Please reply with yes to confirm or no/cancel to abort.",
+        ),
       );
       return;
     }
 
     if (!parsed.approvalId && this.hasExplicitApprovalReference(message)) {
       await thread.post(
-        `_No matching pending approval id. Pending approval ids: ${[
-          ...approvalIds,
-        ].join(", ")}._`,
+        this.formatNoticePayload(
+          `No matching pending approval id. Pending approval ids: ${[
+            ...approvalIds,
+          ].join(", ")}.`,
+        ),
       );
       return;
     }
 
     if (approvalIds.size > 1 && !parsed.approvalId) {
       await thread.post(
-        `_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: ${[
-          ...approvalIds,
-        ].join(", ")}._`,
+        this.formatNoticePayload(
+          `Multiple approvals are pending; include one approval id with yes or no/cancel: ${[
+            ...approvalIds,
+          ].join(", ")}.`,
+        ),
       );
       return;
     }
@@ -952,7 +960,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const approvalId = parsed.approvalId ?? [...approvalIds][0];
     if (!approvalId) {
       this.pendingConfirmations.delete(conversationId);
-      await thread.post("_No pending approval to resolve._");
+      await thread.post(
+        this.formatNoticePayload("No pending approval to resolve."),
+      );
       return;
     }
 
@@ -1063,6 +1073,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private hasExplicitApprovalReference(message: string): boolean {
     return /(^|[^a-z0-9_-])approval[:-][a-z0-9_-]+/i.test(message);
+  }
+
+  private formatNoticePayload(message: string): DiscordCardOutput {
+    return {
+      card: {
+        type: "card",
+        title: "Approval notice",
+        children: [{ type: "text", content: message }],
+      },
+      fallbackText: message,
+    };
   }
 
   private formatErrorPayload(error: unknown): MessageInterfaceOutput {

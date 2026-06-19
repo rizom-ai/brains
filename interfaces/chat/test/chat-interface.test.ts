@@ -1813,7 +1813,11 @@ describe("ChatInterface", () => {
 
     expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
     expect(thread.post).toHaveBeenCalledWith(
-      "_No matching pending approval id. Pending approval ids: approval-2._",
+      expect.objectContaining({
+        fallbackText:
+          "No matching pending approval id. Pending approval ids: approval-2.",
+        card: expect.objectContaining({ title: "Approval notice" }),
+      }),
     );
   });
 
@@ -2131,7 +2135,10 @@ describe("ChatInterface", () => {
     );
 
     expect(thread.post).toHaveBeenCalledWith(
-      "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      expect.objectContaining({
+        fallbackText: "Please reply with yes to confirm or no/cancel to abort.",
+        card: expect.objectContaining({ title: "Approval notice" }),
+      }),
     );
     expect(agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
@@ -2183,7 +2190,11 @@ describe("ChatInterface", () => {
     );
 
     expect(thread.post).toHaveBeenCalledWith(
-      "_Multiple approvals are pending; include one approval id with **yes** or **no/cancel**: approval-1, approval-2._",
+      expect.objectContaining({
+        fallbackText:
+          "Multiple approvals are pending; include one approval id with yes or no/cancel: approval-1, approval-2.",
+        card: expect.objectContaining({ title: "Approval notice" }),
+      }),
     );
     expect(agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
