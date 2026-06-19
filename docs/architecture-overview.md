@@ -35,78 +35,83 @@ sites/          Structural site packages (routes, plugins, inherited composition
 interfaces/     InterfacePlugin packages for transports and daemons
 brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
-apps/           Local development / legacy instance directories
 ```
 
-In-repo `apps/<name>/` directories are local instance directories centered on `brain.yaml` and optional deploy/config files. New user instances are normally scaffolded outside the monorepo with `brain init`; those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css` depending on model and options.
+A running brain is driven by an _instance directory_ centered on `brain.yaml` plus optional deploy/config files. The monorepo does not currently ship such instance directories; user instances are scaffolded outside the monorepo with `brain init`. Those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css` depending on model and options.
 
 ## Current package map
 
 ### Shell packages
 
-| Package                      | Purpose                                                              |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `shell/app`                  | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap |
-| `shell/core`                 | Core shell, lifecycle orchestration, system tools/resources/prompts  |
-| `shell/ai-service`           | AI querying, orchestration, provider abstraction                     |
-| `shell/content-service`      | Template-based content generation support                            |
-| `shell/conversation-service` | Conversation state and message history                               |
-| `shell/entity-service`       | Entity CRUD, indexing, search, embeddings                            |
-| `shell/identity-service`     | Brain identity, anchor profile, URL derivation                       |
-| `shell/job-queue`            | Background jobs, progress events, handler registration               |
-| `shell/mcp-service`          | MCP tool/resource/prompt/template registration                       |
-| `shell/messaging-service`    | Typed event bus used across plugins                                  |
-| `shell/plugins`              | Base plugin classes, contexts, harnesses                             |
-| `shell/templates`            | Template registry and resolution                                     |
-| `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                           |
-| `shell/auth-service`         | Embedded OAuth metadata, JWKS, and auth route foundation             |
+| Package                      | Purpose                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `shell/app`                  | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap    |
+| `shell/core`                 | Core shell, lifecycle orchestration, system tools/resources/prompts     |
+| `shell/ai-service`           | AI querying, orchestration, provider abstraction                        |
+| `shell/content-service`      | Template-based content generation support                               |
+| `shell/conversation-service` | Conversation state and message history                                  |
+| `shell/entity-service`       | Entity CRUD, indexing, search, embeddings                               |
+| `shell/identity-service`     | Brain identity, anchor profile, URL derivation                          |
+| `shell/job-queue`            | Background jobs, progress events, handler registration                  |
+| `shell/mcp-service`          | MCP tool/resource/prompt/template registration                          |
+| `shell/messaging-service`    | Typed event bus used across plugins                                     |
+| `shell/runtime-state`        | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`) |
+| `shell/plugins`              | Base plugin classes, contexts, harnesses                                |
+| `shell/templates`            | Template registry and resolution                                        |
+| `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                              |
+| `shell/auth-service`         | Embedded OAuth metadata, JWKS, and auth route foundation                |
 
 ### Entity packages
 
 Entity packages live in `entities/`. Most packages define one entity type; a few define more than one.
 
-| Package                        | Entity type(s)                       | Notes                                 |
-| ------------------------------ | ------------------------------------ | ------------------------------------- |
-| `entities/blog`                | `post`                               | Essays, long-form publishing          |
-| `entities/decks`               | `deck`                               | Presentation/deck content             |
-| `entities/doc`                 | `doc`                                | Generic docs entity backing `/docs`   |
-| `entities/image`               | `image`                              | AI image generation                   |
-| `entities/link`                | `link`                               | URL capture and extraction            |
-| `entities/newsletter`          | `newsletter`                         | Newsletter content                    |
-| `entities/note`                | `note`                               | General markdown notes / notes        |
-| `entities/portfolio`           | `project`                            | Case studies and portfolio entries    |
-| `entities/products`            | `product`, `products-overview`       | Product catalog content               |
-| `entities/prompt`              | `prompt`                             | Editable AI prompt entities           |
-| `entities/series`              | `series`                             | Derived post grouping                 |
-| `entities/site-info`           | `site-info`                          | Site metadata                         |
-| `entities/social-media`        | `social-post`                        | Social publishing content             |
-| `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                   |
-| `entities/topics`              | `topic`                              | Derived topic/tag entities            |
-| `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog        |
-| `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills |
-| `entities/assessment`          | `swot`                               | Derived assessment outputs            |
-| `entities/rizom-ecosystem`     | `ecosystem-section`                  | Rizom site ecosystem section content  |
+| Package                        | Entity type(s)                       | Notes                                               |
+| ------------------------------ | ------------------------------------ | --------------------------------------------------- |
+| `entities/blog`                | `post`                               | Essays, long-form publishing                        |
+| `entities/decks`               | `deck`                               | Presentation/deck content                           |
+| `entities/doc`                 | `doc`                                | Generic docs entity backing `/docs`                 |
+| `entities/document`            | `document`                           | Generated PDFs and publishable document attachments |
+| `entities/image`               | `image`                              | AI image generation                                 |
+| `entities/link`                | `link`                               | URL capture and extraction                          |
+| `entities/newsletter`          | `newsletter`                         | Newsletter content                                  |
+| `entities/note`                | `note`                               | General markdown notes / notes                      |
+| `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
+| `entities/products`            | `product`, `products-overview`       | Product catalog content                             |
+| `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
+| `entities/series`              | `series`                             | Derived post grouping                               |
+| `entities/site-info`           | `site-info`                          | Site metadata                                       |
+| `entities/social-media`        | `social-post`                        | Social publishing content                           |
+| `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
+| `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
+| `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
+| `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |
+| `entities/assessment`          | `swot`                               | Derived assessment outputs                          |
+| `entities/rizom-ecosystem`     | `ecosystem-section`                  | Rizom site ecosystem section content                |
 
 ### Service plugins
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                               |
-| -------------------------- | ------------------------------------- |
-| `plugins/analytics`        | Analytics integration and insights    |
-| `plugins/buttondown`       | Buttondown API integration            |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries |
-| `plugins/dashboard`        | Dashboard widgets and UI slots        |
-| `plugins/directory-sync`   | File sync + git operations            |
-| `plugins/hackmd`           | HackMD MCP bridge                     |
-| `plugins/newsletter`       | Composite newsletter capability       |
-| `plugins/notion`           | Notion MCP bridge                     |
-| `plugins/obsidian-vault`   | Obsidian export/templates             |
-| `plugins/site-builder`     | Static site build orchestration       |
-| `plugins/site-content`     | Site section content generation       |
-| `plugins/stock-photo`      | Stock-photo search and selection      |
-| `plugins/cms`              | Browser authoring routes + CMS config |
-| `plugins/examples`         | Reference patterns and examples       |
+| Package                    | Purpose                                                            |
+| -------------------------- | ------------------------------------------------------------------ |
+| `plugins/analytics`        | Analytics integration and insights                                 |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                 |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                       |
+| `plugins/buttondown`       | Buttondown API integration                                         |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                              |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
+| `plugins/directory-sync`   | File sync + git operations                                         |
+| `plugins/email-resend`     | Generic email delivery adapter for Resend                          |
+| `plugins/hackmd`           | HackMD MCP bridge                                                  |
+| `plugins/newsletter`       | Composite newsletter capability                                    |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages |
+| `plugins/notion`           | Notion MCP bridge                                                  |
+| `plugins/obsidian-vault`   | Obsidian export/templates                                          |
+| `plugins/site-builder`     | Static site build orchestration                                    |
+| `plugins/site-content`     | Site section content generation                                    |
+| `plugins/stock-photo`      | Stock-photo search and selection                                   |
+| `plugins/cms`              | Browser authoring routes + CMS config                              |
+| `plugins/examples`         | Reference patterns and examples                                    |
 
 ### Interface plugins
 
@@ -118,6 +123,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
 | `interfaces/discord`   | Discord bot interface                                                                       |
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
+| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
 | `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and `/health` |
 
 ### Sites, themes, and brains

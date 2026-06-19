@@ -140,15 +140,15 @@ Create requests use the standard confirmation flow before anything is persisted 
 
 Publishing-oriented entities usually use status fields.
 
-| Entity type   | Status values                                       |
-| ------------- | --------------------------------------------------- |
-| `post`        | `draft`, `queued`, `published`                      |
-| `deck`        | `draft`, `queued`, `published`                      |
-| `project`     | `draft`, `published`                                |
-| `link`        | `pending`, `draft`, `published`                     |
-| `social-post` | `draft`, `queued`, `published`, `failed`            |
-| `newsletter`  | `draft`, `queued`, `published`, `failed`            |
-| `wish`        | `new`, `planned`, `in-progress`, `done`, `declined` |
+| Entity type   | Status values                                          |
+| ------------- | ------------------------------------------------------ |
+| `post`        | `generating`, `draft`, `queued`, `published`, `failed` |
+| `deck`        | `generating`, `draft`, `queued`, `published`, `failed` |
+| `project`     | `generating`, `draft`, `published`, `failed`           |
+| `link`        | `pending`, `draft`, `published`                        |
+| `social-post` | `generating`, `draft`, `queued`, `published`, `failed` |
+| `newsletter`  | `generating`, `draft`, `queued`, `published`, `failed` |
+| `wish`        | `new`, `planned`, `in-progress`, `done`, `declined`    |
 
 The site builder renders the entities and routes enabled by the active site package, preset, and entity display config. For app/site verification, start the app and trigger a rebuild on the running app before inspecting generated output.
 
