@@ -121,6 +121,8 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
 ```
 
+For the git-command-oriented lifecycle and conflict policy, see [Directory Sync Git Overview](./directory-sync-git.md).
+
 `directory-sync` also handles seed content on first run for shipped brain models. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
 
 ### Generation jobs
@@ -224,6 +226,7 @@ Before publishing or deploying content:
 ## Related docs
 
 - [Entity Types Reference](./entity-types-reference.md)
+- [Directory Sync Git Overview](./directory-sync-git.md)
 - [Extensible Entity Model](./entity-model.md)
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)
 - [CLI Reference](../packages/brain-cli/docs/cli-reference.md)

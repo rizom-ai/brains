@@ -35,6 +35,12 @@ docs:
     order: 50
     source: docs/content-management.md
 
+  - id: directory-sync-git
+    title: Directory Sync Git Overview
+    section: Content and entities
+    order: 55
+    source: docs/directory-sync-git.md
+
   - id: entity-types-reference
     title: Entity Types Reference
     section: Content and entities

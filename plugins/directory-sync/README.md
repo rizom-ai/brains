@@ -4,7 +4,7 @@ File-backed content synchronization for brain instances.
 
 `directory-sync` maps files in a sync directory, usually `brain-data/`, to typed markdown entities and can optionally keep that directory synchronized with git.
 
-For a git-command-oriented explanation of the sync lifecycle and conflict policy, see [Git Sync Overview](./docs/git-sync-overview.md).
+For a git-command-oriented explanation of the sync lifecycle and conflict policy, see [Directory Sync Git Overview](../../docs/directory-sync-git.md).
 
 ## What it does
 
