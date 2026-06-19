@@ -1,5 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import {
   toolConfirmationSchema,
   toolResponseSchema,
@@ -13,23 +13,19 @@ import type {
   ToolResultData,
 } from "./agent-types";
 
-const toolCallArgsSchema = z.record(z.unknown());
-const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
-const sourceEntitySchema = z
-  .object({
-    id: z.string().min(1),
-    entityType: z.string().min(1),
-    content: z.string().optional(),
-    metadata: z.record(z.unknown()).default({}),
-  })
-  .passthrough();
-const entitySearchResultSchema = z
-  .object({
-    entity: sourceEntitySchema,
-    score: z.number().finite().optional(),
-    excerpt: z.string().optional(),
-  })
-  .passthrough();
+const toolCallArgsSchema = z.record(z.string(), z.unknown());
+const jobIdSchema = z.looseObject({ jobId: z.string() });
+const sourceEntitySchema = z.looseObject({
+  id: z.string().min(1),
+  entityType: z.string().min(1),
+  content: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+const entitySearchResultSchema = z.looseObject({
+  entity: sourceEntitySchema,
+  score: z.number().finite().optional(),
+  excerpt: z.string().optional(),
+});
 const searchToolDataSchema = z.object({
   results: z.array(entitySearchResultSchema),
 });

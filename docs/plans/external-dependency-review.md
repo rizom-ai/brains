@@ -460,6 +460,9 @@ Incremental migration progress:
   schemas composed across package boundaries; explicit `@brains/utils/zod-v4`
   migration should happen at those composition boundaries instead of mixing v3
   and v4 schemas inside a single schema tree.
+- Started safe explicit Zod 4 islands beyond web chat by migrating local
+  `ai-service` agent-result parsing schemas to `@brains/utils/zod-v4`, using
+  `z.looseObject` for intentional passthrough shapes and Zod 4 record syntax.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
