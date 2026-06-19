@@ -1,6 +1,6 @@
 id: multi-turn-playbook-blocks-partial-identity-name-only
 name: Playbook Blocks Partial Identity Name Only
-description: Verifies that Rover does not update the anchor profile or advance onboarding after receiving only the operator name during Identity.
+description: Verifies that Rover does not update the anchor profile or advance onboarding after receiving only the operator name during Anchor profile.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -39,6 +39,18 @@ turns:
         - "I cannot"
         - "I don't have access"
 
+  - userMessage: "Use the Keep Rover defaults action."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: SKIP
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
   - userMessage: "Yeehaa"
     successCriteria:
       expectedTools:
@@ -64,12 +76,12 @@ successCriteria:
     - toolName: playbook_start
       shouldBeCalled: true
   toolCountRange:
-    max: 8
+    max: 10
   responseNotContains:
     - "Confirmation required"
     - "I cannot"
     - "I don't have access"
 
 efficiency:
-  maxToolCalls: 8
+  maxToolCalls: 10
   maxTokens: 120000

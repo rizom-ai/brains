@@ -27,7 +27,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Set up Rover action and continue to identity setup."
+  - userMessage: "Use the Set up Rover action and continue to brain identity setup."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
@@ -38,6 +38,29 @@ turns:
         - "Confirmation required"
         - "want to continue"
         - "continue onboarding"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "brain"
+      responseNotContains:
+        - "Completed: Update \""
         - "I cannot"
         - "I don't have access"
 
@@ -177,5 +200,5 @@ successCriteria:
   minInstructionFollowingScore: 3
 
 efficiency:
-  maxToolCalls: 16
+  maxToolCalls: 20
   maxTokens: 260000

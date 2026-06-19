@@ -25,13 +25,25 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Set up Rover action and continue to identity setup."
+  - userMessage: "Use the Set up Rover action and continue to brain identity setup."
     successCriteria:
       expectedTools:
         - toolName: playbook_send_event
           shouldBeCalled: true
           argsContain:
             event: CHOICE_1
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Use the Keep Rover defaults action."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_send_event
+          shouldBeCalled: true
+          argsContain:
+            event: SKIP
       responseNotContains:
         - "Confirmation required"
         - "I cannot"
@@ -111,5 +123,5 @@ successCriteria:
     - "playbook_send_event"
 
 efficiency:
-  maxToolCalls: 12
+  maxToolCalls: 14
   maxTokens: 180000

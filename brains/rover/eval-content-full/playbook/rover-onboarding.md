@@ -33,29 +33,56 @@ To do:
 
 - Explain Rover as a personal knowledge and publishing brain for an independent professional.
 - Explain that setup is a short guided apprenticeship, not a form.
+- Explain that setup tunes two things first: this brain's identity, then the operator's anchor profile.
 
 Choices:
 
-- Set up Rover → Identity
+- Set up Rover → Brain identity
 - Not now → Done
 
-### Identity
+### Brain identity
 
-Say: Let’s tune Rover to you. What should I call you?
+Say: First, let’s tune Rover itself. In one sentence, what should this brain help you do?
+
+To do:
+
+- Help the operator define the brain's identity: name, role, purpose, and values.
+- Keep this about the brain itself — what Rover is and how it should help — not the operator's personal profile.
+- If the operator wants the default Rover identity, use the existing name "Rover" and default role/purpose/values; do not force customization.
+- If the operator gives a compact description, infer reasonable role, purpose, and values from it; ask only for genuinely missing or ambiguous information.
+- When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
+- Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".
+- Use a full markdown content replacement with valid frontmatter keys: name, role, purpose, and values (values is a YAML list); do not use fields-only updates for brain-character.
+- Do not use system_create for brain-character; brain-character is an existing singleton identity record.
+- After saving, explain that Rover uses brain identity to introduce itself, frame its work, and keep a consistent style.
+
+Done when:
+
+- The brain character has been updated.
+
+Skip: Keep Rover defaults → Anchor profile
+
+### Anchor profile
+
+Say: Now let’s tune Rover to you. What should I call you?
 
 To do:
 
 - Learn enough about the operator to create or update the anchor profile: name, role, audience, expertise, and desired tone.
 - Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.
 - A name by itself is not enough to update the profile; after receiving only a name, ask for the operator's role next.
+- Do not treat a name-only answer as a request to skip; do not send SKIP unless the operator explicitly asks to skip.
 - Do not update the anchor profile until name, role, audience, expertise, and tone have all been provided in the current onboarding run.
 - If the operator gives multiple details at once, use them; do not re-ask fields already provided.
 - Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
-- When the operator only chooses setup or asks to continue to identity setup, ask the Identity prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
+- When the operator only chooses setup or asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
+- Use a full markdown content replacement with valid frontmatter keys: name, kind, and description; set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.
+- Write description as a YAML block scalar (`description: >-`) so colons or punctuation inside the description do not break frontmatter parsing.
+- Do not use fields-only updates for anchor-profile.
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
-- After saving, explain that Rover uses identity to shape answers, site content, and publishing workflows.
+- After saving, explain that Rover uses the anchor profile to shape answers, site content, and publishing workflows around the operator.
 
 Done when:
 
@@ -75,7 +102,7 @@ To do:
 - Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.
 - After saving the first seed, say it was saved or captured, then ask whether to find or show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
-- Explain how Rover can retrieve, connect, summarize, and repurpose it later.
+- Explain the first loop clearly: rough thought → durable knowledge → retrieval → transformation.
 
 Done when:
 
@@ -92,7 +119,7 @@ To do:
 - If the operator chooses the Show me action in chat, send the Show me event and retrieve the saved note with system_get or system_search before saying you found it; do not rely only on conversation memory.
 - If the operator says they will ask, explain they can search their own knowledge in natural language, then continue to Make something.
 - Do not stop after retrieval; end by offering the transformation options from Make something.
-- When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline, short draft, or reusable brief; store the result as a note.
+- When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline for later writing, a short draft, or a reusable brief; store the result as a note.
 - Explain the flywheel: more stored knowledge makes future answers and drafts more useful.
 
 Choices:
@@ -102,11 +129,11 @@ Choices:
 
 ### Make something
 
-Say: Let’s turn a note into something useful — an outline, a short draft, or a reusable brief. Which would you like?
+Say: Let’s turn that note into something useful — an outline for later writing, a short draft, or a reusable brief. Which would you like?
 
 To do:
 
-- Offer two or three transformations in the manual onboarding style: outline, short draft, or reusable brief.
+- Offer two or three transformations in the manual onboarding style: outline for later writing, short draft, or reusable brief.
 - Create the chosen artifact only after the operator chooses one; in core, store it as a base note entity.
 - When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "base" for the chosen draft artifact.
 - Do not only say you will create the draft; the tool call is the action that should produce the approval request.
@@ -123,10 +150,11 @@ Done when:
 
 ### Done
 
-Say: You’re set up. You can keep using Rover to save ideas, retrieve what you know, transform notes into drafts, and manage publishing work whenever you are ready.
+Say: You’re set up. Rover now has a clear identity, an anchor profile for you, and a first memory it can retrieve and transform.
 
 To do:
 
+- Explain the Rover loop: save, retrieve, connect, transform, and manage publishing work.
 - Give a short list of useful next prompts.
 - Remind the operator they can keep using chat to save, retrieve, transform, and manage knowledge.
 

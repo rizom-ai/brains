@@ -58,7 +58,12 @@ describe("Rover onboarding playbook seed", () => {
     );
     const { body } = playbookAdapter.parsePlaybookContent(seedMarkdown);
     const welcome = body.states.find((state) => state.id === "welcome");
-    const identity = body.states.find((state) => state.id === "identity");
+    const brainIdentity = body.states.find(
+      (state) => state.id === "brain-identity",
+    );
+    const anchorProfile = body.states.find(
+      (state) => state.id === "anchor-profile",
+    );
     const firstNote = body.states.find((state) => state.id === "first-note");
     const seeItComeBack = body.states.find(
       (state) => state.id === "see-it-come-back",
@@ -73,7 +78,7 @@ describe("Rover onboarding playbook seed", () => {
       {
         event: "CHOICE_1",
         label: "Set up Rover",
-        target: "identity",
+        target: "brain-identity",
         operatorAction: true,
       },
       {
@@ -83,41 +88,78 @@ describe("Rover onboarding playbook seed", () => {
         operatorAction: true,
       },
     ]);
-    expect(identity?.prompt).toBe(
-      "Let’s tune Rover to you. What should I call you?",
+    expect(brainIdentity?.prompt).toBe(
+      "First, let’s tune Rover itself. In one sentence, what should this brain help you do?",
     );
-    expect(identity?.doneWhen).toEqual([
+    expect(brainIdentity?.doneWhen).toEqual([
+      "The brain character has been updated.",
+    ]);
+    expect(brainIdentity?.transitions).toContainEqual({
+      event: "NEXT",
+      target: "anchor-profile",
+    });
+    expect(brainIdentity?.transitions).toContainEqual({
+      event: "SKIP",
+      label: "Keep Rover defaults",
+      target: "anchor-profile",
+      operatorAction: true,
+    });
+    expect(brainIdentity?.instructions).toContain(
+      "Keep this about the brain itself — what Rover is and how it should help — not the operator's personal profile.",
+    );
+    expect(brainIdentity?.instructions).toContain(
+      'Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".',
+    );
+    expect(brainIdentity?.instructions).toContain(
+      "Use a full markdown content replacement with valid frontmatter keys: name, role, purpose, and values (values is a YAML list); do not use fields-only updates for brain-character.",
+    );
+    expect(anchorProfile?.prompt).toBe(
+      "Now let’s tune Rover to you. What should I call you?",
+    );
+    expect(anchorProfile?.doneWhen).toEqual([
       "The anchor profile has been created or updated.",
     ]);
-    expect(identity?.transitions).toContainEqual({
+    expect(anchorProfile?.transitions).toContainEqual({
       event: "NEXT",
       target: "first-note",
     });
-    expect(identity?.transitions).toContainEqual({
+    expect(anchorProfile?.transitions).toContainEqual({
       event: "SKIP",
       label: "Skip for now",
       target: "first-note",
       operatorAction: true,
     });
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
       "If the operator gives multiple details at once, use them; do not re-ask fields already provided.",
     );
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
       "Ask only for missing essentials, one at a time, in this order: name, role, audience, expertise, tone.",
     );
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
+      "Do not treat a name-only answer as a request to skip; do not send SKIP unless the operator explicitly asks to skip.",
+    );
+    expect(anchorProfile?.instructions).toContain(
       "Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.",
     );
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
       "When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.",
     );
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
       'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',
     );
-    expect(identity?.instructions).toContain(
-      "When the operator only chooses setup or asks to continue to identity setup, ask the Identity prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.",
+    expect(anchorProfile?.instructions).toContain(
+      'Use a full markdown content replacement with valid frontmatter keys: name, kind, and description; set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.',
     );
-    expect(identity?.instructions).toContain(
+    expect(anchorProfile?.instructions).toContain(
+      "Write description as a YAML block scalar (`description: >-`) so colons or punctuation inside the description do not break frontmatter parsing.",
+    );
+    expect(anchorProfile?.instructions).toContain(
+      "Do not use fields-only updates for anchor-profile.",
+    );
+    expect(anchorProfile?.instructions).toContain(
+      "When the operator only chooses setup or asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.",
+    );
+    expect(anchorProfile?.instructions).toContain(
       "Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.",
     );
     expect(firstNote?.doneWhen).toEqual([
@@ -145,7 +187,7 @@ describe("Rover onboarding playbook seed", () => {
       "Do not stop after retrieval; end by offering the transformation options from Make something.",
     );
     expect(seeItComeBack?.instructions).toContain(
-      "When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline, short draft, or reusable brief; store the result as a note.",
+      "When offering the next transformation, follow the manual onboarding shape: turn the saved note into something useful. Name core-safe options such as an outline for later writing, a short draft, or a reusable brief; store the result as a note.",
     );
     expect(seeItComeBack?.instructions).toContain(
       "If the operator chooses the Show me action in chat, send the Show me event and retrieve the saved note with system_get or system_search before saying you found it; do not rely only on conversation memory.",
