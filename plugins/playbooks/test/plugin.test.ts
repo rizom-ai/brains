@@ -137,10 +137,18 @@ const runSummarySchema = z
   })
   .passthrough();
 
+const currentStateSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1).optional(),
+  })
+  .passthrough();
+
 const playbookToolDataSchema = z
   .object({
     runs: z.array(runSummarySchema).default([]),
     activeRun: runSummarySchema,
+    currentState: currentStateSchema.optional(),
     validEvents: z.array(transitionSchema).default([]),
     operatorActions: z.array(transitionSchema).default([]),
     blockedEvents: z.array(transitionSchema).default([]),
@@ -623,6 +631,56 @@ describe("PlaybooksPlugin", () => {
     const completedData = parsePlaybookToolData(finalTransition.data);
     expect(completedData.activeRun.status).toBe("completed");
     expect(completedData.activeRun.currentState).toBe("complete");
+  });
+
+  it("reports the latest completed conversation run when no active run remains", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness);
+
+    const started = await harness.executeTool(
+      "playbook_start",
+      {
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { conversationId: "web-completed-status" },
+    );
+    expectSuccess(started);
+    const runId = parsePlaybookToolData(started.data).activeRun.id;
+
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+    expectSuccess(
+      await harness.executeTool("playbook_send_event", {
+        runId,
+        event: "NEXT",
+      }),
+    );
+
+    const status = await harness.executeTool(
+      "playbook_status",
+      { playbookId: "rover-onboarding" },
+      { conversationId: "web-completed-status" },
+    );
+    expectSuccess(status);
+    const statusData = parsePlaybookToolData(status.data);
+    expect(statusData.activeRun.id).toBe(runId);
+    expect(statusData.activeRun.status).toBe("completed");
+    expect(statusData.activeRun.currentState).toBe("complete");
+    expect(statusData.currentState?.id).toBe("complete");
+
+    const staleRunStatus = await harness.executeTool(
+      "playbook_status",
+      { runId: "rover-onboarding", playbookId: "rover-onboarding" },
+      { conversationId: "web-completed-status" },
+    );
+    expectSuccess(staleRunStatus);
+    expect(parsePlaybookToolData(staleRunStatus.data).activeRun.id).toBe(runId);
   });
 
   it("reports blocked gated NEXT with concise status guidance", async () => {

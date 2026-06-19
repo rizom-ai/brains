@@ -148,7 +148,13 @@ describe("Rover onboarding playbook seed", () => {
       'Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".',
     );
     expect(anchorProfile?.instructions).toContain(
-      'Use a full markdown content replacement with valid frontmatter keys: name, kind, and description; set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.',
+      "Use a full markdown content replacement with only these valid frontmatter keys: name, kind, and description. Anchor profile does not accept brain-character keys such as role, purpose, or values.",
+    );
+    expect(anchorProfile?.instructions).toContain(
+      'Set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.',
+    );
+    expect(anchorProfile?.instructions).toContain(
+      "Use this exact frontmatter shape for anchor-profile content, with description as a block scalar and not a one-line value: `---`, `name: Ada Morgan`, `kind: professional`, `description: >-`, indented role/audience/expertise/tone lines, then closing `---`.",
     );
     expect(anchorProfile?.instructions).toContain(
       "Write description as a YAML block scalar (`description: >-`) so colons or punctuation inside the description do not break frontmatter parsing.",
@@ -221,8 +227,11 @@ describe("Rover onboarding playbook seed", () => {
     expect(makeSomething?.instructions).toContain(
       "If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.",
     );
+    expect(makeSomething?.instructions).toContain(
+      "After the draft artifact has been created or queued, move onboarding to Done; if it is ready, show it or offer to review it, and if it is still generating, explain it can be reviewed when ready.",
+    );
     expect(makeSomething?.doneWhen).toEqual([
-      "A transformation draft is ready to review.",
+      "A transformation draft artifact has been created or queued.",
     ]);
     expect(makeSomething?.transitions).toEqual([
       { event: "NEXT", target: "done" },

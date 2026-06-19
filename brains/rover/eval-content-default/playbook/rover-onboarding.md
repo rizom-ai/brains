@@ -78,7 +78,9 @@ To do:
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
 - When the operator only chooses setup or asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
-- Use a full markdown content replacement with valid frontmatter keys: name, kind, and description; set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.
+- Use a full markdown content replacement with only these valid frontmatter keys: name, kind, and description. Anchor profile does not accept brain-character keys such as role, purpose, or values.
+- Set kind to "professional" for an individual operator, and put role, audience, expertise, and desired tone in description.
+- Use this exact frontmatter shape for anchor-profile content, with description as a block scalar and not a one-line value: `---`, `name: Ada Morgan`, `kind: professional`, `description: >-`, indented role/audience/expertise/tone lines, then closing `---`.
 - Write description as a YAML block scalar (`description: >-`) so colons or punctuation inside the description do not break frontmatter parsing.
 - Do not use fields-only updates for anchor-profile.
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
@@ -140,13 +142,13 @@ To do:
 - A response to "Do that as..." or another transformation choice must include system_create; a search-only, retrieval-only, or explanation-only response is not sufficient.
 - Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "base" for an outline instead of composing it yourself.
 - If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.
-- After the draft artifact is ready, show it or offer to review it before moving on.
+- After the draft artifact has been created or queued, move onboarding to Done; if it is ready, show it or offer to review it, and if it is still generating, explain it can be reviewed when ready.
 - Explain how Rover helps move from raw thinking to reusable knowledge and publishing-ready drafts without leaving the brain.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
 Done when:
 
-- A transformation draft is ready to review.
+- A transformation draft artifact has been created or queued.
 
 ### Done
 

@@ -710,27 +710,51 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
   }): Promise<PlaybookStatusResponse> {
     const runs = await this.store.list();
     const conversationRuns = input.conversationId
-      ? runs.filter(
-          (run) =>
-            run.conversationId === input.conversationId &&
-            (run.status === "active" || run.status === "offered"),
-        )
+      ? runs.filter((run) => run.conversationId === input.conversationId)
       : [];
+    const activeConversationRuns = conversationRuns.filter(
+      (run) => run.status === "active" || run.status === "offered",
+    );
+    const latestConversationRun = latestRun(
+      conversationRuns.filter(
+        (run) =>
+          (!input.playbookId || run.playbookId === input.playbookId) &&
+          (!input.lifecycle || run.lifecycle === input.lifecycle),
+      ),
+    );
     const activeRun = input.runId
-      ? runs.find((run) => run.id === input.runId)
+      ? (runs.find((run) => run.id === input.runId) ?? latestConversationRun)
       : input.conversationId && input.lifecycle
-        ? conversationRuns.find((run) => run.lifecycle === input.lifecycle)
+        ? (activeConversationRuns.find(
+            (run) => run.lifecycle === input.lifecycle,
+          ) ?? latestConversationRun)
         : input.conversationId && input.playbookId
-          ? conversationRuns.find((run) => run.playbookId === input.playbookId)
+          ? (activeConversationRuns.find(
+              (run) => run.playbookId === input.playbookId,
+            ) ?? latestConversationRun)
           : input.conversationId
-            ? await this.requireScopedRun({
-                conversationId: input.conversationId,
-              })
+            ? activeConversationRuns.length > 0
+              ? await this.requireScopedRun({
+                  conversationId: input.conversationId,
+                })
+              : latestConversationRun
             : input.lifecycle
               ? runs.find((run) => run.lifecycle === input.lifecycle)
               : input.playbookId
                 ? runs.find((run) => run.playbookId === input.playbookId)
                 : undefined;
+
+    if (
+      input.conversationId &&
+      !activeRun &&
+      !input.runId &&
+      !input.playbookId &&
+      !input.lifecycle
+    ) {
+      throw new Error(
+        `No active or completed playbook run for conversation '${input.conversationId}'.`,
+      );
+    }
 
     const playbookId =
       input.playbookId ??
@@ -1180,7 +1204,7 @@ After meaningful tool actions, refresh playbook_status before your final answer 
 If the immediately prior assistant turn completed a confirmed create/update action and the operator now asks for playbook-related next-step work or provides details for the likely next step, call playbook_status before any non-playbook domain tool so the runtime can apply satisfied gated transitions first.
 If exactly one non-operator continuation event is available and the operator clearly accepts it, send that event instead of starting the playbook again. If the current state has exactly one non-operator continuation event, its Done When has already been satisfied by runtime evidence, and the operator asks for the next playbook task, names an action from the next task, names the continuation target, or provides the requested work/details for the continuation target, send the continuation event before doing the requested next-task work. Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection. If multiple events are available, ask the operator to pick one labeled action. If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.
 A Skip-style operator action is never a default continuation. Send a Skip event only when the operator positively selects or asks to skip.
-If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering.
+If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering. Do not ask the operator for the raw event code when a matching labeled action is available; translate the label to its event yourself.
 A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, system_get or system_search is mandatory in the same turn even when you also send a playbook event.
 After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If the same operator message includes a concrete request with the necessary content and target details for the new state, satisfy that request in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
@@ -1233,6 +1257,7 @@ ${blockedEvents || "- none"}`,
 
     return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
 When active-playbook context is present, follow its current state instructions, Done When conditions, valid events, and operating guidance.
+If the recent conversation involved a playbook and the operator asks what is next, what to do next, whether setup is done, or a similar progress question, call playbook_status before answering and use the returned run status/current state as source of truth.
 A playbook event does not replace ordinary domain tools requested in the same operator message; if the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer.
 Do not publish content unless the operator explicitly asks and confirms the publishing action.
 
@@ -1301,6 +1326,12 @@ function zeroUsage(): AgentResponse["usage"] {
 
 function appendUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
+}
+
+function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
+  return [...runs].sort((a, b) =>
+    (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt),
+  )[0];
 }
 
 function errorMessage(error: unknown): string {
