@@ -3127,6 +3127,21 @@ describe("ChatInterface", () => {
       expect.objectContaining({
         interfaceType: "discord",
         channelId: "discord:guild-123:channel-123:thread-456",
+        actor: expect.objectContaining({
+          actorId: "discord:user-789",
+          displayName: "Mira Ops",
+          username: "mira",
+        }),
+        source: expect.objectContaining({
+          messageId: "actions-message-1",
+          channelId: "discord:guild-123:channel-123:thread-456",
+          threadId: "thread-456",
+          metadata: expect.objectContaining({
+            actionId: "chat.prompt",
+            actionValue: "action-1",
+            guildId: "guild-123",
+          }),
+        }),
       }),
     );
     expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");

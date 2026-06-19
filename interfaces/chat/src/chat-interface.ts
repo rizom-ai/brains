@@ -675,9 +675,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const platform = event.adapter.name;
     if (!this.isEnabledPlatform(platform)) return;
 
-    const action = this.promptActions.get(event.thread.id)?.get(event.value);
+    const thread = event.thread as Thread;
+    const action = this.promptActions.get(thread.id)?.get(event.value);
     if (!action) {
-      await event.thread.post(
+      await thread.post(
         this.formatNoticePayload(
           "That suggested action is no longer available.",
           "Action unavailable",
@@ -686,17 +687,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const ids = this.getThreadIdParts(event.thread.id);
+    const ids = this.getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
       {
-        channelId: ids.channelId ?? event.thread.channelId,
+        channelId: ids.channelId ?? thread.channelId,
         isBot: Boolean(event.user.isBot),
       },
     );
-    const conversationId = this.getConversationId(platform, event.thread.id);
-    const channelId = event.thread.id;
+    const conversationId = this.getConversationId(platform, thread.id);
+    const channelId = thread.id;
 
     this.startProcessingInput(channelId);
     try {
@@ -707,11 +708,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           userPermissionLevel,
           interfaceType: platform,
           channelId,
-          channelName: event.thread.isDM ? "DM" : event.thread.channelId,
+          channelName: thread.isDM ? "DM" : thread.channelId,
+          ...this.buildActionEventMetadata(platform, thread, event),
         },
       );
       await this.renderAgentResponse({
-        thread: event.thread as Thread,
+        thread,
         channelId,
         conversationId,
         response,
@@ -722,7 +724,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         error,
         channelId,
       });
-      await event.thread.post(
+      await thread.post(
         this.toDiscordCardOutput(this.formatErrorPayload(error)) ??
           "Message failed.",
       );
@@ -2358,6 +2360,35 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         channelName: this.getChannelName(thread, message),
         ...(ids.threadId ? { threadId: ids.threadId } : {}),
         metadata: {
+          ...(ids.guildId ? { guildId: ids.guildId } : {}),
+        },
+      },
+    };
+  }
+
+  private buildActionEventMetadata(
+    platform: string,
+    thread: Thread,
+    event: ActionEvent,
+  ): Record<string, unknown> {
+    const ids = this.getThreadIdParts(thread.id);
+    return {
+      actor: {
+        actorId: `${platform}:${event.user.userId}`,
+        interfaceType: platform,
+        role: "user",
+        displayName: event.user.fullName || event.user.userName,
+        username: event.user.userName,
+        isBot: Boolean(event.user.isBot),
+      },
+      source: {
+        messageId: event.messageId,
+        channelId: thread.id,
+        channelName: thread.isDM ? "DM" : thread.channelId,
+        ...(ids.threadId ? { threadId: ids.threadId } : {}),
+        metadata: {
+          actionId: event.actionId,
+          ...(event.value ? { actionValue: event.value } : {}),
           ...(ids.guildId ? { guildId: ids.guildId } : {}),
         },
       },
