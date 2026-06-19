@@ -473,6 +473,8 @@ Incremental migration progress:
   `z.looseObject` for intentionally open response parts.
 - Migrated A2A JSON-RPC request and stream parameter protocol schemas to
   explicit Zod 4, with named input/output aliases for request boundaries.
+- Migrated Brain CLI Bitwarden API response parsing schemas to explicit Zod 4,
+  using `z.looseObject` for third-party JSON objects with additional fields.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
