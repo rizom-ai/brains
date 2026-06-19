@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 const generatePostInputSchema = z.object({
   prompt: z.string(),
@@ -11,9 +11,12 @@ const generateExcerptInputSchema = z.object({
   content: z.string(),
 });
 
+type GeneratePostInput = z.output<typeof generatePostInputSchema>;
+type GenerateExcerptInput = z.output<typeof generateExcerptInputSchema>;
+
 export function registerEvalHandlers(context: EntityPluginContext): void {
   context.eval.registerHandler("generatePost", async (input: unknown) => {
-    const parsed = generatePostInputSchema.parse(input);
+    const parsed: GeneratePostInput = generatePostInputSchema.parse(input);
     const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
 
     return context.ai.generate<{
@@ -27,7 +30,8 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
   });
 
   context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
-    const parsed = generateExcerptInputSchema.parse(input);
+    const parsed: GenerateExcerptInput =
+      generateExcerptInputSchema.parse(input);
 
     return context.ai.generate<{
       excerpt: string;

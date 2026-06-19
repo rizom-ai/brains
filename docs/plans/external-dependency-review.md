@@ -512,6 +512,8 @@ Incremental migration progress:
   markdown frontmatter parse boundaries.
 - Migrated content-pipeline publish-content local frontmatter/document reference
   guards to explicit Zod 4 with `z.record(z.string(), value)` syntax.
+- Migrated blog eval-handler input parsers to explicit Zod 4 with parsed
+  handler inputs typed as schema output.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
