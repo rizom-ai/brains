@@ -6,8 +6,8 @@ import {
   slugify,
   parseMarkdown,
   generateMarkdown,
-  z,
 } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { getOrCreateImageEntity } from "./image-entity-helper";
 
 /**
@@ -28,7 +28,7 @@ export interface ConversionResult {
 const coverImageFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(),
-  coverImageUrl: z.string().url(),
+  coverImageUrl: z.url(),
   coverImageId: z.string().optional(),
   coverImageAlt: z.string().optional(),
 });

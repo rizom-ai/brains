@@ -504,6 +504,8 @@ Incremental migration progress:
   keeping registry schemas on the existing permission-schema boundary.
 - Migrated the assessment SWOT widget render-time data guard to explicit Zod 4,
   while leaving entity-composed widget data builders on the existing boundary.
+- Migrated directory-sync cover-image frontmatter detection to explicit Zod 4
+  and used the Zod 4 `z.url()` string helper.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
