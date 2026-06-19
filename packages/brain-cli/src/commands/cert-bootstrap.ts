@@ -1,6 +1,6 @@
 import { writeFile } from "fs/promises";
 import { join } from "path";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { normalizePushTarget } from "../lib/push-target";
 import { runSubprocess, type RunCommand } from "../lib/run-subprocess";
@@ -28,12 +28,10 @@ export interface CertBootstrapResult {
   certificatePem: string;
 }
 
-const certBootstrapEnvSchema = z
-  .object({
-    CF_API_TOKEN: z.string().min(1).optional(),
-    CF_ZONE_ID: z.string().min(1).optional(),
-  })
-  .passthrough();
+const certBootstrapEnvSchema = z.looseObject({
+  CF_API_TOKEN: z.string().min(1).optional(),
+  CF_ZONE_ID: z.string().min(1).optional(),
+});
 
 export async function runCertBootstrap(
   cwd: string,
