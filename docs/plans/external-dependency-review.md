@@ -467,6 +467,8 @@ Incremental migration progress:
 - Migrated notification message payload/result schemas to explicit Zod 4 while
   keeping the plugin config schema on the main Zod export until plugin base
   config-schema boundaries are migrated together.
+- Migrated shared email message contracts to explicit Zod 4 and split sender
+  input from parsed payload output where schema defaults apply.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
