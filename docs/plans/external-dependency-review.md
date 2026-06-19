@@ -510,6 +510,8 @@ Incremental migration progress:
 - Made `parseMarkdownWithFrontmatter` structural over `parse`, matching the
   prior JSON/YAML parser-helper approach and allowing either Zod generation at
   markdown frontmatter parse boundaries.
+- Migrated content-pipeline publish-content local frontmatter/document reference
+  guards to explicit Zod 4 with `z.record(z.string(), value)` syntax.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
