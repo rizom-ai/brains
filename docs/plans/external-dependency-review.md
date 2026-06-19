@@ -464,6 +464,9 @@ Incremental migration progress:
   `ai-service` agent-result and SDK tool-output parsing schemas to
   `@brains/utils/zod-v4`, using `z.looseObject` for intentional passthrough
   shapes and Zod 4 record syntax.
+- Migrated notification message payload/result schemas to explicit Zod 4 while
+  keeping the plugin config schema on the main Zod export until plugin base
+  config-schema boundaries are migrated together.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -5,45 +5,40 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
 export const NOTIFICATIONS_SEND = "notifications:send";
 
-const notificationsConfigSchema = z.object({});
+const notificationsConfigSchema = zConfig.object({});
 
 const notificationRecipientSchema = z.discriminatedUnion("type", [
-  z
-    .object({
-      type: z.literal("email"),
-      address: z.string().email(),
-    })
-    .strict(),
+  z.strictObject({
+    type: z.literal("email"),
+    address: z.string().email(),
+  }),
 ]);
 
-const sendNotificationSchema = z
-  .object({
-    recipient: notificationRecipientSchema,
-    title: z.string().min(1),
-    body: z.string().min(1),
-    html: z.string().min(1).optional(),
-    sensitivity: z.enum(["normal", "secret"]).default("normal"),
-  })
-  .strict();
+const sendNotificationSchema = z.strictObject({
+  recipient: notificationRecipientSchema,
+  title: z.string().min(1),
+  body: z.string().min(1),
+  html: z.string().min(1).optional(),
+  sensitivity: z.enum(["normal", "secret"]).default("normal"),
+});
 
-type NotificationsConfig = z.output<typeof notificationsConfigSchema>;
-type NotificationsConfigInput = z.input<typeof notificationsConfigSchema>;
+type NotificationsConfig = zConfig.output<typeof notificationsConfigSchema>;
+type NotificationsConfigInput = zConfig.input<typeof notificationsConfigSchema>;
 
 export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
 
 export const sendNotificationResultSchema = z.discriminatedUnion("status", [
-  z
-    .object({
-      status: z.literal("sent"),
-      deliveryId: z.string().optional(),
-    })
-    .strict(),
-  z.object({ status: z.literal("failed") }).strict(),
+  z.strictObject({
+    status: z.literal("sent"),
+    deliveryId: z.string().optional(),
+  }),
+  z.strictObject({ status: z.literal("failed") }),
 ]);
 
 export type SendNotificationResult = z.infer<
