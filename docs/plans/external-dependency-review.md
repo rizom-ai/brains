@@ -518,6 +518,8 @@ Incremental migration progress:
   while leaving entity/template schemas on their existing composition boundary.
 - Migrated topics eval-handler input parsers to explicit Zod 4 with parsed
   handler inputs typed as schema output and Zod 4 record syntax.
+- Migrated the plugins tool-activity message parser to explicit Zod 4 while
+  keeping exported event contracts as plain TypeScript types.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
