@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "preact";
 import type { VNode } from "preact";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { BaseWidgetProps } from "./index";
 
 const listItemSchema = z.object({
@@ -20,7 +20,7 @@ const listDataSchema = z.object({
   items: z.array(listItemSchema).optional(),
 });
 
-type ListItem = z.infer<typeof listItemSchema>;
+type ListItem = z.output<typeof listItemSchema>;
 
 export type ListWidgetProps = BaseWidgetProps;
 

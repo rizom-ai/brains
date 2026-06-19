@@ -496,7 +496,8 @@ Incremental migration progress:
 - Migrated site-builder content-enrichment local entity/image guard schemas to
   explicit Zod 4 with `z.looseObject` for enriched runtime objects.
 - Migrated shared UI widget render-time data guards to explicit Zod 4 and used
-  Zod 4 `z.record(z.string(), value)` syntax for open widget data maps.
+  Zod 4 `z.record(z.string(), value)` syntax for open widget data maps,
+  including list/system widget parsers.
 - Migrated the ai-evaluation `eval.yaml` local parse schema to explicit Zod 4,
   while leaving AI-service/template-composed schemas on the current boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
