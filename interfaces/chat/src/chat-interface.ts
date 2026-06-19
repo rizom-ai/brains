@@ -81,6 +81,7 @@ const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
 const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
+const PROMPT_ACTION = "chat.prompt";
 
 interface DiscordCardOutput {
   card: CardElement;
@@ -144,6 +145,10 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     { message: SentMessage; summary: string; threadId: string }
   >();
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
+  private readonly promptActions = new Map<
+    string,
+    Map<string, { label: string; prompt: string }>
+  >();
   private readonly toolStatusMessages = new Map<
     string,
     { channelId: string; message: SentMessage }
@@ -659,6 +664,113 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         await this.handleApprovalAction(event);
       },
     );
+
+    app.onAction(PROMPT_ACTION, async (event) => {
+      await this.handlePromptAction(event);
+    });
+  }
+
+  private async handlePromptAction(event: ActionEvent): Promise<void> {
+    if (!this.context || !event.thread || !event.value) return;
+    const platform = event.adapter.name;
+    if (!this.isEnabledPlatform(platform)) return;
+
+    const action = this.promptActions.get(event.thread.id)?.get(event.value);
+    if (!action) {
+      await event.thread.post(
+        this.formatNoticePayload(
+          "That suggested action is no longer available.",
+          "Action unavailable",
+        ),
+      );
+      return;
+    }
+
+    const ids = this.getThreadIdParts(event.thread.id);
+    const userPermissionLevel = this.context.permissions.getUserLevel(
+      platform,
+      event.user.userId,
+      {
+        channelId: ids.channelId ?? event.thread.channelId,
+        isBot: Boolean(event.user.isBot),
+      },
+    );
+    const conversationId = this.getConversationId(platform, event.thread.id);
+    const channelId = event.thread.id;
+
+    this.startProcessingInput(channelId);
+    try {
+      const response = await this.context.agent.chat(
+        action.prompt,
+        conversationId,
+        {
+          userPermissionLevel,
+          interfaceType: platform,
+          channelId,
+          channelName: event.thread.isDM ? "DM" : event.thread.channelId,
+        },
+      );
+      if (
+        response.pendingConfirmations &&
+        response.pendingConfirmations.length > 0
+      ) {
+        this.pendingConfirmations.set(
+          conversationId,
+          new Set(
+            response.pendingConfirmations.map(
+              (confirmation) => confirmation.id,
+            ),
+          ),
+        );
+      }
+      await this.handleAgentResponseToolStatuses(response, conversationId);
+      const artifactDelivery = await this.resolveArtifactDelivery(
+        response.cards,
+        userPermissionLevel,
+      );
+      const messageId = await this.sendAgentResponseWithFiles({
+        thread: event.thread as Thread,
+        channelId,
+        message: this.formatAgentResponseText(
+          response.text,
+          response.cards,
+          response.pendingConfirmations,
+          artifactDelivery.deniedCardIds,
+        ),
+        files: artifactDelivery.files,
+      });
+      const artifactMessageId = await this.sendArtifactCards(
+        event.thread as Thread,
+        response.cards,
+        artifactDelivery.deniedCardIds,
+      );
+      await this.sendSupplementalCards(
+        event.thread as Thread,
+        response.cards,
+        response.pendingConfirmations,
+      );
+      await this.sendPendingConfirmationCards(
+        event.thread as Thread,
+        response.pendingConfirmations,
+      );
+      const progressMessageId = artifactMessageId ?? messageId;
+      if (progressMessageId) {
+        for (const jobId of this.getResponseJobIds(response)) {
+          this.trackAgentResponseForJob(jobId, progressMessageId, channelId);
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.error("Error handling chat prompt action", {
+        error,
+        channelId,
+      });
+      await event.thread.post(
+        this.toDiscordCardOutput(this.formatErrorPayload(error)) ??
+          "Message failed.",
+      );
+    } finally {
+      this.endProcessingInput();
+    }
   }
 
   private async handleApprovalAction(event: ActionEvent): Promise<void> {
@@ -1085,11 +1197,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return /(^|[^a-z0-9_-])approval[:-][a-z0-9_-]+/i.test(message);
   }
 
-  private formatNoticePayload(message: string): DiscordCardOutput {
+  private formatNoticePayload(
+    message: string,
+    title = "Approval notice",
+  ): DiscordCardOutput {
     return {
       card: {
         type: "card",
-        title: "Approval notice",
+        title,
         children: [{ type: "text", content: message }],
       },
       fallbackText: message,
@@ -1370,7 +1485,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       ) {
         continue;
       }
-      const built = this.buildSupplementalCard(card);
+      const built = this.buildSupplementalCard(thread, card);
       if (!built) continue;
       const sent = await thread.post({
         card: built,
@@ -1381,6 +1496,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private buildSupplementalCard(
+    thread: Thread,
     card: StructuredChatCard,
   ): CardElement | undefined {
     switch (card.kind) {
@@ -1391,7 +1507,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       case "sources":
         return this.buildSourcesSummaryCard(card);
       case "actions":
-        return this.buildActionsSummaryCard(card);
+        return this.buildActionsSummaryCard(thread, card);
     }
   }
 
@@ -1460,18 +1576,57 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private buildActionsSummaryCard(
+    thread: Thread,
     card: Extract<StructuredChatCard, { kind: "actions" }>,
   ): CardElement {
+    const children: CardChild[] = card.actions.map((action) => ({
+      type: "text" as const,
+      content: action.description
+        ? `${action.label} — ${action.description}`
+        : action.label,
+    }));
+    const buttons = card.actions
+      .map((action) => {
+        if (action.type !== "prompt") return undefined;
+        this.registerPromptAction(thread.id, action.id, {
+          label: action.label,
+          prompt: action.prompt,
+        });
+        return {
+          type: "button" as const,
+          id: PROMPT_ACTION,
+          label: action.label,
+          value: action.id,
+        };
+      })
+      .filter(
+        (
+          button,
+        ): button is {
+          type: "button";
+          id: string;
+          label: string;
+          value: string;
+        } => Boolean(button),
+      );
+    if (buttons.length > 0) {
+      children.push({ type: "actions", children: buttons });
+    }
     return {
       type: "card",
       title: card.title ?? "Suggested actions",
-      children: card.actions.map((action) => ({
-        type: "text" as const,
-        content: action.description
-          ? `${action.label} — ${action.description}`
-          : action.label,
-      })),
+      children,
     };
+  }
+
+  private registerPromptAction(
+    threadId: string,
+    actionId: string,
+    action: { label: string; prompt: string },
+  ): void {
+    const actions = this.promptActions.get(threadId) ?? new Map();
+    actions.set(actionId, action);
+    this.promptActions.set(threadId, actions);
   }
 
   private buildArtifactCard(

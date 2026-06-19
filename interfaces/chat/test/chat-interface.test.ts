@@ -3048,9 +3048,88 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
         fallbackText: "Actions: Next actions\n- Draft announcement",
-        card: expect.objectContaining({ title: "Next actions" }),
+        card: expect.objectContaining({
+          title: "Next actions",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "actions",
+              children: [
+                expect.objectContaining({
+                  type: "button",
+                  id: "chat.prompt",
+                  label: "Draft announcement",
+                  value: "action-1",
+                }),
+              ],
+            }),
+          ]),
+        }),
       }),
     );
+  });
+
+  it("routes suggested prompt action buttons to the agent", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Pick one.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "actions-1",
+            title: "Next actions",
+            actions: [
+              {
+                type: "prompt",
+                id: "action-1",
+                label: "Draft announcement",
+                prompt: "Draft an announcement",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Drafted announcement.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: "chat.prompt",
+      adapter: { name: "discord" },
+      messageId: "actions-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "action-1",
+    } as MockActionEvent);
+
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      2,
+      "Draft an announcement",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        interfaceType: "discord",
+        channelId: "discord:guild-123:channel-123:thread-456",
+      }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");
   });
 
   it("formats structured approval cards without raw JSON", async () => {
