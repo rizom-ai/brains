@@ -1116,12 +1116,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         return true;
       })
       .map((card) => this.formatStructuredCard(card, deniedCardIds));
-    const pendingHelp =
-      pendingConfirmations && pendingConfirmations.length > 1
-        ? this.formatPendingConfirmationHelp(pendingConfirmations)
-        : undefined;
-    return [text, ...cardSummaries, pendingHelp]
-      .filter((part): part is string => Boolean(part?.trim()))
+    return [text, ...cardSummaries]
+      .filter((part): part is string => Boolean(part.trim()))
       .join("\n\n");
   }
 
@@ -1418,7 +1414,17 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     thread: Thread,
     pendingConfirmations: PendingConfirmation[] | undefined,
   ): Promise<void> {
-    if (pendingConfirmations?.length !== 1) return;
+    if (!pendingConfirmations || pendingConfirmations.length === 0) return;
+
+    if (pendingConfirmations.length > 1) {
+      await thread.post({
+        card: this.buildPendingConfirmationsCard(pendingConfirmations),
+        fallbackText:
+          this.formatPendingConfirmationsFallback(pendingConfirmations),
+      });
+      return;
+    }
+
     const confirmation = pendingConfirmations[0];
     if (!confirmation) return;
     const fallbackText =
@@ -1436,6 +1442,38 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       summary: confirmation.summary,
       threadId: thread.id,
     });
+  }
+
+  private buildPendingConfirmationsCard(
+    pendingConfirmations: PendingConfirmation[],
+  ): CardElement {
+    return {
+      type: "card",
+      title: "Approvals pending",
+      children: [
+        ...pendingConfirmations.map((confirmation) => ({
+          type: "text" as const,
+          content: `${confirmation.id}: ${confirmation.summary}`,
+        })),
+        {
+          type: "text",
+          content:
+            "Reply yes <approval-id> to confirm one item, or no <approval-id> to abort it.",
+        },
+      ],
+    };
+  }
+
+  private formatPendingConfirmationsFallback(
+    pendingConfirmations: PendingConfirmation[],
+  ): string {
+    return [
+      "Approvals pending:",
+      ...pendingConfirmations.map(
+        (confirmation) => `${confirmation.id}: ${confirmation.summary}`,
+      ),
+      "Reply yes <approval-id> to confirm one item, or no <approval-id> to abort it.",
+    ].join("\n");
   }
 
   private buildPendingConfirmationCard(
@@ -1553,18 +1591,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       const confirmation = pendingConfirmations[0];
       if (!confirmation) return undefined;
       return [
-        `**Approval required:** ${confirmation.summary}`,
-        "Reply with **yes** to confirm or **no/cancel** to abort.",
+        `Approval required: ${confirmation.summary}`,
+        "Reply yes to confirm or no/cancel to abort.",
       ].join("\n");
     }
 
-    return [
-      "**Pending approvals:**",
-      ...pendingConfirmations.map(
-        (confirmation) => `- \`${confirmation.id}\` — ${confirmation.summary}`,
-      ),
-      "Reply with **yes <approval-id>** to confirm one item, or **no <approval-id>** to abort it.",
-    ].join("\n");
+    return this.formatPendingConfirmationsFallback(pendingConfirmations);
   }
 
   private formatStructuredCard(

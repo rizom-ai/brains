@@ -1550,7 +1550,7 @@ describe("ChatInterface", () => {
       2,
       expect.objectContaining({
         fallbackText:
-          "**Approval required:** Delete thing\nReply with **yes** to confirm or **no/cancel** to abort.",
+          "Approval required: Delete thing\nReply yes to confirm or no/cancel to abort.",
         card: expect.objectContaining({
           type: "card",
           title: "Approval required",
@@ -1756,7 +1756,7 @@ describe("ChatInterface", () => {
       4,
       expect.objectContaining({
         fallbackText:
-          "**Approval required:** Delete second thing\nReply with **yes** to confirm or **no/cancel** to abort.",
+          "Approval required: Delete second thing\nReply yes to confirm or no/cancel to abort.",
         card: expect.objectContaining({
           type: "card",
           title: "Approval required",
@@ -2174,11 +2174,13 @@ describe("ChatInterface", () => {
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    expect(thread.post).toHaveBeenCalledWith("Please confirm.");
     expect(thread.post).toHaveBeenCalledWith(
-      [
-        "Please confirm.",
-        "**Pending approvals:**\n- `approval-1` — Publish one\n- `approval-2` — Publish two\nReply with **yes <approval-id>** to confirm one item, or **no <approval-id>** to abort it.",
-      ].join("\n\n"),
+      expect.objectContaining({
+        fallbackText:
+          "Approvals pending:\napproval-1: Publish one\napproval-2: Publish two\nReply yes <approval-id> to confirm one item, or no <approval-id> to abort it.",
+        card: expect.objectContaining({ title: "Approvals pending" }),
+      }),
     );
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
