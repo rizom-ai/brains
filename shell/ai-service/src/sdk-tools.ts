@@ -1,5 +1,5 @@
 import { dynamicTool, type ToolSet } from "ai";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
@@ -42,38 +42,32 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
     z.number(),
     z.boolean(),
     z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
   ]),
 );
 
-const attachmentToolOutputSchema = z
-  .object({
-    success: z.literal(true),
-    data: z
-      .object({
-        documentId: z.string().min(1).optional(),
-        entityId: z.string().min(1).optional(),
-        attachment: z
-          .object({
-            mediaType: z.string().min(1),
-            url: z.string().min(1),
-            downloadUrl: z.string().min(1).optional(),
-            previewUrl: z.string().min(1).optional(),
-            filename: z.string().min(1).optional(),
-            sizeBytes: z.number().nonnegative().optional(),
-            source: z
-              .object({
-                entityType: z.string().optional(),
-                entityId: z.string().optional(),
-                attachmentType: z.string().optional(),
-              })
-              .optional(),
-          })
-          .passthrough(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
+const attachmentToolOutputSchema = z.looseObject({
+  success: z.literal(true),
+  data: z.looseObject({
+    documentId: z.string().min(1).optional(),
+    entityId: z.string().min(1).optional(),
+    attachment: z.looseObject({
+      mediaType: z.string().min(1),
+      url: z.string().min(1),
+      downloadUrl: z.string().min(1).optional(),
+      previewUrl: z.string().min(1).optional(),
+      filename: z.string().min(1).optional(),
+      sizeBytes: z.number().nonnegative().optional(),
+      source: z
+        .object({
+          entityType: z.string().optional(),
+          entityId: z.string().optional(),
+          attachmentType: z.string().optional(),
+        })
+        .optional(),
+    }),
+  }),
+});
 
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
