@@ -1,36 +1,31 @@
 import { extractCoverImageId, extractOgImageId } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Logger } from "@brains/utils";
-import { getErrorMessage, pluralize, z } from "@brains/utils";
+import { getErrorMessage, pluralize } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { SiteImageLookup } from "@brains/site-engine";
 import type { IEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
-const entityWithSlugSchema = z
-  .object({
-    id: z.string(),
-    entityType: z.string(),
-    content: z.string(),
-    metadata: z
-      .object({
-        slug: z.string(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
-
-const imageEntitySchema = z.object({
+const entityWithSlugSchema = z.looseObject({
+  id: z.string(),
+  entityType: z.string(),
   content: z.string(),
-  metadata: z
-    .object({
-      width: z.number().optional(),
-      height: z.number().optional(),
-    })
-    .passthrough(),
+  metadata: z.looseObject({
+    slug: z.string(),
+  }),
+});
+
+const imageEntitySchema = z.looseObject({
+  content: z.string(),
+  metadata: z.looseObject({
+    width: z.number().optional(),
+    height: z.number().optional(),
+  }),
 });
 
 // Type for enriched entity with url, typeLabel, listUrl, and listLabel
-export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
+export type EnrichedEntity = z.output<typeof entityWithSlugSchema> & {
   url: string;
   typeLabel: string;
   listUrl: string;

@@ -493,6 +493,8 @@ Incremental migration progress:
 - Made shared `parseJsonResponse` structural over `safeParse`, then migrated
   deploy-support Cloudflare Origin CA responses and ops Hetzner SSH key
   responses to explicit Zod 4 with `z.looseObject` for provider JSON.
+- Migrated site-builder content-enrichment local entity/image guard schemas to
+  explicit Zod 4 with `z.looseObject` for enriched runtime objects.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
