@@ -469,6 +469,8 @@ Incremental migration progress:
   config-schema boundaries are migrated together.
 - Migrated shared email message contracts to explicit Zod 4 and split sender
   input from parsed payload output where schema defaults apply.
+- Migrated A2A client response parsing to explicit Zod 4 with
+  `z.looseObject` for intentionally open response parts.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

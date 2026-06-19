@@ -1,4 +1,5 @@
-import { z } from "@brains/utils";
+import { z as zMain } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type {
   ContentVisibility,
   Tool,
@@ -28,7 +29,7 @@ const textPartSchema = z.object({
   text: z.string(),
 });
 
-const partsSchema = z.array(z.object({ kind: z.string() }).passthrough());
+const partsSchema = z.array(z.looseObject({ kind: z.string() }));
 
 const rpcErrorSchema = z.object({
   error: z.object({ message: z.string() }),
@@ -133,12 +134,12 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 const DEFAULT_MAX_NETWORK_ATTEMPTS = 2;
 
 const a2aCallInputSchema = {
-  agent: z
+  agent: zMain
     .string()
     .describe(
       "Saved local agent id from your directory, usually a domain-like id such as yeehaa.io or docs.rizom.ai. Never pass a display name like Brain or a URL.",
     ),
-  message: z.string().describe("Message to send to the remote agent"),
+  message: zMain.string().describe("Message to send to the remote agent"),
 };
 
 function normalizeSavedAgentId(agent: string): string | null {
@@ -465,7 +466,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(a2aCallInputSchema).safeParse(input);
+      const parsed = zMain.object(a2aCallInputSchema).safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
