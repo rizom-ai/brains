@@ -5,6 +5,8 @@ import type {
 import { z } from "@brains/utils/zod-v4";
 import { stripInternalEntityMemoryNote } from "./display-content";
 
+const storedChatMetadataSchema = z.record(z.string(), z.unknown());
+
 const storedChatAttachmentSchema = z.object({
   kind: z.literal("text"),
   filename: z.string().min(1),
@@ -189,15 +191,12 @@ export function parseStoredMessageMetadata(
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
+      const parsed = storedChatMetadataSchema.safeParse(JSON.parse(metadata));
+      return parsed.success ? parsed.data : null;
     } catch {
       return null;
     }
   }
-  return isRecord(metadata) ? metadata : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  const parsed = storedChatMetadataSchema.safeParse(metadata);
+  return parsed.success ? parsed.data : null;
 }

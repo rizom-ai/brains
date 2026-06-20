@@ -636,6 +636,8 @@ Incremental migration progress:
   explicit Zod 4 schema.
 - Migrated web-chat browser-side session, message history, and attachment job
   status response guards to explicit Zod 4.
+- Replaced web-chat persisted message metadata record hand guard with explicit
+  Zod 4 parsing.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
