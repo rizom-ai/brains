@@ -1,4 +1,5 @@
-import { z } from "@brains/utils";
+import { z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type {
   Tool,
   ToolResponse,
@@ -19,40 +20,61 @@ export interface StockPhotoToolsDeps {
 }
 
 const searchInputSchema = {
-  query: z.string().describe("Search terms for stock photos"),
-  perPage: z
+  query: zConfig.string().describe("Search terms for stock photos"),
+  perPage: zConfig
     .number()
     .min(1)
     .max(30)
     .default(10)
     .describe("Results per page (1-30)"),
-  page: z.number().min(1).default(1).describe("Page number"),
+  page: zConfig.number().min(1).default(1).describe("Page number"),
 };
 
 const selectInputSchema = {
-  photoId: z.string().describe("Photo ID from search results"),
-  downloadLocation: z
+  photoId: zConfig.string().describe("Photo ID from search results"),
+  downloadLocation: zConfig
     .string()
     .url()
     .describe("Download tracking URL (required by provider ToS)"),
-  photographerName: z.string().describe("Photographer name for attribution"),
-  photographerUrl: z
+  photographerName: zConfig
+    .string()
+    .describe("Photographer name for attribution"),
+  photographerUrl: zConfig
     .string()
     .url()
     .describe("Photographer profile URL for attribution"),
-  sourceUrl: z.string().url().describe("Photo page URL on provider"),
-  imageUrl: z.string().url().describe("Image URL to download"),
-  title: z.string().optional().describe("Image entity title"),
-  alt: z.string().optional().describe("Alt text for the image"),
-  targetEntityType: z
+  sourceUrl: zConfig.string().url().describe("Photo page URL on provider"),
+  imageUrl: zConfig.string().url().describe("Image URL to download"),
+  title: zConfig.string().optional().describe("Image entity title"),
+  alt: zConfig.string().optional().describe("Alt text for the image"),
+  targetEntityType: zConfig
     .string()
     .optional()
     .describe("Entity type to set cover image on"),
-  targetEntityId: z
+  targetEntityId: zConfig
     .string()
     .optional()
     .describe("Entity ID to set cover image on"),
 };
+
+const searchInputParserSchema = z.object({
+  query: z.string(),
+  perPage: z.number().min(1).max(30).default(10),
+  page: z.number().min(1).default(1),
+});
+
+const selectInputParserSchema = z.object({
+  photoId: z.string(),
+  downloadLocation: z.url(),
+  photographerName: z.string(),
+  photographerUrl: z.url(),
+  sourceUrl: z.url(),
+  imageUrl: z.url(),
+  title: z.string().optional(),
+  alt: z.string().optional(),
+  targetEntityType: z.string().optional(),
+  targetEntityId: z.string().optional(),
+});
 
 export function createStockPhotoTools(
   pluginId: string,
@@ -68,7 +90,7 @@ function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
       "Search for stock photos. Returns photo candidates with preview URLs and metadata. Use stock-photo_select to materialize a chosen photo into an image entity.",
     inputSchema: searchInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(searchInputSchema).safeParse(input);
+      const parsed = searchInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -97,7 +119,7 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
       "Select a stock photo from search results and materialize it as an image entity. Triggers provider download tracking per ToS. Optionally sets as cover image on a target entity.",
     inputSchema: selectInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(selectInputSchema).safeParse(input);
+      const parsed = selectInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
