@@ -562,6 +562,9 @@ Incremental migration progress:
   Zod 4 while leaving template schema parsing on the existing framework boundary.
 - Migrated the shell core entity datasource query parser to explicit Zod 4 while
   keeping the framework-provided output schema on the existing boundary.
+- Migrated the shell core AI content datasource generation-context parser and
+  local entity slug guard to explicit Zod 4 while keeping template/output schemas
+  on existing framework boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

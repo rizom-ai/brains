@@ -3,7 +3,8 @@ import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
-import { z } from "@brains/utils";
+import type { z as frameworkZod } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { resolvePrompt } from "@brains/plugins";
 
 export const GenerationContextSchema = z.object({
@@ -13,7 +14,7 @@ export const GenerationContextSchema = z.object({
   templateName: z.string(),
 });
 
-export type GenerationContext = z.infer<typeof GenerationContextSchema>;
+export type GenerationContext = z.output<typeof GenerationContextSchema>;
 
 const entitySlugSchema = z.object({ slug: z.string() });
 
@@ -53,7 +54,10 @@ export class AIContentDataSource implements DataSource {
 
   private readonly siteBaseUrl: string | undefined;
 
-  async generate<T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> {
+  async generate<T>(
+    request: unknown,
+    schema: frameworkZod.ZodSchema<T>,
+  ): Promise<T> {
     const context = GenerationContextSchema.parse(request);
 
     const template = this.templateRegistry.get(context.templateName);
