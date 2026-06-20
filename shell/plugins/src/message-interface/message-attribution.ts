@@ -31,8 +31,15 @@ export function buildMessageActorMetadata(
     ...(input.canonicalId ? { canonicalId: input.canonicalId } : {}),
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.username ? { username: input.username } : {}),
-    ...(input.isBot !== undefined ? { isBot: Boolean(input.isBot) } : {}),
+    ...(input.isBot !== undefined
+      ? { isBot: normalizeBotFlag(input.isBot) }
+      : {}),
   };
+}
+
+function normalizeBotFlag(value: boolean | string): boolean {
+  if (typeof value === "boolean") return value;
+  return value.toLowerCase() === "true";
 }
 
 export function buildMessageSourceMetadata(
