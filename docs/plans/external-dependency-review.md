@@ -632,6 +632,8 @@ Incremental migration progress:
   schemas while preserving exact optional output shapes.
 - Replaced auth-service passkey store and signing-key JSON hand guards with
   explicit Zod 4 schemas, preserving generated/public JWK output contracts.
+- Replaced auth-service WebAuthn clientData challenge JSON hand guard with an
+  explicit Zod 4 schema.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
