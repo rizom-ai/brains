@@ -1,5 +1,6 @@
 import type { MessageResponse } from "@brains/messaging-service";
-import { z, type Logger } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
 
 interface ToolResponseValidationContext {
@@ -31,19 +32,15 @@ function invalidEnvelopeResponse(
  * (missing `success`, `noop`, wrong types) is rejected by the union.
  */
 const toolExecutionEnvelopeSchema = z.union([
-  z
-    .object({ success: z.literal(true), data: z.unknown() })
-    .superRefine((value, ctx) => {
-      if (!Object.prototype.hasOwnProperty.call(value, "data")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["data"],
-          message: "Required",
-        });
-      }
-    }),
+  z.looseObject({ success: z.literal(true) }),
   z.object({ success: z.literal(false), error: z.string() }),
 ]);
+
+function hasEnvelopeData(value: {
+  success: true;
+}): value is { success: true; data: unknown } {
+  return Object.prototype.hasOwnProperty.call(value, "data");
+}
 
 export function normalizeToolResponse(
   raw: unknown,
@@ -81,6 +78,15 @@ export function normalizeToolExecutionMessageResponse(
 
   if (!parsed.data.success) {
     return { success: false, error: parsed.data.error };
+  }
+
+  if (!hasEnvelopeData(parsed.data)) {
+    context.logger.error("Tool returned non-compliant message response", {
+      pluginId: context.pluginId,
+      toolName: context.toolName,
+      response,
+    });
+    return invalidEnvelopeResponse(context.toolName);
   }
 
   return {
