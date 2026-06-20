@@ -615,6 +615,8 @@ Incremental migration progress:
 - Migrated ATProto handle/DID document network response guards to explicit Zod
   4 while leaving plugin config and projection schemas on their current
   boundaries.
+- Migrated stock-photo Unsplash API response guards to explicit Zod 4 while
+  leaving provider contracts and tool schemas on their current boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
