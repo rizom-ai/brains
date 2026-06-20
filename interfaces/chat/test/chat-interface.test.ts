@@ -3387,6 +3387,7 @@ describe("ChatInterface", () => {
         }),
       }),
     );
+    expect(thread.startTyping).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");
   });
 

@@ -701,6 +701,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     this.startProcessingInput(channelId);
     try {
+      if (this.getPlatformConfig(thread)?.showTypingIndicator) {
+        await thread
+          .startTyping()
+          .catch((error: unknown) =>
+            this.logger.debug("Typing indicator failed", { error, channelId }),
+          );
+      }
+
       const response = await this.context.agent.chat(
         action.prompt,
         conversationId,
