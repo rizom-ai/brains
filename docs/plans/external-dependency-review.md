@@ -567,6 +567,9 @@ Incremental migration progress:
   on existing framework boundaries.
 - Migrated media-page-composer render-time content record guards to explicit
   Zod 4 while leaving media template schemas on existing framework boundaries.
+- Migrated the social-media generation-handler local source metadata slug guard
+  to explicit Zod 4 with `z.looseObject`, while leaving generation job/result
+  schemas on the existing job-handler/framework boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

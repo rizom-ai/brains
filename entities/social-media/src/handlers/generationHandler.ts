@@ -1,7 +1,8 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { slugify, z as frameworkZod } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
@@ -11,26 +12,26 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
-const coverImageJobSchema = z.union([
-  z.boolean(),
-  z.object({
-    generate: z.boolean().optional(),
-    prompt: z.string().optional(),
+const coverImageJobSchema = frameworkZod.union([
+  frameworkZod.boolean(),
+  frameworkZod.object({
+    generate: frameworkZod.boolean().optional(),
+    prompt: frameworkZod.string().optional(),
   }),
 ]);
 
-export const generationJobSchema = z.object({
-  prompt: z.string().optional(),
-  platform: z.enum(["linkedin"]).optional(),
-  sourceEntityType: z.enum(["post", "deck"]).optional(),
-  sourceEntityId: z.string().optional(),
-  title: z
+export const generationJobSchema = frameworkZod.object({
+  prompt: frameworkZod.string().optional(),
+  platform: frameworkZod.enum(["linkedin"]).optional(),
+  sourceEntityType: frameworkZod.enum(["post", "deck"]).optional(),
+  sourceEntityId: frameworkZod.string().optional(),
+  title: frameworkZod
     .string()
     .optional()
     .describe("Required when content is provided directly"),
-  content: z.string().optional(),
-  addToQueue: z.boolean().optional(),
-  generateImage: z
+  content: frameworkZod.string().optional(),
+  addToQueue: frameworkZod.boolean().optional(),
+  generateImage: frameworkZod
     .boolean()
     .optional()
     .describe("Auto-generate cover image for post"),
@@ -39,13 +40,13 @@ export const generationJobSchema = z.object({
     .describe("Generic cover image generation request"),
 });
 
-export type GenerationJobData = z.infer<typeof generationJobSchema>;
+export type GenerationJobData = frameworkZod.infer<typeof generationJobSchema>;
 
 export const socialMediaGenerationResultSchema = generationResultSchema.extend({
-  slug: z.string().optional(),
+  slug: frameworkZod.string().optional(),
 });
 
-export type GenerationResult = z.infer<
+export type GenerationResult = frameworkZod.infer<
   typeof socialMediaGenerationResultSchema
 >;
 
@@ -123,7 +124,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: "Generating social post from source content",
       });
 
-      const slugSchema = z.object({ slug: z.string() });
+      const slugSchema = z.looseObject({ slug: z.string() });
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 
