@@ -13,7 +13,7 @@ const tokenEndpointAuthMethodSchema = z.enum([
 ]);
 
 const clientRegistrationRequestSchema = z.object({
-  redirect_uris: z.array(z.string().url()).min(1),
+  redirect_uris: z.array(z.url()).min(1),
   token_endpoint_auth_method: tokenEndpointAuthMethodSchema.default("none"),
   grant_types: z
     .array(z.enum(["authorization_code", "refresh_token"]))
@@ -21,8 +21,8 @@ const clientRegistrationRequestSchema = z.object({
   response_types: z.array(z.literal("code")).default(["code"]),
   scope: z.string().optional(),
   client_name: z.string().optional(),
-  client_uri: z.string().url().optional(),
-  logo_uri: z.string().url().optional(),
+  client_uri: z.url().optional(),
+  logo_uri: z.url().optional(),
   contacts: z.array(z.string()).optional(),
 });
 
@@ -33,6 +33,55 @@ export type ClientRegistrationRequest = z.input<
 interface ClientStoreFile {
   clients: RegisteredOAuthClient[];
 }
+
+const persistedOAuthClientSchema = z
+  .looseObject({
+    client_id: z.string(),
+    client_id_issued_at: z.number(),
+    redirect_uris: z.array(z.string()),
+    token_endpoint_auth_method: z.string().optional(),
+    grant_types: z.array(z.string()).optional(),
+    response_types: z.array(z.string()).optional(),
+    scope: z.string().optional(),
+    client_name: z.string().optional(),
+    client_uri: z.string().optional(),
+    logo_uri: z.string().optional(),
+    contacts: z.array(z.string()).optional(),
+    client_secret: z.string().optional(),
+    client_secret_expires_at: z.number().optional(),
+  })
+  .transform(
+    (client): RegisteredOAuthClient => ({
+      client_id: client.client_id,
+      client_id_issued_at: client.client_id_issued_at,
+      redirect_uris: client.redirect_uris,
+      token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
+      grant_types: client.grant_types ?? [
+        "authorization_code",
+        "refresh_token",
+      ],
+      response_types: client.response_types ?? ["code"],
+      ...(client.scope !== undefined ? { scope: client.scope } : {}),
+      ...(client.client_name !== undefined
+        ? { client_name: client.client_name }
+        : {}),
+      ...(client.client_uri !== undefined
+        ? { client_uri: client.client_uri }
+        : {}),
+      ...(client.logo_uri !== undefined ? { logo_uri: client.logo_uri } : {}),
+      ...(client.contacts !== undefined ? { contacts: client.contacts } : {}),
+      ...(client.client_secret !== undefined
+        ? { client_secret: client.client_secret }
+        : {}),
+      ...(client.client_secret_expires_at !== undefined
+        ? { client_secret_expires_at: client.client_secret_expires_at }
+        : {}),
+    }),
+  );
+
+const clientStoreFileSchema = z.looseObject({
+  clients: z.array(z.unknown()).optional(),
+});
 
 export interface OAuthClientStoreOptions {
   storageDir: string;
@@ -48,31 +97,17 @@ function createClientSecret(): string {
 }
 
 function parseStoreFile(value: unknown): ClientStoreFile {
-  if (!value || typeof value !== "object") {
-    return { clients: [] };
-  }
-
-  const clients = (value as { clients?: unknown }).clients;
-  if (!Array.isArray(clients)) {
-    return { clients: [] };
-  }
+  const parsed = clientStoreFileSchema.safeParse(value);
+  if (!parsed.success) return { clients: [] };
 
   return {
-    clients: clients.filter(isRegisteredOAuthClient),
+    clients: parsed.data.clients?.flatMap(parsePersistedClient) ?? [],
   };
 }
 
-function isRegisteredOAuthClient(
-  value: unknown,
-): value is RegisteredOAuthClient {
-  if (!value || typeof value !== "object") return false;
-  const client = value as Record<string, unknown>;
-  return (
-    typeof client["client_id"] === "string" &&
-    Array.isArray(client["redirect_uris"]) &&
-    client["redirect_uris"].every((uri) => typeof uri === "string") &&
-    typeof client["client_id_issued_at"] === "number"
-  );
+function parsePersistedClient(value: unknown): RegisteredOAuthClient[] {
+  const parsed = persistedOAuthClientSchema.safeParse(value);
+  return parsed.success ? [parsed.data] : [];
 }
 
 export class OAuthClientStore {

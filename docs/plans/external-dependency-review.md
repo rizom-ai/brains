@@ -625,6 +625,8 @@ Incremental migration progress:
   keeping the plugin config schema on the current main-Zod boundary.
 - Migrated auth-service JSON request-body normalization to explicit Zod 4 while
   leaving OAuth client/session contracts on the current boundary.
+- Replaced auth-service OAuth client-store persisted JSON hand guards with
+  explicit Zod 4 schemas and `z.url()` request metadata validation.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
