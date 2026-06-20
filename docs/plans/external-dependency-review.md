@@ -627,6 +627,9 @@ Incremental migration progress:
   leaving OAuth client/session contracts on the current boundary.
 - Replaced auth-service OAuth client-store persisted JSON hand guards with
   explicit Zod 4 schemas and `z.url()` request metadata validation.
+- Replaced auth-service persisted JSON hand guards for refresh tokens,
+  authorization codes, operator sessions, and setup state with explicit Zod 4
+  schemas while preserving exact optional output shapes.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
