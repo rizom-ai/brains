@@ -52,6 +52,9 @@ permissions:
       publish: anchor
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   directory-sync:
     seedContentPath: eval-content-full
     git:

@@ -14,7 +14,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Start the Rover onboarding playbook."
+  - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
         - toolName: playbook_start
@@ -27,29 +27,20 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Set up Rover action."
+  - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
     successCriteria:
       expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
-      responseNotContains:
-        - "Confirmation required"
-        - "I cannot"
-        - "I don't have access"
-
-  - userMessage: "Use the Keep Rover defaults action."
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: SKIP
         - toolName: system_update
-          shouldBeCalled: false
-      responseNotContains:
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
         - "Confirmation required"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
         - "I cannot"
         - "I don't have access"
 
@@ -58,12 +49,6 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: false
-        - toolName: system_update
-          shouldBeCalled: false
-        - toolName: playbook_send_event
-          shouldBeCalled: false
-      responseContains:
-        - role
       responseNotContains:
         - "Confirmation required"
         - "Updated anchor profile"
@@ -80,7 +65,6 @@ successCriteria:
   toolCountRange:
     max: 10
   responseNotContains:
-    - "Confirmation required"
     - "I cannot"
     - "I don't have access"
 

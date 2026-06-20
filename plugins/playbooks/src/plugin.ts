@@ -54,6 +54,7 @@ const lifecycleConfigSchema = z
 const playbooksConfigSchema = z
   .object({
     lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+    triggers: z.record(z.string(), z.boolean()).default({}),
   })
   .strict();
 
@@ -76,6 +77,11 @@ const playbookEntitySchema = z
         status: z.enum(["draft", "active", "archived"]),
         audience: z.enum(["anchor", "trusted", "public"]),
         trigger: z.string().min(1).optional(),
+        lifecycle: z.string().min(1).optional(),
+        once: z.boolean().optional(),
+        starterText: z.string().min(1).optional(),
+        description: z.string().min(1).optional(),
+        starterPrompt: z.string().min(1).optional(),
         completionMode: z.enum(["agent-confirmed", "manual"]),
       })
       .passthrough(),
@@ -294,7 +300,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_start",
         description:
-          "Start a playbook run, or resume an existing active run. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
+          "Start a playbook run, or resume an existing active run. If the operator asks to start a playbook by title, use the stable slug/id form when known (for example lowercase words joined by hyphens) instead of claiming it is unavailable without calling this tool. Do not call this to continue an already active playbook; use playbook_status and playbook_send_event with a valid event instead.",
         inputSchema: startInputSchema,
         visibility: "anchor",
         handler: async (
@@ -309,6 +315,8 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
           return this.withStartLock(lockKey, async () => {
             const playbook = await this.requirePlaybook(parsed.playbookId);
             assertValidPlaybookBody(playbook.body);
+            const lifecycle =
+              playbook.entity.metadata.lifecycle ?? parsed.lifecycle;
             const existing = conversationId
               ? (
                   await this.store.listActiveByConversation(conversationId)
@@ -327,7 +335,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
                   playbookId: parsed.playbookId,
                   playbookVersion: playbook.version,
                   body: playbook.body,
-                  lifecycle: parsed.lifecycle,
+                  lifecycle,
                   conversationId,
                 });
             const data = await this.getStatus({ runId: run.id });
@@ -338,7 +346,7 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       {
         name: "playbook_send_event",
         description:
-          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
+          "Send an event to a playbook run state machine and persist the resulting state. Invalid events return an error. Only use this when the operator positively selects a valid event/action or when a gated Done When condition is actually met. For durable gated states, user-provided details are not enough; do not send NEXT until the required system_create/system_update/system_delete tool has succeeded or current run evidence already shows the Done When condition is met. Operator actions and choices are not generic continuation events; do not use this for generic next/continue to select an operator action, even if only one operator action is currently valid. Do not use this when the operator explicitly says they have not chosen, selected, asked for, or used the available action. Skip-style events require a positive request to skip. This tool only changes playbook state; it does not retrieve, show, save, create, update, or transform domain entities. When the operator message only selects a playbook action, call this tool without unrelated domain mutation tools such as system_create or system_update. If the operator also asks to find/show/retrieve content, call system_get or system_search before answering.",
         inputSchema: sendEventInputSchema,
         visibility: "anchor",
         handler: async (
@@ -441,6 +449,10 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
       };
     }
+    const sourceState = this.getState(playbook.body, run.currentState);
+    const selectedTransition = sourceState?.transitions.find(
+      (transition) => transition.event === event,
+    );
     const result = await this.transitionRun(run, playbook.body, event);
     if (!result.success) {
       if (result.gateVerdicts) {
@@ -470,7 +482,13 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         : {}),
     });
     const data = await this.getStatus({ runId: nextRun.id });
-    return { success: true, data };
+    return {
+      success: true,
+      data:
+        sourceState && selectedTransition?.operatorAction === true
+          ? withOperatorActionGuidance(data, sourceState, selectedTransition)
+          : data,
+    };
   }
 
   private async createStartedRun(input: {
@@ -669,37 +687,114 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
       return [];
     }
 
+    const starters: PlaybookStarter[] = [];
+    const seenLifecycleIds = new Set<string>();
+
     const entries = Object.entries(this.config.lifecycle).filter(
       ([id]) => !input.lifecycle || id === input.lifecycle,
     );
-    const starters: PlaybookStarter[] = [];
 
     for (const [id, lifecycle] of entries) {
-      const existingRun = await this.store.findByLifecycle(id);
+      const starter = await this.resolveConfiguredLifecycleStarter(
+        id,
+        lifecycle,
+      );
+      if (!starter) continue;
+      starters.push(starter);
+      seenLifecycleIds.add(id);
+    }
+
+    const enabledTriggers = new Set(
+      Object.entries(this.config.triggers)
+        .filter(([, enabled]) => enabled)
+        .map(([trigger]) => trigger),
+    );
+    if (enabledTriggers.size === 0) return starters;
+
+    for (const playbook of await this.listPlaybooks()) {
+      const metadata = playbook.entity.metadata;
+      if (metadata.status !== "active" || metadata.audience !== "anchor") {
+        continue;
+      }
+      const trigger = metadata.trigger;
+      if (!trigger || !enabledTriggers.has(trigger)) continue;
+      const lifecycle = metadata.lifecycle ?? playbook.entity.id;
+      if (seenLifecycleIds.has(lifecycle)) continue;
+      if (input.lifecycle && lifecycle !== input.lifecycle) continue;
+
+      const existingRun = await this.store.findByLifecycle(lifecycle);
       if (
-        lifecycle.once &&
+        (metadata.once ?? true) &&
         (existingRun?.status === "completed" ||
           existingRun?.status === "dismissed")
       ) {
         continue;
       }
 
-      const playbook = await this.getPlaybook(lifecycle.playbookId);
-      if (playbook?.entity.metadata.status !== "active") continue;
-
       starters.push({
-        id,
-        title: lifecycle.starterText,
-        ...(lifecycle.description
-          ? { description: lifecycle.description }
+        id: lifecycle,
+        title: metadata.starterText ?? metadata.title,
+        ...((metadata.description ?? playbook.body.purpose)
+          ? { description: metadata.description ?? playbook.body.purpose }
           : {}),
-        playbookId: lifecycle.playbookId,
-        lifecycle: id,
-        starterPrompt: lifecycle.starterPrompt,
+        playbookId: playbook.entity.id,
+        lifecycle,
+        starterPrompt:
+          metadata.starterPrompt ?? `Start the ${metadata.title} playbook.`,
       });
+      seenLifecycleIds.add(lifecycle);
     }
 
     return starters;
+  }
+
+  private async resolveConfiguredLifecycleStarter(
+    id: string,
+    lifecycle: LifecyclePlaybookConfig,
+  ): Promise<PlaybookStarter | undefined> {
+    const existingRun = await this.store.findByLifecycle(id);
+    if (
+      lifecycle.once &&
+      (existingRun?.status === "completed" ||
+        existingRun?.status === "dismissed")
+    ) {
+      return undefined;
+    }
+
+    const playbook = await this.getPlaybook(lifecycle.playbookId);
+    if (playbook?.entity.metadata.status !== "active") return undefined;
+
+    return {
+      id,
+      title: lifecycle.starterText,
+      ...(lifecycle.description ? { description: lifecycle.description } : {}),
+      playbookId: lifecycle.playbookId,
+      lifecycle: id,
+      starterPrompt: lifecycle.starterPrompt,
+    };
+  }
+
+  private async listPlaybooks(): Promise<ParsedPlaybook[]> {
+    if (!this.ctx) return [];
+    const entities =
+      await this.ctx.entityService.listEntities<RegisteredPlaybookEntity>({
+        entityType: "playbook",
+      });
+
+    return entities.flatMap((entity): ParsedPlaybook[] => {
+      const parsed = playbookEntitySchema.safeParse(entity);
+      if (!parsed.success) return [];
+      const { body } = playbookAdapter.parsePlaybookContent(
+        parsed.data.content,
+      );
+      return [
+        {
+          entity: parsed.data,
+          body,
+          version: computeContentHash(parsed.data.content),
+        },
+      ];
+    });
   }
 
   private async getStatus(input: {
@@ -850,9 +945,12 @@ export class PlaybooksPlugin extends ServicePlugin<PlaybooksConfig> {
         : "- Not checked yet.",
       "Current-state information rules:",
       "- If this state asks the operator for information, ask the operator for the missing current-run information.",
+      "- If the current operator message partially answers the state's prompt, do not repeat the original prompt; ask only for the next missing detail required by the state instructions.",
       "- Do not answer the state's operator-facing prompt from memory, existing durable records, profile data, search, or retrieval tools.",
       "- Setup facts must come from current-run evidence or current operator input, not ambient records.",
       "Event selection rules:",
+      "- Blocked events are not valid events; do not call playbook_send_event with a blocked event.",
+      "- For gated durable states, operator-provided details are not enough to send NEXT; first complete the required system_create/system_update/system_delete action or use existing current-run evidence that the Done When condition has already been met.",
       "- If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.",
       '- Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection.',
       "- If multiple events are available, ask the operator to pick one labeled action.",
@@ -1204,9 +1302,9 @@ After meaningful tool actions, refresh playbook_status before your final answer 
 If the immediately prior assistant turn completed a confirmed create/update action and the operator now asks for playbook-related next-step work or provides details for the likely next step, call playbook_status before any non-playbook domain tool so the runtime can apply satisfied gated transitions first.
 If exactly one non-operator continuation event is available and the operator clearly accepts it, send that event instead of starting the playbook again. If the current state has exactly one non-operator continuation event, its Done When has already been satisfied by runtime evidence, and the operator asks for the next playbook task, names an action from the next task, names the continuation target, or provides the requested work/details for the continuation target, send the continuation event before doing the requested next-task work. Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection. If multiple events are available, ask the operator to pick one labeled action. If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.
 A Skip-style operator action is never a default continuation. Send a Skip event only when the operator positively selects or asks to skip.
-If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering. Do not ask the operator for the raw event code when a matching labeled action is available; translate the label to its event yourself.
+If the operator names or selects a valid event label or operator action (for example, "Use the X action"), call playbook_send_event for that matching event before doing related work or answering. Do not ask the operator for the raw event code when a matching labeled action is available; translate the label to its event yourself. If the operator message only selects the playbook action, do not also call unrelated domain mutation tools such as system_create or system_update in the same turn.
 A playbook event does not replace ordinary domain tools requested in the same operator message. If the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer; do not claim that work happened from conversation memory, playbook evidence, or a playbook event alone. For find/show/retrieve requests, system_get or system_search is mandatory in the same turn even when you also send a playbook event.
-After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If the same operator message includes a concrete request with the necessary content and target details for the new state, satisfy that request in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
+After a playbook event advances the run, call playbook_status and answer from the refreshed current state. If playbook_send_event or playbook_status returns currentState.prompt, use that prompt as the final answer for the next step unless the same operator message answers or partially answers that prompt, or includes a concrete request with the necessary content and target details for the new state. If the same operator message answers partially, ask only for the next missing detail required by the state instructions. If the same operator message includes a concrete request, satisfy it in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_send_event with a valid event; the runtime goal check decides whether gated transitions are allowed.
 Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
@@ -1255,7 +1353,7 @@ ${blockedEvents || "- none"}`,
       )
       .join("\n");
 
-    return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing.
+    return `When the operator asks to start a configured playbook or lifecycle, call playbook_start with the configured playbookId and lifecycle before continuing. If the operator names a playbook by title and no configured lifecycle entry is listed below, still call playbook_start with the stable slug/id form when known instead of claiming the playbook is unavailable without trying the tool.
 When active-playbook context is present, follow its current state instructions, Done When conditions, valid events, and operating guidance.
 If the recent conversation involved a playbook and the operator asks what is next, what to do next, whether setup is done, or a similar progress question, call playbook_status before answering and use the returned run status/current state as source of truth.
 A playbook event does not replace ordinary domain tools requested in the same operator message; if the operator also asks to find, show, retrieve, save, create, update, or transform something, call the relevant non-playbook tool before the final answer.
@@ -1264,6 +1362,29 @@ Do not publish content unless the operator explicitly asks and confirms the publ
 Configured lifecycle playbooks:
 ${lifecycleSummary || "- none"}`;
   }
+}
+
+function withOperatorActionGuidance(
+  status: PlaybookStatusResponse,
+  sourceState: PlaybookState,
+  transition: PlaybookTransition,
+): PlaybookStatusResponse {
+  const sourceInstructions = sourceState.instructions
+    .map((instruction) => `- ${instruction}`)
+    .join("\n");
+  const actionGuidance = [
+    `Selected operator action: ${transition.label ?? transition.event}`,
+    `Source state: ${sourceState.title}`,
+    "Complete any domain work requested by the selected action or same user message before final answering.",
+    "Source-state instructions for the selected action:",
+    sourceInstructions || "- none",
+  ].join("\n");
+  return {
+    ...status,
+    guidance: status.guidance
+      ? `${actionGuidance}\n\n${status.guidance}`
+      : actionGuidance,
+  };
 }
 
 function sanitizeRunForModelOutput(run: PlaybookRun): PlaybookRun {

@@ -17,23 +17,11 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Start the Rover onboarding playbook."
+  - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
         - toolName: playbook_start
           shouldBeCalled: true
-
-  - userMessage: "Use the Set up Rover action and continue to brain identity setup."
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
-      responseNotContains:
-        - "Confirmation required"
-        - "I cannot"
-        - "I don't have access"
 
   - userMessage: "Tune Rover's brain identity: Rover should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
     successCriteria:
@@ -54,15 +42,23 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Skip for now action."
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
     successCriteria:
       expectedTools:
-        - toolName: playbook_send_event
+        - toolName: system_update
           shouldBeCalled: true
           argsContain:
-            event: SKIP
-      responseNotContains:
+            entityType: anchor-profile
+      responseContains:
         - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Approve saving that profile update."
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
         - "I cannot"
         - "I don't have access"
 
@@ -93,11 +89,8 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Show me action and find that note now."
+  - userMessage: "Find that saved note now."
     successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
       expectedAnyTool:
         - toolNames:
             - system_get
@@ -163,8 +156,6 @@ turns:
 successCriteria:
   expectedTools:
     - toolName: playbook_start
-      shouldBeCalled: true
-    - toolName: playbook_send_event
       shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true

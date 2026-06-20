@@ -64,6 +64,23 @@ function applyFieldUpdates(
   };
 }
 
+function validateAnchorProfileUpdate(
+  entityType: string,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+): { success: false; error: string } | undefined {
+  if (entityType !== "anchor-profile") return undefined;
+
+  if (normalizedInput.fields) {
+    return {
+      success: false,
+      error:
+        "anchor-profile updates require full markdown content replacement, not fields-only updates.",
+    };
+  }
+
+  return undefined;
+}
+
 function validateCoverImageFieldUpdate(
   entityType: string,
   normalizedInput: { fields?: Record<string, unknown> },
@@ -206,6 +223,12 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
+
+      const anchorProfileError = validateAnchorProfileUpdate(
+        entity.entityType,
+        normalizedInput,
+      );
+      if (anchorProfileError) return anchorProfileError;
 
       const coverImageFieldError = validateCoverImageFieldUpdate(
         entity.entityType,

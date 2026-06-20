@@ -6,7 +6,11 @@ import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
 } from "@brains/contracts";
-import { playbookAdapter, type PlaybookBody } from "@brains/playbook";
+import {
+  playbookAdapter,
+  type PlaybookBody,
+  type PlaybookFrontmatter,
+} from "@brains/playbook";
 import { z } from "@brains/utils";
 import {
   createPluginHarness,
@@ -82,26 +86,21 @@ function addPlaybookEntity(
   harness: PluginHarness,
   body: PlaybookBody = playbookBody,
   id = "rover-onboarding",
+  metadata: Partial<PlaybookFrontmatter> = {},
 ): void {
+  const frontmatter: PlaybookFrontmatter = {
+    title: "Rover Onboarding",
+    status: "active" as const,
+    audience: "anchor" as const,
+    completionMode: "agent-confirmed" as const,
+    ...metadata,
+  };
   harness.addEntities([
     {
       id,
       entityType: "playbook",
-      content: playbookAdapter.createPlaybookContent(
-        {
-          title: "Rover Onboarding",
-          status: "active",
-          audience: "anchor",
-          completionMode: "agent-confirmed",
-        },
-        body,
-      ),
-      metadata: {
-        title: "Rover Onboarding",
-        status: "active",
-        audience: "anchor",
-        completionMode: "agent-confirmed",
-      },
+      content: playbookAdapter.createPlaybookContent(frontmatter, body),
+      metadata: frontmatter,
     },
   ]);
 }
@@ -341,6 +340,25 @@ describe("PlaybooksPlugin", () => {
     expect(data.activeRun.lifecycle).toBe("first-anchor-web-chat");
   });
 
+  it("uses playbook metadata lifecycle over model-authored start lifecycle", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      lifecycle: "onboarding",
+    });
+
+    const started = await harness.executeTool(
+      "playbook_start",
+      { playbookId: "rover-onboarding", lifecycle: "default" },
+      { conversationId: "metadata-lifecycle" },
+    );
+
+    expectSuccess(started);
+    expect(parsePlaybookToolData(started.data).activeRun.lifecycle).toBe(
+      "onboarding",
+    );
+  });
+
   it("deduplicates concurrent playbook_start calls for the same conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
@@ -428,6 +446,87 @@ describe("PlaybooksPlugin", () => {
       lifecycle: "onboarding",
       starterPrompt: "Start the Rover onboarding playbook.",
     });
+  });
+
+  it("does not return metadata-triggered starters unless the trigger is enabled", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(playbooksPlugin({}));
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      trigger: "first-anchor-web-chat",
+      lifecycle: "onboarding",
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    });
+
+    const response = await harness.sendMessage<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      {
+        starters: Array<{
+          id: string;
+          title: string;
+          description?: string;
+          playbookId: string;
+          lifecycle: string;
+          starterPrompt: string;
+        }>;
+      }
+    >("playbooks:lifecycle-starters", {
+      lifecycle: "onboarding",
+      interfaceType: "web-chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.starters).toEqual([]);
+  });
+
+  it("derives enabled lifecycle starters from active playbook metadata", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await harness.installPlugin(
+      playbooksPlugin({ triggers: { "first-anchor-web-chat": true } }),
+    );
+    addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
+      trigger: "first-anchor-web-chat",
+      lifecycle: "onboarding",
+      starterText: "Set up Rover",
+      starterPrompt: "Start the Rover onboarding playbook.",
+    });
+
+    const response = await harness.sendMessage<
+      {
+        lifecycle: string;
+        interfaceType: string;
+        userPermissionLevel: "anchor";
+      },
+      {
+        starters: Array<{
+          id: string;
+          title: string;
+          description?: string;
+          playbookId: string;
+          lifecycle: string;
+          starterPrompt: string;
+        }>;
+      }
+    >("playbooks:lifecycle-starters", {
+      lifecycle: "onboarding",
+      interfaceType: "web-chat",
+      userPermissionLevel: "anchor",
+    });
+
+    expect(response?.starters).toEqual([
+      {
+        id: "onboarding",
+        title: "Set up Rover",
+        description: "Teach by doing.",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+        starterPrompt: "Start the Rover onboarding playbook.",
+      },
+    ]);
   });
 
   it("fails loudly when a run's pinned playbook version no longer matches content", async () => {

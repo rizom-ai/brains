@@ -58,6 +58,17 @@ export class PlaybookAdapter extends BaseEntityAdapter<
         status: frontmatter.status,
         audience: frontmatter.audience,
         ...(frontmatter.trigger ? { trigger: frontmatter.trigger } : {}),
+        ...(frontmatter.lifecycle ? { lifecycle: frontmatter.lifecycle } : {}),
+        ...(frontmatter.once !== undefined ? { once: frontmatter.once } : {}),
+        ...(frontmatter.starterText
+          ? { starterText: frontmatter.starterText }
+          : {}),
+        ...(frontmatter.description
+          ? { description: frontmatter.description }
+          : {}),
+        ...(frontmatter.starterPrompt
+          ? { starterPrompt: frontmatter.starterPrompt }
+          : {}),
         completionMode: frontmatter.completionMode,
       },
     };

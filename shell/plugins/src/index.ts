@@ -425,6 +425,7 @@ export {
   anchorProfileBodySchema,
   brainCharacterBodySchema,
   baseProfileExtension,
+  professionalProfileExtension,
   fetchAnchorProfile,
 } from "@brains/identity-service";
 

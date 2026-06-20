@@ -1,24 +1,16 @@
-import { z } from "@brains/utils";
-import { anchorProfileBodySchema, baseProfileExtension } from "@brains/plugins";
+import type { z } from "@brains/utils";
+import {
+  anchorProfileBodySchema,
+  professionalProfileExtension,
+} from "@brains/plugins";
 
 /**
- * Professional-specific fields that extend the base profile schema
- * Used both to build the full schema and to register as a CMS extension
+ * Professional profile schema for site rendering.
+ *
+ * The professional extension is defined by identity-service so site packages
+ * consume the profile contract instead of owning durable entity fields.
  */
-export const professionalProfileExtension = baseProfileExtension.extend({
-  expertise: z
-    .array(z.string())
-    .optional()
-    .describe("Skills, domains, areas of focus"),
-  currentFocus: z
-    .string()
-    .optional()
-    .describe("What you're currently working on"),
-  availability: z
-    .string()
-    .optional()
-    .describe("What you're open to (consulting, speaking, etc.)"),
-});
+export { professionalProfileExtension };
 
 export const professionalProfileSchema = anchorProfileBodySchema.extend(
   professionalProfileExtension.shape,

@@ -1,6 +1,6 @@
 id: multi-turn-playbook-blocks-unsatisfied-identity-next
 name: Playbook Blocks Unsatisfied Identity Next
-description: Verifies that Rover does not advance from Brain identity on a generic continue request before brain identity is saved or the authored Keep Rover defaults action is selected.
+description: Verifies that Rover does not advance from Brain identity on a generic continue request before brain identity is saved.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -14,7 +14,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Start the Rover onboarding playbook."
+  - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
         - toolName: playbook_start
@@ -27,19 +27,7 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Set up Rover action."
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
-      responseNotContains:
-        - "Confirmation required"
-        - "I cannot"
-        - "I don't have access"
-
-  - userMessage: "Continue. I have not provided brain identity details and I have not chosen Keep Rover defaults."
+  - userMessage: "Continue. I have not provided brain identity details."
     successCriteria:
       expectedTools:
         - toolName: system_create
@@ -48,20 +36,15 @@ turns:
           shouldBeCalled: false
       responseNotContains:
         - "Alex Chen"
-        - "anchor profile"
         - "seed"
-        - "rough idea"
         - "fragment"
         - "Confirmation required"
         - "I cannot"
         - "I don't have access"
 
-
 successCriteria:
   expectedTools:
     - toolName: playbook_start
-      shouldBeCalled: true
-    - toolName: playbook_send_event
       shouldBeCalled: true
   toolCountRange:
     max: 10

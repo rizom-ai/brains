@@ -1,6 +1,6 @@
 id: multi-turn-rover-onboarding-playbook
 name: Rover Onboarding Playbook Conversation
-description: Verifies that Rover starts the onboarding playbook, advances with playbook events, saves profile information through confirmation, and saves a first durable knowledge seed with automatic runtime evidence.
+description: Verifies that Rover starts onboarding, saves identity/profile information through confirmation, saves a first durable knowledge seed, retrieves it through normal tools, and transforms it without scripted non-exit playbook actions.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -14,7 +14,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Start the Rover onboarding playbook."
+  - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
         - toolName: playbook_start
@@ -24,20 +24,6 @@ turns:
       responseContains:
         - Rover
       responseNotContains:
-        - "I cannot"
-        - "I don't have access"
-
-  - userMessage: "Use the Set up Rover action and continue to brain identity setup."
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
-      responseNotContains:
-        - "Confirmation required"
-        - "want to continue"
-        - "continue onboarding"
         - "I cannot"
         - "I don't have access"
 
@@ -64,8 +50,13 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Update my anchor profile now: my name is Ada Morgan. I advise climate-tech founders on resilient software systems and want a clear, practical, quietly confident voice."
+  - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
     successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: anchor-profile
       responseContains:
         - "Confirmation required"
       responseNotContains:
@@ -117,11 +108,9 @@ turns:
         - "playbook_status"
         - "playbook_send_event"
 
-  - userMessage: "Use the Show me action and find that note now."
+  - userMessage: "Find that saved note now."
     successCriteria:
       expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
         - toolName: system_extract
           shouldBeCalled: false
       expectedAnyTool:
@@ -179,8 +168,6 @@ turns:
 successCriteria:
   expectedTools:
     - toolName: playbook_start
-      shouldBeCalled: true
-    - toolName: playbook_send_event
       shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true

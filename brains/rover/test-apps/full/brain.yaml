@@ -3,6 +3,9 @@ preset: full
 domain: alex.example.com
 
 plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
   directory-sync:
     seedContentPath: ../../eval-content-full
     autoSync: true

@@ -25,6 +25,15 @@ describe("rover presets", () => {
     expect(pluginIds).toContain("atproto");
   });
 
+  it("registers Rover's professional profile extension in every preset", () => {
+    for (const preset of ["core", "default", "full"] as const) {
+      const config = resolve(rover, {}, { preset });
+      const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
+
+      expect(pluginIds).toContain("rover-profile");
+    }
+  });
+
   it("merges ATProto identifier from brain config with app password from env", async () => {
     const overrides = parseInstanceOverrides(`brain: rover
 domain: smoke.rizom.ai
@@ -71,6 +80,33 @@ plugins:
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
     expect(pluginIds).toContain("document");
+  });
+
+  it("keeps onboarding playbook starters disabled by default", () => {
+    const config = resolve(rover, {}, { preset: "core" });
+    const playbooks = config.plugins?.find(
+      (plugin) => plugin.id === "playbooks",
+    );
+
+    expect(playbooks?.config).toMatchObject({ lifecycle: {}, triggers: {} });
+  });
+
+  it("allows brain.yaml to opt into onboarding playbook starters", () => {
+    const overrides = parseInstanceOverrides(`brain: rover
+preset: core
+plugins:
+  playbooks:
+    triggers:
+      first-anchor-web-chat: true
+`);
+    const config = resolve(rover, {}, overrides);
+    const playbooks = config.plugins?.find(
+      (plugin) => plugin.id === "playbooks",
+    );
+
+    expect(playbooks?.config).toMatchObject({
+      triggers: { "first-anchor-web-chat": true },
+    });
   });
 
   it("wires CMS passkey login from CMS_CONTENT_REPO_PAT when present", () => {

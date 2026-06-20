@@ -1,6 +1,6 @@
 id: multi-turn-playbook-blocks-early-next
-name: Playbook Blocks Early Next Without Valid Action
-description: Verifies that Rover does not advance a playbook from Welcome on a generic early Next/continue request before the user selects a valid authored action.
+name: Playbook Blocks Early Next Without Identity Details
+description: Verifies that Rover does not advance from Brain identity on a generic Next/continue request before brain identity is saved.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -14,7 +14,7 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "Start the Rover onboarding playbook."
+  - userMessage: "Start playbook rover-onboarding."
     successCriteria:
       expectedTools:
         - toolName: playbook_start
@@ -27,14 +27,14 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Next. I have not chosen Set up Rover or Not now yet."
+  - userMessage: "Next. I have not provided brain identity details yet."
     successCriteria:
       expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: false
         - toolName: system_create
           shouldBeCalled: false
         - toolName: system_update
+          shouldBeCalled: false
+        - toolName: playbook_send_event
           shouldBeCalled: false
       responseNotContains:
         - "What should I call you"
@@ -43,23 +43,9 @@ turns:
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Use the Set up Rover action."
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_send_event
-          shouldBeCalled: true
-          argsContain:
-            event: CHOICE_1
-      responseNotContains:
-        - "Confirmation required"
-        - "I cannot"
-        - "I don't have access"
-
 successCriteria:
   expectedTools:
     - toolName: playbook_start
-      shouldBeCalled: true
-    - toolName: playbook_send_event
       shouldBeCalled: true
   toolCountRange:
     max: 5

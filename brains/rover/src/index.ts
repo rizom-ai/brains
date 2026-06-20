@@ -36,6 +36,7 @@ import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
+import { roverProfilePlugin } from "./profile-extension";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import { join } from "path";
@@ -57,6 +58,7 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
+  "rover-profile",
   "image",
   "document",
   "note",
@@ -138,6 +140,7 @@ export default defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
+    ["rover-profile", roverProfilePlugin, {}],
     ["image", imagePlugin, undefined],
     [
       "cms",
@@ -155,23 +158,7 @@ export default defineBrain({
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, {}],
-    [
-      "playbooks",
-      playbooksPlugin,
-      {
-        lifecycle: {
-          onboarding: {
-            trigger: "first-anchor-web-chat",
-            playbookId: "rover-onboarding",
-            once: true,
-            starterText: "Set up Rover",
-            description:
-              "Learn Rover by saving a first idea and seeing how your knowledge becomes reusable.",
-            starterPrompt: "Start the Rover onboarding playbook.",
-          },
-        },
-      },
-    ],
+    ["playbooks", playbooksPlugin, {}],
     ["email-resend", emailResendPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],

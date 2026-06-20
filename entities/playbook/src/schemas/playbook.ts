@@ -46,6 +46,11 @@ export const playbookFrontmatterSchema = z.object({
   status: playbookStatusSchema.default("active"),
   audience: playbookAudienceSchema.default("anchor"),
   trigger: optionalTextSchema,
+  lifecycle: optionalTextSchema,
+  once: z.boolean().optional(),
+  starterText: optionalTextSchema,
+  description: optionalTextSchema,
+  starterPrompt: optionalTextSchema,
   completionMode: playbookCompletionModeSchema.default("agent-confirmed"),
 });
 
@@ -54,6 +59,11 @@ export const playbookMetadataSchema = z.object({
   status: playbookStatusSchema,
   audience: playbookAudienceSchema,
   trigger: optionalTextSchema,
+  lifecycle: optionalTextSchema,
+  once: z.boolean().optional(),
+  starterText: optionalTextSchema,
+  description: optionalTextSchema,
+  starterPrompt: optionalTextSchema,
   completionMode: playbookCompletionModeSchema,
 });
 
