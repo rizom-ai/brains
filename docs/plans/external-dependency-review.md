@@ -605,6 +605,9 @@ Incremental migration progress:
   the current main-Zod boundary.
 - Migrated the site-builder site metadata message response guard to explicit
   Zod 4 while keeping shared site-composition schemas on the current boundary.
+- Migrated the A2A client call tool handler-local input parser to explicit Zod
+  4 while keeping the tool-facing input schema on the current main-Zod
+  boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -142,6 +142,11 @@ const a2aCallInputSchema = {
   message: zMain.string().describe("Message to send to the remote agent"),
 };
 
+const a2aCallInputParserSchema = z.object({
+  agent: z.string(),
+  message: z.string(),
+});
+
 function normalizeSavedAgentId(agent: string): string | null {
   const trimmed = agent.trim();
   if (!trimmed) return null;
@@ -466,7 +471,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = zMain.object(a2aCallInputSchema).safeParse(input);
+      const parsed = a2aCallInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
