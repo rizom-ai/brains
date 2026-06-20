@@ -924,7 +924,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           userPermissionLevel,
           interfaceType: platform,
           channelId,
-          channelName: this.getChannelName(thread, message),
+          channelName: this.getChannelName(thread),
           ...this.buildUserMessageMetadata(platform, thread, message),
           ...(agentInput.attachments.length > 0
             ? { attachments: agentInput.attachments }
@@ -2409,7 +2409,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     };
   }
 
-  private getChannelName(thread: Thread, _message: Message): string {
+  private getChannelName(thread: Thread): string {
     return thread.isDM ? "DM" : thread.channelId;
   }
 
@@ -2418,25 +2418,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     thread: Thread,
     message: Message,
   ): Record<string, unknown> {
-    const ids = this.getThreadIdParts(thread.id);
     return {
-      actor: {
-        actorId: `${platform}:${message.author.userId}`,
-        interfaceType: platform,
-        role: "user",
-        displayName: message.author.fullName || message.author.userName,
-        username: message.author.userName,
-        isBot: Boolean(message.author.isBot),
-      },
-      source: {
+      actor: this.buildActorMetadata(platform, message.author),
+      source: this.buildSourceMetadata(thread, {
         messageId: message.id,
-        channelId: thread.id,
-        channelName: this.getChannelName(thread, message),
-        ...(ids.threadId ? { threadId: ids.threadId } : {}),
-        metadata: {
-          ...(ids.guildId ? { guildId: ids.guildId } : {}),
-        },
-      },
+        channelName: this.getChannelName(thread),
+      }),
     };
   }
 
@@ -2445,26 +2432,55 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     thread: Thread,
     event: ActionEvent,
   ): Record<string, unknown> {
-    const ids = this.getThreadIdParts(thread.id);
     return {
-      actor: {
-        actorId: `${platform}:${event.user.userId}`,
-        interfaceType: platform,
-        role: "user",
-        displayName: event.user.fullName || event.user.userName,
-        username: event.user.userName,
-        isBot: Boolean(event.user.isBot),
-      },
-      source: {
+      actor: this.buildActorMetadata(platform, event.user),
+      source: this.buildSourceMetadata(thread, {
         messageId: event.messageId,
-        channelId: thread.id,
-        channelName: thread.isDM ? "DM" : thread.channelId,
-        ...(ids.threadId ? { threadId: ids.threadId } : {}),
+        channelName: this.getChannelName(thread),
         metadata: {
           actionId: event.actionId,
           ...(event.value ? { actionValue: event.value } : {}),
-          ...(ids.guildId ? { guildId: ids.guildId } : {}),
         },
+      }),
+    };
+  }
+
+  private buildActorMetadata(
+    platform: string,
+    actor: {
+      userId: string;
+      userName: string;
+      fullName: string;
+      isBot: boolean | string;
+    },
+  ): Record<string, unknown> {
+    return {
+      actorId: `${platform}:${actor.userId}`,
+      interfaceType: platform,
+      role: "user",
+      displayName: actor.fullName || actor.userName,
+      username: actor.userName,
+      isBot: Boolean(actor.isBot),
+    };
+  }
+
+  private buildSourceMetadata(
+    thread: Thread,
+    input: {
+      messageId: string;
+      channelName: string;
+      metadata?: Record<string, unknown>;
+    },
+  ): Record<string, unknown> {
+    const ids = this.getThreadIdParts(thread.id);
+    return {
+      messageId: input.messageId,
+      channelId: thread.id,
+      channelName: input.channelName,
+      ...(ids.threadId ? { threadId: ids.threadId } : {}),
+      metadata: {
+        ...(input.metadata ?? {}),
+        ...(ids.guildId ? { guildId: ids.guildId } : {}),
       },
     };
   }
