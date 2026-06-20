@@ -108,6 +108,9 @@ describe("Rover onboarding playbook seed", () => {
       "Keep this about the brain itself — what Rover is and how it should help — not the operator's personal profile.",
     );
     expect(brainIdentity?.instructions).toContain(
+      'If the operator selects the "Keep Rover defaults" action, only send the SKIP event and do not call system_update, do not rewrite brain-character, and do not request confirmation.',
+    );
+    expect(brainIdentity?.instructions).toContain(
       'Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".',
     );
     expect(brainIdentity?.instructions).toContain(
@@ -174,6 +177,9 @@ describe("Rover onboarding playbook seed", () => {
     expect(firstNote?.transitions).toEqual([
       { event: "NEXT", target: "see-it-come-back" },
     ]);
+    expect(firstNote?.instructions).toContain(
+      "For a rough idea or fragment saved as the first note, call system_create with direct note content; do not include a generation prompt and do not turn the seed into an async generated draft.",
+    );
     expect(firstNote?.instructions).toContain(
       'Use "note" as the operator-facing term for note knowledge entries.',
     );

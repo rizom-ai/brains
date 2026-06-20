@@ -46,6 +46,8 @@ turns:
           shouldBeCalled: true
           argsContain:
             event: SKIP
+        - toolName: system_update
+          shouldBeCalled: false
       responseNotContains:
         - "Confirmation required"
         - "I cannot"

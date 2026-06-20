@@ -48,7 +48,8 @@ To do:
 
 - Help the operator define the brain's identity: name, role, purpose, and values.
 - Keep this about the brain itself — what Rover is and how it should help — not the operator's personal profile.
-- If the operator wants the default Rover identity, use the existing name "Rover" and default role/purpose/values; do not force customization.
+- If the operator describes the default Rover identity in their own words, use the existing name "Rover" and default role/purpose/values where appropriate; do not force customization.
+- If the operator selects the "Keep Rover defaults" action, only send the SKIP event and do not call system_update, do not rewrite brain-character, and do not request confirmation.
 - If the operator gives a compact description, infer reasonable role, purpose, and values from it; ask only for genuinely missing or ambiguous information.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
 - Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".
@@ -100,6 +101,7 @@ To do:
 
 - Ask for one rough idea, note, link, or fragment the operator wants Rover to remember.
 - Save it as the appropriate durable entity, usually a note or link.
+- For a rough idea or fragment saved as the first note, call system_create with direct note content; do not include a generation prompt and do not turn the seed into an async generated draft.
 - Use "note" as the operator-facing term for note knowledge entries.
 - Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.
 - After saving the first seed, say it was saved or captured, then ask whether to find or show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.
