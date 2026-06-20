@@ -597,6 +597,9 @@ Incremental migration progress:
 - Migrated the stock-photo search/select tool handler-local input parsers to
   explicit Zod 4, using `z.url()`, while keeping framework-facing tool input
   schemas on the current main-Zod boundary for MCP introspection.
+- Migrated the ATProto publish/discovery tool handler-local input parsers to
+  explicit Zod 4 while keeping framework-facing tool input schemas on the
+  current main-Zod boundary for MCP introspection.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

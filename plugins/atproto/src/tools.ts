@@ -1,55 +1,79 @@
 import type { ServicePluginContext, Tool, ToolResponse } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { AtprotoPlugin } from "./plugin";
 
 const publishCardInputSchema = {
-  dryRun: z
+  dryRun: zConfig
     .boolean()
     .default(false)
     .describe("Build and return the card record without writing to the PDS"),
 };
 
+const publishCardInputParserSchema = z.object({
+  dryRun: z.boolean().default(false),
+});
+
 const validateCredentialsInputSchema = {};
 
 const publishEntityInputSchema = {
-  entityType: z
+  entityType: zConfig
     .string()
     .describe("Local entity type with a registered AT Protocol projection"),
-  entityId: z.string().optional().describe("Local entity ID to publish"),
-  slug: z.string().optional().describe("Local entity slug to publish"),
-  dryRun: z
+  entityId: zConfig.string().optional().describe("Local entity ID to publish"),
+  slug: zConfig.string().optional().describe("Local entity slug to publish"),
+  dryRun: zConfig
     .boolean()
     .default(false)
     .describe("Build and return the record without writing to the PDS"),
-  topics: z
-    .array(z.string())
+  topics: zConfig
+    .array(zConfig.string())
     .optional()
     .describe("Optional topic labels to include in the AT Protocol record"),
 };
 
+const publishEntityInputParserSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string().optional(),
+  slug: z.string().optional(),
+  dryRun: z.boolean().default(false),
+  topics: z.array(z.string()).optional(),
+});
+
 const discoverBrainCardsInputSchema = {
-  repos: z
-    .array(z.string().min(1))
+  repos: zConfig
+    .array(zConfig.string().min(1))
     .min(1)
     .max(50)
     .describe("Candidate AT Protocol repo DIDs or handles to inspect"),
 };
 
+const discoverBrainCardsInputParserSchema = z.object({
+  repos: z.array(z.string().min(1)).min(1).max(50),
+});
+
 const publishPostInputSchema = {
-  entityId: z
+  entityId: zConfig
     .string()
     .optional()
     .describe("Local blog post entity ID to publish"),
-  slug: z.string().optional().describe("Local blog post slug to publish"),
-  dryRun: z
+  slug: zConfig.string().optional().describe("Local blog post slug to publish"),
+  dryRun: zConfig
     .boolean()
     .default(false)
     .describe("Build and return the post record without writing to the PDS"),
-  topics: z
-    .array(z.string())
+  topics: zConfig
+    .array(zConfig.string())
     .optional()
     .describe("Optional topic labels to include in the AT Protocol record"),
 };
+
+const publishPostInputParserSchema = z.object({
+  entityId: z.string().optional(),
+  slug: z.string().optional(),
+  dryRun: z.boolean().default(false),
+  topics: z.array(z.string()).optional(),
+});
 
 export function createAtprotoTools(
   pluginId: string,
@@ -92,7 +116,7 @@ function createPublishCardTool(
       "Publish this brain's AT Protocol discovery card to the configured PDS, or dry-run the record payload.",
     inputSchema: publishCardInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(publishCardInputSchema).safeParse(input);
+      const parsed = publishCardInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -126,7 +150,7 @@ function createPublishEntityTool(
       "Publish any public local entity with a registered AT Protocol projection, or dry-run the record payload.",
     inputSchema: publishEntityInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(publishEntityInputSchema).safeParse(input);
+      const parsed = publishEntityInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -171,7 +195,7 @@ function createDiscoverBrainCardsTool(
       "Read public ai.rizom.brain.card/self records from candidate AT Protocol repo DIDs or handles and emit internal discovery events.",
     inputSchema: discoverBrainCardsInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(discoverBrainCardsInputSchema).safeParse(input);
+      const parsed = discoverBrainCardsInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
@@ -205,7 +229,7 @@ function createPublishPostTool(
       "Publish a local blog post entity as an ai.rizom.brain.post AT Protocol record, or dry-run the record payload.",
     inputSchema: publishPostInputSchema,
     handler: async (input): Promise<ToolResponse> => {
-      const parsed = z.object(publishPostInputSchema).safeParse(input);
+      const parsed = publishPostInputParserSchema.safeParse(input);
       if (!parsed.success) {
         return {
           success: false,
