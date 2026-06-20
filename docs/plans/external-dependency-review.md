@@ -545,6 +545,8 @@ Incremental migration progress:
   keeping portfolio template/entity schemas on the existing framework boundary.
 - Migrated the products datasource query parser to explicit Zod 4 while keeping
   datasource output/entity schemas on the existing framework boundary.
+- Migrated the decks eval-handler input parsers to explicit Zod 4 while keeping
+  deck entity/template schemas on the existing plugin boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

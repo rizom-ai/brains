@@ -9,7 +9,8 @@ import type {
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-info";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
@@ -27,6 +28,21 @@ import { DECK_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-template";
 import { DeckOgImageAttachmentProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
+
+const generateDeckEvalInputSchema = z.object({
+  prompt: z.string(),
+  event: z.string().optional(),
+});
+
+const generateDescriptionEvalInputSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
+type GenerateDeckEvalInput = z.output<typeof generateDeckEvalInputSchema>;
+type GenerateDescriptionEvalInput = z.output<
+  typeof generateDescriptionEvalInputSchema
+>;
 
 export type DecksPluginDeps = DeckCarouselAttachmentProviderDeps;
 
@@ -214,9 +230,8 @@ export class DecksPlugin extends EntityPlugin<
 
   private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateDeck", async (input: unknown) => {
-      const parsed = z
-        .object({ prompt: z.string(), event: z.string().optional() })
-        .parse(input);
+      const parsed: GenerateDeckEvalInput =
+        generateDeckEvalInputSchema.parse(input);
       return context.ai.generate<{
         title: string;
         content: string;
@@ -230,9 +245,8 @@ export class DecksPlugin extends EntityPlugin<
     context.eval.registerHandler(
       "generateDescription",
       async (input: unknown) => {
-        const parsed = z
-          .object({ title: z.string(), content: z.string() })
-          .parse(input);
+        const parsed: GenerateDescriptionEvalInput =
+          generateDescriptionEvalInputSchema.parse(input);
         return context.ai.generate<{ description: string }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",
