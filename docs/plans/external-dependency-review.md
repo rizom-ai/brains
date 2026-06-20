@@ -585,6 +585,10 @@ Incremental migration progress:
 - Migrated the content-formatters structured-content markdown text-node guard
   to explicit Zod 4 while keeping formatter constructor schemas on the existing
   caller-provided framework boundary.
+- Migrated app resolver package-shape guards for conventional site package
+  overrides to explicit Zod 4, using `z.looseObject(...)` and two-argument
+  `z.record(...)`, while leaving imported app/site/template schemas on the
+  current framework boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

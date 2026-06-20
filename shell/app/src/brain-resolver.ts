@@ -5,7 +5,8 @@ import {
   type EntityActionRequiredLevel,
 } from "@brains/templates";
 import { composeTheme } from "@brains/theme-base";
-import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
+import { ensureArray, ZodError, type Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type {
   BrainDefinition,
   BrainEnvironment,
@@ -719,28 +720,28 @@ function resolveExternalPluginFactory(
  * Resolve the site package from brain.yaml override or brain definition default.
  * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
  */
-const routeDefinitionOverrideSchema = z
-  .object({
-    id: z.string().min(1),
-  })
-  .passthrough();
+const routeDefinitionOverrideSchema = z.looseObject({
+  id: z.string().min(1),
+});
 
-const entityDisplayEntryOverrideSchema = z
-  .object({
-    label: z.string().min(1),
-  })
-  .passthrough();
+const entityDisplayEntryOverrideSchema = z.looseObject({
+  label: z.string().min(1),
+});
 
-const sitePackageOverridesSchema = z
-  .object({
-    layouts: z.record(z.unknown()).optional(),
-    plugin: z.function().optional(),
-    pluginConfig: z.record(z.unknown()).optional(),
-    routes: z.array(routeDefinitionOverrideSchema).optional(),
-    entityDisplay: z.record(entityDisplayEntryOverrideSchema).optional(),
-    staticAssets: z.record(z.string()).optional(),
-  })
-  .passthrough();
+const sitePackagePluginOverrideSchema = z.custom<(...args: never[]) => unknown>(
+  (value) => typeof value === "function",
+);
+
+const sitePackageOverridesSchema = z.looseObject({
+  layouts: z.record(z.string(), z.unknown()).optional(),
+  plugin: sitePackagePluginOverrideSchema.optional(),
+  pluginConfig: z.record(z.string(), z.unknown()).optional(),
+  routes: z.array(routeDefinitionOverrideSchema).optional(),
+  entityDisplay: z
+    .record(z.string(), entityDisplayEntryOverrideSchema)
+    .optional(),
+  staticAssets: z.record(z.string(), z.string()).optional(),
+});
 
 function applySitePluginConfig(
   site: SitePackage,
