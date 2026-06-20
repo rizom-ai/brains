@@ -38,7 +38,8 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
 - [Turso Database engine evaluation](./turso-database-engine.md) — exploratory; whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model (vs today's git sync) that libSQL can't. Sync is whole-DB on both engines (verified), so the embeddings-fold is viable only in a committed git-only branch; pursue DB sync → keep the embedding DB separate
-- [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos
+- [First-party CMS editor](./first-party-cms-editor.md) — proposed; replaces the Sveltia browser CMS with a first-party React editor that writes through the entity service (no browser GitHub token, entity DB as single writer, git persistence via directory-sync). Supersedes the GitHub-App token plan
+- [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos; superseded if the first-party editor lands (the browser-token problem it hardens disappears)
 
 ### Hosted, deployed, and monetized product
 
@@ -58,3 +59,4 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
 - [Runtime state store](./runtime-state-store.md) — service shipped (`shell/runtime-state`: shell-owned, namespaced, typed store wired into plugin context); consumers (chat subscriptions, playbook run state, notification/setup-email dedupe) pending
 - [OKF interop](./okf-interop.md) — proposed; export/import the entity store as Google's Open Knowledge Format bundles via the `directory-sync` layer, for interchange with external OKF producers/consumers
+- [MCP external redesign](./mcp-external-redesign.md) — proposed; CQRS split for external MCP — raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command (system prompt + permission levels intact); `debug` mode keeps raw write tools local-only; ACP deferred
