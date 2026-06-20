@@ -543,6 +543,8 @@ Incremental migration progress:
   keeping newsletter config/entity schemas on the existing plugin boundary.
 - Migrated the portfolio eval-handler input parser to explicit Zod 4 while
   keeping portfolio template/entity schemas on the existing framework boundary.
+- Migrated the products datasource query parser to explicit Zod 4 while keeping
+  datasource output/entity schemas on the existing framework boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

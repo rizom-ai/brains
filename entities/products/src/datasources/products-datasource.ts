@@ -1,7 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger, z as zMain } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { Product } from "../schemas/product";
 import {
   productFrontmatterSchema,
@@ -25,6 +25,8 @@ const querySchema = z.object({
     })
     .optional(),
 });
+
+type ProductsQuery = z.output<typeof querySchema>;
 
 /**
  * Parse product entity into template-ready format.
@@ -95,10 +97,10 @@ export class ProductsDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: zMain.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = querySchema.parse(query);
+    const params: ProductsQuery = querySchema.parse(query);
     const entityService = context.entityService;
 
     // Fetch overview entity
