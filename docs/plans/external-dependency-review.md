@@ -551,6 +551,9 @@ Incremental migration progress:
   `z.looseObject` for the intentional passthrough query boundary.
 - Migrated the conversation-memory summary datasource query parser to explicit
   Zod 4 while keeping summary entity/template schemas on existing boundaries.
+- Migrated the series datasource query parsers to explicit Zod 4, using
+  `z.looseObject` for dynamic route query passthrough while leaving series
+  entity/template schemas on existing boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

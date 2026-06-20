@@ -5,8 +5,8 @@ import type {
   BaseEntity,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger, z as frameworkZod } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { Series } from "../schemas/series";
 import {
   seriesFrontmatterSchema,
@@ -19,14 +19,12 @@ import { getSeriesName, compareBySeriesIndex } from "../lib/series-metadata";
 // DynamicRouteGenerator format (entityType + query)
 const dynamicQuerySchema = z.object({
   entityType: z.literal("series"),
-  query: z
-    .object({
-      id: z.string().optional(),
-      limit: z.number().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-    })
-    .passthrough(),
+  query: z.looseObject({
+    id: z.string().optional(),
+    limit: z.number().optional(),
+    page: z.number().optional(),
+    pageSize: z.number().optional(),
+  }),
 });
 
 // Custom query format
@@ -89,7 +87,7 @@ export class SeriesDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: frameworkZod.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params = normalizeQuery(query);
@@ -121,7 +119,7 @@ export class SeriesDataSource implements DataSource {
   }
 
   private async fetchSeriesList<T>(
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: frameworkZod.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const seriesEntities = await entityService.listEntities<Series>({
@@ -147,7 +145,7 @@ export class SeriesDataSource implements DataSource {
 
   private async fetchSeriesDetail<T>(
     seriesName: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: frameworkZod.ZodSchema<T>,
     entityService: IEntityService,
     seriesEntity?: Series,
   ): Promise<T> {
@@ -189,7 +187,7 @@ export class SeriesDataSource implements DataSource {
 
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: frameworkZod.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
     const candidates = await entityService.listEntities<Series>({
