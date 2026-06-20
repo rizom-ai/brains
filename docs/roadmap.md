@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-06-10
+Last updated: 2026-06-19
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -54,7 +54,10 @@ These areas are effectively landed:
 - **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
 - **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
-- **Rover eval stabilization** — the full Rover suite covers 118 cases across shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior; the current mainline suite is green at 118/118
+- **Rover eval stabilization** — the full Rover suite covers shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior across the inheritable preset suites described below; the mainline suite stays green
+- **Assistant instruction hardening** — the Rover system prompt now closes a set of identity-disclosure and tool-routing gaps surfaced by eval/regression work: it refuses to reveal the configured anchor/profile identity when answering "am I your anchor?"/"am I {name}?" (answering from permission level only), treats an ambiguous "make one draft" follow-up as a clarification rather than self-picking a published item or firing `system_update`, resolves a source named by title/slug through `system_get` before continuing to `system_create` in the same turn for source-derived artifact saves, and refuses to substitute `system_search` for an unavailable `system_extract` instead of presenting existing topics as newly generated — each guarded by `build-instructions` assertions
+- **Inheritable core-preset eval suite** — eval suites are now declarative and preset-aware in `brain.eval.yaml`: `core` runs `preset-core`, `default` extends `core` with `preset-default`, and `full` extends `default` with `preset-full`, so larger gates inherit smaller-preset tags instead of duplicating them. The 136 existing fixtures split 67 / 33 / 36 across the three tiers, a `--preset <name>` runner flag boots the named preset hermetically (atproto, email-resend, and other live-effect plugins stay in `evalDisable`), a committed tool-coverage ledger keeps "exhaustive" measurable (17/17 core tools asserted), and a case-level `permissions:` matrix plus turn-level multi-user context exercise public/trusted/anchor boundaries — including approval-hijack and shared-thread denial cases — in single multi-turn conversations
+- **Pending entity ingestion** — async entity creation now persists a durable `pending` placeholder immediately and enriches the same entity to `draft` (or `failed`) when the background job completes, so just-saved items are referenceable before processing finishes. A shared `shell/plugins` ingestion helper preserves entity IDs across the lifecycle; `entities/link` is the first adopter (save two links, immediately summarize both), with media/upload entities to follow
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
@@ -77,6 +80,7 @@ These areas are effectively landed:
 - **Structured chat confirmations** — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path
 - **Web chat session management** — the bundled `/chat` surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation
 - **Web chat outbound attachments** — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances
+- **Runtime state store service** — `shell/runtime-state` ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into `shell/core` service initialization and exposed to plugins via `context.runtimeState`; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending
 
 ## Strategic roadmap
 
@@ -122,9 +126,9 @@ Current state:
 
 - Relay POC scaffolding exists: presets, prompts, eval scaffold, and assessment coverage.
 - Conversation-memory has scoped projection, summaries, decisions, action items, dashboard widgets, and retrieval.
-- Speaker attribution first pass is implemented: messages preserve actor/source metadata, summaries track participants, and identity-link follow-ups are covered by the runtime-user/auth DB plans.
+- Speaker attribution first pass is implemented: messages preserve actor/source metadata, summaries track participants, and identity-link follow-ups are covered by the runtime-user/auth DB plans; deeper identity-link management remains deferred.
 - Shared-space trust first slice is implemented: configured spaces can grant collaborator/trusted access, with Discord channel context and bot/guest exclusions.
-- Speaker attribution first pass is implemented; deeper identity-link management remains deferred.
+- Multi-user turn context and permission boundaries are now under eval: the core-preset suite replays anchor/trusted/public conversations in one thread and guards approval-hijack and shared-thread write denials.
 
 The POC validates when:
 

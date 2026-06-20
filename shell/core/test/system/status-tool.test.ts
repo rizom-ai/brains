@@ -39,6 +39,23 @@ describe("system_status tool", () => {
     expect(data["ai"]).toBeDefined();
   });
 
+  it("returns a compact public payload", async () => {
+    const tool = findTool("system_status");
+    const result = await tool.handler(
+      {},
+      { interfaceType: "test", userId: "test", userPermissionLevel: "public" },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    if (!("success" in result) || !result.success) return;
+
+    const data = result.data as Record<string, unknown>;
+    expect(data["entityCounts"]).toBeUndefined();
+    expect(data["daemons"]).toBeUndefined();
+    expect(data["endpoints"]).toBeUndefined();
+    expect(data["interactions"]).toBeUndefined();
+  });
+
   it("should not include plugin or tool lists", async () => {
     const tool = findTool("system_status");
     const result = await tool.handler(

@@ -17,13 +17,13 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
     seedContentPath = join(syncPath, "..", "seed-content");
     mkdirSync(seedContentPath, { recursive: true });
-    mkdirSync(join(seedContentPath, "base"), { recursive: true });
+    mkdirSync(join(seedContentPath, "note"), { recursive: true });
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
     const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
-      "base",
+      "note",
       baseEntitySchema,
       new MockEntityAdapter(),
     );
@@ -72,7 +72,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
   it("should emit completion after importing seed content", async () => {
     writeFileSync(
-      join(seedContentPath, "base", "test.md"),
+      join(seedContentPath, "note", "test.md"),
       "# Test\n\nTest content",
     );
 

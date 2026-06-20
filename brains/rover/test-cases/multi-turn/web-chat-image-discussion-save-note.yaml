@@ -14,6 +14,7 @@ tags:
   - note
   - regression
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: ""
@@ -56,7 +57,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
 
   - userMessage: "Confirm creation"
     confirmPendingAction: true
@@ -72,7 +73,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: base
+        entityType: note
   responseNotContains:
     - "Only text, JSON, and PDF uploads can be imported as markdown notes"
     - "Upload ref not found"

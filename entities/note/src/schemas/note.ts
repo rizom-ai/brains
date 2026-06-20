@@ -32,7 +32,7 @@ export type NoteMetadata = z.infer<typeof noteMetadataSchema>;
  * Content field contains markdown with optional frontmatter
  */
 export const noteSchema = baseEntitySchema.extend({
-  entityType: z.literal("base"),
+  entityType: z.literal("note"),
   metadata: noteMetadataSchema,
 });
 

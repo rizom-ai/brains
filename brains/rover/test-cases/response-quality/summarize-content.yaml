@@ -8,6 +8,7 @@ tags:
   - core
   - list
   - content-dependent
+  - preset-default
 
 turns:
   - userMessage: "Give me a summary of my blog posts"

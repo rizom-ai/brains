@@ -7,7 +7,7 @@ import { z } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, rmSync, writeFileSync } from "fs";
 
 class TestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
@@ -77,7 +77,7 @@ describe("auto-export without autoSync", () => {
       "test",
     );
 
-    const filePath = join(syncPath, "note", "test-note.md");
+    const filePath = join(syncPath, "test-note.md");
     expect(existsSync(filePath)).toBe(true);
   });
 
@@ -106,15 +106,13 @@ describe("auto-export without autoSync", () => {
       "test",
     );
 
-    const filePath = join(syncPath, "note", "updated-note.md");
+    const filePath = join(syncPath, "updated-note.md");
     expect(existsSync(filePath)).toBe(true);
   });
 
   it("should delete entity file when entity:deleted fires", async () => {
     // Create the file first
-    const noteDir = join(syncPath, "note");
-    mkdirSync(noteDir, { recursive: true });
-    const filePath = join(noteDir, "doomed-note.md");
+    const filePath = join(syncPath, "doomed-note.md");
     writeFileSync(filePath, "---\n---\nAbout to be deleted");
     expect(existsSync(filePath)).toBe(true);
 

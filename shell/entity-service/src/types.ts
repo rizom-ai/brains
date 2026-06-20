@@ -7,11 +7,11 @@ import {
 } from "./visibility";
 
 /**
- * Entity type for unstructured notes (the "base" entity type).
+ * Entity type for unstructured notes (the "note" entity type).
  * Used as a sentinel for the default catch-all markdown file shape —
  * no typed frontmatter schema required, content is the entire file body.
  */
-export const BASE_ENTITY_TYPE = "base";
+export const NOTE_ENTITY_TYPE = "note";
 
 /**
  * Embedding job data - minimal data for job queue
@@ -229,6 +229,22 @@ export type CreateInterceptor = (
   input: CreateInput,
   executionContext: CreateExecutionContext,
 ) => Promise<CreateInterceptionResult>;
+
+export interface UploadSaveInput {
+  upload: CreateFromUploadInput;
+  title?: string;
+}
+
+export type UploadSaveHandler = (
+  input: UploadSaveInput,
+  executionContext: CreateExecutionContext,
+) => Promise<CreateResult>;
+
+export interface UploadSaveHandlerRegistration {
+  entityType: string;
+  mediaTypes: string[];
+  handler: UploadSaveHandler;
+}
 
 /**
  * Called before an entity is persisted (on create or update). Throws to reject
@@ -534,6 +550,9 @@ export interface IEntitiesNamespace {
     entityType: string,
     interceptor: CreateInterceptor,
   ): void;
+
+  /** Register a raw-upload durable save handler for this plugin's entity type */
+  registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 }
 
 export interface EntityService extends ICoreEntityService {
@@ -613,6 +632,12 @@ export interface EntityRegistry {
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined;
+
+  registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
+
+  getUploadSaveHandler(
+    mediaType: string,
+  ): UploadSaveHandlerRegistration | undefined;
 
   registerPersistValidator(type: string, validator: PersistValidator): void;
 

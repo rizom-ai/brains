@@ -7,6 +7,7 @@ tags:
   - linkedin
   - url-reference
   - core
+  - preset-full
 plugin: social-media
 handler: generation
 

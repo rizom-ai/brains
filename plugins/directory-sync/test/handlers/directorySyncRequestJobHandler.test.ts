@@ -21,7 +21,7 @@ describe("DirectorySyncRequestJobHandler", () => {
     };
     const pull = mock(async () => {
       calls.push("pull");
-      return { files: ["base/test.md"] };
+      return { files: ["test.md"] };
     });
     const queueSyncBatch = mock(async () => {
       calls.push("queue");

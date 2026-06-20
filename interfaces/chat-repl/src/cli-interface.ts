@@ -403,6 +403,10 @@ export class CLIInterface extends MessageInterfacePlugin<
       conversationId,
       approvalSelection.confirmed,
       approvalSelection.approvalId,
+      {
+        userPermissionLevel: "anchor",
+        interfaceType: "cli",
+      },
     );
 
     // Send response to UI

@@ -1,0 +1,56 @@
+id: link-tool-capture-save-it-too
+name: Link Capture Carries Save Intent Across Turns
+description: |
+  Regression test for "save it too" after a prior link-save interaction. The
+  agent should apply the previous save/bookmark intent to the new URL and call
+  system_create for the second link without asking what to do with it.
+type: multi_turn
+tags:
+  - link
+  - tool-invocation
+  - intent-recognition
+  - context-carryover
+  - regression
+
+turns:
+  - userMessage: "Save this link: https://www.planetir.org/welcome"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://www.planetir.org/welcome"
+      responseNotContains:
+        - "agent"
+        - "local directory"
+        - "before I can contact"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "not authorized"
+        - "cannot resolve approvalId"
+
+  - userMessage: "Now this one: https://kaphera.com/ — save it too"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://kaphera.com/"
+      responseNotContains:
+        - "What would you like me to do"
+        - "what would you like me to do"
+        - "Do you want me to save"
+        - "would you like me to save"
+        - "Which link"
+        - "send me the exact"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

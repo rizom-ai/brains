@@ -1,0 +1,71 @@
+id: multi-user-trusted-update-denied-thread
+name: Trusted caller cannot update from shared anchor thread
+
+description: >
+  Verifies literal multi-user conversation context for mutating tools: an anchor
+  can participate in a shared thread, but a later trusted caller in that same
+  conversation still cannot complete a system_update.
+
+type: multi_turn
+setup:
+  interfaceType: evaluation
+  channelId: shared-eval-thread
+  channelName: Shared Eval Thread
+
+tags:
+  - multi-turn
+  - multi-user
+  - permissions
+  - regression
+  - preset-core
+
+turns:
+  - userMessage: "Show me the note with id typescript-patterns."
+    context:
+      userPermissionLevel: anchor
+      actor:
+        actorId: eval-anchor-alice
+        canonicalId: eval-anchor-alice
+        interfaceType: evaluation
+        role: user
+        displayName: Alice Anchor
+      source:
+        messageId: eval-message-anchor-trusted-update-1
+        channelId: shared-eval-thread
+        threadId: shared-eval-thread
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            id: typescript-patterns
+
+  - userMessage: "Update the status of the note typescript-patterns to draft."
+    context:
+      userPermissionLevel: trusted
+      actor:
+        actorId: eval-trusted-tess
+        canonicalId: eval-trusted-tess
+        interfaceType: evaluation
+        role: user
+        displayName: Tess Trusted
+      source:
+        messageId: eval-message-trusted-update-1
+        channelId: shared-eval-thread
+        threadId: shared-eval-thread
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            id: typescript-patterns
+      responseNotContains:
+        - "Completed: Update"
+        - "done"
+        - "updated successfully"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

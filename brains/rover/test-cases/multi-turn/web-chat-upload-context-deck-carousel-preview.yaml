@@ -14,6 +14,7 @@ tags:
   - carousel
   - document-generate
   - regression
+  - preset-full
 
 turns:
   - userMessage: ""

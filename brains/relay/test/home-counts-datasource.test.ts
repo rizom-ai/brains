@@ -18,7 +18,7 @@ describe("RelayHomeCountsDataSource", () => {
     entityService = createMockEntityService({
       entityTypes: [
         "site-content",
-        "base",
+        "note",
         "link",
         "topic",
         "summary",
@@ -40,7 +40,7 @@ describe("RelayHomeCountsDataSource", () => {
 
   it("merges editable diagram content with live entity counts", async () => {
     const countsByType: Record<string, number> = {
-      base: 7,
+      note: 7,
       link: 3,
       topic: 4,
       summary: 2,
@@ -65,13 +65,13 @@ describe("RelayHomeCountsDataSource", () => {
       peers: 1,
     });
     expect(countSpy).toHaveBeenCalledTimes(5);
-    expect(countSpy).toHaveBeenCalledWith({ entityType: "base" });
+    expect(countSpy).toHaveBeenCalledWith({ entityType: "note" });
     expect(countSpy).toHaveBeenCalledWith({ entityType: "agent" });
   });
 
   it("renders fallback content and zero counts for missing/unregistered entities", async () => {
     entityService = createMockEntityService({
-      entityTypes: ["site-content", "base"],
+      entityTypes: ["site-content", "note"],
       returns: { getEntity: null },
     });
     context = { entityService };
@@ -92,6 +92,6 @@ describe("RelayHomeCountsDataSource", () => {
       peers: 0,
     });
     expect(countSpy).toHaveBeenCalledTimes(1);
-    expect(countSpy).toHaveBeenCalledWith({ entityType: "base" });
+    expect(countSpy).toHaveBeenCalledWith({ entityType: "note" });
   });
 });

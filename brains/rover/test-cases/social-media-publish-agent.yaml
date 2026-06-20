@@ -9,6 +9,7 @@ tags:
   - linkedin
   - agent
   - publish
+  - preset-full
 
 turns:
   - userMessage: "Publish my latest LinkedIn post now"

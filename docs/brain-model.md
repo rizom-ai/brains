@@ -9,26 +9,26 @@ Brains follow a **model/instance** separation:
 
 The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
 
-Instance directories are small package-like boundaries for local execution and deploy scaffolding. They are consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, loads the referenced brain model, and boots. This repository may still contain `apps/*` directories for local development or legacy verification, but new user instances are normally created outside the monorepo with `brain init`.
+Instance directories are small package-like boundaries for local execution and deploy scaffolding. They are consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, loads the referenced brain model, and boots. The monorepo does not currently ship instance directories; user instances are normally created outside the monorepo with `brain init`.
 
 ## Directory Structure
 
 ```
-brains/
+brains/                     # Brain model workspace packages (in this monorepo)
   rover/                    # Built-in brain model workspace package
     src/index.ts            # Brain definition (defineBrain)
     seed-content/           # Default content
     package.json            # Workspace member
 
-apps/
-  example-app/              # Optional local development instance
-    brain.yaml              # Instance configuration
-    .env                    # Secrets only
-    .env.example            # Template for collaborators
-    .gitignore
-    tsconfig.json           # JSX runtime hint for Bun
-    package.json            # Local execution boundary + dependency pinning
-    config/deploy.yml       # (optional, only with `brain init <dir> --deploy`)
+# An instance directory (created outside the monorepo with `brain init`):
+mybrain/                    # Lightweight instance directory
+  brain.yaml                # Instance configuration
+  .env                      # Secrets only
+  .env.example              # Template for collaborators
+  .gitignore
+  tsconfig.json             # JSX runtime hint for Bun
+  package.json              # Local execution boundary + dependency pinning
+  config/deploy.yml         # (optional, only with `brain init <dir> --deploy`)
 ```
 
 ## brain.yaml

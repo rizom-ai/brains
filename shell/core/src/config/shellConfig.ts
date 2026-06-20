@@ -46,6 +46,7 @@ export const shellConfigSchema = z.object({
   database: dbConfigSchema,
   jobQueueDatabase: dbConfigSchema,
   conversationDatabase: dbConfigSchema,
+  runtimeStateDatabase: dbConfigSchema,
   embeddingDatabase: dbConfigSchema,
 
   ai: z.object({
@@ -124,6 +125,8 @@ export function createShellConfig(
       overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,
     conversationDatabase:
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
+    runtimeStateDatabase:
+      overrides.runtimeStateDatabase ?? standardConfig.runtimeStateDatabase,
     embeddingDatabase:
       overrides.embeddingDatabase ?? standardConfig.embeddingDatabase,
     ai: {

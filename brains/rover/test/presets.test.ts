@@ -66,8 +66,8 @@ plugins:
     );
   });
 
-  it("includes document support in the full preset", () => {
-    const config = resolve(rover, {}, { preset: "full" });
+  it("includes document support in the core preset", () => {
+    const config = resolve(rover, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((plugin) => plugin.id) ?? [];
 
     expect(pluginIds).toContain("document");

@@ -55,6 +55,8 @@ import packageJson from "../package.json" with { type: "json" };
  */
 const core = [
   "prompt",
+  "image",
+  "document",
   "note",
   "link",
   "wishlist",
@@ -77,7 +79,6 @@ const core = [
 
 const web = [
   ...core.filter((id) => id !== "dashboard-root"),
-  "image",
   "dashboard",
   "blog",
   "series",
@@ -93,7 +94,6 @@ const full = [
   "portfolio",
   "topics",
   "content-pipeline",
-  "document",
   "social-media",
   "newsletter",
   "stock-photo",

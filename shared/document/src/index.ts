@@ -1,10 +1,12 @@
 export {
+  documentIngestionStatusSchema,
   documentMimeTypeSchema,
   documentMetadataSchema,
   documentSchema,
 } from "./schemas/document";
 export type {
   DocumentEntity,
+  DocumentIngestionStatus,
   DocumentMetadata,
   DocumentMimeType,
 } from "./schemas/document";

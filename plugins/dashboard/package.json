@@ -1,7 +1,7 @@
 {
   "name": "@brains/dashboard",
   "private": true,
-  "version": "0.2.0-alpha.122",
+  "version": "0.2.0-alpha.127",
   "description": "Dashboard plugin with extensible widget system",
   "type": "module",
   "exports": {

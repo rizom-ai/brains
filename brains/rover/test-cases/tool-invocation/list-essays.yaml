@@ -8,6 +8,7 @@ tags:
   - core
   - list
   - entity-type-resolution
+  - preset-default
 
 turns:
   - userMessage: "List my essays"

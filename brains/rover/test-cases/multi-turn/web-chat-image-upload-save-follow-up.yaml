@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-image-upload-save-follow-up
 name: Web chat image upload follow-up promotes image
-description: Verifies a bare web-chat image upload is inert, then an explicit save-as-image follow-up calls system_create with the prior upload ref instead of generating a new image.
+description: Verifies a bare web-chat image upload is inert, then an explicit save-as-image follow-up calls system_upload_save with the prior upload ref instead of generating a new image.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -13,6 +13,7 @@ tags:
   - image
   - regression
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: ""
@@ -36,15 +37,15 @@ turns:
   - userMessage: "can you save it as an image"
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_upload_save
           shouldBeCalled: true
           argsContain:
-            entityType: image
             upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000601
           argsAbsent:
             - prompt
             - transform
+            - entityType
             - from
             - fromUpload
             - sourceAttachment
@@ -53,18 +54,20 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_upload_save
       shouldBeCalled: true
       argsContain:
-        entityType: image
         upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000601
       argsAbsent:
         - prompt
         - transform
+        - entityType
         - from
         - fromUpload
         - sourceAttachment
+    - toolName: system_create
+      shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false
     - toolName: system_delete

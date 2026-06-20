@@ -180,6 +180,9 @@ describe("sync tool", () => {
     expect(result.success).toBe(true);
     expect(result.data?.["jobId"]).toBe("job-123");
     expect(result.data?.["gitPulled"]).toBe(true);
+    expect(result.message).toBe(
+      "Sync queued: git pull and filesystem scan will run in the background",
+    );
     expect(enqueueMock).toHaveBeenCalledWith({
       type: "sync-request",
       data: {

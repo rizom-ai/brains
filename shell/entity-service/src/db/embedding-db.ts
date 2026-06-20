@@ -58,6 +58,9 @@ export async function migrateEmbeddingDatabase(
       PRIMARY KEY(entity_id, entity_type)
     )
   `);
+  await client.execute(
+    "UPDATE embeddings SET entity_type = 'note' WHERE entity_type = 'base'",
+  );
 }
 
 /**

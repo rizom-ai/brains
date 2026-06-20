@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-image-upload-save-action
 name: Web chat image upload Save image action promotes image
-description: Verifies the suggested Save image action calls system_create with entityType image and the prior upload ref instead of refusing or generating a new image.
+description: Verifies the suggested Save image action calls system_upload_save with the prior upload ref instead of refusing or generating a new image.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -13,6 +13,7 @@ tags:
   - image
   - regression
   - multi-turn
+  - preset-core
 
 turns:
   - userMessage: ""
@@ -34,15 +35,15 @@ turns:
   - userMessage: "Save the uploaded image."
     successCriteria:
       expectedTools:
-        - toolName: system_create
+        - toolName: system_upload_save
           shouldBeCalled: true
           argsContain:
-            entityType: image
             upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000703
           argsAbsent:
             - prompt
             - transform
+            - entityType
             - from
             - fromUpload
             - sourceAttachment
@@ -55,18 +56,20 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_upload_save
       shouldBeCalled: true
       argsContain:
-        entityType: image
         upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000703
       argsAbsent:
         - prompt
         - transform
+        - entityType
         - from
         - fromUpload
         - sourceAttachment
+    - toolName: system_create
+      shouldBeCalled: false
     - toolName: system_update
       shouldBeCalled: false
     - toolName: system_delete

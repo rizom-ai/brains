@@ -83,6 +83,13 @@ function validateCoverImageFieldUpdate(
     };
   }
 
+  if (coverImageId === "__PENDING__") {
+    return {
+      success: false,
+      error: "coverImageId must reference an existing image id or be null",
+    };
+  }
+
   const adapter = entityRegistry.getAdapter(entityType);
   if (adapter.supportsCoverImage) return undefined;
   return {

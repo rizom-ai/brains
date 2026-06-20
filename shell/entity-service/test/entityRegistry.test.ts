@@ -3,6 +3,7 @@ import type {
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
+  UploadSaveHandler,
 } from "../src/types";
 import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
@@ -282,6 +283,63 @@ This note has frontmatter metadata.`;
 
   test("getCreateInterceptor returns undefined when none is registered", (): void => {
     expect(registry.getCreateInterceptor("unknown")).toBeUndefined();
+  });
+
+  test("registerUploadSaveHandler stores exact and wildcard media handlers", (): void => {
+    const documentHandler: UploadSaveHandler = async () => ({
+      success: true,
+      data: { entityId: "doc", status: "created" },
+    });
+    const imageHandler: UploadSaveHandler = async () => ({
+      success: true,
+      data: { entityId: "img", status: "created" },
+    });
+
+    registry.registerUploadSaveHandler({
+      entityType: "document",
+      mediaTypes: ["application/pdf"],
+      handler: documentHandler,
+    });
+    registry.registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/*"],
+      handler: imageHandler,
+    });
+
+    expect(registry.getUploadSaveHandler("application/pdf")?.handler).toBe(
+      documentHandler,
+    );
+    expect(registry.getUploadSaveHandler("image/png")?.handler).toBe(
+      imageHandler,
+    );
+    expect(registry.getUploadSaveHandler("application/zip")).toBeUndefined();
+  });
+
+  test("registerUploadSaveHandler replaces prior handler for the same entity type", (): void => {
+    const oldHandler: UploadSaveHandler = async () => ({
+      success: true,
+      data: { entityId: "old", status: "created" },
+    });
+    const newHandler: UploadSaveHandler = async () => ({
+      success: true,
+      data: { entityId: "new", status: "created" },
+    });
+
+    registry.registerUploadSaveHandler({
+      entityType: "document",
+      mediaTypes: ["application/pdf"],
+      handler: oldHandler,
+    });
+    registry.registerUploadSaveHandler({
+      entityType: "document",
+      mediaTypes: ["application/x-pdf"],
+      handler: newHandler,
+    });
+
+    expect(registry.getUploadSaveHandler("application/pdf")).toBeUndefined();
+    expect(registry.getUploadSaveHandler("application/x-pdf")?.handler).toBe(
+      newHandler,
+    );
   });
 
   test("registerPersistValidator stores and retrieves validator by entity type", (): void => {

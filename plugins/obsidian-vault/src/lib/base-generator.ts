@@ -8,7 +8,7 @@ const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
 };
 
 /** Entity types stored at vault root rather than in a subfolder */
-const ROOT_ENTITY_TYPES = new Set(["base"]);
+const ROOT_ENTITY_TYPES = new Set(["note"]);
 
 export interface BaseGeneratorResult {
   filename: string;

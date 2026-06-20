@@ -31,7 +31,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: base
+        entityType: note
   responseNotContains:
     - "permission denied"
     - "owner only"

@@ -26,6 +26,20 @@ export {
   resetPromptCache,
   materializePrompts,
 } from "./entity/prompt-resolver";
+export {
+  createPendingEntity,
+  failPendingEntity,
+  saveProcessedEntity,
+  type CreatePendingEntityRequest,
+  type CreatePendingEntityResult,
+  type FailPendingEntityRequest,
+  type FailPendingEntityResult,
+  type PendingEntityMetadata,
+  type PendingEntityService,
+  type PendingIngestionStatus,
+  type SaveProcessedEntityRequest,
+  type SaveProcessedEntityResult,
+} from "./entity/pending-ingestion";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 
@@ -72,6 +86,12 @@ export type {
   IEvalNamespace,
   IInsightsNamespace,
 } from "./base/context";
+export type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
 export type {
   InterfacePluginContext,
   IPermissionsNamespace,
@@ -150,6 +170,9 @@ export type {
   CreateResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  UploadSaveInput,
+  UploadSaveHandler,
+  UploadSaveHandlerRegistration,
   ContentVisibility,
   EntityAdapter,
   EntityInput,

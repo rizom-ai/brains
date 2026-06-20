@@ -9,6 +9,7 @@ tags:
   - decks
   - finalized-content
   - regression
+  - preset-default
 
 turns:
   - userMessage: |

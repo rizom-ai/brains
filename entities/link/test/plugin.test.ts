@@ -252,11 +252,23 @@ describe("LinkPlugin with Harness", () => {
         result: {
           success: true,
           data: {
+            entityId: "anthropic-com-abdc4a",
             status: "generating",
             jobId: "job-123",
           },
         },
       });
+      const pendingEntity = await mockShell.getEntityService().getEntity({
+        entityType: "link",
+        id: "anthropic-com-abdc4a",
+      });
+      expect(pendingEntity?.metadata).toEqual({
+        status: "pending",
+        title: "anthropic.com",
+      });
+      expect(pendingEntity?.content).toContain(
+        "Pending link capture for https://anthropic.com/research.",
+      );
       expect(enqueued).toHaveLength(1);
       expect(enqueued[0]?.type).toBe("link-capture");
       expect(enqueued[0]?.data).toEqual({
@@ -309,6 +321,7 @@ describe("LinkPlugin with Harness", () => {
         result: {
           success: true,
           data: {
+            entityId: "anthropic-com-abdc4a",
             status: "generating",
             jobId: "job-123",
           },

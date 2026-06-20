@@ -1,5 +1,86 @@
 # @brains/plugins
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.127
+  - @brains/contracts@0.2.0-alpha.127
+  - @brains/site-composition@0.2.0-alpha.127
+  - @brains/utils@0.2.0-alpha.127
+  - @brains/conversation-service@0.2.0-alpha.127
+  - @brains/identity-service@0.2.0-alpha.127
+  - @brains/job-queue@0.2.0-alpha.127
+  - @brains/messaging-service@0.2.0-alpha.127
+  - @brains/runtime-state@0.2.0-alpha.127
+  - @brains/templates@0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.126
+  - @brains/contracts@0.2.0-alpha.126
+  - @brains/site-composition@0.2.0-alpha.126
+  - @brains/utils@0.2.0-alpha.126
+  - @brains/conversation-service@0.2.0-alpha.126
+  - @brains/identity-service@0.2.0-alpha.126
+  - @brains/job-queue@0.2.0-alpha.126
+  - @brains/messaging-service@0.2.0-alpha.126
+  - @brains/runtime-state@0.2.0-alpha.126
+  - @brains/templates@0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.125
+  - @brains/contracts@0.2.0-alpha.125
+  - @brains/site-composition@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+  - @brains/conversation-service@0.2.0-alpha.125
+  - @brains/identity-service@0.2.0-alpha.125
+  - @brains/job-queue@0.2.0-alpha.125
+  - @brains/messaging-service@0.2.0-alpha.125
+  - @brains/runtime-state@0.2.0-alpha.125
+  - @brains/templates@0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
+### Patch Changes
+
+- [`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a confirmed `system_upload_save` path for preserving raw uploaded files as document or image entities while keeping `system_create` focused on generated content and markdown extraction.
+
+- Updated dependencies []:
+  - @brains/identity-service@0.2.0-alpha.124
+  - @brains/content-formatters@0.2.0-alpha.124
+  - @brains/contracts@0.2.0-alpha.124
+  - @brains/site-composition@0.2.0-alpha.124
+  - @brains/utils@0.2.0-alpha.124
+  - @brains/conversation-service@0.2.0-alpha.124
+  - @brains/job-queue@0.2.0-alpha.124
+  - @brains/messaging-service@0.2.0-alpha.124
+  - @brains/runtime-state@0.2.0-alpha.124
+  - @brains/templates@0.2.0-alpha.124
+
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.123
+  - @brains/contracts@0.2.0-alpha.123
+  - @brains/site-composition@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+  - @brains/conversation-service@0.2.0-alpha.123
+  - @brains/identity-service@0.2.0-alpha.123
+  - @brains/job-queue@0.2.0-alpha.123
+  - @brains/messaging-service@0.2.0-alpha.123
+  - @brains/templates@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes

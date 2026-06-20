@@ -18,7 +18,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: "base"
+        entityType: "note"
   responseNotContains:
     - "I cannot"
     - "note_create"

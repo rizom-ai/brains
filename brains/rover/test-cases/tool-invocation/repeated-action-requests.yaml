@@ -9,6 +9,7 @@ tags:
   - critical
   - anti-fabrication
   - tool-invocation
+  - preset-default
 
 turns:
   # First build request - should invoke tool

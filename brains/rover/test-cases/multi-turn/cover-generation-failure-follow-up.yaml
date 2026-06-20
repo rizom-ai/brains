@@ -9,6 +9,7 @@ tags:
   - cover
   - multi-turn
   - failure-handling
+  - preset-default
 
 turns:
   - userMessage: "Generate a cover image for the blog post 'missing-cover-target-9f3c'"

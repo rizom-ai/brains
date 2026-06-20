@@ -5,7 +5,7 @@ import type {
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { createPendingEntity, ServicePlugin } from "@brains/plugins";
 import { slugify, z } from "@brains/utils";
 import {
   documentAdapter,
@@ -19,6 +19,10 @@ import {
 } from "./handlers/documentGenerationHandler";
 import { createDocumentTools } from "./tools";
 import packageJson from "../package.json";
+
+const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
+  "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
+).toString("base64")}`;
 
 const documentPluginConfigSchema = z.object({});
 
@@ -93,6 +97,23 @@ export class DocumentPlugin extends ServicePlugin<
     context.entities.registerCreateInterceptor(this.entityType, (input) =>
       this.interceptCreate(input),
     );
+    context.entities.registerUploadSaveHandler({
+      entityType: this.entityType,
+      mediaTypes: ["application/pdf"],
+      handler: async (input) => {
+        const interception = await this.promoteUpload(
+          {
+            entityType: this.entityType,
+            ...(input.title !== undefined ? { title: input.title } : {}),
+            from: input.upload,
+          },
+          context,
+        );
+        return interception.kind === "handled"
+          ? interception.result
+          : { success: false, error: "Document upload save was not handled" };
+      },
+    });
     context.jobs.registerHandler(
       "generate",
       new DocumentGenerationJobHandler(
@@ -144,6 +165,17 @@ export class DocumentPlugin extends ServicePlugin<
         ? undefined
         : await this.findExistingDocument(dedupKey, context);
     const documentId = existing?.id ?? getDocumentId(generationData, dedupKey);
+    if (!existing) {
+      await this.createPendingDocument(context, {
+        id: documentId,
+        title: generationData.title ?? documentId,
+        filename: `${documentId}.pdf`,
+        sourceEntityType: generationData.sourceEntityType,
+        sourceEntityId: generationData.sourceEntityId,
+        attachmentType: generationData.attachmentType,
+        dedupKey,
+      });
+    }
     const jobId = await context.jobs.enqueue({
       type: "generate",
       data: { ...generationData, dedupKey, documentId },
@@ -226,6 +258,10 @@ export class DocumentPlugin extends ServicePlugin<
       dataUrl: toDataUrl(upload.record.mediaType, upload.content),
       filename: upload.record.filename,
       title,
+      status: "draft",
+      sourceUploadId: uploadRef.id,
+      sourceFilename: upload.record.filename,
+      sourceMediaType: upload.record.mediaType,
       attachmentType: "uploaded",
       dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
     });
@@ -253,6 +289,41 @@ export class DocumentPlugin extends ServicePlugin<
         },
       },
     };
+  }
+
+  private async createPendingDocument(
+    context: ServicePluginContext,
+    input: {
+      id: string;
+      title: string;
+      filename: string;
+      sourceEntityType: string;
+      sourceEntityId: string;
+      attachmentType: string;
+      dedupKey: string;
+    },
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const entityData = documentAdapter.createDocumentEntity({
+      dataUrl: PENDING_PDF_DATA_URL,
+      filename: input.filename,
+      title: input.title,
+      status: "pending",
+      sourceEntityType: input.sourceEntityType,
+      sourceEntityId: input.sourceEntityId,
+      attachmentType: input.attachmentType,
+      dedupKey: input.dedupKey,
+    });
+
+    await createPendingEntity({
+      entityService: context.entityService,
+      entity: {
+        id: input.id,
+        ...entityData,
+        created: now,
+        updated: now,
+      },
+    });
   }
 
   private async getDedupKey(
@@ -284,7 +355,7 @@ export class DocumentPlugin extends ServicePlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return `For durable raw PDF saves/promotions from uploaded PDFs, call system_create with entityType: "document", the exact upload object shown in the current turn or conversation "Available upload refs" hint, and no transform. Do this only after the user explicitly asks to save/import/promote the raw PDF as a document. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Uploaded PDFs are not decks; raw upload promotion preserves the PDF as a document. Do not use entityType: "base" or transform: "extract-markdown" unless the user asks to turn the upload into a note/markdown. For generated/source-derived PDFs, call system_create with entityType: "document" and sourceAttachment. Deck carousel PDFs use sourceAttachment: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Printable PDFs for blog posts, projects, and products use sourceAttachment with attachmentType: "printable" and sourceEntityType "post", "project", or "product". Omit upload and sourceAttachment entirely for ordinary direct document creates that use content, prompt, or url. Include targetEntityType/targetEntityId when the user asks to attach the saved document to another entity. Use replace: true when they ask to regenerate or replace a saved PDF. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document".`;
+    return `For durable raw PDF saves/promotions from uploaded PDFs, call system_upload_save with the exact upload object shown in the current turn or conversation "Available upload refs" hint. Do this only after the user explicitly asks to save/import/promote the raw PDF as a document. If that hint is absent, omit upload entirely; never invent upload IDs or placeholder upload refs. Uploaded PDFs are not decks; raw upload promotion preserves the PDF as a document. Do not use entityType: "note" or transform: "extract-markdown" unless the user asks to turn the upload into a note/markdown. For generated/source-derived PDFs, call system_create with entityType: "document" and sourceAttachment. Deck carousel PDFs use sourceAttachment: { sourceEntityType: "deck", sourceEntityId: <deck ID>, attachmentType: "carousel" }. Printable PDFs for blog posts, projects, and products use sourceAttachment with attachmentType: "printable" and sourceEntityType "post", "project", or "product". Omit upload and sourceAttachment entirely for ordinary direct document creates that use content, prompt, or url. Include targetEntityType/targetEntityId when the user asks to attach the saved document to another entity. Use replace: true when they ask to regenerate or replace a saved PDF. Only use document_generate for explicit preview/prepare requests where they need an immediate PDF attachment. Do not use generic attachment types like "document".`;
   }
 
   protected override async getTools(): Promise<Tool[]> {

@@ -14,6 +14,7 @@ tags:
   - note
   - regression
   - multi-turn
+  - preset-default
 
 turns:
   - userMessage: ""
@@ -38,7 +39,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
             upload.kind: upload
             upload.id: upload-00000000-0000-4000-8000-000000000801
             transform: extract-markdown
@@ -55,7 +56,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: base
+        entityType: note
         upload.kind: upload
         upload.id: upload-00000000-0000-4000-8000-000000000801
         transform: extract-markdown

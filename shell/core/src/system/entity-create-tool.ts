@@ -226,7 +226,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload for upload promotion, or sourceAttachment for source attachment saves. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const normalizedSource = normalizeCreateSource(input);
@@ -236,12 +236,12 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const title = normalizeOptionalString(input.title);
       if (
         transform === "extract-markdown" &&
-        (!uploadRef || input.entityType !== "base")
+        (!uploadRef || input.entityType !== "note")
       ) {
         return {
           success: false,
           error:
-            'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+            'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
         };
       }
       const replace = input.replace === true;
@@ -260,7 +260,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         return {
           success: false,
           error:
-            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' (upload promotion), or 'sourceAttachment' (source attachment create), or a supported combination.",
+            "Provide 'content' (direct create), 'prompt' (AI generation), 'url' (URL-first create), 'upload' with transform (upload-to-note extraction), or 'sourceAttachment' (source attachment create), or a supported combination.",
         };
 
       if (uploadRef) {

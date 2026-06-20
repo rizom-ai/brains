@@ -10,6 +10,7 @@ tags:
   - tool-invocation
   - regression
   - anti-fabrication
+  - preset-core
 
 turns:
   - userMessage: "Can you ask docs.rizom.ai for help? I want to know how to set up a new rover"

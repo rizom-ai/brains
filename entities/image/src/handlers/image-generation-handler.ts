@@ -1,6 +1,11 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { BaseJobHandler, findEntityByIdentifier } from "@brains/plugins";
+import {
+  BaseJobHandler,
+  failPendingEntity,
+  findEntityByIdentifier,
+  saveProcessedEntity,
+} from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import { imageAdapter, setCoverImageId } from "@brains/image";
 import { getErrorMessage, z, slugify } from "@brains/utils";
@@ -90,6 +95,8 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
       hasTarget: !!targetEntityType,
     });
 
+    const imageId = slugify(title);
+
     try {
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.INIT,
@@ -98,9 +105,16 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
 
       // Step 1: Check if image generation is available
       if (!this.context.ai.canGenerateImages()) {
-        return JobResult.failure(
-          new Error("Image generation not available: no API key configured"),
+        const error = new Error(
+          "Image generation not available: no API key configured",
         );
+        await failPendingEntity({
+          entityService: this.context.entityService,
+          entityType: "image",
+          id: imageId,
+          error: error.message,
+        });
+        return JobResult.failure(error);
       }
 
       // Step 1.5: Distill prompt using AI when entity content is provided
@@ -171,29 +185,18 @@ ${entityContent}`,
         message: "Creating image entity",
       });
 
-      // Step 3: Create image entity
-      const imageId = slugify(title);
+      // Step 3: Create or update image entity
       const entityData = imageAdapter.createImageEntity({
         dataUrl: generationResult.dataUrl,
         title,
+        status: "draft",
+        attachmentType: "generated",
+        ...(targetEntityType && { sourceEntityType: targetEntityType }),
+        ...(targetEntityId && { sourceEntityId: targetEntityId }),
       });
 
-      // Delete existing image if regenerating
-      const existingImage = await this.context.entityService.getEntity({
-        entityType: "image",
-        id: imageId,
-      });
-      if (existingImage) {
-        this.logger.debug("Deleting existing image for regeneration", {
-          imageId,
-        });
-        await this.context.entityService.deleteEntity({
-          entityType: "image",
-          id: imageId,
-        });
-      }
-
-      await this.context.entityService.createEntity({
+      await saveProcessedEntity({
+        entityService: this.context.entityService,
         entity: {
           ...entityData,
           id: imageId,
@@ -248,9 +251,16 @@ ${entityContent}`,
 
       return { success: true, imageId };
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Image generation job failed", {
         jobId,
-        error: getErrorMessage(error),
+        error: errorMessage,
+      });
+      await failPendingEntity({
+        entityService: this.context.entityService,
+        entityType: "image",
+        id: imageId,
+        error: errorMessage,
       });
       return JobResult.failure(error);
     }

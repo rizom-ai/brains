@@ -103,16 +103,21 @@ export class TestRunner implements ITestRunner {
             conversationId,
             turn.confirmPendingAction,
             approvalId,
+            this.buildTurnChatContext(baseContext, turn, attachments),
           );
         }
       } else {
         response = await this.agentService.chat(
           turn.userMessage,
           conversationId,
-          this.withTurnAttachments(baseContext, attachments),
+          this.buildTurnChatContext(baseContext, turn, attachments),
         );
       }
-      pendingApprovalIds = this.extractPendingApprovalIds(response);
+      pendingApprovalIds = this.nextPendingApprovalIds(
+        pendingApprovalIds,
+        turn,
+        response,
+      );
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults:
@@ -190,6 +195,14 @@ export class TestRunner implements ITestRunner {
     if (turn.approvalId) return turn.approvalId;
     if (pendingApprovalIds.length !== 1) return undefined;
     return pendingApprovalIds[0];
+  }
+
+  private nextPendingApprovalIds(
+    _currentIds: string[],
+    _turn: AgentTestCase["turns"][number],
+    response: AgentResponse,
+  ): string[] {
+    return this.extractPendingApprovalIds(response);
   }
 
   private extractPendingApprovalIds(response: AgentResponse): string[] {
@@ -294,10 +307,35 @@ export class TestRunner implements ITestRunner {
     }
   }
 
-  private withTurnAttachments(
-    context: ChatContext,
+  private buildTurnChatContext(
+    baseContext: ChatContext,
+    turn: AgentTestCase["turns"][number],
     attachments: ChatAttachment[],
   ): ChatContext {
+    const context: ChatContext = { ...baseContext };
+    const turnContext = turn.context;
+
+    if (turnContext) {
+      if (turnContext.userPermissionLevel !== undefined) {
+        context.userPermissionLevel = turnContext.userPermissionLevel;
+      }
+      if (turnContext.interfaceType !== undefined) {
+        context.interfaceType = turnContext.interfaceType;
+      }
+      if (turnContext.channelId !== undefined) {
+        context.channelId = turnContext.channelId;
+      }
+      if (turnContext.channelName !== undefined) {
+        context.channelName = turnContext.channelName;
+      }
+      if (turnContext.actor !== undefined) {
+        context.actor = turnContext.actor;
+      }
+      if (turnContext.source !== undefined) {
+        context.source = turnContext.source;
+      }
+    }
+
     return attachments.length > 0 ? { ...context, attachments } : context;
   }
 

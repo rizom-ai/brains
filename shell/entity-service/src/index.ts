@@ -35,6 +35,9 @@ export type {
   CreateResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  UploadSaveInput,
+  UploadSaveHandler,
+  UploadSaveHandlerRegistration,
   PersistValidator,
   EntityInput,
   SearchResult,
@@ -65,7 +68,7 @@ export type {
 
 export {
   baseEntitySchema,
-  BASE_ENTITY_TYPE,
+  NOTE_ENTITY_TYPE,
   canWriteVisibility,
   contentVisibilitySchema,
   createResultAttachmentSchema,

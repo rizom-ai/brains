@@ -1,5 +1,45 @@
 # @brains/hackmd
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.127
+  - @brains/utils@0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.126
+  - @brains/utils@0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.124
+  - @brains/utils@0.2.0-alpha.124
+
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes

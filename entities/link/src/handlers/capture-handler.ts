@@ -1,4 +1,4 @@
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
@@ -102,21 +102,33 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
       });
 
       if (existingEntity) {
-        this.logger.info("Link already captured, returning existing", {
-          url,
-          entityId,
-        });
         const { frontmatter } = this.linkAdapter.parseLinkContent(
           existingEntity.content,
         );
-        return {
-          success: true,
-          entityId: existingEntity.id,
-          title: frontmatter.title,
+        const status = existingEntity.metadata["status"] as LinkStatus;
+
+        if (status !== "pending") {
+          this.logger.info("Link already captured, returning existing", {
+            url,
+            entityId,
+          });
+          return {
+            success: true,
+            entityId: existingEntity.id,
+            title: frontmatter.title,
+            url,
+            status,
+          };
+        }
+
+        this.logger.info("Pending link exists, completing extraction", {
           url,
-          status: existingEntity.metadata["status"] as LinkStatus,
-        };
+          entityId,
+        });
       }
+
+      const source = this.resolveSource(metadata);
+      const capturedAt = new Date().toISOString();
 
       // Fetch URL content
       await progressReporter.report({
@@ -137,9 +149,34 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
             errorType: fetchResult.errorType,
             error: fetchResult.error,
           });
+          const title = new URL(url).hostname;
+          const error = `Could not capture link: ${fetchResult.error}`;
+          const content = this.linkAdapter.createLinkContent({
+            status: "pending",
+            title,
+            url,
+            description: error,
+            summary: error,
+            domain: title,
+            capturedAt,
+            source,
+          });
+          await saveProcessedEntity({
+            entityService: this.context.entityService,
+            entity: {
+              id: entityId,
+              entityType: "link",
+              content,
+              metadata: { status: "pending", title },
+            },
+          });
           return {
             success: false,
-            error: `Could not capture link: ${fetchResult.error}`,
+            entityId,
+            title,
+            url,
+            status: "pending",
+            error,
           };
         }
       }
@@ -168,9 +205,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         total: 100,
         message: "Processing extraction results",
       });
-
-      const source = this.resolveSource(metadata);
-      const capturedAt = new Date().toISOString();
 
       // Handle extraction failure or incomplete extraction
       if (
@@ -202,7 +236,8 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           source,
         });
 
-        const entity = await this.context.entityService.createEntity({
+        const entity = await saveProcessedEntity({
+          entityService: this.context.entityService,
           entity: {
             id: entityId,
             entityType: "link",
@@ -244,7 +279,8 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         source,
       });
 
-      const entity = await this.context.entityService.createEntity({
+      const entity = await saveProcessedEntity({
+        entityService: this.context.entityService,
         entity: {
           id: entityId,
           entityType: "link",

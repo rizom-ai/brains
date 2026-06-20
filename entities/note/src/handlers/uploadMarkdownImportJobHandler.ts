@@ -73,7 +73,7 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
     const result = await this.context.entityService.createEntity({
       entity: {
         id: imported.id,
-        entityType: "base",
+        entityType: "note",
         content: imported.content,
         metadata: { title: imported.title, ...entity.metadata },
         created: now,

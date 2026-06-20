@@ -21,7 +21,10 @@ permissions:
   public:
     expectedTools:
       - toolName: system_delete
-        shouldBeCalled: false
+        shouldBeCalled: true
+        argsContain:
+          entityType: link
+          id: sentilo-platform
     responseNotContains:
       - "deleted"
       - "removed"

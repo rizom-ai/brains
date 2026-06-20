@@ -8,6 +8,7 @@ tags:
   - image
   - cover
   - core
+  - preset-default
 
 turns:
   - userMessage: "Generate a cover image for the blog post 'urban-sensing-networks'"

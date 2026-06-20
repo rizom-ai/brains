@@ -1,7 +1,7 @@
 {
   "name": "@brains/app",
   "private": true,
-  "version": "0.2.0-alpha.122",
+  "version": "0.2.0-alpha.127",
   "description": "High-level factory for creating Brain applications",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -19,6 +19,7 @@
   "dependencies": {
     "@brains/core": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
@@ -40,7 +41,8 @@
     "brain-migrate": "./scripts/migrate.ts",
     "brain-migrate-entities": "./scripts/migrate-entities.ts",
     "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
-    "brain-migrate-conversations": "./scripts/migrate-conversations.ts"
+    "brain-migrate-conversations": "./scripts/migrate-conversations.ts",
+    "brain-migrate-runtime-state": "./scripts/migrate-runtime-state.ts"
   },
   "keywords": [
     "brain",

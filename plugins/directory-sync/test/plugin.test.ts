@@ -25,7 +25,7 @@ describe("DirectorySyncPlugin", () => {
 
     const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
-      "base",
+      "note",
       baseEntitySchema,
       new MockEntityAdapter(),
     );
@@ -122,7 +122,7 @@ describe("DirectorySyncPlugin", () => {
       const response = await harness.sendMessage<
         { entityTypes?: string[] },
         { exported: number; failed: number }
-      >("entity:export:request", { entityTypes: ["base"] }, "test");
+      >("entity:export:request", { entityTypes: ["note"] }, "test");
 
       expect(response).toBeDefined();
       expect(response?.exported).toBeDefined();

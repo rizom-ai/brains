@@ -10,6 +10,7 @@ tags:
   - image
   - media
   - og-image
+  - preset-full
 
 turns:
   - userMessage: "Generate an OG image for project 'city-pulse'"

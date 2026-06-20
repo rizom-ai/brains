@@ -61,7 +61,7 @@ export class ShellInitializer {
 
   /**
    * Register a fallback base entity adapter.
-   * Only called if no plugin (e.g. note plugin) has already registered "base".
+   * Only called if no plugin (e.g. note plugin) has already registered "note".
    */
   public registerFallbackBaseEntity(entityRegistry: IEntityRegistry): void {
     shellRegistration.registerFallbackBaseEntity(entityRegistry, this.logger);
@@ -133,8 +133,8 @@ export class ShellInitializer {
       this.registerAnchorProfileSupport(entityRegistry);
       await this.initializePlugins(pluginManager, options);
 
-      // Register fallback base entity adapter only if no plugin claimed "base"
-      if (!entityRegistry.hasEntityType(SHELL_ENTITY_TYPES.BASE)) {
+      // Register fallback base entity adapter only if no plugin claimed "note"
+      if (!entityRegistry.hasEntityType(SHELL_ENTITY_TYPES.NOTE)) {
         this.registerFallbackBaseEntity(entityRegistry);
       }
 

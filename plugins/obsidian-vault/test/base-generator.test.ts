@@ -108,16 +108,16 @@ describe("generateBase", () => {
     ).toBe("Series.base");
   });
 
-  it("should use 'Notes' for the base entity type", () => {
-    const result = generateBase("base", [
+  it("should use 'Notes' for the note entity type", () => {
+    const result = generateBase("note", [
       { name: "title", type: "string", required: true },
     ]);
     expect(result.filename).toBe("Notes.base");
     expect(result.content).toContain("All Notes");
   });
 
-  it("should filter for root-level files for the base entity type", () => {
-    const result = generateBase("base", [
+  it("should filter for root-level files for the note entity type", () => {
+    const result = generateBase("note", [
       { name: "title", type: "string", required: true },
     ]);
     expect(result.content).not.toContain("file.inFolder");

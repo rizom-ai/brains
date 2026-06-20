@@ -3,6 +3,7 @@ import {
   parseConfirmationResponse,
   matchSpaceSelector,
   type AgentResponse,
+  type ChatContext,
   type InterfacePluginContext,
   type PermissionLookupContext,
   type StructuredChatCard,
@@ -15,6 +16,7 @@ import {
   Events,
   GatewayIntentBits,
   Partials,
+  type ButtonInteraction,
   type Interaction,
   type Message,
 } from "discord.js";
@@ -394,17 +396,49 @@ export class DiscordInterface extends MessageInterfacePlugin<
         this.logger.debug("Failed to defer approval button", { error }),
       );
 
-    this.removePendingApproval(conversationId, parsed.approvalId);
     const response = await this.context.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       parsed.approvalId,
+      this.buildInteractionConfirmationContext(interaction),
+    );
+
+    this.syncPendingApprovalsAfterResolution(
+      conversationId,
+      parsed.approvalId,
+      response,
     );
 
     await this.sendApprovalResultMessage({
       channelId: interaction.channelId,
       response,
     });
+  }
+
+  private buildInteractionConfirmationContext(
+    interaction: ButtonInteraction,
+  ): ChatContext {
+    if (!this.context) {
+      throw new Error("Discord context is not registered");
+    }
+
+    return {
+      userPermissionLevel: this.context.permissions.getUserLevel(
+        "discord",
+        interaction.user.id,
+        { channelId: interaction.channelId },
+      ),
+      interfaceType: "discord",
+      channelId: interaction.channelId,
+      actor: {
+        actorId: `discord:${interaction.user.id}`,
+        interfaceType: "discord",
+        role: "user",
+        displayName: interaction.user.displayName,
+        username: interaction.user.username,
+        isBot: Boolean(interaction.user.bot),
+      },
+    };
   }
 
   private async capturePassiveSpaceMessage(
@@ -495,6 +529,8 @@ export class DiscordInterface extends MessageInterfacePlugin<
           message,
           conversationId,
           replyChannelId,
+          discordMessage,
+          permissionContext,
         );
         return;
       }
@@ -660,6 +696,25 @@ export class DiscordInterface extends MessageInterfacePlugin<
     }
   }
 
+  private syncPendingApprovalsAfterResolution(
+    conversationId: string,
+    resolvedApprovalId: string,
+    response: AgentResponse,
+  ): void {
+    const approvalCards = this.getPendingApprovalCards(response.cards);
+    const pendingIds =
+      approvalCards.length > 0
+        ? approvalCards.map((card) => card.id)
+        : response.pendingConfirmations?.map((confirmation) => confirmation.id);
+
+    if (pendingIds && pendingIds.length > 0) {
+      this.pendingConfirmations.set(conversationId, new Set(pendingIds));
+      return;
+    }
+
+    this.removePendingApproval(conversationId, resolvedApprovalId);
+  }
+
   private async sendApprovalResultMessage({
     channelId,
     response,
@@ -752,6 +807,8 @@ export class DiscordInterface extends MessageInterfacePlugin<
     message: string,
     conversationId: string,
     channelId: string,
+    discordMessage: Message,
+    permissionContext: PermissionLookupContext,
   ): Promise<void> {
     const parsed = parseConfirmationResponse(message);
     if (!parsed) {
@@ -781,13 +838,33 @@ export class DiscordInterface extends MessageInterfacePlugin<
       });
       return;
     }
-    this.removePendingApproval(conversationId, approvalId);
+    const channelName = this.getChannelName(discordMessage);
     const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
       approvalId,
+      {
+        userPermissionLevel: this.context.permissions.getUserLevel(
+          "discord",
+          discordMessage.author.id,
+          permissionContext,
+        ),
+        interfaceType: "discord",
+        channelId,
+        channelName,
+        ...this.buildUserMessageMetadata(
+          discordMessage,
+          channelId,
+          channelName,
+        ),
+      },
     );
     if (response) {
+      this.syncPendingApprovalsAfterResolution(
+        conversationId,
+        approvalId,
+        response,
+      );
       await this.sendApprovalResultMessage({
         channelId: channelId,
         response,

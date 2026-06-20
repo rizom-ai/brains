@@ -426,7 +426,7 @@ describe("PermissionService", () => {
         });
 
         expect(
-          permissionService.getRequiredEntityActionLevel("base", "create"),
+          permissionService.getRequiredEntityActionLevel("note", "create"),
         ).toBe("trusted");
         expect(
           permissionService.getRequiredEntityActionLevel("summary", "create"),
@@ -456,15 +456,15 @@ describe("PermissionService", () => {
         });
 
         expect(
-          permissionService.canPerformEntityAction("trusted", "base", "create"),
+          permissionService.canPerformEntityAction("trusted", "note", "create"),
         ).toBe(true);
         expect(
-          permissionService.canPerformEntityAction("trusted", "base", "delete"),
+          permissionService.canPerformEntityAction("trusted", "note", "delete"),
         ).toBe(false);
         expect(
           permissionService.canPerformEntityAction(
             "trusted",
-            "base",
+            "note",
             "extract",
           ),
         ).toBe(false);
@@ -499,10 +499,10 @@ describe("PermissionService", () => {
         });
 
         expect(
-          permissionService.canPerformEntityAction(undefined, "base", "create"),
+          permissionService.canPerformEntityAction(undefined, "note", "create"),
         ).toBe(false);
         expect(
-          permissionService.canPerformEntityAction(undefined, "base", "update"),
+          permissionService.canPerformEntityAction(undefined, "note", "update"),
         ).toBe(true);
       });
 
@@ -510,10 +510,10 @@ describe("PermissionService", () => {
         permissionService = new PermissionService({});
 
         expect(
-          permissionService.canPerformEntityAction(undefined, "base", "delete"),
+          permissionService.canPerformEntityAction(undefined, "note", "delete"),
         ).toBe(true);
         expect(
-          permissionService.canPerformEntityAction("public", "base", "delete"),
+          permissionService.canPerformEntityAction("public", "note", "delete"),
         ).toBe(true);
       });
 
@@ -657,9 +657,9 @@ describe("PermissionService", () => {
     it("returns undefined when no entity action policy is configured", () => {
       const service = new PermissionService({});
 
-      expect(service.getResolvedEntityActionPolicy("base")).toBeUndefined();
+      expect(service.getResolvedEntityActionPolicy("note")).toBeUndefined();
       expect(
-        service.getEntityActionRequiredLevel("base", "create"),
+        service.getEntityActionRequiredLevel("note", "create"),
       ).toBeUndefined();
     });
 
@@ -677,7 +677,7 @@ describe("PermissionService", () => {
         },
       });
 
-      expect(service.getResolvedEntityActionPolicy("base")).toEqual({
+      expect(service.getResolvedEntityActionPolicy("note")).toEqual({
         create: "trusted",
         update: "trusted",
         delete: "anchor",
@@ -707,16 +707,16 @@ describe("PermissionService", () => {
       });
 
       expect(() =>
-        service.assertEntityActionAllowed("base", "create", "trusted"),
+        service.assertEntityActionAllowed("note", "create", "trusted"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("base", "delete", "anchor"),
+        service.assertEntityActionAllowed("note", "delete", "anchor"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("base", "extract", "anchor"),
+        service.assertEntityActionAllowed("note", "extract", "anchor"),
       ).not.toThrow();
       expect(() =>
-        service.assertEntityActionAllowed("base", "publish", "anchor"),
+        service.assertEntityActionAllowed("note", "publish", "anchor"),
       ).not.toThrow();
     });
 

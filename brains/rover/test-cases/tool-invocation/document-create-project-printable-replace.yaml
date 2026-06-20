@@ -12,6 +12,7 @@ tags:
   - media
   - printable
   - document-create
+  - preset-full
 
 turns:
   - userMessage: "Regenerate the printable PDF for project 'CityPulse'"

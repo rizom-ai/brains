@@ -133,6 +133,39 @@ describe("resolveConversationUploadContinuity", () => {
     });
   });
 
+  it("narrows singular raw-save follow-ups to the latest prior upload ref", () => {
+    const latestUploadRef = uploadRefs.at(-1);
+    if (!latestUploadRef) throw new Error("expected upload fixture");
+
+    const result = resolveConversationUploadContinuity({
+      message: "save it",
+      currentAttachments: [],
+      historyMessages,
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save it",
+      refs: [latestUploadRef],
+      attachments: [],
+    });
+  });
+
+  it("keeps all refs when the user names a filename", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      currentAttachments: [],
+      historyMessages,
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      refs: uploadRefs,
+      attachments: [],
+    });
+  });
+
   it("passes current attachments through without deriving conversation control flow", () => {
     const attachment = {
       kind: "file" as const,

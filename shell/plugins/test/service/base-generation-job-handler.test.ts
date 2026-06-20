@@ -29,7 +29,7 @@ class TestGenerationHandler extends BaseGenerationJobHandler<
     super(context.logger, context, {
       schema: testJobSchema,
       jobTypeName: "test-generation",
-      entityType: "base",
+      entityType: "note",
     });
   }
 
@@ -56,7 +56,7 @@ class BodyOnlyGenerationHandler extends BaseGenerationJobHandler<
     super(context.logger, context, {
       schema: testJobSchema,
       jobTypeName: "body-only-generation",
-      entityType: "base",
+      entityType: "note",
     });
   }
 
@@ -78,7 +78,7 @@ class ConflictGenerationHandler extends BaseGenerationJobHandler<
     super(context.logger, context, {
       schema: testJobSchema,
       jobTypeName: "conflict-generation",
-      entityType: "base",
+      entityType: "note",
     });
   }
 
@@ -139,7 +139,7 @@ function createStub(overrides: Partial<BaseEntity> = {}): BaseEntity {
   const now = new Date().toISOString();
   return {
     id: "stub-id",
-    entityType: "base",
+    entityType: "note",
     content:
       "---\ntitle: Stub\nstatus: generating\ncoverImageId: cover-1\ncustomAttached: custom-1\n---\n",
     contentHash: "stub-hash",

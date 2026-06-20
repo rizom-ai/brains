@@ -9,6 +9,7 @@ tags:
   - site-builder
   - tool-invocation
   - anti-hallucination
+  - preset-default
 
 turns:
   - userMessage: "Build my website"

@@ -292,6 +292,7 @@ export interface IAgentService {
     conversationId: string,
     confirmed: boolean,
     approvalId: string,
+    context: ChatContext,
   ): Promise<AgentResponse>;
 
   /**

@@ -70,6 +70,19 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("generally cannot create, update, delete");
   });
 
+  it("should not disclose profile identity when answering whether caller is anchor", () => {
+    const instructions = buildInstructions(identity, "public", undefined, {
+      name: "Jan Hein",
+      kind: "professional" as const,
+    });
+    expect(instructions).toContain(
+      "Do not name or disclose the anchor/profile identity in that answer",
+    );
+    expect(instructions).toContain(
+      "Do not confirm or deny by revealing the configured profile details",
+    );
+  });
+
   it("should show trusted user context for trusted users", () => {
     const instructions = buildInstructions(identity, "trusted");
     expect(instructions).toContain("trusted user");
@@ -80,12 +93,15 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("public user");
   });
 
-  it("should map note-like language to the base entity type", () => {
+  it("should map note-like language to the note entity type", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      '"note", "notes", "memo", "base" → entityType: `base`',
+      '"note", "notes", "memo" → entityType: `note`',
     );
     expect(instructions).not.toContain('"note", "memo" → entityType: `note`');
+    expect(instructions).toContain(
+      'When they ask for a type **about** a topic (for example "notes about TypeScript"), use one `system_search` scoped to that entity type/topic',
+    );
   });
 
   it("should keep default shell instructions brain-neutral", () => {
@@ -142,7 +158,7 @@ describe("buildInstructions", () => {
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "Create a `base` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
+      "Create a `note` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
     );
     expect(instructions).toContain("save, or capture content");
   });
@@ -150,10 +166,10 @@ describe("buildInstructions", () => {
   it("should protect identity/profile singletons from vague delete requests", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "`brain-character` and `anchor-profile` are protected singleton identity/profile records",
+      "`brain-character` and `anchor-profile` are protected singletons",
     );
     expect(instructions).toContain(
-      'Do not interpret vague phrases like "old brain" as `brain-character`',
+      'For vague phrases like "old brain", ask which saved agent/brain contact the user means or resolve `agent`',
     );
   });
 
@@ -174,6 +190,12 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "Creating or generating entities with `system_create`",
+    );
+    expect(instructions).toContain(
+      "For one create request, call `system_create` once only; never issue duplicate create calls",
+    );
+    expect(instructions).toContain(
+      "For delete confirmation responses, explicitly say the item has not been deleted yet and needs confirmation",
     );
     expect(instructions).toContain(
       "Never self-confirm a durable write operation",
@@ -199,6 +221,9 @@ describe("buildInstructions", () => {
       "Do not satisfy a cover-image request by reusing, setting, clearing, or mentioning `ogImageId`",
     );
     expect(instructions).toContain(
+      'use one `system_create` call with `entityType: "image"`, a `prompt`, and pass `targetEntityType`/`targetEntityId`',
+    );
+    expect(instructions).toContain(
       "Do not call `system_update` with an existing image id for a generate/new-cover request",
     );
     expect(instructions).toContain(
@@ -212,10 +237,22 @@ describe("buildInstructions", () => {
   it("should keep image discussion notes and cover images off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "If the user asks to save an image description, image discussion, image interpretation, caption, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image upload and do not pass `upload` or `transform`.",
+      "If the user asks to save an image description, image discussion, image interpretation, caption, or your prior answer as a note, create a `note` entity with `content` from the conversation; do not import the image upload and do not pass `upload` or `transform`.",
     );
     expect(instructions).toContain(
-      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
+      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "note"`; never use `transform` for image uploads.',
+    );
+    expect(instructions).toContain(
+      "Call exactly one `system_upload_save`; do not also create an alternate document/image entity",
+    );
+    expect(instructions).toContain(
+      "Do not use `system_create` for status-only requests such as making an existing post a draft or for raw uploaded file preservation.",
+    );
+    expect(instructions).toContain(
+      "If generating a social post from prior image discussion, use conversation text in `prompt`/`content` and omit `upload`",
+    );
+    expect(instructions).toContain(
+      "If your image-generation args include `upload`, they are wrong unless the user explicitly said to use that uploaded image as the cover.",
     );
     expect(instructions).toContain(
       "Prior upload refs from the conversation are irrelevant to cover-image generation unless the user explicitly says to use the uploaded image as the cover.",
@@ -230,6 +267,25 @@ describe("buildInstructions", () => {
     expect(instructions).toContain(
       "call `system_create` with `sourceAttachment` instead of `document_generate` so confirmation and persistence happen",
     );
+    expect(instructions).toContain(
+      "use the returned canonical entity `id` in `sourceAttachment.sourceEntityId` and continue to `system_create` in the same turn",
+    );
+  });
+
+  it("should summarize listed items from retrieved content, not titles alone", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      'For follow-ups asking for full content/details of a listed item ("first one", "that post"), call `system_get` with the remembered listed ID',
+    );
+    expect(instructions).toContain(
+      "In inventory-style overviews, report exact titles/counts/statuses from tool metadata; do not infer, rename, or summarize items from titles alone",
+    );
+    expect(instructions).toContain(
+      "If the user asks to summarize listed items and the list result lacks body content, follow up with `system_get`",
+    );
+    expect(instructions).toContain(
+      "summarize from the retrieved content rather than inferring from titles",
+    );
   });
 
   it("should prevent draft blog post checks from fanning out across draft entity types", () => {
@@ -239,6 +295,41 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "do not also list social posts, newsletters, decks, or other draft entities",
+    );
+    expect(instructions).toContain(
+      "if the prior draft list was empty, list published posts and ask which one to convert",
+    );
+    expect(instructions).toContain(
+      'Never choose a published item yourself, never call `system_update` for an ambiguous "make one draft" follow-up, never offer to create a draft instead',
+    );
+  });
+
+  it("should allow anchors to read restricted tool results", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "reading restricted/private content returned by tools",
+    );
+    expect(instructions).toContain(
+      "when an anchor asks to show/read a record, include the requested content exactly as you would for public content",
+    );
+    expect(instructions).toContain(
+      "Public/trusted callers must not receive restricted content from denied tools or higher-permission conversation turns",
+    );
+  });
+
+  it("should stop after one lookup when write tools are unavailable", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain(
+      "For questions about the caller's own permission level, answer from Current User/available tools without tool calls",
+    );
+    expect(instructions).toContain(
+      "If a requested write/action tool is unavailable, do not loop through reads",
+    );
+    expect(instructions).toContain(
+      'For public create/update/delete requests, do not call read tools merely to compensate, and avoid "done", "saved", "created", or "deleted" phrasing even in negated forms',
+    );
+    expect(instructions).toContain(
+      "after at most one target lookup, state the caller cannot perform that action with current permissions",
     );
   });
 
@@ -259,7 +350,10 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain("call `content-pipeline_publish`");
     expect(instructions).toContain(
-      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ.",
+      "Trust the tool result metadata/current status over embedded markdown frontmatter when they differ",
+    );
+    expect(instructions).toContain(
+      'if metadata says `status: "draft"`, do not answer that it is already published',
     );
   });
 
@@ -283,6 +377,16 @@ describe("buildInstructions", () => {
     );
     expect(instructions).toContain(
       "call `system_update` with `fields.title` immediately",
+    );
+  });
+
+  it("should not substitute search for unavailable extract actions", () => {
+    const instructions = buildInstructions(identity, "public");
+    expect(instructions).toContain(
+      "If `system_extract` is not available to the current caller, do not substitute `system_search`",
+    );
+    expect(instructions).toContain(
+      "say the caller cannot generate/extract topics with their current permissions",
     );
   });
 

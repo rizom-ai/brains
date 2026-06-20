@@ -1,5 +1,5 @@
 export const SHELL_ENTITY_TYPES = {
-  BASE: "base",
+  NOTE: "note",
   BRAIN_CHARACTER: "brain-character",
   ANCHOR_PROFILE: "anchor-profile",
 } as const;

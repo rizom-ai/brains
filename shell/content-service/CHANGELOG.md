@@ -1,5 +1,70 @@
 # @brains/content-service
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.127
+  - @brains/contracts@0.2.0-alpha.127
+  - @brains/utils@0.2.0-alpha.127
+  - @brains/ai-service@0.2.0-alpha.127
+  - @brains/entity-service@0.2.0-alpha.127
+  - @brains/job-queue@0.2.0-alpha.127
+  - @brains/templates@0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.126
+  - @brains/contracts@0.2.0-alpha.126
+  - @brains/utils@0.2.0-alpha.126
+  - @brains/ai-service@0.2.0-alpha.126
+  - @brains/entity-service@0.2.0-alpha.126
+  - @brains/job-queue@0.2.0-alpha.126
+  - @brains/templates@0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- Updated dependencies [[`f9d1dc9`](https://github.com/rizom-ai/brains/commit/f9d1dc9ed7ac15f131d912202ce9d44fb4f11e32)]:
+  - @brains/ai-service@0.2.0-alpha.125
+  - @brains/content-formatters@0.2.0-alpha.125
+  - @brains/contracts@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+  - @brains/entity-service@0.2.0-alpha.125
+  - @brains/job-queue@0.2.0-alpha.125
+  - @brains/templates@0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
+### Patch Changes
+
+- Updated dependencies [[`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10)]:
+  - @brains/ai-service@0.2.0-alpha.124
+  - @brains/entity-service@0.2.0-alpha.124
+  - @brains/content-formatters@0.2.0-alpha.124
+  - @brains/contracts@0.2.0-alpha.124
+  - @brains/utils@0.2.0-alpha.124
+  - @brains/job-queue@0.2.0-alpha.124
+  - @brains/templates@0.2.0-alpha.124
+
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- Updated dependencies [[`ce28ba0`](https://github.com/rizom-ai/brains/commit/ce28ba0e9b36119ff4c5e8dcad3b1d8a02391461)]:
+  - @brains/ai-service@0.2.0-alpha.123
+  - @brains/content-formatters@0.2.0-alpha.123
+  - @brains/contracts@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+  - @brains/entity-service@0.2.0-alpha.123
+  - @brains/job-queue@0.2.0-alpha.123
+  - @brains/templates@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes

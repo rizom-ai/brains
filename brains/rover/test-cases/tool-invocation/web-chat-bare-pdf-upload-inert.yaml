@@ -12,6 +12,7 @@ tags:
   - upload
   - pdf
   - regression
+  - preset-default
 
 turns:
   - userMessage: ""

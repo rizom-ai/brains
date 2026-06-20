@@ -7,12 +7,12 @@ describe("buildEntityMemoryNote", () => {
     const note = buildEntityMemoryNote([
       {
         toolName: "system_update",
-        args: { entityType: "base", id: "rizom-note" },
+        args: { entityType: "note", id: "rizom-note" },
         data: { updated: "rizom-note" },
       },
     ]);
 
-    expect(note).toContain('base "rizom-note" (updated)');
+    expect(note).toContain('note "rizom-note" (updated)');
     expect(note).toContain("Reference these IDs directly in follow-ups");
   });
 
@@ -26,5 +26,90 @@ describe("buildEntityMemoryNote", () => {
     ]);
 
     expect(note).toContain('social-post "linkedin-post" (generating)');
+  });
+
+  it("lists every entity created in a turn in a single note", () => {
+    // The "save two links" case: two synchronous creates in one turn must both
+    // stay addressable so a follow-up like "summarize both pages" can reference
+    // them by id instead of searching.
+    const note = buildEntityMemoryNote([
+      {
+        toolName: "system_create",
+        args: { entityType: "link" },
+        data: { entityId: "page-one", status: "pending" },
+      },
+      {
+        toolName: "system_create",
+        args: { entityType: "link" },
+        data: { entityId: "page-two", status: "pending" },
+      },
+    ]);
+
+    expect(note).toContain('link "page-one" (pending)');
+    expect(note).toContain('link "page-two" (pending)');
+    // Both refs belong to one note, not two separate ones.
+    expect(note.match(/Entities affected this turn/g)).toHaveLength(1);
+  });
+
+  it("surfaces pending placeholders so they are addressable before enrichment", () => {
+    const note = buildEntityMemoryNote([
+      {
+        toolName: "system_create",
+        args: { entityType: "document" },
+        data: { entityId: "draft-doc", status: "pending" },
+      },
+    ]);
+
+    expect(note).toContain('document "draft-doc" (pending)');
+  });
+
+  it("does not repeat an entity id touched more than once in a turn", () => {
+    const note = buildEntityMemoryNote([
+      {
+        toolName: "system_create",
+        args: { entityType: "link" },
+        data: { entityId: "page-one", status: "pending" },
+      },
+      {
+        toolName: "system_update",
+        args: { entityType: "link", id: "page-one" },
+        data: { updated: "page-one" },
+      },
+    ]);
+
+    expect(note.match(/page-one/g)).toHaveLength(1);
+  });
+
+  it("records listed entity ids for list-detail follow-ups", () => {
+    const note = buildEntityMemoryNote([
+      {
+        toolName: "system_list",
+        args: { entityType: "post" },
+        data: {
+          entities: [
+            {
+              id: "knowledge-flow-systems",
+              entityType: "post",
+              metadata: {
+                title: "Knowledge Flow Systems",
+                status: "published",
+              },
+            },
+            {
+              id: "ai-and-knowledge-work",
+              entityType: "post",
+              metadata: { title: "AI and Knowledge Work" },
+            },
+          ],
+          count: 2,
+        },
+      },
+    ]);
+
+    expect(note).toContain("Entities listed this turn");
+    expect(note).toContain('1. post "knowledge-flow-systems"');
+    expect(note).toContain("Knowledge Flow Systems");
+    expect(note).toContain('2. post "ai-and-knowledge-work"');
+    expect(note).toContain("For follow-ups like first one");
   });
 });

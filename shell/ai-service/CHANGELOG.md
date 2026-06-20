@@ -1,5 +1,85 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.127
+  - @brains/utils@0.2.0-alpha.127
+  - @brains/conversation-service@0.2.0-alpha.127
+  - @brains/entity-service@0.2.0-alpha.127
+  - @brains/identity-service@0.2.0-alpha.127
+  - @brains/mcp-service@0.2.0-alpha.127
+  - @brains/messaging-service@0.2.0-alpha.127
+  - @brains/templates@0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.126
+  - @brains/utils@0.2.0-alpha.126
+  - @brains/conversation-service@0.2.0-alpha.126
+  - @brains/entity-service@0.2.0-alpha.126
+  - @brains/identity-service@0.2.0-alpha.126
+  - @brains/mcp-service@0.2.0-alpha.126
+  - @brains/messaging-service@0.2.0-alpha.126
+  - @brains/templates@0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- [`f9d1dc9`](https://github.com/rizom-ai/brains/commit/f9d1dc9ed7ac15f131d912202ce9d44fb4f11e32) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stabilize Rover eval flows by preserving listed entity IDs for follow-up reads, narrowing singular upload follow-ups to the latest upload ref, and rejecting placeholder cover-image updates before confirmation.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+  - @brains/conversation-service@0.2.0-alpha.125
+  - @brains/entity-service@0.2.0-alpha.125
+  - @brains/identity-service@0.2.0-alpha.125
+  - @brains/mcp-service@0.2.0-alpha.125
+  - @brains/messaging-service@0.2.0-alpha.125
+  - @brains/templates@0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
+### Patch Changes
+
+- [`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a confirmed `system_upload_save` path for preserving raw uploaded files as document or image entities while keeping `system_create` focused on generated content and markdown extraction.
+
+- Updated dependencies [[`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10)]:
+  - @brains/entity-service@0.2.0-alpha.124
+  - @brains/identity-service@0.2.0-alpha.124
+  - @brains/contracts@0.2.0-alpha.124
+  - @brains/utils@0.2.0-alpha.124
+  - @brains/conversation-service@0.2.0-alpha.124
+  - @brains/mcp-service@0.2.0-alpha.124
+  - @brains/messaging-service@0.2.0-alpha.124
+  - @brains/templates@0.2.0-alpha.124
+
+## 0.2.0-alpha.123
+
+### Patch Changes
+
+- [`ce28ba0`](https://github.com/rizom-ai/brains/commit/ce28ba0e9b36119ff4c5e8dcad3b1d8a02391461) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden the assistant instructions on identity disclosure and tool routing:
+  - never reveal the configured anchor/profile identity when answering "am I your anchor?" or "am I {name}?" — answer from the current permission level only, without confirming or denying via the configured profile details
+  - treat an ambiguous "make one draft" follow-up as a clarification, never self-selecting a published item and never firing `system_update` to resolve it
+  - for source-derived artifact saves, resolve a source named by title or slug through `system_get` first, then continue to `system_create` with the returned canonical id in the same turn instead of retrying guessed slugs or stopping after the lookup
+  - when `system_extract` is unavailable to the caller, say the caller cannot generate/extract topics with their current permissions instead of substituting `system_search` and presenting existing topics as newly generated
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.123
+  - @brains/utils@0.2.0-alpha.123
+  - @brains/conversation-service@0.2.0-alpha.123
+  - @brains/entity-service@0.2.0-alpha.123
+  - @brains/identity-service@0.2.0-alpha.123
+  - @brains/mcp-service@0.2.0-alpha.123
+  - @brains/messaging-service@0.2.0-alpha.123
+  - @brains/templates@0.2.0-alpha.123
+
 ## 0.2.0-alpha.122
 
 ### Patch Changes
