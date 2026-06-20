@@ -34,7 +34,7 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
     super(logger, context, {
       schema: noteGenerationJobSchema,
       jobTypeName: "note-generation",
-      entityType: "base",
+      entityType: "note",
     });
   }
 

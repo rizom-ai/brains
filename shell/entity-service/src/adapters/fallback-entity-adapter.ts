@@ -4,16 +4,16 @@ import { baseEntitySchema } from "../types";
 import { BaseEntityAdapter } from "./base-entity-adapter";
 
 /**
- * Minimal pass-through adapter for the "base" entity type.
+ * Minimal pass-through adapter for the "note" entity type.
  *
  * Content is returned as-is in both directions — no frontmatter,
  * no structured body. Used as a fallback when no plugin registers
- * its own "base" adapter.
+ * its own "note" adapter.
  */
 export class FallbackEntityAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
     super({
-      entityType: "base",
+      entityType: "note",
       schema: baseEntitySchema,
       frontmatterSchema: z.object({}),
     });

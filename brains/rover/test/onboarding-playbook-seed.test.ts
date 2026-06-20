@@ -175,7 +175,7 @@ describe("Rover onboarding playbook seed", () => {
       { event: "NEXT", target: "see-it-come-back" },
     ]);
     expect(firstNote?.instructions).toContain(
-      'Use "note" as the operator-facing term for base knowledge entries.',
+      'Use "note" as the operator-facing term for note knowledge entries.',
     );
     expect(firstNote?.instructions).toContain(
       "Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.",
@@ -216,13 +216,13 @@ describe("Rover onboarding playbook seed", () => {
       },
     ]);
     expect(makeSomething?.instructions).toContain(
-      'When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "base" for the chosen draft artifact.',
+      'When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "note" for the chosen draft artifact.',
     );
     expect(makeSomething?.instructions).toContain(
       "Do not only say you will create the draft; the tool call is the action that should produce the approval request.",
     );
     expect(makeSomething?.instructions).toContain(
-      'Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "base" for an outline instead of composing it yourself.',
+      'Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "note" for an outline instead of composing it yourself.',
     );
     expect(makeSomething?.instructions).toContain(
       "If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.",

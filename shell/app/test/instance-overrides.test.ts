@@ -1228,7 +1228,7 @@ permissions:
     ).toThrow(EntityActionPermissionError);
     // Untouched: other entity types still locked to anchor.
     expect(() =>
-      service.assertEntityActionAllowed("base", "delete", "trusted"),
+      service.assertEntityActionAllowed("note", "delete", "trusted"),
     ).toThrow(EntityActionPermissionError);
   });
 

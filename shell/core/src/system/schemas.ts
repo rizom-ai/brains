@@ -94,13 +94,13 @@ export const createInputSchema = z.object({
   upload: createUploadInputSchema
     .optional()
     .describe(
-      'Use only with transform: "extract-markdown" to turn an uploaded text, JSON, markdown, or PDF file into a base note. For raw uploaded file preservation use system_upload_save instead. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
+      'Use only with transform: "extract-markdown" to turn an uploaded text, JSON, markdown, or PDF file into a note. For raw uploaded file preservation use system_upload_save instead. Omit for ordinary direct creates that use content, prompt, url, or sourceAttachment. Never combine upload with sourceAttachment.',
     ),
   transform: z
     .string()
     .optional()
     .describe(
-      'Optional upload transform. Set to exactly "extract-markdown" only with upload and entityType base to extract markdown/text from an uploaded text or PDF file into a markdown note. Omit for raw file promotion to document/image; never include transform with entityType document or image.',
+      'Optional upload transform. Set to exactly "extract-markdown" only with upload and entityType note to extract markdown/text from an uploaded text or PDF file into a markdown note. Omit for raw file promotion to document/image; never include transform with entityType document or image.',
     ),
   sourceAttachment: createSourceAttachmentInputSchema
     .optional()

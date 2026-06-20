@@ -108,10 +108,10 @@ describe("generateCmsConfig", () => {
     expect(config.backend.auth_endpoint).toBe("auth");
   });
 
-  it("should emit base collection as raw Markdown notes at repo root", () => {
-    const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
+  it("should emit note collection as raw Markdown notes at repo root", () => {
+    const config = generateCmsConfig(cmsOpts({ note: noteFrontmatterSchema }));
 
-    const baseCollection = config.collections.find((c) => c.name === "base");
+    const baseCollection = config.collections.find((c) => c.name === "note");
     expect(baseCollection?.label).toBe("Notes");
     expect(baseCollection?.folder).toBe(".");
     expect(baseCollection?.format).toBe("raw");
@@ -120,12 +120,12 @@ describe("generateCmsConfig", () => {
     ]);
   });
 
-  it("should configure base notes to avoid parsing body horizontal rules as frontmatter", () => {
-    const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
+  it("should configure notes to avoid parsing body horizontal rules as frontmatter", () => {
+    const config = generateCmsConfig(cmsOpts({ note: noteFrontmatterSchema }));
 
-    const baseCollection = config.collections.find((c) => c.name === "base");
+    const baseCollection = config.collections.find((c) => c.name === "note");
     expect(baseCollection).toMatchObject({
-      name: "base",
+      name: "note",
       extension: "md",
       format: "raw",
       fields: [{ name: "body", widget: "markdown" }],

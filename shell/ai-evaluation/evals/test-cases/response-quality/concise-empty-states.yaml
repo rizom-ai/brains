@@ -12,14 +12,14 @@ tags:
   - preset-core
 
 turns:
-  - userMessage: "List all base entities"
+  - userMessage: "List all note entities"
 
 successCriteria:
   expectedTools:
     - toolName: system_list
       shouldBeCalled: true
       argsContain:
-        entityType: "base"
+        entityType: "note"
   # Response should NOT contain verbose empty state formatting
   responseNotContains:
     - "(0)"

@@ -4,6 +4,7 @@ import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 import {
   buildEntityMemoryContext,
+  entityMemoryRefSchema,
   type EntityMemoryRef,
 } from "./agent-results";
 
@@ -32,22 +33,8 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
 function parseEntityMemoryRefs(value: unknown): EntityMemoryRef[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item): EntityMemoryRef[] => {
-    if (!isRecord(item)) return [];
-    const entityId = item["entityId"];
-    if (typeof entityId !== "string" || entityId.length === 0) return [];
-    const entityType = item["entityType"];
-    const operation = item["operation"];
-    return [
-      {
-        entityId,
-        ...(typeof entityType === "string" && entityType.length > 0
-          ? { entityType }
-          : {}),
-        ...(typeof operation === "string" && operation.length > 0
-          ? { operation }
-          : {}),
-      },
-    ];
+    const parsed = entityMemoryRefSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
   });
 }
 
@@ -133,12 +120,33 @@ export function resolveConversationUploadContinuity(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
+  const refs = collectUploadRefsFromMessages(params.historyMessages);
   return {
     kind: "selected",
     message: params.message,
-    refs: collectUploadRefsFromMessages(params.historyMessages),
+    refs: shouldNarrowToLatestUploadRef(params.message, refs)
+      ? refs.slice(-1)
+      : refs,
     attachments: params.currentAttachments,
   };
+}
+
+function shouldNarrowToLatestUploadRef(
+  message: string,
+  refs: ConversationUploadRef[],
+): boolean {
+  if (refs.length < 2) return false;
+  const normalized = message.trim().toLowerCase();
+  const hasSingularReference =
+    /\b(it|this|that|file|upload|image|pdf|document)\b/.test(normalized);
+  const asksToPersist =
+    /\b(save|store|import|promote|attach|preserve|keep|capture)\b/.test(
+      normalized,
+    );
+  const namesKnownFile = refs.some((ref) =>
+    normalized.includes(ref.filename.toLowerCase()),
+  );
+  return hasSingularReference && asksToPersist && !namesKnownFile;
 }
 
 export function buildMessageWithAttachments(
@@ -210,7 +218,7 @@ function formatUploadRefs(
     ];
   });
   return lines.length > 0
-    ? `Available upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user's request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_upload_save with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_upload_save with upload: { kind: "upload", id: <upload ID> }. For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create or system_upload_save unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "base", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a base entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n${lines.join("\n")}`
+    ? `Available upload refs from this conversation. These refs are passive context until the user asks to act on an uploaded file. When the user asks to act on an upload, these refs are the source of truth; do not substitute existing entities or retrieved memory with similar titles. If multiple refs are listed and the user's request refers to a single upload with words like "it" or "this", use the most recent matching upload ref. Ask which upload to use only when the user explicitly refers to multiple uploads or the intended upload remains unclear. If the user asks to use another source, such as an existing entity, deck carousel, printable, or source attachment, omit upload and use that source instead. For deck carousel or printable PDF previews, call document_generate when available; for save/attach/regenerate/replace requests, call system_create with sourceAttachment. Do not try to inspect PDF/image bytes before raw file saves; call system_upload_save with the selected upload ref even when the file content is not human-readable in the prompt. For raw file saves/promotions, call system_upload_save with upload: { kind: "upload", id: <upload ID> }. For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create or system_upload_save unless the user explicitly asks to save/store/create/capture/import/promote/attach the upload or summary. For markdown/note extraction, call system_create with entityType: "note", upload, and transform: "extract-markdown" only for text, JSON, markdown, or PDF uploads when the user asks to extract/import/turn the uploaded file bytes into note, markdown, or text. Never use upload or transform to save an image discussion, image description, caption, interpretation, or prior assistant answer as a note; create a note entity with content from the conversation instead. For cover-image or generated-image requests, always omit upload and use prompt plus target fields when relevant.\n${lines.join("\n")}`
     : "";
 }
 

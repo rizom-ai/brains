@@ -14,7 +14,7 @@ tags:
   - document
   - regression
   - multi-turn
-  - preset-full
+  - preset-core
 
 turns:
   - userMessage: ""

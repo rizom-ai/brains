@@ -17,7 +17,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### Relay and product validation
 
 - [Relay presets](./relay-presets.md) — active reference plan
-- [Rover core-preset evals](./rover-core-preset-evals.md) — landing; the preset-aware harness (inheritable suites, coverage ledger, permission matrix, multi-user context) is merged. Remaining work is the behavioral coverage fill (status/insights/check-job-status, conversation tools, core multi-turn recall)
+- [Rover core-preset evals](./rover-core-preset-evals.md) — merged; the preset-aware harness (inheritable suites, coverage ledger, permission matrix, multi-user context) is merged to main. Remaining work is the behavioral coverage fill (status/insights/check-job-status, conversation tools, core multi-turn recall)
 
 ### Public surface and framework cleanup
 
@@ -50,9 +50,11 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 ### New interfaces, renderers, and runtimes
 
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
+- [Message-interface semantic tool status](./message-interface-tool-status.md) — proposed shared lifecycle model for tool status updates, with per-interface rendering for web-chat, Discord Chat SDK, and future chat adapters
 - [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
 - [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
+- [Runtime state store](./runtime-state-store.md) — service shipped (`shell/runtime-state`: shell-owned, namespaced, typed store wired into plugin context); consumers (chat subscriptions, playbook run state, notification/setup-email dedupe) pending
 - [OKF interop](./okf-interop.md) — proposed; export/import the entity store as Google's Open Knowledge Format bundles via the `directory-sync` layer, for interchange with external OKF producers/consumers

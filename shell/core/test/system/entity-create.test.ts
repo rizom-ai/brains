@@ -305,7 +305,7 @@ describe("system_create tool", () => {
 
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
-      entityType: "base",
+      entityType: "note",
       title: "Confirm Me",
       content: "Confirm this create.",
     });
@@ -355,7 +355,7 @@ describe("system_create tool", () => {
 
     const result = await execRaw(
       {
-        entityType: "base",
+        entityType: "note",
         title: "Brief",
         content: "Preserve uploaded PDF.",
         upload: { kind: "upload", id: uploadId },
@@ -386,7 +386,7 @@ describe("system_create tool", () => {
     };
 
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Duplicate Title",
       content: "Create a sibling instead of failing on a duplicate slug.",
     });
@@ -396,7 +396,7 @@ describe("system_create tool", () => {
       data: { entityId: "duplicate-title-2", status: "created" },
     });
     expect(createRequest).toMatchObject({
-      entity: { id: "duplicate-title", entityType: "base" },
+      entity: { id: "duplicate-title", entityType: "note" },
       options: { deduplicateId: true },
     });
   });
@@ -459,7 +459,7 @@ status: draft
 
   it("should reject confirmed create calls without a pending confirmation token", async () => {
     const result = await execRaw({
-      entityType: "base",
+      entityType: "note",
       title: "No Token",
       content: "Do not create directly.",
       confirmed: true,
@@ -504,7 +504,7 @@ status: draft
     let capturedContext: CreateExecutionContext | undefined;
 
     services.entityRegistry.registerCreateInterceptor(
-      "base",
+      "note",
       async (input, executionContext) => {
         capturedInput = input;
         capturedContext = executionContext;
@@ -520,7 +520,7 @@ status: draft
 
     const result = await exec(
       {
-        entityType: "base",
+        entityType: "note",
         prompt: "Write about TypeScript.",
         title: "",
         content: "",
@@ -540,7 +540,7 @@ status: draft
       data: { status: "intercepted", entityId: "intercepted-id" },
     });
     expect(capturedInput).toEqual({
-      entityType: "base",
+      entityType: "note",
       prompt: "Write about TypeScript.",
     });
     expect(capturedContext).toEqual({
@@ -649,7 +649,7 @@ status: draft
       },
     });
     tools = createSystemTools(services);
-    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
       capturedInput = input;
       return {
         kind: "handled",
@@ -662,7 +662,7 @@ status: draft
 
     const result = await exec(
       {
-        entityType: "base",
+        entityType: "note",
         upload: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000304",
@@ -677,7 +677,7 @@ status: draft
       data: { status: "created", entityId: "brief-note" },
     });
     expect(capturedInput).toEqual({
-      entityType: "base",
+      entityType: "note",
       from: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000304",
@@ -688,7 +688,7 @@ status: draft
 
   it("should reject extract-markdown transform without an upload ref", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       content: "# Notes\n\nStore this directly.",
       transform: "extract-markdown",
     });
@@ -696,7 +696,7 @@ status: draft
     expect(result).toEqual({
       success: false,
       error:
-        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+        'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
     });
   });
 
@@ -756,14 +756,14 @@ status: draft
     expect(result).toEqual({
       success: false,
       error:
-        'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+        'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
     });
     expect(interceptorCalled).toBe(false);
   });
 
   it("should treat empty transform strings as omitted for direct creates", async () => {
     let capturedInput: CreateInput | undefined;
-    services.entityRegistry.registerCreateInterceptor("base", async (input) => {
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
       capturedInput = input;
       return {
         kind: "handled",
@@ -775,7 +775,7 @@ status: draft
     });
 
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Operating Notes",
       content: "# Operating Notes\n\n- Store it as-is.",
       transform: "",
@@ -786,7 +786,7 @@ status: draft
       data: { status: "created", entityId: "operating-notes" },
     });
     expect(capturedInput).toEqual({
-      entityType: "base",
+      entityType: "note",
       title: "Operating Notes",
       content: "# Operating Notes\n\n- Store it as-is.",
     });
@@ -884,7 +884,7 @@ status: draft
   });
 
   it("should return handled interceptor results without falling through", async () => {
-    services.entityRegistry.registerCreateInterceptor("base", async () => ({
+    services.entityRegistry.registerCreateInterceptor("note", async () => ({
       kind: "handled",
       result: {
         success: true,
@@ -893,7 +893,7 @@ status: draft
     }));
 
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "My Note",
       content: "This is a test.",
     });
@@ -910,7 +910,7 @@ status: draft
     services.addEntities([
       {
         id: "existing-base",
-        entityType: "base",
+        entityType: "note",
         content: "Existing base",
         metadata: { title: "Existing Base" },
         created: new Date().toISOString(),
@@ -919,7 +919,7 @@ status: draft
       },
     ]);
     services.entityRegistry.registerCreateInterceptor(
-      "base",
+      "note",
       async (input) => ({
         kind: "continue",
         input: {
@@ -931,13 +931,13 @@ status: draft
     );
 
     await exec({
-      entityType: "base",
+      entityType: "note",
       prompt: "Original prompt",
     });
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("base:generation");
+    expect(enqueuedJob.type).toBe("note:generation");
     expect(enqueuedJob.data).toEqual({
       entityId: "rewritten-title",
       prompt: "Rewritten prompt",
@@ -947,7 +947,7 @@ status: draft
 
   it("should continue with rewritten input for direct create", async () => {
     services.entityRegistry.registerCreateInterceptor(
-      "base",
+      "note",
       async (input) => ({
         kind: "continue",
         input: {
@@ -959,7 +959,7 @@ status: draft
     );
 
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Original Title",
       content: "Original body.",
     });
@@ -967,7 +967,7 @@ status: draft
     const data = createOutputSchema.parse((result as { data: unknown }).data);
     expect(data.entityId).toBe("interceptor-title");
     const entity = await services.entityService.getEntity({
-      entityType: "base",
+      entityType: "note",
       id: "interceptor-title",
     });
     expect(entity?.content).toBe("Interceptor body.");
@@ -976,7 +976,7 @@ status: draft
 
   it("should create entity with title and content", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "My Note",
       content: "This is a test.",
     });
@@ -989,7 +989,7 @@ status: draft
 
   it("should slugify title as entity ID", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "My Cool Note Title",
       content: "Body.",
     });
@@ -1000,13 +1000,13 @@ status: draft
 
   it("should store entity in entity service", async () => {
     await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Retrievable Note",
       content: "Find me.",
     });
 
     const entity = await services.entityService.getEntity({
-      entityType: "base",
+      entityType: "note",
       id: "retrievable-note",
     });
     expect(entity).not.toBeNull();
@@ -1053,16 +1053,16 @@ status: draft
     });
   });
 
-  it("should keep base direct content on the generic create path", async () => {
+  it("should keep note direct content on the generic create path", async () => {
     await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Plain Note",
       content: "No frontmatter required.",
     });
 
     expect(services.getLastMarkdownCreate()).toBeUndefined();
     const entity = await services.entityService.getEntity({
-      entityType: "base",
+      entityType: "note",
       id: "plain-note",
     });
     expect(entity?.content).toBe("No frontmatter required.");
@@ -1072,7 +1072,7 @@ status: draft
     services.addEntities([
       {
         id: "existing-base",
-        entityType: "base",
+        entityType: "note",
         content: "Existing base",
         metadata: { title: "Existing Base" },
         created: new Date().toISOString(),
@@ -1082,7 +1082,7 @@ status: draft
     ]);
 
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       prompt: "Write about TypeScript.",
     });
 
@@ -1092,7 +1092,7 @@ status: draft
     expect(data.entityId).toBe("write-about-typescript");
     expect(data.jobId).toBeDefined();
     const stub = await services.entityService.getEntity({
-      entityType: "base",
+      entityType: "note",
       id: "write-about-typescript",
     });
     expect(stub?.metadata["status"]).toBe("generating");
@@ -1100,7 +1100,7 @@ status: draft
 
   it("should require content, prompt, url, upload, or sourceAttachment", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Nothing else",
     });
 
@@ -1109,7 +1109,7 @@ status: draft
 
   it("should reject url-only create for unsupported entity types", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       url: "https://example.com/test",
     });
 
@@ -1368,7 +1368,7 @@ A saved research link.`;
 
   it("should let direct content take precedence over stale upload refs", async () => {
     const result = await execRaw({
-      entityType: "base",
+      entityType: "note",
       title: "Image Discussion",
       content: "Notes from the image discussion.",
       upload: {
@@ -1524,7 +1524,7 @@ A saved research link.`;
 
   it("should reject coverImage for entity types without cover support", async () => {
     const result = await exec({
-      entityType: "base",
+      entityType: "note",
       title: "Plain Note",
       content: "Notes do not support cover images in this mock registry.",
       coverImage: true,
@@ -1532,7 +1532,7 @@ A saved research link.`;
 
     expect(result).toHaveProperty("success", false);
     expect((result as { error: string }).error).toContain(
-      "Entity type 'base' doesn't support cover images",
+      "Entity type 'note' doesn't support cover images",
     );
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
@@ -1570,7 +1570,7 @@ A saved research link.`;
       },
     });
     services.entityRegistry.registerCreateInterceptor(
-      "base",
+      "note",
       async (input) => ({
         kind: "continue",
         input: { ...input, entityType: "summary" },
@@ -1579,7 +1579,7 @@ A saved research link.`;
 
     const result = await exec(
       {
-        entityType: "base",
+        entityType: "note",
         content: "Rewritten summary",
       },
       { userPermissionLevel: "trusted" },

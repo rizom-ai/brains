@@ -40,7 +40,7 @@ export function createDirectorySyncTools(
 
             return toolSuccess(
               { jobId, status: "queued", gitPulled: true },
-              "Sync queued: pulling from git and scanning files",
+              "Sync queued: git pull and filesystem scan will run in the background",
             );
           }
 

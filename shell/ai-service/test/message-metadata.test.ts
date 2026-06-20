@@ -51,7 +51,7 @@ describe("buildMessageMetadata", () => {
       ],
       cards: [],
       entityMemoryRefs: [
-        { entityType: "base", entityId: "note-1", operation: "updated" },
+        { entityType: "note", entityId: "note-1", operation: "updated" },
       ],
     });
 
@@ -70,7 +70,7 @@ describe("buildMessageMetadata", () => {
       },
     ]);
     expect(metadata.entityMemoryRefs).toEqual([
-      { entityType: "base", entityId: "note-1", operation: "updated" },
+      { entityType: "note", entityId: "note-1", operation: "updated" },
     ]);
     expect(metadata).not.toHaveProperty("cards");
   });
@@ -82,13 +82,13 @@ describe("withMessageMetadata", () => {
     expect(
       withMessageMetadata({
         entityMemoryRefs: [
-          { entityType: "base", entityId: "note-1", operation: "updated" },
+          { entityType: "note", entityId: "note-1", operation: "updated" },
         ],
       }),
     ).toEqual({
       metadata: {
         entityMemoryRefs: [
-          { entityType: "base", entityId: "note-1", operation: "updated" },
+          { entityType: "note", entityId: "note-1", operation: "updated" },
         ],
       },
     });

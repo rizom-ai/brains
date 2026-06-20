@@ -15,7 +15,7 @@ describe("BrainAgent stop conditions", () => {
                 needsConfirmation: true,
                 toolName: "system_update",
                 summary: 'Update "Untitled"?',
-                args: { entityType: "base", id: "untitled" },
+                args: { entityType: "note", id: "untitled" },
               },
             },
           ],

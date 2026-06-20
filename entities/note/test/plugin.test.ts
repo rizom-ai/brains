@@ -93,12 +93,12 @@ describe("NotePlugin", () => {
       });
       const interceptor = harness
         .getEntityRegistry()
-        .getCreateInterceptor("base");
-      if (!interceptor) throw new Error("base create interceptor not found");
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
 
       const result = await interceptor(
         {
-          entityType: "base",
+          entityType: "note",
           from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
@@ -120,7 +120,7 @@ describe("NotePlugin", () => {
       });
 
       let entity = await harness.getEntityService().getEntity({
-        entityType: "base",
+        entityType: "note",
         id: "research-notes",
       });
       expect(entity).toBeNull();
@@ -128,7 +128,7 @@ describe("NotePlugin", () => {
       await runQueuedUploadImport();
 
       entity = await harness.getEntityService().getEntity({
-        entityType: "base",
+        entityType: "note",
         id: "research-notes",
       });
       expect(entity?.content).toBe(
@@ -151,12 +151,12 @@ describe("NotePlugin", () => {
       });
       const interceptor = harness
         .getEntityRegistry()
-        .getCreateInterceptor("base");
-      if (!interceptor) throw new Error("base create interceptor not found");
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
 
       const result = await interceptor(
         {
-          entityType: "base",
+          entityType: "note",
           from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
@@ -175,7 +175,7 @@ describe("NotePlugin", () => {
       await runQueuedUploadImport();
 
       const entity = await harness.getEntityService().getEntity({
-        entityType: "base",
+        entityType: "note",
         id: "config-export",
       });
       expect(entity?.content).toContain("useful value");
@@ -196,12 +196,12 @@ describe("NotePlugin", () => {
       });
       const interceptor = harness
         .getEntityRegistry()
-        .getCreateInterceptor("base");
-      if (!interceptor) throw new Error("base create interceptor not found");
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
 
       const result = await interceptor(
         {
-          entityType: "base",
+          entityType: "note",
           from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
@@ -217,7 +217,7 @@ describe("NotePlugin", () => {
       });
       expect(enqueuedJobs).toHaveLength(0);
       const entity = await harness.getEntityService().getEntity({
-        entityType: "base",
+        entityType: "note",
         id: "robot",
       });
       expect(entity).toBeNull();
@@ -237,12 +237,12 @@ describe("NotePlugin", () => {
       });
       const interceptor = harness
         .getEntityRegistry()
-        .getCreateInterceptor("base");
-      if (!interceptor) throw new Error("base create interceptor not found");
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
 
       const result = await interceptor(
         {
-          entityType: "base",
+          entityType: "note",
           from: { kind: "upload", id: upload.id },
           transform: "extract-markdown",
         },
@@ -261,7 +261,7 @@ describe("NotePlugin", () => {
       await runQueuedUploadImport();
 
       const entity = await harness.getEntityService().getEntity({
-        entityType: "base",
+        entityType: "note",
         id: "distributed-systems-primer",
       });
       expect(entity?.content).toContain("Distributed Systems Primer");

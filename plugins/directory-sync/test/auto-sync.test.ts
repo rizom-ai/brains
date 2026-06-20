@@ -55,7 +55,7 @@ describe("DirectorySync AutoSync", () => {
       await harness.installPlugin(plugin);
       const dirSync = getDirectorySyncOrFail();
 
-      const entity = createTestEntity("base", {
+      const entity = createTestEntity("note", {
         id: "test-entity",
         content: "# Test Entity\n\nTest content",
         metadata: {},
@@ -72,7 +72,7 @@ describe("DirectorySync AutoSync", () => {
       await harness.installPlugin(plugin);
       const dirSync = getDirectorySyncOrFail();
 
-      const entity = createTestEntity("base", {
+      const entity = createTestEntity("note", {
         id: "test-entity",
         content: "# Original\n\nOriginal content",
         metadata: {},
@@ -80,7 +80,7 @@ describe("DirectorySync AutoSync", () => {
 
       await dirSync.fileOps.writeEntity(entity);
 
-      const updatedEntity = createTestEntity("base", {
+      const updatedEntity = createTestEntity("note", {
         ...entity,
         content: "# Updated\n\nUpdated content",
       });
@@ -96,7 +96,7 @@ describe("DirectorySync AutoSync", () => {
       await harness.installPlugin(plugin);
       const dirSync = getDirectorySyncOrFail();
 
-      const entity = createTestEntity("base", {
+      const entity = createTestEntity("note", {
         id: "test-entity",
         content: "# Test\n\nContent",
         metadata: {},
@@ -132,13 +132,13 @@ describe("DirectorySync AutoSync", () => {
       await harness.installPlugin(plugin);
       const dirSync = getDirectorySyncOrFail();
 
-      const entity1 = createTestEntity("base", {
+      const entity1 = createTestEntity("note", {
         id: "entity-1",
         content: "# Entity 1",
         metadata: {},
       });
 
-      const entity2 = createTestEntity("base", {
+      const entity2 = createTestEntity("note", {
         id: "entity-2",
         content: "# Entity 2",
         metadata: {},

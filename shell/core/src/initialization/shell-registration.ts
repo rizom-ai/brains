@@ -50,14 +50,14 @@ export function registerBaseEntityDisplayTemplate(
 
 /**
  * Register a fallback base entity adapter.
- * Only called if no plugin (e.g. note plugin) has already registered "base".
+ * Only called if no plugin (e.g. note plugin) has already registered "note".
  */
 export function registerFallbackBaseEntity(
   entityRegistry: IEntityRegistry,
   logger: Logger,
 ): void {
   entityRegistry.registerEntityType(
-    SHELL_ENTITY_TYPES.BASE,
+    SHELL_ENTITY_TYPES.NOTE,
     baseEntitySchema,
     new FallbackEntityAdapter(),
   );

@@ -33,7 +33,8 @@ describe("directory-sync_sync tool", () => {
     expect(result).toEqual({
       success: true,
       data: { jobId: "job-sync-request", status: "queued", gitPulled: true },
-      message: "Sync queued: pulling from git and scanning files",
+      message:
+        "Sync queued: git pull and filesystem scan will run in the background",
     });
     expect(enqueue).toHaveBeenCalledWith({
       type: "sync-request",

@@ -398,6 +398,19 @@ describe("system_update tool", () => {
     });
   });
 
+  it("rejects placeholder coverImageId updates before confirmation", async () => {
+    const result = await exec({
+      entityType: "social-post",
+      id: "linkedin-update",
+      fields: { coverImageId: "__PENDING__" },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "coverImageId must reference an existing image id or be null",
+    });
+  });
+
   it("writes coverImageId field updates to frontmatter for entity types with cover support", async () => {
     const result = await exec({
       entityType: "social-post",

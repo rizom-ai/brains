@@ -58,6 +58,7 @@ import packageJson from "../package.json" with { type: "json" };
 const core = [
   "prompt",
   "image",
+  "document",
   "note",
   "link",
   "wishlist",
@@ -97,7 +98,6 @@ const full = [
   "portfolio",
   "topics",
   "content-pipeline",
-  "document",
   "social-media",
   "newsletter",
   "stock-photo",

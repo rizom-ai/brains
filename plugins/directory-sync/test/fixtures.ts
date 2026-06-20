@@ -80,7 +80,7 @@ export function emptyExportResult(
 // ---------------------------------------------------------------------------
 
 export class MockEntityAdapter extends BaseEntityAdapter<BaseEntity> {
-  constructor(entityType = "base") {
+  constructor(entityType = "note") {
     super({
       entityType,
       schema: baseEntitySchema,

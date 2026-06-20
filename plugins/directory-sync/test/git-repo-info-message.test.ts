@@ -21,7 +21,7 @@ describe("git-sync:get-repo-info message handler", () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-repo-info" });
     harness
       .getEntityRegistry()
-      .registerEntityType("base", baseEntitySchema, new MockEntityAdapter());
+      .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
 
     const context = harness.getServiceContext("directory-sync");
 

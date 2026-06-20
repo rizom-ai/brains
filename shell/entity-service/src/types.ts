@@ -7,11 +7,11 @@ import {
 } from "./visibility";
 
 /**
- * Entity type for unstructured notes (the "base" entity type).
+ * Entity type for unstructured notes (the "note" entity type).
  * Used as a sentinel for the default catch-all markdown file shape —
  * no typed frontmatter schema required, content is the entire file body.
  */
-export const BASE_ENTITY_TYPE = "base";
+export const NOTE_ENTITY_TYPE = "note";
 
 /**
  * Embedding job data - minimal data for job queue

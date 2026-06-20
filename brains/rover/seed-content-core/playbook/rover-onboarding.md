@@ -100,7 +100,7 @@ To do:
 
 - Ask for one rough idea, note, link, or fragment the operator wants Rover to remember.
 - Save it as the appropriate durable entity, usually a note or link.
-- Use "note" as the operator-facing term for base knowledge entries.
+- Use "note" as the operator-facing term for note knowledge entries.
 - Do not offer to collect another seed during onboarding; guide to the retrieval demonstration next.
 - After saving the first seed, say it was saved or captured, then ask whether to find or show that saved note next; do not say you found it before the operator asks for retrieval, and do not ask for another rough idea, link, note, or fragment during onboarding.
 - Explain that rough ideas become reusable markdown knowledge inside Rover.
@@ -136,11 +136,11 @@ Say: Let’s turn that note into something useful — an outline for later writi
 To do:
 
 - Offer two or three transformations in the manual onboarding style: outline for later writing, short draft, or reusable brief.
-- Create the chosen artifact only after the operator chooses one; in core, store it as a base note entity.
-- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "base" for the chosen draft artifact.
+- Create the chosen artifact only after the operator chooses one; in core, store it as a note entity.
+- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "note" for the chosen draft artifact.
 - Do not only say you will create the draft; the tool call is the action that should produce the approval request.
 - A response to "Do that as..." or another transformation choice must include system_create; a search-only, retrieval-only, or explanation-only response is not sufficient.
-- Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "base" for an outline instead of composing it yourself.
+- Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "note" for an outline instead of composing it yourself.
 - If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.
 - After the draft artifact has been created or queued, move onboarding to Done; if it is ready, show it or offer to review it, and if it is still generating, explain it can be reviewed when ready.
 - Explain how Rover helps move from raw thinking to reusable knowledge and publishing-ready drafts without leaving the brain.

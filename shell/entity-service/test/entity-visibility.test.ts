@@ -155,7 +155,7 @@ describe("entity visibility", () => {
   test("baseEntitySchema defaults missing visibility to public", () => {
     const parsed = baseEntitySchema.parse({
       id: "base-note",
-      entityType: "base",
+      entityType: "note",
       content: "Body",
       created: "2024-01-01T00:00:00.000Z",
       updated: "2024-01-01T00:00:00.000Z",
@@ -169,7 +169,7 @@ describe("entity visibility", () => {
   test("baseEntitySchema normalizes private visibility input to restricted", () => {
     const parsed = baseEntitySchema.parse({
       id: "base-note",
-      entityType: "base",
+      entityType: "note",
       content: "Body",
       created: "2024-01-01T00:00:00.000Z",
       updated: "2024-01-01T00:00:00.000Z",
@@ -511,13 +511,13 @@ describe("entity visibility", () => {
   });
 });
 
-describe("base note visibility serialization", () => {
+describe("note visibility serialization", () => {
   let ctx: EntityServiceTestContext;
 
   beforeEach(async () => {
     ctx = await setupEntityService([
       {
-        name: "base",
+        name: "note",
         schema: baseEntitySchema,
         adapter: new FallbackEntityAdapter(),
       },
@@ -528,19 +528,19 @@ describe("base note visibility serialization", () => {
     await ctx.cleanup();
   });
 
-  test("keeps public base notes as raw markdown without frontmatter", async () => {
+  test("keeps public notes as raw markdown without frontmatter", async () => {
     const rawContent =
       "# Plain note\n\nSome text.\n\n---\n\nA horizontal rule.";
 
     await ctx.entityService.createEntity({
-      entity: createTestEntity<BaseEntity>("base", {
+      entity: createTestEntity<BaseEntity>("note", {
         id: "plain-note",
         content: rawContent,
       }),
     });
 
     const stored = await ctx.entityService.getEntity<BaseEntity>({
-      entityType: "base",
+      entityType: "note",
       id: "plain-note",
     });
 
@@ -550,11 +550,11 @@ describe("base note visibility serialization", () => {
     );
   });
 
-  test("adds canonical visibility frontmatter for restricted base notes", async () => {
+  test("adds canonical visibility frontmatter for restricted notes", async () => {
     const rawContent = "# Sensitive note\n\nInternal details.";
 
     await ctx.entityService.createEntity({
-      entity: createTestEntity<BaseEntity>("base", {
+      entity: createTestEntity<BaseEntity>("note", {
         id: "restricted-plain-note",
         content: rawContent,
         visibility: "private",
@@ -562,7 +562,7 @@ describe("base note visibility serialization", () => {
     });
 
     const stored = await ctx.entityService.getEntity<BaseEntity>({
-      entityType: "base",
+      entityType: "note",
       id: "restricted-plain-note",
       visibilityScope: "restricted",
     });

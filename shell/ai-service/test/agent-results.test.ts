@@ -69,13 +69,13 @@ describe("buildEntityMemoryRefs", () => {
     const refs = buildEntityMemoryRefs([
       {
         toolName: "system_update",
-        args: { entityType: "base", id: "rizom-note" },
+        args: { entityType: "note", id: "rizom-note" },
         data: { updated: "rizom-note" },
       },
     ]);
 
     expect(refs).toEqual([
-      { entityType: "base", entityId: "rizom-note", operation: "updated" },
+      { entityType: "note", entityId: "rizom-note", operation: "updated" },
     ]);
   });
 
@@ -153,12 +153,65 @@ describe("buildEntityMemoryRefs", () => {
 describe("buildEntityMemoryContext", () => {
   it("builds model-only context without footer-shaped text", () => {
     const context = buildEntityMemoryContext([
-      { entityType: "base", entityId: "rizom-note", operation: "updated" },
+      { entityType: "note", entityId: "rizom-note", operation: "updated" },
     ]);
 
     expect(context).toContain("Internal entity refs");
-    expect(context).toContain("base rizom-note (updated)");
+    expect(context).toContain("note rizom-note (updated)");
     expect(context).not.toContain("Entities affected this turn");
     expect(context).not.toContain("Reference these IDs directly");
+  });
+
+  it("records listed entity ids for list-detail follow-ups", () => {
+    const refs = buildEntityMemoryRefs([
+      {
+        toolName: "system_list",
+        args: { entityType: "post" },
+        data: {
+          entities: [
+            {
+              id: "knowledge-flow-systems",
+              entityType: "post",
+              metadata: {
+                title: "Knowledge Flow Systems",
+                status: "published",
+              },
+            },
+            {
+              id: "ai-and-knowledge-work",
+              entityType: "post",
+              metadata: { title: "AI and Knowledge Work" },
+            },
+          ],
+          count: 2,
+        },
+      },
+    ]);
+
+    expect(refs).toEqual([
+      {
+        entityType: "post",
+        entityId: "knowledge-flow-systems",
+        operation: "listed",
+        listIndex: 1,
+        title: "Knowledge Flow Systems",
+        status: "published",
+      },
+      {
+        entityType: "post",
+        entityId: "ai-and-knowledge-work",
+        operation: "listed",
+        listIndex: 2,
+        title: "AI and Knowledge Work",
+      },
+    ]);
+
+    const context = buildEntityMemoryContext(refs);
+    expect(context).toContain("Internal entity refs");
+    expect(context).toContain("post knowledge-flow-systems");
+    expect(context).toContain("item 1");
+    expect(context).toContain("Knowledge Flow Systems");
+    expect(context).toContain("post ai-and-knowledge-work");
+    expect(context).not.toContain("Entities listed this turn");
   });
 });

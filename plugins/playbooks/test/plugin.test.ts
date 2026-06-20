@@ -851,7 +851,7 @@ describe("PlaybooksPlugin", () => {
   it("includes entity details in runtime evidence for generic goal checks", async () => {
     const evaluate = mock(async (input: GoalCheckInput) => {
       expect(input.evidence[0]?.data).toMatchObject({
-        entityType: "base",
+        entityType: "note",
         entityId: "seed-note",
         operation: "created",
         title: "Seed note",
@@ -881,7 +881,7 @@ describe("PlaybooksPlugin", () => {
     await harness.sendMessage(
       "entity:created",
       {
-        entityType: "base",
+        entityType: "note",
         entityId: "seed-note",
         conversationId,
         entity: {
@@ -901,7 +901,7 @@ describe("PlaybooksPlugin", () => {
       data.activeRun.evidence[0] as { data?: Record<string, unknown> }
     ).data;
     expect(visibleEvidenceData).toEqual({
-      entityType: "base",
+      entityType: "note",
       entityId: "seed-note",
       operation: "created",
     });

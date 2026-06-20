@@ -47,7 +47,9 @@ const toolStatePromptDataSchema = z.object({
     prompt: z.string().min(1).optional(),
   }),
 });
-
+const listToolDataSchema = z.object({
+  entities: z.array(sourceEntitySchema),
+});
 const attachmentToolDataSchema = z
   .object({
     documentId: z.string().min(1).optional(),
@@ -469,11 +471,16 @@ const entityRefArgsSchema = z.object({
   id: z.string().optional(),
 });
 
-export interface EntityMemoryRef {
-  entityType?: string | undefined;
-  entityId: string;
-  operation?: string | undefined;
-}
+export const entityMemoryRefSchema = z.object({
+  entityType: z.string().min(1).optional(),
+  entityId: z.string().min(1),
+  operation: z.string().min(1).optional(),
+  title: z.string().min(1).optional(),
+  status: z.string().min(1).optional(),
+  listIndex: z.number().int().positive().optional(),
+});
+
+export type EntityMemoryRef = z.infer<typeof entityMemoryRefSchema>;
 
 /**
  * Extract structured entity references from tool results so follow-up turns can
@@ -487,25 +494,46 @@ export function buildEntityMemoryRefs(
   const refs: EntityMemoryRef[] = [];
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
-    if (!data.success) continue;
-    const { status } = data.data;
-    const entityId =
-      data.data.entityId ?? data.data.updated ?? data.data.deleted;
-    if (!entityId || seen.has(entityId)) continue;
-    seen.add(entityId);
+    const entityId = data.success
+      ? (data.data.entityId ?? data.data.updated ?? data.data.deleted)
+      : undefined;
+    if (data.success && entityId !== undefined) {
+      const { status } = data.data;
+      if (seen.has(entityId)) continue;
+      seen.add(entityId);
 
-    const args = entityRefArgsSchema.safeParse(tr.args ?? {});
-    const entityType = args.success ? args.data.entityType : undefined;
-    const operation = data.data.updated
-      ? "updated"
-      : data.data.deleted
-        ? "deleted"
-        : status;
-    refs.push({
-      ...(entityType ? { entityType } : {}),
-      entityId,
-      ...(operation ? { operation } : {}),
-    });
+      const args = entityRefArgsSchema.safeParse(tr.args ?? {});
+      const entityType = args.success ? args.data.entityType : undefined;
+      const operation = data.data.updated
+        ? "updated"
+        : data.data.deleted
+          ? "deleted"
+          : status;
+      refs.push({
+        ...(entityType ? { entityType } : {}),
+        entityId,
+        ...(operation ? { operation } : {}),
+      });
+      continue;
+    }
+
+    if (tr.toolName !== "system_list") continue;
+    const listData = listToolDataSchema.safeParse(tr.data);
+    if (!listData.success) continue;
+    for (const entity of listData.data.entities) {
+      if (seen.has(entity.id)) continue;
+      seen.add(entity.id);
+      const title = getEntityTitle(entity);
+      const status = getMetadataString(entity.metadata, "status");
+      refs.push({
+        entityType: entity.entityType,
+        entityId: entity.id,
+        operation: "listed",
+        listIndex: refs.filter((ref) => ref.operation === "listed").length + 1,
+        ...(title !== entity.id ? { title } : {}),
+        ...(status !== undefined ? { status } : {}),
+      });
+    }
   }
   return refs;
 }
@@ -514,8 +542,16 @@ export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
   if (refs.length === 0) return "";
   const lines = refs.map((ref) => {
     const typePrefix = ref.entityType ? `${ref.entityType} ` : "";
-    const operationSuffix = ref.operation ? ` (${ref.operation})` : "";
-    return `- ${typePrefix}${ref.entityId}${operationSuffix}`;
+    const details = [
+      ref.operation,
+      ref.listIndex !== undefined ? `item ${ref.listIndex}` : undefined,
+      ref.title !== undefined ? `title: ${ref.title}` : undefined,
+      ref.status !== undefined ? `status: ${ref.status}` : undefined,
+    ].filter(
+      (value): value is string => value !== undefined && value.length > 0,
+    );
+    const detailsSuffix = details.length > 0 ? ` (${details.join(", ")})` : "";
+    return `- ${typePrefix}${ref.entityId}${detailsSuffix}`;
   });
   return `\n\nInternal entity refs from the previous assistant turn for follow-up resolution:\n${lines.join("\n")}`;
 }

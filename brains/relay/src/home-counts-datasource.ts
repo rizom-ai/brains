@@ -21,7 +21,7 @@ const querySchema = z
   .passthrough();
 
 const countEntityTypes = {
-  captures: "base",
+  captures: "note",
   links: "link",
   topics: "topic",
   summaries: "summary",

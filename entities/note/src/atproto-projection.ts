@@ -24,7 +24,7 @@ export async function buildNoteAtprotoRecord({
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    sourceEntityType: "base",
+    sourceEntityType: "note",
     sourceEntityId: note.id,
     createdAt: note.created,
     ...(note.updated && { updatedAt: note.updated }),
@@ -33,7 +33,7 @@ export async function buildNoteAtprotoRecord({
 
 export function createNoteAtprotoProjection(): AtprotoProjection<AtprotoBrainNoteRecord> {
   return {
-    entityType: "base",
+    entityType: "note",
     collection: "ai.rizom.brain.note",
     lexicon: canonicalAtprotoLexicons["ai.rizom.brain.note"],
     validate: false,

@@ -150,7 +150,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
       responseContains:
         - "Confirmation required"
       responseNotContains:

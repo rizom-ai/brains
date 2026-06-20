@@ -1,5 +1,13 @@
 # @brains/media-renderer
 
+## 0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
 ## 0.2.0-alpha.123
 
 ## 0.2.0-alpha.122
