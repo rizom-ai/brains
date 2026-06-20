@@ -115,6 +115,10 @@ output: {
 
 `web_fetch` should wait until there is a clear need. Many search providers already return enough snippets for current-info answers, and fetching arbitrary pages adds more security and content-safety surface.
 
+**Extraction provider — reuse Jina, do not add a second extractor.** When `web_fetch` lands, back it with the existing Jina Reader (`https://r.jina.ai/<url>`) via the `UrlFetcher` in `entities/link/src/lib/url-fetcher.ts` — already proven, returns clean markdown, free at low volume (20 RPM anon / 500 RPM with key). The decision is driven by **consistency, not an extraction-quality gap**: `entities/link` already standardizes on Jina for link capture, so reusing it keeps the codebase to **one extraction path** rather than introducing a second for the same job. Jina's markdown-structure preservation and JS-page rendering also happen to fit this system (link content is stored as markdown entities; the agent reasons in markdown) — a modest edge over Tavily Extract's raw-text output, though the two are close on pure quality.
+
+Note this deliberately splits vendors by job: **Tavily for search** (query → ranked results), **Jina for fetch** (URL → markdown). Keep both behind the swappable provider contract so Tavily Extract remains a drop-in _only if_ hosted-scale single-vendor budget consolidation later justifies it — at which point the move is to migrate `entities/link` onto Tavily too, not to run two extractors.
+
 ## Configuration shape
 
 Example brain/app config:
