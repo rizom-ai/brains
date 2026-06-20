@@ -2392,7 +2392,11 @@ describe("ChatInterface", () => {
     );
     await chat?.handlers.subscribedMessages[0]?.(
       thread,
-      createMessage({ text: "yes", isMention: false }),
+      createMessage({
+        id: "confirm-message-1",
+        text: "yes",
+        isMention: false,
+      }),
     );
 
     expect(thread.post).toHaveBeenCalledWith(
@@ -2406,7 +2410,23 @@ describe("ChatInterface", () => {
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-1",
-      expectDiscordConfirmationContext(),
+      expect.objectContaining({
+        channelId: "discord:guild-123:channel-123:thread-456",
+        channelName: "discord:guild-123:channel-123",
+        interfaceType: "discord",
+        userPermissionLevel: "public",
+        actor: expect.objectContaining({
+          actorId: "discord:user-789",
+          displayName: "Mira Ops",
+          username: "mira",
+        }),
+        source: expect.objectContaining({
+          messageId: "confirm-message-1",
+          channelId: "discord:guild-123:channel-123:thread-456",
+          threadId: "thread-456",
+          metadata: expect.objectContaining({ guildId: "guild-123" }),
+        }),
+      }),
     );
   });
 

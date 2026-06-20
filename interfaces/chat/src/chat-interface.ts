@@ -913,6 +913,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           thread,
           pendingApprovalIds,
           userPermissionLevel,
+          this.buildUserMessageMetadata(platform, thread, message),
         );
         return;
       }
@@ -1060,6 +1061,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     thread: Thread,
     approvalIds: Set<string>,
     userPermissionLevel: UserPermissionLevel,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     const parsed = this.parseConfirmationIntent(message, approvalIds);
     if (!parsed) {
@@ -1108,6 +1110,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       approvalId,
       confirmed: parsed.confirmed,
       userPermissionLevel,
+      ...(metadata ? { metadata } : {}),
     });
   }
 
