@@ -623,6 +623,8 @@ Incremental migration progress:
   while preserving the existing exported client result interfaces.
 - Migrated CMS GitHub OAuth token response guards to explicit Zod 4 while
   keeping the plugin config schema on the current main-Zod boundary.
+- Migrated auth-service JSON request-body normalization to explicit Zod 4 while
+  leaving OAuth client/session contracts on the current boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
