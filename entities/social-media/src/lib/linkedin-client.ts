@@ -1,4 +1,5 @@
 import type { FetchLike, Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type {
   PublishProvider,
   PublishResult,
@@ -17,6 +18,8 @@ export interface LinkedInClientDeps {
 }
 
 const ERROR_BODY_MAX_LENGTH = 200;
+const LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY =
+  "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest";
 
 /**
  * Truncate raw LinkedIn API error bodies before logging or surfacing them in
@@ -28,22 +31,47 @@ function summarizeApiError(text: string): string {
   return `${text.slice(0, ERROR_BODY_MAX_LENGTH)}… (truncated, ${text.length} bytes)`;
 }
 
-/**
- * LinkedIn API response for user info
- */
-interface LinkedInUserInfo {
-  sub: string; // User ID (URN format: urn:li:person:xxx)
-}
+const linkedInUserInfoSchema = z.looseObject({
+  sub: z.string(),
+});
 
-interface LinkedInUploadInfo {
-  uploadUrl: string;
-  assetUrn: string;
-}
+const linkedInMeSchema = z.looseObject({
+  id: z.string(),
+});
 
-interface LinkedInDocumentUploadInfo {
-  uploadUrl: string;
-  documentUrn: string;
-}
+const linkedInUploadInfoSchema = z
+  .looseObject({
+    value: z.looseObject({
+      asset: z.string(),
+      uploadMechanism: z.looseObject({
+        [LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY]: z.looseObject({
+          uploadUrl: z.url(),
+        }),
+      }),
+    }),
+  })
+  .transform((data) => ({
+    uploadUrl:
+      data.value.uploadMechanism[LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY].uploadUrl,
+    assetUrn: data.value.asset,
+  }));
+
+const linkedInDocumentUploadInfoSchema = z
+  .looseObject({
+    value: z.looseObject({
+      uploadUrl: z.url(),
+      document: z.string(),
+    }),
+  })
+  .transform((data) => ({
+    uploadUrl: data.value.uploadUrl,
+    documentUrn: data.value.document,
+  }));
+
+type LinkedInUploadInfo = z.output<typeof linkedInUploadInfoSchema>;
+type LinkedInDocumentUploadInfo = z.output<
+  typeof linkedInDocumentUploadInfoSchema
+>;
 
 interface LinkedInShareMediaAsset {
   category: "DOCUMENT" | "IMAGE";
@@ -67,58 +95,15 @@ function createShareMediaEntry(
 }
 
 function parseUploadInfo(value: unknown): LinkedInUploadInfo | null {
-  if (!isRecord(value)) return null;
-
-  const responseValue = getRecordProperty(value, "value");
-  if (!responseValue) return null;
-
-  const uploadMechanism = getRecordProperty(responseValue, "uploadMechanism");
-  if (!uploadMechanism) return null;
-
-  const uploadRequest = getRecordProperty(
-    uploadMechanism,
-    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest",
-  );
-  if (!uploadRequest) return null;
-
-  const uploadUrl = uploadRequest["uploadUrl"];
-  const assetUrn = responseValue["asset"];
-
-  if (typeof uploadUrl !== "string" || typeof assetUrn !== "string") {
-    return null;
-  }
-
-  return { uploadUrl, assetUrn };
+  const parsed = linkedInUploadInfoSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 function parseDocumentUploadInfo(
   value: unknown,
 ): LinkedInDocumentUploadInfo | null {
-  if (!isRecord(value)) return null;
-
-  const responseValue = getRecordProperty(value, "value");
-  if (!responseValue) return null;
-
-  const uploadUrl = responseValue["uploadUrl"];
-  const documentUrn = responseValue["document"];
-
-  if (typeof uploadUrl !== "string" || typeof documentUrn !== "string") {
-    return null;
-  }
-
-  return { uploadUrl, documentUrn };
-}
-
-function getRecordProperty(
-  value: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> | null {
-  const property = value[key];
-  return isRecord(property) ? property : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  const parsed = linkedInDocumentUploadInfoSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -516,9 +501,13 @@ export class LinkedInClient implements PublishProvider {
       );
 
       if (userinfoResponse.ok) {
-        const data = (await userinfoResponse.json()) as LinkedInUserInfo;
-        this.cachedUserId = `urn:li:person:${data.sub}`;
-        return this.cachedUserId;
+        const parsedUserInfo = linkedInUserInfoSchema.safeParse(
+          await userinfoResponse.json(),
+        );
+        if (parsedUserInfo.success) {
+          this.cachedUserId = `urn:li:person:${parsedUserInfo.data.sub}`;
+          return this.cachedUserId;
+        }
       }
     } catch {
       // Fall through to /v2/me
@@ -538,7 +527,7 @@ export class LinkedInClient implements PublishProvider {
       );
     }
 
-    const meData = (await meResponse.json()) as { id: string };
+    const meData = linkedInMeSchema.parse(await meResponse.json());
     this.cachedUserId = `urn:li:person:${meData.id}`;
     return this.cachedUserId;
   }
