@@ -223,6 +223,7 @@
     "rover-a2a-anchor-directory",
     "rover-agent-directory-approval",
     "rover-core-document",
+    "rover-core-eval-fixes",
     "rover-eval-deterministic-context",
     "rover-instruction-disclosure-and-routing-guards",
     "rover-setup-email-scaffold",
