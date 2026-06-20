@@ -37,6 +37,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 - [Multi-user and permissions](./multi-user.md) — proposed runtime-user layer
 - [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
 - [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
+- [Turso Database engine evaluation](./turso-database-engine.md) — exploratory; whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model (vs today's git sync) that libSQL can't. Sync is whole-DB on both engines (verified), so the embeddings-fold is viable only in a committed git-only branch; pursue DB sync → keep the embedding DB separate
 - [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos
 
 ### Hosted, deployed, and monetized product
