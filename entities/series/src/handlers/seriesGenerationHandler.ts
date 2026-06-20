@@ -4,7 +4,7 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Series } from "../schemas/series";
 import {
@@ -24,7 +24,7 @@ const memberSummarySchema = z.object({
   excerpt: z.string().optional(),
 });
 
-type SeriesGenerationJobData = z.infer<typeof seriesGenerationJobSchema>;
+type SeriesGenerationJobData = z.output<typeof seriesGenerationJobSchema>;
 
 /**
  * Generation handler for series entities.
