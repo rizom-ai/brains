@@ -1,5 +1,6 @@
 import type { ContentFormatter } from "../types";
-import { z } from "@brains/utils";
+import type { z as frameworkZod } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { remark } from "remark";
 import type {
   Root,
@@ -48,12 +49,12 @@ export interface FormatterConfig {
  * to convert between structured data and human-readable markdown.
  */
 export class StructuredContentFormatter<T> implements ContentFormatter<T> {
-  private schema: z.ZodType<T, z.ZodTypeDef, unknown>;
+  private schema: frameworkZod.ZodType<T, frameworkZod.ZodTypeDef, unknown>;
   private config: FormatterConfig;
   private processor = remark();
 
   constructor(
-    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+    schema: frameworkZod.ZodType<T, frameworkZod.ZodTypeDef, unknown>,
     config: FormatterConfig,
   ) {
     this.schema = schema;
