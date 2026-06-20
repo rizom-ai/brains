@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger, z as zMain } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { BlogPost } from "../schemas/blog-post";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
@@ -11,12 +11,14 @@ import { generateRSSFeed, type RSSFeedConfig } from "../rss/feed-generator";
  * RSS feed query schema
  */
 const rssFeedQuerySchema = z.object({
-  siteUrl: z.string().url(),
+  siteUrl: z.url(),
   title: z.string(),
   description: z.string(),
   language: z.string().optional(),
   copyright: z.string().optional(),
 });
+
+type RSSFeedQuery = z.output<typeof rssFeedQuerySchema>;
 
 /**
  * DataSource for generating RSS feed from blog posts
@@ -39,11 +41,11 @@ export class RSSDataSource implements DataSource {
    */
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: zMain.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse query parameters
-    const params = rssFeedQuerySchema.parse(query);
+    const params: RSSFeedQuery = rssFeedQuerySchema.parse(query);
     // Use context.entityService for automatic publishedOnly filtering
     const entityService = context.entityService;
 
