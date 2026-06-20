@@ -1,5 +1,6 @@
 import {
   MessageInterfacePlugin,
+  buildCoalescedInput,
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   collectPendingApprovalIdsFromStoredMessages,
@@ -44,8 +45,10 @@ import {
   type ActionEvent,
   type CardChild,
   type CardElement,
+  type Channel,
   type FileUpload,
   type Message,
+  type MessageContext,
   type SentMessage,
   type Thread,
 } from "chat";
@@ -124,17 +127,34 @@ interface ChatSdkApp {
   shutdown(): Promise<void>;
   webhooks?: ChatWebhookMap;
   onDirectMessage(
-    handler: (thread: Thread, message: Message) => Promise<void>,
+    handler: (
+      thread: Thread,
+      message: Message,
+      channel: Channel,
+      context?: MessageContext,
+    ) => Promise<void>,
   ): void;
   onNewMention(
-    handler: (thread: Thread, message: Message) => Promise<void>,
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
   ): void;
   onNewMessage(
     pattern: RegExp,
-    handler: (thread: Thread, message: Message) => Promise<void>,
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
   ): void;
   onSubscribedMessage(
-    handler: (thread: Thread, message: Message) => Promise<void>,
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
   ): void;
   onAction(
     actionIds: string[] | string,
@@ -626,16 +646,21 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return new Chat({
       userName: this.config.userName,
       adapters: { discord: discordAdapter } satisfies ChatAdapterMap,
+      concurrency: {
+        strategy: "queue",
+        maxQueueSize: 5,
+        onQueueFull: "drop-oldest",
+      },
       state: createDiscordSubscriptionStateAdapter(context.runtimeState),
     });
   }
 
   private registerChatHandlers(app: ChatSdkApp): void {
-    app.onDirectMessage(async (thread, message) => {
-      await this.handleRoutedMessage(thread, message);
+    app.onDirectMessage(async (thread, message, _channel, context) => {
+      await this.handleRoutedMessage(thread, message, context);
     });
 
-    app.onNewMention(async (thread, message) => {
+    app.onNewMention(async (thread, message, context) => {
       const platformConfig = this.getPlatformConfig(thread);
       if (
         platformConfig &&
@@ -645,21 +670,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       ) {
         await this.subscribeOwnedDiscordThread(thread, message);
       }
-      await this.handleRoutedMessage(thread, message);
+      await this.handleRoutedMessage(thread, message, context);
     });
 
-    app.onSubscribedMessage(async (thread, message) => {
+    app.onSubscribedMessage(async (thread, message, context) => {
       if (!(await this.shouldRouteSubscribedMessage(thread))) return;
-      await this.handleRoutedMessage(thread, message);
+      await this.handleRoutedMessage(thread, message, context);
     });
 
     if (
       this.config.adapters.discord &&
       !this.config.adapters.discord.requireMention
     ) {
-      app.onNewMessage(ANY_MESSAGE_PATTERN, async (thread, message) => {
-        await this.handleRoutedMessage(thread, message);
-      });
+      app.onNewMessage(
+        ANY_MESSAGE_PATTERN,
+        async (thread, message, context) => {
+          await this.handleRoutedMessage(thread, message, context);
+        },
+      );
     }
 
     app.onNewMessage(URL_PATTERN, async (thread, message) => {
@@ -839,6 +867,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private async handleRoutedMessage(
     thread: Thread,
     message: Message,
+    context?: MessageContext,
   ): Promise<void> {
     if (!this.context) return;
     const platform = this.getPlatform(thread);
@@ -849,7 +878,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!this.shouldRouteDiscordMessage(thread, message, platformConfig))
       return;
 
-    await this.routeToAgent(platform, thread, message);
+    await this.routeToAgent(platform, thread, message, context);
   }
 
   private shouldRouteDiscordMessage(
@@ -868,6 +897,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     platform: string,
     thread: Thread,
     message: Message,
+    context?: MessageContext,
   ): Promise<void> {
     if (!this.context) return;
 
@@ -920,15 +950,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         return;
       }
 
-      const response = await this.context.agent.chat(
+      const coalescedInput = this.buildCoalescedAgentInput(
         agentInput.message,
+        context,
+      );
+      const response = await this.context.agent.chat(
+        coalescedInput.message,
         conversationId,
         {
           userPermissionLevel,
           interfaceType: platform,
           channelId,
           channelName: this.getChannelName(thread),
-          ...this.buildUserMessageMetadata(platform, thread, message),
+          ...this.buildUserMessageMetadata(
+            platform,
+            thread,
+            message,
+            coalescedInput.metadata,
+          ),
           ...(agentInput.attachments.length > 0
             ? { attachments: agentInput.attachments }
             : {}),
@@ -2418,10 +2457,29 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     return thread.isDM ? "DM" : thread.channelId;
   }
 
+  private buildCoalescedAgentInput(
+    message: string,
+    context?: MessageContext,
+  ): { message: string; metadata?: Record<string, unknown> } {
+    const coalesced = buildCoalescedInput({
+      message,
+      skippedMessages: (context?.skipped ?? []).map((skippedMessage) => ({
+        id: skippedMessage.id,
+        text: skippedMessage.text,
+        authorName:
+          skippedMessage.author.fullName || skippedMessage.author.userName,
+      })),
+    });
+    return coalesced.metadata
+      ? { message: coalesced.message, metadata: { ...coalesced.metadata } }
+      : { message: coalesced.message };
+  }
+
   private buildUserMessageMetadata(
     platform: string,
     thread: Thread,
     message: Message,
+    metadata?: Record<string, unknown>,
   ): Record<string, unknown> {
     return {
       actor: this.buildActorMetadata(platform, {
@@ -2433,6 +2491,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       source: this.buildSourceMetadata(thread, {
         messageId: message.id,
         channelName: this.getChannelName(thread),
+        ...(metadata ? { metadata } : {}),
       }),
     };
   }

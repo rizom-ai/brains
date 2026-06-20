@@ -84,21 +84,46 @@ const createMemoryStateMock = mock(() => ({
 
 interface MockChatSdkConfig {
   adapters: ChatAdapterMap;
+  concurrency?: unknown;
   state?: StateAdapter;
   userName?: string;
 }
 
+interface MockMessageContext {
+  skipped: MockMessage[];
+  totalSinceLastHandler: number;
+}
+
 interface RegisteredHandlers {
   directMessages: Array<
-    (thread: MockThread, message: MockMessage) => Promise<void>
+    (
+      thread: MockThread,
+      message: MockMessage,
+      channel: MockThread,
+      context?: MockMessageContext,
+    ) => Promise<void>
   >;
-  mentions: Array<(thread: MockThread, message: MockMessage) => Promise<void>>;
+  mentions: Array<
+    (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>
+  >;
   messagePatterns: Array<{
     pattern: RegExp;
-    handler: (thread: MockThread, message: MockMessage) => Promise<void>;
+    handler: (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>;
   }>;
   subscribedMessages: Array<
-    (thread: MockThread, message: MockMessage) => Promise<void>
+    (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>
   >;
   actions: Array<{
     actionIds: string[] | string;
@@ -135,26 +160,43 @@ class MockChatSdk {
   }
 
   onDirectMessage(
-    handler: (thread: MockThread, message: MockMessage) => Promise<void>,
+    handler: (
+      thread: MockThread,
+      message: MockMessage,
+      channel: MockThread,
+      context?: MockMessageContext,
+    ) => Promise<void>,
   ): void {
     this.handlers.directMessages.push(handler);
   }
 
   onNewMention(
-    handler: (thread: MockThread, message: MockMessage) => Promise<void>,
+    handler: (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>,
   ): void {
     this.handlers.mentions.push(handler);
   }
 
   onNewMessage(
     pattern: RegExp,
-    handler: (thread: MockThread, message: MockMessage) => Promise<void>,
+    handler: (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>,
   ): void {
     this.handlers.messagePatterns.push({ pattern, handler });
   }
 
   onSubscribedMessage(
-    handler: (thread: MockThread, message: MockMessage) => Promise<void>,
+    handler: (
+      thread: MockThread,
+      message: MockMessage,
+      context?: MockMessageContext,
+    ) => Promise<void>,
   ): void {
     this.handlers.subscribedMessages.push(handler);
   }
@@ -507,6 +549,11 @@ describe("ChatInterface", () => {
     expect(MockChatSdk.instances).toHaveLength(1);
     expect(MockChatSdk.instances[0]?.config).toMatchObject({
       userName: "brain",
+      concurrency: {
+        strategy: "queue",
+        maxQueueSize: 5,
+        onQueueFull: "drop-oldest",
+      },
     });
     const state = MockChatSdk.instances[0]?.config.state;
     expect(state).toBeDefined();
@@ -572,6 +619,42 @@ describe("ChatInterface", () => {
       }),
     );
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+  });
+
+  it("passes queued skipped Discord messages as coalesced context", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const latestMessage = createMessage({
+      id: "message-latest",
+      text: "actually, save the newest version",
+    });
+    const skippedMessage = createMessage({
+      id: "message-skipped",
+      text: "save the first version",
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, latestMessage, {
+      skipped: [skippedMessage],
+      totalSinceLastHandler: 2,
+    });
+
+    expect(agentService.chat).toHaveBeenCalledWith(
+      expect.stringContaining("Messages received while the previous response"),
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({
+        source: expect.objectContaining({
+          metadata: expect.objectContaining({
+            supersededMessageCount: 1,
+            supersededMessageIds: ["message-skipped"],
+          }),
+        }),
+      }),
+    );
+    expect(agentService.chat.mock.calls[0]?.[0]).toContain(
+      "Latest message to answer:\nactually, save the newest version",
+    );
   });
 
   it("does not subscribe mentions that occur inside existing Discord threads", async () => {
@@ -820,6 +903,7 @@ describe("ChatInterface", () => {
     await chat?.handlers.directMessages[0]?.(
       thread,
       createMessage({ threadId: thread.id }),
+      thread,
     );
 
     expect(agentService.chat).not.toHaveBeenCalled();
@@ -839,6 +923,7 @@ describe("ChatInterface", () => {
     await chat?.handlers.directMessages[0]?.(
       thread,
       createMessage({ threadId: thread.id }),
+      thread,
     );
 
     expect(agentService.chat).toHaveBeenCalledWith(

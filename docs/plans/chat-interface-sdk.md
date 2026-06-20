@@ -18,6 +18,7 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 - Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Only `subscribe` / `unsubscribe` / `isSubscribed` are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
 - Public/external generated artifact policy is documented in `interfaces/chat/README.md`: keep fallback links only, do not add signed or Discord-authenticated artifact routes in this slice, post native files only for trusted/anchor callers when the artifact entity is visible, and suppress fallback link/metadata for any resolved artifact that exists outside the caller's visibility scope.
+- Discord Chat SDK input handling uses SDK queue concurrency so messages arriving while a turn is running are not silently dropped. Earlier queued messages are preserved as shared coalesced-input context/metadata for the latest queued turn.
 
 ## Remaining work
 
@@ -101,22 +102,7 @@ Acceptance criteria:
 
 These items are enhancements, not parity blockers. For each item, move transport-neutral semantics into `MessageInterfacePlugin` or shared helpers under `shell/plugins/src/message-interface/` when possible, and keep only transport rendering, Discord SDK plumbing, and browser UI details in interface packages.
 
-### 1. Queued/conflated input handling
-
-Decision: enable Chat SDK `queue` concurrency for the Discord Chat app. The SDK concurrency strategy is global per `Chat` instance, not per handler, but lock scope remains per thread/channel. Silent drop is worse than queued delivery.
-
-- Discord/chat implementation:
-  - Configure SDK queueing globally for the Discord Chat app.
-  - Preserve the current routing gates: DMs, mentions, allowlisted channels, and bot-owned subscribed-thread checks still decide whether a dequeued message routes.
-  - When multiple messages arrive while a turn is running, process the latest queued message and preserve earlier queued messages as skipped context.
-  - Do not post a visible coalescing notice by default; avoid extra Discord noise unless later UX evidence says users need it.
-- Base/shared escalation:
-  - Add shared helpers for formatting coalesced/skipped user input and for attaching transport-neutral metadata such as `supersededMessageIds` / `supersededMessageCount`.
-  - Add shared tests in `shell/plugins` for the coalesced-input formatting/metadata, independent of Discord.
-- Web-chat backport:
-  - No immediate backport. Backport only if web-chat introduces overlapping request handling, cancellation, or client-side send coalescing. In that case, use the same shared helper/metadata and render a browser-appropriate notice.
-
-### 2. Participant-aware subscribed-thread policy
+### 1. Participant-aware subscribed-thread policy
 
 Decision: do not silently unsubscribe and do not keep auto-replying forever. In bot-owned subscribed Discord threads, auto-route while the thread is effectively 1:1. Once multiple non-bot humans are detected, switch that subscribed thread to mention-required mode and post one short notice.
 

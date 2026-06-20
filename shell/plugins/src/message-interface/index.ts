@@ -108,6 +108,13 @@ export {
 } from "./message-attribution";
 
 export {
+  buildCoalescedInput,
+  type CoalescedInputMessage,
+  type CoalescedInputMetadata,
+  type CoalescedInputResult,
+} from "./coalesced-input";
+
+export {
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
   getStoredAttachmentCards,
