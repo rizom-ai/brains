@@ -556,6 +556,8 @@ Incremental migration progress:
   entity/template schemas on existing boundaries.
 - Migrated the directory-sync internal options normalizer to explicit Zod 4;
   kept plugin config/job/template schemas on existing framework boundaries.
+- Migrated the site-builder navigation datasource query parser to explicit Zod 4
+  while keeping the framework-provided output schema on the existing boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
