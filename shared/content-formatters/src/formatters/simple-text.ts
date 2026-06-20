@@ -1,11 +1,11 @@
 import { ResponseFormatter } from "./base";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 interface SimpleTextResponse {
   message: string;
 }
 
-const simpleTextResponseSchema: z.ZodType<SimpleTextResponse> = z.object({
+const simpleTextResponseSchema = z.object({
   message: z.string(),
 });
 

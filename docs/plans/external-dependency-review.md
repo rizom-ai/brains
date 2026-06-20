@@ -524,6 +524,8 @@ Incremental migration progress:
   keeping the exported upload contracts as plain TypeScript interfaces.
 - Migrated the plugins prompt-resolver frontmatter body extraction schema to
   explicit Zod 4 now that the markdown parser accepts structural schemas.
+- Migrated the content-formatters simple-text formatter guard to explicit Zod 4
+  while leaving formatter constructor/schema contracts on the existing boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
