@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { z } from "@brains/utils/zod-v4";
 import type { PrivateJwk, PublicJwk } from "./types";
 
 const DEFAULT_KEY_FILE = "oauth-signing-key.jwk";
@@ -10,17 +11,34 @@ export interface AuthKeyStoreOptions {
   keyFile?: string;
 }
 
-function isPrivateJwk(value: unknown): value is PrivateJwk {
-  if (!value || typeof value !== "object") return false;
-  const jwk = value as Record<string, unknown>;
-  return (
-    jwk["kty"] === "EC" &&
-    jwk["crv"] === "P-256" &&
-    typeof jwk["x"] === "string" &&
-    typeof jwk["y"] === "string" &&
-    typeof jwk["d"] === "string"
-  );
+interface PrivateJwkMaterial {
+  kty: "EC";
+  crv: "P-256";
+  x: string;
+  y: string;
+  d: string;
+  kid?: string;
 }
+
+const privateJwkMaterialSchema = z
+  .looseObject({
+    kty: z.literal("EC"),
+    crv: z.literal("P-256"),
+    x: z.string(),
+    y: z.string(),
+    d: z.string(),
+    kid: z.string().optional(),
+  })
+  .transform(
+    (jwk): PrivateJwkMaterial => ({
+      kty: jwk.kty,
+      crv: jwk.crv,
+      x: jwk.x,
+      y: jwk.y,
+      d: jwk.d,
+      ...(jwk.kid !== undefined ? { kid: jwk.kid } : {}),
+    }),
+  );
 
 function thumbprint(
   publicJwk: Pick<PublicJwk, "crv" | "kty" | "x" | "y">,
@@ -56,14 +74,16 @@ async function generatePrivateJwk(): Promise<PrivateJwk> {
     ["sign", "verify"],
   );
 
-  const exported = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
-  if (!isPrivateJwk(exported)) {
+  const exported = privateJwkMaterialSchema.safeParse(
+    await crypto.subtle.exportKey("jwk", keyPair.privateKey),
+  );
+  if (!exported.success) {
     throw new Error("Generated OAuth signing key is not a P-256 private JWK");
   }
 
-  const kid = thumbprint(exported);
+  const kid = thumbprint(exported.data);
   return {
-    ...exported,
+    ...exported.data,
     kid,
     use: "sig",
     alg: "ES256",
@@ -114,19 +134,18 @@ export class AuthKeyStore {
 
   private async readExistingKey(): Promise<PrivateJwk | undefined> {
     try {
-      const parsed = JSON.parse(
-        await readFile(this.keyFile, "utf8"),
-      ) as unknown;
-      if (!isPrivateJwk(parsed)) {
+      const parsed = privateJwkMaterialSchema.safeParse(
+        JSON.parse(await readFile(this.keyFile, "utf8")),
+      );
+      if (!parsed.success) {
         throw new Error(
           `OAuth signing key at ${this.keyFile} is not a private P-256 JWK`,
         );
       }
 
-      const kid =
-        typeof parsed.kid === "string" ? parsed.kid : thumbprint(parsed);
+      const kid = parsed.data.kid ?? thumbprint(parsed.data);
       return {
-        ...parsed,
+        ...parsed.data,
         kid,
         use: "sig",
         alg: "ES256",
