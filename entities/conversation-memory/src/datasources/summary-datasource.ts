@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger, z as zMain } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
 import type { SummaryListData } from "../templates/summary-list/schema";
@@ -18,6 +18,8 @@ const entityFetchQuerySchema = z.object({
     .optional(),
 });
 
+type EntityFetchQuery = z.output<typeof entityFetchQuerySchema>;
+
 export class SummaryDataSource implements DataSource {
   private readonly logger: Logger;
   public readonly id = SUMMARY_DATASOURCE_ID;
@@ -34,10 +36,10 @@ export class SummaryDataSource implements DataSource {
 
   async fetch<T>(
     query: unknown,
-    outputSchema: z.ZodSchema<T>,
+    outputSchema: zMain.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = entityFetchQuerySchema.parse(query);
+    const params: EntityFetchQuery = entityFetchQuerySchema.parse(query);
     const entityService = context.entityService;
     const queryId = params.query?.conversationId ?? params.query?.id;
 

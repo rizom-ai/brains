@@ -549,6 +549,8 @@ Incremental migration progress:
   deck entity/template schemas on the existing plugin boundary.
 - Migrated the rizom ecosystem datasource query parser to explicit Zod 4 using
   `z.looseObject` for the intentional passthrough query boundary.
+- Migrated the conversation-memory summary datasource query parser to explicit
+  Zod 4 while keeping summary entity/template schemas on existing boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
