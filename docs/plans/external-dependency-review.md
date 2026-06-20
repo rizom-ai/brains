@@ -608,6 +608,8 @@ Incremental migration progress:
 - Migrated the A2A client call tool handler-local input parser to explicit Zod
   4 while keeping the tool-facing input schema on the current main-Zod
   boundary.
+- Migrated Buttondown external API response guards to explicit Zod 4 while
+  leaving plugin config and tool schemas on the current main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

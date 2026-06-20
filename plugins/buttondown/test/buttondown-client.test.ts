@@ -52,6 +52,7 @@ describe("ButtondownClient", () => {
             Promise.resolve({
               id: "sub-123",
               email: "test@example.com",
+              subscriber_type: "unactivated",
               metadata: { name: "Test User" },
             }),
         });
@@ -99,8 +100,16 @@ describe("ButtondownClient", () => {
           json: () =>
             Promise.resolve({
               results: [
-                { id: "sub-1", email: "a@test.com" },
-                { id: "sub-2", email: "b@test.com" },
+                {
+                  id: "sub-1",
+                  email: "a@test.com",
+                  subscriber_type: "regular",
+                },
+                {
+                  id: "sub-2",
+                  email: "b@test.com",
+                  subscriber_type: "regular",
+                },
               ],
               count: 2,
             }),
@@ -146,6 +155,7 @@ describe("ButtondownClient", () => {
           json: () =>
             Promise.resolve({
               id: "email-123",
+              subject: "Test",
               status: "sent",
             }),
         });
