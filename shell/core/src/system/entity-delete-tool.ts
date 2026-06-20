@@ -14,13 +14,14 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "delete",
-    "Delete an entity. Requires confirmation. On the initial delete request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Request entity deletion by id. Unauthorized callers get a permission error; authorized callers get confirmation first. Do not pass confirmed on the initial request.",
     deleteInputSchema,
     async (input, context) => {
-      if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
+      if ((context.userPermissionLevel ?? "public") === "public") {
         return {
           success: false,
-          error: `${input.entityType} is a singleton entity and cannot be deleted through system tools. Update it instead.`,
+          error:
+            "Changing content requires higher permission; current permission is Public.",
         };
       }
 
@@ -31,6 +32,13 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         context,
       );
       if (policyError) return policyError;
+
+      if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
+        return {
+          success: false,
+          error: `${input.entityType} is a singleton entity and cannot be deleted through system tools. Update it instead.`,
+        };
+      }
 
       const visibilityScope = permissionToVisibilityScope(
         context.userPermissionLevel,
@@ -79,6 +87,6 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         args: { ...input, id: entity.id, confirmed: true, confirmationToken },
       };
     },
-    { visibility: "trusted" },
+    { visibility: "public" },
   );
 }

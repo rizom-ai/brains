@@ -117,6 +117,22 @@ describe("entity action policy", () => {
     expect(error).toContain("Public/public");
   });
 
+  it("exposes system_delete to public callers but fails closed before lookup", async () => {
+    const tool = getTool("system_delete");
+
+    expect(tool.visibility).toBe("public");
+
+    const result = await tool.handler(
+      { entityType: "note", id: "missing-note" },
+      baseContext("public"),
+    );
+
+    const error = expectError(result);
+    expect(error).toBe(
+      "Changing content requires higher permission; current permission is Public.",
+    );
+  });
+
   it("allows trusted update for default team-authored entity types", async () => {
     expectConfirmation(
       await getTool("system_update").handler(
