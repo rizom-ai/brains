@@ -6,16 +6,21 @@ import {
 } from "@brains/email-contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { type FetchLike, z } from "@brains/utils";
+import { type FetchLike, z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-const emailResendConfigSchema = z.object({
-  apiKey: z.string().min(1).optional(),
-  from: z.string().min(1).optional(),
+const emailResendConfigSchema = zConfig.object({
+  apiKey: zConfig.string().min(1).optional(),
+  from: zConfig.string().min(1).optional(),
 });
 
-type EmailResendConfig = z.output<typeof emailResendConfigSchema>;
-type EmailResendConfigInput = z.input<typeof emailResendConfigSchema>;
+const resendEmailResponseSchema = z.looseObject({
+  id: z.string().optional(),
+});
+
+type EmailResendConfig = zConfig.output<typeof emailResendConfigSchema>;
+type EmailResendConfigInput = zConfig.input<typeof emailResendConfigSchema>;
 
 export type EmailSendResult = SendEmailResult;
 
@@ -100,7 +105,7 @@ export class EmailResendPlugin extends ServicePlugin<
       throw new Error("Resend email request failed");
     }
 
-    const body = (await response.json()) as { id?: string };
+    const body = resendEmailResponseSchema.parse(await response.json());
     return body.id ? { status: "sent", id: body.id } : { status: "sent" };
   }
 }
