@@ -29,6 +29,7 @@ const approvalResponsePartSchema = z
   .passthrough();
 
 const uiMessageSchema = z.object({
+  id: z.string().optional(),
   role: z.string(),
   parts: z.array(z.unknown()).optional(),
   content: z.string().optional(),
@@ -60,6 +61,7 @@ export type ApprovalResponse = z.infer<
 export interface ParsedUserInput {
   message: string;
   attachments: ChatAttachment[];
+  messageId?: string;
   responseText?: string;
 }
 
@@ -117,6 +119,7 @@ export async function extractLastUserInput(
   return {
     message,
     attachments,
+    ...(lastUserMessage.id ? { messageId: lastUserMessage.id } : {}),
   };
 }
 

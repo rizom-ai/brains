@@ -351,9 +351,13 @@ export type { ProgressCallback } from "@brains/utils";
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
   MessageInterfacePlugin,
+  buildMessageActorMetadata,
+  buildMessageSourceMetadata,
   type EditMessageRequest,
   type MessageInterfaceOutput,
+  type MessageActorInput,
   type MessageJobTrackingInfo,
+  type MessageSourceInput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   parseConfirmationResponse,

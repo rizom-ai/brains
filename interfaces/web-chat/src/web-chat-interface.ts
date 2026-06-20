@@ -302,7 +302,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           })
         : { message: "", attachments: [] };
     if (userInput instanceof Response) return userInput;
-    const { message, attachments, responseText } = userInput;
+    const { message, attachments, messageId, responseText } = userInput;
     const hasUserInput = message.length > 0 || attachments.length > 0;
     if (!hasUserInput && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
@@ -347,6 +347,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
             message,
             permissionLevel,
             attachments,
+            ...(messageId ? { messageId } : {}),
             interfaceType: webChatInterfaceType,
           },
           streamDeps,

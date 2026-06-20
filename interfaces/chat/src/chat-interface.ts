@@ -1,5 +1,7 @@
 import {
   MessageInterfacePlugin,
+  buildMessageActorMetadata,
+  buildMessageSourceMetadata,
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
   formatArtifactDisplay,
@@ -2422,7 +2424,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     message: Message,
   ): Record<string, unknown> {
     return {
-      actor: this.buildActorMetadata(platform, message.author),
+      actor: this.buildActorMetadata(platform, {
+        userId: message.author.userId,
+        userName: message.author.userName,
+        fullName: message.author.fullName,
+        isBot: message.author.isBot,
+      }),
       source: this.buildSourceMetadata(thread, {
         messageId: message.id,
         channelName: this.getChannelName(thread),
@@ -2436,7 +2443,12 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     event: ActionEvent,
   ): Record<string, unknown> {
     return {
-      actor: this.buildActorMetadata(platform, event.user),
+      actor: this.buildActorMetadata(platform, {
+        userId: event.user.userId,
+        userName: event.user.userName,
+        fullName: event.user.fullName,
+        isBot: event.user.isBot,
+      }),
       source: this.buildSourceMetadata(thread, {
         messageId: event.messageId,
         channelName: this.getChannelName(thread),
@@ -2457,14 +2469,13 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       isBot: boolean | string;
     },
   ): Record<string, unknown> {
-    return {
+    return buildMessageActorMetadata({
       actorId: `${platform}:${actor.userId}`,
       interfaceType: platform,
-      role: "user",
       displayName: actor.fullName || actor.userName,
       username: actor.userName,
-      isBot: Boolean(actor.isBot),
-    };
+      isBot: actor.isBot,
+    });
   }
 
   private buildSourceMetadata(
@@ -2476,7 +2487,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     },
   ): Record<string, unknown> {
     const ids = this.getThreadIdParts(thread.id);
-    return {
+    return buildMessageSourceMetadata({
       messageId: input.messageId,
       channelId: thread.id,
       channelName: input.channelName,
@@ -2485,7 +2496,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         ...(input.metadata ?? {}),
         ...(ids.guildId ? { guildId: ids.guildId } : {}),
       },
-    };
+    });
   }
 
   private getThreadIdParts(threadId: string): {

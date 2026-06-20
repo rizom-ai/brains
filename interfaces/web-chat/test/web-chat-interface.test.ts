@@ -33,6 +33,7 @@ interface AgentConfirmCall {
   conversationId: string;
   confirmed: boolean;
   approvalId: string | undefined;
+  context: ChatContext;
 }
 
 function makeJobStatus(
@@ -96,9 +97,10 @@ function createSpyAgentService(
     confirmPendingAction: async (
       conversationId: string,
       confirmed: boolean,
-      approvalId?: string,
+      approvalId: string,
+      context: ChatContext,
     ): Promise<AgentResponse> => {
-      confirmCalls.push({ conversationId, confirmed, approvalId });
+      confirmCalls.push({ conversationId, confirmed, approvalId, context });
       return confirmResponse;
     },
     invalidateAgent: (): void => {},
@@ -1734,11 +1736,26 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
+        context: expect.objectContaining({
+          interfaceType: "web-chat",
+          channelId: "test-conversation",
+          channelName: "Web Chat",
+          actor: expect.objectContaining({
+            actorId: "web-chat:test-conversation:operator",
+            interfaceType: "web-chat",
+            role: "user",
+          }),
+          source: expect.objectContaining({
+            channelId: "test-conversation",
+            channelName: "Web Chat",
+            metadata: expect.objectContaining({ trigger: "approval-response" }),
+          }),
+        }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
     expect(body).toContain("call-1");
@@ -1805,11 +1822,12 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
     expect(body).toContain("call-1");
@@ -1874,16 +1892,18 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
-      {
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: false,
         approvalId: "approval:call-2",
-      },
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
   });
@@ -1916,6 +1936,7 @@ describe("WebChatInterface", () => {
               ],
             },
             {
+              id: "user-message-2",
               role: "user",
               parts: [{ type: "text", text: "What happened next?" }],
             },
@@ -1930,7 +1951,22 @@ describe("WebChatInterface", () => {
       {
         message: "What happened next?",
         conversationId: "test-conversation",
-        context: expect.objectContaining({ interfaceType: "web-chat" }),
+        context: expect.objectContaining({
+          interfaceType: "web-chat",
+          channelId: "test-conversation",
+          channelName: "Web Chat",
+          actor: expect.objectContaining({
+            actorId: "web-chat:test-conversation:operator",
+            interfaceType: "web-chat",
+            role: "user",
+          }),
+          source: expect.objectContaining({
+            messageId: "user-message-2",
+            channelId: "test-conversation",
+            channelName: "Web Chat",
+            metadata: expect.objectContaining({ trigger: "message" }),
+          }),
+        }),
       },
     ]);
   });

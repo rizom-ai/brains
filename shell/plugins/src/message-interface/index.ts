@@ -101,6 +101,13 @@ export {
 } from "./upload-selection";
 
 export {
+  buildMessageActorMetadata,
+  buildMessageSourceMetadata,
+  type MessageActorInput,
+  type MessageSourceInput,
+} from "./message-attribution";
+
+export {
   collectPendingApprovalIdsFromStoredMessages,
   collectUploadIdsFromStoredMessages,
   getStoredAttachmentCards,
