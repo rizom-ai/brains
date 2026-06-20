@@ -241,6 +241,55 @@ function isJobProcessingPost(message: MockPostMessage): boolean {
   return jobProcessingPostSchema.safeParse(message).success;
 }
 
+const promptActionPostSchema = z.object({
+  card: z.object({
+    children: z.array(
+      z
+        .object({
+          type: z.string(),
+          children: z
+            .array(
+              z
+                .object({
+                  type: z.string(),
+                  id: z.string().optional(),
+                  value: z.string().optional(),
+                })
+                .passthrough(),
+            )
+            .optional(),
+        })
+        .passthrough(),
+    ),
+  }),
+});
+
+function getPromptActionTokens(thread: MockThread): string[] {
+  const tokens: string[] = [];
+  for (const [message] of thread.post.mock.calls) {
+    const parsed = promptActionPostSchema.safeParse(message);
+    if (!parsed.success) continue;
+    for (const child of parsed.data.card.children) {
+      for (const button of child.children ?? []) {
+        if (
+          button.type === "button" &&
+          button.id === "chat.prompt" &&
+          button.value
+        ) {
+          tokens.push(button.value);
+        }
+      }
+    }
+  }
+  return tokens;
+}
+
+function getFirstPromptActionToken(thread: MockThread): string {
+  const [token] = getPromptActionTokens(thread);
+  if (token) return token;
+  throw new Error("Prompt action token not found");
+}
+
 interface MockThread {
   id: string;
   channelId: string;
@@ -3058,13 +3107,103 @@ describe("ChatInterface", () => {
                   type: "button",
                   id: "chat.prompt",
                   label: "Draft announcement",
-                  value: "action-1",
+                  value: expect.stringMatching(/^action_/),
                 }),
               ],
             }),
           ]),
         }),
       }),
+    );
+  });
+
+  it("keeps reused suggested prompt action ids routed to their original prompts", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "First card.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "actions-1",
+            title: "First actions",
+            actions: [
+              {
+                type: "prompt",
+                id: "action-1",
+                label: "Draft first",
+                prompt: "Draft first announcement",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Second card.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "actions-2",
+            title: "Second actions",
+            actions: [
+              {
+                type: "prompt",
+                id: "action-1",
+                label: "Draft second",
+                prompt: "Draft second announcement",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Drafted first.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const firstToken = getFirstPromptActionToken(thread);
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({ text: "more options", isMention: false }),
+    );
+    const tokens = getPromptActionTokens(thread);
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0]).toBe(firstToken);
+    expect(tokens[1]).toMatch(/^action_/);
+    expect(tokens[1]).not.toBe(firstToken);
+
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: "chat.prompt",
+      adapter: { name: "discord" },
+      messageId: "first-actions-message",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: firstToken,
+    } as MockActionEvent);
+
+    expect(agentService.chat).toHaveBeenNthCalledWith(
+      3,
+      "Draft first announcement",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
     );
   });
 
@@ -3099,6 +3238,9 @@ describe("ChatInterface", () => {
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const actionToken = getFirstPromptActionToken(thread);
+    expect(actionToken).toMatch(/^action_/);
+    expect(actionToken).not.toBe("action-1");
     const promptActionHandler = chat?.handlers.actions.find(
       ({ actionIds }) => actionIds === "chat.prompt",
     )?.handler;
@@ -3117,7 +3259,7 @@ describe("ChatInterface", () => {
         isBot: false,
         isMe: false,
       },
-      value: "action-1",
+      value: actionToken,
     } as MockActionEvent);
 
     expect(agentService.chat).toHaveBeenNthCalledWith(
@@ -3138,7 +3280,7 @@ describe("ChatInterface", () => {
           threadId: "thread-456",
           metadata: expect.objectContaining({
             actionId: "chat.prompt",
-            actionValue: "action-1",
+            actionValue: actionToken,
             guildId: "guild-123",
           }),
         }),

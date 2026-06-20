@@ -50,7 +50,7 @@ import {
 import { z } from "zod";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
-import { chunkMessage } from "@brains/utils";
+import { chunkMessage, createPrefixedId } from "@brains/utils";
 import {
   chatConfigSchema,
   type ChatConfig,
@@ -147,7 +147,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   private readonly recentUploads = new Map<string, ChatAttachment[]>();
   private readonly promptActions = new Map<
     string,
-    Map<string, { label: string; prompt: string }>
+    { threadId: string; label: string; prompt: string }
   >();
   private readonly toolStatusMessages = new Map<
     string,
@@ -676,8 +676,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!this.isEnabledPlatform(platform)) return;
 
     const thread = event.thread as Thread;
-    const action = this.promptActions.get(thread.id)?.get(event.value);
-    if (!action) {
+    const action = this.promptActions.get(event.value);
+    if (action?.threadId !== thread.id) {
       await thread.post(
         this.formatNoticePayload(
           "That suggested action is no longer available.",
@@ -1579,7 +1579,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     const buttons = card.actions
       .map((action) => {
         if (action.type !== "prompt") return undefined;
-        this.registerPromptAction(thread.id, action.id, {
+        const token = this.registerPromptAction(thread.id, {
           label: action.label,
           prompt: action.prompt,
         });
@@ -1587,7 +1587,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           type: "button" as const,
           id: PROMPT_ACTION,
           label: action.label,
-          value: action.id,
+          value: token,
         };
       })
       .filter(
@@ -1612,12 +1612,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private registerPromptAction(
     threadId: string,
-    actionId: string,
     action: { label: string; prompt: string },
-  ): void {
-    const actions = this.promptActions.get(threadId) ?? new Map();
-    actions.set(actionId, action);
-    this.promptActions.set(threadId, actions);
+  ): string {
+    const token = createPrefixedId("action");
+    this.promptActions.set(token, { threadId, ...action });
+    return token;
   }
 
   private buildArtifactCard(
