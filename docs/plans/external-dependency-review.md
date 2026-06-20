@@ -565,6 +565,8 @@ Incremental migration progress:
 - Migrated the shell core AI content datasource generation-context parser and
   local entity slug guard to explicit Zod 4 while keeping template/output schemas
   on existing framework boundaries.
+- Migrated media-page-composer render-time content record guards to explicit
+  Zod 4 while leaving media template schemas on existing framework boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
