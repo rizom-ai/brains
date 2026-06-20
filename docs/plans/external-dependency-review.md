@@ -554,6 +554,8 @@ Incremental migration progress:
 - Migrated the series datasource query parsers to explicit Zod 4, using
   `z.looseObject` for dynamic route query passthrough while leaving series
   entity/template schemas on existing boundaries.
+- Migrated the directory-sync internal options normalizer to explicit Zod 4;
+  kept plugin config/job/template schemas on existing framework boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

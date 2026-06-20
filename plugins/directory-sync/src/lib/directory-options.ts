@@ -1,6 +1,6 @@
 import type { IEntityService } from "@brains/plugins";
-import { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { resolveSyncPath } from "./directory-path";
 
 export const directorySyncOptionsSchema = z.object({
@@ -12,7 +12,7 @@ export const directorySyncOptionsSchema = z.object({
   deleteOnFileRemoval: z.boolean().optional(),
 });
 
-export type DirectorySyncOptions = z.infer<
+export type DirectorySyncOptions = z.output<
   typeof directorySyncOptionsSchema
 > & {
   entityService: IEntityService;
