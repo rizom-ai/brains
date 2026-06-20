@@ -816,6 +816,77 @@ describe("ChatInterface", () => {
     expect(thread.post).toHaveBeenCalledWith("Agent response text.");
   });
 
+  it("posts the mention-required notice after a mention-triggered group switch", async () => {
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      getParticipants: mock(() =>
+        Promise.resolve([
+          {
+            userId: "user-789",
+            userName: "mira",
+            fullName: "Mira Ops",
+            isBot: false,
+            isMe: false,
+          },
+          {
+            userId: "user-999",
+            userName: "taro",
+            fullName: "Taro Ops",
+            isBot: false,
+            isMe: false,
+          },
+        ]),
+      ),
+    });
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    agentService.chat.mockClear();
+    thread.post.mockClear();
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        id: "follow-up-1",
+        isMention: true,
+        text: "@brain please answer this",
+      }),
+    );
+    expect(agentService.chat).toHaveBeenCalledWith(
+      "@brain please answer this",
+      "discord-discord:guild-123:channel-123:thread-456",
+      expect.objectContaining({ interfaceType: "discord" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith("Agent response text.");
+
+    agentService.chat.mockClear();
+    thread.post.mockClear();
+
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        id: "follow-up-2",
+        isMention: false,
+        text: "unmentioned group follow-up",
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        id: "follow-up-3",
+        isMention: false,
+        text: "another unmentioned group follow-up",
+      }),
+    );
+
+    expect(agentService.chat).not.toHaveBeenCalled();
+    expect(thread.post).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.stringContaining("Mention me if you need me"),
+    );
+  });
+
   it("routes Discord mentions even when thread subscription fails", async () => {
     const plugin = createPlugin();
     await harness.installPlugin(plugin);

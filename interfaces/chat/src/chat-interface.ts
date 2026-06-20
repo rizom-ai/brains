@@ -65,6 +65,7 @@ import { ThreadRegistry } from "./thread-registry";
 import {
   createDiscordSubscriptionStateAdapter,
   createDiscordThreadSubscriptionStore,
+  type DiscordThreadSubscriptionState,
   type DiscordThreadSubscriptionStore,
 } from "./subscription-state";
 import { createDiscordChatUploadStoreScope } from "./upload-store";
@@ -93,6 +94,8 @@ const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
 const PROMPT_ACTION = "chat.prompt";
 const UNAVAILABLE_EVENT_ACTION = "chat.event.unavailable";
+const DISCORD_MENTION_REQUIRED_NOTICE =
+  "I’ll stop auto-replying now that more people joined. Mention me if you need me.";
 
 interface DiscordCardOutput {
   card: CardElement;
@@ -854,6 +857,9 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!subscription) return false;
 
     if (subscription.routingMode === "mention-required") {
+      if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
+        await this.postMentionRequiredNotice(thread, subscription);
+      }
       return Boolean(message.isMention);
     }
 
@@ -861,19 +867,30 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       await this.shouldRequireMentionInSubscribedThread(thread);
     if (!mentionRequired) return true;
 
+    const nextSubscription: DiscordThreadSubscriptionState = {
+      ...subscription,
+      routingMode: "mention-required",
+    };
+
+    if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
+      await this.postMentionRequiredNotice(thread, nextSubscription);
+    } else {
+      await this.discordSubscriptions?.set(thread.id, nextSubscription);
+    }
+
+    return Boolean(message.isMention);
+  }
+
+  private async postMentionRequiredNotice(
+    thread: Thread,
+    subscription: DiscordThreadSubscriptionState,
+  ): Promise<void> {
+    await thread.post(DISCORD_MENTION_REQUIRED_NOTICE);
     await this.discordSubscriptions?.set(thread.id, {
       ...subscription,
       routingMode: "mention-required",
       mentionRequiredNoticeSent: true,
     });
-
-    if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
-      await thread.post(
-        "I’ll stop auto-replying now that more people joined. Mention me if you need me.",
-      );
-    }
-
-    return Boolean(message.isMention);
   }
 
   private async shouldRequireMentionInSubscribedThread(
