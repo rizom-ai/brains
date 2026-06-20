@@ -576,6 +576,9 @@ Incremental migration progress:
 - Migrated the conversation-memory projection event payload parser to explicit
   Zod 4 while leaving entity/config/projection schemas on their existing plugin
   boundaries.
+- Migrated the entity-service embedding job-data validator to explicit Zod 4;
+  the schema remains local to the manual job handler and is not exported or
+  composed into the job framework.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

@@ -1,4 +1,5 @@
-import { z, Logger, type ProgressReporter } from "@brains/utils";
+import { Logger, type ProgressReporter } from "@brains/utils";
+import { z, ZodError } from "@brains/utils/zod-v4";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
@@ -246,7 +247,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
     } catch (error) {
       this.logger.warn("Invalid embedding job data", {
         data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
+        validationError: error instanceof ZodError ? error.issues : error,
       });
       return null;
     }
