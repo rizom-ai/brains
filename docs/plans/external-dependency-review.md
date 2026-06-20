@@ -634,8 +634,6 @@ Incremental migration progress:
   explicit Zod 4 schemas, preserving generated/public JWK output contracts.
 - Replaced auth-service WebAuthn clientData challenge JSON hand guard with an
   explicit Zod 4 schema.
-- Migrated deploy-support Hetzner API response guards to explicit Zod 4 while
-  preserving the deploy script response/error behavior.
 - Migrated web-chat browser-side session, message history, and attachment job
   status response guards to explicit Zod 4.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,

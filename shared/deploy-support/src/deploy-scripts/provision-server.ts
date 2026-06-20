@@ -1,4 +1,3 @@
-import { z } from "@brains/utils/zod-v4";
 import {
   readJsonResponse,
   requireEnv,
@@ -21,29 +20,11 @@ const labelSelector = `brain=${instanceName}`;
 const MAX_POLLS = 30;
 const POLL_INTERVAL_MS = 10_000;
 
-const hetznerServerSchema = z.looseObject({
-  id: z.number(),
-  status: z.string(),
-  public_net: z
-    .looseObject({
-      ipv4: z
-        .looseObject({
-          ip: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-});
-
-const hetznerListServersResponseSchema = z.looseObject({
-  servers: z.array(hetznerServerSchema),
-});
-
-const hetznerServerResponseSchema = z.looseObject({
-  server: hetznerServerSchema,
-});
-
-type HetznerServer = z.output<typeof hetznerServerSchema>;
+interface HetznerServer {
+  id: number;
+  status: string;
+  public_net?: { ipv4?: { ip?: string } };
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,12 +33,16 @@ function sleep(ms: number): Promise<void> {
 async function listServers(): Promise<HetznerServer[]> {
   const url = `${baseUrl}/servers?label_selector=${encodeURIComponent(labelSelector)}`;
   const response = await fetch(url, { headers });
-  const payload = await readJsonResponse(response, "Hetzner server lookup");
-  const parsed = hetznerListServersResponseSchema.safeParse(payload);
-  if (!response.ok || !parsed.success) {
+  const payload = (await readJsonResponse(
+    response,
+    "Hetzner server lookup",
+  )) as {
+    servers?: HetznerServer[];
+  };
+  if (!response.ok || !payload.servers) {
     throw new Error(`Hetzner server lookup failed: ${JSON.stringify(payload)}`);
   }
-  return parsed.data.servers;
+  return payload.servers;
 }
 
 async function createServer(): Promise<HetznerServer> {
@@ -73,22 +58,27 @@ async function createServer(): Promise<HetznerServer> {
       labels: { brain: instanceName },
     }),
   });
-  const payload = await readJsonResponse(response, "Hetzner server create");
-  const parsed = hetznerServerResponseSchema.safeParse(payload);
-  if (!response.ok || !parsed.success) {
+  const payload = (await readJsonResponse(
+    response,
+    "Hetzner server create",
+  )) as {
+    server?: HetznerServer;
+  };
+  if (!response.ok || !payload.server) {
     throw new Error(`Hetzner server create failed: ${JSON.stringify(payload)}`);
   }
-  return parsed.data.server;
+  return payload.server;
 }
 
 async function getServer(id: number): Promise<HetznerServer> {
   const response = await fetch(`${baseUrl}/servers/${id}`, { headers });
-  const payload = await readJsonResponse(response, "Hetzner server poll");
-  const parsed = hetznerServerResponseSchema.safeParse(payload);
-  if (!response.ok || !parsed.success) {
+  const payload = (await readJsonResponse(response, "Hetzner server poll")) as {
+    server?: HetznerServer;
+  };
+  if (!response.ok || !payload.server) {
     throw new Error(`Hetzner server poll failed: ${JSON.stringify(payload)}`);
   }
-  return parsed.data.server;
+  return payload.server;
 }
 
 let server: HetznerServer | undefined = (await listServers())[0];
