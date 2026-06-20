@@ -1,99 +1,128 @@
 import type { UIMessage } from "ai";
+import { z } from "@brains/utils/zod-v4";
 import { stripInternalEntityMemoryNote } from "../../src/display-content";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
 
-export interface WebChatHistoryAttachmentSource {
-  kind: string;
-  id: string;
-}
+export const webChatHistoryAttachmentSourceSchema = z.looseObject({
+  kind: z.string(),
+  id: z.string(),
+});
 
-export interface WebChatHistoryAttachment {
-  kind: "text";
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  source?: WebChatHistoryAttachmentSource;
-}
+export const webChatHistoryAttachmentSchema = z.looseObject({
+  kind: z.literal("text"),
+  filename: z.string(),
+  mediaType: z.string(),
+  sizeBytes: z.number(),
+  createdAt: z.string(),
+  source: webChatHistoryAttachmentSourceSchema.optional(),
+});
 
-export interface WebChatHistoryAttachmentCard {
-  kind: "attachment";
-  id: string;
-  jobId?: string | undefined;
-  title: string;
-  description?: string | undefined;
-  attachment: {
-    mediaType: string;
-    url: string;
-    downloadUrl?: string | undefined;
-    previewUrl?: string | undefined;
-    filename?: string | undefined;
-    sizeBytes?: number | undefined;
-    source?:
-      | {
-          entityType?: string | undefined;
-          entityId?: string | undefined;
-          attachmentType?: string | undefined;
-        }
-      | undefined;
-  };
-}
+export const webChatHistoryAttachmentCardSchema = z.looseObject({
+  kind: z.literal("attachment"),
+  id: z.string(),
+  jobId: z.string().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  attachment: z.looseObject({
+    mediaType: z.string(),
+    url: z.string(),
+    downloadUrl: z.string().optional(),
+    previewUrl: z.string().optional(),
+    filename: z.string().optional(),
+    sizeBytes: z.number().optional(),
+    source: z
+      .looseObject({
+        entityType: z.string().optional(),
+        entityId: z.string().optional(),
+        attachmentType: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
 
-export interface WebChatHistorySourcesCard {
-  kind: "sources";
-  id: string;
-  title?: string | undefined;
-  sources: Array<{
-    id: string;
-    title?: string | undefined;
-    source: string;
-    url?: string | undefined;
-    entityType?: string | undefined;
-    entityId?: string | undefined;
-    excerpt?: string | undefined;
-    provenance?: Record<string, unknown> | undefined;
-  }>;
-}
+export const webChatHistorySourcesCardSchema = z.looseObject({
+  kind: z.literal("sources"),
+  id: z.string(),
+  title: z.string().optional(),
+  sources: z.array(
+    z.looseObject({
+      id: z.string(),
+      title: z.string().optional(),
+      source: z.string(),
+      url: z.string().optional(),
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      excerpt: z.string().optional(),
+      provenance: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ),
+});
 
-export interface WebChatHistoryActionsCard {
-  kind: "actions";
-  id: string;
-  title?: string | undefined;
-  defaultOpen?: boolean | undefined;
-  actions: Array<
-    | {
-        type: "prompt";
-        id: string;
-        label: string;
-        prompt: string;
-        description?: string | undefined;
-      }
-    | {
-        type: "event";
-        id: string;
-        label: string;
-        event: string;
-        description?: string | undefined;
-      }
-  >;
-}
+const webChatHistoryActionSchema = z.discriminatedUnion("type", [
+  z.looseObject({
+    type: z.literal("prompt"),
+    id: z.string(),
+    label: z.string(),
+    prompt: z.string(),
+    description: z.string().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("event"),
+    id: z.string(),
+    label: z.string(),
+    event: z.string(),
+    description: z.string().optional(),
+  }),
+]);
 
-export type WebChatHistoryCard =
-  | WebChatHistoryAttachmentCard
-  | WebChatHistorySourcesCard
-  | WebChatHistoryActionsCard;
+export const webChatHistoryActionsCardSchema = z.looseObject({
+  kind: z.literal("actions"),
+  id: z.string(),
+  title: z.string().optional(),
+  defaultOpen: z.boolean().optional(),
+  actions: z.array(webChatHistoryActionSchema),
+});
 
-export interface WebChatHistoryMessage {
-  id: string;
-  role: UIMessage["role"];
-  content: string;
-  attachments?: WebChatHistoryAttachment[];
-  cards?: WebChatHistoryCard[];
-}
+export const webChatHistoryCardSchema = z.discriminatedUnion("kind", [
+  webChatHistoryAttachmentCardSchema,
+  webChatHistorySourcesCardSchema,
+  webChatHistoryActionsCardSchema,
+]);
 
-export interface WebChatMessagesResponse {
-  messages: WebChatHistoryMessage[];
-}
+export const webChatHistoryMessageSchema = z.looseObject({
+  id: z.string(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  attachments: z.array(webChatHistoryAttachmentSchema).optional(),
+  cards: z.array(webChatHistoryCardSchema).optional(),
+});
+
+export const webChatMessagesResponseSchema = z.looseObject({
+  messages: z.array(webChatHistoryMessageSchema),
+});
+
+export type WebChatHistoryAttachmentSource = z.output<
+  typeof webChatHistoryAttachmentSourceSchema
+>;
+export type WebChatHistoryAttachment = z.output<
+  typeof webChatHistoryAttachmentSchema
+>;
+export type WebChatHistoryAttachmentCard = z.output<
+  typeof webChatHistoryAttachmentCardSchema
+>;
+export type WebChatHistorySourcesCard = z.output<
+  typeof webChatHistorySourcesCardSchema
+>;
+export type WebChatHistoryActionsCard = z.output<
+  typeof webChatHistoryActionsCardSchema
+>;
+export type WebChatHistoryCard = z.output<typeof webChatHistoryCardSchema>;
+export type WebChatHistoryMessage = z.output<
+  typeof webChatHistoryMessageSchema
+>;
+export type WebChatMessagesResponse = z.output<
+  typeof webChatMessagesResponseSchema
+>;
 
 export function toUiMessage(message: WebChatHistoryMessage): UIMessage {
   const parts: UIMessage["parts"] = [];

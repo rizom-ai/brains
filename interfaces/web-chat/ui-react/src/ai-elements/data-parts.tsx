@@ -19,6 +19,10 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
   "output-error",
 ];
 
+const attachmentJobStatusResponseSchema = z.looseObject({
+  status: z.string().optional(),
+});
+
 function narrowToolState(value: string | undefined): ToolPart["state"] {
   if (value && (TOOL_STATES as readonly string[]).includes(value)) {
     return value as ToolPart["state"];
@@ -383,8 +387,12 @@ function useAttachmentJobStatus(
           return;
         }
         transientFailures = 0;
-        const body = (await response.json()) as { status?: string };
-        const nextStatus = narrowAttachmentJobStatus(body.status);
+        const parsed = attachmentJobStatusResponseSchema.safeParse(
+          await response.json(),
+        );
+        const nextStatus = narrowAttachmentJobStatus(
+          parsed.success ? parsed.data.status : undefined,
+        );
         if (!cancelled) setStatus(nextStatus);
         if (nextStatus !== "completed" && nextStatus !== "failed") {
           scheduleNextPoll(2000);
