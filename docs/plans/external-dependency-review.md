@@ -530,6 +530,8 @@ Incremental migration progress:
   Zod 4 while leaving series entity/frontmatter schemas on the existing boundary.
 - Migrated the series projection job-data parser to explicit Zod 4 while the
   entity schema remains on the existing plugin schema boundary.
+- Migrated the note eval-handler input parser to explicit Zod 4 while keeping
+  note config/entity schemas on the existing plugin boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

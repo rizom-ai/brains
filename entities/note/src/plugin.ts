@@ -9,7 +9,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter } from "./adapters/note-adapter";
 import type { NoteConfig, NoteConfigInput } from "./config";
@@ -29,6 +29,12 @@ const webChatUploadsScope = {
   refKind: "upload",
   routePath: "/api/chat/uploads",
 } as const;
+
+const generateNoteEvalInputSchema = z.object({
+  prompt: z.string(),
+});
+
+type GenerateNoteEvalInput = z.output<typeof generateNoteEvalInputSchema>;
 
 export class NotePlugin extends EntityPlugin<
   Note,
@@ -147,7 +153,8 @@ export class NotePlugin extends EntityPlugin<
     );
 
     context.eval.registerHandler("generateNote", async (input: unknown) => {
-      const parsed = z.object({ prompt: z.string() }).parse(input);
+      const parsed: GenerateNoteEvalInput =
+        generateNoteEvalInputSchema.parse(input);
       return context.ai.generate<{ title: string; body: string }>({
         prompt: parsed.prompt,
         templateName: "note:generation",
