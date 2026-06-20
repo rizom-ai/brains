@@ -79,6 +79,11 @@ const PLATFORM_MESSAGE_LIMITS: Partial<Record<ChatPlatform, number>> = {
 };
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 const DISCORD_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+const DISCORD_ACTION_ROW_LIMIT = 5;
+const DISCORD_BUTTONS_PER_ROW_LIMIT = 5;
+const DISCORD_CARD_BUTTON_LIMIT =
+  DISCORD_ACTION_ROW_LIMIT * DISCORD_BUTTONS_PER_ROW_LIMIT;
+const DISCORD_BUTTON_LABEL_LIMIT = 80;
 const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
 const PROMPT_ACTION = "chat.prompt";
@@ -1576,7 +1581,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           button,
         ): button is { type: "link-button"; label: string; url: string } =>
           Boolean(button),
-      );
+      )
+      .slice(0, DISCORD_CARD_BUTTON_LIMIT);
     if (linkButtons.length > 0) {
       children.push({ type: "actions", children: linkButtons });
     }
@@ -1593,7 +1599,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): { type: "link-button"; label: string; url: string } | undefined {
     const resolvedUrl = this.resolveDisplayUrl(url);
     if (!resolvedUrl || this.isLocalDisplayUrl(resolvedUrl)) return undefined;
-    return { type: "link-button", label, url: resolvedUrl };
+    return {
+      type: "link-button",
+      label: this.truncateDiscordButtonLabel(label),
+      url: resolvedUrl,
+    };
   }
 
   private buildActionsSummaryCard(
@@ -1606,30 +1616,26 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         ? `${action.label} — ${action.description}`
         : action.label,
     }));
-    const buttons = card.actions
-      .map((action) => {
-        if (action.type !== "prompt") return undefined;
-        const token = this.registerPromptAction(thread.id, {
-          label: action.label,
-          prompt: action.prompt,
-        });
-        return {
-          type: "button" as const,
-          id: PROMPT_ACTION,
-          label: action.label,
-          value: token,
-        };
-      })
-      .filter(
-        (
-          button,
-        ): button is {
-          type: "button";
-          id: string;
-          label: string;
-          value: string;
-        } => Boolean(button),
-      );
+    const buttons: Array<{
+      type: "button";
+      id: string;
+      label: string;
+      value: string;
+    }> = [];
+    for (const action of card.actions) {
+      if (buttons.length >= DISCORD_CARD_BUTTON_LIMIT) break;
+      if (action.type !== "prompt") continue;
+      const token = this.registerPromptAction(thread.id, {
+        label: action.label,
+        prompt: action.prompt,
+      });
+      buttons.push({
+        type: "button",
+        id: PROMPT_ACTION,
+        label: this.truncateDiscordButtonLabel(action.label),
+        value: token,
+      });
+    }
     if (buttons.length > 0) {
       children.push({ type: "actions", children: buttons });
     }
@@ -1638,6 +1644,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       title: card.title ?? "Suggested actions",
       children,
     };
+  }
+
+  private truncateDiscordButtonLabel(label: string): string {
+    if (label.length <= DISCORD_BUTTON_LABEL_LIMIT) return label;
+    return `${label.slice(0, DISCORD_BUTTON_LABEL_LIMIT - 1)}…`;
   }
 
   private registerPromptAction(

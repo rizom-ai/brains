@@ -241,28 +241,47 @@ function isJobProcessingPost(message: MockPostMessage): boolean {
   return jobProcessingPostSchema.safeParse(message).success;
 }
 
-const promptActionPostSchema = z.object({
+const cardActionButtonSchema = z
+  .object({
+    type: z.string(),
+    id: z.string().optional(),
+    label: z.string().optional(),
+    url: z.string().optional(),
+    value: z.string().optional(),
+  })
+  .passthrough();
+
+const cardPostSchema = z.object({
   card: z.object({
+    title: z.string().optional(),
     children: z.array(
       z
         .object({
           type: z.string(),
-          children: z
-            .array(
-              z
-                .object({
-                  type: z.string(),
-                  id: z.string().optional(),
-                  value: z.string().optional(),
-                })
-                .passthrough(),
-            )
-            .optional(),
+          children: z.array(cardActionButtonSchema).optional(),
         })
         .passthrough(),
     ),
   }),
 });
+
+const promptActionPostSchema = cardPostSchema;
+
+type CardActionButton = z.infer<typeof cardActionButtonSchema>;
+
+function getCardActionButtons(
+  thread: MockThread,
+  title: string,
+): CardActionButton[] {
+  for (const [message] of thread.post.mock.calls) {
+    const parsed = cardPostSchema.safeParse(message);
+    if (!parsed.success || parsed.data.card.title !== title) continue;
+    return parsed.data.card.children.flatMap((child) =>
+      child.type === "actions" ? (child.children ?? []) : [],
+    );
+  }
+  throw new Error(`Card not found: ${title}`);
+}
 
 function getPromptActionTokens(thread: MockThread): string[] {
   const tokens: string[] = [];
@@ -3255,6 +3274,66 @@ describe("ChatInterface", () => {
             }),
           ]),
         }),
+      }),
+    );
+  });
+
+  it("caps Discord source and action card buttons to component limits", async () => {
+    const longLabel = `Draft ${"launch ".repeat(20)}`;
+    agentService.chat.mockResolvedValueOnce({
+      text: "Many options.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "sources",
+          id: "sources-many",
+          title: "Many references",
+          sources: Array.from({ length: 30 }, (_, index) => ({
+            id: `source-${index + 1}`,
+            title: `Source ${index + 1}`,
+            source: "document",
+            url: `https://example.com/source-${index + 1}`,
+          })),
+        },
+        {
+          kind: "actions",
+          id: "actions-many",
+          title: "Many actions",
+          actions: Array.from({ length: 30 }, (_, index) => ({
+            type: "prompt" as const,
+            id: `action-${index + 1}`,
+            label: index === 0 ? longLabel : `Action ${index + 1}`,
+            prompt: `Run action ${index + 1}`,
+          })),
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    const sourceButtons = getCardActionButtons(thread, "Many references");
+    expect(sourceButtons).toHaveLength(25);
+    expect(sourceButtons.at(-1)).toEqual(
+      expect.objectContaining({
+        type: "link-button",
+        label: "Open 25",
+        url: "https://example.com/source-25",
+      }),
+    );
+    const actionButtons = getCardActionButtons(thread, "Many actions");
+    expect(actionButtons).toHaveLength(25);
+    expect(getPromptActionTokens(thread)).toHaveLength(25);
+    expect(actionButtons[0]?.label).toHaveLength(80);
+    expect(actionButtons[0]?.label?.endsWith("…")).toBe(true);
+    expect(actionButtons.at(-1)).toEqual(
+      expect.objectContaining({
+        type: "button",
+        id: "chat.prompt",
+        label: "Action 25",
       }),
     );
   });
