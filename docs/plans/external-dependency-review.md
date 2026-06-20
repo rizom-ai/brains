@@ -591,6 +591,9 @@ Incremental migration progress:
   current framework boundary.
 - Migrated the email-resend external API response guard to explicit Zod 4 while
   keeping plugin config on the current ServicePlugin config-schema boundary.
+- Migrated the ATProto registry validate-lexicon tool's handler-local input
+  parser to explicit Zod 4 while keeping the plugin config and framework-facing
+  tool input schema on the current main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

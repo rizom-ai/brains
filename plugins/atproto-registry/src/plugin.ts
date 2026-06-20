@@ -10,17 +10,18 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
-export const atprotoRegistryConfigSchema = z.object({
-  enabled: z.boolean().default(true),
+export const atprotoRegistryConfigSchema = zConfig.object({
+  enabled: zConfig.boolean().default(true),
 });
 
-export type AtprotoRegistryConfig = z.output<
+export type AtprotoRegistryConfig = zConfig.output<
   typeof atprotoRegistryConfigSchema
 >;
-export type AtprotoRegistryConfigInput = z.input<
+export type AtprotoRegistryConfigInput = zConfig.input<
   typeof atprotoRegistryConfigSchema
 >;
 
@@ -33,6 +34,11 @@ export interface AtprotoLexiconRegistryIndex {
 }
 
 const BASE_PATH = "/atproto/lexicons";
+
+const validateLexiconInputSchema = z.strictObject({
+  nsid: z.string(),
+  record: z.record(z.string(), z.unknown()),
+});
 
 function jsonResponse(value: unknown): Response {
   return new Response(`${JSON.stringify(value, null, 2)}\n`, {
@@ -108,13 +114,13 @@ export class AtprotoRegistryPlugin extends ServicePlugin<
       description:
         "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
       inputSchema: {
-        nsid: z.string().describe("Canonical lexicon NSID"),
-        record: z.record(z.unknown()).describe("Record payload to validate"),
+        nsid: zConfig.string().describe("Canonical lexicon NSID"),
+        record: zConfig
+          .record(zConfig.unknown())
+          .describe("Record payload to validate"),
       },
       handler: async (input): Promise<ToolResponse> => {
-        const parsed = z
-          .object({ nsid: z.string(), record: z.record(z.unknown()) })
-          .safeParse(input);
+        const parsed = validateLexiconInputSchema.safeParse(input);
         if (!parsed.success) {
           return {
             success: false,
