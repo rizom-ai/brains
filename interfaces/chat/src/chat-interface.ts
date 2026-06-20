@@ -674,7 +674,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     });
 
     app.onSubscribedMessage(async (thread, message, context) => {
-      if (!(await this.shouldRouteSubscribedMessage(thread))) return;
+      if (!(await this.shouldRouteSubscribedMessage(thread, message))) return;
       await this.handleRoutedMessage(thread, message, context);
     });
 
@@ -843,10 +843,55 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
   }
 
-  private async shouldRouteSubscribedMessage(thread: Thread): Promise<boolean> {
+  private async shouldRouteSubscribedMessage(
+    thread: Thread,
+    message: Message,
+  ): Promise<boolean> {
     if (this.getPlatform(thread) !== "discord") return false;
     if (thread.isDM) return true;
-    return (await this.discordSubscriptions?.has(thread.id)) === true;
+
+    const subscription = await this.discordSubscriptions?.get(thread.id);
+    if (!subscription) return false;
+
+    if (subscription.routingMode === "mention-required") {
+      return Boolean(message.isMention);
+    }
+
+    const mentionRequired =
+      await this.shouldRequireMentionInSubscribedThread(thread);
+    if (!mentionRequired) return true;
+
+    await this.discordSubscriptions?.set(thread.id, {
+      ...subscription,
+      routingMode: "mention-required",
+      mentionRequiredNoticeSent: true,
+    });
+
+    if (!message.isMention && !subscription.mentionRequiredNoticeSent) {
+      await thread.post(
+        "I’ll stop auto-replying now that more people joined. Mention me if you need me.",
+      );
+    }
+
+    return Boolean(message.isMention);
+  }
+
+  private async shouldRequireMentionInSubscribedThread(
+    thread: Thread,
+  ): Promise<boolean> {
+    try {
+      const participants = await thread.getParticipants();
+      const humanParticipants = participants.filter(
+        (participant) => !participant.isBot && !participant.isMe,
+      );
+      return humanParticipants.length > 1;
+    } catch (error) {
+      this.logger.debug("Failed to inspect Discord thread participants", {
+        error,
+        threadId: thread.id,
+      });
+      return false;
+    }
   }
 
   private isBotCreatedDiscordThread(thread: Thread, message: Message): boolean {

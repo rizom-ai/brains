@@ -16,9 +16,10 @@ Shared candidates should be escalated when they are independent of Discord threa
 
 ## Completed automated slices
 
-- Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Only `subscribe` / `unsubscribe` / `isSubscribed` are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
+- Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Subscription records and subscription routing policy are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
 - Public/external generated artifact policy is documented in `interfaces/chat/README.md`: keep fallback links only, do not add signed or Discord-authenticated artifact routes in this slice, post native files only for trusted/anchor callers when the artifact entity is visible, and suppress fallback link/metadata for any resolved artifact that exists outside the caller's visibility scope.
 - Discord Chat SDK input handling uses SDK queue concurrency so messages arriving while a turn is running are not silently dropped. Earlier queued messages are preserved as shared coalesced-input context/metadata for the latest queued turn.
+- Bot-owned subscribed Discord threads switch to mention-required mode when multiple non-bot humans participate. A one-time notice is persisted with the subscription state, unmentioned group-thread follow-ups stop auto-routing, and explicit mentions continue to route.
 
 ## Remaining work
 
@@ -100,26 +101,7 @@ Acceptance criteria:
 
 ## Enhancement backlog
 
-These items are enhancements, not parity blockers. For each item, move transport-neutral semantics into `MessageInterfacePlugin` or shared helpers under `shell/plugins/src/message-interface/` when possible, and keep only transport rendering, Discord SDK plumbing, and browser UI details in interface packages.
-
-### 1. Participant-aware subscribed-thread policy
-
-Decision: do not silently unsubscribe and do not keep auto-replying forever. In bot-owned subscribed Discord threads, auto-route while the thread is effectively 1:1. Once multiple non-bot humans are detected, switch that subscribed thread to mention-required mode and post one short notice.
-
-Chat SDK exposes `thread.getParticipants()`, which can detect when a subscribed bot-created thread becomes a broader human discussion.
-
-- Discord/chat implementation:
-  - Detect multiple non-bot participants in bot-owned subscribed threads.
-  - When detected, stop auto-routing unmentioned messages in that thread.
-  - Continue routing explicit mentions in that same thread.
-  - Post a one-time notice such as: “I’ll stop auto-replying now that more people joined. Mention me if you need me.”
-  - Persist enough subscription policy state to avoid repeating the notice after restart.
-  - Do not let explicit mentions in arbitrary existing threads bypass the existing ownership/subscription gate.
-- Base/shared escalation:
-  - Keep participant discovery and Discord subscription mutation in `interfaces/chat`.
-  - Extract only a transport-neutral policy decision helper if another message interface later needs the same “auto-route versus mention-required” semantics.
-- Web-chat backport:
-  - Not applicable for single-operator browser sessions unless shared/multi-operator web-chat sessions are added later.
+No remaining immediate enhancements are tracked in this plan. Larger follow-ups are split into separate future plans below.
 
 ## Related future plans
 

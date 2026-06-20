@@ -4,6 +4,7 @@ import { z } from "@brains/utils";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import {
   createDiscordSubscriptionStateAdapter,
+  createDiscordThreadSubscriptionStore,
   discordThreadSubscriptionNamespace,
 } from "../src/subscription-state";
 
@@ -128,6 +129,25 @@ describe("createDiscordSubscriptionStateAdapter", () => {
       false,
     );
     await state.disconnect();
+  });
+
+  it("persists mention-required routing policy with the subscription", async () => {
+    const runtimeState = createMockShell().getRuntimeState();
+    const first = createDiscordThreadSubscriptionStore(runtimeState);
+    await first.set("discord:guild:channel:thread", {
+      subscribedAt: new Date().toISOString(),
+      routingMode: "mention-required",
+      mentionRequiredNoticeSent: true,
+    });
+
+    const restarted = createDiscordThreadSubscriptionStore(runtimeState);
+
+    expect(await restarted.get("discord:guild:channel:thread")).toEqual(
+      expect.objectContaining({
+        routingMode: "mention-required",
+        mentionRequiredNoticeSent: true,
+      }),
+    );
   });
 
   it("uses the documented runtime-state namespace", async () => {

@@ -5,6 +5,8 @@ import type { Lock, QueueEntry, StateAdapter } from "chat";
 
 export const discordThreadSubscriptionStateSchema = z.object({
   subscribedAt: z.string().datetime(),
+  routingMode: z.enum(["auto", "mention-required"]).optional(),
+  mentionRequiredNoticeSent: z.boolean().optional(),
 });
 
 export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
@@ -15,6 +17,7 @@ export type DiscordThreadSubscriptionState = z.infer<
 
 export interface DiscordThreadSubscriptionStore {
   set(key: string, value: DiscordThreadSubscriptionState): Promise<void>;
+  get(key: string): Promise<DiscordThreadSubscriptionState | null>;
   has(key: string): Promise<boolean>;
   delete(key: string): Promise<boolean>;
 }

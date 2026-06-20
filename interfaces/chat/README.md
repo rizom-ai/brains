@@ -107,6 +107,7 @@ Covered by tests:
 - self-message filtering, plus bot-message filtering unless mentioned, including passive URL capture
 - trusted/anchor-only text, image, and PDF uploads as durable native agent attachments with Discord source metadata
 - prior upload follow-up reuse by filename, first/oldest, or most-recent wording, including restart reload from stored conversation metadata
+- queued Discord input handling so busy-thread messages are not silently dropped; earlier queued messages are preserved as coalesced context for the latest queued turn
 - user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
 - yes/no/cancel confirmation flow with readable pending-approval instructions, SDK approval cards with Confirm/Cancel buttons for single pending approvals, card-based confirmation result summaries, chained approvals, remaining-approval reminders, retry after confirmation errors, restart reload from stored approval cards, unrecognized replies, and exact approval-id selection for multiple pending approvals
 - agent error responses
@@ -120,7 +121,7 @@ Covered by tests:
 
 ## Runtime state policy
 
-Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, and other operational state remain memory-backed.
+Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Subscription records also persist mention-required routing policy for bot-owned threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, and other operational state remain memory-backed.
 
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
