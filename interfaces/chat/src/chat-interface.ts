@@ -747,22 +747,24 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       return;
     }
 
-    const ids = this.getThreadIdParts(event.thread.id);
+    const thread = event.thread as Thread;
+    const ids = this.getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
       event.user.userId,
       {
-        channelId: ids.channelId ?? event.thread.channelId,
+        channelId: ids.channelId ?? thread.channelId,
         isBot: Boolean(event.user.isBot),
       },
     );
 
     await this.confirmApproval({
-      thread: event.thread as Thread,
+      thread,
       conversationId,
       approvalId: event.value,
       confirmed: event.actionId === APPROVAL_CONFIRM_ACTION,
       userPermissionLevel,
+      metadata: this.buildActionEventMetadata(platform, thread, event),
     });
   }
 
@@ -1090,6 +1092,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     approvalId: string;
     confirmed: boolean;
     userPermissionLevel: UserPermissionLevel;
+    metadata?: Record<string, unknown>;
   }): Promise<void> {
     const response = await this.context?.agent.confirmPendingAction(
       input.conversationId,
@@ -1100,6 +1103,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
         interfaceType: "discord",
         channelId: input.thread.id,
         channelName: input.thread.isDM ? "DM" : input.thread.channelId,
+        ...input.metadata,
       },
     );
     this.removePendingApproval(input.conversationId, input.approvalId);

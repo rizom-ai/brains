@@ -1785,7 +1785,27 @@ describe("ChatInterface", () => {
         "discord-discord:guild-123:channel-123:thread-456",
         true,
         "approval-1",
-        expectDiscordConfirmationContext(),
+        expect.objectContaining({
+          channelId: "discord:guild-123:channel-123:thread-456",
+          channelName: "discord:guild-123:channel-123",
+          interfaceType: "discord",
+          userPermissionLevel: "public",
+          actor: expect.objectContaining({
+            actorId: "discord:user-789",
+            displayName: "Mira Ops",
+            username: "mira",
+          }),
+          source: expect.objectContaining({
+            messageId: "approval-message-1",
+            channelId: "discord:guild-123:channel-123:thread-456",
+            threadId: "thread-456",
+            metadata: expect.objectContaining({
+              actionId: "approval.confirm",
+              actionValue: "approval-1",
+              guildId: "guild-123",
+            }),
+          }),
+        }),
       );
       expect(approvalMessage.edit).toHaveBeenCalledWith(
         expect.objectContaining({
