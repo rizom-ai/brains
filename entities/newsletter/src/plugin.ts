@@ -7,7 +7,8 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage, z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { PublishProvider } from "@brains/contracts";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
@@ -20,9 +21,16 @@ import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../package.json";
 
-const newsletterConfigSchema = z.object({});
-type NewsletterConfig = z.output<typeof newsletterConfigSchema>;
-type NewsletterConfigInput = z.input<typeof newsletterConfigSchema>;
+const newsletterConfigSchema = zConfig.object({});
+type NewsletterConfig = zConfig.output<typeof newsletterConfigSchema>;
+type NewsletterConfigInput = zConfig.input<typeof newsletterConfigSchema>;
+
+const generationEvalInputSchema = z.object({
+  prompt: z.string().optional(),
+  content: z.string().optional(),
+});
+
+type GenerationEvalInput = z.output<typeof generationEvalInputSchema>;
 
 /**
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
@@ -198,13 +206,9 @@ export class NewsletterPlugin extends EntityPlugin<
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {
-    const generationInputSchema = z.object({
-      prompt: z.string().optional(),
-      content: z.string().optional(),
-    });
-
     context.eval.registerHandler("generation", async (input: unknown) => {
-      const parsed = generationInputSchema.parse(input);
+      const parsed: GenerationEvalInput =
+        generationEvalInputSchema.parse(input);
       const generationPrompt = parsed.content
         ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
         : (parsed.prompt ?? "Write an engaging newsletter");
