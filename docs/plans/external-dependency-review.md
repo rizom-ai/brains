@@ -573,6 +573,9 @@ Incremental migration progress:
 - Migrated entity-service list/search option parser schemas to explicit Zod 4;
   these remain local parser guards over service call options, not exported
   framework schema contracts.
+- Migrated the conversation-memory projection event payload parser to explicit
+  Zod 4 while leaving entity/config/projection schemas on their existing plugin
+  boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
