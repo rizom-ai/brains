@@ -10,7 +10,7 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
@@ -40,7 +40,7 @@ const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
   }),
 ]);
 
-type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
+type SeriesProjectionJobData = z.output<typeof seriesProjectionJobDataSchema>;
 
 /**
  * Series EntityPlugin — auto-derives series from entities with seriesName metadata.
