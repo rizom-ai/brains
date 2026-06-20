@@ -603,6 +603,8 @@ Incremental migration progress:
 - Migrated the content-pipeline publish tool handler-local input parser to
   explicit Zod 4 while keeping exported/tool-facing input and output schemas on
   the current main-Zod boundary.
+- Migrated the site-builder site metadata message response guard to explicit
+  Zod 4 while keeping shared site-composition schemas on the current boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
