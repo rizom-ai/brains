@@ -1645,6 +1645,87 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("resolves approval cards in the matching conversation when approval ids collide", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Please confirm first.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete first thing",
+            args: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Please confirm second.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_delete",
+            summary: "Delete second thing",
+            args: {},
+          },
+        ],
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const firstApprovalMessage = createSentMessage("first-approval-message");
+    const secondApprovalMessage = createSentMessage("second-approval-message");
+    let firstPostCount = 0;
+    let secondPostCount = 0;
+    const firstThread = createThread({
+      post: mock((_message: MockPostMessage) => {
+        firstPostCount += 1;
+        return Promise.resolve(
+          firstPostCount === 2 ? firstApprovalMessage : createSentMessage(),
+        );
+      }),
+    });
+    const secondThread = createThread({
+      id: "discord:guild-123:channel-999:thread-999",
+      channelId: "discord:guild-123:channel-999",
+      post: mock((_message: MockPostMessage) => {
+        secondPostCount += 1;
+        return Promise.resolve(
+          secondPostCount === 2 ? secondApprovalMessage : createSentMessage(),
+        );
+      }),
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = createFetchStub(originalFetch, () =>
+      Promise.resolve(new Response("{}")),
+    );
+
+    try {
+      await chat?.handlers.mentions[0]?.(firstThread, createMessage());
+      await chat?.handlers.mentions[0]?.(
+        secondThread,
+        createMessage({
+          threadId: "discord:guild-123:channel-999:thread-999",
+          raw: { guild_id: "guild-123", channel_id: "channel-999" },
+        }),
+      );
+      await chat?.handlers.subscribedMessages[0]?.(
+        firstThread,
+        createMessage({ text: "yes", isMention: false }),
+      );
+
+      expect(firstApprovalMessage.edit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fallbackText: "Approval confirmed: Delete first thing",
+        }),
+      );
+      expect(secondApprovalMessage.edit).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("confirms pending approvals from SDK card buttons and removes the buttons", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",

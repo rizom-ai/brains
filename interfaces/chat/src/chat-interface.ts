@@ -965,6 +965,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     await this.sendPendingConfirmationCards(
       input.thread,
+      input.conversationId,
       input.response.pendingConfirmations,
     );
 
@@ -1114,7 +1115,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       response.cards,
       input.userPermissionLevel,
     );
-    await this.resolveApprovalCard(input.approvalId, input.confirmed);
+    await this.resolveApprovalCard(
+      input.conversationId,
+      input.approvalId,
+      input.confirmed,
+    );
     await this.sendAgentResponseWithFiles({
       thread: input.thread,
       channelId: input.thread.id,
@@ -1138,6 +1143,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     await this.sendPendingConfirmationCards(
       input.thread,
+      input.conversationId,
       response.pendingConfirmations,
     );
   }
@@ -1683,6 +1689,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
   private async sendPendingConfirmationCards(
     thread: Thread,
+    conversationId: string,
     pendingConfirmations: PendingConfirmation[] | undefined,
   ): Promise<void> {
     if (!pendingConfirmations || pendingConfirmations.length === 0) return;
@@ -1708,11 +1715,21 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
           }
         : this.buildPendingConfirmationCard(confirmation),
     );
-    this.approvalCardMessages.set(confirmation.id, {
-      message: sent,
-      summary: confirmation.summary,
-      threadId: thread.id,
-    });
+    this.approvalCardMessages.set(
+      this.getApprovalCardKey(conversationId, confirmation.id),
+      {
+        message: sent,
+        summary: confirmation.summary,
+        threadId: thread.id,
+      },
+    );
+  }
+
+  private getApprovalCardKey(
+    conversationId: string,
+    approvalId: string,
+  ): string {
+    return `${conversationId}:${approvalId}`;
   }
 
   private buildPendingConfirmationsCard(
@@ -1781,12 +1798,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   }
 
   private async resolveApprovalCard(
+    conversationId: string,
     approvalId: string,
     confirmed: boolean,
   ): Promise<void> {
-    const tracked = this.approvalCardMessages.get(approvalId);
+    const key = this.getApprovalCardKey(conversationId, approvalId);
+    const tracked = this.approvalCardMessages.get(key);
     if (!tracked) return;
-    this.approvalCardMessages.delete(approvalId);
+    this.approvalCardMessages.delete(key);
     const label = confirmed ? "confirmed" : "cancelled";
     await tracked.message.edit({
       card: this.buildResolvedApprovalCard(tracked.summary, confirmed),
