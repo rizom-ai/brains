@@ -1331,6 +1331,57 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("reuses trusted uploads on follow-up requests after agent chat fails", async () => {
+    harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    agentService.chat
+      .mockRejectedValueOnce(new Error("model unavailable"))
+      .mockResolvedValueOnce({
+        text: "Described upload.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+    const image = Buffer.from([0x89, 0x50, 0x4e, 0x47, 9]);
+
+    await chat?.handlers.mentions[0]?.(
+      thread,
+      createMessage({
+        text: "remember this image",
+        attachments: [
+          {
+            name: "failed-turn-robot.png",
+            mimeType: "image/png",
+            size: image.byteLength,
+            fetchData: mock(() => Promise.resolve(image)),
+          },
+        ],
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      thread,
+      createMessage({
+        text: "describe that image",
+        isMention: false,
+      }),
+    );
+
+    expect(agentService.chat).toHaveBeenCalledTimes(2);
+    expect(agentService.chat.mock.calls[1]?.[2]?.attachments).toEqual([
+      expect.objectContaining({
+        kind: "file",
+        filename: "failed-turn-robot.png",
+        mediaType: "image/png",
+        data: image,
+      }),
+    ]);
+  });
+
   it("reuses the most recent trusted upload on follow-up requests", async () => {
     harness.setPermissionService(
       new PermissionService({

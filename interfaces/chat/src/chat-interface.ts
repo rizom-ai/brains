@@ -891,6 +891,7 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     );
     await this.postUploadNotices(thread, agentInput.notices);
     if (!agentInput.message && agentInput.attachments.length === 0) return;
+    this.rememberUploadAttachments(conversationId, sameTurnUploads);
 
     this.startProcessingInput(channelId);
     try {
@@ -929,8 +930,6 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
             : {}),
         },
       );
-
-      this.rememberUploadAttachments(conversationId, sameTurnUploads);
 
       await this.renderAgentResponse({
         thread,
