@@ -126,6 +126,7 @@ Suggested-action button tokens are intentionally not durable: they reference in-
 
 ## Known gaps before replacing `@brains/discord`
 
-- Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, generated artifact delivery, and webhooks.
+- Live Discord validation is still required for mention gating, thread creation/follow-up behavior, typing indicators, upload behavior, progress edits, and generated artifact delivery.
+- HTTP Discord webhook/interactions endpoint validation is conditional, not a replacement blocker for gateway-mode deployments. Test it only when a deployment explicitly configures Discord Interactions Endpoint URL or a shared gateway forwarder.
 - Public/external access to protected generated artifacts is intentionally not implemented; fallback links are only rendered when they do not point at an out-of-scope stored artifact.
 - Shared gateway mode is not implemented here yet.

@@ -47,8 +47,9 @@ Required smoke checks:
 - Long-running progress/completion/failure updates.
 - Generated image/PDF native Discord file delivery for trusted/anchor users.
 - Generated artifact link fallback.
-- Webhook route handling.
 - Restart continuation for channel, DM, and subscribed-thread conversations.
+
+HTTP Discord webhook/interactions endpoint validation is conditional, not a required smoke check. Gateway mode is the current live Discord use case; only test the webhook route when a deployment explicitly configures Discord Interactions Endpoint URL or a shared gateway forwarder.
 
 Acceptance criteria:
 
@@ -60,7 +61,7 @@ Validation record template:
 ```md
 Date:
 Rover instance/config:
-Discord environment: channel / thread / DM / webhook
+Discord environment: channel / thread / DM
 Operator permission rule used: yes/no
 Result: pass / blocked / deferred
 
@@ -79,7 +80,6 @@ Checks:
 - [ ] Long-running progress/completion/failure updates
 - [ ] Generated native Discord artifact files
 - [ ] Generated artifact link fallback
-- [ ] Webhook route
 - [ ] Restart continuation: channel
 - [ ] Restart continuation: DM
 - [ ] Restart continuation: subscribed thread
