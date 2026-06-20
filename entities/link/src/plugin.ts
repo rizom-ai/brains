@@ -12,7 +12,8 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z, slugify } from "@brains/utils";
+import { slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import {
   linkConfigSchema,
   linkSchema,
@@ -33,6 +34,12 @@ import { UrlUtils } from "./lib/url-utils";
 import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import { createLinkAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
+
+const extractContentEvalInputSchema = z.object({
+  url: z.url(),
+});
+
+type ExtractContentEvalInput = z.output<typeof extractContentEvalInputSchema>;
 
 export class LinkPlugin extends EntityPlugin<
   LinkEntity,
@@ -251,7 +258,8 @@ export class LinkPlugin extends EntityPlugin<
       );
 
     context.eval.registerHandler("extractContent", async (input: unknown) => {
-      const { url } = z.object({ url: z.string().url() }).parse(input);
+      const { url }: ExtractContentEvalInput =
+        extractContentEvalInputSchema.parse(input);
       const urlFetcher = new UrlFetcher(
         this.config.jinaApiKey
           ? { jinaApiKey: this.config.jinaApiKey }

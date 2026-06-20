@@ -535,6 +535,8 @@ Incremental migration progress:
 - Migrated the blog RSS datasource query parser to explicit Zod 4; the
   datasource output schema stays typed to the existing framework-facing Zod
   boundary.
+- Migrated the link eval-handler input parser to explicit Zod 4 while keeping
+  link config/entity schemas on the existing plugin boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
