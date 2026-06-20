@@ -52,7 +52,7 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 - [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
 - [Message-interface semantic tool status](./message-interface-tool-status.md) — proposed shared lifecycle model for tool status updates, with per-interface rendering for web-chat, Discord Chat SDK, and future chat adapters
-- [Web search as an explicit tool capability](./web-search-tool.md) — proposed provider-neutral `web_search` plugin/tool; avoids hidden model flags while preserving permissions, status events, audit logs, privacy defaults, and citations
+- [Web search as an explicit tool capability](./web-search-tool.md) — proposed ephemeral-first, provider-neutral `web_search` plugin/tool (Tavily first adapter, Brave planned second); preserves permissions, status events, audit logs, privacy defaults, and citations. Phase 0 first removes the existing `webSearch` config flag, which is verified-dead (no-op) code
 - [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
