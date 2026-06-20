@@ -612,6 +612,9 @@ Incremental migration progress:
   leaving plugin config and tool schemas on the current main-Zod boundary.
 - Migrated analytics Cloudflare GraphQL response guards to explicit Zod 4 while
   leaving plugin config and tool schemas on the current main-Zod boundary.
+- Migrated ATProto handle/DID document network response guards to explicit Zod
+  4 while leaving plugin config and projection schemas on their current
+  boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
