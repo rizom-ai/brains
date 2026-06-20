@@ -3389,6 +3389,70 @@ describe("ChatInterface", () => {
     );
   });
 
+  it("reports stale suggested prompt action tokens after restart", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Pick one.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "actions",
+          id: "actions-1",
+          title: "Next actions",
+          actions: [
+            {
+              type: "prompt",
+              id: "action-1",
+              label: "Draft announcement",
+              prompt: "Draft an announcement",
+            },
+          ],
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const staleToken = getFirstPromptActionToken(thread);
+
+    harness.reset();
+    MockChatSdk.instances = [];
+    harness = createPluginHarness<ChatInterfaceInstance>();
+    harness.setAgentService(agentService);
+    await harness.installPlugin(createPlugin());
+    const restartedChat = MockChatSdk.instances[0];
+    const promptActionHandler = restartedChat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: "chat.prompt",
+      adapter: { name: "discord" },
+      messageId: "actions-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: staleToken,
+    } as MockActionEvent);
+
+    expect(agentService.chat).toHaveBeenCalledTimes(1);
+    expect(thread.post.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        fallbackText: "That suggested action is no longer available.",
+        card: expect.objectContaining({ title: "Action unavailable" }),
+      }),
+    );
+  });
+
   it("keeps reused suggested prompt action ids routed to their original prompts", async () => {
     agentService.chat
       .mockResolvedValueOnce({

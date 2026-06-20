@@ -110,7 +110,7 @@ Covered by tests:
 - user-visible skipped-upload notices for unsupported, oversized, or spoofed uploads using shared message-interface upload policy
 - yes/no/cancel confirmation flow with readable pending-approval instructions, SDK approval cards with Confirm/Cancel buttons for single pending approvals, card-based confirmation result summaries, chained approvals, remaining-approval reminders, retry after confirmation errors, restart reload from stored approval cards, unrecognized replies, and exact approval-id selection for multiple pending approvals
 - agent error responses
-- structured artifact, approval, source, action, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including SDK artifact/source cards with link buttons for absolute URLs, prompt-action buttons for suggested actions, suppression of relative/localhost browser links in Discord summaries, and visibility-scoped native Discord file posting for trusted/anchor generated image/PDF artifacts returned by chat or confirmations, with link/metadata suppression for artifacts out of the caller's visibility scope
+- structured artifact, approval, source, action, and confirmation result summaries formatted with shared message-interface display rules without raw JSON leakage, including SDK artifact/source cards with link buttons for absolute URLs, prompt-action buttons for suggested actions, stale suggested-action notices after restart, suppression of relative/localhost browser links in Discord summaries, and visibility-scoped native Discord file posting for trusted/anchor generated image/PDF artifacts returned by chat or confirmations, with link/metadata suppression for artifacts out of the caller's visibility scope
 - live tool activity status cards edited in place, with failed-tool fallback cards
 - async job progress, completion, and failure cards for tracked tool-result or artifact-card responses and standalone progress messages
 - platform response chunking for Discord's 2000-character limit
@@ -120,7 +120,9 @@ Covered by tests:
 
 ## Runtime state policy
 
-Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Chat SDK locks, queues, caches, lists, and other operational state remain memory-backed.
+Discord thread subscriptions are persisted through the shell runtime state store so subscribed-thread routing can survive restart. Only `subscribe`, `unsubscribe`, and `isSubscribed` are durable. Subscribed-message routing uses that same subscription record as the ownership gate; arbitrary existing Discord threads are not auto-routed unless this interface subscribed them. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, and other operational state remain memory-backed.
+
+Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
 ## Known gaps before replacing `@brains/discord`
 
