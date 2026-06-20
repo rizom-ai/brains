@@ -621,6 +621,8 @@ Incremental migration progress:
   leaving provider contracts and publish schemas on their current boundaries.
 - Migrated ATProto PDS client external API response guards to explicit Zod 4
   while preserving the existing exported client result interfaces.
+- Migrated CMS GitHub OAuth token response guards to explicit Zod 4 while
+  keeping the plugin config schema on the current main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

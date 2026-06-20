@@ -9,34 +9,35 @@ import {
 } from "@brains/cms-config";
 import { renderCmsShellHtml } from "./cms-shell";
 import { serializeForScript } from "./script-literal";
-import { toYaml, z } from "@brains/utils";
+import { toYaml, z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import packageJson from "../package.json";
 
 const CMS_OAUTH_STATE_COOKIE = "brains_cms_oauth_state";
 const CMS_OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const CMS_AUTH_ENDPOINT = "auth";
 
-const entityDisplayEntrySchema = z
+const entityDisplayEntrySchema = zConfig
   .object({
-    label: z.string().optional(),
-    pluralName: z.string().optional(),
+    label: zConfig.string().optional(),
+    pluralName: zConfig.string().optional(),
   })
   .passthrough();
 
-const githubOAuthConfigSchema = z.object({
-  clientId: z.string().optional(),
-  clientSecret: z.string().optional(),
-  scope: z.string().optional(),
+const githubOAuthConfigSchema = zConfig.object({
+  clientId: zConfig.string().optional(),
+  clientSecret: zConfig.string().optional(),
+  scope: zConfig.string().optional(),
 });
 
-const passkeyLoginConfigSchema = z.object({
-  contentRepoToken: z.string().optional(),
+const passkeyLoginConfigSchema = zConfig.object({
+  contentRepoToken: zConfig.string().optional(),
 });
 
-const cmsPluginConfigSchema = z
+const cmsPluginConfigSchema = zConfig
   .object({
-    entityDisplay: z.record(entityDisplayEntrySchema).optional(),
-    routePath: z.string().default("/cms"),
+    entityDisplay: zConfig.record(entityDisplayEntrySchema).optional(),
+    routePath: zConfig.string().default("/cms"),
     githubOAuth: githubOAuthConfigSchema.optional(),
     passkeyLogin: passkeyLoginConfigSchema.optional(),
   })
@@ -59,8 +60,19 @@ const cmsPluginConfigSchema = z
     },
   );
 
-type CmsPluginConfig = z.output<typeof cmsPluginConfigSchema>;
-type CmsPluginConfigInput = z.input<typeof cmsPluginConfigSchema>;
+type CmsPluginConfig = zConfig.output<typeof cmsPluginConfigSchema>;
+type CmsPluginConfigInput = zConfig.input<typeof cmsPluginConfigSchema>;
+
+const githubOAuthErrorResponseSchema = z
+  .looseObject({
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .transform((payload) => payload.error_description ?? payload.error);
+
+const githubOAuthTokenResponseSchema = z.looseObject({
+  access_token: z.string().min(1),
+});
 
 interface EnabledGithubOAuthConfig {
   clientId: string;
@@ -454,41 +466,26 @@ async function exchangeGitHubCode(
     return { success: false, error: "GitHub token response was not JSON" };
   }
 
+  const error = githubOAuthErrorResponseSchema.safeParse(payload);
   if (!response.ok) {
     return {
       success: false,
-      error: githubOAuthError(payload) ?? "GitHub token exchange failed",
+      error: error.success
+        ? (error.data ?? "GitHub token exchange failed")
+        : "GitHub token exchange failed",
     };
   }
 
-  if (isRecord(payload) && typeof payload["error"] === "string") {
-    return {
-      success: false,
-      error:
-        typeof payload["error_description"] === "string"
-          ? payload["error_description"]
-          : payload["error"],
-    };
+  if (error.success && error.data) {
+    return { success: false, error: error.data };
   }
 
-  const token = isRecord(payload) ? payload["access_token"] : undefined;
-  if (typeof token !== "string" || token.length === 0) {
+  const token = githubOAuthTokenResponseSchema.safeParse(payload);
+  if (!token.success) {
     return { success: false, error: "GitHub token response omitted token" };
   }
 
-  return { success: true, token };
-}
-
-function githubOAuthError(payload: unknown): string | undefined {
-  if (!isRecord(payload)) return undefined;
-  if (typeof payload["error_description"] === "string") {
-    return payload["error_description"];
-  }
-  return typeof payload["error"] === "string" ? payload["error"] : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  return { success: true, token: token.data.access_token };
 }
 
 function resolveAuthOrigin(
