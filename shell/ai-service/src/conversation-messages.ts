@@ -124,6 +124,10 @@ function collectPendingUploadRefs(
   const lastMessage = messages.at(-1);
   if (lastMessage === undefined) return [];
 
+  if (lastMessage.role === "user" && lastMessage.content.trim().length > 0) {
+    return collectUploadRefsFromMessages([lastMessage]);
+  }
+
   if (!hasUploadIntentCard(lastMessage)) return [];
 
   const previousUserMessage = messages

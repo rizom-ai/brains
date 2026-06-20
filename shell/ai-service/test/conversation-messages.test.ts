@@ -139,6 +139,32 @@ describe("resolveConversationUploadContinuity", () => {
     });
   });
 
+  it("exposes prior upload refs when the last stored turn is an unanswered upload message", () => {
+    const firstHistoryMessage = historyMessages[0];
+    const firstUploadRef = uploadRefs[0];
+    if (firstHistoryMessage === undefined || firstUploadRef === undefined) {
+      throw new Error("Expected upload fixture");
+    }
+
+    const result = resolveConversationUploadContinuity({
+      message: "try again",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          ...firstHistoryMessage,
+          content: "Summarize this upload",
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "try again",
+      refs: [firstUploadRef],
+      attachments: [],
+    });
+  });
+
   it("does not rewrite clarification replies or select files from text", () => {
     const result = resolveConversationUploadContinuity({
       message: "neither, generate it from the deck",

@@ -11,6 +11,7 @@ import type {
 import type {
   ConversationMessageActor,
   IConversationService,
+  Message,
 } from "@brains/conversation-service";
 import type {
   BrainAgent,
@@ -1441,6 +1442,83 @@ describe("AgentService", () => {
 
       const response = await service.chat("Hello", "test-conversation");
       expect(response.text).toContain("Agent error");
+    });
+
+    it("keeps failed-turn uploads available to the next agent call", async () => {
+      const storedMessages: Message[] = [];
+      mockConversationService.addMessage = mock(async (request) => {
+        storedMessages.push({
+          id: `msg-${storedMessages.length + 1}`,
+          conversationId: request.conversationId,
+          role: request.role,
+          content: request.content,
+          timestamp: new Date().toISOString(),
+          metadata: request.metadata ? JSON.stringify(request.metadata) : null,
+        });
+      });
+      mockConversationService.getMessages = mock(async () => storedMessages);
+      mockGenerate.mockImplementationOnce(() =>
+        Promise.reject(new Error("Agent error")),
+      );
+      const pdfBytes = new Uint8Array([37, 80, 68, 70]);
+      const uploadAttachmentResolver = mock(async () => ({
+        kind: "file" as const,
+        filename: "brief.pdf",
+        mediaType: "application/pdf",
+        data: pdfBytes,
+        sizeBytes: pdfBytes.byteLength,
+        source: { kind: "upload" as const, id: "upload-pdf" },
+      }));
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory, uploadAttachmentResolver },
+      );
+
+      const failedResponse = await service.chat(
+        "Summarize this PDF",
+        "test-conversation",
+        {
+          attachments: [
+            {
+              kind: "file",
+              filename: "brief.pdf",
+              mediaType: "application/pdf",
+              data: pdfBytes,
+              sizeBytes: pdfBytes.byteLength,
+              source: { kind: "upload", id: "upload-pdf" },
+            },
+          ],
+        },
+      );
+      await service.chat("try again", "test-conversation");
+
+      expect(failedResponse.text).toContain("Agent error");
+      expect(uploadAttachmentResolver).toHaveBeenCalledWith({
+        kind: "upload",
+        id: "upload-pdf",
+      });
+      const retryGenerateInput = mockGenerate.mock.calls[1]?.[0];
+      expect(retryGenerateInput?.messages.at(-1)).toEqual({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- brief.pdf: upload { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf; raw-save entityType: "document"',
+            ),
+          },
+          {
+            type: "file",
+            data: pdfBytes,
+            mediaType: "application/pdf",
+            filename: "brief.pdf",
+          },
+        ],
+      });
     });
 
     it("should handle empty response from agent", async () => {
