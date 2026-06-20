@@ -676,6 +676,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     if (!this.isEnabledPlatform(platform)) return;
 
     const thread = event.thread as Thread;
+    if (!this.shouldHandleDiscordAction(thread, platform)) return;
+
     const action = this.promptActions.get(event.value);
     if (action?.threadId !== thread.id) {
       await thread.post(
@@ -756,6 +758,8 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
     }
 
     const thread = event.thread as Thread;
+    if (!this.shouldHandleDiscordAction(thread, platform)) return;
+
     const ids = this.getThreadIdParts(thread.id);
     const userPermissionLevel = this.context.permissions.getUserLevel(
       platform,
@@ -774,6 +778,14 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       userPermissionLevel,
       metadata: this.buildActionEventMetadata(platform, thread, event),
     });
+  }
+
+  private shouldHandleDiscordAction(thread: Thread, platform: string): boolean {
+    if (platform !== "discord") return true;
+    const platformConfig = this.config.adapters.discord;
+    if (!platformConfig) return false;
+    if (thread.isDM && !platformConfig.allowDMs) return false;
+    return this.isAllowedChannel(thread, platformConfig);
   }
 
   private async subscribeOwnedDiscordThread(

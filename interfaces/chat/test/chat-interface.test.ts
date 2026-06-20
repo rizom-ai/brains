@@ -1841,6 +1841,47 @@ describe("ChatInterface", () => {
     }
   });
 
+  it("does not confirm approval button actions when Discord DMs are disabled", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Please confirm.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pendingConfirmations: [
+        {
+          id: "approval-1",
+          toolName: "system_delete",
+          summary: "Delete thing",
+          args: {},
+        },
+      ],
+    });
+    const plugin = createPlugin({ allowDMs: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.isDM = true;
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "discord" },
+      messageId: "approval-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    } as MockActionEvent);
+
+    expect(agentService.confirmPendingAction).not.toHaveBeenCalled();
+  });
+
   it("continues chained pending confirmations returned by a confirmed action", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Please confirm.",
@@ -3389,6 +3430,63 @@ describe("ChatInterface", () => {
     );
     expect(thread.startTyping).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");
+  });
+
+  it("does not route suggested prompt actions when Discord DMs are disabled", async () => {
+    agentService.chat
+      .mockResolvedValueOnce({
+        text: "Pick one.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+        cards: [
+          {
+            kind: "actions",
+            id: "actions-1",
+            title: "Next actions",
+            actions: [
+              {
+                type: "prompt",
+                id: "action-1",
+                label: "Draft announcement",
+                prompt: "Draft an announcement",
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Should not run.",
+        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      });
+    const plugin = createPlugin({ allowDMs: false });
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    const actionToken = getFirstPromptActionToken(thread);
+    thread.isDM = true;
+    const promptActionHandler = chat?.handlers.actions.find(
+      ({ actionIds }) => actionIds === "chat.prompt",
+    )?.handler;
+    await promptActionHandler?.({
+      actionId: "chat.prompt",
+      adapter: { name: "discord" },
+      messageId: "actions-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: actionToken,
+    } as MockActionEvent);
+
+    expect(agentService.chat).toHaveBeenCalledTimes(1);
   });
 
   it("formats structured approval cards without raw JSON", async () => {
