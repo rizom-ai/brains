@@ -4,7 +4,8 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z as zConfig } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { ProviderRegistry } from "../provider-registry";
 import {
   PublishExecutor,
@@ -14,58 +15,67 @@ import {
 /**
  * Input schema for publish-pipeline:publish tool
  */
-export const publishInputSchema = z.object({
-  entityType: z
+export const publishInputSchema = zConfig.object({
+  entityType: zConfig
     .string()
     .describe("Entity type to publish (e.g., social-post, post, deck)"),
-  id: z.string().optional().describe("Entity ID to publish"),
-  slug: z.string().optional().describe("Entity slug to publish"),
+  id: zConfig.string().optional().describe("Entity ID to publish"),
+  slug: zConfig.string().optional().describe("Entity slug to publish"),
+  confirmed: zConfig.boolean().optional(),
+  confirmationToken: zConfig.string().optional(),
+  contentHash: zConfig.string().optional(),
+});
+
+const publishInputParserSchema = z.object({
+  entityType: z.string(),
+  id: z.string().optional(),
+  slug: z.string().optional(),
   confirmed: z.boolean().optional(),
   confirmationToken: z.string().optional(),
   contentHash: z.string().optional(),
 });
 
-export type PublishInput = z.infer<typeof publishInputSchema>;
+export type PublishInput = zConfig.infer<typeof publishInputSchema>;
 
 /**
  * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
  */
-export const publishSuccessSchema = z.object({
-  success: z.literal(true),
-  message: z.string().optional(),
-  data: z
+export const publishSuccessSchema = zConfig.object({
+  success: zConfig.literal(true),
+  message: zConfig.string().optional(),
+  data: zConfig
     .object({
-      entityType: z.string().optional(),
-      entityId: z.string().optional(),
-      platformId: z.string().optional(),
-      url: z.string().optional(),
+      entityType: zConfig.string().optional(),
+      entityId: zConfig.string().optional(),
+      platformId: zConfig.string().optional(),
+      url: zConfig.string().optional(),
     })
     .optional(),
 });
 
-export const publishErrorSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-  code: z.string().optional(),
+export const publishErrorSchema = zConfig.object({
+  success: zConfig.literal(false),
+  error: zConfig.string(),
+  code: zConfig.string().optional(),
 });
 
-export const publishConfirmationSchema = z.object({
-  success: z.literal(false).optional(),
-  error: z.string().optional(),
-  needsConfirmation: z.literal(true),
-  toolName: z.string(),
-  summary: z.string(),
-  preview: z.string().optional(),
-  args: z.unknown(),
+export const publishConfirmationSchema = zConfig.object({
+  success: zConfig.literal(false).optional(),
+  error: zConfig.string().optional(),
+  needsConfirmation: zConfig.literal(true),
+  toolName: zConfig.string(),
+  summary: zConfig.string(),
+  preview: zConfig.string().optional(),
+  args: zConfig.unknown(),
 });
 
-export const publishOutputSchema = z.union([
+export const publishOutputSchema = zConfig.union([
   publishSuccessSchema,
   publishErrorSchema,
   publishConfirmationSchema,
 ]);
 
-export type PublishOutput = z.infer<typeof publishOutputSchema>;
+export type PublishOutput = zConfig.infer<typeof publishOutputSchema>;
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 const MAX_PENDING_CONFIRMATIONS = 1000;
@@ -144,11 +154,11 @@ export function createPublishTool(
     outputSchema: publishOutputSchema,
     visibility: "anchor",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = publishInputSchema.safeParse(rawInput);
+      const parsed = publishInputParserSchema.safeParse(rawInput);
       if (!parsed.success) {
         return {
           success: false,
-          error: `Invalid input: ${parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+          error: `Invalid input: ${parsed.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
         };
       }
 

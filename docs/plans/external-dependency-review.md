@@ -600,6 +600,9 @@ Incremental migration progress:
 - Migrated the ATProto publish/discovery tool handler-local input parsers to
   explicit Zod 4 while keeping framework-facing tool input schemas on the
   current main-Zod boundary for MCP introspection.
+- Migrated the content-pipeline publish tool handler-local input parser to
+  explicit Zod 4 while keeping exported/tool-facing input and output schemas on
+  the current main-Zod boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
