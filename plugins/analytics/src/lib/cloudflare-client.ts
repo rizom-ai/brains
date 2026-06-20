@@ -1,25 +1,98 @@
+import { z } from "@brains/utils/zod-v4";
 import type { CloudflareConfig } from "../config";
+
+const graphqlErrorEnvelopeSchema = z.looseObject({
+  errors: z.array(z.looseObject({ message: z.string() })).optional(),
+});
+
+const analyticsDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(
+      z.object({
+        rumPageloadEventsAdaptiveGroups: z.array(
+          z.object({
+            count: z.number(),
+            sum: z.object({ visits: z.number() }),
+            dimensions: z.object({ date: z.string() }),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+const topPagesDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(
+      z.object({
+        rumPageloadEventsAdaptiveGroups: z.array(
+          z.object({
+            count: z.number(),
+            dimensions: z.object({ requestPath: z.string() }),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+const topReferrersDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(
+      z.object({
+        rumPageloadEventsAdaptiveGroups: z.array(
+          z.object({
+            sum: z.object({ visits: z.number() }),
+            dimensions: z.object({ refererHost: z.string() }),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+const deviceBreakdownDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(
+      z.object({
+        rumPageloadEventsAdaptiveGroups: z.array(
+          z.object({
+            sum: z.object({ visits: z.number() }),
+            dimensions: z.object({ deviceType: z.string() }),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+const topCountriesDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(
+      z.object({
+        rumPageloadEventsAdaptiveGroups: z.array(
+          z.object({
+            sum: z.object({ visits: z.number() }),
+            dimensions: z.object({ countryName: z.string() }),
+          }),
+        ),
+      }),
+    ),
+  }),
+});
+
+const validationDataSchema = z.object({
+  viewer: z.object({
+    accounts: z.array(z.object({ accountTag: z.string() })),
+  }),
+});
 
 /**
  * Cloudflare Web Analytics GraphQL response
  */
 export interface CloudflareAnalyticsResponse {
-  data: {
-    viewer: {
-      accounts: Array<{
-        rumPageloadEventsAdaptiveGroups: Array<{
-          count: number;
-          sum: {
-            visits: number;
-          };
-          dimensions: {
-            date: string;
-          };
-        }>;
-      }>;
-    };
-  };
-  errors?: Array<{ message: string }>;
+  data: z.output<typeof analyticsDataSchema>;
+  errors?: Array<{ message: string }> | undefined;
 }
 
 /**
@@ -81,6 +154,19 @@ export interface WebsiteStats {
   visits: number;
   bounces: number;
   totalTime: number;
+}
+
+function parseGraphqlData<T>(payload: unknown, dataSchema: z.ZodType<T>): T {
+  const errorEnvelope = graphqlErrorEnvelopeSchema.safeParse(payload);
+  if (errorEnvelope.success && errorEnvelope.data.errors?.length) {
+    throw new Error(
+      `Cloudflare GraphQL error: ${errorEnvelope.data.errors
+        .map((e) => e.message)
+        .join(", ")}`,
+    );
+  }
+
+  return z.object({ data: dataSchema }).parse(payload).data;
 }
 
 /**
@@ -156,17 +242,11 @@ export class CloudflareClient {
       );
     }
 
-    const result = (await response.json()) as CloudflareAnalyticsResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
+    const data = parseGraphqlData(await response.json(), analyticsDataSchema);
 
     // Aggregate the results
     const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     let pageviews = 0;
     let visits = 0;
@@ -218,10 +298,8 @@ export class CloudflareClient {
         return false;
       }
 
-      const result = (await response.json()) as {
-        errors?: Array<{ message: string }>;
-      };
-      return !result.errors || result.errors.length === 0;
+      parseGraphqlData(await response.json(), validationDataSchema);
+      return true;
     } catch {
       return false;
     }
@@ -280,30 +358,10 @@ export class CloudflareClient {
       );
     }
 
-    interface TopPagesResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              count: number;
-              dimensions: { requestPath: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopPagesResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
+    const data = parseGraphqlData(await response.json(), topPagesDataSchema);
 
     const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       path: g.dimensions.requestPath,
@@ -368,30 +426,13 @@ export class CloudflareClient {
       );
     }
 
-    interface TopReferrersResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { refererHost: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopReferrersResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
+    const data = parseGraphqlData(
+      await response.json(),
+      topReferrersDataSchema,
+    );
 
     const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       host: g.dimensions.refererHost || "(direct)",
@@ -454,30 +495,13 @@ export class CloudflareClient {
       );
     }
 
-    interface DeviceBreakdownResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { deviceType: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as DeviceBreakdownResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
+    const data = parseGraphqlData(
+      await response.json(),
+      deviceBreakdownDataSchema,
+    );
 
     const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     const breakdown: DeviceBreakdownResult = {
       desktop: 0,
@@ -556,30 +580,13 @@ export class CloudflareClient {
       );
     }
 
-    interface TopCountriesResponse {
-      data: {
-        viewer: {
-          accounts: Array<{
-            rumPageloadEventsAdaptiveGroups: Array<{
-              sum: { visits: number };
-              dimensions: { countryName: string };
-            }>;
-          }>;
-        };
-      };
-      errors?: Array<{ message: string }>;
-    }
-
-    const result = (await response.json()) as TopCountriesResponse;
-
-    if (result.errors && result.errors.length > 0) {
-      throw new Error(
-        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
-      );
-    }
+    const data = parseGraphqlData(
+      await response.json(),
+      topCountriesDataSchema,
+    );
 
     const groups =
-      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     return groups.map((g) => ({
       country: g.dimensions.countryName,
