@@ -87,6 +87,7 @@ const DISCORD_BUTTON_LABEL_LIMIT = 80;
 const APPROVAL_CONFIRM_ACTION = "approval.confirm";
 const APPROVAL_CANCEL_ACTION = "approval.cancel";
 const PROMPT_ACTION = "chat.prompt";
+const UNAVAILABLE_EVENT_ACTION = "chat.event.unavailable";
 
 interface DiscordCardOutput {
   card: CardElement;
@@ -1611,28 +1612,36 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
   ): CardElement {
     const children: CardChild[] = card.actions.map((action) => ({
       type: "text" as const,
-      content: action.description
-        ? `${action.label} — ${action.description}`
-        : action.label,
+      content: this.formatActionCardText(action),
     }));
     const buttons: Array<{
       type: "button";
       id: string;
       label: string;
       value: string;
+      disabled?: boolean;
     }> = [];
     for (const action of card.actions) {
       if (buttons.length >= DISCORD_CARD_BUTTON_LIMIT) break;
-      if (action.type !== "prompt") continue;
-      const token = this.registerPromptAction(thread.id, {
-        label: action.label,
-        prompt: action.prompt,
-      });
+      if (action.type === "prompt") {
+        const token = this.registerPromptAction(thread.id, {
+          label: action.label,
+          prompt: action.prompt,
+        });
+        buttons.push({
+          type: "button",
+          id: PROMPT_ACTION,
+          label: this.truncateDiscordButtonLabel(action.label),
+          value: token,
+        });
+        continue;
+      }
       buttons.push({
         type: "button",
-        id: PROMPT_ACTION,
+        id: UNAVAILABLE_EVENT_ACTION,
         label: this.truncateDiscordButtonLabel(action.label),
-        value: token,
+        value: action.event,
+        disabled: true,
       });
     }
     if (buttons.length > 0) {
@@ -1643,6 +1652,15 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
       title: card.title ?? "Suggested actions",
       children,
     };
+  }
+
+  private formatActionCardText(
+    action: Extract<StructuredChatCard, { kind: "actions" }>["actions"][number],
+  ): string {
+    const description = action.description ? ` — ${action.description}` : "";
+    const unavailable =
+      action.type === "event" ? " (not available in Discord)" : "";
+    return `${action.label}${description}${unavailable}`;
   }
 
   private truncateDiscordButtonLabel(label: string): string {
@@ -1978,7 +1996,11 @@ export class ChatInterface extends MessageInterfacePlugin<ChatConfig> {
 
     const lines = [`Actions: ${card.title ?? "Suggested actions"}`];
     for (const action of card.actions) {
-      lines.push(`- ${action.label}`);
+      lines.push(
+        action.type === "event"
+          ? `- ${action.label} (not available in Discord)`
+          : `- ${action.label}`,
+      );
     }
     return lines.join("\n");
   }

@@ -3236,6 +3236,76 @@ describe("ChatInterface", () => {
     expect(JSON.stringify(thread.post.mock.calls)).not.toContain("localhost");
   });
 
+  it("renders event actions as unavailable disabled Discord buttons", async () => {
+    agentService.chat.mockResolvedValueOnce({
+      text: "Choose an action.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "actions",
+          id: "actions-events",
+          title: "Mixed actions",
+          actions: [
+            {
+              type: "event",
+              id: "event-1",
+              label: "Open picker",
+              event: "picker.open",
+              description: "Requires web chat UI",
+            },
+            {
+              type: "prompt",
+              id: "action-1",
+              label: "Draft announcement",
+              prompt: "Draft an announcement",
+            },
+          ],
+        },
+      ],
+    });
+    const plugin = createPlugin();
+    await harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread();
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText:
+          "Actions: Mixed actions\n- Open picker (not available in Discord)\n- Draft announcement",
+        card: expect.objectContaining({
+          title: "Mixed actions",
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              type: "text",
+              content:
+                "Open picker — Requires web chat UI (not available in Discord)",
+            }),
+            expect.objectContaining({
+              type: "actions",
+              children: [
+                expect.objectContaining({
+                  type: "button",
+                  id: "chat.event.unavailable",
+                  label: "Open picker",
+                  value: "picker.open",
+                  disabled: true,
+                }),
+                expect.objectContaining({
+                  type: "button",
+                  id: "chat.prompt",
+                  label: "Draft announcement",
+                  value: expect.stringMatching(/^action_/),
+                }),
+              ],
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
   it("posts source and action cards as supplemental SDK cards", async () => {
     agentService.chat.mockResolvedValueOnce({
       text: "Here are the next steps.",
