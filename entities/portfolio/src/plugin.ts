@@ -16,6 +16,7 @@ import {
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage, z } from "@brains/utils";
+import { z as zEval } from "@brains/utils/zod-v4";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import { createTemplate } from "@brains/templates";
 import {
@@ -54,6 +55,15 @@ const projectListSchema = z.object({
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
 });
+
+const generateProjectEvalInputSchema = zEval.object({
+  prompt: zEval.string(),
+  year: zEval.number(),
+});
+
+type GenerateProjectEvalInput = zEval.output<
+  typeof generateProjectEvalInputSchema
+>;
 
 function extractProjectYear(
   title: string | undefined,
@@ -198,9 +208,8 @@ export class PortfolioPlugin extends EntityPlugin<
 
   private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateProject", async (input: unknown) => {
-      const parsed = z
-        .object({ prompt: z.string(), year: z.number() })
-        .parse(input);
+      const parsed: GenerateProjectEvalInput =
+        generateProjectEvalInputSchema.parse(input);
       return context.ai.generate<{
         title: string;
         description: string;
