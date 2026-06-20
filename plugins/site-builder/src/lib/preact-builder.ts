@@ -23,10 +23,13 @@ import {
   TailwindCSSProcessor,
   type CSSProcessor,
 } from "@brains/site-engine";
-import { z, pLimit } from "@brains/utils";
-
+import { pLimit } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
+
+const sectionContentSchema = z.record(z.string(), z.unknown());
+type SectionContent = z.output<typeof sectionContentSchema>;
 
 /**
  * Preact-based static site builder
@@ -267,8 +270,8 @@ export class PreactBuilder implements StaticSiteBuilder {
       // Validate content against schema
       // Inject route title/pageLabel for templates that use them (e.g., list pages)
       try {
-        const contentObj = z.record(z.unknown()).parse(content);
-        const validatedContent = z.record(z.unknown()).parse(
+        const contentObj: SectionContent = sectionContentSchema.parse(content);
+        const validatedContent: SectionContent = sectionContentSchema.parse(
           template.schema.parse({
             ...contentObj,
             pageTitle: route.title || context.siteConfig.title,
