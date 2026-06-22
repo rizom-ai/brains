@@ -1,217 +1,111 @@
 # Welcome to Rover
 
-Rover is your own AI. Not a chatbot you share with the rest of the
-world — a private assistant deployed just for you, that holds your
-notes, links, and ideas, and gets more useful the more you put into
-it.
+---
 
-This guide walks you through your first days. You don't need
-experience with any particular tools — if you can use a browser, you
-can use Rover.
+Most of us have more thinking happening than we can hold onto. Ideas show up in the wrong moment, notes land in five different places, and half of what you've figured out is effectively invisible by the time you need it again.
 
-## Get in and say hello
+Rover is built for that problem. It's a private space where your thinking accumulates — notes, links, fragments, half-formed ideas — and an AI that can work with all of it. Find things you saved months ago. Connect dots across topics. Turn a rough note into a draft. The more you put in, the more useful it gets. And if another Rover user is in your network, your Rovers can talk to each other — share knowledge, work on something together — just by asking.
 
-1. **Open the setup email** we sent you and click the setup link.
-2. **Register a passkey** — your browser will offer fingerprint,
-   face, or PIN. This becomes how you sign in; there is no password.
-3. **Open your chat**: `https://<handle>.rizom.ai/chat` — sign in
-   with the passkey you just made.
-4. **Say hello.** Ask Rover:
+---
 
-   > What can you help me do?
+## What Rover is
 
-That's the whole setup. The chat in your browser is where you and
-Rover will spend most of your time.
+Rover is your private knowledge companion. It holds your notes, links, and ideas — and helps you think with them, not just store them.
 
-One caution: the setup link works once and then expires. Don't
-forward it, and if it has already expired when you click it, just
-tell us — we'll send a fresh one.
+Ask it a question and it searches what you've saved. Give it a fragment of thinking and it can help you turn it into something.
 
-## What your Rover holds
+---
 
-Everything in Rover is one of a few simple kinds of things:
+## Getting in
 
-- **Notes** — thoughts, ideas, observations in your own words.
-- **Links** — things from the web, saved with why they matter to you.
-- **Documents** — files you drop into chat: Markdown, PDFs, images.
-- **Topics** — the themes running through your material. You don't
-  create these; Rover notices them.
-- **Wishes** — things you asked for that Rover can't do yet.
-- **Agents** — other people's brains, saved to your directory so you
-  can ask them things.
+We'll send you a personal URL — something like `https://<handle>.rizom.ai/`.
 
-You'll meet each of these as you go. The first three you put in; the
-last three grow out of how you use it.
+When you open it for the first time, you'll be asked to set a passkey. Do that once and you're in. No passwords to remember.
 
-## The way of working
+From there, your three main interfaces are:
 
-Rover is built around a simple loop:
+- **Chat** (`/chat`) — where you talk to Rover
+- **Dashboard** (`/`) — an overview of your Rover
+- **CMS** (`/cms`) — a browser editor for your content
 
-**Capture → ask back → shape.**
+Start with Chat. Everything else follows from there.
 
-What makes it work: every note, link, and document you hand Rover
-lands in one connected memory. Rover reads what you save, links it
-to what's already there, and notices the topics running through it.
-Nothing sits in a folder waiting to be found — every capture makes
-the next answer better. Ten notes in, Rover is a notebook; a hundred
-notes in, it starts knowing how you think.
+---
 
-The important part is what you _don't_ do: you don't organize. No
-folders, no tags, no filing things in the right place. You throw
-material in as it comes, and Rover makes sense of it when you need
-it.
+## Your first five minutes
 
-### Capture
+1. Open your Chat URL. A good first message:
+   > Help me save my first note.
+2. Save something — a thought, a link, an idea. Doesn't need to be polished.
+3. Ask Rover about it. See what comes back.
 
-Notes for what's in your head:
+That loop — save, ask, get something useful back — is the core of how Rover works.
 
-> Save a note: I keep explaining the same idea to clients — maybe
-> it should be a workshop.
+---
 
-Links for what's on your screen:
+## The Chat and the CMS: when to use which
 
-> Save this link with my workshop idea — it's how someone else
-> structures theirs: https://example.com
+**Chat** is for thinking out loud, asking questions, saving things quickly, and using Rover as a day-to-day thinking partner.
 
-Documents for what you already have: drop a Markdown file, a PDF, or
-an image into the chat and ask Rover to save or import it. If you
-have notes living somewhere else, this is the fastest way to give
-Rover a head start.
+**CMS** is for when you want to deliberately create or edit content — browsing your notes, making clean edits, working more like an editor than a conversationalist.
 
-### Ask back
+Most people spend most of their time in Chat. The CMS becomes useful once you have something worth editing.
 
-Ask in whatever words occur to you — Rover searches by meaning, not
-exact phrases, so you don't have to remember what you called
-something:
+---
 
-> What have I added about the workshop idea?
+## Other ways to chat with Rover
+ 
+`/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
+ 
+---
+ 
+## Connecting Rover to other tools
+ 
+Rover can connect to external tools via MCP — a standard protocol that works in two directions: agentic AI clients (like Claude Desktop) can use it to talk to Rover, and Rover can use it to talk to productivity tools like Notion or Linear.
+ 
+Plugins exist for a number of tools already, and new ones can be built quickly in response to what you actually need. If there's a tool you'd want Rover to connect to, tell us.
+ 
+If MCP is part of your setup, we'll send specific instructions alongside your URL.
+ 
+---
+ 
+## A few common questions
+ 
+**How do I access my data?**
+Your primary interface is the CMS (`/cms`), where you can browse and edit everything you've saved. If you're set up with GitHub access, your content also lives in a private repository you can access directly.
+ 
+**Does Rover connect to the internet?**
+No — and that's intentional. Rover works with what you've put into it, not with whatever the internet currently says. That means its answers are grounded in your actual knowledge base, not in generic search results.
+ 
+**What does this cost?**
+Nothing during the pilot. We cover hosting costs while you're part of the programme.
+ 
+---
 
-> What did I save this week?
+## This is a pilot
 
-And as material accumulates, the topics surface — the themes you
-keep returning to without noticing:
+Rover works. But it's not finished.
 
-> What themes do you see in what I've collected?
+You'll hit rough edges. Some things you try won't work. Some things you expect to be there won't be yet. That's normal — and it's actually why you're here.
 
-### Shape
+There's a ceiling on how much Rover can improve without real people using it on real problems. We've reached that ceiling on our own. Your usage is what lets the product become what it's capable of becoming. A single Rover in isolation can only do so much — the network only becomes real when there are enough active, populated Rovers in it.
 
-When you want to make something from what you've gathered:
+Rover has a built-in wishlist. If you ask it to do something it can't do yet, it should tell you clearly and log the request — that goes back to us as a signal for where the product needs to go next.
 
-> Turn my workshop notes into a one-page outline.
+When something breaks or falls short, tell us: what you were trying to do, what you expected, and what happened instead.
 
-> Make a reading list from the links I saved.
+---
 
-Capture is cheap, asking back is instant, and shaping turns a pile
-of fragments into something you can use. That loop is Rover — and it
-only proves itself on real material, so start with things you
-actually want to keep.
+## Your access details
 
-## When Rover can't do something: make a wish
+When we onboard you, we'll send something like:
 
-Sooner or later you'll ask for something Rover can't do yet. That's
-where wishes come from: Rover says so honestly and offers to save
-the request as a wish:
+```
+Chat URL: https://<handle>.rizom.ai/chat
+Dashboard URL: https://<handle>.rizom.ai/
+CMS URL: https://<handle>.rizom.ai/cms
+Discord: yes/no — setup steps below if yes
+MCP: enabled/not enabled — details below if enabled
+```
 
-> I wish you could remind me about this next Monday.
-
-Wishes flow back to us and shape what gets built next. Asking for
-things Rover can't do is not a failure — it's one of the most useful
-things a pilot user can do.
-
-## Your Rover in the network
-
-The loop has a second payoff. Rover isn't only a private assistant —
-it's your agent in a network of brains, and the connection runs both
-ways.
-
-**Other people's brains become sources.** When someone you know runs
-a brain, you don't have to send them a message and wait — you ask
-their brain directly, from your own chat. Save it to your agents
-once:
-
-> Add yeehaa.io to my agents.
-
-Then ask questions that put their knowledge next to yours:
-
-> Ask yeehaa.io what they've published about designing workshops,
-> and compare it with my own workshop notes.
-
-One ask, both directions: Rover pulls their public knowledge over
-the network, sets it against the material you've been capturing, and
-answers in terms of your situation. What comes back you can think
-with, push back on, or capture:
-
-> Save that comparison as a note with my workshop idea.
-
-That's the loop again, with someone else's knowledge feeding your
-capture. Rover never contacts an agent you haven't saved without
-telling you first, and your private material is never shared — only
-the question you send.
-
-**Your brain becomes a source for others.** The same way you ask
-other agents, they can ask yours. Your Rover answers on your behalf,
-drawing only on what you've chosen to make public — and it builds
-its picture of what you know from everything you capture.
-
-So the network is the quiet consequence of the loop: the more you
-put in, the more useful your Rover is to you — and the better it
-speaks for you when you're not in the room.
-
-## The other doors
-
-Chat is the primary interface, but your Rover has a few more
-entrances. All optional — ignore them until you're curious:
-
-- **Dashboard** — `https://<handle>.rizom.ai/` is your Rover's home
-  page in the browser: a quick overview that everything is running.
-- **CMS** — `https://<handle>.rizom.ai/cms` is a browser editor for
-  your content, useful when you want to write or restructure
-  something longer than a chat message. If it asks for GitHub
-  access, use the instructions we sent; if we didn't send any, skip
-  the CMS for now.
-- **Your own AI client (MCP)** — Rover can plug into AI apps you
-  already use (Claude, Cursor, and others), signed in with the same
-  passkey. If you want this, ask us and we'll send the short setup.
-- **Discord** — available for some pilot cohorts as a secondary
-  chat. If it's enabled for you, we'll send the invite separately.
-
-Under the hood, everything you save is plain Markdown in a private
-repository that belongs to you. You never have to touch it — but
-your material is never locked in, either.
-
-## What to expect from the pilot
-
-This is a real, working system, and an early one. Expect occasional
-rough edges and visible improvement while you use it. Your Rover is
-deployed specifically for you, your content lives in your own
-private store, and sign-in is by passkey. One ask: avoid putting
-highly sensitive material in during the pilot unless we've agreed
-it's in scope — when unsure, ask.
-
-For questions, feedback, or anything that feels off, join our
-Discord server: `<discord-invite>`. That's the fastest way to reach
-us, and you'll meet the other pilot users there too.
-
-## If something doesn't work
-
-- **No setup email** — check spam first, then tell us which address
-  to use.
-- **Setup link expired** — tell us; we'll reissue it.
-- **Browser asks for a passkey** — expected; use the one you
-  registered during setup.
-- **Anything else** — post in the Discord server with the exact
-  error text or a screenshot and we'll sort it out. Never paste your
-  setup link anywhere except your own browser.
-
-## Tell us what you notice
-
-The feedback that helps most is small and honest — drop it in the
-Discord server as it occurs to you:
-
-- where setup confused you
-- what felt useful right away, and what felt pointless
-- what you expected Rover to do that it couldn't
-- whether the capture → ask back → shape loop fits how you work
-- whether you'd keep using Rover after the pilot
-
-A few plain sentences are perfect.
+If anything is unclear, reply with what you're seeing and we'll help.
