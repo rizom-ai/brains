@@ -56,6 +56,14 @@ Most people spend most of their time in Chat. The CMS becomes useful once you ha
 ## Other ways to chat with Rover
  
 `/chat` is the primary interface, but Rover can also be reached through messaging platforms. Discord is tested and working. Slack, WhatsApp Business, and similar should work out of the box — we'll send setup steps if that's part of your configuration.
+
+**Talking to another Rover**
+ 
+If you know another Rover user, you can add them to your contacts and call their Rover directly from your chat.
+ 
+- To add: *Add jane.rizom.ai to my contacts.*
+- To call: *Call jane.rizom.ai and ask [your question].*
+You'll need their address — in the format `name.rizom.ai` — which they can share with you directly.
  
 ---
  
