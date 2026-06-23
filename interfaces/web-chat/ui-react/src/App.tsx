@@ -262,16 +262,13 @@ interface ProgressData {
   progress?: { current: number; total: number; percentage: number };
 }
 
+const progressDataSchema = z.looseObject({
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  operationType: z.string(),
+});
+
 export function isProgressData(data: unknown): data is ProgressData {
-  if (typeof data !== "object" || data === null) return false;
-  const record = data as Record<string, unknown>;
-  return (
-    typeof record["status"] === "string" &&
-    ["pending", "processing", "completed", "failed"].includes(
-      record["status"],
-    ) &&
-    typeof record["operationType"] === "string"
-  );
+  return progressDataSchema.safeParse(data).success;
 }
 
 function formatOperationType(operationType: string): string {

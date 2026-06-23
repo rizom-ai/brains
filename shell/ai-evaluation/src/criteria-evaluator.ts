@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod-v4";
 import type {
   AgentTestCase,
   FailureDetail,
@@ -6,6 +7,8 @@ import type {
   ToolCallRecord,
   TotalMetrics,
 } from "./schemas";
+
+const recordSchema = z.record(z.string(), z.unknown());
 
 export type CriteriaEvaluationResult = FailureDetail & { passed: boolean };
 
@@ -378,8 +381,9 @@ function resolveDottedPath(
   let current: unknown = obj;
 
   for (const part of parts) {
-    if (current == null || typeof current !== "object") return undefined;
-    current = (current as Record<string, unknown>)[part];
+    const parsed = recordSchema.safeParse(current);
+    if (!parsed.success) return undefined;
+    current = parsed.data[part];
   }
 
   return current;

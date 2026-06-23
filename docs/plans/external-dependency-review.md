@@ -666,6 +666,10 @@ Incremental migration progress:
   existing framework-composed boundary.
 - Migrated web-chat UI data-part record access helpers to an explicit Zod 4
   record guard inside the existing UI-local parser island.
+- Migrated the web-chat UI progress data guard to an explicit Zod 4 loose
+  object schema.
+- Migrated content-formatters property access helpers and ai-evaluation dotted
+  path lookups to explicit Zod 4 record guards.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

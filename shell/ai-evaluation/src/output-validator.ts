@@ -1,9 +1,12 @@
+import { z } from "@brains/utils/zod-v4";
 import type {
   ExpectedOutput,
   FailureDetail,
   ItemsContain,
   PathValidation,
 } from "./schemas";
+
+const recordSchema = z.record(z.string(), z.unknown());
 
 interface PatternMatch {
   pattern: RegExp;
@@ -307,10 +310,8 @@ export class OutputValidator {
    * Get a field value from an object (simple dot notation)
    */
   private getFieldValue(obj: unknown, field: string): unknown {
-    if (obj === null || typeof obj !== "object") {
-      return undefined;
-    }
-    return (obj as Record<string, unknown>)[field];
+    const parsed = recordSchema.safeParse(obj);
+    return parsed.success ? parsed.data[field] : undefined;
   }
 
   /**
@@ -335,7 +336,9 @@ export class OutputValidator {
       if (!isNaN(index) && Array.isArray(current)) {
         current = current[index];
       } else {
-        current = (current as Record<string, unknown>)[part];
+        const parsed = recordSchema.safeParse(current);
+        if (!parsed.success) return undefined;
+        current = parsed.data[part];
       }
     }
 
