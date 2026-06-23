@@ -7,6 +7,7 @@ import {
   buildGenerationStubEntity,
   canWriteVisibility,
   extractVisibilityFromMarkdown,
+  generateMarkdownWithFrontmatter,
   hasVisibilityFrontmatter,
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
@@ -50,6 +51,7 @@ function buildCreateConfirmation(input: {
   entityType: string;
   title?: string;
   prompt?: string;
+  fields?: Record<string, unknown>;
   content?: string;
   url?: string;
   upload?: { kind: string; id: string };
@@ -72,12 +74,23 @@ function buildCreateConfirmation(input: {
         ]
       : []),
     ...(input.prompt ? [`Prompt: ${input.prompt}`] : []),
+    ...(input.fields ? [`Fields: ${JSON.stringify(input.fields)}`] : []),
     ...(input.content
       ? [`Content preview: ${input.content.slice(0, 500)}`]
       : []),
   ];
 
   return { summary, preview: previewParts.join("\n") };
+}
+
+function buildStructuredCreateMarkdown(input: CreateInput): string | undefined {
+  if (!input.fields) return undefined;
+
+  const frontmatter: Record<string, unknown> = {
+    ...input.fields,
+    ...(input.title ? { title: input.title } : {}),
+  };
+  return generateMarkdownWithFrontmatter(input.content ?? "", frontmatter);
 }
 
 async function enqueueCoverImageGeneration(
@@ -297,6 +310,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         entityType: input.entityType,
         ...(prompt && { prompt }),
         ...(title && { title }),
+        ...(input.fields && { fields: input.fields }),
         ...(content && { content }),
         ...(url && { url }),
         ...(from && { from }),
@@ -352,6 +366,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           entityType: input.entityType,
           ...(title && { title }),
           ...(prompt && { prompt }),
+          ...(input.fields && { fields: input.fields }),
           ...(content && { content }),
           ...(url && { url }),
           ...(uploadRef && { upload: uploadRef }),
@@ -363,6 +378,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           entityType: createInput.entityType,
           ...(createInput.title && { title: createInput.title }),
           ...(createInput.prompt && { prompt: createInput.prompt }),
+          ...(createInput.fields && { fields: createInput.fields }),
           ...(createInput.content && { content: createInput.content }),
           ...(createInput.url && { url: createInput.url }),
           ...(uploadRef && { upload: uploadRef }),
@@ -532,14 +548,16 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
         createInput.entityType,
       );
+      const structuredMarkdown = buildStructuredCreateMarkdown(createInput);
       try {
         const result =
-          createInput.content && hasStructuredFrontmatter(frontmatterSchema)
+          (structuredMarkdown || createInput.content) &&
+          hasStructuredFrontmatter(frontmatterSchema)
             ? await entityService.createEntityFromMarkdown({
                 input: {
                   entityType: createInput.entityType,
                   id,
-                  markdown: createInput.content,
+                  markdown: structuredMarkdown ?? createInput.content ?? "",
                 },
                 options: { deduplicateId: true },
               })
@@ -548,7 +566,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
                   id,
                   entityType: createInput.entityType,
                   content: createInput.content ?? "",
-                  metadata: { title: createInput.title ?? id },
+                  metadata: {
+                    title: createInput.title ?? id,
+                    ...(createInput.fields ?? {}),
+                  },
                   created: new Date().toISOString(),
                   updated: new Date().toISOString(),
                 },

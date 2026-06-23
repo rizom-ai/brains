@@ -216,7 +216,7 @@ Plans:
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [mcp-external-redesign.md](./plans/mcp-external-redesign.md) — CQRS split for external MCP: raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command; `debug` mode keeps raw write tools local-only.
 - [okf-interop.md](./plans/okf-interop.md) — export/import the entity store as Google Open Knowledge Format bundles via `directory-sync`, for interchange with external OKF producers/consumers.
-- [bd-priority-engine.md](./plans/bd-priority-engine.md) — proposed standalone `@brains/bd` package: a conversational project/lead prioritization engine (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for its own BD; brain-agnostic, not in the public Rover preset.
+- [business-development-priority-engine.md](./plans/business-development-priority-engine.md) — Business Development Priority Engine: proposed standalone `@brains/business-development` package with an `opportunity` entity for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for business-development prioritization; brain-agnostic, not in the public Rover preset.
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
 
 ### 7. Keep the framework sustainable

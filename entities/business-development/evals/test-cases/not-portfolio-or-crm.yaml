@@ -1,0 +1,35 @@
+id: business-development-not-portfolio-or-crm
+name: Business Development Not Portfolio Or CRM
+description: Verifies that lead/project language is still captured as an opportunity, not a portfolio project, CRM record, or task.
+type: tool_invocation
+tags:
+  - opportunity
+  - business-development
+  - anti-misrouting
+  - tool-invocation
+
+turns:
+  - userMessage: >
+      Add this lead/project to the business development priority stack: Green Grid wants to explore
+      a commercial implementation partnership for team knowledge infrastructure. It is not for the public portfolio yet.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: opportunity
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - portfolio project
+    - CRM
+    - task manager
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

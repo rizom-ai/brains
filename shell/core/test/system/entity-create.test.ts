@@ -297,6 +297,57 @@ describe("system_create tool", () => {
     expect(result).toHaveProperty("args.confirmed", true);
   });
 
+  it("preserves structured create fields through confirmation", async () => {
+    const result = await execRaw({
+      entityType: "note",
+      title: "Fielded Note",
+      fields: { status: "draft" },
+      content: "Body text.",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      args: {
+        entityType: "note",
+        title: "Fielded Note",
+        fields: { status: "draft" },
+        content: "Body text.",
+        confirmed: true,
+      },
+    });
+  });
+
+  it("hydrates structured create fields through the registered frontmatter schema", async () => {
+    services.addEntities([
+      {
+        id: "existing-note-type-registration",
+        entityType: "note",
+        content: "Existing note",
+        metadata: { title: "Existing Note" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-note-type-registration",
+      },
+    ]);
+
+    const result = await exec({
+      entityType: "note",
+      title: "Fielded Note",
+      fields: { status: "draft" },
+      content: "Body text.",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { entityId: "fielded-note", status: "created" },
+    });
+    expect(services.getLastMarkdownCreate()).toEqual({
+      entityType: "note",
+      id: "fielded-note",
+      markdown: "---\nstatus: draft\ntitle: Fielded Note\n---\nBody text.\n",
+    });
+  });
+
   it("omits stale upload refs from direct-content confirmation preview copy", async () => {
     const uploadId = "upload-00000000-0000-4000-8000-000000000777";
     const conversationService: IConversationService = {

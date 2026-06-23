@@ -85,6 +85,12 @@ export const createInputSchema = z.object({
     .describe(
       "Direct content to store. Use this for finalized/exact/as-written user-provided markdown, including deck markdown with frontmatter and slide separators; omit prompt in those cases.",
     ),
+  fields: z
+    .record(z.unknown())
+    .optional()
+    .describe(
+      "Structured frontmatter fields for direct creation. Use this for typed entity metadata such as status, scores, dates, and owner fields; core hydrates these through the registered entity frontmatter schema.",
+    ),
   url: z
     .string()
     .optional()

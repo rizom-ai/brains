@@ -1,0 +1,34 @@
+id: business-development-no-prompt-stub
+name: Business Development No Prompt Stub
+description: Verifies that opportunity capture uses structured fields plus content directly, not prompt-based generation.
+type: tool_invocation
+tags:
+  - opportunity
+  - business-development
+  - no-prompt-stub
+  - tool-invocation
+
+turns:
+  - userMessage: >
+      Track this opportunity: City Commons may sponsor an internal deployment for neighborhood organizers.
+      It is likely a grant or partnership, could build our network, and would provide useful Brains product feedback.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: opportunity
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - portfolio project
+    - CRM
+    - task manager
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000
