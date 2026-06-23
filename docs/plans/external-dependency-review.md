@@ -652,6 +652,8 @@ Incremental migration progress:
   explicit Zod 4 record guards.
 - Migrated directory-sync document sidecar and cover-image conversion
   frontmatter record guards to Zod 4.
+- Migrated brain CLI self-package version JSON parsing to an explicit Zod 4
+  guard.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
