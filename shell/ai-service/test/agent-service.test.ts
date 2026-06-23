@@ -1900,7 +1900,7 @@ describe("AgentService", () => {
                 toolCallId: "call-1",
                 toolName: "system_update",
                 input: {
-                  entityType: "base",
+                  entityType: "note",
                   id: "rizom-brains-provenance-token-concept-note",
                   fields: { title: "Rizom Brains and Provenance" },
                 },
@@ -1915,7 +1915,7 @@ describe("AgentService", () => {
                   toolName: "system_update",
                   summary: 'Update "Untitled"?',
                   args: {
-                    entityType: "base",
+                    entityType: "note",
                     id: "rizom-brains-provenance-token-concept-note",
                     fields: { title: "Rizom Brains and Provenance" },
                     confirmed: true,
@@ -1968,7 +1968,7 @@ describe("AgentService", () => {
           content: response.text,
           metadata: expect.objectContaining({
             entityMemoryNote: expect.stringContaining(
-              'base "rizom-brains-provenance-token-concept-note" (updated)',
+              'note "rizom-brains-provenance-token-concept-note" (updated)',
             ),
           }),
         }),
@@ -2192,7 +2192,7 @@ describe("AgentService", () => {
 
       const deleteHandler = mock(async () => ({
         success: false as const,
-        error: "Entity not found: base/woodchuck-note",
+        error: "Entity not found: note/woodchuck-note",
       }));
       const deleteTool: Tool = {
         name: "delete_note",
@@ -2223,7 +2223,7 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toBe(
-        "Failed: Delete note 'Meeting Notes'\n\nEntity not found: base/woodchuck-note",
+        "Failed: Delete note 'Meeting Notes'\n\nEntity not found: note/woodchuck-note",
       );
       expect(response.text).not.toContain("Result:");
       expect(response.text).not.toContain('"success": false');
@@ -2233,7 +2233,7 @@ describe("AgentService", () => {
           args: { noteId: "123" },
           data: {
             success: false,
-            error: "Entity not found: base/woodchuck-note",
+            error: "Entity not found: note/woodchuck-note",
           },
         },
       ]);
@@ -2248,9 +2248,9 @@ describe("AgentService", () => {
           state: "output-error",
           output: {
             success: false,
-            error: "Entity not found: base/woodchuck-note",
+            error: "Entity not found: note/woodchuck-note",
           },
-          error: "Entity not found: base/woodchuck-note",
+          error: "Entity not found: note/woodchuck-note",
         },
       ]);
       expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
@@ -2903,7 +2903,7 @@ describe("AgentService", () => {
                       {
                         entity: {
                           id: "security",
-                          entityType: "base",
+                          entityType: "note",
                           content: "Security policy content.",
                           metadata: { title: "Security Policy" },
                         },
@@ -2925,7 +2925,7 @@ describe("AgentService", () => {
                       {
                         entity: {
                           id: "distributed-systems-primer",
-                          entityType: "base",
+                          entityType: "note",
                           content: "Distributed systems fail in partial ways.",
                           metadata: {
                             title: "Distributed Systems: A Practical Primer",
@@ -2937,7 +2937,7 @@ describe("AgentService", () => {
                       {
                         entity: {
                           id: "green-software",
-                          entityType: "base",
+                          entityType: "note",
                           content: "Carbon efficiency notes.",
                           metadata: { title: "Green Software" },
                         },
@@ -3002,10 +3002,10 @@ describe("AgentService", () => {
             provenance: { toolName: "system_search", score: 0.87 },
           },
           {
-            id: "base:distributed-systems-primer",
+            id: "note:distributed-systems-primer",
             title: "Distributed Systems: A Practical Primer",
-            source: "base",
-            entityType: "base",
+            source: "note",
+            entityType: "note",
             entityId: "distributed-systems-primer",
             excerpt: "Distributed systems fail in partial ways.",
             provenance: { toolName: "system_search", score: 0.83 },

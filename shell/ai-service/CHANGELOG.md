@@ -1,5 +1,65 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.127
+  - @brains/utils@0.2.0-alpha.127
+  - @brains/conversation-service@0.2.0-alpha.127
+  - @brains/entity-service@0.2.0-alpha.127
+  - @brains/identity-service@0.2.0-alpha.127
+  - @brains/mcp-service@0.2.0-alpha.127
+  - @brains/messaging-service@0.2.0-alpha.127
+  - @brains/templates@0.2.0-alpha.127
+
+## 0.2.0-alpha.126
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.126
+  - @brains/utils@0.2.0-alpha.126
+  - @brains/conversation-service@0.2.0-alpha.126
+  - @brains/entity-service@0.2.0-alpha.126
+  - @brains/identity-service@0.2.0-alpha.126
+  - @brains/mcp-service@0.2.0-alpha.126
+  - @brains/messaging-service@0.2.0-alpha.126
+  - @brains/templates@0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+### Patch Changes
+
+- [`f9d1dc9`](https://github.com/rizom-ai/brains/commit/f9d1dc9ed7ac15f131d912202ce9d44fb4f11e32) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stabilize Rover eval flows by preserving listed entity IDs for follow-up reads, narrowing singular upload follow-ups to the latest upload ref, and rejecting placeholder cover-image updates before confirmation.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.125
+  - @brains/utils@0.2.0-alpha.125
+  - @brains/conversation-service@0.2.0-alpha.125
+  - @brains/entity-service@0.2.0-alpha.125
+  - @brains/identity-service@0.2.0-alpha.125
+  - @brains/mcp-service@0.2.0-alpha.125
+  - @brains/messaging-service@0.2.0-alpha.125
+  - @brains/templates@0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
+### Patch Changes
+
+- [`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a confirmed `system_upload_save` path for preserving raw uploaded files as document or image entities while keeping `system_create` focused on generated content and markdown extraction.
+
+- Updated dependencies [[`57b025e`](https://github.com/rizom-ai/brains/commit/57b025e2bf9015c3f3e46b91fbdbef766efc3d10)]:
+  - @brains/entity-service@0.2.0-alpha.124
+  - @brains/identity-service@0.2.0-alpha.124
+  - @brains/contracts@0.2.0-alpha.124
+  - @brains/utils@0.2.0-alpha.124
+  - @brains/conversation-service@0.2.0-alpha.124
+  - @brains/mcp-service@0.2.0-alpha.124
+  - @brains/messaging-service@0.2.0-alpha.124
+  - @brains/templates@0.2.0-alpha.124
+
 ## 0.2.0-alpha.123
 
 ### Patch Changes

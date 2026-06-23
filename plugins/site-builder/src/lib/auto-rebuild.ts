@@ -78,7 +78,7 @@ export class RebuildManager {
    * a site rebuild.
    */
   setupAutoRebuild(): void {
-    const excludedTypes = new Set(["base"]);
+    const excludedTypes = new Set(["note"]);
 
     const entityEventHandler = async (
       message: EntityChangeMessage,

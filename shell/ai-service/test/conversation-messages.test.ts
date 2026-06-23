@@ -200,6 +200,71 @@ describe("resolveConversationUploadContinuity", () => {
     });
   });
 
+  it("narrows singular raw-save follow-ups to the latest pending upload ref", () => {
+    const latestUploadRef = uploadRefs.at(-1);
+    if (!latestUploadRef) throw new Error("expected upload fixture");
+
+    const result = resolveConversationUploadContinuity({
+      message: "save it",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          id: "message-pending-uploads",
+          conversationId: "conversation-1",
+          role: "user",
+          content: "I uploaded these files",
+          metadata: JSON.stringify({
+            attachments: uploadRefs.map((ref) => ({
+              kind: "file",
+              filename: ref.filename,
+              mediaType: ref.mediaType,
+              source: ref.source,
+            })),
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save it",
+      refs: [latestUploadRef],
+      attachments: [],
+    });
+  });
+
+  it("keeps all pending refs when the user names a filename", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          id: "message-pending-uploads",
+          conversationId: "conversation-1",
+          role: "user",
+          content: "I uploaded these files",
+          metadata: JSON.stringify({
+            attachments: uploadRefs.map((ref) => ({
+              kind: "file",
+              filename: ref.filename,
+              mediaType: ref.mediaType,
+              source: ref.source,
+            })),
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      refs: uploadRefs,
+      attachments: [],
+    });
+  });
+
   it("passes current attachments through without deriving conversation control flow", () => {
     const attachment = {
       kind: "file" as const,
@@ -252,7 +317,7 @@ describe("buildMessageWithAttachments", () => {
       "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
     );
     expect(content).toContain(
-      'If the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", or "save the summary" without saying upload/file/PDF/document, save the visible assistant summary/notes as a base note with content from the conversation; do not use upload or transform.',
+      'If the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", or "save the summary" without saying upload/file/PDF/document, save the visible assistant summary/notes as a note with content from the conversation; do not use upload or transform.',
     );
     expect(content).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",

@@ -7,12 +7,12 @@ describe("buildEntityMemoryNote", () => {
     const note = buildEntityMemoryNote([
       {
         toolName: "system_update",
-        args: { entityType: "base", id: "rizom-note" },
+        args: { entityType: "note", id: "rizom-note" },
         data: { updated: "rizom-note" },
       },
     ]);
 
-    expect(note).toContain('base "rizom-note" (updated)');
+    expect(note).toContain('note "rizom-note" (updated)');
     expect(note).toContain("Reference these IDs directly in follow-ups");
   });
 
@@ -78,5 +78,38 @@ describe("buildEntityMemoryNote", () => {
     ]);
 
     expect(note.match(/page-one/g)).toHaveLength(1);
+  });
+
+  it("records listed entity ids for list-detail follow-ups", () => {
+    const note = buildEntityMemoryNote([
+      {
+        toolName: "system_list",
+        args: { entityType: "post" },
+        data: {
+          entities: [
+            {
+              id: "knowledge-flow-systems",
+              entityType: "post",
+              metadata: {
+                title: "Knowledge Flow Systems",
+                status: "published",
+              },
+            },
+            {
+              id: "ai-and-knowledge-work",
+              entityType: "post",
+              metadata: { title: "AI and Knowledge Work" },
+            },
+          ],
+          count: 2,
+        },
+      },
+    ]);
+
+    expect(note).toContain("Entities listed this turn");
+    expect(note).toContain('1. post "knowledge-flow-systems"');
+    expect(note).toContain("Knowledge Flow Systems");
+    expect(note).toContain('2. post "ai-and-knowledge-work"');
+    expect(note).toContain("For follow-ups like first one");
   });
 });

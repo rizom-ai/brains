@@ -1,6 +1,6 @@
 id: shell-base-note-mapping
 name: Base/Note Mapping for Capture Flows
-description: Tests that note-like language and Discord-style uploaded text content map to the base entity type.
+description: Tests that note-like language and Discord-style uploaded text content map to the note entity type.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -20,7 +20,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
 
   - userMessage: "Save this memo about the launch timeline"
     successCriteria:
@@ -28,7 +28,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
 
   - userMessage: |
       save this file
@@ -43,7 +43,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
 
 successCriteria: {}
 

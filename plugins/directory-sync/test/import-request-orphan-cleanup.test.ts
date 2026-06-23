@@ -62,19 +62,18 @@ describe("Import then orphan cleanup", () => {
 
   it("should delete orphaned entity when file is removed after import", async () => {
     // Step 1: Create a file and import it
-    mkdirSync(join(testDir, "note"), { recursive: true });
     writeFileSync(
-      join(testDir, "note", "test-123.md"),
+      join(testDir, "test-123.md"),
       "---\ntitle: Test 123\n---\nContent\n",
     );
 
-    await dirSync.importEntities(["note/test-123.md"]);
+    await dirSync.importEntities(["test-123.md"]);
 
     // Simulate the entity being in the DB after import
     storedEntities["note"] = [createTestEntity("note", { id: "test-123" })];
 
     // Step 2: Delete the file (simulating git pull that removed it)
-    unlinkSync(join(testDir, "note", "test-123.md"));
+    unlinkSync(join(testDir, "test-123.md"));
 
     // Step 3: Run orphan cleanup — should delete the entity from DB
     const result = await dirSync.removeOrphanedEntities();
@@ -87,13 +86,12 @@ describe("Import then orphan cleanup", () => {
   });
 
   it("should not delete entities that still have files on disk", async () => {
-    mkdirSync(join(testDir, "note"), { recursive: true });
     writeFileSync(
-      join(testDir, "note", "keep-me.md"),
+      join(testDir, "keep-me.md"),
       "---\ntitle: Keep Me\n---\nContent\n",
     );
 
-    await dirSync.importEntities(["note/keep-me.md"]);
+    await dirSync.importEntities(["keep-me.md"]);
 
     // Entity in DB, file still on disk
     storedEntities["note"] = [createTestEntity("note", { id: "keep-me" })];

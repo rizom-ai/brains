@@ -39,7 +39,7 @@ export async function ensureDirectoryStructure(
   }
 
   for (const entityType of entityTypes) {
-    if (entityType !== "base") {
+    if (entityType !== "note") {
       await mkdir(join(syncPath, entityType), { recursive: true });
     }
   }

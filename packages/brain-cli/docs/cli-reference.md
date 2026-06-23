@@ -34,6 +34,7 @@ brain init mybrain --no-interactive
 | `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                |
 | `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
 | `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
+| `--regen`               | `false`            | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
 | `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                  |
 | `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
 
@@ -172,6 +173,8 @@ Start the brain and open the local chat REPL.
 ```bash
 brain chat
 ```
+
+`brain chat` also honors `--startup-check`, with the same behavior as `brain start` (load plugins, run `onRegister`/`onReady`, then exit without starting daemons or job workers).
 
 ### `brain eval [args...]`
 

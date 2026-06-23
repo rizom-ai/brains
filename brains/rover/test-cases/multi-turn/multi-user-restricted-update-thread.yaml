@@ -41,7 +41,7 @@ turns:
         - toolName: system_update
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
             id: private-visibility-probe
           argsAbsent:
             - confirmed

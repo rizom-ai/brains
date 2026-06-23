@@ -65,13 +65,13 @@ describe("EntityDataSource", () => {
       const ds = createWithEntity(
         createMockEntity({
           id: "README",
-          entityType: "base",
+          entityType: "note",
           content: "# Welcome\n\nThis is the README content.",
         }),
       );
 
       const result = await ds.fetch(
-        { entityType: "base", query: { id: "README" } },
+        { entityType: "note", query: { id: "README" } },
         markdownSchema,
       );
 
@@ -79,7 +79,7 @@ describe("EntityDataSource", () => {
         markdown: "# Welcome\n\nThis is the README content.",
       });
       expect(mockEntityService.getEntity).toHaveBeenCalledWith({
-        entityType: "base",
+        entityType: "note",
         id: "README",
       });
     });
@@ -97,7 +97,7 @@ describe("EntityDataSource", () => {
 
     it("should throw error if query.id is missing", async () => {
       const fetchPromise = entityDataSource.fetch(
-        { entityType: "base", query: {} },
+        { entityType: "note", query: {} },
         markdownSchema,
       );
 
@@ -110,12 +110,12 @@ describe("EntityDataSource", () => {
       const ds = createWithEntity(null);
 
       const fetchPromise = ds.fetch(
-        { entityType: "base", query: { id: "nonexistent" } },
+        { entityType: "note", query: { id: "nonexistent" } },
         markdownSchema,
       );
 
       void expect(fetchPromise).rejects.toThrow(
-        "EntityDataSource: Entity not found (base:nonexistent)",
+        "EntityDataSource: Entity not found (note:nonexistent)",
       );
     });
 
@@ -123,7 +123,7 @@ describe("EntityDataSource", () => {
       const ds = createWithEntity(
         createMockEntity({
           id: "test",
-          entityType: "base",
+          entityType: "note",
           content: "Test content",
         }),
       );
@@ -134,7 +134,7 @@ describe("EntityDataSource", () => {
       });
 
       const fetchPromise = ds.fetch(
-        { entityType: "base", query: { id: "test" } },
+        { entityType: "note", query: { id: "test" } },
         strictSchema,
       );
 
@@ -168,13 +168,13 @@ describe("EntityDataSource", () => {
       const ds = createWithEntity(
         createMockEntity({
           id: "empty",
-          entityType: "base",
+          entityType: "note",
           content: "",
         }),
       );
 
       const result = await ds.fetch(
-        { entityType: "base", query: { id: "empty" } },
+        { entityType: "note", query: { id: "empty" } },
         markdownSchema,
       );
 
@@ -187,7 +187,7 @@ describe("EntityDataSource", () => {
       });
       const scopedEntity = createMockEntity({
         id: "shared-note",
-        entityType: "base",
+        entityType: "note",
         content: "Scoped content",
       });
       const scopedService = createMockEntityService({
@@ -197,14 +197,14 @@ describe("EntityDataSource", () => {
       const context: BaseDataSourceContext = { entityService: scopedService };
 
       const result = await ds.fetch(
-        { entityType: "base", query: { id: "shared-note" } },
+        { entityType: "note", query: { id: "shared-note" } },
         markdownSchema,
         context,
       );
 
       expect(result).toEqual({ markdown: "Scoped content" });
       expect(scopedService.getEntity).toHaveBeenCalledWith({
-        entityType: "base",
+        entityType: "note",
         id: "shared-note",
       });
       expect(constructorService.getEntity).not.toHaveBeenCalled();

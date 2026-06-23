@@ -11,18 +11,18 @@ export function parseEntityPath(
   const relativePath = toSyncRelativePath(syncPath, filePath);
   const pathParts = relativePath.split("/");
 
-  // Base entities are in root; subdirectory name is the entity type
+  // Note entities are in root; subdirectory name is the entity type
   let entityType: string;
   let idPathParts: string[];
 
   if (pathParts.length === 1) {
-    entityType = "base";
+    entityType = "note";
     idPathParts = pathParts;
   } else if (pathParts.length > 1 && pathParts[0]) {
     entityType = pathParts[0];
     idPathParts = pathParts.slice(1);
   } else {
-    entityType = "base";
+    entityType = "note";
     idPathParts = pathParts;
   }
 
@@ -49,10 +49,10 @@ export function buildEntityFilePath(
   extension: string = ".md",
 ): string {
   const cleanParts = entityId.split(":").filter((part) => part.length > 0);
-  const isBase = entityType === "base";
+  const isRootNote = entityType === "note";
 
   if (cleanParts.length === 1) {
-    return isBase
+    return isRootNote
       ? join(syncPath, `${cleanParts[0]}${extension}`)
       : join(syncPath, entityType, `${cleanParts[0]}${extension}`);
   }
@@ -66,7 +66,7 @@ export function buildEntityFilePath(
   const filename = pathParts[pathParts.length - 1];
   const directories = pathParts.slice(0, -1);
 
-  if (isBase) {
+  if (isRootNote) {
     return join(syncPath, ...directories, `${filename}${extension}`);
   }
 

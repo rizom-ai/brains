@@ -68,7 +68,7 @@ export type {
 
 export {
   baseEntitySchema,
-  BASE_ENTITY_TYPE,
+  NOTE_ENTITY_TYPE,
   canWriteVisibility,
   contentVisibilitySchema,
   createResultAttachmentSchema,

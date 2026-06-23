@@ -64,7 +64,7 @@ Export (`brains entity → OKF concept file`):
 
 Import (`OKF concept file → brains entity`):
 
-- frontmatter `type` → `entityType` when a matching adapter is registered; otherwise fall back to `base` (note) and preserve original `type` in metadata.
+- frontmatter `type` → `entityType` when a matching adapter is registered; otherwise fall back to `note` (note) and preserve original `type` in metadata.
 - Round-trip stable: a brains-exported bundle re-imported must reproduce the same entities (modulo `contentHash`/timestamps).
 
 ### Reuse, don't reinvent
@@ -78,7 +78,7 @@ Each phase is a walking-skeleton-first vertical slice with tests written before 
 
 ### Phase 1 — Export skeleton, one entity type
 
-Walking skeleton: export `note` (`base`) entities to an OKF bundle directory.
+Walking skeleton: export `note` (`note`) entities to an OKF bundle directory.
 
 - Tests first: a `note` with title + body produces one OKF concept file with `type` frontmatter and an `index.md` for the type.
 - Implement minimal `okf` export mode reusing `toMarkdown` + frontmatter re-mapping.
@@ -96,7 +96,7 @@ Walking skeleton: export `note` (`base`) entities to an OKF bundle directory.
 
 ### Phase 4 — Import + round-trip
 
-- Tests first: importing a brains-exported bundle reproduces the same entities (round-trip); importing a foreign bundle with an unknown `type` falls back to `base` with `type` preserved in metadata.
+- Tests first: importing a brains-exported bundle reproduces the same entities (round-trip); importing a foreign bundle with an unknown `type` falls back to `note` with `type` preserved in metadata.
 - Implement `okf` import mode mapping `type`→`entityType` and parsing concept files.
 
 ### Phase 5 — Surface as a job/command
@@ -111,7 +111,7 @@ Walking skeleton: export `note` (`base`) entities to an OKF bundle directory.
 3. `visibility: private` entities excluded by default, included with the opt-in flag.
 4. Cross-entity reference exports as a working relative markdown link.
 5. Round-trip: export → import reproduces the same entities (ignoring `contentHash`/timestamps).
-6. Foreign bundle with unknown `type` imports as `base` with original `type` retained in metadata.
+6. Foreign bundle with unknown `type` imports as `note` with original `type` retained in metadata.
 7. Exported bundle renders in the OKF reference HTML visualizer.
 
 ## Open questions

@@ -149,15 +149,15 @@ describe("FileOperations", () => {
         );
       });
 
-      it("should handle base entities without subdirectories", () => {
+      it("should handle note entities without subdirectories", () => {
         const content = "test";
-        const entity = createTestEntity("base", {
-          id: "base:entity:test",
+        const entity = createTestEntity("note", {
+          id: "note:entity:test",
           content,
           metadata: {},
         });
 
-        // Base entities go in root, "base:" prefix is stripped since it matches entity type
+        // Note entities go in root, "note:" prefix is stripped since it matches entity type
         const path = fileOps.getEntityFilePath(entity);
         expect(path).toBe(join(testDir, "entity", "test.md"));
       });

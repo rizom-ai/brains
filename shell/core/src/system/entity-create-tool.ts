@@ -236,12 +236,12 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const title = normalizeOptionalString(input.title);
       if (
         transform === "extract-markdown" &&
-        (!uploadRef || input.entityType !== "base")
+        (!uploadRef || input.entityType !== "note")
       ) {
         return {
           success: false,
           error:
-            'Transform "extract-markdown" requires entityType "base" and an upload ref. Omit transform for raw file promotion to document/image.',
+            'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
         };
       }
       const replace = input.replace === true;

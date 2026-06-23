@@ -23,6 +23,8 @@ bun install
 
 # Run any brain instance from its instance directory.
 # Instances are brain.yaml-centered packages consumed by the brain CLI at runtime.
+# `brain init` scaffolds a `.env.example` into the brain directory; copy it to
+# `.env` and fill in your keys.
 cd ~/Documents/yeehaa-io
 cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
 bunx brain start
@@ -103,7 +105,7 @@ The project maintains the existing CI/CD workflows from the original project.
   - Type checking
   - Unit tests
   - Build verification
-- All CI checks must pass before merging pull requests
+- Run the same checks locally before merging a feature branch into `main`
 
 ### Husky Hooks
 
@@ -118,9 +120,10 @@ Do not bypass hooks. Fix the failing checks instead.
 
 ### Environment Variables
 
-- The project uses .env files for configuration
-- Use the `example.env` file as a template
-- Never commit actual .env files to the repository
+- Brain instances use `.env` files for secret configuration
+- `brain init` scaffolds a `.env.example` into the brain directory; use it as the
+  template (there is no committed `.env.example` at the monorepo root)
+- Never commit actual `.env` files
 - Environment variables are validated using Zod schemas
 
 ### Required Environment Variables
@@ -150,7 +153,7 @@ All non-secret config (domain, ports, repos, plugin overrides) belongs in `brain
 
 ### Managing .env Files
 
-1. Copy `example.env` to `.env` for local development
+1. In the brain directory, copy the scaffolded `.env.example` to `.env` for local development
 2. Add required API keys and configuration values
 3. For production, use environment-specific .env files (.env.production)
 4. For CI/CD, set up environment variables in GitHub repository settings
@@ -336,12 +339,17 @@ async processQuery<T = unknown>(query: string, options?: QueryOptions<T>): Promi
 
 ## Review Process
 
-### Pull Request Guidelines
+### Merge-to-main Workflow
 
-- Keep PRs small and focused on specific changes
-- Include links to relevant documentation
-- Provide context and reasoning for changes
-- Attach screenshots for UI changes if applicable
+This repo does not use pull requests. Work happens in a local feature branch or
+worktree and is merged directly into `main`:
+
+- Keep each branch small and focused on a specific change
+- Run the local checks (`bun run typecheck`, `bun run test`, `bun run lint`)
+  before merging; the husky hooks enforce this on commit/push
+- Merge the feature branch into `main` locally, then push `main`
+- Include context and reasoning in commit messages; reference relevant
+  documentation where helpful
 
 ### Code Review Checklist
 

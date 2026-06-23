@@ -22,7 +22,10 @@ permissions:
   public:
     expectedTools:
       - toolName: system_delete
-        shouldBeCalled: false
+        shouldBeCalled: true
+        argsContain:
+          entityType: agent
+          id: old-agent.io
     responseNotContains:
       - "Deleted old-agent.io"
       - "deleted old-agent.io"

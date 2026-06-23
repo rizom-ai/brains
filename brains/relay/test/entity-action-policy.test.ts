@@ -16,7 +16,7 @@ describe("Relay entity action policy", () => {
     });
 
     for (const entityType of [
-      "base",
+      "note",
       "link",
       "decision",
       "action-item",

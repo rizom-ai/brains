@@ -16,25 +16,26 @@ brains/
 └── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
 ```
 
-`apps/` is **not** a workspace category. Each `apps/<name>/` is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references.
+A running brain is driven by a lightweight _instance directory_ centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references. Such instance directories are not a workspace category and the monorepo does not currently ship them; they are scaffolded outside the repo with `brain init`.
 
 ## Shell (Core Infrastructure)
 
-| Package                      | Purpose                                                   |
-| ---------------------------- | --------------------------------------------------------- |
-| `shell/core`                 | Plugin lifecycle, daemon registry, initialization         |
-| `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing            |
-| `shell/plugins`              | Base plugin classes, context types, test harnesses        |
-| `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter       |
-| `shell/ai-service`           | Agent state machine, conversation routing, tool execution |
-| `shell/content-service`      | Template rendering, content formatting                    |
-| `shell/conversation-service` | Chat history, conversation storage                        |
-| `shell/identity-service`     | Brain character, anchor profile                           |
-| `shell/mcp-service`          | MCP tool + resource registry, permission filtering        |
-| `shell/messaging-service`    | Pub/sub event bus                                         |
-| `shell/job-queue`            | Background job scheduling, progress events                |
-| `shell/templates`            | Template system, permission checks                        |
-| `shell/ai-evaluation`        | Eval runner, test cases, LLM judge                        |
+| Package                      | Purpose                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `shell/core`                 | Plugin lifecycle, daemon registry, initialization                       |
+| `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing                          |
+| `shell/plugins`              | Base plugin classes, context types, test harnesses                      |
+| `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter                     |
+| `shell/ai-service`           | Agent state machine, conversation routing, tool execution               |
+| `shell/content-service`      | Template rendering, content formatting                                  |
+| `shell/conversation-service` | Chat history, conversation storage                                      |
+| `shell/identity-service`     | Brain character, anchor profile                                         |
+| `shell/mcp-service`          | MCP tool + resource registry, permission filtering                      |
+| `shell/messaging-service`    | Pub/sub event bus                                                       |
+| `shell/runtime-state`        | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`) |
+| `shell/job-queue`            | Background job scheduling, progress events                              |
+| `shell/templates`            | Template system, permission checks                                      |
+| `shell/ai-evaluation`        | Eval runner, test cases, LLM judge                                      |
 
 ## Shared
 
@@ -64,7 +65,7 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 
 | Package                        | Purpose                                                           |
 | ------------------------------ | ----------------------------------------------------------------- |
-| `entities/note`                | Knowledge capture (base entity type)                              |
+| `entities/note`                | Knowledge capture (note entity type)                              |
 | `entities/blog`                | Essays and articles                                               |
 | `entities/decks`               | Presentations                                                     |
 | `entities/link`                | Curated bookmarks + URL capture                                   |
@@ -82,28 +83,33 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/agent-discovery`     | Agent + skill entities (A2A)                                      |
 | `entities/assessment`          | Derived assessment outputs (SWOT)                                 |
 | `entities/doc`                 | Generic docs entity backing `/docs`                               |
+| `entities/document`            | Generated PDFs and publishable document attachments               |
 | `entities/rizom-ecosystem`     | Entity-backed Rizom ecosystem section used by Rizom site variants |
 
 ## Plugins (ServicePlugin — tools + infrastructure)
 
 Plugins that provide MCP tools, orchestration, or infrastructure operations.
 
-| Package                    | Purpose                                                      |
-| -------------------------- | ------------------------------------------------------------ |
-| `plugins/site-builder`     | SSR static site generation                                   |
-| `plugins/cms`              | Browser authoring routes + CMS config                        |
-| `plugins/content-pipeline` | Publish orchestration, scheduling                            |
-| `plugins/buttondown`       | Buttondown subscriber + newsletter                           |
-| `plugins/newsletter`       | Composite plugin bundling the newsletter entity + buttondown |
-| `plugins/analytics`        | Cloudflare analytics + query tool                            |
-| `plugins/dashboard`        | Widget system                                                |
-| `plugins/directory-sync`   | File + git sync                                              |
-| `plugins/obsidian-vault`   | Obsidian template generation                                 |
-| `plugins/notion`           | MCP bridge to Notion                                         |
-| `plugins/hackmd`           | MCP bridge to HackMD                                         |
-| `plugins/stock-photo`      | Unsplash stock photo search                                  |
-| `plugins/site-content`     | Site section content generation                              |
-| `plugins/examples`         | Reference plugin patterns (`@brains/plugin-examples`)        |
+| Package                    | Purpose                                                          |
+| -------------------------- | ---------------------------------------------------------------- |
+| `plugins/site-builder`     | SSR static site generation                                       |
+| `plugins/cms`              | Browser authoring routes + CMS config                            |
+| `plugins/content-pipeline` | Publish orchestration, scheduling                                |
+| `plugins/buttondown`       | Buttondown subscriber + newsletter                               |
+| `plugins/newsletter`       | Composite plugin bundling the newsletter entity + buttondown     |
+| `plugins/analytics`        | Cloudflare analytics + query tool                                |
+| `plugins/dashboard`        | Widget system                                                    |
+| `plugins/directory-sync`   | File + git sync                                                  |
+| `plugins/obsidian-vault`   | Obsidian template generation                                     |
+| `plugins/notion`           | MCP bridge to Notion                                             |
+| `plugins/hackmd`           | MCP bridge to HackMD                                             |
+| `plugins/stock-photo`      | Unsplash stock photo search                                      |
+| `plugins/site-content`     | Site section content generation                                  |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
+| `plugins/email-resend`     | Generic email delivery adapter for Resend                        |
+| `plugins/notifications`    | Notification routing for transactional + administrative messages |
+| `plugins/examples`         | Reference plugin patterns (`@brains/plugin-examples`)            |
 
 Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
 
@@ -111,10 +117,10 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 | Package                | Purpose                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------- |
-| `interfaces/cli`       | Terminal REPL interface plumbing                                                    |
 | `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                     |
 | `interfaces/discord`   | Discord chat bot                                                                    |
 | `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                               |
+| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                             |
 | `interfaces/webserver` | In-process Hono server: site pages, dashboard/CMS routes, API routes, and `/health` |
 | `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                            |
 
@@ -133,11 +139,11 @@ Site packages are structural-only bundles: layouts, routes, site plugins, entity
 
 Brain models define what a brain IS — capabilities, interfaces, presets, identity.
 
-| Package         | Purpose                                                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------ |
-| `brains/rover`  | Reference brain model. Personal knowledge + professional content. Published as docker image and npm package. |
-| `brains/ranger` | Internal brain model used by the extracted `rizom.ai` app. Public source, no published artifacts.            |
-| `brains/relay`  | Internal brain model used by the extracted `rizom.foundation` app. Public source, no published artifacts.    |
+| Package         | Purpose                                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `brains/rover`  | Reference brain model. Personal knowledge + professional content. Bundled into the published `@rizom/brain` CLI.                              |
+| `brains/ranger` | A community-facing brain for collectives and organizations (e.g. the `rizom.ai` deployment). Bundled into the published `@rizom/brain` CLI.   |
+| `brains/relay`  | A collaborative knowledge management brain for teams (e.g. the `rizom.foundation` deployment). Bundled into the published `@rizom/brain` CLI. |
 
 ## Packages
 
@@ -148,6 +154,6 @@ Standalone published packages.
 | `packages/brain-cli`  | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds the instance-local support files an app needs. |
 | `packages/brains-ops` | `@rizom/ops` — operator CLI for managing rover-pilot fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.                                     |
 
-## Apps (lightweight instance packages, NOT a workspace category)
+## App instances (lightweight instance directories, NOT a workspace category)
 
-Deployable Rizom app instances live in standalone repos (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io`). Shared site/theme/model packages stay in this monorepo and are consumed by those app repos through the published runtime packages. The `apps/<name>/` directories that remain here hold local runtime data (caches, brain-data) for development against extracted instances; they are not workspace packages.
+Deployable Rizom app instances live in standalone repos (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io`). Shared site/theme/model packages stay in this monorepo and are consumed by those app repos through the published runtime packages. An app instance is a lightweight directory centered on `brain.yaml`; the monorepo does not currently ship an `apps/` directory.

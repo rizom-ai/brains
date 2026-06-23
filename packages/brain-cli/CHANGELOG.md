@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.127
+
+### Patch Changes
+
+- [`1cf5d7c`](https://github.com/rizom-ai/brains/commit/1cf5d7c57579db6d9dd4a4a58f4efb78624c3e4c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fail closed for public delete requests through the system delete tool before entity lookup, and report git-backed directory sync requests as queued background work.
+
+## 0.2.0-alpha.126
+
+## 0.2.0-alpha.125
+
+## 0.2.0-alpha.124
+
 ## 0.2.0-alpha.123
 
 ## 0.2.0-alpha.122

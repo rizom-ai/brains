@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { YAMLLoader } from "../src/loaders/yaml-loader";
 
 describe("YAMLLoader", () => {
-  it("loads the base/note mapping eval", async () => {
+  it("loads the note mapping eval", async () => {
     const filePath = join(
       import.meta.dir,
       "..",
@@ -26,7 +26,7 @@ describe("YAMLLoader", () => {
     expect(testCase.turns[0]?.successCriteria?.expectedTools?.[0]).toEqual({
       toolName: "system_create",
       shouldBeCalled: true,
-      argsContain: { entityType: "base" },
+      argsContain: { entityType: "note" },
     });
     expect(testCase.turns[2]?.userMessage).toContain(
       'User uploaded a file "meeting-notes.md":',

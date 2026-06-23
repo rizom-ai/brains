@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-06-16
+Last updated: 2026-06-19
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -80,6 +80,7 @@ These areas are effectively landed:
 - **Structured chat confirmations** — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path
 - **Web chat session management** — the bundled `/chat` surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation
 - **Web chat outbound attachments** — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances
+- **Runtime state store service** — `shell/runtime-state` ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into `shell/core` service initialization and exposed to plugins via `context.runtimeState`; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending
 
 ## Strategic roadmap
 

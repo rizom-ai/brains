@@ -13,11 +13,12 @@ The entity model is a core part of the Brain architecture. It provides a unified
 
 ### Hybrid Storage Model
 
-- Database stores core metadata in columns: `id`, `entityType`, `title`, `created`, `updated`, `tags`
-- Entity-specific content stored as markdown in `content` column
+- Database stores core fields in columns: `id`, `entityType`, `content`, `contentHash`, `visibility`, `metadata`, `created`, `updated`
+- Entity-specific content stored as markdown in the `content` column
+- Per-type fields (including `title` and `tags`) live inside the `metadata` JSON, not as top-level columns
 - Adapters handle bidirectional conversion between entities and markdown
-- Embeddings stored separately in vector column
-- Single source of truth: database columns for core metadata, markdown for entity-specific fields
+- Embeddings stored separately in a vector column
+- Single source of truth: database columns for core fields, markdown content for entity-specific fields
 
 ## Core Concepts
 
@@ -28,17 +29,20 @@ All entities share common properties and validation:
 ```typescript
 // Base entity schema with required fields
 export const baseEntitySchema = z.object({
-  id: z.string().min(1), // nanoid(12) generated
+  id: z.string(), // nanoid(12) generated
   entityType: z.string(), // Type discriminator
-  title: z.string(), // Display title
-  content: z.string(), // Main content
+  content: z.string(), // Main content (markdown body)
   created: z.string().datetime(), // ISO timestamp
   updated: z.string().datetime(), // ISO timestamp
-  tags: z.array(z.string()).default([]), // Tags array
+  visibility: contentVisibilitySchema, // "public" | "shared" | "restricted"
+  metadata: z.record(z.string(), z.unknown()), // Per-type fields (title, tags, etc.)
+  contentHash: z.string(), // SHA256 of content, for change detection
 });
 
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 ```
+
+There is no top-level `title` or `tags` field. Per-type fields such as `title` and `tags` are stored inside the `metadata` JSON, where each entity type defines its own metadata shape.
 
 ### Current Implementation Status
 
@@ -46,9 +50,10 @@ The shell package already includes:
 
 - **EntityRegistry**: Manages entity types and adapters
 - **EntityService**: Provides CRUD operations and search
-- **EntityAdapter interface**: Currently expects `fromMarkdown` only
-- **IContentModel interface**: Currently expects entities to have `toMarkdown()`
+- **EntityAdapter interface**: Handles entity ↔ markdown conversion (requires `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`)
 - **Database schema**: Tables for entities and embeddings
+
+Entities themselves are pure data objects. All serialization logic lives on the adapter — there is no `toMarkdown()` method on the entity.
 
 ### Where Entities Are Defined
 
@@ -127,25 +132,46 @@ Each entity type requires an adapter for markdown serialization. Adapters work w
 
 1. **toMarkdown**: Converts entity to markdown (may include frontmatter for entity-specific fields)
 2. **fromMarkdown**: Extracts entity-specific fields from markdown content
-3. **Core fields** (`id`, `entityType`, `title`, `created`, `updated`, `tags`) come from database
-4. **Entity-specific fields** come from markdown/frontmatter
+3. **Core fields** (`id`, `entityType`, `content`, `created`, `updated`, `visibility`, `contentHash`) come from the database
+4. **Entity-specific fields** (including `title`/`tags` in `metadata`) come from markdown/frontmatter
+
+The adapter interface requires `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`. Note that `parseFrontMatter` takes the markdown plus a Zod schema to validate the frontmatter against. Several capability flags are optional.
 
 ```typescript
-export interface EntityAdapter<T extends BaseEntity> {
+export interface EntityAdapter<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata = Record<string, unknown>,
+> {
   entityType: string;
-  schema: z.ZodSchema<T>;
+  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
 
-  // Convert entity to markdown representation
-  toMarkdown(entity: T): string;
+  // Convert entity to markdown content (may include frontmatter)
+  toMarkdown(entity: TEntity): string;
 
   // Extract entity-specific fields from markdown
-  // Note: This returns Partial<T> - core fields will be merged from database
-  fromMarkdown(markdown: string): Partial<T>;
+  // Returns Partial<TEntity> - core fields are merged from the database
+  fromMarkdown(markdown: string): Partial<TEntity>;
 
-  // Optional: Metadata handling for frontmatter
-  extractMetadata?(entity: T): Record<string, unknown>;
-  parseFrontMatter?(markdown: string): Record<string, unknown>;
-  generateFrontMatter?(entity: T): string;
+  // Extract typed metadata from the entity for search/filtering
+  extractMetadata(entity: TEntity): TMetadata;
+
+  // Parse + validate frontmatter against a provided Zod schema
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
+  ): TFrontmatter;
+
+  // Generate frontmatter for markdown
+  generateFrontMatter(entity: TEntity): string;
+
+  // Return a markdown body template with section headings (empty for free-form)
+  getBodyTemplate(): string;
+
+  // Optional capability flags
+  frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+  isSingleton?: boolean;
+  hasBody?: boolean;
+  supportsCoverImage?: boolean;
 }
 
 // Example implementation for LinkEntity (content-heavy entity)
@@ -204,22 +230,15 @@ class LinkAdapter implements EntityAdapter<LinkEntity> {
 }
 
 // Example implementation for SummaryEntity (metadata-heavy entity)
-class SummaryAdapter implements EntityAdapter<SummaryEntity> {
+class SummaryAdapter implements EntityAdapter<SummaryEntity, SummaryMetadata> {
   entityType = "summary";
-  schema = summaryEntitySchema;
+  schema = summarySchema;
 
   toMarkdown(entity: SummaryEntity): string {
-    // Most data in frontmatter for summaries
-    const frontmatter = matter.stringify("", {
-      summaryType: entity.summaryType,
-      conversationId: entity.conversationId,
-      entityIds: entity.entityIds,
-      messageCount: entity.messageCount,
-      dateRange: entity.dateRange,
-      metadata: entity.metadata,
-    });
+    // Conversation context lives in typed metadata frontmatter
+    const frontmatter = matter.stringify("", { ...entity.metadata });
 
-    // Content is the summary text
+    // Content is the rendered summary entries
     return `${frontmatter}${entity.content}`;
   }
 
@@ -228,43 +247,28 @@ class SummaryAdapter implements EntityAdapter<SummaryEntity> {
 
     return {
       content: content.trim(),
-      summaryType: data.summaryType as
-        | "daily"
-        | "weekly"
-        | "monthly"
-        | "custom",
-      conversationId: data.conversationId as string,
-      entityIds: (data.entityIds as string[]) || [],
-      messageCount: (data.messageCount as number) || 0,
-      dateRange: data.dateRange as { start: string; end: string },
-      metadata: (data.metadata as Record<string, unknown>) || {},
+      metadata: summaryMetadataSchema.parse(data),
     };
   }
 
-  extractMetadata(entity: SummaryEntity): Record<string, unknown> {
-    return {
-      id: entity.id,
-      title: entity.title,
-      tags: entity.tags,
-      summaryType: entity.summaryType,
-      conversationId: entity.conversationId,
-      entityIds: entity.entityIds,
-      messageCount: entity.messageCount,
-      dateRange: entity.dateRange,
-      created: entity.created,
-      updated: entity.updated,
-      entityType: entity.entityType,
-    };
+  extractMetadata(entity: SummaryEntity): SummaryMetadata {
+    return entity.metadata;
   }
 
   generateFrontMatter(entity: SummaryEntity): string {
-    const metadata = this.extractMetadata(entity);
-    return matter.stringify("", metadata);
+    return matter.stringify("", { ...entity.metadata });
   }
 
-  parseFrontMatter(markdown: string): Record<string, unknown> {
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
+  ): TFrontmatter {
     const { data } = matter(markdown);
-    return data;
+    return schema.parse(data);
+  }
+
+  getBodyTemplate(): string {
+    return "";
   }
 }
 ```
@@ -276,26 +280,20 @@ The registry manages entity types and their schemas:
 ```typescript
 export class EntityRegistry {
   // Register entity type with schema and adapter
-  registerEntityType<T extends BaseEntity & IContentModel>(
+  registerEntityType<T extends BaseEntity>(
     type: string,
     schema: z.ZodType<T>,
     adapter: EntityAdapter<T>,
   ): void;
 
   // Validate entity against registered schema
-  validateEntity<T extends BaseEntity & IContentModel>(
-    type: string,
-    entity: unknown,
-  ): T;
+  validateEntity<T extends BaseEntity>(type: string, entity: unknown): T;
 
   // Convert entity to markdown using registered adapter
-  entityToMarkdown<T extends BaseEntity & IContentModel>(entity: T): string;
+  entityToMarkdown<T extends BaseEntity>(entity: T): string;
 
   // Convert markdown to entity using registered adapter
-  markdownToEntity<T extends BaseEntity & IContentModel>(
-    type: string,
-    markdown: string,
-  ): T;
+  markdownToEntity<T extends BaseEntity>(type: string, markdown: string): T;
 }
 ```
 
@@ -305,38 +303,45 @@ export class EntityRegistry {
 
 These entity types are part of the core system and managed by shell services:
 
-#### IdentityEntity
+#### BrainCharacterEntity
 
-Brain identity and AI personality configuration:
+Brain identity and AI personality configuration. The entity itself is a singleton; the character data (`name`, `role`, `purpose`, `values`) is parsed from the markdown content body rather than stored as top-level fields:
 
 ```typescript
-const identityBodySchema = z.object({
-  role: z.string().describe("The brain's role or function"),
-  purpose: z.string().describe("The brain's purpose or mission"),
-  values: z
-    .array(z.string())
-    .describe("Core values guiding the brain's behavior"),
+const brainCharacterBodySchema = z.object({
+  name: z.string().describe("The brain's friendly display name"),
+  role: z.string().describe("The brain's primary role"),
+  purpose: z.string().describe("The brain's purpose and goals"),
+  values: z.array(z.string()).describe("Core values that guide behavior"),
 });
 
-const identitySchema = baseEntitySchema.extend({
-  id: z.literal("identity"),
-  entityType: z.literal("identity"),
+const brainCharacterSchema = baseEntitySchema.extend({
+  id: z.literal("brain-character"),
+  entityType: z.literal("brain-character"),
 });
 
-type IdentityEntity = z.infer<typeof identitySchema>;
-type IdentityBody = z.infer<typeof identityBodySchema>;
+type BrainCharacterEntity = z.infer<typeof brainCharacterSchema>;
+type BrainCharacter = z.infer<typeof brainCharacterBodySchema>;
 ```
 
 Managed by: `shell/identity-service`
 
-#### ProfileEntity
+#### AnchorProfileEntity
 
-Person or organization profile information:
+Public identity of the person, team, or collective behind the brain. The profile data is parsed from the markdown content body:
 
 ```typescript
-const profileBodySchema = z.object({
+const anchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
+  kind: z
+    .enum(["professional", "team", "collective"])
+    .describe("Type of anchor: professional (individual), team, or collective"),
+  organization: z
+    .string()
+    .optional()
+    .describe("Organization the anchor belongs to"),
   description: z.string().optional().describe("Short description or biography"),
+  avatar: z.string().optional().describe("URL or asset path to avatar/logo"),
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
   socialLinks: z
@@ -353,16 +358,16 @@ const profileBodySchema = z.object({
     .describe("Social media and contact links"),
 });
 
-const profileSchema = baseEntitySchema.extend({
-  id: z.literal("profile"),
-  entityType: z.literal("profile"),
+const anchorProfileSchema = baseEntitySchema.extend({
+  id: z.literal("anchor-profile"),
+  entityType: z.literal("anchor-profile"),
 });
 
-type ProfileEntity = z.infer<typeof profileSchema>;
-type ProfileBody = z.infer<typeof profileBodySchema>;
+type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
+type AnchorProfile = z.infer<typeof anchorProfileBodySchema>;
 ```
 
-Managed by: `shell/profile-service`
+Managed by: `shell/identity-service`
 
 #### SiteInfoEntity
 
@@ -401,11 +406,11 @@ Managed by: `plugins/site-builder` (SiteInfoService)
 
 **Note**: The three core entity types serve distinct purposes:
 
-- **identity**: AI personality and behavior (brain's role, purpose, values)
-- **profile**: Person/organization's public presence (name, bio, social links)
+- **brain-character**: AI personality and behavior (brain's name, role, purpose, values)
+- **anchor-profile**: Public presence of the person/team/collective behind the brain (name, kind, organization, bio, social links)
 - **site-info**: Website presentation (title, description, CTA, theme)
 
-At runtime, site-builder merges site-info and profile data (e.g., socialLinks from profile) to create the complete site configuration.
+At runtime, site-builder merges site-info and anchor-profile data (e.g., socialLinks from the anchor profile) to create the complete site configuration.
 
 ### Plugin Entity Types
 
@@ -432,36 +437,48 @@ type LinkEntity = z.infer<typeof linkEntitySchema>;
 
 ### SummaryEntity
 
-AI-generated summaries and daily digests:
+Narrative conversation summaries. All conversation context lives in a typed `metadata` object; the body holds the chronological summary entries:
 
 ```typescript
-const summaryEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("summary"),
-  summaryType: z.enum(["daily", "weekly", "monthly", "custom"]),
+const summaryMetadataSchema = z.object({
   conversationId: z.string(),
-  entityIds: z.array(z.string()).default([]),
-  messageCount: z.number().default(0),
-  dateRange: z.object({
-    start: z.string().datetime(),
-    end: z.string().datetime(),
-  }),
-  metadata: z.record(z.unknown()).default({}),
+  channelId: z.string(),
+  channelName: z.string().optional(),
+  interfaceType: z.string(),
+  timeRange: summaryTimeRangeSchema.optional(),
+  messageCount: z.number().int().min(0),
+  entryCount: z.number().int().min(0),
+  participants: z.array(summaryParticipantSchema).optional(),
+  sourceHash: z.string(),
+  projectionVersion: z.number().int().min(1),
 });
 
-type SummaryEntity = z.infer<typeof summaryEntitySchema>;
+const summarySchema = baseEntitySchema.extend({
+  entityType: z.literal("summary"),
+  metadata: summaryMetadataSchema,
+});
+
+type SummaryEntity = z.infer<typeof summarySchema>;
 ```
 
 ### TopicEntity
 
-Extracted topics from conversations:
+Topics derived from source content. Topic metadata is intentionally empty; the title lives in frontmatter and the description lives in the body:
 
 ```typescript
+const topicMetadataSchema = z.object({});
+
 const topicEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("topic"),
-  conversationId: z.string(),
-  importance: z.enum(["low", "medium", "high"]),
-  relatedEntities: z.array(z.string()).default([]),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: topicMetadataSchema,
+});
+
+const topicFrontmatterSchema = z.object({
+  title: z.string().describe("Topic title"),
+});
+
+const topicBodySchema = z.object({
+  content: z.string(),
 });
 
 type TopicEntity = z.infer<typeof topicEntitySchema>;
@@ -478,7 +495,9 @@ CREATE TABLE entities (
   entityType TEXT NOT NULL,
   content TEXT NOT NULL,          -- Full markdown with frontmatter
   contentHash TEXT NOT NULL,      -- For change detection
-  metadata TEXT NOT NULL DEFAULT '{}', -- JSON, subset of frontmatter
+  visibility TEXT NOT NULL DEFAULT 'public'
+    CHECK (visibility IN ('public', 'shared', 'restricted')),
+  metadata TEXT NOT NULL DEFAULT '{}', -- JSON, includes title/tags + per-type fields
   created INTEGER NOT NULL,
   updated INTEGER NOT NULL,
   PRIMARY KEY(id, entityType)
@@ -540,10 +559,12 @@ const entity = {
   // Core fields from database (always authoritative)
   id: entityData.id,
   entityType: entityData.entityType,
-  title: entityData.title,
+  content: entityData.content,
+  visibility: entityData.visibility,
+  metadata: entityData.metadata, // includes title/tags for types that use them
+  contentHash: entityData.contentHash,
   created: new Date(entityData.created).toISOString(),
   updated: new Date(entityData.updated).toISOString(),
-  tags: entityData.tags,
 
   // Entity-specific fields from adapter
   ...parsedContent,
@@ -555,20 +576,20 @@ const entity = {
 ```typescript
 export class EntityService {
   // Create new entity (generates ID if not provided)
-  async createEntity<T extends BaseEntity & IContentModel>(
-    entity: Omit<T, "id"> & { id?: string },
-  ): Promise<T>;
+  async createEntity<T extends BaseEntity>(
+    request: CreateEntityRequest<T>,
+  ): Promise<EntityMutationResult>;
 
   // Get entity by ID and type
-  async getEntity<T extends BaseEntity & IContentModel>(request: {
+  async getEntity<T extends BaseEntity>(request: {
     entityType: string;
     id: string;
   }): Promise<T | null>;
 
   // Update existing entity
-  async updateEntity<T extends BaseEntity & IContentModel>(
-    entity: T,
-  ): Promise<T>;
+  async updateEntity<T extends BaseEntity>(
+    request: UpdateEntityRequest<T>,
+  ): Promise<EntityMutationResult>;
 
   // Delete entity by ID and type
   async deleteEntity(request: {
@@ -577,16 +598,29 @@ export class EntityService {
   }): Promise<boolean>;
 
   // List entities by type with pagination
-  async listEntities<T extends BaseEntity & IContentModel>(request: {
-    entityType: string;
-    options?: ListOptions;
-  }): Promise<T[]>;
+  async listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+  ): Promise<T[]>;
 
-  // Search entities by tags
-  async searchEntitiesByTags(
-    tags: string[],
-    options?: SearchOptions,
+  // Full-text + vector search across entities
+  async search<T extends BaseEntity = BaseEntity>(request: {
+    query: string;
+    options?: SearchOptions;
+  }): Promise<SearchResult<T>[]>;
+
+  // Search within a single entity type
+  async searchEntities(
+    entityType: string,
+    query: string,
+    options?: Pick<SearchOptions, "limit">,
   ): Promise<SearchResult[]>;
+
+  // Diagnostic: raw vector distances for a query
+  async searchWithDistances(request: {
+    query: string;
+  }): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  >;
 }
 ```
 

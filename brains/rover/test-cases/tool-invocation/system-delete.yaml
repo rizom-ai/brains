@@ -20,7 +20,10 @@ permissions:
   public:
     expectedTools:
       - toolName: system_delete
-        shouldBeCalled: false
+        shouldBeCalled: true
+        argsContain:
+          entityType: note
+          id: green-software-principles
     responseNotContains:
       - "deleted"
       - "removed"

@@ -93,10 +93,10 @@ describe("buildInstructions", () => {
     expect(instructions).toContain("public user");
   });
 
-  it("should map note-like language to the base entity type", () => {
+  it("should map note-like language to the note entity type", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      '"note", "notes", "memo", "base" → entityType: `base`',
+      '"note", "notes", "memo" → entityType: `note`',
     );
     expect(instructions).not.toContain('"note", "memo" → entityType: `note`');
     expect(instructions).toContain(
@@ -158,7 +158,7 @@ describe("buildInstructions", () => {
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "Create a `base` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
+      "Create a `note` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
     );
     expect(instructions).toContain("save, or capture content");
   });
@@ -237,13 +237,13 @@ describe("buildInstructions", () => {
   it("should keep discussion and summary notes off upload import paths", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `base` entity with `content` from the conversation; do not import the image/PDF/file upload and do not pass `upload` or `transform`.",
+      "If the user asks to save an image description, image discussion, image interpretation, caption, summary, study notes, or your prior answer as a note, create a `note` entity with `content` from the conversation; do not import the image/PDF/file upload and do not pass `upload` or `transform`.",
     );
     expect(instructions).toContain(
       "After you summarize/read/describe/analyze an uploaded file, follow-ups like “save it”, “save that”, “save the note”, or “save the summary” refer to the visible summary/notes you just wrote unless the user explicitly says to save/import/promote the uploaded PDF/file/document itself.",
     );
     expect(instructions).toContain(
-      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "base"`; never use `transform` for image uploads.',
+      '`transform` is only for PDF/text/JSON/markdown-to-note extraction with `entityType: "note"`; never use `transform` for image uploads.',
     );
     expect(instructions).toContain(
       "Call exactly one `system_upload_save`; do not also create an alternate document/image entity",

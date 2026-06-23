@@ -31,7 +31,7 @@ permissions:
       - toolName: system_create
         shouldBeCalled: true
         argsContain:
-          entityType: base
+          entityType: note
     responseNotContains:
       - "Confirmation required"
       - "created"
@@ -42,7 +42,7 @@ permissions:
       - toolName: system_create
         shouldBeCalled: true
         argsContain:
-          entityType: base
+          entityType: note
         argsAbsent:
           - upload
           - sourceAttachment

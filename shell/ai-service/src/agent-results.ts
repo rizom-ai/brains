@@ -36,6 +36,9 @@ const searchToolDataSchema = z.object({
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
 });
+const listToolDataSchema = z.object({
+  entities: z.array(sourceEntitySchema),
+});
 const attachmentToolDataSchema = z
   .object({
     documentId: z.string().min(1).optional(),
@@ -435,7 +438,7 @@ const entityRefArgsSchema = z.object({
 });
 
 /**
- * Build a compact memory note listing the entities a turn created or updated.
+ * Build a compact memory note listing entities a turn created, updated, or listed.
  *
  * Conversation history is text-only, so tool results (and the entity IDs they
  * return) are otherwise lost after a turn — a follow-up like "add a cover image
@@ -445,26 +448,61 @@ const entityRefArgsSchema = z.object({
  */
 export function buildEntityMemoryNote(toolResults: ToolResultData[]): string {
   const seen = new Set<string>();
-  const refs: string[] = [];
+  const affectedRefs: string[] = [];
+  const listedRefs: string[] = [];
   for (const tr of toolResults) {
     const data = entityRefDataSchema.safeParse(tr.data);
-    if (!data.success) continue;
-    const { status } = data.data;
-    const entityId =
-      data.data.entityId ?? data.data.updated ?? data.data.deleted;
-    if (!entityId || seen.has(entityId)) continue;
-    seen.add(entityId);
+    const entityId = data.success
+      ? (data.data.entityId ?? data.data.updated ?? data.data.deleted)
+      : undefined;
+    if (data.success && entityId !== undefined) {
+      const { status } = data.data;
+      if (seen.has(entityId)) continue;
+      seen.add(entityId);
 
-    const args = entityRefArgsSchema.safeParse(tr.args ?? {});
-    const entityType = args.success ? args.data.entityType : undefined;
-    const operation = data.data.updated
-      ? "updated"
-      : data.data.deleted
-        ? "deleted"
-        : status;
-    const label = entityType ? `${entityType} "${entityId}"` : `"${entityId}"`;
-    refs.push(operation ? `${label} (${operation})` : label);
+      const args = entityRefArgsSchema.safeParse(tr.args ?? {});
+      const entityType = args.success ? args.data.entityType : undefined;
+      const operation = data.data.updated
+        ? "updated"
+        : data.data.deleted
+          ? "deleted"
+          : status;
+      const label = entityType
+        ? `${entityType} "${entityId}"`
+        : `"${entityId}"`;
+      affectedRefs.push(operation ? `${label} (${operation})` : label);
+      continue;
+    }
+
+    if (tr.toolName !== "system_list") continue;
+    const listData = listToolDataSchema.safeParse(tr.data);
+    if (!listData.success) continue;
+    for (const entity of listData.data.entities) {
+      if (seen.has(entity.id)) continue;
+      seen.add(entity.id);
+      const title = getEntityTitle(entity);
+      const status = getMetadataString(entity.metadata, "status");
+      const details = [
+        title !== entity.id ? `title: ${title}` : undefined,
+        status !== undefined ? `status: ${status}` : undefined,
+      ]
+        .filter((value): value is string => value !== undefined)
+        .join(", ");
+      listedRefs.push(
+        `${listedRefs.length + 1}. ${entity.entityType} "${entity.id}"${details.length > 0 ? ` (${details})` : ""}`,
+      );
+    }
   }
-  if (refs.length === 0) return "";
-  return `\n\n[Entities affected this turn: ${refs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.]`;
+  const notes: string[] = [];
+  if (affectedRefs.length > 0) {
+    notes.push(
+      `Entities affected this turn: ${affectedRefs.join("; ")}. Reference these IDs directly in follow-ups instead of searching for them.`,
+    );
+  }
+  if (listedRefs.length > 0) {
+    notes.push(
+      `Entities listed this turn: ${listedRefs.join("; ")}. For follow-ups like first one, second one, or that item, reference these IDs directly instead of searching by title.`,
+    );
+  }
+  return notes.length > 0 ? `\n\n[${notes.join(" ")}]` : "";
 }

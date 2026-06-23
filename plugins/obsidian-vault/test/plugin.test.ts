@@ -23,7 +23,7 @@ const postSchema = z.object({
 const noteSchema = z.object({
   title: z.string(),
   status: z.enum(["draft", "published"]),
-  entityType: z.literal("base"),
+  entityType: z.literal("note"),
 });
 
 const siteInfoSchema = z.object({
@@ -34,7 +34,7 @@ const siteInfoSchema = z.object({
 
 const schemas = new Map<string, z.ZodObject<z.ZodRawShape>>([
   ["post", postSchema],
-  ["base", noteSchema],
+  ["note", noteSchema],
   ["site-info", siteInfoSchema],
 ]);
 
@@ -69,7 +69,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const registry = harness.getEntityRegistry();
     registry.registerEntityType("post", {} as never, {} as never);
-    registry.registerEntityType("base", {} as never, {} as never);
+    registry.registerEntityType("note", {} as never, {} as never);
     registry.registerEntityType("site-info", {} as never, {} as never);
     registry.getEffectiveFrontmatterSchema = (
       type: string,
@@ -109,7 +109,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const data = generatedSchema.parse(result.data);
     expect(data.generated).toContain("post");
-    expect(data.generated).toContain("base");
+    expect(data.generated).toContain("note");
   });
 
   it("should write template files to the correct directory", async () => {
@@ -123,7 +123,7 @@ describe("ObsidianVaultPlugin", () => {
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
     expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/base.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/note.md");
   });
 
   it("should generate valid template content", async () => {
@@ -150,7 +150,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const data = generatedSchema.parse(result.data);
     expect(data.generated).toEqual(["post"]);
-    expect(data.generated).not.toContain("base");
+    expect(data.generated).not.toContain("note");
   });
 
   it("should skip entity types with no frontmatter schema", async () => {
@@ -176,7 +176,7 @@ describe("ObsidianVaultPlugin", () => {
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
     expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/base.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/note.md");
   });
 
   it("should generate fileClass with enum options", async () => {
@@ -202,7 +202,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const data = fileClassesSchema.parse(result.data);
     expect(data.fileClasses).toContain("post");
-    expect(data.fileClasses).toContain("base");
+    expect(data.fileClasses).toContain("note");
   });
 
   it("should generate .base files at vault root", async () => {
@@ -242,7 +242,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const data = basesSchema.parse(result.data);
     expect(data.bases).toContain("post");
-    expect(data.bases).toContain("base");
+    expect(data.bases).toContain("note");
     expect(data.bases).toContain("Pipeline");
   });
 

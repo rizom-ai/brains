@@ -19,7 +19,7 @@ mybrain/
 
 Directory sync maps paths to entities:
 
-- root markdown files are note entities with `entityType: "base"`
+- root markdown files are note entities with `entityType: "note"`
 - files under `brain-data/<entity-type>/` use that directory as their entity type
 - nested paths below the entity-type directory become colon-separated ids, for example `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
@@ -72,7 +72,7 @@ Common tools:
 Examples:
 
 ```bash
-brain tool system_create '{"entityType":"base","title":"Idea","content":"# Idea\n\nA short note."}'
+brain tool system_create '{"entityType":"note","title":"Idea","content":"# Idea\n\nA short note."}'
 brain tool system_search '{"query":"recent published posts","entityType":"post"}'
 brain tool system_list '{"entityType":"post","status":"draft"}'
 ```
@@ -121,6 +121,8 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
 ```
 
+For the git-command-oriented lifecycle and conflict policy, see [Directory Sync Git Overview](./directory-sync-git.md).
+
 `directory-sync` also handles seed content on first run for shipped brain models. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
 
 ### Generation jobs
@@ -138,15 +140,15 @@ Create requests use the standard confirmation flow before anything is persisted 
 
 Publishing-oriented entities usually use status fields.
 
-| Entity type   | Status values                                       |
-| ------------- | --------------------------------------------------- |
-| `post`        | `draft`, `queued`, `published`                      |
-| `deck`        | `draft`, `queued`, `published`                      |
-| `project`     | `draft`, `published`                                |
-| `link`        | `pending`, `draft`, `published`                     |
-| `social-post` | `draft`, `queued`, `published`, `failed`            |
-| `newsletter`  | `draft`, `queued`, `published`, `failed`            |
-| `wish`        | `new`, `planned`, `in-progress`, `done`, `declined` |
+| Entity type   | Status values                                          |
+| ------------- | ------------------------------------------------------ |
+| `post`        | `generating`, `draft`, `queued`, `published`, `failed` |
+| `deck`        | `generating`, `draft`, `queued`, `published`, `failed` |
+| `project`     | `generating`, `draft`, `published`, `failed`           |
+| `link`        | `pending`, `draft`, `published`                        |
+| `social-post` | `generating`, `draft`, `queued`, `published`, `failed` |
+| `newsletter`  | `generating`, `draft`, `queued`, `published`, `failed` |
+| `wish`        | `new`, `planned`, `in-progress`, `done`, `declined`    |
 
 The site builder renders the entities and routes enabled by the active site package, preset, and entity display config. For app/site verification, start the app and trigger a rebuild on the running app before inspecting generated output.
 
@@ -224,6 +226,7 @@ Before publishing or deploying content:
 ## Related docs
 
 - [Entity Types Reference](./entity-types-reference.md)
+- [Directory Sync Git Overview](./directory-sync-git.md)
 - [Extensible Entity Model](./entity-model.md)
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)
 - [CLI Reference](../packages/brain-cli/docs/cli-reference.md)

@@ -40,7 +40,7 @@ logFile: ./brain.log
 port: 4321
 domain: mybrain.example.com
 database: file:./data/brain.db
-model: gpt-4.1
+model: gpt-5.4-mini
 preset: core
 mode: eval
 add:
@@ -160,7 +160,7 @@ Override the default AI model.
 Examples:
 
 ```yaml
-model: gpt-4.1
+model: gpt-5.4-mini
 model: claude-haiku-4-5
 model: openai:gpt-4o-mini
 ```
@@ -176,7 +176,7 @@ Current built-in presets:
 | Brain model | Presets                   |
 | ----------- | ------------------------- |
 | `rover`     | `core`, `default`, `full` |
-| `relay`     | `core`, `default`         |
+| `relay`     | `core`, `default`, `full` |
 | `ranger`    | `default`                 |
 
 If omitted, resolution falls back to the brain model's default preset behavior. In practice, it is best to set this explicitly.
