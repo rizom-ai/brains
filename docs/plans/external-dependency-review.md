@@ -643,6 +643,8 @@ Incremental migration progress:
 - Reused the shared conversation metadata coercer in AI conversation history
   upload-ref parsing and migrated the app usage-log line parser to explicit
   Zod 4 schemas.
+- Migrated the default YAML content formatter parser to an explicit Zod 4
+  record schema.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
