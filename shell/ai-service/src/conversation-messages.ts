@@ -1,5 +1,8 @@
 import type { AgentContextItem } from "@brains/contracts";
-import type { Message } from "@brains/conversation-service";
+import {
+  coerceConversationMetadata,
+  type Message,
+} from "@brains/conversation-service";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
 
@@ -28,14 +31,7 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
 function parseMessageMetadata(
   metadata: Message["metadata"],
 ): Record<string, unknown> | null {
-  if (isRecord(metadata)) return metadata;
-  if (typeof metadata !== "string") return null;
-  try {
-    const parsed = JSON.parse(metadata) as unknown;
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+  return coerceConversationMetadata(metadata);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -640,6 +640,9 @@ Incremental migration progress:
   Zod 4 parsing.
 - Migrated A2A SSE client event parsing to explicit Zod 4 and replaced the
   public conversation metadata JSON hand guard with the shared Zod 4 coercer.
+- Reused the shared conversation metadata coercer in AI conversation history
+  upload-ref parsing and migrated the app usage-log line parser to explicit
+  Zod 4 schemas.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
