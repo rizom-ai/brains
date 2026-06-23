@@ -638,6 +638,8 @@ Incremental migration progress:
   status response guards to explicit Zod 4.
 - Replaced web-chat persisted message metadata record hand guard with explicit
   Zod 4 parsing.
+- Migrated A2A SSE client event parsing to explicit Zod 4 and replaced the
+  public conversation metadata JSON hand guard with the shared Zod 4 coercer.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

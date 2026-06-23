@@ -51,6 +51,29 @@ const taskResultSchema = z.object({
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
 
+const sseTextPartSchema = z.looseObject({
+  kind: z.string(),
+  text: z.string().optional(),
+});
+
+const sseEventSchema = z.looseObject({
+  result: z
+    .looseObject({
+      final: z.boolean().optional(),
+      status: z
+        .looseObject({
+          state: z.string().optional(),
+          message: z
+            .looseObject({
+              parts: z.array(sseTextPartSchema).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
 /**
  * Extract text from a parts array
  */
@@ -274,9 +297,13 @@ async function readStreamToCompletion(
       const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) continue;
 
-      let event: Record<string, unknown>;
+      let event: z.output<typeof sseEventSchema>;
       try {
-        event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+        const parsedEvent = sseEventSchema.safeParse(
+          JSON.parse(dataLine.slice(6)),
+        );
+        if (!parsedEvent.success) continue;
+        event = parsedEvent.data;
       } catch {
         reader.cancel().catch(() => {});
         return {
@@ -286,20 +313,12 @@ async function readStreamToCompletion(
       }
 
       // Check if this is a JSON-RPC envelope with a result
-      const result = event["result"] as Record<string, unknown> | undefined;
-      if (!result) continue;
-
-      const isFinal = result["final"] === true;
-      if (!isFinal) continue;
+      const result = event.result;
+      if (!result?.final) continue;
 
       // Terminal event — extract response
       reader.cancel().catch(() => {});
-      const status = result["status"] as
-        | {
-            state: string;
-            message?: { parts: Array<{ kind: string; text?: string }> };
-          }
-        | undefined;
+      const status = result.status;
 
       const state = status?.state ?? "unknown";
       const responseParts = status?.message?.parts ?? [];
