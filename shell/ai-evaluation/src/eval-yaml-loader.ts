@@ -9,6 +9,7 @@ const evalYamlSchema = z.object({
   model: z.string().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
+const moduleExportsSchema = z.record(z.string(), z.unknown());
 
 export type EvalYamlConfig = z.output<typeof evalYamlSchema>;
 export type EvalYamlConfigInput = z.input<typeof evalYamlSchema>;
@@ -32,12 +33,8 @@ export function parseEvalYaml(content: string): EvalYamlConfig | null {
 function isPlugin(value: unknown): value is Plugin {
   if (typeof value !== "object" || value === null) return false;
   if (!pluginMetadataSchema.safeParse(value).success) return false;
-  return typeof (value as Plugin).register === "function";
-}
-
-interface PluginFactoryCandidate {
-  (config: Record<string, unknown>): unknown;
-  new (config: Record<string, unknown>): unknown;
+  if (!("register" in value)) return false;
+  return typeof value.register === "function";
 }
 
 async function resolvePluginExport(
@@ -70,11 +67,9 @@ async function resolvePluginExport(
       continue;
     }
 
-    const factoryCandidate = candidate as PluginFactoryCandidate;
-
     try {
       const instance = await Promise.resolve(
-        new factoryCandidate(pluginConfig),
+        Reflect.construct(candidate, [pluginConfig]),
       );
       if (isPlugin(instance)) {
         return instance;
@@ -86,7 +81,9 @@ async function resolvePluginExport(
     }
 
     try {
-      const instance = await Promise.resolve(factoryCandidate(pluginConfig));
+      const instance = await Promise.resolve(
+        Reflect.apply(candidate, undefined, [pluginConfig]),
+      );
       if (isPlugin(instance)) {
         return instance;
       }
@@ -113,7 +110,9 @@ async function resolvePluginExport(
 export async function loadPluginEvalConfig(
   evalConfig: EvalYamlConfig,
 ): Promise<AppConfig> {
-  const mod = (await import(evalConfig.plugin)) as Record<string, unknown>;
+  const mod = moduleExportsSchema.parse(
+    Object.fromEntries(Object.entries(await import(evalConfig.plugin))),
+  );
   const pluginConfig = evalConfig.config ?? {};
   const plugin = await resolvePluginExport(
     mod,

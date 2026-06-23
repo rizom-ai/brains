@@ -684,6 +684,9 @@ Incremental migration progress:
   guards.
 - Replaced entity-service metadata row/frontmatter generation guards and stable
   JSON object traversal casts with explicit Zod 4 local guards.
+- Removed remaining local record/preset casts in ai-evaluation plugin eval
+  loading and directory-sync watcher job data using explicit guards or string
+  literal narrowing.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

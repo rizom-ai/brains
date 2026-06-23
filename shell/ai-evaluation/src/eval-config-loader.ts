@@ -8,10 +8,11 @@ import {
   type InstanceOverrides,
   type PresetName,
 } from "@brains/app";
+import { z } from "@brains/utils/zod-v4";
 
 import { parseModelsField, parseJudgeField } from "./multi-model";
 
-const PRESET_NAMES = new Set<string>(["core", "default", "full"]);
+const rawYamlSchema = z.record(z.string(), z.unknown());
 
 /**
  * Load eval config from brain.eval.yaml (preferred) or brain.eval.config.ts (legacy).
@@ -245,8 +246,8 @@ function parseSuitePreset(
   suiteName: string,
 ): PresetName | undefined {
   if (value === undefined) return undefined;
-  if (typeof value === "string" && PRESET_NAMES.has(value)) {
-    return value as PresetName;
+  if (value === "core" || value === "default" || value === "full") {
+    return value;
   }
   throw new Error(
     `Eval suite "${suiteName}" has invalid preset; expected core, default, or full.`,
@@ -264,7 +265,7 @@ function parseSuiteTags(value: unknown, suiteName: string): string[] {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return rawYamlSchema.safeParse(value).success;
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -295,9 +296,9 @@ async function parseRawBrainEvalYaml(
 ): Promise<Record<string, unknown>> {
   try {
     const { fromYaml, interpolateEnv } = await import("@brains/utils");
-    const parsed = fromYaml(content);
-    if (parsed && typeof parsed === "object") {
-      return interpolateEnv(parsed) as Record<string, unknown>;
+    const parsed = rawYamlSchema.safeParse(fromYaml(content));
+    if (parsed.success) {
+      return rawYamlSchema.parse(interpolateEnv(parsed.data));
     }
   } catch {
     // Ignore parse errors — overrides already parsed above.

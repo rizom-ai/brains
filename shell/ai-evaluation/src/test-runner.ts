@@ -24,6 +24,8 @@ import {
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 
+const emptyToolArgs: Record<string, unknown> = {};
+
 function getRuntimeUploadNamespace(refKind: string): string | null {
   return refKind === "upload" ? "upload" : null;
 }
@@ -123,7 +125,7 @@ export class TestRunner implements ITestRunner {
         toolResults:
           response.toolResults?.map((toolResult) => ({
             toolName: toolResult.toolName,
-            args: toolResult.args ?? ({} as Record<string, unknown>),
+            args: toolResult.args ?? emptyToolArgs,
             result: toolResult.data,
           })) ?? [],
       });
