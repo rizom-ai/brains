@@ -1,4 +1,5 @@
 import { ProgressReporter } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import type {
   Logger,
   IJobProgressMonitor,
@@ -14,6 +15,14 @@ import type {
 import type { BatchJobStatus } from "./batch-schemas";
 import type { z } from "@brains/utils";
 import type { JobProgressEventSchema } from "./schemas";
+
+const jobResultRecordSchema = z4.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    return JSON.parse(value);
+  },
+  z4.record(z4.string(), z4.unknown()),
+);
 
 /**
  * Progress event emitted by the monitor
@@ -294,13 +303,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     }
 
     try {
-      const result =
-        typeof job.result === "string" ? JSON.parse(job.result) : job.result;
-      if (result.message) {
-        return result.message;
+      const result = jobResultRecordSchema.parse(job.result);
+      const message = result["message"];
+      if (message) {
+        return String(message);
       }
-      if (result.routesBuilt !== undefined) {
-        return `${result.routesBuilt} routes built`;
+      const routesBuilt = result["routesBuilt"];
+      if (routesBuilt !== undefined) {
+        return `${routesBuilt} routes built`;
       }
     } catch {
       // Ignore parsing errors

@@ -656,6 +656,9 @@ Incremental migration progress:
   guard.
 - Migrated core system update JSON field normalization to explicit Zod 4
   record guards while keeping tool schema types on the main Zod boundary.
+- Migrated entity-search metadata and job-progress result JSON parsing to
+  explicit Zod 4 record guards while keeping service/job framework schemas on
+  their current boundaries.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

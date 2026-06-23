@@ -47,6 +47,14 @@ const searchOptionsSchema = z.object({
   includeUngenerated: z.boolean().optional().default(false),
 });
 
+const entityMetadataSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    return JSON.parse(value);
+  },
+  z.record(z.string(), z.unknown()),
+);
+
 /**
  * EntitySearch handles all search operations for entities
  * Extracted from EntityService for single responsibility
@@ -314,10 +322,7 @@ export class EntitySearch {
 
     for (const row of results) {
       try {
-        const metadata: Record<string, unknown> =
-          typeof row.metadata === "string"
-            ? JSON.parse(row.metadata)
-            : (row.metadata as Record<string, unknown>);
+        const metadata = entityMetadataSchema.parse(row.metadata);
 
         const entity = this.serializer.reconstructEntity<T>({
           id: row.id,
