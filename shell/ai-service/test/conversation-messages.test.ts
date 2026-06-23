@@ -7,7 +7,7 @@ import {
 } from "../src/conversation-messages";
 
 describe("toModelMessages", () => {
-  it("does not reintroduce footer-shaped entity memory into model message text", () => {
+  it("adds a structural assistant-content referent without footer-shaped entity memory", () => {
     const messages = toModelMessages([
       {
         id: "message-1",
@@ -22,11 +22,34 @@ describe("toModelMessages", () => {
       },
     ]);
 
+    expect(JSON.stringify(messages)).toContain(
+      "Internal conversation content ref",
+    );
+    expect(JSON.stringify(messages)).toContain('entityType \\"note\\"');
     expect(JSON.stringify(messages)).not.toContain(
       "Entities affected this turn",
     );
     expect(JSON.stringify(messages)).not.toContain(
       "Reference these IDs directly",
+    );
+  });
+
+  it("does not add assistant-content refs to upload intent acknowledgements", () => {
+    const messages = toModelMessages([
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        role: "assistant",
+        content: "I got `brief.pdf`. What would you like me to do with it?",
+        metadata: JSON.stringify({
+          cards: [{ kind: "actions", id: "actions:upload-intent" }],
+        }),
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    expect(JSON.stringify(messages)).not.toContain(
+      "Internal conversation content ref",
     );
   });
 });
@@ -389,7 +412,7 @@ describe("buildMessageWithAttachments", () => {
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );
     expect(content).toContain(
-      '- distributed-systems-primer.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"',
+      '- distributed-systems-primer.pdf: upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf; raw-save entityType: "document"; note-extract operation: call system_create with entityType "note", upload { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.',
     );
   });
 

@@ -17,11 +17,34 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
           content: [
             {
               type: "text",
-              text: msg.content + getEntityMemoryNote(msg.metadata),
+              text:
+                msg.content +
+                getAssistantContentReferentNote(msg) +
+                getEntityMemoryNote(msg.metadata),
             },
           ],
         },
   );
+}
+
+function getAssistantContentReferentNote(message: Message): string {
+  if (message.content.trim().length === 0) return "";
+  if (!isSavableAssistantContent(message.metadata)) return "";
+  return '\n\nInternal conversation content ref: this assistant response is assistant-written conversation content. Supported save operation for this response: call system_create with entityType "note" and content copied from this assistant response. Do not save this assistant-written response as a document, and do not use upload or transform unless the user explicitly asks to save/import the raw uploaded file itself.';
+}
+
+function isSavableAssistantContent(metadata: Message["metadata"]): boolean {
+  const parsedMetadata = parseMessageMetadata(metadata);
+  if (parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]).length > 0) {
+    return false;
+  }
+  const cards = parsedMetadata?.["cards"];
+  if (!Array.isArray(cards)) return true;
+  return !cards.some((card) => {
+    if (!isRecord(card)) return false;
+    if (card["kind"] === "tool-approval") return true;
+    return card["kind"] === "actions" && card["id"] === "actions:upload-intent";
+  });
 }
 
 function getEntityMemoryNote(metadata: Message["metadata"]): string {
@@ -294,8 +317,9 @@ function formatUploadRefs(
     if (seen.has(key)) return [];
     seen.add(key);
     const rawSaveEntityType = getRawSaveEntityType(ref.mediaType);
+    const noteExtractHint = getNoteExtractHint(ref);
     return [
-      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}`,
+      `- ${ref.filename}: upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }; mediaType: ${ref.mediaType}${rawSaveEntityType ? `; raw-save entityType: "${rawSaveEntityType}"` : ""}${noteExtractHint ? `; note-extract operation: call system_create with entityType "note", upload { kind: "${ref.source.kind}", id: "${ref.source.id}" }, transform "extract-markdown". This is the only valid durable note-import operation for this upload; do not copy attachment bytes into content for note import.` : ""}`,
     ];
   });
   return lines.length > 0
@@ -307,6 +331,13 @@ function getRawSaveEntityType(mediaType: string): string | undefined {
   if (mediaType.startsWith("image/")) return "image";
   if (mediaType === "application/pdf") return "document";
   return undefined;
+}
+
+function getNoteExtractHint(ref: ConversationUploadRef): boolean {
+  if (ref.mediaType === "application/pdf") return true;
+  if (ref.mediaType.startsWith("text/")) return true;
+  const filename = ref.filename.toLowerCase();
+  return /\.(md|markdown|txt|json)$/u.test(filename);
 }
 
 export function buildAgentContextInstructions(
