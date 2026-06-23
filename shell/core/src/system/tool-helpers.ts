@@ -6,8 +6,13 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage, type z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 
 const PLUGIN_ID = "system";
+const updateFieldsSchema = z4.record(z4.string(), z4.unknown());
+const wrappedUpdateFieldsSchema = z4.looseObject({
+  fields: updateFieldsSchema,
+});
 
 const ROLE_LABELS: Record<UserPermissionLevel, string> = {
   anchor: "Owner/anchor",
@@ -121,26 +126,15 @@ export function normalizeUpdateInput(input: {
   }
 
   try {
-    const parsed = JSON.parse(input.content) as unknown;
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed)
-    ) {
-      if (
-        "fields" in parsed &&
-        typeof parsed.fields === "object" &&
-        parsed.fields !== null &&
-        !Array.isArray(parsed.fields)
-      ) {
-        return {
-          fields: parsed.fields as Record<string, unknown>,
-        };
-      }
+    const parsed = JSON.parse(input.content);
+    const wrapped = wrappedUpdateFieldsSchema.safeParse(parsed);
+    if (wrapped.success) {
+      return { fields: wrapped.data.fields };
+    }
 
-      return {
-        fields: parsed as Record<string, unknown>,
-      };
+    const fields = updateFieldsSchema.safeParse(parsed);
+    if (fields.success) {
+      return { fields: fields.data };
     }
   } catch {
     // Not JSON — treat as full content replacement.
