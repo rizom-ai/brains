@@ -682,6 +682,8 @@ Incremental migration progress:
 - Replaced local frontmatter/metadata record casts in conversation-memory,
   identity, site-info, and note adapters/data sources with explicit Zod 4
   guards.
+- Replaced entity-service metadata row/frontmatter generation guards and stable
+  JSON object traversal casts with explicit Zod 4 local guards.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

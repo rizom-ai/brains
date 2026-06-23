@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import type { BaseEntity, EntityAdapter } from "../types";
 import {
   parseMarkdownWithFrontmatter,
@@ -14,6 +15,8 @@ export interface BodyTemplateProvider {
 const defaultBodyFormatter: BodyTemplateProvider = {
   generateBodyTemplate: () => "",
 };
+
+const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
 
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,
@@ -131,8 +134,7 @@ export abstract class BaseEntityAdapter<
   }
 
   public generateFrontMatter(entity: TEntity): string {
-    const metadata = entity.metadata as Record<string, unknown>;
-    return generateFrontmatter(metadata);
+    return generateFrontmatter(frontmatterRecordSchema.parse(entity.metadata));
   }
 
   // ── Protected helpers for use in toMarkdown/fromMarkdown ──

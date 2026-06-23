@@ -18,10 +18,16 @@ import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService } from "@brains/job-queue";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import { and, eq, sql } from "drizzle-orm";
+
+const jsonObjectSchema = z.custom<object>(
+  (value) =>
+    typeof value === "object" && value !== null && !Array.isArray(value),
+);
 
 function toStableJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -30,9 +36,10 @@ function toStableJsonValue(value: unknown): unknown {
     );
   }
 
-  if (value && typeof value === "object") {
+  const parsedObject = jsonObjectSchema.safeParse(value);
+  if (parsedObject.success) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
+      Object.entries(parsedObject.data)
         .filter(([, item]) => item !== undefined)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, item]) => [key, toStableJsonValue(item)]),
