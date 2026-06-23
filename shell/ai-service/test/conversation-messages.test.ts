@@ -260,6 +260,31 @@ describe("resolveConversationUploadContinuity", () => {
     });
   });
 
+  it("does not resurrect historical uploads for summary save-it follow-ups", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "can you save it",
+      currentAttachments: [],
+      historyMessages: [
+        ...historyMessages,
+        {
+          id: "message-summary",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content: "The PDF summarizes consensus protocols.",
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "can you save it",
+      refs: [],
+      attachments: [],
+    });
+  });
+
   it("keeps all pending refs when the user names a filename", () => {
     const result = resolveConversationUploadContinuity({
       message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
@@ -281,6 +306,21 @@ describe("resolveConversationUploadContinuity", () => {
           timestamp: new Date().toISOString(),
         },
       ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      refs: uploadRefs,
+      attachments: [],
+    });
+  });
+
+  it("keeps all historical refs when the user names a filename", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      currentAttachments: [],
+      historyMessages,
     });
 
     expect(result).toEqual({
