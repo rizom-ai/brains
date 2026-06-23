@@ -1,10 +1,27 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { type z as zType } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 import type { SiteInfoBody } from "../schemas/site-info-schema";
 
 const adapter = new SiteInfoAdapter();
+
+const socialLinkSchema = z
+  .looseObject({
+    platform: z.string(),
+    url: z.string(),
+    label: z.string().optional(),
+  })
+  .transform((link) => ({
+    platform: link.platform,
+    url: link.url,
+    ...(link.label !== undefined ? { label: link.label } : {}),
+  }));
+
+const profileMetadataSchema = z.looseObject({
+  socialLinks: z.array(socialLinkSchema).optional(),
+});
 
 /**
  * DataSource for site-info entity data.
@@ -59,8 +76,8 @@ export class SiteInfoDataSource implements DataSource {
         id: "anchor-profile",
       });
       if (profileEntity) {
-        const metadata = profileEntity.metadata as Record<string, unknown>;
-        socialLinks = metadata["socialLinks"] as typeof socialLinks;
+        const parsed = profileMetadataSchema.safeParse(profileEntity.metadata);
+        socialLinks = parsed.success ? parsed.data.socialLinks : undefined;
       }
     } catch {
       // Profile not available

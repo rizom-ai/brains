@@ -1,4 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
 import {
   summarySchema,
   summaryMetadataSchema,
@@ -8,6 +9,8 @@ import {
   type SummaryMetadata,
 } from "../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../lib/constants";
+
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 export class SummaryAdapter extends BaseEntityAdapter<
   SummaryEntity,
@@ -44,7 +47,7 @@ export class SummaryAdapter extends BaseEntityAdapter<
   ): string {
     return this.buildMarkdown(
       this.createContentBody(entries),
-      metadata as Record<string, unknown>,
+      frontmatterRecordSchema.parse(metadata),
     );
   }
 

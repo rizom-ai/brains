@@ -1,10 +1,13 @@
 import { BaseEntityAdapter } from "@brains/entity-service";
+import { z } from "@brains/utils/zod-v4";
 import {
   brainCharacterSchema,
   brainCharacterBodySchema,
   type BrainCharacterEntity,
   type BrainCharacter,
 } from "./brain-character-schema";
+
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Entity adapter for Brain Character entities
@@ -45,7 +48,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
    */
   public override toMarkdown(entity: BrainCharacterEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 
   /**
@@ -76,6 +79,6 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
    */
   public override generateFrontMatter(entity: BrainCharacterEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

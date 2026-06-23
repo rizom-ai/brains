@@ -1,6 +1,7 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
 import type { z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import {
   actionItemMetadataSchema,
   actionItemSchema,
@@ -15,6 +16,8 @@ import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
 } from "../lib/constants";
+
+const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
 
 /**
  * Shared adapter for derived conversation memory entities (decisions,
@@ -49,7 +52,7 @@ class ConversationMemoryEntityAdapter<
   ): string {
     return this.buildMarkdown(
       [`# ${title}`, "", text.trim(), ""].join("\n"),
-      metadata as Record<string, unknown>,
+      frontmatterRecordSchema.parse(metadata),
     );
   }
 

@@ -1,5 +1,6 @@
 import { BaseEntityAdapter } from "@brains/plugins";
 import type { z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import {
   siteInfoSchema,
   siteInfoBodySchema,
@@ -7,6 +8,8 @@ import {
   type SiteInfoBody,
   type SiteInfoMetadata,
 } from "../schemas/site-info-schema";
+
+const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
 
 /**
  * Entity adapter for SiteInfo entities
@@ -67,6 +70,6 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
    */
   public override generateFrontMatter(entity: SiteInfoEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

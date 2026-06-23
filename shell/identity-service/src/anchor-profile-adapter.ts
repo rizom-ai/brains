@@ -3,12 +3,15 @@ import {
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
 import type { z } from "@brains/utils";
+import { z as z4 } from "@brains/utils/zod-v4";
 import {
   anchorProfileSchema,
   anchorProfileBodySchema,
   type AnchorProfileEntity,
   type AnchorProfile,
 } from "./anchor-profile-schema";
+
+const frontmatterRecordSchema = z4.record(z4.string(), z4.unknown());
 
 /**
  * Entity adapter for Anchor Profile entities
@@ -90,6 +93,6 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
    */
   public override generateFrontMatter(entity: AnchorProfileEntity): string {
     const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", data as Record<string, unknown>);
+    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }
