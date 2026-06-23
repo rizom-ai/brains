@@ -4,7 +4,7 @@ import { existsSync } from "fs";
 import { formatAsTable, formatAsList } from "@brains/content-formatters";
 
 import type { IReporter } from "../types";
-import type { EvaluationSummary } from "../schemas";
+import { evaluationSummarySchema, type EvaluationSummary } from "../schemas";
 
 export interface ComparisonReporterOptions {
   outputDirectory: string;
@@ -50,7 +50,7 @@ export class ComparisonReporter implements IReporter {
     }
 
     const previousJson = await readFile(previousPath, "utf-8");
-    const previous: EvaluationSummary = JSON.parse(previousJson);
+    const previous = evaluationSummarySchema.parse(JSON.parse(previousJson));
 
     const md = this.renderComparison(summary, previous);
     const comparisonPath = join(this.options.outputDirectory, "comparison.md");

@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 
 /**
  * Failure detail for a single criterion
@@ -10,18 +10,18 @@ export const failureDetailSchema = z.object({
   message: z.string().optional(),
 });
 
-export type FailureDetail = z.infer<typeof failureDetailSchema>;
+export type FailureDetail = z.output<typeof failureDetailSchema>;
 
 /**
  * Tool call record from agent response
  */
 export const toolCallRecordSchema = z.object({
   toolName: z.string(),
-  args: z.record(z.unknown()).optional(),
+  args: z.record(z.string(), z.unknown()).optional(),
   result: z.unknown().optional(),
 });
 
-export type ToolCallRecord = z.infer<typeof toolCallRecordSchema>;
+export type ToolCallRecord = z.output<typeof toolCallRecordSchema>;
 
 /**
  * Metrics for a single turn
@@ -34,7 +34,7 @@ export const turnMetricsSchema = z.object({
   durationMs: z.number(),
 });
 
-export type TurnMetrics = z.infer<typeof turnMetricsSchema>;
+export type TurnMetrics = z.output<typeof turnMetricsSchema>;
 
 /**
  * Result for a single conversation turn
@@ -56,7 +56,7 @@ export const turnResultSchema = z.object({
     .optional(),
 });
 
-export type TurnResult = z.infer<typeof turnResultSchema>;
+export type TurnResult = z.output<typeof turnResultSchema>;
 
 /**
  * Quality scores from LLM-as-judge
@@ -69,7 +69,7 @@ export const qualityScoresSchema = z.object({
   reasoning: z.string().optional(),
 });
 
-export type QualityScores = z.infer<typeof qualityScoresSchema>;
+export type QualityScores = z.output<typeof qualityScoresSchema>;
 
 /**
  * Aggregated metrics across all turns
@@ -83,7 +83,7 @@ export const totalMetricsSchema = z.object({
   turnCount: z.number(),
 });
 
-export type TotalMetrics = z.infer<typeof totalMetricsSchema>;
+export type TotalMetrics = z.output<typeof totalMetricsSchema>;
 
 /**
  * Complete evaluation result
@@ -114,7 +114,7 @@ export const evaluationResultSchema = z.object({
   pluginOutput: z.unknown().optional(),
 });
 
-export type EvaluationResult = z.infer<typeof evaluationResultSchema>;
+export type EvaluationResult = z.output<typeof evaluationResultSchema>;
 
 /**
  * Summary of multiple evaluation runs
@@ -140,4 +140,4 @@ export const evaluationSummarySchema = z.object({
   results: z.array(evaluationResultSchema),
 });
 
-export type EvaluationSummary = z.infer<typeof evaluationSummarySchema>;
+export type EvaluationSummary = z.output<typeof evaluationSummarySchema>;
