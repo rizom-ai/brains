@@ -10,6 +10,7 @@ import {
   generateMarkdown,
 } from "@brains/utils";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
+import { z } from "@brains/utils/zod-v4";
 import {
   parseDataUrl,
   detectImageFormat,
@@ -24,6 +25,8 @@ import type { CoverImageConversionJobData } from "../types";
  */
 export const coverImageConversionJobDataSchema = coverImageConversionJobSchema;
 export type { CoverImageConversionJobData };
+
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 export interface ImageConversionResult {
   success: boolean;
@@ -112,7 +115,12 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         return JobResult.failure(error);
       }
 
-      const frontmatter = parsed.frontmatter as Record<string, unknown>;
+      const frontmatterParsed = frontmatterRecordSchema.safeParse(
+        parsed.frontmatter,
+      );
+      const frontmatter = frontmatterParsed.success
+        ? frontmatterParsed.data
+        : {};
 
       // Skip if already has coverImageId
       if (frontmatter["coverImageId"]) {

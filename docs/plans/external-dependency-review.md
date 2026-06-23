@@ -650,6 +650,8 @@ Incremental migration progress:
 - Migrated shared image frontmatter ID extraction to a Zod 4 record guard.
 - Replaced dashboard/widget key-value hand guards and nested stats casts with
   explicit Zod 4 record guards.
+- Migrated directory-sync document sidecar and cover-image conversion
+  frontmatter record guards to Zod 4.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

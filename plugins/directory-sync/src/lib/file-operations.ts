@@ -13,6 +13,7 @@ import {
   parseEntityPath,
 } from "./entity-paths";
 import { mkdir, readFile, writeFile, stat, utimes } from "fs/promises";
+import { z } from "@brains/utils/zod-v4";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 import {
@@ -31,9 +32,7 @@ export type FileOperationsEntityService = Pick<
   "serializeEntity" | "hasEntityType"
 >;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const sidecarMetadataSchema = z.record(z.string(), z.unknown());
 
 /**
  * Handles file I/O operations for directory sync
@@ -115,9 +114,8 @@ export class FileOperations {
 
     try {
       const raw = await readFile(sidecarPath, "utf-8");
-      const parsed: unknown = JSON.parse(raw);
-      const fromSidecar = isRecord(parsed) ? parsed : {};
-      return { ...defaults, ...fromSidecar };
+      const parsed = sidecarMetadataSchema.safeParse(JSON.parse(raw));
+      return { ...defaults, ...(parsed.success ? parsed.data : {}) };
     } catch {
       // Corrupt sidecar shouldn't block import; the schema will still pass
       // because filename + mimeType come from defaults.
