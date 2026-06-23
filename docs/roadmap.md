@@ -122,13 +122,9 @@ Plans:
 - [rover-chat-native-onboarding.md](./plans/rover-chat-native-onboarding.md) — in-chat guided first-run onboarding (playbook-driven); on a feature branch with correctness gaps from live smoke still to close.
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 
-### 2. Postures, proven
+### 2. The collective posture (active POC)
 
-The same brain runs in two postures, and the product story is the arc between them: it should work for one person and **grow into** a collective without switching products. Two postures, not two products.
-
-**Personal posture — in the wild.** `core + site + publishing` runs in production today: `yeehaa.io`, `mylittlephoney.com`, and the Rizom variants. This is the validated, public-reference setting and the source of the reactive friction loop in §1.
-
-**Collective posture — active POC.** `core + site + team` is the posture under validation. The proof is not "many personal bots in one room"; it is one shared brain that can:
+`core + site + team` is the one posture still being validated — the personal-publishing posture already runs in production (§1). The proof is not "many personal bots in one room"; it is one shared brain that can:
 
 - listen in configured shared spaces;
 - preserve who said what without collapsing everyone into one anonymous source;
@@ -152,9 +148,11 @@ The collective posture validates when:
 
 Until then it remains an internal experiment owned by `rizom-foundation`. Note the hard line: the `team` posture ships a _permission posture_ (trusted-collaborator writes), which is collaboration on the single-anchor model — **not** true multi-user. That substrate is §3.
 
+To differentiate as more than "the personal posture minus publishing," the collective posture needs team-native capabilities that don't exist yet — meeting notes, decision records, conversational Q&A over the brain ("ask the team"), and a scheduled team digest — built as dedicated plugins rather than reused publishing stack.
+
 Plans:
 
-- [relay-presets.md](./plans/relay-presets.md) — the team-posture/bundle philosophy and deferred scope; being folded into [brain-model-unification.md](./plans/brain-model-unification.md) as the `team` bundle.
+- [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — the prioritized roadmap of team-native capabilities that make the collective posture distinctive (parked, demand-gated).
 - [message-interface-tool-status.md](./plans/message-interface-tool-status.md) — shared lifecycle model for tool-status updates rendered per interface (web-chat, Discord, future adapters), so shared-space participants can see what the brain is doing.
 
 ### 3. Trust & identity — the frontier
