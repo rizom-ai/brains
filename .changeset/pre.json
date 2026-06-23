@@ -109,7 +109,8 @@
     "@brains/atproto": "0.2.0-alpha.94",
     "@brains/atproto-registry": "0.2.0-alpha.94",
     "@brains/atproto-contracts": "0.2.0-alpha.94",
-    "@brains/runtime-state": "0.2.0-alpha.123"
+    "@brains/runtime-state": "0.2.0-alpha.123",
+    "@brains/chat": "0.2.0-alpha.78"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
