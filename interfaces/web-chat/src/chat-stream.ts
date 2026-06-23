@@ -1,4 +1,11 @@
-import type { AgentNamespace, ChatAttachment } from "@brains/plugins";
+import {
+  buildMessageActorMetadata,
+  buildMessageSourceMetadata,
+  type AgentNamespace,
+  type AgentResponse,
+  type ChatAttachment,
+  type ChatContext,
+} from "@brains/plugins";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
 import {
@@ -16,6 +23,10 @@ interface StreamDeps {
   agent: AgentNamespace;
   startProcessingInput(conversationId: string): void;
   endProcessingInput(): void;
+  handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void>;
   createId(prefix: string): string;
 }
 
@@ -25,6 +36,7 @@ interface StreamedChatInput {
   message: string;
   permissionLevel: "anchor" | "public";
   attachments: ChatAttachment[];
+  messageId?: string;
   interfaceType: string;
 }
 
@@ -46,14 +58,12 @@ export async function handleStreamedChat(
       input.message,
       input.conversationId,
       {
-        userPermissionLevel: input.permissionLevel,
-        interfaceType: input.interfaceType,
-        channelId: input.conversationId,
-        channelName: "Web Chat",
+        ...buildWebChatContext(input),
         attachments: input.attachments,
       },
     );
 
+    await deps.handleAgentResponseToolStatuses(response, input.conversationId);
     writeText(input.writer, response.text, "text", deps.createId);
     for (const toolResult of response.toolResults ?? []) {
       input.writer.write({
@@ -100,11 +110,15 @@ export async function handleStreamedConfirmations(
         approvalResponse.approved,
         approvalResponse.id,
         {
-          userPermissionLevel: input.permissionLevel,
-          interfaceType: input.interfaceType,
-          channelId: input.conversationId,
-          channelName: "Web Chat",
+          ...buildWebChatContext(input, {
+            trigger: "approval-response",
+            approvalId: approvalResponse.id,
+          }),
         },
+      );
+      await deps.handleAgentResponseToolStatuses(
+        response,
+        input.conversationId,
       );
       writeText(input.writer, response.text, "text", deps.createId);
       writeStructuredCards(input.writer, response.cards ?? []);
@@ -113,6 +127,35 @@ export async function handleStreamedConfirmations(
     deps.endProcessingInput();
     deps.activeStreams.delete(input.conversationId);
   }
+}
+
+function buildWebChatContext(
+  input: {
+    conversationId: string;
+    interfaceType: string;
+    permissionLevel: "anchor" | "public";
+    messageId?: string;
+  },
+  metadata: Record<string, unknown> = { trigger: "message" },
+): ChatContext {
+  return {
+    userPermissionLevel: input.permissionLevel,
+    interfaceType: input.interfaceType,
+    channelId: input.conversationId,
+    channelName: "Web Chat",
+    actor: buildMessageActorMetadata({
+      actorId: `${input.interfaceType}:${input.conversationId}:operator`,
+      interfaceType: input.interfaceType,
+      role: "user",
+      displayName: "Web Chat operator",
+    }),
+    source: buildMessageSourceMetadata({
+      ...(input.messageId ? { messageId: input.messageId } : {}),
+      channelId: input.conversationId,
+      channelName: "Web Chat",
+      metadata,
+    }),
+  };
 }
 
 export function writeText(

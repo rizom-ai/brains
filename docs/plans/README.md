@@ -50,10 +50,13 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### New interfaces, renderers, and runtimes
 
-- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
+- [Discord Chat SDK / web chat feature parity](./chat-interface-sdk.md) — active plan for `@brains/chat` Discord parity plus the immediate queueing/thread-policy enhancements
 - [Message-interface semantic tool status](./message-interface-tool-status.md) — proposed shared lifecycle model for tool status updates, with per-interface rendering for web-chat, Discord Chat SDK, and future chat adapters
 - [Web search as an explicit tool capability](./web-search-tool.md) — proposed ephemeral-first, provider-neutral `web_search` plugin/tool (Tavily first adapter, Brave planned second); preserves permissions, status events, audit logs, privacy defaults, and citations. Phase 0 first removes the existing `webSearch` config flag, which is verified-dead (no-op) code
 - [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
+- [Message feedback events](./message-feedback.md) — parked future plan for shared reaction/UI feedback semantics once a feedback sink exists
+- [Brain web Chat SDK adapter strategy](./brain-web-chat-sdk-adapter.md) — parked strategy plan for sharing Chat SDK semantics with browser web chat without losing Brain-specific features
+- [Chat interface structured forms and modals](./chat-interface-forms-modals.md) — parked future plan for transport-neutral forms and adapter-backed modal/dialog rendering
 - [Desktop app](./desktop-app.md) — parked
 - [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
 - [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike

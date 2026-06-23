@@ -1,51 +1,135 @@
-# Plan: Multi-platform Chat Adapter Consolidation
+# Plan: Discord Chat SDK / Web Chat Feature Parity
 
 ## Status
 
-Parked. This plan is the design record for a _later_ multi-platform chat adapter consolidation, to be revisited only when another chat surface (Slack, Teams, Matrix return path) gets prioritized. The web-first chat surface that previously appeared in this doc is out of scope here — it shipped as the bundled `/chat` UI and is now maintained through normal product hardening.
+Active plan for the `@brains/chat` Discord implementation.
 
-The previous hosted-Rover Discord gateway direction has been dropped. The "shared bot + central gateway + per-user routing" model added accidental complexity to solve a self-imposed constraint (one shared bot for all hosted users). The replacement model is: each Rover user brings their own Discord app token if they want Discord; each Relay team installs their own Discord app for their team's server.
+Initial scope is Discord parity with important `interfaces/web-chat` operator workflows. Enhancement design should now assume additional Chat SDK providers such as Slack and WhatsApp are expected follow-ups, so transport-neutral semantics belong in shared message-interface code before adapter-specific rendering.
 
-## Original idea (recorded)
+This document tracks **remaining reviewer-actionable work only**. Completed automated parity slices have been removed from the task list so reviewers can focus on what still blocks replacement of `@brains/discord`.
 
-Wrap Vercel's Chat SDK as a single `ChatInterface` plugin that extends `MessageInterfacePlugin`. One plugin, one daemon, multiple platform adapters (Discord, Matrix, Slack, Teams, Telegram, etc.). The brain side owns behavior (permission lookup, conversation IDs, agent routing, confirmations, progress, file uploads, URL capture); the SDK owns platform plumbing.
+## Working rule
 
-The motivating goals were:
+Prefer **shared pure helpers in `shell/plugins/src/message-interface/`** plus interface-specific rendering/transport code.
 
-- avoid maintaining bespoke per-platform interface packages as more platforms get added;
-- give Matrix a return path through a standard adapter rather than resurrecting `matrix-sdk-crypto-nodejs`;
-- share message-handling code across platforms.
+Shared candidates should be escalated when they are independent of Discord threads, browser sessions, routes, or UI components. Keep Discord-specific posting, editing, routing, gateway, and permission-context behavior in `interfaces/chat`.
 
-These goals remain valid, but they are not urgent. Today's brain ships `@brains/discord` directly on `MessageInterfacePlugin` and that works fine for the standalone/self-hosted case. Multi-platform demand is not the bottleneck — primary-UI parity in the browser is.
+## Completed automated slices
 
-## Why this is parked
+- Discord thread subscriptions are backed by the shell runtime state store via `interfaces/chat/src/subscription-state.ts`. Subscription records and subscription routing policy are durable; Chat SDK locks/cache/lists/queues remain delegated to memory state so restarts do not resurrect transient operational state.
+- Public/external generated artifact policy is documented in `interfaces/chat/README.md`: keep fallback links only, do not add signed or Discord-authenticated artifact routes in this slice, post native files only for trusted/anchor callers when the artifact entity is visible, and suppress fallback link/metadata for any resolved artifact that exists outside the caller's visibility scope.
+- Discord Chat SDK input handling uses SDK queue concurrency so messages arriving while a turn is running are not silently dropped. Earlier queued messages are preserved as shared coalesced-input context/metadata for the latest queued turn.
+- Bot-owned subscribed Discord threads switch to mention-required mode when multiple non-bot humans participate. A one-time notice is persisted with the subscription state, unmentioned group-thread follow-ups stop auto-routing, and explicit mentions continue to route.
 
-- **Discord stays on `@brains/discord`.** No migration off the existing package is planned. Bring-your-own-Discord-app for Rover and per-team install for Relay both work with the current package.
-- **No urgent Slack/Teams demand.** When a new chat platform is actually prioritized, this plan's adapter architecture is the right starting point — but until then, building it speculatively just creates surface to maintain.
-- **Web is its own surface, not a multi-platform adapter.** The bundled browser chat uses AI SDK UI streaming, not the Chat SDK platform-adapter model this plan describes.
+## Remaining work
 
-## When to revisit
+### 1. Live Discord trial
 
-Reasons that would warrant reviving multi-platform consolidation:
+Run an end-to-end Rover trial with `@brains/chat` replacing `@brains/discord`.
 
-1. A team explicitly needs Slack or Teams support for Relay deployments.
-2. Matrix becomes a priority for federation/identity reasons.
-3. A second non-web platform adapter is built and proves duplication with `@brains/discord` painful enough to consolidate.
+Trial setup:
 
-Until one of those triggers fires, this plan stays parked.
+- Start Rover with an instance config that removes `discord` and adds `chat`.
+- Keep eval mode disabling both `discord` and `chat`.
+- Use a Discord permission rule such as `discord:* -> trusted` for upload/reuse checks, then repeat selected public-user checks without that rule.
+- Use a channel allowlist for at least one pass so mention, URL capture, and subscription gating are all exercised.
+- Include a restart between subscribed-thread messages to validate DB-backed Chat SDK state.
 
-## Relationship to other plans
+Required smoke checks:
 
-- The bundled `/chat` web surface uses Vercel **AI SDK UI** / stream protocol and is distinct from this plan's Vercel **Chat SDK** platform-adapter consolidation.
-- Relay's per-team Discord install model and shared-space trust resolver are independent of this plan.
+- Mention routing.
+- DM routing.
+- Thread subscription and unmentioned follow-up routing after restart.
+- Behavior when thread subscription is unavailable.
+- Text/image/PDF uploads.
+- Upload follow-up by filename and recency.
+- Public-user upload rejection/reuse denial.
+- Confirmation approve/cancel.
+- Multiple/chained/bad-id/retry approval flows.
+- Long-running progress/completion/failure updates.
+- Generated image/PDF native Discord file delivery for trusted/anchor users.
+- Generated artifact link fallback.
+- Restart continuation for channel, DM, and subscribed-thread conversations.
 
-## Decisions made before parking
+HTTP Discord webhook/interactions endpoint validation is conditional, not a required smoke check. Gateway mode is the current live Discord use case; only test the webhook route when a deployment explicitly configures Discord Interactions Endpoint URL or a shared gateway forwarder.
 
-For the record, the implementation slice that was confirmed (and is no longer planned) was:
+Acceptance criteria:
 
-- build `interfaces/chat/` first as an SDK-backed Discord adapter at parity with `@brains/discord`;
-- use Chat SDK's in-memory state initially, defer durable state;
-- run a daemon loop around Discord adapter's bounded `startGatewayListener(...)`;
-- platform `interfaceType` values stay platform-specific (`"discord"`, `"matrix"`, etc.), not `"chat"`, to preserve permission rules.
+- Live validation passes, or each blocker is documented with a rollback path.
+- Rover can safely choose `@brains/chat` as its Discord implementation, or defer for a specific documented reason.
 
-If this plan revives, those decisions remain reasonable starting points.
+Validation record template:
+
+```md
+Date:
+Rover instance/config:
+Discord environment: channel / thread / DM
+Operator permission rule used: yes/no
+Result: pass / blocked / deferred
+
+Checks:
+
+- [ ] Mention routing
+- [ ] DM routing
+- [ ] Thread subscription
+- [ ] Subscribed-thread follow-up after restart
+- [ ] Thread subscription unavailable behavior
+- [ ] Text/image/PDF uploads
+- [ ] Upload follow-up by filename and recency
+- [ ] Public-user upload rejection/reuse denial
+- [ ] Confirmation approve/cancel
+- [ ] Multiple/chained/bad-id/retry approval flows
+- [ ] Long-running progress/completion/failure updates
+- [ ] Generated native Discord artifact files
+- [ ] Generated artifact link fallback
+- [ ] Restart continuation: channel
+- [ ] Restart continuation: DM
+- [ ] Restart continuation: subscribed thread
+
+Blockers / rollback path:
+```
+
+### 2. Rover migration decision
+
+After DB-backed Chat SDK state and live validation are complete, decide whether Rover can switch Discord implementation from `@brains/discord` to `@brains/chat`.
+
+Acceptance criteria:
+
+- Rover docs/config explain the migration path and rollback path.
+- Eval mode continues to disable live chat interfaces.
+- Any remaining blocker is documented with owner and follow-up.
+
+## Enhancement backlog
+
+No remaining immediate enhancements are tracked in this plan. Larger follow-ups are split into separate future plans below.
+
+## Related future plans
+
+- [Message feedback events](./message-feedback.md)
+- [Brain web Chat SDK adapter strategy](./brain-web-chat-sdk-adapter.md)
+- [Chat interface structured forms and modals](./chat-interface-forms-modals.md)
+
+## Non-goals
+
+- Implementing message feedback, Brain web adapter migration, or structured forms/modals in this plan.
+- Building a shared hosted Discord bot gateway.
+- Recreating browser-only UI affordances such as session sidebars inside Discord.
+
+## Validation commands
+
+Use the smallest relevant set for each slice:
+
+- `cd shell/plugins && bun run typecheck && bun run lint`
+- `cd interfaces/chat && bun run typecheck && bun test && bun run lint`
+- `cd interfaces/web-chat && bun run typecheck && bun test <focused-test> && bun run lint`
+- Conversation/runtime state adapter tests in the package where the adapter is implemented.
+
+Run broader checks when shared contracts, migrations, or package exports change.
+
+## Completion criteria
+
+This plan is complete when:
+
+- DB-backed Chat SDK state preserves subscribed Discord thread routing after restart.
+- Live Discord validation passes.
+- Rover can safely switch to `@brains/chat`, or the remaining blocker is explicit and tracked.

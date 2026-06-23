@@ -1,14 +1,17 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  type AgentResponse,
   type EditMessageRequest,
   type InterfacePluginContext,
   type JobContext,
   type JobProgressEvent,
+  type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   type WebRouteDefinition,
-  type ToolActivityEvent,
+  type ToolStatusUpdate,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 import {
   createUIMessageStream,
@@ -52,10 +55,15 @@ import {
 
 const webChatInterfaceType = "web-chat";
 type OperatorSessionResolver = (request: Request) => Promise<boolean>;
+type PermissionLevelResolver = (
+  request: Request,
+) => Promise<UserPermissionLevel>;
 
 export interface WebChatDeps {
   /** Override how an operator session is detected (used in tests). */
   resolveOperatorSession?: OperatorSessionResolver;
+  /** Override the resolved caller permission level (used in tests). */
+  resolvePermissionLevel?: PermissionLevelResolver;
 }
 
 const defaultResolveOperatorSession: OperatorSessionResolver = async (
@@ -71,11 +79,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveOperatorSession: OperatorSessionResolver;
+  private readonly resolveCallerPermissionLevel:
+    | PermissionLevelResolver
+    | undefined;
 
   constructor(config: Partial<WebChatConfig> = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveOperatorSession =
       deps.resolveOperatorSession ?? defaultResolveOperatorSession;
+    this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
   protected override async onRegister(
@@ -140,7 +152,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): void {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return;
-    this.writeText(stream.writer, request.message, "progress");
+    this.writeText(
+      stream.writer,
+      this.toTextOutput(request.message),
+      "progress",
+    );
   }
 
   protected override async sendMessageWithId(
@@ -148,7 +164,11 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
   ): Promise<string | undefined> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return undefined;
-    return this.writeText(stream.writer, request.message, "progress");
+    return this.writeText(
+      stream.writer,
+      this.toTextOutput(request.message),
+      "progress",
+    );
   }
 
   protected override async editMessage(
@@ -159,7 +179,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     stream.writer.write({
       type: "data-progress",
       id: request.messageId,
-      data: { message: request.newMessage },
+      data: { message: this.toTextOutput(request.newMessage) },
       transient: true,
     });
     return true;
@@ -167,6 +187,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
 
   protected override supportsMessageEditing(): boolean {
     return true;
+  }
+
+  private toTextOutput(output: MessageInterfaceOutput): string {
+    return typeof output === "string" ? output : (output.fallbackText ?? "");
   }
 
   protected override async handleProgressEvent(
@@ -192,23 +216,23 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     });
   }
 
-  protected override async handleToolActivityEvent(
-    event: ToolActivityEvent,
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
   ): Promise<void> {
     if (
-      event.interfaceType !== webChatInterfaceType ||
-      typeof event.channelId !== "string"
+      update.interfaceType !== webChatInterfaceType ||
+      typeof update.channelId !== "string"
     ) {
       return;
     }
 
-    const stream = this.getActiveStream(event.channelId);
+    const stream = this.getActiveStream(update.channelId);
     if (!stream) return;
 
     stream.writer.write({
       type: "data-status",
       id: this.createId("tool-status"),
-      data: toToolStatusData(event),
+      data: toToolStatusData(update),
       transient: true,
     });
   }
@@ -278,7 +302,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
           })
         : { message: "", attachments: [] };
     if (userInput instanceof Response) return userInput;
-    const { message, attachments, responseText } = userInput;
+    const { message, attachments, messageId, responseText } = userInput;
     const hasUserInput = message.length > 0 || attachments.length > 0;
     if (!hasUserInput && approvalResponses.length === 0) {
       return new Response("No user message found", { status: 400 });
@@ -289,6 +313,10 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
       agent: this.getContext().agent,
       startProcessingInput: (id: string): void => this.startProcessingInput(id),
       endProcessingInput: (): void => this.endProcessingInput(),
+      handleAgentResponseToolStatuses: (
+        response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+        id: string,
+      ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
     };
     const stream = createUIMessageStream<UIMessage>({
@@ -319,6 +347,7 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
             message,
             permissionLevel,
             attachments,
+            ...(messageId ? { messageId } : {}),
             interfaceType: webChatInterfaceType,
           },
           streamDeps,
@@ -375,7 +404,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<Response> {
     return handleDocumentAttachmentRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolvePermissionLevel: (nextRequest) =>
+        this.resolveAttachmentPermissionLevel(nextRequest),
       createOperatorLoginRequiredResponse: (nextRequest) =>
         this.createOperatorLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
@@ -386,7 +416,8 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<Response> {
     return handleImageAttachmentRouteRequest(request, {
-      resolveOperatorSession: this.resolveOperatorSession,
+      resolvePermissionLevel: (nextRequest) =>
+        this.resolveAttachmentPermissionLevel(nextRequest),
       createOperatorLoginRequiredResponse: (nextRequest) =>
         this.createOperatorLoginRequiredResponse(nextRequest),
       entityService: this.getContext().entityService,
@@ -420,6 +451,15 @@ export class WebChatInterface extends MessageInterfacePlugin<WebChatConfig> {
     request: Request,
   ): Promise<"anchor" | "public"> {
     return (await this.resolveOperatorSession(request)) ? "anchor" : "public";
+  }
+
+  private async resolveAttachmentPermissionLevel(
+    request: Request,
+  ): Promise<UserPermissionLevel> {
+    if (this.resolveCallerPermissionLevel) {
+      return this.resolveCallerPermissionLevel(request);
+    }
+    return this.resolvePermissionLevel(request);
   }
 
   private createOperatorLoginRequiredResponse(request: Request): Response {
