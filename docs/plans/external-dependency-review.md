@@ -690,6 +690,8 @@ Incremental migration progress:
 - Tightened app resolver external-plugin/site-package guards and model package
   JSON reads with explicit Zod 4 schemas; replaced built-in model-name narrowing
   with literal checks.
+- Replaced MCP HTTP agent request body and transport logger casts with explicit
+  Zod 4 guards, and declared the direct utils workspace dependency.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

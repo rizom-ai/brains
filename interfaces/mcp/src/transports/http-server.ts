@@ -6,6 +6,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { ChatContextSchema, type AgentNamespace } from "@brains/plugins";
 
 export interface VerifiedBearerToken {
@@ -37,6 +38,22 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+const agentChatRequestSchema = z.looseObject({
+  message: z.unknown().optional(),
+  conversationId: z.unknown().optional(),
+});
+
+const agentConfirmRequestSchema = z.looseObject({
+  conversationId: z.unknown().optional(),
+  confirmed: z.unknown().optional(),
+  approvalId: z.unknown().optional(),
+  context: z.unknown().optional(),
+});
+
+const errorCodeSchema = z.looseObject({
+  code: z.string().optional(),
+});
 
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
@@ -375,10 +392,9 @@ export class StreamableHTTPServer {
       );
     }
 
-    const { message, conversationId } = (await request.json()) as {
-      message?: string;
-      conversationId?: string;
-    };
+    const parsedBody = agentChatRequestSchema.safeParse(await request.json());
+    const body = parsedBody.success ? parsedBody.data : {};
+    const { message, conversationId } = body;
 
     if (!message || typeof message !== "string") {
       return this.createJsonResponse(
@@ -387,7 +403,8 @@ export class StreamableHTTPServer {
       );
     }
 
-    const convId = conversationId ?? randomUUID();
+    const convId =
+      typeof conversationId === "string" ? conversationId : randomUUID();
     this.logger.debug(`POST /api/chat - conversation: ${convId}`);
 
     try {
@@ -414,13 +431,11 @@ export class StreamableHTTPServer {
       );
     }
 
-    const { conversationId, confirmed, approvalId, context } =
-      (await request.json()) as {
-        conversationId?: string;
-        confirmed?: boolean;
-        approvalId?: string;
-        context?: unknown;
-      };
+    const parsedBody = agentConfirmRequestSchema.safeParse(
+      await request.json(),
+    );
+    const body = parsedBody.success ? parsedBody.data : {};
+    const { conversationId, confirmed, approvalId, context } = body;
 
     if (!conversationId || typeof conversationId !== "string") {
       return this.createJsonResponse(
@@ -548,8 +563,8 @@ export class StreamableHTTPServer {
         `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
       );
     } catch (error) {
-      const err = error as Error & { code?: string };
-      if (err.code === "EADDRINUSE") {
+      const parsedError = errorCodeSchema.safeParse(error);
+      if (parsedError.success && parsedError.data.code === "EADDRINUSE") {
         this.logger.error(`Port ${port} is already in use`);
       }
       throw error;

@@ -1,3 +1,5 @@
+import { z } from "@brains/utils/zod-v4";
+
 /**
  * Minimal logger interface for transport layers
  * Transport loggers need special handling:
@@ -10,6 +12,20 @@ export interface TransportLogger {
   error(message: string, ...args: unknown[]): void;
   warn(message: string, ...args: unknown[]): void;
 }
+
+const transportLoggerSchema = z.custom<TransportLogger>(
+  (value) =>
+    typeof value === "object" &&
+    value !== null &&
+    "info" in value &&
+    typeof value.info === "function" &&
+    "debug" in value &&
+    typeof value.debug === "function" &&
+    "error" in value &&
+    typeof value.error === "function" &&
+    "warn" in value &&
+    typeof value.warn === "function",
+);
 
 /**
  * Create a stderr logger for STDIO transport
@@ -51,20 +67,15 @@ export function createConsoleLogger(): TransportLogger {
  */
 export function adaptLogger(logger: unknown): TransportLogger {
   // If it already has the right shape, use it
-  if (
-    logger &&
-    typeof logger === "object" &&
-    "info" in logger &&
-    "debug" in logger &&
-    "error" in logger &&
-    "warn" in logger
-  ) {
-    const l = logger as TransportLogger;
+  const parsed = transportLoggerSchema.safeParse(logger);
+  if (parsed.success) {
     return {
-      info: (msg: string, ...args: unknown[]) => l.info(msg, ...args),
-      debug: (msg: string, ...args: unknown[]) => l.debug(msg, ...args),
-      error: (msg: string, ...args: unknown[]) => l.error(msg, ...args),
-      warn: (msg: string, ...args: unknown[]) => l.warn(msg, ...args),
+      info: (msg: string, ...args: unknown[]) => parsed.data.info(msg, ...args),
+      debug: (msg: string, ...args: unknown[]) =>
+        parsed.data.debug(msg, ...args),
+      error: (msg: string, ...args: unknown[]) =>
+        parsed.data.error(msg, ...args),
+      warn: (msg: string, ...args: unknown[]) => parsed.data.warn(msg, ...args),
     };
   }
 
