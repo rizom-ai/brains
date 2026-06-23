@@ -23,6 +23,8 @@ const attachmentJobStatusResponseSchema = z.looseObject({
   status: z.string().optional(),
 });
 
+const dataRecordSchema = z.record(z.string(), z.unknown());
+
 function narrowToolState(value: string | undefined): ToolPart["state"] {
   if (value && (TOOL_STATES as readonly string[]).includes(value)) {
     return value as ToolPart["state"];
@@ -44,12 +46,12 @@ export interface ConfirmationResultDisplay {
 }
 
 function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" && data !== null && !Array.isArray(data);
+  return dataRecordSchema.safeParse(data).success;
 }
 
 function getRecordValue(data: unknown, key: string): unknown {
-  if (!isRecord(data)) return undefined;
-  return data[key];
+  const parsed = dataRecordSchema.safeParse(data);
+  return parsed.success ? parsed.data[key] : undefined;
 }
 
 function getStringValue(data: unknown, key: string): string | undefined {

@@ -664,6 +664,8 @@ Incremental migration progress:
 - Migrated ai-evaluation result/summary schemas and comparison baseline JSON
   parsing to explicit Zod 4 while leaving eval fixture/config schemas on their
   existing framework-composed boundary.
+- Migrated web-chat UI data-part record access helpers to an explicit Zod 4
+  record guard inside the existing UI-local parser island.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
