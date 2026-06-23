@@ -1,935 +1,447 @@
 <!doctype html>
+<!--
+  GENERATED FILE — do not edit by hand.
+  Source: docs/roadmap.md  →  bun scripts/build-roadmap-visual.ts
+  Regenerate with: bun run roadmap:build   (drift-guarded by bun run roadmap:check)
+-->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Brains Project Roadmap</title>
+    <title>Brains Strategic Roadmap</title>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-        background: #0d1117;
-        color: #c9d1d9;
-        min-height: 100vh;
-        overflow-x: hidden;
-      }
-      .header {
-        padding: 32px 40px 16px;
-        border-bottom: 1px solid #21262d;
-      }
-      .header h1 {
-        font-size: 24px;
-        font-weight: 600;
-        color: #f0f6fc;
-      }
-      .header p {
-        font-size: 13px;
-        color: #8b949e;
-        margin-top: 4px;
-      }
-      .legend {
-        display: flex;
-        gap: 20px;
-        padding: 12px 40px;
-        border-bottom: 1px solid #21262d;
-        font-size: 12px;
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .legend-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-      }
-      .main {
-        display: flex;
-        height: calc(100vh - 110px);
-      }
-      .graph {
-        flex: 1;
-        overflow: auto;
-        padding: 32px 40px;
-        position: relative;
-      }
-      .detail-panel {
-        width: 380px;
-        border-left: 1px solid #21262d;
-        padding: 24px;
-        overflow-y: auto;
-        background: #161b22;
-        display: none;
-      }
-      .detail-panel.open {
-        display: block;
-      }
-      .detail-panel h2 {
-        font-size: 16px;
-        color: #f0f6fc;
-        margin-bottom: 4px;
-      }
-      .detail-panel .status-badge {
-        display: inline-block;
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 10px;
-        margin-bottom: 12px;
-      }
-      .detail-panel .desc {
-        font-size: 13px;
-        line-height: 1.6;
-        color: #8b949e;
-      }
-      .detail-panel .deps {
-        margin-top: 16px;
-      }
-      .detail-panel .deps h3 {
-        font-size: 12px;
-        color: #8b949e;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-      }
-      .detail-panel .dep-item {
-        font-size: 12px;
-        padding: 4px 0;
-        color: #58a6ff;
-        cursor: pointer;
-      }
-      .detail-panel .dep-item:hover {
-        text-decoration: underline;
-      }
-      .close-btn {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        background: none;
-        border: none;
-        color: #8b949e;
-        cursor: pointer;
-        font-size: 18px;
-      }
-      .close-btn:hover {
-        color: #f0f6fc;
-      }
-
-      /* Sections */
-      .section {
-        margin-bottom: 32px;
-      }
-      .section-title {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #8b949e;
-        margin-bottom: 12px;
-        font-weight: 600;
-      }
-
-      /* Pipeline */
-      .pipeline {
-        display: flex;
-        align-items: center;
-        gap: 0;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
-      }
-      .pipeline-arrow {
-        color: #30363d;
-        font-size: 20px;
-        margin: 0 4px;
-        user-select: none;
-      }
-
-      /* Cards */
-      .card-row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
-      }
-      .card {
-        padding: 10px 14px;
-        border-radius: 8px;
-        border: 1px solid #21262d;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        min-width: 180px;
-        max-width: 280px;
-        position: relative;
-      }
-      .card:hover {
-        border-color: #58a6ff;
-        transform: translateY(-1px);
-      }
-      .card.selected {
-        border-color: #58a6ff;
-        box-shadow: 0 0 0 1px #58a6ff;
-      }
-      .card .name {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 2px;
-      }
-      .card .brief {
-        font-size: 11px;
-        color: #8b949e;
-        line-height: 1.4;
-      }
-      .card .step-num {
-        position: absolute;
-        top: -8px;
-        left: -8px;
-        background: #58a6ff;
-        color: #0d1117;
-        font-size: 10px;
-        font-weight: 700;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      /* Status colors */
-      .card.completed {
-        background: #0d1117;
-        border-color: #1a2a1a;
-        opacity: 0.55;
-      }
-      .card.completed .name {
-        color: #3fb950;
-      }
-      .card.completed:hover {
-        opacity: 0.8;
-      }
-
-      .card.in-progress {
-        background: #1c1a0e;
-        border-color: #3d3520;
-      }
-      .card.in-progress .name {
-        color: #d29922;
-      }
-
-      .card.short-term {
-        background: #0d1a2d;
-        border-color: #1a3050;
-      }
-      .card.short-term .name {
-        color: #58a6ff;
-      }
-
-      .card.medium-term {
-        background: #151520;
-        border-color: #252540;
-      }
-      .card.medium-term .name {
-        color: #bc8cff;
-      }
-
-      .card.long-term {
-        background: #12151a;
-        border-color: #21262d;
-      }
-      .card.long-term .name {
-        color: #8b949e;
-      }
-
-      .badge-completed {
-        background: #1a2a1a;
-        color: #3fb950;
-      }
-      .badge-in-progress {
-        background: #1c1a0e;
-        color: #d29922;
-      }
-      .badge-short-term {
-        background: #0d1a2d;
-        color: #58a6ff;
-      }
-      .badge-medium-term {
-        background: #151520;
-        color: #bc8cff;
-      }
-      .badge-long-term {
-        background: #12151a;
-        color: #8b949e;
-      }
-
-      .dot-completed {
-        background: #3fb950;
-      }
-      .dot-in-progress {
-        background: #d29922;
-      }
-      .dot-short-term {
-        background: #58a6ff;
-      }
-      .dot-medium-term {
-        background: #bc8cff;
-      }
-      .dot-long-term {
-        background: #8b949e;
-      }
-
-      /* Dependency graph SVG */
-      .dep-graph {
-        margin-top: 8px;
-        padding: 20px;
-        background: #161b22;
-        border-radius: 8px;
-        border: 1px solid #21262d;
-      }
-      .dep-graph h3 {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #8b949e;
-        margin-bottom: 16px;
-        font-weight: 600;
-      }
-      .dep-node {
-        display: inline-flex;
-        align-items: center;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 500;
-        margin: 3px;
-        cursor: pointer;
-        transition: all 0.15s;
-      }
-      .dep-node:hover {
-        filter: brightness(1.3);
-      }
-      .dep-node.s-done {
-        background: #1a2a1a;
-        color: #3fb950;
-      }
-      .dep-node.s-wip {
-        background: #1c1a0e;
-        color: #d29922;
-      }
-      .dep-node.s-next {
-        background: #0d1a2d;
-        color: #58a6ff;
-      }
-      .dep-node.s-mid {
-        background: #151520;
-        color: #bc8cff;
-      }
-      .dep-node.s-far {
-        background: #12151a;
-        color: #8b949e;
-      }
-      .dep-row {
-        display: flex;
-        align-items: center;
-        margin-bottom: 6px;
-      }
-      .dep-arrow {
-        color: #30363d;
-        margin: 0 6px;
-        font-size: 14px;
-      }
-      .dep-label {
-        font-size: 10px;
-        color: #484f58;
-        margin-left: 8px;
-      }
-      .dep-group {
-        margin-bottom: 16px;
-      }
-      .dep-group-title {
-        font-size: 10px;
-        color: #484f58;
-        margin-bottom: 6px;
-      }
-      .dep-plus {
-        color: #30363d;
-        margin: 0 4px;
-        font-size: 12px;
-      }
-
-      /* Completed grid */
-      .completed-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 8px;
-      }
-      .completed-grid .card {
-        min-width: unset;
-        max-width: unset;
-      }
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: #0d1117; color: #c9d1d9; line-height: 1.5;
+      }
+      .header { padding: 32px 40px 16px; border-bottom: 1px solid #21262d; }
+      .header h1 { font-size: 24px; font-weight: 600; color: #f0f6fc; }
+      .header p { font-size: 13px; color: #8b949e; margin-top: 6px; max-width: 70ch; }
+      .header .updated { font-size: 12px; color: #6e7681; margin-top: 8px; }
+      .legend { display: flex; flex-wrap: wrap; gap: 18px; padding: 14px 40px;
+        border-bottom: 1px solid #21262d; font-size: 12px; color: #8b949e; }
+      .legend-item { display: flex; align-items: center; gap: 6px; }
+      .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+      .dot-active { background: #d29922; }
+      .dot-partial { background: #8957e5; }
+      .dot-proposed { background: #58a6ff; }
+      .dot-parked { background: #6e7681; }
+      .dot-done { background: #3fb950; }
+      main { padding: 28px 40px 64px; }
+      .group { margin-bottom: 36px; }
+      .group-title { font-size: 16px; color: #f0f6fc; font-weight: 600;
+        display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+        padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+      .group-num { color: #6e7681; font-variant-numeric: tabular-nums; font-size: 14px; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+      .card { border: 1px solid #21262d; border-left-width: 3px; border-radius: 8px;
+        padding: 14px 16px; background: #161b22; }
+      .card.status-active { border-left-color: #d29922; }
+      .card.status-partial { border-left-color: #8957e5; }
+      .card.status-proposed { border-left-color: #58a6ff; }
+      .card.status-parked { border-left-color: #6e7681; }
+      .card.status-done { border-left-color: #3fb950; }
+      .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+      .card-name { font-size: 14px; font-weight: 600; color: #e6edf3; }
+      .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+        text-transform: uppercase; letter-spacing: 0.4px; }
+      .badge-active { background: #2d2410; color: #d29922; }
+      .badge-partial { background: #211633; color: #b48ce8; }
+      .badge-proposed { background: #0d1a2d; color: #58a6ff; }
+      .badge-parked { background: #1c2026; color: #8b949e; }
+      .badge-done { background: #122119; color: #3fb950; }
+      .card-desc { font-size: 13px; color: #8b949e; margin-top: 8px; }
+      .card-file { font-size: 11px; color: #6e7681; margin-top: 8px; font-family: ui-monospace, monospace; }
+      .group-completed .completed-list { display: flex; flex-direction: column; gap: 6px; }
+      .completed-item { font-size: 13px; color: #8b949e; }
+      .completed-name { color: #c9d1d9; font-weight: 600; }
+      code { background: #1c2128; padding: 1px 5px; border-radius: 4px;
+        font-family: ui-monospace, monospace; font-size: 0.9em; color: #c9d1d9; }
     </style>
   </head>
   <body>
-    <div class="header">
+    <header class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>Last updated: 2026-05-29 — story arc: Rover stays standalone with a bundled web chat UI; Relay proves the shared team brain. v0.2.0 is a packaging/stability milestone; it does not gate on Relay validation.</p>
-    </div>
-
+      <p>Rover remains a standalone personal/professional brain. Relay proves the team/collective brain: one shared Relay per team or collective, not one bot per person.</p>
+      <div class="updated">Last updated: 2026-06-23 · generated from docs/roadmap.md</div>
+    </header>
     <div class="legend">
-      <div class="legend-item">
-        <div class="legend-dot dot-completed"></div>
-        Completed
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot dot-in-progress"></div>
-        Active Bet
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot dot-short-term"></div>
-        Now / Next
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot dot-medium-term"></div>
-        Dependent Foundation
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot dot-long-term"></div>
-        Parked / Later
-      </div>
+        <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
+        <span class="legend-item"><span class="legend-dot dot-partial"></span>In progress</span>
+        <span class="legend-item"><span class="legend-dot dot-proposed"></span>Proposed</span>
+        <span class="legend-item"><span class="legend-dot dot-parked"></span>Parked</span>
+        <span class="legend-item"><span class="legend-dot dot-done"></span>Done</span>
     </div>
-
-    <div class="main">
-      <div class="graph" id="graph"></div>
-      <div class="detail-panel" id="detail">
-        <button class="close-btn" onclick="closeDetail()">&times;</button>
-        <div id="detail-content"></div>
-      </div>
-    </div>
-
-    <script>
-      const items = [
-        {
-          id: "shared_relay_bet",
-          name: "One shared Relay per team",
-          status: "in-progress",
-          desc: "Central product bet: Relay should prove the team/collective brain — one shared agent in a configured team space, not one personal bot per person. Rover remains independent.",
-          blocks: ["shared_relay_deployment", "team_memory_loop", "trust_identity", "operability"],
-        },
-        {
-          id: "rover_standalone",
-          name: "Rover remains standalone",
-          status: "completed",
-          desc: "Rover continues as the public personal/professional brain: durable markdown knowledge, site publishing, content workflows, and agent interoperability for one owner. Relay is not required for Rover.",
-          date: "2026-05",
-        },
-        {
-          id: "shared_relay_deployment",
-          name: "Shared Relay deployment model",
-          status: "short-term",
-          step: 1,
-          desc: "Make the product shape explicit: one Relay belongs to a team/collective and operates in shared spaces. This reframes Discord UX, presets, onboarding, permissions, and memory around a team-owned brain.",
-          deps: ["shared_relay_bet", "relay_scaffold"],
-        },
-        {
-          id: "team_memory_loop",
-          name: "Team memory loop",
-          status: "short-term",
-          step: 2,
-          desc: "Validate capture → synthesize → share → coordinate: Relay listens in configured spaces, creates summaries/decisions/actions, retrieves memory in context, and helps the team become legible to itself. POC validates when at least one team runs Relay against a real shared space for weeks and references its summaries/decisions back as the canonical record.",
-          deps: ["shared_relay_bet", "conversation_memory"],
-        },
-        {
-          id: "public_surface",
-          name: "Public/plugin surface credibility",
-          status: "short-term",
-          step: 3,
-          desc: "Keep the public @rizom/brain authoring surface coherent enough for external plugin/entity authors while the product story sharpens.",
-          deps: ["plugin_api", "public_contracts"],
-        },
-
-        // Completed foundations
-        {
-          id: "runtime_baseline",
-          name: "Runtime baseline",
-          status: "completed",
-          desc: "Alpha-published Bun CLI/runtime, markdown-backed typed entities, MCP-native tools/resources, webserver/A2A/Discord/chat REPL interfaces, static-site generation, and Rover as reference model.",
-          date: "2026-05",
-        },
-        {
-          id: "architecture",
-          name: "Plugin + entity architecture",
-          status: "completed",
-          desc: "Unified EntityPlugin / ServicePlugin / InterfacePlugin split, framework-level system tools, create interceptors, prompt entities, source-derived projection, and schema-backed markdown entities.",
-          date: "2026-04",
-        },
-        {
-          id: "search_eval",
-          name: "Search, embeddings + evals",
-          status: "completed",
-          desc: "SQLite FTS plus online embeddings and diagnostics; app/model/shell eval layering; comparison reporting; Rover suite stabilized across shell quality, tools, multi-turn flows, and plugins.",
-          date: "2026-04",
-        },
-        {
-          id: "site_theme",
-          name: "Site/theme decoupling",
-          status: "completed",
-          desc: "Reusable structural site packages, independently resolved themes, local src/site.ts and src/theme.css authoring, and published site/theme exports.",
-          date: "2026-04",
-        },
-        {
-          id: "deploy_foundation",
-          name: "Deploy + fleet foundation",
-          status: "completed",
-          desc: "Kamal deploy scaffolding, env-schema generation, Cloudflare Origin CA bootstrap, @rizom/ops fleet support, wildcard TLS, preview routing, encrypted per-user secrets, and content repo bootstrapping.",
-          date: "2026-04",
-        },
-        {
-          id: "production_validation",
-          name: "Production validation",
-          status: "completed",
-          desc: "rizom.ai, mylittlephoney.com, yeehaa.io, and docs.rizom.ai are live on intended production paths; extracted deployments match the shared scaffold shape.",
-          date: "2026-04",
-        },
-        {
-          id: "plugin_api",
-          name: "External plugin API",
-          status: "completed",
-          desc: "@rizom/brain exposes curated authoring subpaths; external package loading works through brain.yaml; reference plugins prove the path.",
-          date: "2026-04",
-        },
-        {
-          id: "public_contracts",
-          name: "Public contract tightening landed",
-          status: "completed",
-          desc: "Public entity-service contracts align with runtime contracts; declaration bundling has explicit allowlist, diagnostics, and tests.",
-          deps: ["plugin_api"],
-          date: "2026-05",
-        },
-        {
-          id: "relay_scaffold",
-          name: "Relay POC scaffolding",
-          status: "completed",
-          desc: "Relay preset split, prompts, eval scaffold, conversation-memory baseline, and SWOT eval coverage are in place.",
-          date: "2026-05",
-        },
-        {
-          id: "conversation_memory",
-          name: "Conversation memory foundation",
-          status: "completed",
-          desc: "Scoped projection from stored conversations, summaries, decisions, action items, dashboard widgets, and ConversationMemoryRetriever exist; policy/eval tightening remains.",
-          date: "2026-05",
-        },
-        {
-          id: "shared_space",
-          name: "Shared-space trust first slice",
-          status: "completed",
-          desc: "Configured spaces can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and no anchor escalation.",
-          date: "2026-05",
-        },
-        {
-          id: "speaker_attribution",
-          name: "Speaker attribution first pass",
-          status: "completed",
-          desc: "Conversation messages preserve actor/source metadata; summaries are speaker-aware; decisions/actions store attribution when recoverable. Identity-link management remains deferred.",
-          date: "2026-05",
-        },
-        {
-          id: "visibility_dashboard_auth",
-          name: "Visibility, dashboard + local auth",
-          status: "completed",
-          desc: "Entity visibility foundation, permission-aware dashboard entry point, and local auth issuer defaults align public/trusted/anchor behavior across runtime and UI surfaces.",
-          date: "2026-05",
-        },
-        {
-          id: "pdf_carousel",
-          name: "PDF carousel + LinkedIn documents",
-          status: "completed",
-          desc: "Deck carousel rendering produces LinkedIn-safe PDFs; durable document entities attach to social-post.documents[] and publish through LinkedIn document APIs.",
-          date: "2026-05",
-        },
-        {
-          id: "queued_entity_stubs",
-          name: "Queued entity stubs",
-          status: "completed",
-          desc: "After confirmation, prompt-based system_create persists an addressable stub with status: generating and returns its id immediately, so multi-turn follow-ups (e.g. 'now generate a cover image for that post') can reference the entity before the generation job completes. Stubs are excluded from semantic search by default; the base handler updates the stub in place on completion or marks it failed on error.",
-          date: "2026-05",
-        },
-        {
-          id: "publish_action_policy",
-          name: "Publish action policy",
-          status: "completed",
-          desc: "Entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows.",
-          date: "2026-05",
-        },
-        {
-          id: "structured_confirmations",
-          name: "Structured chat confirmations",
-          status: "completed",
-          desc: "Pending actions carry explicit approval ids and structured summary/preview cards; web-chat, chat-repl, and Discord render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path.",
-          date: "2026-05",
-        },
-        {
-          id: "web_chat_sessions",
-          name: "Web chat session management + attachments",
-          status: "completed",
-          desc: "The bundled /chat surface supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation. Document attachments stream through the chat transport as AI SDK UI data parts so saved PDF/document artifacts render inline with download affordances.",
-          date: "2026-05",
-        },
-
-        // Part of Relay/team story
-        {
-          id: "trust_identity",
-          name: "Trust and identity depth",
-          status: "medium-term",
-          desc: "If shared Relay works, deepen from shared-space trust and speaker attribution into identity linking, runtime users, roles, auth runtime DB, and permission management.",
-          deps: ["shared_space", "speaker_attribution", "team_memory_loop"],
-          blocks: ["multi_user", "auth_runtime", "a2a_signing"],
-        },
-        {
-          id: "auth_runtime",
-          name: "Auth/runtime DB",
-          status: "medium-term",
-          desc: "Move users, identity bindings, passkeys, OAuth/session stores, runtime auth state, and audit into a private schema-versioned runtime DB.",
-        },
-        {
-          id: "multi_user",
-          name: "Multi-user permissions",
-          status: "medium-term",
-          desc: "Replace single-operator runtime subject with real users, roles, per-session permissions, attribution, and management tooling when the team-brain model needs it.",
-          deps: ["trust_identity", "auth_runtime"],
-        },
-        {
-          id: "a2a_signing",
-          name: "A2A request signing",
-          status: "medium-term",
-          desc: "Signed inter-brain A2A requests using RFC 9421/Ed25519 and agent-directory trust, needed for trusted collaboration between shared and personal brains.",
-          deps: ["trust_identity"],
-        },
-
-        // Operability
-        {
-          id: "operability",
-          name: "Shared Relay operability",
-          status: "medium-term",
-          desc: "Make shared/team brains installable, maintainable, and recoverable: onboarding, offboarding, fleet deploy shape, dashboard/CMS/admin flows, and hosted Discord UX.",
-          deps: ["shared_relay_bet", "deploy_foundation"],
-        },
-        {
-          id: "passkey_onboarding",
-          name: "Passkey/operator onboarding",
-          status: "completed",
-          desc: "First-passkey setup, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have shipped. Discord DM delivery can return later as a channel-specific enhancement if hosted onboarding needs it.",
-          deps: ["operability", "auth_runtime"],
-        },
-        {
-          id: "offboarding",
-          name: "Pilot offboarding",
-          status: "medium-term",
-          desc: "Explicit offboarding workflow for rover-pilot fleets: safe server/DNS cleanup, desired-state guards, and operator-confirmed destructive actions.",
-          deps: ["operability"],
-        },
-        {
-          id: "hosted_rovers",
-          name: "Hosted control plane",
-          status: "long-term",
-          desc: "Hosted rovers/relays become relevant if the shared Relay model works: provisioning, routing, wake/sleep, operational viability, and hosted Discord UX.",
-          deps: ["operability", "multi_user"],
-        },
-        {
-          id: "cms_admin",
-          name: "CMS/admin evolution",
-          status: "long-term",
-          desc: "CMS login via GitHub OAuth and/or passkey-gated PAT. Scaling to non-developer team authoring with per-user attribution would mean reassessing the CMS tool itself (Sveltia has no self-hosted backend), not building a brain-side git gateway.",
-          deps: ["operability", "multi_user"],
-        },
-
-        // Credibility/distribution
-        {
-          id: "rover_hardening",
-          name: "Rover hardening (parallel track)",
-          status: "short-term",
-          desc: "Active parallel work alongside the Relay POC, sharing the same weekly review cadence. Bundled web chat is now the primary 'try Rover' path; media/OG follow-through has landed; remaining hardening should come from user-testing friction ranked by frequency × severity.",
-          deps: ["pdf_carousel", "rover_standalone"],
-        },
-        {
-          id: "brain_web_ui",
-          name: "Brain web UI (bundled chat surface)",
-          status: "short-term",
-          desc: "Bundled with @rizom/brain so every brain ships with a working in-browser chat surface. Streaming progress from day one, coexists with the existing dashboard, reuses passkey auth. Closes the 'try Rover' gap and makes Discord optional rather than mandatory. Supersedes the previously planned shared-bot Discord gateway model.",
-          deps: ["rover_hardening"],
-        },
-        {
-          id: "package_boundaries",
-          name: "Package boundaries",
-          status: "medium-term",
-          desc: "Narrow official plugin/entity dependencies. The internal grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition); remaining work is curating which schema/helper surface goes public via @rizom/brain and proving one official plugin builds against public-only imports.",
-          deps: ["public_surface"],
-        },
-        {
-          id: "distribution_layers",
-          name: "Distribution/discovery layers",
-          status: "medium-term",
-          desc: "AT Protocol is active: outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.",
-        },
-
-        // Framework sustainability — split between concrete cleanup (scheduled
-        // when it reduces real drag) and parked research probes.
-        {
-          id: "framework_drag",
-          name: "Framework cleanup",
-          status: "medium-term",
-          desc: "Engineering cleanup scheduled when it reduces real drag: canonical env schema, core env cleanup, build pipeline unification, and parallel eval workers.",
-        },
-        {
-          id: "renderer_local_ai",
-          name: "Framework research probes",
-          status: "long-term",
-          desc: "Parked research probes kept as thinking, not scheduled work: renderer-neutral contracts/Astro spike, local AI sidecar runtime, and memory-reduction profiling — wait for product pressure to force them up the queue.",
-        },
-        {
-          id: "chat_interface_sdk",
-          name: "Multi-platform chat consolidation",
-          status: "long-term",
-          desc: "Parked. The previous shared-bot Discord gateway model was dropped after walking through the UX (accidental complexity, multi-target ambiguity). Web chat surface now lives in brain_web_ui. Revisit only when a new platform (Slack/Teams/Matrix return) is actually prioritized.",
-        },
-      ];
-
-      const statusLabels = {
-        completed: "Completed",
-        "in-progress": "In Progress",
-        "short-term": "Now / Next",
-        "medium-term": "Dependent Foundation",
-        "long-term": "Parked / Later",
-      };
-
-      const badgeClass = {
-        completed: "badge-completed",
-        "in-progress": "badge-in-progress",
-        "short-term": "badge-short-term",
-        "medium-term": "badge-medium-term",
-        "long-term": "badge-long-term",
-      };
-
-      let selectedId = null;
-
-      function renderCard(item) {
-        const sel = selectedId === item.id ? " selected" : "";
-        const stepHtml = item.step
-          ? `<div class="step-num">${item.step}</div>`
-          : "";
-        return `<div class="card ${item.status}${sel}" onclick="selectItem('${item.id}')" id="card-${item.id}">
-    ${stepHtml}
-    <div class="name">${item.name}</div>
-    <div class="brief">${item.desc.slice(0, 80)}${item.desc.length > 80 ? "…" : ""}</div>
-  </div>`;
-      }
-
-      function render() {
-        const graph = document.getElementById("graph");
-
-        const completed = items.filter((i) => i.status === "completed");
-        const inProgress = items.filter((i) => i.status === "in-progress");
-        const prioritized = items
-          .filter((i) => i.status === "short-term" && i.step)
-          .sort((a, b) => a.step - b.step);
-        const otherShortTerm = items.filter(
-          (i) => i.status === "short-term" && !i.step,
-        );
-        const medium = items.filter((i) => i.status === "medium-term");
-        const long = items.filter((i) => i.status === "long-term");
-
-        let html = "";
-
-        // In Progress
-        if (inProgress.length) {
-          html += `<div class="section">
-      <div class="section-title">Active product bet</div>
-      <div class="card-row">${inProgress.map(renderCard).join("")}</div>
-    </div>`;
-        }
-
-        // Near-term priorities — step-numbered short-term items.
-        // Step numbers are priority indicators (matching the markdown roadmap's
-        // "1. 2. 3." sections), not dependency arrows. Real dependencies live in
-        // each item's deps[] and are rendered in the dep graph below.
-        if (prioritized.length) {
-          html += `<div class="section">
-      <div class="section-title">Now / next proof points</div>
-      <div class="card-row">${prioritized.map(renderCard).join("")}</div>
-    </div>`;
-        }
-
-        // Other short-term work without an assigned priority slot
-        if (otherShortTerm.length) {
-          html += `<div class="section">
-      <div class="section-title">Supporting now / next</div>
-      <div class="card-row">${otherShortTerm.map(renderCard).join("")}</div>
-    </div>`;
-        }
-
-        // Dependency Graph
-        html += `<div class="dep-graph">
-    <h3>Story Arc</h3>
-    <div class="dep-group">
-      <div class="dep-group-title">Product thesis</div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('rover_standalone')">Rover standalone ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-next" onclick="selectItem('shared_relay_bet')">one shared Relay per team</span>
-        <span class="dep-label">Rover remains personal/professional; Relay proves shared team infrastructure</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Prove shared Relay</div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('relay_scaffold')">Relay scaffold ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('shared_relay_deployment')">shared deployment model</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-next" onclick="selectItem('team_memory_loop')">team memory loop</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('conversation_memory')">conversation memory ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('shared_space')">shared-space trust ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('speaker_attribution')">speaker attribution ✓</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">If Relay works, deepen trust and operability</div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('team_memory_loop')">team memory proof</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('trust_identity')">trust + identity depth</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('multi_user')">multi-user permissions</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('deploy_foundation')">deploy/fleet foundation ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('operability')">shared Relay operability</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-far" onclick="selectItem('hosted_rovers')">hosted control plane</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Credibility and sustainability</div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('plugin_api')">plugin API ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('public_contracts')">public contracts ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('public_surface')">public surface</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('package_boundaries')">package boundaries</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('pdf_carousel')">PDF carousel ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('rover_hardening')">Rover hardening (parallel)</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('framework_drag')">framework cleanup</span>
-      </div>
-    </div>
-  </div>`;
-
-        // Medium-term
-        html += `<div class="section" style="margin-top:24px">
-    <div class="section-title">Dependent foundation</div>
-    <div class="card-row">${medium.map(renderCard).join("")}</div>
-  </div>`;
-
-        // Long-term
-        html += `<div class="section">
-    <div class="section-title">Parked / later</div>
-    <div class="card-row">${long.map(renderCard).join("")}</div>
-  </div>`;
-
-        // Completed (collapsed by default)
-        html += `<div class="section">
-    <div class="section-title" style="cursor:pointer" onclick="toggleCompleted()">
-      Completed (${completed.length}) <span id="toggle-arrow">▸</span>
-    </div>
-    <div id="completed-grid" class="completed-grid" style="display:none">
-      ${completed.map(renderCard).join("")}
-    </div>
-  </div>`;
-
-        graph.innerHTML = html;
-      }
-
-      function toggleCompleted() {
-        const grid = document.getElementById("completed-grid");
-        const arrow = document.getElementById("toggle-arrow");
-        if (grid.style.display === "none") {
-          grid.style.display = "grid";
-          arrow.textContent = "▾";
-        } else {
-          grid.style.display = "none";
-          arrow.textContent = "▸";
-        }
-      }
-
-      function selectItem(id) {
-        selectedId = id;
-        const item = items.find((i) => i.id === id);
-        if (!item) return;
-
-        const panel = document.getElementById("detail");
-        const content = document.getElementById("detail-content");
-
-        const deps = (item.deps || [])
-          .map((d) => items.find((i) => i.id === d))
-          .filter(Boolean);
-        const blocks = items.filter((i) => (i.deps || []).includes(id));
-
-        let html = `
-    <h2>${item.name}</h2>
-    <div class="status-badge ${badgeClass[item.status]}">${statusLabels[item.status]}${item.step ? ` — Step ${item.step}` : ""}${item.date ? ` — ${item.date}` : ""}</div>
-    <div class="desc">${item.desc}</div>
-  `;
-
-        if (deps.length) {
-          html += `<div class="deps">
-      <h3>Depends on</h3>
-      ${deps.map((d) => `<div class="dep-item" onclick="selectItem('${d.id}')">${d.name}</div>`).join("")}
-    </div>`;
-        }
-
-        if (blocks.length) {
-          html += `<div class="deps">
-      <h3>Unblocks</h3>
-      ${blocks.map((b) => `<div class="dep-item" onclick="selectItem('${b.id}')">${b.name}</div>`).join("")}
-    </div>`;
-        }
-
-        content.innerHTML = html;
-        panel.classList.add("open");
-
-        // Highlight card
-        document
-          .querySelectorAll(".card")
-          .forEach((c) => c.classList.remove("selected"));
-        const card = document.getElementById(`card-${id}`);
-        if (card) {
-          card.classList.add("selected");
-          card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      }
-
-      function closeDetail() {
-        document.getElementById("detail").classList.remove("open");
-        document
-          .querySelectorAll(".card")
-          .forEach((c) => c.classList.remove("selected"));
-        selectedId = null;
-      }
-
-      render();
-    </script>
+    <main>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§1</span>Keep Rover sharp as the public reference</h2>
+        <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Exhaustive core-preset eval set for Rover</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">preset-aware eval harness merged; remaining work fills behavioral coverage so the core suite stays exhaustive as new behavior lands.</div>
+          <div class="card-file">rover-core-preset-evals.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Rover Chat-Native Onboarding via Playbooks</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">in-chat guided first-run onboarding (playbook-driven); on a feature branch with correctness gaps from live smoke still to close.</div>
+          <div class="card-file">rover-chat-native-onboarding.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Web search as an explicit tool capability</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">provider-neutral <code>web_search</code> capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead <code>webSearch</code> config flag.</div>
+          <div class="card-file">web-search-tool.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§2</span>Prove shared Relay as team knowledge infrastructure</h2>
+        <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Relay Presets — Current &amp; Future</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">Relay preset philosophy, current POC readiness, and deferred scope.</div>
+          <div class="card-file">relay-presets.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Message-interface semantic tool status</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">shared lifecycle model for tool-status updates rendered per interface (web-chat, Discord, future adapters), so shared-space participants can see what the brain is doing.</div>
+          <div class="card-file">message-interface-tool-status.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§3</span>Make shared Relay trustworthy enough to matter</h2>
+        <div class="cards">
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Multi-User &amp; Permissions</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">runtime users, roles, active-user checks, attribution, and management surfaces.</div>
+          <div class="card-file">multi-user.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Auth runtime database</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.</div>
+          <div class="card-file">auth-runtime-db.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Operator runtime database</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">broader private runtime-state boundary.</div>
+          <div class="card-file">operator-runtime-db.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">A2A Request Signing</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">RFC 9421 request signing for inter-rover A2A.</div>
+          <div class="card-file">a2a-request-signing.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§4</span>Make shared Relay operable</h2>
+        <div class="cards">
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">explicit user offboarding workflow for rover-pilot</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">explicit rover-pilot offboarding workflow.</div>
+          <div class="card-file">user-offboarding-plan.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Rover default batch onboarding</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">next hosted Rover pilot customization/preflight work.</div>
+          <div class="card-file">rover-default-batch-onboarding.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Discord opt-in plan for rover-pilot ops</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">make Discord opt-in in <code>@rizom/ops</code> rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.</div>
+          <div class="card-file">discord-opt-in-plan.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Hosted Rovers on Kubernetes</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">hosted rover control plane direction.</div>
+          <div class="card-file">hosted-rovers.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">First-Party CMS Editor</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync); supersedes the hosted GitHub-App token plan below.</div>
+          <div class="card-file">first-party-cms-editor.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Hosted CMS GitHub App Tokens</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">hosted-product CMS login via short-lived GitHub App installation tokens; superseded if the first-party editor lands (the browser-token problem it hardens disappears).</div>
+          <div class="card-file">cms-github-app-hosted.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Slack Chat SDK Interface</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">first Slack slice for <code>@brains/chat</code>, separate from Discord replacement work.</div>
+          <div class="card-file">slack-chat-sdk.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Brain web Chat SDK adapter strategy</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.</div>
+          <div class="card-file">brain-web-chat-sdk-adapter.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Chat interface structured forms and modals</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.</div>
+          <div class="card-file">chat-interface-forms-modals.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Message feedback events</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
+          <div class="card-file">message-feedback.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§5</span>Make the ecosystem credible</h2>
+        <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">AT Protocol Integration</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
+          <div class="card-file">atproto-integration.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">NPM Package Boundary Plan</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.</div>
+          <div class="card-file">npm-package-boundaries.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">MCP external redesign — CQRS split (raw queries, agent-gated commands)</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">CQRS split for external MCP: raw read tools stay composable (<code>readOnlyHint</code>), all mutations route through a single agent-gated <code>chat</code> command; <code>debug</code> mode keeps raw write tools local-only.</div>
+          <div class="card-file">mcp-external-redesign.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">OKF interop (Open Knowledge Format export/import)</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">export/import the entity store as Google Open Knowledge Format bundles via <code>directory-sync</code>, for interchange with external OKF producers/consumers.</div>
+          <div class="card-file">okf-interop.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Custom Brain Definitions (brain.ts)</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">parked programmatic composition escape hatch.</div>
+          <div class="card-file">custom-brain-definitions.md</div>
+        </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Desktop App (Electrobun)</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">parked Electrobun-based native-app direction.</div>
+          <div class="card-file">desktop-app.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group">
+        <h2 class="group-title"><span class="group-num">§6</span>Keep the framework sustainable</h2>
+        <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Runtime state store</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">service shipped (<code>shell/runtime-state</code>); remaining work wires the pending consumers (chat subscriptions, playbook run state, notification/setup-email dedupe).</div>
+          <div class="card-file">runtime-state-store.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Local AI Runtime</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">local AI runtime sidecar direction.</div>
+          <div class="card-file">embedding-service.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">env handling — declarations and read sites</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">co-locate env declarations and move <code>process.env</code> reads out of <code>shell/core</code> into the app/deploy layer.</div>
+          <div class="card-file">env-handling.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Unify Build Pipeline</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">collapse duplicated build responsibilities.</div>
+          <div class="card-file">unify-build-pipeline.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Parallel Multi-Model Eval</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">parallelize multi-model eval runs.</div>
+          <div class="card-file">parallel-eval-workers.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">External dependency review and updates</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable <code>@rizom/brain</code>.</div>
+          <div class="card-file">external-dependency-review.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Plugin contracts consolidation</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">collapse redundant runtime/public mappers via <code>Schema.parse</code>.</div>
+          <div class="card-file">plugin-contracts-consolidation.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Codebase cleanup backlog</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, <code>@brains/utils</code> split, package-script drift).</div>
+          <div class="card-file">codebase-cleanup-backlog.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Memory Reduction — Registries, Templates &amp; Eager Loading</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">profile first, then optimize registry/template/lazy-loading pressure.</div>
+          <div class="card-file">memory-reduction.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Template Renderer Contracts</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">renderer-neutral contracts and Astro spike.</div>
+          <div class="card-file">template-renderer-contracts.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine evaluation</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
+        </div>
+      </section>
+      <section class="group group-completed">
+        <h2 class="group-title"><span class="group-num">✓</span>Recently completed</h2>
+        <div class="completed-list">
+          <div class="completed-item"><span class="completed-name">Entity and plugin architecture</span> — unified <code>EntityPlugin</code> / <code>ServicePlugin</code> / <code>InterfacePlugin</code> split</div>
+          <div class="completed-item"><span class="completed-name">System tool surface</span> — create, update, delete, search, extract, status, and insights consolidated into framework-level tools, with durable writes routed through explicit confirmation</div>
+          <div class="completed-item"><span class="completed-name">Plugin create interceptors</span> — plugins can override <code>system_create</code> behavior per entity type via <code>EntityPlugin.interceptCreate</code>; link capture and image cover-target resolution moved into their respective plugins</div>
+          <div class="completed-item"><span class="completed-name">Knowledge-context opt-in</span> — AI templates explicitly opt in to knowledge-base context injection, replacing an implicit default that caused embedding-API overflows on long extractive prompts</div>
+          <div class="completed-item"><span class="completed-name">Search and embeddings</span> — SQLite FTS + online embeddings + diagnostics</div>
+          <div class="completed-item"><span class="completed-name">Eval overhaul</span> — app/model/shell eval layering and comparison reporting</div>
+          <div class="completed-item"><span class="completed-name">Theme/site decoupling</span> — site packages are structural-only; themes resolve independently</div>
+          <div class="completed-item"><span class="completed-name">Standalone authoring</span> — local <code>src/site.ts</code> / <code>src/theme.css</code> conventions for models that scaffold site/theme authoring, plus deploy scaffolding through <code>brain init --deploy</code></div>
+          <div class="completed-item"><span class="completed-name">Alpha npm publishing</span> — <code>@rizom/brain</code> is already shipping public alpha releases with automated Changesets-based publishing</div>
+          <div class="completed-item"><span class="completed-name">Library exports Tier 1</span> — <code>@rizom/brain/site</code> and <code>@rizom/brain/themes</code></div>
+          <div class="completed-item"><span class="completed-name">Deployment foundation</span> — <code>brain cert:bootstrap</code>, app-local <code>.env.schema</code> generation, init artifact reconciliation, and the first standalone Kamal workflow shape</div>
+          <div class="completed-item"><span class="completed-name">Multi-user fleet operations</span> — <code>@rizom/ops</code> for operator-managed rover fleets: shared wildcard TLS with <code>&lt;handle&gt;-preview.&lt;zone&gt;</code> preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths</div>
+          <div class="completed-item"><span class="completed-name">Production deploy validation</span> — <code>rizom.ai</code>, <code>mylittlephoney.com</code>, and <code>yeehaa.io</code> are live on their intended production paths</div>
+          <div class="completed-item"><span class="completed-name">Extracted deploy convergence</span> — the checked-out external deployments now use the shared HTTP-host shape: <code>app_port: 8080</code>, no active in-container <code>Caddyfile</code>, and direct <code>brain start</code> boot</div>
+          <div class="completed-item"><span class="completed-name">Rizom site follow-through</span> — <code>rizom.ai</code>, <code>rizom.foundation</code>, and <code>rizom.work</code> own their final route composition from app-local <code>src/site.ts</code>, over the shared <code>sites/rizom</code> core with <code>shared/theme-rizom</code> kept separate; remaining CTA/content polish belongs to the extracted app/content repos, not this monorepo roadmap</div>
+          <div class="completed-item"><span class="completed-name">Monorepo cleanup</span> — transitional apps/packages removed; <code>rizom.ai</code>, <code>rizom.foundation</code>, <code>rizom.work</code>, <code>mylittlephoney</code>, and <code>yeehaa.io</code> extracted</div>
+          <div class="completed-item"><span class="completed-name">Agent directory tightening</span> — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain <code>discovered</code>, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced</div>
+          <div class="completed-item"><span class="completed-name">Finalized content preservation</span> — exact/finalized/approved content now persists directly through <code>system_create</code> without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts</div>
+          <div class="completed-item"><span class="completed-name">Rover eval stabilization</span> — the full Rover suite covers shell quality, tool invocation, multi-turn agent flows, publishing, web chat, confirmations, and plugin behavior across the inheritable preset suites described below; the mainline suite stays green</div>
+          <div class="completed-item"><span class="completed-name">Assistant instruction hardening</span> — the Rover system prompt now closes a set of identity-disclosure and tool-routing gaps surfaced by eval/regression work: it refuses to reveal the configured anchor/profile identity when answering &quot;am I your anchor?&quot;/&quot;am I {name}?&quot; (answering from permission level only), treats an ambiguous &quot;make one draft&quot; follow-up as a clarification rather than self-picking a published item or firing <code>system_update</code>, resolves a source named by title/slug through <code>system_get</code> before continuing to <code>system_create</code> in the same turn for source-derived artifact saves, and refuses to substitute <code>system_search</code> for an unavailable <code>system_extract</code> instead of presenting existing topics as newly generated — each guarded by <code>build-instructions</code> assertions</div>
+          <div class="completed-item"><span class="completed-name">Inheritable core-preset eval suite</span> — eval suites are now declarative and preset-aware in <code>brain.eval.yaml</code>: <code>core</code> runs <code>preset-core</code>, <code>default</code> extends <code>core</code> with <code>preset-default</code>, and <code>full</code> extends <code>default</code> with <code>preset-full</code>, so larger gates inherit smaller-preset tags instead of duplicating them. The 136 existing fixtures split 67 / 33 / 36 across the three tiers, a <code>--preset &lt;name&gt;</code> runner flag boots the named preset hermetically (atproto, email-resend, and other live-effect plugins stay in <code>evalDisable</code>), a committed tool-coverage ledger keeps &quot;exhaustive&quot; measurable (17/17 core tools asserted), and a case-level <code>permissions:</code> matrix plus turn-level multi-user context exercise public/trusted/anchor boundaries — including approval-hijack and shared-thread denial cases — in single multi-turn conversations</div>
+          <div class="completed-item"><span class="completed-name">Pending entity ingestion</span> — async entity creation now persists a durable <code>pending</code> placeholder immediately and enriches the same entity to <code>draft</code> (or <code>failed</code>) when the background job completes, so just-saved items are referenceable before processing finishes. A shared <code>shell/plugins</code> ingestion helper preserves entity IDs across the lifecycle; <code>entities/link</code> is the first adopter (save two links, immediately summarize both), with media/upload entities to follow</div>
+          <div class="completed-item"><span class="completed-name">Assessment package split</span> — SWOT moved out of agent discovery into <code>entities/assessment</code>, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary</div>
+          <div class="completed-item"><span class="completed-name">Documentation phase 3 / docs site</span> — <code>entities/doc</code> package, <code>/docs</code> routes, grouped docs navigation, release-driven content sync, and the standalone <code>rizom-ai/doc-brain</code> deploy/rebuild path for <code>docs.rizom.ai</code> are complete</div>
+          <div class="completed-item"><span class="completed-name">Docs sync script</span> — <code>scripts/sync-docs-content.ts</code> generates <code>doc/*.md</code> from <code>docs/docs-manifest.yaml</code> into a content checkout; <code>bun run docs:check</code> validates manifest and links while model-specific eval fixtures stay curated by their brain packages</div>
+          <div class="completed-item"><span class="completed-name">Shell initialization coordination</span> — <code>ShellBootloader</code> now owns phased startup, plugin <code>onReady</code> is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade</div>
+          <div class="completed-item"><span class="completed-name">External plugin API</span> — <code>@rizom/brain</code> exposes curated <code>/plugins</code>, <code>/entities</code>, <code>/services</code>, <code>/interfaces</code>, and <code>/templates</code> authoring subpaths; <code>brain.yaml</code> loads installed plugin packages via keyed <code>plugins.&lt;id&gt;.package</code> entries with env-var interpolation; alpha compatibility is governed by <code>peerDependencies</code>; separate-repo reference plugins <code>rizom-ai/brain-plugin-hello</code> (service/lifecycle) and <code>rizom-ai/brain-plugin-recipes</code> (durable entity) prove the path end-to-end; public entity-service types now use the canonical runtime contracts for <code>IEntityService</code>, <code>IEntitiesNamespace</code>, <code>ListOptions</code>, <code>SearchOptions</code>, and <code>SearchResult</code>; declaration bundling now has an explicit documented inline allowlist, clearer internal-import diagnostics, and focused tests</div>
+          <div class="completed-item"><span class="completed-name">Rizom ecosystem section</span> — entity-backed <code>entities/rizom-ecosystem</code> package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared <code>@rizom/ui</code> wordmark/header alignment</div>
+          <div class="completed-item"><span class="completed-name">Professional-site Rizom alignment</span> — editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a <code>Wordmark</code> slot generalized in <code>@rizom/ui</code></div>
+          <div class="completed-item"><span class="completed-name">Relay POC scaffolding</span> — <code>brains/relay</code> preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split</div>
+          <div class="completed-item"><span class="completed-name">Newsletter composite plugin</span> — <code>plugins/newsletter</code> bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry</div>
+          <div class="completed-item"><span class="completed-name">Bitwarden-backed secrets</span> — <code>brain secrets:push</code> pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites <code>.env.schema</code> with pinned Varlock references; generated deploy workflows run the current Varlock CLI with only <code>BWS_ACCESS_TOKEN</code> in GitHub Actions secrets</div>
+          <div class="completed-item"><span class="completed-name">External plugin smoke testing</span> — <code>brain start --startup-check</code> loads configured plugins, runs <code>onRegister</code> and <code>onReady</code>, then exits without starting daemons or job workers and without requiring a real AI API key</div>
+          <div class="completed-item"><span class="completed-name">Entity visibility foundation</span> — entities now carry normalized <code>public</code> / <code>shared</code> / <code>restricted</code> visibility, persisted as top-level runtime state and enforced across read/search/list/update surfaces so public/trusted/anchor contexts fail closed by default</div>
+          <div class="completed-item"><span class="completed-name">Shared-space trust first slice</span> — configured <code>spaces</code> can grant collaborator/trusted access through centralized permission resolution, with exact/wildcard selectors, Discord channel context, bot/guest exclusion, and anchor non-escalation covered by tests</div>
+          <div class="completed-item"><span class="completed-name">Local auth issuer defaults</span> — local development auth now prefers the running localhost origin while preserving explicit and production issuer behavior</div>
+          <div class="completed-item"><span class="completed-name">Dashboard entry point</span> — the dashboard now uses permission-aware widgets/endpoints/interactions, renders first-class “ways to connect,” and has mobile ordering that leads with identity and interaction affordances before corpus metrics</div>
+          <div class="completed-item"><span class="completed-name">Preview-domain alignment</span> — standalone deploy scaffolding and shared preview-domain derivation now use <code>preview.&lt;brain-domain&gt;</code> consistently for apex and nested brain domains</div>
+          <div class="completed-item"><span class="completed-name">PDF carousel and LinkedIn document publishing</span> — deck-owned carousel rendering now produces Playwright-backed PDF attachments with opaque LinkedIn-safe backgrounds; operators can preview generated attachments, save durable PDF <code>document</code> entities, attach them to <code>social-post.documents[]</code>, and publish native LinkedIn document/carousel posts through the current <code>/rest/documents</code> + <code>/rest/posts</code> flow</div>
+          <div class="completed-item"><span class="completed-name">Queued entity stubs</span> — after confirmation, prompt-based <code>system_create</code> persists an addressable stub with <code>status: generating</code> and returns its id immediately, so multi-turn follow-ups (e.g. &quot;now generate a cover image for that post&quot;) can reference the entity before the generation job completes; stubs are excluded from semantic search by default and the base generation handler updates the stub in place on completion or marks it <code>failed</code> on error</div>
+          <div class="completed-item"><span class="completed-name">Publish action policy</span> — entity write/publish actions are enforced through the centralized permission policy layer, with collaborator mutations constrained by entity type and action and Rover eval coverage for blog/newsletter publish flows</div>
+          <div class="completed-item"><span class="completed-name">Structured chat confirmations</span> — pending actions carry explicit approval ids and structured summary/preview cards; chat surfaces (web-chat, chat-repl, Discord) render approval cards natively and route confirmation responses through the chat transport, removing the singular-approval fallback path</div>
+          <div class="completed-item"><span class="completed-name">Web chat session management</span> — the bundled <code>/chat</code> surface now supports session list/switch/new, rename, archive, and explicit delete on top of the MVP, with browser-storage memory of the last selected conversation</div>
+          <div class="completed-item"><span class="completed-name">Web chat outbound attachments</span> — generated documents stream through the web-chat transport as AI SDK UI data parts, so saved PDF/document artifacts render inline in the chat surface with download affordances</div>
+          <div class="completed-item"><span class="completed-name">Runtime state store service</span> — <code>shell/runtime-state</code> ships a shell-owned, namespaced, typed store for ephemeral operational state (libSQL + Drizzle, shell-owned migrations), wired into <code>shell/core</code> service initialization and exposed to plugins via <code>context.runtimeState</code>; consumers (chat thread subscriptions, playbook run state, notification/setup-email dedupe) are pending</div>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
