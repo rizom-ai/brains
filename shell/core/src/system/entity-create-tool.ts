@@ -6,6 +6,7 @@ import type {
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
+  generateMarkdownWithFrontmatter,
   hasVisibilityFrontmatter,
 } from "@brains/entity-service";
 import {
@@ -58,7 +59,7 @@ function buildCreateConfirmation(createInput: CreateInput): {
   summary: string;
   preview: string;
 } {
-  const { entityType, title, prompt, content, url, from } = createInput;
+  const { entityType, title, prompt, fields, content, url, from } = createInput;
   const label = title ? ` "${title}"` : ` ${entityType}`;
   const summary = `${prompt ? "Generate" : "Create"}${label}?`;
   const sourceAttachment =
@@ -74,6 +75,7 @@ function buildCreateConfirmation(createInput: CreateInput): {
         ]
       : []),
     ...(prompt ? [`Prompt: ${prompt}`] : []),
+    ...(fields ? [`Fields: ${JSON.stringify(fields)}`] : []),
     ...(content ? [`Content preview: ${content.slice(0, 500)}`] : []),
   ];
 
@@ -269,18 +271,25 @@ async function executeDirectCreate(
   const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
     createInput.entityType,
   );
+  const structuredMarkdown = createInput.fields
+    ? generateMarkdownWithFrontmatter(createInput.content ?? "", {
+        ...createInput.fields,
+        ...(createInput.title ? { title: createInput.title } : {}),
+      })
+    : undefined;
   try {
     const createOptions = {
       deduplicateId: true,
       ...(eventContext ? { eventContext } : {}),
     };
     const result =
-      createInput.content && hasStructuredFrontmatter(frontmatterSchema)
+      (structuredMarkdown || createInput.content) &&
+      hasStructuredFrontmatter(frontmatterSchema)
         ? await entityService.createEntityFromMarkdown({
             input: {
               entityType: createInput.entityType,
               id,
-              markdown: createInput.content,
+              markdown: structuredMarkdown ?? createInput.content ?? "",
             },
             options: createOptions,
           })
@@ -289,7 +298,10 @@ async function executeDirectCreate(
               id,
               entityType: createInput.entityType,
               content: createInput.content ?? "",
-              metadata: { title: createInput.title ?? id },
+              metadata: {
+                title: createInput.title ?? id,
+                ...(createInput.fields ?? {}),
+              },
               created: new Date().toISOString(),
               updated: new Date().toISOString(),
             },
@@ -478,6 +490,7 @@ async function prepareCreate(
   const createInput: CreateInput = {
     entityType: derivedEntityType,
     ...(title && { title }),
+    ...(input.fields && { fields: input.fields }),
     ...(resolvedContent && { content: resolvedContent }),
     ...(url && { url }),
     ...(from && { from }),
@@ -556,7 +569,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use source to choose exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again; for example, 'Save this as a note: ...' or 'Save this memo about the launch timeline' already supplies the content, even when it is only a short sentence or fragment. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind text for that visible content. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use fields for typed entity metadata and source for exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again; for example, 'Save this as a note: ...' or 'Save this memo about the launch timeline' already supplies the content, even when it is only a short sentence or fragment. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind text for that visible content. Use entityType wish for explicitly saved or tracked unmet requested capabilities or outcomes. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);
@@ -599,6 +612,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           (confirmationToken) => ({
             entityType: createInput.entityType,
             ...(createInput.title && { title: createInput.title }),
+            ...(createInput.fields && { fields: createInput.fields }),
             source: confirmationSource,
             ...(createInput.replace && { replace: createInput.replace }),
             confirmed: true,

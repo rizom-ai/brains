@@ -394,6 +394,7 @@ export const generateOperationInputSchema: typeof generateOperationInputSchemaIn
 const createInputSchemaInternal: StrictObjectSchema<{
   entityType: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
+  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   source: typeof createPreferredSourceInputSchema;
   replace: z.ZodOptional<z.ZodBoolean>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
@@ -406,6 +407,12 @@ const createInputSchemaInternal: StrictObjectSchema<{
         "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
       ),
     title: z.string().optional().describe("Title for a new entity."),
+    fields: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        "Typed frontmatter fields for direct creation, such as status, scores, dates, and owner fields.",
+      ),
     source: createPreferredSourceInputSchema.describe(
       "Concrete source selector. Use exactly one source branch. For AI generation or source-derived artifacts, use system_generate instead.",
     ),
