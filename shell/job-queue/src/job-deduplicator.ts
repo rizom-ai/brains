@@ -1,10 +1,11 @@
+import { z } from "@brains/utils/zod-v4";
 import type { DeduplicationStrategy } from "./schema/types";
 import { JOB_STATUS } from "./schemas";
 import type { JobInfo } from "./types";
 
-type MetadataWithDeduplicationKey = JobInfo["metadata"] & {
-  deduplicationKey?: string;
-};
+const deduplicatedJobMetadataSchema = z.looseObject({
+  deduplicationKey: z.string().optional(),
+});
 
 /**
  * Applies queue deduplication policy to active jobs of a single type.
@@ -45,8 +46,10 @@ export class JobDeduplicator {
     }
 
     return jobs.filter((job) => {
-      const metadata = job.metadata as MetadataWithDeduplicationKey;
-      return metadata.deduplicationKey === deduplicationKey;
+      const metadata = deduplicatedJobMetadataSchema.safeParse(job.metadata);
+      return (
+        metadata.success && metadata.data.deduplicationKey === deduplicationKey
+      );
     });
   }
 }

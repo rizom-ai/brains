@@ -694,6 +694,11 @@ Incremental migration progress:
   Zod 4 guards, and declared the direct utils workspace dependency.
 - Replaced auth-service persisted-store ENOENT error casts with a shared Zod 4
   filesystem error-code guard and removed redundant JSON.parse unknown casts.
+- Replaced the site-content route-list message response cast with a Zod 4 local
+  guard, preserving the site-builder/framework route schemas on their current
+  boundary.
+- Replaced the job-queue deduplication metadata cast with a Zod 4 loose-object
+  guard while keeping queue option schemas on the current boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
