@@ -11,6 +11,7 @@ import {
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -19,6 +20,8 @@ import {
   hasStructuredFrontmatter,
   normalizeOptionalString,
 } from "./tool-helpers";
+
+const messageMetadataSchema = z.record(z.string(), z.unknown());
 
 interface NormalizedCoverImageInput {
   generate: true;
@@ -123,8 +126,8 @@ function parseMessageMetadata(
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
+      const parsed = messageMetadataSchema.safeParse(JSON.parse(metadata));
+      return parsed.success ? parsed.data : null;
     } catch {
       return null;
     }

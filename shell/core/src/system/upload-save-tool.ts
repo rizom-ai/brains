@@ -1,5 +1,6 @@
 import type { CreateExecutionContext } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
+import { z } from "@brains/utils/zod-v4";
 import { uploadSaveInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -11,13 +12,15 @@ const uploadScope = {
   routePath: "/api/chat/uploads",
 } as const;
 
+const messageMetadataSchema = z.record(z.string(), z.unknown());
+
 function parseMessageMetadata(
   metadata: unknown,
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
+      const parsed = messageMetadataSchema.safeParse(JSON.parse(metadata));
+      return parsed.success ? parsed.data : null;
     } catch {
       return null;
     }

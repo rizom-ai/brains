@@ -645,6 +645,8 @@ Incremental migration progress:
   Zod 4 schemas.
 - Migrated the default YAML content formatter parser to an explicit Zod 4
   record schema.
+- Migrated core system tool conversation upload metadata JSON parsing to Zod 4
+  record schemas for create/upload-save access checks.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
