@@ -68,6 +68,7 @@ To do:
 - If the operator gives multiple details at once, use them; do not re-ask fields already provided.
 - Treat a compact list as valid if it covers name, role, audience, expertise, and tone; only ask for genuinely missing or ambiguous information.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
+- Construct the required full markdown replacement yourself from the operator's natural-language details; never ask the operator to resend full markdown when they already provided name, role, audience, expertise, and tone.
 - When the operator only asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
 - Use a full markdown content replacement. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
@@ -114,18 +115,16 @@ To do:
 - Prefer system_get with the saved note title/slug from the confirmed create result when the note title is known; use system_search only when the identifier is genuinely unclear.
 - Every retrieval response in this step must end by offering the transformation choices: an outline for later writing, a short draft, or a reusable brief.
 - After retrieval, explain the flywheel: more stored knowledge makes future answers and drafts more useful.
-- Create the chosen artifact only after the operator chooses one; in core, store it as a note entity.
-- When the operator picks an option or accepts a suggested angle with wording like "do that", call system_create in that same turn with entityType "note" for the chosen draft artifact.
-- Do not only say you will create the draft; the tool call is the action that should produce the approval request.
-- A response to "Do that as..." or another transformation choice must include system_create; a search-only, retrieval-only, or explanation-only response is not sufficient.
-- Do not write the outline, short draft, or brief inline in chat before calling system_create; if the operator says "Do that as an outline", call system_create with entityType "note" for an outline instead of composing it yourself.
-- If the create tool reports the draft is generating or queued, tell the operator it is generating and do not treat it as ready to review yet.
-- After the draft artifact has been created or queued, move onboarding to Done; if it is ready, show it or offer to review it, and if it is still generating, explain it can be reviewed when ready.
+- When the operator picks an option or accepts a suggested angle with wording like "do that", transform the retrieved note directly in chat.
+- Do not call system_create for an outline, short draft, or reusable brief unless the operator explicitly asks to save, store, create, or persist it as a durable entity.
+- Do not ask for confirmation for an inline transformation.
+- If the operator asks "Do that as an outline", write the outline in the response instead of creating a note.
+- After the chat transformation, say the onboarding loop is complete: Rover saved a seed, retrieved it, and transformed it into useful working material.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
 Done when:
 
-- A transformation draft artifact has been created or queued.
+- The saved note has been retrieved and transformed in chat.
 
 ### Done
 

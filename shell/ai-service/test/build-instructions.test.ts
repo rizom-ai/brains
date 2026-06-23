@@ -268,6 +268,16 @@ describe("buildInstructions", () => {
     );
   });
 
+  it("should keep inline transformations out of durable create flows", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "Transforming retrieved or discussed content in chat is not a durable create by default.",
+    );
+    expect(instructions).toContain(
+      "Do not call `system_create` or ask for confirmation for inline transformations.",
+    );
+  });
+
   it("should distinguish artifact previews from durable artifact saves", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(

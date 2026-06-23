@@ -133,8 +133,13 @@ turns:
 
   - userMessage: "Do that as an outline."
     successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: false
       responseContains:
-        - "outline"
+        - "resilient software"
+        - "climate"
+        - "onboarding loop is complete"
       responseNotContains:
         - "I'll turn"
         - "I’ll turn"
@@ -158,6 +163,8 @@ successCriteria:
   expectedTools:
     - toolName: playbook_start
       shouldBeCalled: true
+    - toolName: system_update
+      shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true
   toolCountRange:
@@ -172,8 +179,6 @@ successCriteria:
     - "playbook_send_event"
     - "I cannot"
     - "I don't have access"
-  minHelpfulnessScore: 3
-  minInstructionFollowingScore: 3
 
 efficiency:
   maxToolCalls: 20

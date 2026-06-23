@@ -96,8 +96,6 @@ turns:
             - system_get
             - system_search
           shouldBeCalled: true
-      responseContains:
-        - "outline"
       responseNotContains:
         - "another note"
         - "another seed"
@@ -108,54 +106,20 @@ turns:
     successCriteria:
       expectedTools:
         - toolName: system_create
-          shouldBeCalled: true
-          argsContain:
-            entityType: note
-      responseContains:
-        - "Confirmation required"
-      responseNotContains:
-        - "Here is"
-        - "Here's"
-        - "I cannot"
-        - "I don't have access"
-
-  - userMessage: "Approve creating the outline."
-    confirmPendingAction: true
-    successCriteria:
-      expectedTools:
-        - toolName: system_create
-          shouldBeCalled: true
-      responseContains:
-        - "Completed"
-      responseNotContains:
-        - "What should I call you"
-        - "what should I call you"
-        - "I cannot"
-        - "I don't have access"
-
-  - userMessage: "What is next?"
-    successCriteria:
-      expectedTools:
-        - toolName: playbook_status
-          shouldBeCalled: true
-        - toolName: playbook_send_event
           shouldBeCalled: false
+      responseContains:
+        - "woodchucks"
+        - "onboarding loop is complete"
       responseNotContains:
-        - "Want me to show"
-        - "show the saved note"
-        - "ask for it yourself"
-        - "outline for later writing"
-        - "short draft, or a reusable brief"
-        - "What should I call you"
-        - "what should I call you"
-        - "another note"
-        - "another seed"
+        - "Confirmation required"
         - "I cannot"
         - "I don't have access"
 
 successCriteria:
   expectedTools:
     - toolName: playbook_start
+      shouldBeCalled: true
+    - toolName: system_update
       shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true

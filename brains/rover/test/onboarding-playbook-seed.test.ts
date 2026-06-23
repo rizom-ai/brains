@@ -117,13 +117,20 @@ describe("Rover onboarding playbook seed", () => {
       }),
     );
 
-    expect(statesById.get("retrieve-and-transform")).toEqual(
+    const retrieveAndTransform = statesById.get("retrieve-and-transform");
+    expect(retrieveAndTransform).toEqual(
       expect.objectContaining({
         id: "retrieve-and-transform",
         prompt: expect.any(String),
         doneWhen: [expect.any(String)],
         transitions: [{ event: "NEXT", target: "done" }],
       }),
+    );
+    expect(retrieveAndTransform?.instructions.join("\n")).toContain(
+      "transform the retrieved note directly in chat",
+    );
+    expect(retrieveAndTransform?.instructions.join("\n")).toContain(
+      "Do not call system_create for an outline",
     );
 
     for (const state of body.states) {

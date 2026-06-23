@@ -289,6 +289,16 @@ export class EntityMutations {
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
+      if (options?.eventContext) {
+        await this.emitEntityEvent(
+          "entity:updated",
+          validatedEntity.entityType,
+          validatedEntity.id,
+          validatedEntity,
+          existingEntity.metadata,
+          options.eventContext,
+        );
+      }
       return { entityId: validatedEntity.id, jobId: "", skipped: true };
     }
 
