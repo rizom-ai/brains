@@ -1,10 +1,12 @@
 import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
 import { fromYaml, updateFrontmatterField } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import type { Image, ResolvedImage } from "../schemas/image";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
 // the inner YAML, so callers can parse just that slice and skip the body.
 const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Resolve an image entity by ID and return display-ready data
@@ -51,9 +53,11 @@ function extractFrontmatterStringField(
   const match = FRONTMATTER_BLOCK.exec(entity.content);
   if (!match?.[1]) return undefined;
   try {
-    const parsed = fromYaml<unknown>(match[1]);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      const value = (parsed as Record<string, unknown>)[field];
+    const parsed = frontmatterRecordSchema.safeParse(
+      fromYaml<unknown>(match[1]),
+    );
+    if (parsed.success) {
+      const value = parsed.data[field];
       return typeof value === "string" ? value : undefined;
     }
   } catch {

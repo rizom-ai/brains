@@ -647,6 +647,7 @@ Incremental migration progress:
   record schema.
 - Migrated core system tool conversation upload metadata JSON parsing to Zod 4
   record schemas for create/upload-save access checks.
+- Migrated shared image frontmatter ID extraction to a Zod 4 record guard.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
