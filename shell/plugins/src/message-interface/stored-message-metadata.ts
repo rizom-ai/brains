@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { z as zLocal } from "@brains/utils/zod-v4";
 import {
   AttachmentCardSchema,
   ToolApprovalCardSchema,
@@ -21,6 +22,10 @@ const storedMessageAttachmentSchema = z.object({
 const storedMessageAttachmentsSchema = z.array(storedMessageAttachmentSchema);
 const storedAttachmentCardsSchema = z.array(AttachmentCardSchema);
 const storedToolApprovalCardsSchema = z.array(ToolApprovalCardSchema);
+const storedMessageMetadataRecordSchema = zLocal.record(
+  zLocal.string(),
+  zLocal.unknown(),
+);
 
 export type StoredMessageAttachment = z.infer<
   typeof storedMessageAttachmentSchema
@@ -31,13 +36,12 @@ export function parseStoredMessageMetadata(
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
+      return parseMetadataRecord(JSON.parse(metadata));
     } catch {
       return null;
     }
   }
-  return isRecord(metadata) ? metadata : null;
+  return parseMetadataRecord(metadata);
 }
 
 export function getStoredMessageAttachments(
@@ -56,7 +60,7 @@ export function getStoredAttachmentCards(metadata: unknown): AttachmentCard[] {
   if (!Array.isArray(cards)) return [];
 
   const attachmentCards = cards.filter(
-    (card): card is unknown => isRecord(card) && card["kind"] === "attachment",
+    (card) => parseMetadataRecord(card)?.["kind"] === "attachment",
   );
   const parsedCards = storedAttachmentCardsSchema.safeParse(attachmentCards);
   return parsedCards.success ? parsedCards.data : [];
@@ -69,9 +73,12 @@ export function collectUploadIdsFromStoredMessages(
   const ids: string[] = [];
   const seen = new Set<string>();
   for (const message of messages) {
-    if (!isRecord(message)) continue;
-    if (options.role && message["role"] !== options.role) continue;
-    for (const attachment of getStoredMessageAttachments(message["metadata"])) {
+    const parsedMessage = parseMetadataRecord(message);
+    if (!parsedMessage) continue;
+    if (options.role && parsedMessage["role"] !== options.role) continue;
+    for (const attachment of getStoredMessageAttachments(
+      parsedMessage["metadata"],
+    )) {
       if (attachment.source?.kind !== options.sourceKind) continue;
       if (seen.has(attachment.source.id)) continue;
       seen.add(attachment.source.id);
@@ -86,14 +93,16 @@ export function collectPendingApprovalIdsFromStoredMessages(
 ): Set<string> {
   const pending = new Set<string>();
   for (const message of messages) {
-    if (!isRecord(message)) continue;
-    const parsedMetadata = parseStoredMessageMetadata(message["metadata"]);
+    const parsedMessage = parseMetadataRecord(message);
+    if (!parsedMessage) continue;
+    const parsedMetadata = parseStoredMessageMetadata(
+      parsedMessage["metadata"],
+    );
     const cards = parsedMetadata?.["cards"];
     if (!Array.isArray(cards)) continue;
 
     const approvalCandidates = cards.filter(
-      (card): card is unknown =>
-        isRecord(card) && card["kind"] === "tool-approval",
+      (card) => parseMetadataRecord(card)?.["kind"] === "tool-approval",
     );
     const parsedCards =
       storedToolApprovalCardsSchema.safeParse(approvalCandidates);
@@ -110,6 +119,7 @@ export function collectPendingApprovalIdsFromStoredMessages(
   return pending;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function parseMetadataRecord(value: unknown): Record<string, unknown> | null {
+  const parsed = storedMessageMetadataRecordSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }

@@ -707,6 +707,10 @@ Incremental migration progress:
 - Migrated the new chat interface's raw Discord message and card-output local
   guards to explicit Zod 4 while keeping its config schema on the current
   plugin boundary.
+- Replaced new message-interface stored-metadata, confirmation-result, and
+  artifact-display record hand guards with explicit Zod 4 local parsers while
+  leaving shared agent card schemas on the current public plugin contract
+  boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
