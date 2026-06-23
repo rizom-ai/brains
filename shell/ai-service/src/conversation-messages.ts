@@ -1,4 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
+import { z } from "@brains/utils/zod-v4";
 import {
   coerceConversationMetadata,
   type Message,
@@ -34,9 +35,14 @@ function parseMessageMetadata(
   return coerceConversationMetadata(metadata);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+const uploadMetadataSchema = z.looseObject({
+  filename: z.string(),
+  mediaType: z.string(),
+  source: z.looseObject({
+    kind: z.string(),
+    id: z.string(),
+  }),
+});
 
 export function buildModelMessages(
   historyMessages: Message[],
@@ -67,25 +73,13 @@ export function collectUploadRefsFromMessages(
     const attachments = metadata?.["attachments"];
     if (!Array.isArray(attachments)) continue;
     for (const attachment of attachments) {
-      if (!isRecord(attachment)) continue;
-      const source = attachment["source"];
-      if (!isRecord(source)) continue;
-      const kind = source["kind"];
-      const id = source["id"];
-      const filename = attachment["filename"];
-      const mediaType = attachment["mediaType"];
-      if (
-        typeof kind !== "string" ||
-        typeof id !== "string" ||
-        typeof filename !== "string" ||
-        typeof mediaType !== "string"
-      ) {
-        continue;
-      }
-      const key = `${kind}:${id}`;
+      const parsed = uploadMetadataSchema.safeParse(attachment);
+      if (!parsed.success) continue;
+      const { filename, mediaType, source } = parsed.data;
+      const key = `${source.kind}:${source.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      refs.push({ filename, mediaType, source: { kind, id } });
+      refs.push({ filename, mediaType, source });
     }
   }
   return refs;

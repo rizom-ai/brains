@@ -1,4 +1,5 @@
 import { setup, assign, fromPromise } from "xstate";
+import { z } from "@brains/utils/zod-v4";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -109,8 +110,12 @@ export const emptyUsage = {
   totalTokens: 0,
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+const recordSchema = z.record(z.string(), z.unknown());
+type ParsedRecord = z.output<typeof recordSchema>;
+
+function parseRecord(value: unknown): ParsedRecord | undefined {
+  const parsed = recordSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function actorKey(actor: ConversationMessageActor | null): string | undefined {
@@ -166,6 +171,7 @@ function buildCancelledResponse(
   confirmation: PendingConfirmation | null,
 ): AgentResponse {
   const summary = confirmation?.summary ?? "unknown action";
+  const input = parseRecord(confirmation?.args);
   return {
     text: `Action cancelled: ${summary}`,
     ...(confirmation
@@ -178,9 +184,7 @@ function buildCancelledResponse(
                 ? { toolCallId: confirmation.toolCallId }
                 : {}),
               toolName: confirmation.toolName,
-              ...(isRecord(confirmation.args)
-                ? { input: confirmation.args }
-                : {}),
+              ...(input ? { input } : {}),
               summary,
               state: "output-denied",
             },

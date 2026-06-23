@@ -1,4 +1,5 @@
 import { toolSuccessSchema } from "@brains/mcp-service";
+import { z } from "@brains/utils/zod-v4";
 import type {
   PendingConfirmation,
   StructuredChatCard,
@@ -9,18 +10,26 @@ import {
   buildEntityMemoryNote,
 } from "./agent-results";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+const recordSchema = z.record(z.string(), z.unknown());
+type ParsedRecord = z.output<typeof recordSchema>;
+
+const failedToolOutputSchema = z.looseObject({
+  success: z.literal(false),
+});
+
+function parseRecord(value: unknown): ParsedRecord | undefined {
+  const parsed = recordSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function getStringField(value: unknown, field: string): string | undefined {
-  if (!isRecord(value)) return undefined;
-  const fieldValue = value[field];
+  const record = parseRecord(value);
+  const fieldValue = record?.[field];
   return typeof fieldValue === "string" ? fieldValue : undefined;
 }
 
 function isFailedToolOutput(value: unknown): boolean {
-  return isRecord(value) && value["success"] === false;
+  return failedToolOutputSchema.safeParse(value).success;
 }
 
 function statementFromConfirmationSummary(summary: string): string {
@@ -36,9 +45,10 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
 function toApprovalCardInput(
   args: unknown,
 ): Record<string, unknown> | undefined {
-  if (!isRecord(args)) return undefined;
+  const parsedArgs = parseRecord(args);
+  if (!parsedArgs) return undefined;
   return Object.fromEntries(
-    Object.entries(args).filter(
+    Object.entries(parsedArgs).filter(
       ([key]) => !INTERNAL_CONFIRMATION_FIELDS.has(key),
     ),
   );
@@ -71,12 +81,11 @@ export function buildConfirmedActionResult(
   const resultText = errorMessage
     ? `${prefix}: ${completionSummary}\n\n${errorMessage}`
     : `${prefix}: ${completionSummary}`;
+  const pendingArgs = parseRecord(pendingConfirmation.args);
   const toolResult: ToolResultData = {
     toolName: pendingConfirmation.toolName,
     data: result,
-    ...(isRecord(pendingConfirmation.args)
-      ? { args: pendingConfirmation.args }
-      : {}),
+    ...(pendingArgs ? { args: pendingArgs } : {}),
   };
   const approvalInput = toApprovalCardInput(pendingConfirmation.args);
   const approvalCard: StructuredChatCard = {

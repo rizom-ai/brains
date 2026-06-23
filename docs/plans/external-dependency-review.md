@@ -673,6 +673,8 @@ Incremental migration progress:
 - Migrated structured-content formatter path access, app config deep-merge object
   checks, and app CLI diagnostics metadata reads to explicit Zod 4 record
   guards.
+- Migrated AI-service confirmation/card upload metadata reads and web-chat stream
+  redaction helpers to explicit Zod 4 local record/object guards.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

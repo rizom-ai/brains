@@ -1,28 +1,33 @@
 import type { StructuredChatCard } from "@brains/plugins";
+import { z } from "@brains/utils/zod-v4";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+const recordSchema = z.record(z.string(), z.unknown());
+type ParsedRecord = z.output<typeof recordSchema>;
+
+const uploadRefSchema = z.looseObject({
+  kind: z.literal("upload"),
+  id: z.string(),
+});
+
+function parseRecord(value: unknown): ParsedRecord | undefined {
+  const parsed = recordSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function isUploadRef(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    value["kind"] === "upload" &&
-    typeof value["id"] === "string"
-  );
+  return uploadRefSchema.safeParse(value).success;
 }
 
 export function redactUploadRefs(value: unknown): unknown {
   if (isUploadRef(value)) return "uploaded file";
   if (Array.isArray(value)) return value.map((item) => redactUploadRefs(item));
-  if (!isRecord(value)) return value;
-  return redactUploadRefsInRecord(value);
+  const record = parseRecord(value);
+  if (!record) return value;
+  return redactUploadRefsInRecord(record);
 }
 
-function redactUploadRefsInRecord(
-  value: Record<string, unknown>,
-): Record<string, unknown> {
+function redactUploadRefsInRecord(value: ParsedRecord): ParsedRecord {
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [key, redactUploadRefs(entry)]),
   );
