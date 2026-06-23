@@ -6,6 +6,7 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { generateIdFromText, getErrorMessage } from "@brains/utils";
+import { z } from "@brains/utils/zod-v4";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import type { SkillEntity, SkillFrontmatter } from "../schemas/skill";
 import {
@@ -14,6 +15,10 @@ import {
   type TagVocabularyEntry,
 } from "./tag-vocabulary";
 import { SKILL_DERIVATION_TEMPLATE_REF, SKILL_ENTITY_TYPE } from "./constants";
+
+const topicMetadataSchema = z.looseObject({
+  name: z.string().optional(),
+});
 
 export interface SkillDeriverInput {
   topicTitles: string[];
@@ -86,9 +91,8 @@ export async function deriveSkills(
   });
   const topicTitles = topics
     .map((t) => {
-      const meta = t.metadata as Record<string, unknown>;
-      const name = meta["name"];
-      if (typeof name === "string") return name;
+      const parsed = topicMetadataSchema.safeParse(t.metadata);
+      if (parsed.success && parsed.data.name) return parsed.data.name;
       const titleMatch = t.content.match(/^title:\s*(.+)$/m);
       return titleMatch?.[1]?.trim() ?? t.id;
     })

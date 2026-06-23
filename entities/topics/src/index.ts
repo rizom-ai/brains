@@ -10,6 +10,7 @@ import {
   isVisibleWithinScope,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { z } from "@brains/utils/zod-v4";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -45,6 +46,9 @@ import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
+const sourceMetadataSchema = z.looseObject({
+  status: z.unknown().optional(),
+});
 
 export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
@@ -210,8 +214,8 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   public isEntityPublished(entity: BaseEntity): boolean {
-    const metadata = entity.metadata as Record<string, unknown>;
-    const status = metadata["status"];
+    const parsed = sourceMetadataSchema.safeParse(entity.metadata);
+    const status = parsed.success ? parsed.data.status : undefined;
     if (status === undefined || status === null) return true;
     if (typeof status !== "string") return false;
     return this.config.extractableStatuses.includes(status);

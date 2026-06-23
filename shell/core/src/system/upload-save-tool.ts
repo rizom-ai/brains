@@ -13,6 +13,12 @@ const uploadScope = {
 } as const;
 
 const messageMetadataSchema = z.record(z.string(), z.unknown());
+const uploadAttachmentMetadataSchema = z.looseObject({
+  source: z.looseObject({
+    kind: z.string(),
+    id: z.string(),
+  }),
+});
 
 function parseMessageMetadata(
   metadata: unknown,
@@ -25,11 +31,8 @@ function parseMessageMetadata(
       return null;
     }
   }
-  return isRecord(metadata) ? metadata : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  const parsed = messageMetadataSchema.safeParse(metadata);
+  return parsed.success ? parsed.data : null;
 }
 
 async function isUploadRefInConversation(
@@ -47,10 +50,10 @@ async function isUploadRefInConversation(
     const attachments = metadata?.["attachments"];
     if (!Array.isArray(attachments)) continue;
     for (const attachment of attachments) {
-      if (!isRecord(attachment)) continue;
-      const source = attachment["source"];
-      if (!isRecord(source)) continue;
-      if (source["kind"] === input.kind && source["id"] === input.id) {
+      const parsed = uploadAttachmentMetadataSchema.safeParse(attachment);
+      if (!parsed.success) continue;
+      const { source } = parsed.data;
+      if (source.kind === input.kind && source.id === input.id) {
         return true;
       }
     }
