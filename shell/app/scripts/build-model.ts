@@ -24,6 +24,16 @@ import {
 import { generateModelEntrypoint } from "../src/generate-entrypoint";
 import { generateNpmPackageJson } from "../src/generate-npm-package";
 import { join, dirname } from "path";
+import { z } from "@brains/utils/zod-v4";
+
+const packageNameSchema = z.looseObject({
+  name: z.string().min(1),
+});
+
+const brainPackageSchema = z.looseObject({
+  name: z.string().min(1),
+  version: z.string().min(1),
+});
 
 // ─── Args ──────────────────────────────────────────────────────────────────
 
@@ -63,10 +73,10 @@ if (!existsSync(brainModelDir)) {
   process.exit(1);
 }
 
-const brainPkgJson = JSON.parse(
-  readFileSync(join(brainModelDir, "package.json"), "utf-8"),
+const brainPkgJson = brainPackageSchema.parse(
+  JSON.parse(readFileSync(join(brainModelDir, "package.json"), "utf-8")),
 );
-const brainPackage = brainPkgJson.name as string;
+const brainPackage = brainPkgJson.name;
 
 console.log(`Building model image: ${brainPackage} (${modelName})`);
 
@@ -79,9 +89,11 @@ if (existsSync(sitesDir)) {
   for (const dir of readdirSync(sitesDir)) {
     const pkgPath = join(sitesDir, dir, "package.json");
     if (existsSync(pkgPath)) {
-      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-      if (typeof pkg.name === "string") {
-        sitePackages.push(pkg.name);
+      const pkg = packageNameSchema.safeParse(
+        JSON.parse(readFileSync(pkgPath, "utf-8")),
+      );
+      if (pkg.success) {
+        sitePackages.push(pkg.data.name);
       }
     }
   }

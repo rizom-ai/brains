@@ -28,7 +28,6 @@ import {
   themeCssSchema,
   type ConventionalSiteOverrides,
   type SitePackage,
-  type SitePackageOverrides,
 } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
@@ -46,6 +45,12 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
 };
 
 const recordSchema = z.record(z.string(), z.unknown());
+const pluginFactorySchema = z.custom<PluginFactory>(
+  (value) => typeof value === "function",
+);
+const externalPluginPackageSchema = z.looseObject({
+  plugin: pluginFactorySchema.optional(),
+});
 
 /**
  * Determine which plugin/interface IDs are active.
@@ -684,18 +689,11 @@ function getRegisteredExternalPluginPackage(
 // or a named `plugin` export — the public authoring contract documented in
 // docs/external-plugin-authoring.md accepts both.
 function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
-  if (typeof pkg === "function") {
-    return pkg as PluginFactory;
-  }
+  const directFactory = pluginFactorySchema.safeParse(pkg);
+  if (directFactory.success) return directFactory.data;
 
-  if (pkg && typeof pkg === "object") {
-    const namedPlugin = (pkg as { plugin?: unknown }).plugin;
-    if (typeof namedPlugin === "function") {
-      return namedPlugin as PluginFactory;
-    }
-  }
-
-  return undefined;
+  const packageShape = externalPluginPackageSchema.safeParse(pkg);
+  return packageShape.success ? packageShape.data.plugin : undefined;
 }
 
 function resolveExternalPluginFactory(
@@ -731,7 +729,7 @@ const sitePackagePluginOverrideSchema = z.custom<(...args: never[]) => unknown>(
   (value) => typeof value === "function",
 );
 
-const sitePackageOverridesSchema = z.looseObject({
+const sitePackageOverridesShapeSchema = z.looseObject({
   layouts: z.record(z.string(), z.unknown()).optional(),
   plugin: sitePackagePluginOverrideSchema.optional(),
   pluginConfig: z.record(z.string(), z.unknown()).optional(),
@@ -741,6 +739,10 @@ const sitePackageOverridesSchema = z.looseObject({
     .optional(),
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
+
+const sitePackageOverridesSchema = z.custom<ConventionalSiteOverrides>(
+  (value) => sitePackageOverridesShapeSchema.safeParse(value).success,
+);
 
 function applySitePluginConfig(
   site: SitePackage,
@@ -767,13 +769,8 @@ function resolveConventionalSitePackage(
   const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
   if (!parsedOverrides.success) return undefined;
 
-  const conventionalOverrides =
-    parsedOverrides.data as unknown as ConventionalSiteOverrides;
-  const { pluginConfig, ...siteOverrides } = conventionalOverrides;
-  const siteWithStructure = extendSite(
-    definition.site,
-    siteOverrides as SitePackageOverrides,
-  );
+  const { pluginConfig, ...siteOverrides } = parsedOverrides.data;
+  const siteWithStructure = extendSite(definition.site, siteOverrides);
 
   return applySitePluginConfig(siteWithStructure, pluginConfig);
 }

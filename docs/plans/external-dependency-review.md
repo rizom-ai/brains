@@ -687,6 +687,9 @@ Incremental migration progress:
 - Removed remaining local record/preset casts in ai-evaluation plugin eval
   loading and directory-sync watcher job data using explicit guards or string
   literal narrowing.
+- Tightened app resolver external-plugin/site-package guards and model package
+  JSON reads with explicit Zod 4 schemas; replaced built-in model-name narrowing
+  with literal checks.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
