@@ -82,7 +82,12 @@ internal object shapes in public annotations. Do not continue that direction.
 Sequence Zod 4 before retrying `isolatedDeclarations`, then treat declaration
 strictness as public API-boundary cleanup rather than schema-internal type
 annotation work. Remaining outdated entries are deliberate holds/migrations
-from Phase 2b+.
+from Phase 2b+. As of 2026-06-23, the branch has a clean broad
+stabilization pass after the latest isolated Zod 4 guard chunks:
+`bun run typecheck`, `bun run lint`, and `bun run test` all pass. The
+Zod migration is still incomplete; remaining work should be treated as
+boundary-migration design for a follow-up phase rather than more low-risk
+local guard cleanup.
 
 ## Inventory (verified 2026-06-15 via `bun outdated --filter '*'`)
 
