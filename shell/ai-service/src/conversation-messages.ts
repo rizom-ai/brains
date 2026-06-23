@@ -107,18 +107,41 @@ export function resolveConversationUploadContinuity(params: {
   currentAttachments: ChatAttachment[];
   historyMessages: Message[];
 }): ConversationUploadContinuitySelection {
-  const refs = collectPendingUploadRefs(params.historyMessages);
+  const pendingRefs = collectPendingUploadRefs(params.historyMessages);
+  const historicalRefs = collectUploadRefsFromMessages(params.historyMessages);
+  const refs = selectConversationUploadRefs({
+    message: params.message,
+    pendingRefs,
+    historicalRefs,
+    hasCurrentAttachments: params.currentAttachments.length > 0,
+  });
+
   return {
     kind: "selected",
     message: params.message,
-    refs:
-      params.currentAttachments.length > 0
-        ? []
-        : shouldNarrowToLatestUploadRef(params.message, refs)
-          ? refs.slice(-1)
-          : refs,
+    refs,
     attachments: params.currentAttachments,
   };
+}
+
+function selectConversationUploadRefs(params: {
+  message: string;
+  pendingRefs: ConversationUploadRef[];
+  historicalRefs: ConversationUploadRef[];
+  hasCurrentAttachments: boolean;
+}): ConversationUploadRef[] {
+  if (params.hasCurrentAttachments) return [];
+
+  const normalized = normalizeUploadReferenceText(params.message);
+  const refs = namesKnownFile(normalized, params.historicalRefs)
+    ? params.historicalRefs
+    : params.pendingRefs.length > 0
+      ? params.pendingRefs
+      : [];
+
+  return shouldNarrowToLatestUploadRef(params.message, refs)
+    ? refs.slice(-1)
+    : refs;
 }
 
 function collectPendingUploadRefs(
@@ -154,22 +177,44 @@ function hasUploadIntentCard(message: Message): boolean {
   });
 }
 
+export function shouldHydrateUploadAttachmentsForMessage(
+  message: string,
+): boolean {
+  return !asksToPersistUpload(normalizeUploadReferenceText(message));
+}
+
 function shouldNarrowToLatestUploadRef(
   message: string,
   refs: ConversationUploadRef[],
 ): boolean {
   if (refs.length < 2) return false;
-  const normalized = message.trim().toLowerCase();
-  const hasSingularReference =
-    /\b(it|this|that|file|upload|image|pdf|document)\b/.test(normalized);
-  const asksToPersist =
-    /\b(save|store|import|promote|attach|preserve|keep|capture)\b/.test(
-      normalized,
-    );
-  const namesKnownFile = refs.some((ref) =>
-    normalized.includes(ref.filename.toLowerCase()),
+  const normalized = normalizeUploadReferenceText(message);
+  return (
+    hasSingularUploadReference(normalized) &&
+    asksToPersistUpload(normalized) &&
+    !namesKnownFile(normalized, refs)
   );
-  return hasSingularReference && asksToPersist && !namesKnownFile;
+}
+
+function normalizeUploadReferenceText(message: string): string {
+  return message.trim().toLowerCase();
+}
+
+function hasSingularUploadReference(normalized: string): boolean {
+  return /\b(it|this|that|file|upload|image|pdf|document)\b/.test(normalized);
+}
+
+function asksToPersistUpload(normalized: string): boolean {
+  return /\b(save|store|import|promote|attach|preserve|keep|capture|extract)\b/.test(
+    normalized,
+  );
+}
+
+function namesKnownFile(
+  normalized: string,
+  refs: ConversationUploadRef[],
+): boolean {
+  return refs.some((ref) => normalized.includes(ref.filename.toLowerCase()));
 }
 
 export function buildMessageWithAttachments(

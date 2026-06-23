@@ -1,6 +1,6 @@
 id: multi-turn-web-chat-pdf-summary-save-it-note
 name: Web chat PDF summary save-it creates note content
-description: Verifies that after summarizing an uploaded PDF, a bare "save it" follow-up saves the visible summary as a base note instead of trying to promote/import the stale PDF upload ref.
+description: Verifies that after summarizing an uploaded PDF, a bare "save it" follow-up saves the visible summary as a note instead of trying to promote/import the stale PDF upload ref.
 type: multi_turn
 setup:
   permissionLevel: anchor
@@ -55,7 +55,7 @@ turns:
         - toolName: system_create
           shouldBeCalled: true
           argsContain:
-            entityType: base
+            entityType: note
           argsAbsent:
             - upload
             - transform
@@ -78,7 +78,7 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        entityType: base
+        entityType: note
       argsAbsent:
         - upload
         - transform
