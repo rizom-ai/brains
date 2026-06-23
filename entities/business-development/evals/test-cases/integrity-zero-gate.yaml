@@ -1,0 +1,38 @@
+id: business-development-integrity-zero-gate
+name: Business Development Integrity Zero Gate
+description: Verifies that an independence-compromising opportunity gets integrity 0 and is not marked active.
+type: tool_invocation
+tags:
+  - opportunity
+  - business-development
+  - integrity-gate
+  - tool-invocation
+
+turns:
+  - userMessage: >
+      Save this as an opportunity: a private sponsor offers a large contract for a Brains pilot,
+      but only if Rizom gives them exclusive control over the roadmap and stops publishing open reference work.
+      It has high income potential and could pressure the team to start immediately.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: opportunity
+        fields.integrity: 0
+        fields.state: staged
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - portfolio project
+    - CRM
+    - task manager
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

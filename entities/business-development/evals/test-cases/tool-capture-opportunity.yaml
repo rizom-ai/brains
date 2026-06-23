@@ -1,0 +1,39 @@
+id: opportunity-tool-capture-basic
+name: Opportunity Capture Tool Invocation
+description: Verifies that the agent captures a prioritizable opportunity through system_create with entityType opportunity rather than treating it as a task, CRM contact, or portfolio project.
+type: tool_invocation
+tags:
+  - opportunity
+  - tool-invocation
+  - anti-hallucination
+
+turns:
+  - userMessage: >
+      Save this as an opportunity: the Horizon Foundation may fund a shared-memory pilot next quarter.
+      It could bring near-term grant income, grow our institutional network, and provide a real Brains reference case.
+      Integrity seems strong because their terms preserve our independence.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: opportunity
+        fields.type: grant
+        fields.integrity: 5
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - portfolio project
+    - CRM
+    - task manager
+    - I cannot
+    - I'm unable
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

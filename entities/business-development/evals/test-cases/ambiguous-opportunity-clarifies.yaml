@@ -1,0 +1,29 @@
+id: business-development-ambiguous-opportunity-clarifies
+name: Business Development Ambiguous Opportunity Clarifies
+description: Verifies that a too-thin opportunity request asks for prioritization details instead of fabricating structured scores.
+type: tool_invocation
+tags:
+  - opportunity
+  - business-development
+  - clarification
+
+turns:
+  - userMessage: "Maybe track Alex from yesterday as an opportunity."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContains:
+    - more detail
+  responseNotContains:
+    - saved
+    - created
+    - portfolio project
+    - CRM
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

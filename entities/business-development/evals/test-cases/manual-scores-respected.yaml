@@ -1,0 +1,42 @@
+id: business-development-manual-scores-respected
+name: Business Development Manual Scores Respected
+description: Verifies that explicitly supplied opportunity scores are preserved as structured fields instead of being overwritten by AI scoring.
+type: tool_invocation
+tags:
+  - opportunity
+  - business-development
+  - tool-invocation
+
+turns:
+  - userMessage: >
+      Save this opportunity exactly with these scores: title "Museum Lab partnership", type partnership,
+      state staged, incomePotential 2, organizationalBuild 5, brainsDevelopment 4, integrity 5.
+      Context: the museum lab wants to co-design a public knowledge-memory demo.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: opportunity
+        title: Museum Lab partnership
+        fields.type: partnership
+        fields.state: staged
+        fields.incomePotential: 2
+        fields.organizationalBuild: 5
+        fields.brainsDevelopment: 4
+        fields.integrity: 5
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - portfolio project
+    - CRM
+    - task manager
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

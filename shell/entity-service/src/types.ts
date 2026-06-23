@@ -251,6 +251,7 @@ export interface CreateInput {
   entityType: string;
   prompt?: string;
   title?: string;
+  fields?: Record<string, unknown>;
   content?: string;
   url?: string;
   from?: CreateFromInput;
