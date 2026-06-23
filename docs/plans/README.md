@@ -50,7 +50,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ### New interfaces, renderers, and runtimes
 
-- [Discord Chat SDK / web chat feature parity](./chat-interface-sdk.md) — active plan for `@brains/chat` Discord parity plus the immediate queueing/thread-policy enhancements
 - [Message-interface semantic tool status](./message-interface-tool-status.md) — proposed shared lifecycle model for tool status updates, with per-interface rendering for web-chat, Discord Chat SDK, and future chat adapters
 - [Web search as an explicit tool capability](./web-search-tool.md) — proposed ephemeral-first, provider-neutral `web_search` plugin/tool (Tavily first adapter, Brave planned second); preserves permissions, status events, audit logs, privacy defaults, and citations. Phase 0 first removes the existing `webSearch` config flag, which is verified-dead (no-op) code
 - [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work

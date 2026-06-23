@@ -2,11 +2,9 @@
 
 ## Status
 
-Service shipped (`shell/runtime-state`); consumers (chat subscriptions, playbooks) pending. This plan owns the shell-owned persistence service for **ephemeral operational state** — private, non-content state that is recoverable on loss and carries no secrets.
+Service shipped (`shell/runtime-state`); the chat subscription consumer has landed, with playbooks and notification/setup-email dedupe still pending. This plan owns the shell-owned persistence service for **ephemeral operational state** — private, non-content state that is recoverable on loss and carries no secrets.
 
-The foundation has landed: `shell/runtime-state` ships `RuntimeStateService` and `RuntimeStateStore` (with `schema/` and `migrate.ts`), wired into `shell/core/src/initialization/service-factory.ts` and exposed to plugins via `shell/plugins/src/base/context.ts` (`context.runtimeState`). What remains is the first consumer wiring and the still-unmet acceptance criteria below.
-
-First consumer: `@brains/chat` Discord thread subscriptions ([Discord Chat SDK / Web Chat parity](./chat-interface-sdk.md)) — still pending. Next consumers: playbook run state ([Rover chat-native onboarding](./rover-chat-native-onboarding.md)) and notification/setup-email delivery dedupe.
+The foundation has landed: `shell/runtime-state` ships `RuntimeStateService` and `RuntimeStateStore` (with `schema/` and `migrate.ts`), wired into `shell/core/src/initialization/service-factory.ts` and exposed to plugins via `shell/plugins/src/base/context.ts` (`context.runtimeState`). The first consumer, `@brains/chat` Discord thread subscriptions, has also landed. Next consumers: playbook run state ([Rover chat-native onboarding](./rover-chat-native-onboarding.md)) and notification/setup-email delivery dedupe.
 
 ## Tier boundary
 
@@ -86,7 +84,6 @@ Runtime-state migrations currently need to be copied by each packaging path that
 
 ## Related plans
 
-- [Discord Chat SDK / Web Chat parity](./chat-interface-sdk.md) — first consumer (subscriptions).
 - [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — playbook run state consumer.
 - [Operator runtime database](./operator-runtime-db.md) — the operator/admin durable tier this store is deliberately _not_ part of.
 - [Auth runtime database](./auth-runtime-db.md) — auth schema within the operator tier.
