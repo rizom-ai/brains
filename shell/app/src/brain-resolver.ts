@@ -45,6 +45,8 @@ const PLATFORM_ENTITY_ACTION_DEFAULTS: EntityActionPolicyConfig = {
   },
 };
 
+const recordSchema = z.record(z.string(), z.unknown());
+
 /**
  * Determine which plugin/interface IDs are active.
  *
@@ -117,7 +119,7 @@ function resolveActiveIds(
  */
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return recordSchema.safeParse(value).success;
 }
 
 function deepMerge(
@@ -130,10 +132,7 @@ function deepMerge(
     if (overrideVal === null) {
       delete result[key];
     } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
-      result[key] = deepMerge(
-        result[key] as Record<string, unknown>,
-        overrideVal,
-      );
+      result[key] = deepMerge(result[key], overrideVal);
     } else {
       result[key] = overrideVal;
     }

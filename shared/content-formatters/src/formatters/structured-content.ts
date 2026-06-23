@@ -12,6 +12,8 @@ import type {
   ListItem,
 } from "mdast";
 
+const recordSchema = z.record(z.string(), z.unknown());
+
 /**
  * Field mapping configuration for structured content formatting
  */
@@ -199,11 +201,9 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     let current: unknown = obj;
 
     for (const part of parts) {
-      if (current && typeof current === "object" && part in current) {
-        current = (current as Record<string, unknown>)[part];
-      } else {
-        return undefined;
-      }
+      const parsed = recordSchema.safeParse(current);
+      if (!parsed.success) return undefined;
+      current = parsed.data[part];
     }
 
     return current;
@@ -377,10 +377,16 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       const part = parts[i];
       if (!part) continue;
 
-      if (!(part in current)) {
-        current[part] = {};
+      const parsed = recordSchema.safeParse(current[part]);
+      if (parsed.success) {
+        current[part] = parsed.data;
+        current = parsed.data;
+        continue;
       }
-      current = current[part] as Record<string, unknown>;
+
+      const next: Record<string, unknown> = {};
+      current[part] = next;
+      current = next;
     }
 
     const lastPart = parts[parts.length - 1];

@@ -379,7 +379,7 @@ async function runDiagnostics(
   );
   for (const entities of entityLists) {
     for (const entity of entities) {
-      const meta = entity.metadata as Record<string, unknown>;
+      const meta = cliFlagsSchema.parse(entity.metadata);
       const title = String(meta["title"] ?? meta["name"] ?? entity.id);
       allEntities.push({ id: entity.id, entityType: entity.entityType, title });
     }
