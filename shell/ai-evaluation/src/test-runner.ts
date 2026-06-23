@@ -23,6 +23,12 @@ import {
 } from "./criteria-evaluator";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
+type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
+type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
+
+function isToolApprovalCard(card: AgentResponseCard): card is ToolApprovalCard {
+  return card.kind === "tool-approval";
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -39,6 +45,36 @@ function sanitizeEvalToolArgs(
 
   const { confirmed: _confirmed, ...rest } = argsWithoutToken;
   return rest;
+}
+
+function getApprovalSignature(input: {
+  toolName: string;
+  args?: unknown;
+  input?: unknown;
+}): string {
+  const args = input.args ?? input.input;
+  return JSON.stringify({
+    toolName: input.toolName,
+    args: sanitizeEvalToolArgs(input.toolName, args),
+  });
+}
+
+function dedupeApprovalIds(
+  approvals: Array<{
+    id: string;
+    toolName: string;
+    args?: unknown;
+    input?: unknown;
+  }>,
+): string[] {
+  const bySignature = new Map<string, string>();
+  for (const approval of approvals) {
+    const signature = getApprovalSignature(approval);
+    if (!bySignature.has(signature)) {
+      bySignature.set(signature, approval.id);
+    }
+  }
+  return [...bySignature.values()];
 }
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
@@ -254,19 +290,23 @@ export class TestRunner implements ITestRunner {
   private extractPendingApprovalIds(response: AgentResponse): string[] {
     const approvalCards =
       response.cards?.filter(
-        (card) =>
-          card.kind === "tool-approval" && card.state === "approval-requested",
+        (card): card is ToolApprovalCard =>
+          isToolApprovalCard(card) && card.state === "approval-requested",
       ) ?? [];
     if (approvalCards.length > 0) {
-      return approvalCards.map((card) => card.id);
+      return dedupeApprovalIds(
+        approvalCards.map((card) => ({
+          id: card.id,
+          toolName: card.toolName,
+          input: card.input,
+        })),
+      );
     }
     if (
       response.pendingConfirmations &&
       response.pendingConfirmations.length > 0
     ) {
-      return response.pendingConfirmations.map(
-        (confirmation) => confirmation.id,
-      );
+      return dedupeApprovalIds(response.pendingConfirmations);
     }
     return [];
   }

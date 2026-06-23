@@ -8,6 +8,8 @@ import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
+  permissionToVisibilityScope,
+  resolveEntityOrError,
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { slugify } from "@brains/utils";
@@ -117,6 +119,30 @@ function validateCoverImageSupport(
     success: false,
     error: `Entity type '${entityType}' doesn't support cover images`,
   };
+}
+
+async function resolveSourceAttachment(
+  services: SystemServices,
+  input:
+    | {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        attachmentType: string;
+      }
+    | undefined,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<typeof input> {
+  if (!input) return undefined;
+  const result = await resolveEntityOrError(
+    services.entityService,
+    input.sourceEntityType,
+    input.sourceEntityId,
+    services.logger,
+    undefined,
+    visibilityScope,
+  );
+  if (!result.ok) return input;
+  return { ...input, sourceEntityId: result.entity.id };
 }
 
 function parseMessageMetadata(
@@ -230,7 +256,18 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     "Create a new entity. Requires confirmation. Provide content for direct creation, a prompt for AI generation, a url for URL-first flows, upload only for upload-to-note extraction, or sourceAttachment for source attachment saves. Use system_upload_save for raw uploaded file preservation. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
-      const normalizedSource = normalizeCreateSource(input);
+      const visibilityScope = permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      );
+      const sourceAttachment = await resolveSourceAttachment(
+        services,
+        input.sourceAttachment,
+        visibilityScope,
+      );
+      const normalizedSource = normalizeCreateSource({
+        ...input,
+        sourceAttachment,
+      });
       if (!normalizedSource.success) return normalizedSource;
       const { prompt, content, url, from, uploadRef, transform } =
         normalizedSource.source;
@@ -358,8 +395,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           ...(content && { content }),
           ...(url && { url }),
           ...(uploadRef && { upload: uploadRef }),
-          ...(input.sourceAttachment && {
-            sourceAttachment: input.sourceAttachment,
+          ...(sourceAttachment && {
+            sourceAttachment,
           }),
         });
         const confirmationArgs = {
@@ -369,8 +406,8 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           ...(createInput.content && { content: createInput.content }),
           ...(createInput.url && { url: createInput.url }),
           ...(uploadRef && { upload: uploadRef }),
-          ...(input.sourceAttachment && {
-            sourceAttachment: input.sourceAttachment,
+          ...(sourceAttachment && {
+            sourceAttachment,
           }),
           ...(createInput.transform && { transform: createInput.transform }),
           ...(createInput.replace && { replace: createInput.replace }),

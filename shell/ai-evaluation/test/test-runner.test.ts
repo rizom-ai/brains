@@ -396,6 +396,59 @@ describe("TestRunner", () => {
       );
     });
 
+    it("should dedupe identical pending confirmations for confirmation turns", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            text: "Confirmation required.",
+            pendingConfirmations: [
+              {
+                id: "approval:create-1",
+                toolName: "system_create",
+                summary: "Create note?",
+                args: { entityType: "note", title: "Same" },
+              },
+              {
+                id: "approval:create-2",
+                toolName: "system_create",
+                summary: "Create note?",
+                args: { entityType: "note", title: "Same" },
+              },
+            ],
+          }),
+        ),
+      );
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve(createMockResponse({ text: "Action confirmed." })),
+      );
+
+      const testCase: TestCase = {
+        id: "test-identical-confirmation-dedupe",
+        name: "Identical Confirmation Dedupe Test",
+        type: "multi_turn",
+        turns: [
+          { userMessage: "Create a note" },
+          { userMessage: "Approve creation", confirmPendingAction: true },
+        ],
+        successCriteria: {
+          responseContains: ["Action confirmed"],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        expect.any(String),
+        true,
+        "approval:create-1",
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "evaluation",
+        },
+      );
+    });
+
     it("should pass explicit approval ids for multi-confirmation eval turns", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(

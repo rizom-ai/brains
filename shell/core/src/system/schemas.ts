@@ -40,7 +40,12 @@ const coverImageInputSchema = z.union([
 
 const createSourceAttachmentInputSchema = z.object({
   sourceEntityType: z.string().min(1).describe("Source entity type"),
-  sourceEntityId: z.string().min(1).describe("Source entity ID"),
+  sourceEntityId: z
+    .string()
+    .min(1)
+    .describe(
+      "Canonical source entity ID. If system_get/system_search resolved the source, copy entity.id from that tool result; do not use the title.",
+    ),
   attachmentType: z.string().min(1).describe("Source attachment type"),
 });
 
@@ -142,7 +147,7 @@ export const updateInputSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent.",
+      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
     ),
   content: z
     .string()

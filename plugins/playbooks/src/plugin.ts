@@ -1550,7 +1550,7 @@ function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
       const material = buildGoalCheckMaterial(input, searchResults);
       const { verdict } = await context.judge({
         instruction:
-          "Decide whether the playbook goal is satisfied by the supplied KB excerpts and runtime evidence. Return met=true only when the outcome clearly holds. If evidence is missing or ambiguous, return met=false with a short reason.",
+          "Decide whether the playbook goal is satisfied by the supplied current-run runtime evidence and KB excerpts. Current-run runtime evidence is authoritative for playbook completion; use KB excerpts as supporting context, not to override clear runtime evidence from this run. Return met=true only when the outcome clearly holds. If evidence is missing or ambiguous, return met=false with a short reason.",
         material,
         schema: goalCheckResultSchema,
       });

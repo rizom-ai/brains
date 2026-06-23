@@ -1420,6 +1420,75 @@ A saved research link.`;
     expect(result).not.toHaveProperty("args.transform");
   });
 
+  it("should canonicalize sourceAttachment sourceEntityId before confirmation and create interceptors", async () => {
+    services.addEntities([
+      {
+        id: "resilience-in-distributed-systems",
+        entityType: "post",
+        content: "Resilience post content",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          slug: "resilience-in-distributed-systems",
+        },
+        created: new Date(0).toISOString(),
+        updated: new Date(0).toISOString(),
+        visibility: "public",
+        contentHash: "hash-resilience-post",
+      },
+    ]);
+    let capturedInput: CreateInput | undefined;
+    services.entityRegistry.registerCreateInterceptor(
+      "document",
+      async (input: CreateInput): Promise<CreateInterceptionResult> => {
+        capturedInput = input;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { entityId: "printable-post", status: "generated" },
+          },
+        };
+      },
+    );
+
+    const confirmation = await execRaw({
+      entityType: "document",
+      sourceAttachment: {
+        sourceEntityType: "post",
+        sourceEntityId: "Resilience Is Not Redundancy",
+        attachmentType: "printable",
+      },
+    });
+
+    expect(confirmation).toMatchObject({ needsConfirmation: true });
+    if (!("needsConfirmation" in confirmation)) {
+      throw new Error("Expected create confirmation");
+    }
+    expect(confirmation).toHaveProperty(
+      "args.sourceAttachment.sourceEntityId",
+      "resilience-in-distributed-systems",
+    );
+    const confirmationArgs = z
+      .record(z.string(), z.unknown())
+      .parse(confirmation.args);
+
+    const result = await execRaw(confirmationArgs);
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "printable-post", status: "generated" },
+    });
+    expect(capturedInput).toMatchObject({
+      entityType: "document",
+      from: {
+        kind: "entity-attachment",
+        sourceEntityType: "post",
+        sourceEntityId: "resilience-in-distributed-systems",
+        attachmentType: "printable",
+      },
+    });
+  });
+
   it("should let sourceAttachment take precedence over upload and forward normalized from plus replace to create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(

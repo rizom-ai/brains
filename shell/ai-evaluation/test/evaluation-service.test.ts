@@ -10,6 +10,7 @@ import type {
   AIModelConfig,
   JudgeInput,
 } from "@brains/ai-service";
+import { RuntimeUploadRegistry } from "@brains/plugins";
 import type { z } from "@brains/utils";
 import type { LanguageModel } from "ai";
 
@@ -203,6 +204,72 @@ permissions:
 
       expect(summary.totalTests).toBe(1);
       expect(summary.results[0]?.testCaseId).toBe("permission-matrix@public");
+    } finally {
+      await rm(testCaseDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("seeds runtime uploads for sequential agent runs", async () => {
+    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+
+    try {
+      await writeFile(
+        join(testCaseDirectory, "upload-follow-up.yaml"),
+        `id: upload-follow-up
+name: Upload Follow Up
+type: multi_turn
+turns:
+  - userMessage: ""
+    attachments:
+      - kind: text
+        filename: notes.md
+        mediaType: text/markdown
+        content: "# Notes"
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000123
+    successCriteria:
+      responseContains:
+        - ok
+  - userMessage: save it
+    successCriteria:
+      responseContains:
+        - ok
+successCriteria:
+  responseContains:
+    - ok
+`,
+      );
+
+      const uploadDataDir = await mkdtemp(join(tmpdir(), "ai-eval-uploads-"));
+      const runtimeUploads = RuntimeUploadRegistry.createFresh({
+        dataDir: uploadDataDir,
+      });
+      const agentService: IAgentService = {
+        chat: mock(async () => createResponse("ok")),
+        confirmPendingAction: mock(async () => createResponse("ok")),
+        invalidateAgent: (): void => {},
+      };
+
+      const service = EvaluationService.createFresh({
+        agentService,
+        aiService: createAIService(),
+        testCasesDirectory: testCaseDirectory,
+        evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
+        runtimeUploads,
+      });
+
+      const summary = await service.runEvaluations({
+        skipLLMJudge: true,
+        parallel: false,
+      });
+
+      expect(summary.passedTests).toBe(1);
+      const seededUpload = await runtimeUploads
+        .scoped({ namespace: "upload", refKind: "upload", routePath: "" })
+        .readRecord("upload-00000000-0000-4000-8000-000000000123");
+      expect(seededUpload.filename).toBe("notes.md");
+      expect(seededUpload.mediaType).toBe("text/markdown");
     } finally {
       await rm(testCaseDirectory, { recursive: true, force: true });
     }

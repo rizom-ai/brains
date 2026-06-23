@@ -1,5 +1,5 @@
 id: playbook-goal-check-met
-name: Playbook GoalCheck recognizes seeded anchor profile
+name: Playbook GoalCheck recognizes explicit anchor profile evidence
 type: plugin
 plugin: playbooks
 handler: goalCheck
@@ -28,7 +28,17 @@ input:
     transitions: []
   goal:
     - The operator identity is Alex Chen, a professional software architect and writer exploring distributed systems, sustainability, and urban technology.
-  evidence: []
+  evidence:
+    - id: evidence-anchor-profile-alex
+      kind: entity_event
+      stateId: profile
+      observedAt: "2026-01-01T00:00:00.000Z"
+      data:
+        entityType: anchor-profile
+        entityId: anchor-profile
+        operation: updated
+        title: Alex Chen
+        contentPreview: "Alex Chen is a professional software architect and writer exploring distributed systems, sustainability, and urban technology."
 expectedOutput:
   validateEach:
     - path: met

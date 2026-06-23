@@ -263,6 +263,7 @@ export class EvaluationService implements IEvaluationService {
     const testRunner = TestRunner.createFresh(
       this.agentService,
       this.createLLMJudge(options),
+      this.runtimeUploads,
     );
     const pluginRunner = PluginRunner.createFresh(
       this.evalHandlerRegistry,

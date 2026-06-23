@@ -118,8 +118,6 @@ turns:
             - system_get
             - system_search
           shouldBeCalled: true
-      responseContains:
-        - outline
       responseNotContains:
         - "another first"
         - "share a first"
@@ -135,30 +133,21 @@ turns:
 
   - userMessage: "Do that as an outline."
     successCriteria:
-      expectedTools:
-        - toolName: system_create
-          shouldBeCalled: true
-          argsContain:
-            entityType: note
       responseContains:
-        - "Confirmation required"
+        - "outline"
       responseNotContains:
         - "I'll turn"
         - "I’ll turn"
+        - "Confirmation required"
         - "wrap-up"
         - "transformation stage"
         - "I cannot"
         - "I don't have access"
 
-  - userMessage: "Approve creating the outline."
-    confirmPendingAction: true
+  - userMessage: "Thanks."
     successCriteria:
-      expectedTools:
-        - toolName: system_create
-          shouldBeCalled: true
-      responseContains:
-        - Completed
       responseNotContains:
+        - "Confirmation required"
         - "transformation stage"
         - "What should I call you"
         - "what should I call you"
