@@ -52,7 +52,7 @@ import {
   type SentMessage,
   type Thread,
 } from "chat";
-import { z } from "zod";
+import { z } from "@brains/utils/zod-v4";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { chunkMessage, createPrefixedId } from "@brains/utils";
@@ -103,15 +103,13 @@ interface DiscordCardOutput {
   fallbackText?: string;
 }
 
-const chatCardElementSchema = z
-  .object({
-    type: z.literal("card"),
-    children: z.array(z.object({ type: z.string() }).passthrough()),
-    imageUrl: z.string().optional(),
-    subtitle: z.string().optional(),
-    title: z.string().optional(),
-  })
-  .passthrough();
+const chatCardElementSchema = z.looseObject({
+  type: z.literal("card"),
+  children: z.array(z.looseObject({ type: z.string() })),
+  imageUrl: z.string().optional(),
+  subtitle: z.string().optional(),
+  title: z.string().optional(),
+});
 
 const discordCardOutputSchema = z.object({
   card: z.custom<CardElement>(
@@ -120,11 +118,9 @@ const discordCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
-const rawDiscordMessageSchema = z
-  .object({
-    channel_id: z.string().optional(),
-  })
-  .passthrough();
+const rawDiscordMessageSchema = z.looseObject({
+  channel_id: z.string().optional(),
+});
 
 interface AgentInput {
   message: string;

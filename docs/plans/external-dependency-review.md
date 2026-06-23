@@ -704,6 +704,9 @@ Incremental migration progress:
   boundary.
 - Replaced the job-queue deduplication metadata cast with a Zod 4 loose-object
   guard while keeping queue option schemas on the current boundary.
+- Migrated the new chat interface's raw Discord message and card-output local
+  guards to explicit Zod 4 while keeping its config schema on the current
+  plugin boundary.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
