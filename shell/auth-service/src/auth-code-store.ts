@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod-v4";
+import { isFileNotFoundError } from "./fs-errors";
 import { redirectUriMatches } from "./redirect-uri";
 
 const DEFAULT_AUTH_CODE_STORE_FILE = "oauth-auth-codes.json";
@@ -193,11 +194,9 @@ export class AuthorizationCodeStore {
 
   private async readStore(): Promise<AuthCodeStoreFile> {
     try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
+      return parseStoreFile(JSON.parse(await readFile(this.storeFile, "utf8")));
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isFileNotFoundError(error)) {
         return { codes: [] };
       }
       throw error;

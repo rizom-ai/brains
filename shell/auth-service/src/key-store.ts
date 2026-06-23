@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod-v4";
+import { isFileNotFoundError } from "./fs-errors";
 import type { PrivateJwk, PublicJwk } from "./types";
 
 const DEFAULT_KEY_FILE = "oauth-signing-key.jwk";
@@ -151,7 +152,7 @@ export class AuthKeyStore {
         alg: "ES256",
       };
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isFileNotFoundError(error)) {
         return undefined;
       }
       throw error;

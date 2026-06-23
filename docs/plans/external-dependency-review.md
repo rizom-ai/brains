@@ -692,6 +692,8 @@ Incremental migration progress:
   with literal checks.
 - Replaced MCP HTTP agent request body and transport logger casts with explicit
   Zod 4 guards, and declared the direct utils workspace dependency.
+- Replaced auth-service persisted-store ENOENT error casts with a shared Zod 4
+  filesystem error-code guard and removed redundant JSON.parse unknown casts.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,

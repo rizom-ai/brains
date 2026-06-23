@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod-v4";
+import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_SETUP_STATE_FILE = "oauth-setup-state.json";
 
@@ -165,10 +166,10 @@ export class SetupStateStore {
     if (this.loaded) return this.loaded;
     try {
       this.loaded = parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
+        JSON.parse(await readFile(this.storeFile, "utf8")),
       );
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (!isFileNotFoundError(error)) throw error;
       this.loaded = emptyState();
     }
     return this.loaded;

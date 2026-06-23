@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { z } from "@brains/utils/zod-v4";
+import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_PASSKEY_STORE_FILE = "oauth-passkeys.json";
 const CHALLENGE_TTL_SECONDS = 10 * 60;
@@ -256,11 +257,9 @@ export class PasskeyStore {
 
   private async readStore(): Promise<PasskeyStoreFile> {
     try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
+      return parseStoreFile(JSON.parse(await readFile(this.storeFile, "utf8")));
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isFileNotFoundError(error)) {
         return emptyStore();
       }
       throw error;

@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod-v4";
+import { isFileNotFoundError } from "./fs-errors";
 
 const DEFAULT_SESSION_STORE_FILE = "oauth-sessions.json";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
@@ -156,11 +157,9 @@ export class OperatorSessionStore {
 
   private async readStore(): Promise<SessionStoreFile> {
     try {
-      return parseStoreFile(
-        JSON.parse(await readFile(this.storeFile, "utf8")) as unknown,
-      );
+      return parseStoreFile(JSON.parse(await readFile(this.storeFile, "utf8")));
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isFileNotFoundError(error)) {
         return { sessions: [] };
       }
       throw error;
