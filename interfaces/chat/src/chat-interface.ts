@@ -120,6 +120,12 @@ const discordCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
+const rawDiscordMessageSchema = z
+  .object({
+    channel_id: z.string().optional(),
+  })
+  .passthrough();
+
 interface AgentInput {
   message: string;
   attachments: ChatAttachment[];
@@ -924,10 +930,8 @@ export class ChatInterface extends MessageInterfacePlugin<
   }
 
   private getRawDiscordChannelId(message: Message): string | undefined {
-    const raw = message.raw;
-    if (typeof raw !== "object" || raw === null) return undefined;
-    const value = (raw as Record<string, unknown>)["channel_id"];
-    return typeof value === "string" ? value : undefined;
+    const parsed = rawDiscordMessageSchema.safeParse(message.raw);
+    return parsed.success ? parsed.data.channel_id : undefined;
   }
 
   private async handleRoutedMessage(
