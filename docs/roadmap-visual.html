@@ -63,7 +63,7 @@
   <body>
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>Rover remains a standalone personal/professional brain. Relay proves the team/collective brain: one shared Relay per team or collective, not one bot per person.</p>
+      <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
       <div class="updated">Last updated: 2026-06-23 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
@@ -75,14 +75,14 @@
     </div>
     <main>
       <section class="group">
-        <h2 class="group-title"><span class="group-num">§1</span>Keep Rover sharp as the public reference</h2>
+        <h2 class="group-title"><span class="group-num">§1</span>The brain and its bundles</h2>
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Exhaustive core-preset eval set for Rover</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">preset-aware eval harness merged; remaining work fills behavioral coverage so the core suite stays exhaustive as new behavior lands.</div>
+          <div class="card-desc">preset-aware eval harness merged; remaining work fills behavioral coverage and re-tags toward bundle combinations as unification lands.</div>
           <div class="card-file">rover-core-preset-evals.md</div>
         </div>
         <div class="card status-partial">
@@ -95,6 +95,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Brain Model Unification — One Model, Capability Bundles</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + <code>brain init</code> recipes. Supersedes the three-reference-model framing.</div>
+          <div class="card-file">brain-model-unification.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Web search as an explicit tool capability</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -104,14 +112,14 @@
         </div>
       </section>
       <section class="group">
-        <h2 class="group-title"><span class="group-num">§2</span>Prove shared Relay as team knowledge infrastructure</h2>
+        <h2 class="group-title"><span class="group-num">§2</span>Postures, proven</h2>
         <div class="cards">
         <div class="card status-active">
           <div class="card-head">
             <span class="card-name">Relay Presets — Current &amp; Future</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">Relay preset philosophy, current POC readiness, and deferred scope.</div>
+          <div class="card-desc">the team-posture/bundle philosophy and deferred scope; being folded into [brain-model-unification.md](./plans/brain-model-unification.md) as the <code>team</code> bundle.</div>
           <div class="card-file">relay-presets.md</div>
         </div>
         <div class="card status-proposed">
@@ -125,7 +133,7 @@
         </div>
       </section>
       <section class="group">
-        <h2 class="group-title"><span class="group-num">§3</span>Trust &amp; identity</h2>
+        <h2 class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</h2>
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
@@ -296,10 +304,10 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">BD Priority Engine</span>
+            <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">proposed standalone <code>@brains/bd</code> package: a conversational project/lead prioritization engine (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for its own BD; brain-agnostic, not in the public Rover preset.</div>
+          <div class="card-desc">Opportunity Priority Engine: proposed standalone <code>@brains/opportunity</code> package for conversational opportunity prioritization (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for opportunity prioritization; brain-agnostic, not in any default bundle.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
         <div class="card status-parked">
