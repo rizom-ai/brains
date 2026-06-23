@@ -659,6 +659,8 @@ Incremental migration progress:
 - Migrated entity-search metadata and job-progress result JSON parsing to
   explicit Zod 4 record guards while keeping service/job framework schemas on
   their current boundaries.
+- Migrated app headless CLI JSON flag parsing to Zod 4 local guards for
+  argument arrays and flag records while preserving raw tool-input JSON.
 - Use Zod 4 migrations to simplify TypeScript/schema friction where possible,
   not just to swap imports. Defaulted schemas must be audited as two contracts:
   `z.input<typeof schema>` for caller-provided config/options before defaults,
