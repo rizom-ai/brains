@@ -22,6 +22,7 @@ const listItemSchema = z.object({
 const listWidgetDataSchema = z.object({
   items: z.array(listItemSchema),
 });
+const kvWidgetDataSchema = z.record(z.string(), z.unknown());
 
 const pipelineStatusSchema = z.enum(PIPELINE_STATUSES);
 const pipelineSummarySchema = z.object({
@@ -138,10 +139,8 @@ function parsedListData(data: unknown): ListItem[] {
 }
 
 function parsedKvData(data: unknown): Record<string, unknown> | null {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    return null;
-  }
-  return data as Record<string, unknown>;
+  const parsed = kvWidgetDataSchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }
 
 function CountChip({ widget }: RendererProps): JSX.Element | null {
