@@ -313,6 +313,7 @@ export interface RuntimeUploadRecord {
   mediaType: string;
   sizeBytes: number;
   createdAt: string;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
@@ -329,6 +330,7 @@ export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
   content: Buffer;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface RuntimeUploadScopeOptions {

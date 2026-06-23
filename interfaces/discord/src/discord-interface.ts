@@ -403,6 +403,8 @@ export class DiscordInterface extends MessageInterfacePlugin<
       this.buildInteractionConfirmationContext(interaction),
     );
 
+    await this.handleAgentResponseToolStatuses(response, conversationId);
+
     this.syncPendingApprovalsAfterResolution(
       conversationId,
       parsed.approvalId,
@@ -552,6 +554,8 @@ export class DiscordInterface extends MessageInterfacePlugin<
           },
         ),
       });
+
+      await this.handleAgentResponseToolStatuses(response, conversationId);
 
       const approvalCards = this.getPendingApprovalCards(response.cards);
       if (approvalCards.length > 0) {
@@ -860,6 +864,7 @@ export class DiscordInterface extends MessageInterfacePlugin<
       },
     );
     if (response) {
+      await this.handleAgentResponseToolStatuses(response, conversationId);
       this.syncPendingApprovalsAfterResolution(
         conversationId,
         approvalId,

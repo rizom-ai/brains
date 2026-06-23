@@ -1,6 +1,7 @@
 import { InterfacePlugin } from "../interface/interface-plugin";
 import type { InterfacePluginContext } from "../interface/context";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import type { AgentResponse } from "../contracts/agent";
 import type { PermissionLookupContext } from "@brains/templates";
 import type { BaseJobTrackingInfo } from "../interfaces";
 import {
@@ -13,6 +14,11 @@ import {
   type ToolActivityEvent,
 } from "./tool-event-handler";
 import {
+  responseHasPendingConfirmationForTool,
+  toToolStatusUpdate,
+  type ToolStatusUpdate,
+} from "./tool-status";
+import {
   extractCaptureableUrls,
   formatFileUploadMessage,
   isFileSizeAllowed,
@@ -24,11 +30,18 @@ import {
 
 export { urlCaptureConfigSchema };
 
+export type MessageInterfaceOutput =
+  | string
+  | {
+      card: unknown;
+      fallbackText?: string;
+    };
+
 export interface SendMessageToChannelRequest {
   /** The channel/room to send to (null for single-channel interfaces like CLI) */
   channelId: string | null;
-  /** The message to send */
-  message: string;
+  /** The message or structured output to send */
+  message: MessageInterfaceOutput;
 }
 
 export type SendMessageWithIdRequest = SendMessageToChannelRequest;
@@ -36,7 +49,7 @@ export type SendMessageWithIdRequest = SendMessageToChannelRequest;
 export interface EditMessageRequest {
   channelId: string | null;
   messageId: string;
-  newMessage: string;
+  newMessage: MessageInterfaceOutput;
 }
 
 /**
@@ -228,7 +241,7 @@ export abstract class MessageInterfacePlugin<
    * Each entry includes the message and target channel
    */
   private bufferedCompletionMessages: Array<{
-    message: string;
+    message: MessageInterfaceOutput;
     channelId: string | null;
   }> = [];
 
@@ -244,6 +257,12 @@ export abstract class MessageInterfacePlugin<
    * Maps jobId to the message tracking info
    */
   private agentResponseTracking = new Map<string, ProgressMessageTracking>();
+
+  /**
+   * Tool completions whose final status depends on the agent response.
+   * Keyed by interface/conversation/tool so failed retries clear stale state.
+   */
+  private pendingToolCompletions = new Map<string, ToolActivityEvent>();
 
   /**
    * Register progress callback for reactive UI updates
@@ -415,7 +434,7 @@ export abstract class MessageInterfacePlugin<
       return true;
     }
 
-    const progressMessage = formatProgressMessage(event);
+    const progressMessage = this.formatProgressOutput(event);
     const existingTracking = this.progressMessageTracking.get(rootJobId);
     const now = Date.now();
 
@@ -453,7 +472,7 @@ export abstract class MessageInterfacePlugin<
     await this.editMessage({
       channelId: tracking.channelId,
       messageId: tracking.messageId,
-      newMessage: formatProgressMessage(event),
+      newMessage: this.formatProgressOutput(event),
     });
     tracking.lastUpdate = now;
   }
@@ -461,7 +480,7 @@ export abstract class MessageInterfacePlugin<
   private async sendInitialProgressMessage(
     rootJobId: string,
     targetChannelId: string,
-    progressMessage: string,
+    progressMessage: MessageInterfaceOutput,
     now: number,
   ): Promise<void> {
     // Only send NEW progress messages after agent response is sent.
@@ -491,7 +510,7 @@ export abstract class MessageInterfacePlugin<
     targetChannelId: string | null,
     rootJobId: string,
   ): Promise<void> {
-    const completionMessage = formatCompletionMessage(event);
+    const completionMessage = this.formatCompletionOutput(event);
     const progressTracking = this.progressMessageTracking.get(rootJobId);
     const agentTracking = this.agentResponseTracking.get(event.id);
 
@@ -524,7 +543,7 @@ export abstract class MessageInterfacePlugin<
 
   private async updateTrackedCompletion(
     event: JobProgressEvent,
-    completionMessage: string,
+    completionMessage: MessageInterfaceOutput,
     progressTracking: ProgressMessageTracking | undefined,
     agentTracking: ProgressMessageTracking | undefined,
     rootJobId: string,
@@ -556,7 +575,7 @@ export abstract class MessageInterfacePlugin<
   }
 
   private sendOrBufferCompletionMessage(
-    message: string,
+    message: MessageInterfaceOutput,
     channelId: string,
   ): void {
     // Buffer completion messages while processing input.
@@ -586,6 +605,26 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
+   * Format in-flight progress output. Interfaces may override to render native
+   * cards/components while preserving the shared progress lifecycle.
+   */
+  protected formatProgressOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return formatProgressMessage(event);
+  }
+
+  /**
+   * Format terminal progress output. Interfaces may override to render native
+   * cards/components while preserving the shared progress lifecycle.
+   */
+  protected formatCompletionOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return formatCompletionMessage(event);
+  }
+
+  /**
    * Override point for custom progress handling
    * Called after default handling for each progress event
    */
@@ -594,12 +633,79 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Override point for tool activity events emitted during agent turns.
+   * Derive semantic status updates from raw tool activity events.
    */
   protected async handleToolActivityEvent(
-    _event: ToolActivityEvent,
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    if (event.interfaceType !== this.id) {
+      return;
+    }
+
+    switch (event.type) {
+      case "tool:invoking":
+        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "running"));
+        return;
+      case "tool:completed":
+        if (this.isProcessingInput) {
+          this.pendingToolCompletions.set(
+            this.getToolCompletionKey(event),
+            event,
+          );
+          return;
+        }
+        await this.handleToolStatusUpdate(
+          toToolStatusUpdate(event, "completed"),
+        );
+        return;
+      case "tool:failed":
+        this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+        await this.handleToolStatusUpdate(toToolStatusUpdate(event, "failed"));
+        return;
+    }
+  }
+
+  /**
+   * Override point for transport-specific rendering of semantic tool statuses.
+   */
+  protected async handleToolStatusUpdate(
+    _update: ToolStatusUpdate,
   ): Promise<void> {
     // Default: no additional handling
+  }
+
+  /**
+   * Resolve deferred tool completions after an agent response is available.
+   */
+  protected async handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void> {
+    if (this.pendingToolCompletions.size === 0) {
+      return;
+    }
+
+    const completions = Array.from(this.pendingToolCompletions.values()).filter(
+      (event) =>
+        event.interfaceType === this.id &&
+        event.conversationId === conversationId,
+    );
+
+    for (const event of completions) {
+      this.pendingToolCompletions.delete(this.getToolCompletionKey(event));
+      const state = responseHasPendingConfirmationForTool(
+        response,
+        event.toolName,
+      )
+        ? "awaiting-approval"
+        : "completed";
+      await this.handleToolStatusUpdate(toToolStatusUpdate(event, state));
+    }
+  }
+
+  private getToolCompletionKey(event: ToolActivityEvent): string {
+    return `${event.interfaceType}:${event.conversationId}:${event.toolName}`;
   }
 
   /**

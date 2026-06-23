@@ -33,6 +33,7 @@ interface AgentConfirmCall {
   conversationId: string;
   confirmed: boolean;
   approvalId: string | undefined;
+  context: ChatContext;
 }
 
 function makeJobStatus(
@@ -96,9 +97,10 @@ function createSpyAgentService(
     confirmPendingAction: async (
       conversationId: string,
       confirmed: boolean,
-      approvalId?: string,
+      approvalId: string,
+      context: ChatContext,
     ): Promise<AgentResponse> => {
-      confirmCalls.push({ conversationId, confirmed, approvalId });
+      confirmCalls.push({ conversationId, confirmed, approvalId, context });
       return confirmResponse;
     },
     invalidateAgent: (): void => {},
@@ -176,6 +178,13 @@ function makeFixedConversationService(input: {
 
 function operatorPlugin(): WebChatInterface {
   return new WebChatInterface({}, { resolveOperatorSession: async () => true });
+}
+
+function trustedPlugin(): WebChatInterface {
+  return new WebChatInterface(
+    {},
+    { resolvePermissionLevel: async () => "trusted" },
+  );
 }
 
 function textDataUrl(content: string): string {
@@ -628,8 +637,71 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(body).toContain("data-status");
-    expect(body).toContain("tool-invoking");
+    expect(body).toContain("tool-running");
     expect(body).toContain("Using search_notes…");
+  });
+
+  it("streams awaiting approval when a completed tool returns a pending confirmation", async () => {
+    const agent: IAgentService = {
+      chat: async (_message, conversationId) => {
+        await harness.sendMessage("tool:invoking", {
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "web-chat",
+          channelId: conversationId,
+        });
+        await harness.sendMessage("tool:completed", {
+          toolName: "system_create",
+          conversationId,
+          interfaceType: "web-chat",
+          channelId: conversationId,
+        });
+        return {
+          text: "Approval needed.",
+          pendingConfirmations: [
+            {
+              id: "approval-1",
+              toolName: "system_create",
+              summary: "Create note",
+              args: {},
+            },
+          ],
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      },
+      confirmPendingAction: async () => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+      invalidateAgent: (): void => {},
+    };
+    harness.setAgentService(agent);
+    const plugin = operatorPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Create note" }],
+            },
+          ],
+        }),
+      }),
+    );
+    const body = await response?.text();
+
+    expect(response?.status).toBe(200);
+    expect(body).toContain("tool-running");
+    expect(body).not.toContain("tool-completed");
+    expect(body).toContain("tool-awaiting-approval");
+    expect(body).toContain("system_create is awaiting approval.");
   });
 
   it("ignores tool activity outside the active web-chat channel", async () => {
@@ -676,7 +748,7 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(body).not.toContain("background_tool");
-    expect(body).not.toContain("tool-invoking");
+    expect(body).not.toContain("tool-running");
   });
 
   it("ignores progress notifications outside the active web-chat channel", async () => {
@@ -1015,11 +1087,35 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toBe("application/pdf");
     expect(response?.headers.get("content-disposition")).toBe(
-      'attachment; filename="deck-carousel.pdf"',
+      "attachment; filename=\"deck-carousel.pdf\"; filename*=UTF-8''deck-carousel.pdf",
     );
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("utf8")).toBe(
       "%PDF-1.7",
     );
+  });
+
+  it("does not serve restricted document attachments to trusted callers", async () => {
+    const plugin = trustedPlugin();
+    harness.addEntities([
+      {
+        id: "restricted-deck",
+        entityType: "document",
+        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        metadata: { filename: "restricted-deck.pdf" },
+        visibility: "restricted",
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/document?id=restricted-deck&download=1",
+      ),
+    );
+
+    expect(response?.status).toBe(404);
+    expect(await response?.text()).toBe("Document not found");
   });
 
   it("serves generated image attachments to operators", async () => {
@@ -1051,7 +1147,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toBe("image/png");
     expect(response?.headers.get("content-disposition")).toBe(
-      'attachment; filename="mossy-robot.png"',
+      "attachment; filename=\"mossy-robot.png\"; filename*=UTF-8''mossy-robot.png",
     );
     expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("base64")).toBe(
       "iVBORw0KGgo=",
@@ -1241,7 +1337,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("Content-Type")).toBe("text/markdown");
     expect(response?.headers.get("Content-Disposition")).toBe(
-      'inline; filename="notes.md"',
+      "inline; filename=\"notes.md\"; filename*=UTF-8''notes.md",
     );
     expect(await response?.text()).toBe("# Downloadable");
   });
@@ -1284,7 +1380,7 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("Content-Type")).toBe("image/png");
     expect(response?.headers.get("Content-Disposition")).toBe(
-      'inline; filename="robot.png"',
+      "inline; filename=\"robot.png\"; filename*=UTF-8''robot.png",
     );
     if (!response) throw new Error("Missing download response");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(image);
@@ -1640,11 +1736,26 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
+        context: expect.objectContaining({
+          interfaceType: "web-chat",
+          channelId: "test-conversation",
+          channelName: "Web Chat",
+          actor: expect.objectContaining({
+            actorId: "web-chat:test-conversation:operator",
+            interfaceType: "web-chat",
+            role: "user",
+          }),
+          source: expect.objectContaining({
+            channelId: "test-conversation",
+            channelName: "Web Chat",
+            metadata: expect.objectContaining({ trigger: "approval-response" }),
+          }),
+        }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
     expect(body).toContain("call-1");
@@ -1711,11 +1822,12 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
     expect(body).toContain("call-1");
@@ -1780,16 +1892,18 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(0);
     expect(agent.confirmCalls).toEqual([
-      {
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: true,
         approvalId: "approval:call-1",
-      },
-      {
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
+      expect.objectContaining({
         conversationId: "test-conversation",
         confirmed: false,
         approvalId: "approval:call-2",
-      },
+        context: expect.objectContaining({ interfaceType: "web-chat" }),
+      }),
     ]);
     expect(body).toContain("tool-output-available");
   });
@@ -1822,6 +1936,7 @@ describe("WebChatInterface", () => {
               ],
             },
             {
+              id: "user-message-2",
               role: "user",
               parts: [{ type: "text", text: "What happened next?" }],
             },
@@ -1836,7 +1951,22 @@ describe("WebChatInterface", () => {
       {
         message: "What happened next?",
         conversationId: "test-conversation",
-        context: expect.objectContaining({ interfaceType: "web-chat" }),
+        context: expect.objectContaining({
+          interfaceType: "web-chat",
+          channelId: "test-conversation",
+          channelName: "Web Chat",
+          actor: expect.objectContaining({
+            actorId: "web-chat:test-conversation:operator",
+            interfaceType: "web-chat",
+            role: "user",
+          }),
+          source: expect.objectContaining({
+            messageId: "user-message-2",
+            channelId: "test-conversation",
+            channelName: "Web Chat",
+            metadata: expect.objectContaining({ trigger: "message" }),
+          }),
+        }),
       },
     ]);
   });

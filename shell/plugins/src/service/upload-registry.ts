@@ -19,6 +19,7 @@ export interface RuntimeUploadRecord {
   mediaType: string;
   sizeBytes: number;
   createdAt: string;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
@@ -47,6 +48,7 @@ export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
   content: Buffer;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ResolvedRuntimeUpload {
@@ -78,6 +80,7 @@ const runtimeUploadRecordSchema = z.object({
   mediaType: z.string().min(1),
   sizeBytes: z.number().nonnegative(),
   createdAt: z.string().datetime(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export interface IRuntimeUploadsNamespace {
@@ -149,6 +152,7 @@ export class RuntimeUploadStore {
       mediaType: input.mediaType,
       sizeBytes: input.content.byteLength,
       createdAt: this.getNow().toISOString(),
+      ...(input.metadata !== undefined && { metadata: input.metadata }),
     };
 
     const uploadDir = this.getUploadDir(uploadId);

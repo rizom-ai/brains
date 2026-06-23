@@ -29,6 +29,13 @@ bunx varlock scan --staged
 echo "📐 Formatting staged files..."
 bunx lint-staged
 
+# Keep the generated roadmap visual in sync with its source (docs/roadmap.md).
+# Only runs when the roadmap or a plan changed, so normal commits stay fast.
+if git diff --cached --name-only | grep -qE '^docs/(roadmap\.md|plans/)'; then
+  echo "🗺️  Checking roadmap visual is in sync..."
+  bun run roadmap:check
+fi
+
 # Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
 if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
   # Run linting on all packages (cached by turbo).

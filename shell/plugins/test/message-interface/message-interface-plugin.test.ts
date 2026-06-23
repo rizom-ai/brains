@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MessageInterfacePlugin } from "../../src/message-interface/message-interface-plugin";
+import type {
+  ToolActivityEvent,
+  ToolStatusUpdate,
+} from "../../src/message-interface";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import { z } from "@brains/utils";
 
@@ -17,6 +21,7 @@ class TestMessageInterface extends MessageInterfacePlugin<
   public sentMessages: Array<{ channelId: string | null; message: string }> =
     [];
   public progressUpdates: JobProgressEvent[] = [];
+  public toolStatuses: ToolStatusUpdate[] = [];
 
   constructor() {
     super(
@@ -52,6 +57,36 @@ class TestMessageInterface extends MessageInterfacePlugin<
     context: JobContext,
   ): Promise<void> {
     await this.handleProgressEvent(event, context);
+  }
+
+  public async testHandleToolActivityEvent(
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    await this.handleToolActivityEvent(event);
+  }
+
+  public async testHandleAgentResponseToolStatuses(response: {
+    cards?: Array<{
+      kind: "tool-approval";
+      id: string;
+      toolName: string;
+      summary: string;
+      state: "approval-requested";
+    }>;
+    pendingConfirmations?: Array<{
+      id: string;
+      toolName: string;
+      summary: string;
+      args: unknown;
+    }>;
+  }): Promise<void> {
+    await this.handleAgentResponseToolStatuses(response, "conv-1");
+  }
+
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
+  ): Promise<void> {
+    this.toolStatuses.push(update);
   }
 
   public getProgressEventsMap(): Map<string, JobProgressEvent> {
@@ -124,6 +159,20 @@ function contextForEvent(event: JobProgressEvent): JobContext {
     operationType: event.metadata.operationType,
     rootJobId: event.metadata.rootJobId,
   });
+}
+
+function createToolActivityEvent(
+  overrides: Partial<ToolActivityEvent> = {},
+): ToolActivityEvent {
+  return {
+    type: "tool:invoking",
+    toolName: "system_create",
+    conversationId: "conv-1",
+    interfaceType: "test-interface",
+    channelId: "test-channel",
+    channelName: "Test Channel",
+    ...overrides,
+  };
 }
 
 describe("MessageInterfacePlugin", () => {
@@ -215,6 +264,97 @@ describe("MessageInterfacePlugin", () => {
       expect(plugin.getProgressEventsMap().size).toBe(2);
       expect(plugin.getProgressEventsMap().has("job-1")).toBe(true);
       expect(plugin.getProgressEventsMap().has("job-2")).toBe(true);
+    });
+  });
+
+  describe("tool status derivation", () => {
+    it("emits running status for matching tool invocations", async () => {
+      await plugin.testHandleToolActivityEvent(createToolActivityEvent());
+
+      expect(plugin.toolStatuses).toEqual([
+        {
+          state: "running",
+          toolName: "system_create",
+          conversationId: "conv-1",
+          interfaceType: "test-interface",
+          channelId: "test-channel",
+          channelName: "Test Channel",
+        },
+      ]);
+    });
+
+    it("ignores tool activity for other interfaces", async () => {
+      await plugin.testHandleToolActivityEvent(
+        createToolActivityEvent({ interfaceType: "other-interface" }),
+      );
+
+      expect(plugin.toolStatuses).toHaveLength(0);
+    });
+
+    it("defers completed status while input is processing until agent response is known", async () => {
+      plugin.startProcessingInput();
+
+      await plugin.testHandleToolActivityEvent(
+        createToolActivityEvent({ type: "tool:completed" }),
+      );
+
+      expect(plugin.toolStatuses).toHaveLength(0);
+
+      await plugin.testHandleAgentResponseToolStatuses({});
+
+      expect(plugin.toolStatuses).toEqual([
+        expect.objectContaining({
+          state: "completed",
+          toolName: "system_create",
+          conversationId: "conv-1",
+        }),
+      ]);
+    });
+
+    it("resolves deferred completion as awaiting approval when response has a pending confirmation for that tool", async () => {
+      plugin.startProcessingInput();
+
+      await plugin.testHandleToolActivityEvent(
+        createToolActivityEvent({ type: "tool:completed" }),
+      );
+      await plugin.testHandleAgentResponseToolStatuses({
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "system_create",
+            summary: "Create a note",
+            args: {},
+          },
+        ],
+      });
+
+      expect(plugin.toolStatuses).toEqual([
+        expect.objectContaining({
+          state: "awaiting-approval",
+          toolName: "system_create",
+          conversationId: "conv-1",
+        }),
+      ]);
+    });
+
+    it("emits failed status immediately and clears matching deferred completion", async () => {
+      plugin.startProcessingInput();
+
+      await plugin.testHandleToolActivityEvent(
+        createToolActivityEvent({ type: "tool:completed" }),
+      );
+      await plugin.testHandleToolActivityEvent(
+        createToolActivityEvent({ type: "tool:failed", error: "boom" }),
+      );
+      await plugin.testHandleAgentResponseToolStatuses({});
+
+      expect(plugin.toolStatuses).toEqual([
+        expect.objectContaining({
+          state: "failed",
+          toolName: "system_create",
+          error: "boom",
+        }),
+      ]);
     });
   });
 
