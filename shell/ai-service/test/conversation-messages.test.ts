@@ -107,7 +107,7 @@ describe("resolveConversationUploadContinuity", () => {
     timestamp: new Date().toISOString(),
   }));
 
-  it("keeps prior uploads as passive refs instead of asking service-level clarification", () => {
+  it("does not expose stale prior uploads without a structural upload handoff", () => {
     const result = resolveConversationUploadContinuity({
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
@@ -119,7 +119,74 @@ describe("resolveConversationUploadContinuity", () => {
       kind: "selected",
       message:
         "Can you generate a preview of the innovation deck carousel for me?",
-      refs: uploadRefs,
+      refs: [],
+      attachments: [],
+    });
+  });
+
+  it("exposes prior upload refs immediately after the upload-intent card", () => {
+    const firstHistoryMessage = historyMessages[0];
+    const firstUploadRef = uploadRefs[0];
+    if (firstHistoryMessage === undefined || firstUploadRef === undefined) {
+      throw new Error("Expected upload fixture");
+    }
+
+    const result = resolveConversationUploadContinuity({
+      message: "Summarize the uploaded PDF.",
+      currentAttachments: [],
+      historyMessages: [
+        firstHistoryMessage,
+        {
+          id: "message-upload-intent",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content:
+            "I got `file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf`. What would you like me to do with it?",
+          metadata: JSON.stringify({
+            cards: [
+              {
+                kind: "actions",
+                id: "actions:upload-intent",
+                title: "Try next",
+                actions: [],
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "Summarize the uploaded PDF.",
+      refs: [firstUploadRef],
+      attachments: [],
+    });
+  });
+
+  it("exposes prior upload refs when the last stored turn is an unanswered upload message", () => {
+    const firstHistoryMessage = historyMessages[0];
+    const firstUploadRef = uploadRefs[0];
+    if (firstHistoryMessage === undefined || firstUploadRef === undefined) {
+      throw new Error("Expected upload fixture");
+    }
+
+    const result = resolveConversationUploadContinuity({
+      message: "try again",
+      currentAttachments: [],
+      historyMessages: [
+        {
+          ...firstHistoryMessage,
+          content: "Summarize this upload",
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      kind: "selected",
+      message: "try again",
+      refs: [firstUploadRef],
       attachments: [],
     });
   });
@@ -154,19 +221,35 @@ describe("resolveConversationUploadContinuity", () => {
     expect(result).toEqual({
       kind: "selected",
       message: "neither, generate it from the deck",
-      refs: uploadRefs,
+      refs: [],
       attachments: [],
     });
   });
 
-  it("narrows singular raw-save follow-ups to the latest prior upload ref", () => {
+  it("narrows singular raw-save follow-ups to the latest pending upload ref", () => {
     const latestUploadRef = uploadRefs.at(-1);
     if (!latestUploadRef) throw new Error("expected upload fixture");
 
     const result = resolveConversationUploadContinuity({
       message: "save it",
       currentAttachments: [],
-      historyMessages,
+      historyMessages: [
+        {
+          id: "message-pending-uploads",
+          conversationId: "conversation-1",
+          role: "user",
+          content: "I uploaded these files",
+          metadata: JSON.stringify({
+            attachments: uploadRefs.map((ref) => ({
+              kind: "file",
+              filename: ref.filename,
+              mediaType: ref.mediaType,
+              source: ref.source,
+            })),
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
     });
 
     expect(result).toEqual({
@@ -177,11 +260,27 @@ describe("resolveConversationUploadContinuity", () => {
     });
   });
 
-  it("keeps all refs when the user names a filename", () => {
+  it("keeps all pending refs when the user names a filename", () => {
     const result = resolveConversationUploadContinuity({
       message: "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
       currentAttachments: [],
-      historyMessages,
+      historyMessages: [
+        {
+          id: "message-pending-uploads",
+          conversationId: "conversation-1",
+          role: "user",
+          content: "I uploaded these files",
+          metadata: JSON.stringify({
+            attachments: uploadRefs.map((ref) => ({
+              kind: "file",
+              filename: ref.filename,
+              mediaType: ref.mediaType,
+              source: ref.source,
+            })),
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ],
     });
 
     expect(result).toEqual({
@@ -214,7 +313,7 @@ describe("resolveConversationUploadContinuity", () => {
     expect(result).toEqual({
       kind: "selected",
       message: "summarize this",
-      refs: uploadRefs,
+      refs: [],
       attachments: [attachment],
     });
   });
@@ -240,6 +339,12 @@ describe("buildMessageWithAttachments", () => {
     );
 
     expect(content).toContain("turn it into a note\n\nAvailable upload refs");
+    expect(content).toContain(
+      "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
+    );
+    expect(content).toContain(
+      'If the previous assistant turn summarized, described, read, or analyzed an uploaded file and the user now says "save it", "save that", "save the note", or "save the summary" without saying upload/file/PDF/document, save the visible assistant summary/notes as a note with content from the conversation; do not use upload or transform.',
+    );
     expect(content).toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );
@@ -278,6 +383,9 @@ describe("buildMessageWithAttachments", () => {
       },
     ]);
     const textPart = Array.isArray(content) ? content[0] : undefined;
+    expect(textPart?.type === "text" ? textPart.text : "").toContain(
+      "use the most recent matching upload ref only when they explicitly ask to save, import, promote, attach, extract, or otherwise act on the uploaded file itself",
+    );
     expect(textPart?.type === "text" ? textPart.text : "").toContain(
       "For summarize/describe/read/inspect/analyze requests, answer in chat from the attachment and do not call system_create",
     );

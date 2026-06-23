@@ -12,49 +12,8 @@ Keep a plan here when it still answers one of these questions:
 
 Remove or fold a plan when it is implemented, superseded by a narrower plan, or only records past work.
 
-## Current plans by theme
+## Priority and product direction
 
-### Relay and product validation
+These plans are **not** prioritized or categorized here. The single roadmap — [../roadmap.md](../roadmap.md) — organizes every active plan into the product story (§1–§6) and is the source of truth for what comes next. This README only states the directory's cleanup policy; each plan's own `## Status` section is the source of truth for that plan's state.
 
-- [Relay presets](./relay-presets.md) — active reference plan
-- [Rover core-preset evals](./rover-core-preset-evals.md) — merged; the preset-aware harness (inheritable suites, coverage ledger, permission matrix, multi-user context) is merged to main. Remaining work is the behavioral coverage fill (status/insights/check-job-status, conversation tools, core multi-turn recall)
-
-### Public surface and framework cleanup
-
-- [NPM package boundaries](./npm-package-boundaries.md) — accepted near-term direction; pending curation of which schema helpers go public via `@rizom/brain`
-- [Custom brain definitions](./custom-brain-definitions.md) — parked
-- [Env handling: declarations and read sites](./env-handling.md) — proposed; consolidates co-located env declarations and moving `process.env` reads out of `shell/core` into the app/deploy layer
-- [Unify build pipeline](./unify-build-pipeline.md) — proposed
-- [Memory reduction](./memory-reduction.md) — proposed; needs fresh profiling
-- [Parallel multi-model eval](./parallel-eval-workers.md) — proposed
-- [Plugin contracts consolidation](./plugin-contracts-consolidation.md) — proposed; collapse redundant runtime/public mappers via `Schema.parse`
-- [Codebase cleanup backlog](./codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package script drift)
-- [External dependency review](./external-dependency-review.md) — proposed; dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`; runs in its own worktree
-- [Search index readiness for playbook gates](./search-index-readiness.md) — implemented readiness/backfill plan; retained as reference for playbook gate and eval-readiness behavior
-
-### Auth, users, CMS, and HTTP
-
-- [A2A request signing](./a2a-request-signing.md) — proposed auth hardening
-- [Multi-user and permissions](./multi-user.md) — proposed runtime-user layer
-- [Auth runtime database](./auth-runtime-db.md) — proposed auth storage layer
-- [Operator runtime database](./operator-runtime-db.md) — proposed runtime-state foundation
-- [Hosted CMS GitHub App tokens](./cms-github-app-hosted.md) — proposed hosted-product CMS login that mints short-lived GitHub App installation tokens for platform-created content repos
-
-### Hosted, deployed, and monetized product
-
-- [Rover default batch onboarding](./rover-default-batch-onboarding.md) — active/proposed hosted-pilot follow-up
-- [Rover chat-native onboarding](./rover-chat-native-onboarding.md) — proposed in-chat guided apprenticeship for first-run Rover operators
-- [Hosted rovers on Kubernetes](./hosted-rovers.md) — proposed hosted-product direction
-- [User offboarding workflow](./user-offboarding-plan.md) — proposed rover-pilot fleet workflow
-
-### New interfaces, renderers, and runtimes
-
-- [Multi-platform chat adapter consolidation](./chat-interface-sdk.md) — parked; design record for a future Chat SDK adapter layer if a second non-web platform (Slack, Teams, Matrix return) gets prioritized
-- [Message-interface semantic tool status](./message-interface-tool-status.md) — proposed shared lifecycle model for tool status updates, with per-interface rendering for web-chat, Discord Chat SDK, and future chat adapters
-- [Slack Chat SDK interface](./slack-chat-sdk.md) — proposed first Slack slice for `@brains/chat`, separate from Discord replacement work
-- [Desktop app](./desktop-app.md) — parked
-- [AT Protocol integration](./atproto-integration.md) — active prototype; outbound publishing, registry contracts/routes, and the first bounded discovery slice are live; remaining work is OAuth hardening, discovery filters/Jetstream, and later ingestion/feed work
-- [Template renderer contracts](./template-renderer-contracts.md) — proposed; includes the Astro renderer spike
-- [Local AI runtime](./embedding-service.md) — partial; remaining sidecar/runtime work
-- [Runtime state store](./runtime-state-store.md) — service shipped (`shell/runtime-state`: shell-owned, namespaced, typed store wired into plugin context); consumers (chat subscriptions, playbook run state, notification/setup-email dedupe) pending
-- [OKF interop](./okf-interop.md) — proposed; export/import the entity store as Google's Open Knowledge Format bundles via the `directory-sync` layer, for interchange with external OKF producers/consumers
+When you add a plan to this directory, link it from the relevant roadmap section so the roadmap stays the complete index.

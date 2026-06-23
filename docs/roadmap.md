@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-06-19
+Last updated: 2026-06-23
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -88,7 +88,7 @@ The central product bet is now explicit:
 
 > **Rover remains a standalone personal/professional brain. Relay proves the team/collective brain: one shared Relay per team or collective, not one bot per person.**
 
-The roadmap is organized around that story rather than generic short/medium/long buckets. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what story the work supports.
+The roadmap keeps that bet front and center: **§1–§2 are the two product tracks** (Rover, Relay). **§3–§7 are shared capabilities and framework work** that both products depend on — grouped by capability, not attributed to one product. Relay often forces a capability first, but that does not make the capability Relay-specific. Implementation plans remain in [docs/plans](./plans/README.md), but the roadmap should answer what the work supports.
 
 ### 1. Keep Rover sharp as the public reference
 
@@ -109,6 +109,12 @@ Three parallel sub-tracks:
 - keep the friction queue visible somewhere durable so the same papercut does not get re-reported and re-deferred silently.
 
 Both tracks share the same weekly review with Relay POC observations: what hit us this week, what is the smallest fix, what gets shipped.
+
+Plans:
+
+- [rover-core-preset-evals.md](./plans/rover-core-preset-evals.md) — preset-aware eval harness merged; remaining work fills behavioral coverage so the core suite stays exhaustive as new behavior lands.
+- [rover-chat-native-onboarding.md](./plans/rover-chat-native-onboarding.md) — in-chat guided first-run onboarding (playbook-driven); on a feature branch with correctness gaps from live smoke still to close.
+- [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 
 ### 2. Prove shared Relay as team knowledge infrastructure
 
@@ -141,10 +147,11 @@ Until then, Relay remains an internal experiment owned by `rizom-foundation`.
 Plans:
 
 - [relay-presets.md](./plans/relay-presets.md) — Relay preset philosophy, current POC readiness, and deferred scope.
+- [message-interface-tool-status.md](./plans/message-interface-tool-status.md) — shared lifecycle model for tool-status updates rendered per interface (web-chat, Discord, future adapters), so shared-space participants can see what the brain is doing.
 
-### 3. Make shared Relay trustworthy enough to matter
+### 3. Trust & identity
 
-If Relay is a shared team brain, trust and identity cannot stay hand-wavy. The system needs enough identity, permissions, and provenance to support real collaboration without prematurely becoming a full SaaS account system.
+The shared identity, permissions, and provenance substrate. Relay forces it first — a shared team brain cannot keep trust hand-wavy — but this is **not Relay-specific**: every brain, Rover included, runs on the same auth, runtime-user, and signing layer. The bar is enough identity and provenance to support real collaboration without prematurely becoming a full SaaS account system.
 
 This includes:
 
@@ -159,51 +166,60 @@ Plans:
 - [multi-user.md](./plans/multi-user.md) — runtime users, roles, active-user checks, attribution, and management surfaces.
 - [auth-runtime-db.md](./plans/auth-runtime-db.md) — auth-specific runtime database for users, passkeys, OAuth/session stores, and audit.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — broader private runtime-state boundary.
-- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-rover A2A.
+- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-brain A2A.
 
-### 4. Make shared Relay operable
+### 4. Hosting & operations
 
-A shared team brain has to be installable, maintainable, and recoverable by operators. This is not just “hosting later”; it is the operational layer that makes the Relay story viable if the POC works.
-
-Parts of §4 (hosted Rover control, multi-user CMS/admin behavior) depend on the runtime user model from §3 and cannot land before it. First-passkey bootstrap has already shipped; Discord UX and dashboard polish can proceed independently.
+Making brains installable, maintainable, and recoverable by operators: fleet/hosting shape, onboarding, and safe offboarding. Driven today by the **hosted Rover pilot** (most plans here are Rover-pilot ops), but the same machinery hosts Relay later. The multi-user admin surfaces depend on the runtime-user model from §3 and cannot land before it; first-passkey bootstrap, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have already shipped, so operator onboarding is no longer a standing plan.
 
 This includes:
 
+- hosted/fleet deploy shape and control plane;
+- per-user pilot customization and preflight;
 - safe offboarding and destructive cleanup for pilot fleets;
-- hosted/fleet deploy shape;
-- Discord UX for shared team contexts;
-- dashboard/CMS/admin flows for non-developer operation.
-
-Current passkey/operator onboarding is no longer a standing plan: first-passkey setup, anchor-visible setup URL retrieval, auth-service plugin bridging, and setup-email delivery have shipped. Discord DM delivery can return later as a channel-specific enhancement if hosted onboarding needs it.
+- dashboard/admin flows for non-developer operation.
 
 Plans:
 
-- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
-- [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
 - [hosted-rovers.md](./plans/hosted-rovers.md) — hosted rover control plane direction.
-- [cms-github-app-hosted.md](./plans/cms-github-app-hosted.md) — hosted-product CMS login via short-lived GitHub App installation tokens (the local GitHub OAuth / passkey-gated PAT methods already shipped in `plugins/cms`).
-- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — parked; revisits multi-platform chat adapter consolidation only when a new platform is prioritized.
+- [rover-default-batch-onboarding.md](./plans/rover-default-batch-onboarding.md) — next hosted Rover pilot customization/preflight work.
+- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit rover-pilot offboarding workflow.
+- [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord opt-in in `@rizom/ops` rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.
 
-### 5. Make the ecosystem credible
+### 5. Interfaces
 
-The team-brain story needs a credible public ecosystem: docs, plugin surfaces, distribution, and artifacts that make the work legible outside the repo.
+The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord and the bundled web chat ship today; this section is the consolidation and expansion work.
+
+Plans:
+
+- [first-party-cms-editor.md](./plans/first-party-cms-editor.md) — first-party React editor that writes through the entity service (entity DB as single writer, git persistence via directory-sync); supersedes the hosted GitHub-App token plan below.
+- [cms-github-app-hosted.md](./plans/cms-github-app-hosted.md) — hosted-product CMS login via short-lived GitHub App installation tokens; superseded if the first-party editor lands (the browser-token problem it hardens disappears).
+- [slack-chat-sdk.md](./plans/slack-chat-sdk.md) — first Slack slice for `@brains/chat`, separate from Discord replacement work.
+- [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
+- [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
+- [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
+- [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
+
+### 6. Ecosystem
+
+A credible public ecosystem: package boundaries, distribution/discovery, interop, and authoring surfaces that make the work legible outside the repo.
 
 This includes:
 
 - public package boundaries for official plugins/entities;
 - stable-enough authoring surfaces;
-- docs that match the current runtime;
-- publishing/media outputs that demonstrate the system publicly;
-- future distribution/discovery layers where they support the story.
+- distribution/discovery and interchange where they support the story.
 
 Plans:
 
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
-- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
-- [desktop-app.md](./plans/desktop-app.md) — parked Electrobun-based native-app direction.
+- [mcp-external-redesign.md](./plans/mcp-external-redesign.md) — CQRS split for external MCP: raw read tools stay composable (`readOnlyHint`), all mutations route through a single agent-gated `chat` command; `debug` mode keeps raw write tools local-only.
+- [okf-interop.md](./plans/okf-interop.md) — export/import the entity store as Google Open Knowledge Format bundles via `directory-sync`, for interchange with external OKF producers/consumers.
+- [bd-priority-engine.md](./plans/bd-priority-engine.md) — proposed standalone `@brains/bd` package: a conversational project/lead prioritization engine (value + integrity-gate scoring, Active/Staged/Warm states, heartbeat alerts). Rizom dogfooding Brains for its own BD; brain-agnostic, not in the public Rover preset.
+- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — parked programmatic composition escape hatch.
 
-### 6. Keep the framework sustainable
+### 7. Keep the framework sustainable
 
 These are real, but they should not masquerade as product bets. They reduce drag so product work stays possible. Split here between cleanup that is scheduled when it reduces real drag, and research probes kept as parked thinking until something forces them up the queue.
 
@@ -212,12 +228,17 @@ Cleanup:
 - [env-handling.md](./plans/env-handling.md) — co-locate env declarations and move `process.env` reads out of `shell/core` into the app/deploy layer.
 - [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse duplicated build responsibilities.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
+- [external-dependency-review.md](./plans/external-dependency-review.md) — dead-weight removal, safe-drift sweep, tooling majors (eslint 8→10, TS 6), and the zod 3→4 migration that blocks the first stable `@rizom/brain`.
+- [plugin-contracts-consolidation.md](./plans/plugin-contracts-consolidation.md) — collapse redundant runtime/public mappers via `Schema.parse`.
+- [codebase-cleanup-backlog.md](./plans/codebase-cleanup-backlog.md) — reference backlog of unowned findings from the 2026-06 shell audit (CSS monoliths, `@brains/utils` split, package-script drift).
+- [runtime-state-store.md](./plans/runtime-state-store.md) — service shipped (`shell/runtime-state`); remaining work wires the pending consumers (chat subscriptions, playbook run state, notification/setup-email dedupe).
 
 Research probes (parked):
 
 - [memory-reduction.md](./plans/memory-reduction.md) — profile first, then optimize registry/template/lazy-loading pressure.
 - [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contracts and Astro spike.
 - [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
+- [turso-database-engine.md](./plans/turso-database-engine.md) — exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.
 
 ## Product direction
 

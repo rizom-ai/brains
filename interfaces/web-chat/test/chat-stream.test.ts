@@ -45,6 +45,7 @@ function createDeps(agent: {
     agent: agent as never,
     startProcessingInput: mock(() => {}),
     endProcessingInput: mock(() => {}),
+    handleAgentResponseToolStatuses: mock(async () => {}),
     createId: (prefix: string) => `${prefix}-id`,
   };
 }

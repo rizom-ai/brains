@@ -1,102 +1,11 @@
-import type {
-  InterfacePluginContext,
-  StructuredChatCard,
+import {
+  getStoredMessageAttachments as getSharedStoredMessageAttachments,
+  parseStoredMessageMetadata,
+  StructuredChatCardSchema,
+  type InterfacePluginContext,
+  type StructuredChatCard,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
 import { stripInternalEntityMemoryNote } from "./display-content";
-
-const storedChatAttachmentSchema = z.object({
-  kind: z.literal("text"),
-  filename: z.string().min(1),
-  mediaType: z.string().min(1),
-  sizeBytes: z.number().nonnegative().optional(),
-  source: z
-    .object({
-      kind: z.string().min(1),
-      id: z.string().min(1),
-    })
-    .optional(),
-});
-
-const storedChatAttachmentsSchema = z.array(storedChatAttachmentSchema);
-
-const storedAttachmentCardSchema = z.object({
-  kind: z.literal("attachment"),
-  id: z.string().min(1),
-  jobId: z.string().min(1).optional(),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  attachment: z.object({
-    mediaType: z.string().min(1),
-    url: z.string().min(1),
-    downloadUrl: z.string().min(1).optional(),
-    previewUrl: z.string().min(1).optional(),
-    filename: z.string().min(1).optional(),
-    sizeBytes: z.number().nonnegative().optional(),
-    source: z
-      .object({
-        entityType: z.string().optional(),
-        entityId: z.string().optional(),
-        attachmentType: z.string().optional(),
-      })
-      .optional(),
-  }),
-});
-
-const storedSourcesCardSchema = z.object({
-  kind: z.literal("sources"),
-  id: z.string().min(1),
-  title: z.string().min(1).optional(),
-  sources: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        title: z.string().min(1).optional(),
-        source: z.string().min(1),
-        url: z.string().min(1).optional(),
-        entityType: z.string().min(1).optional(),
-        entityId: z.string().min(1).optional(),
-        excerpt: z.string().min(1).optional(),
-        provenance: z.record(z.unknown()).optional(),
-      }),
-    )
-    .min(1),
-});
-
-const storedActionsCardSchema = z.object({
-  kind: z.literal("actions"),
-  id: z.string().min(1),
-  title: z.string().min(1).optional(),
-  defaultOpen: z.boolean().optional(),
-  actions: z
-    .array(
-      z.discriminatedUnion("type", [
-        z.object({
-          type: z.literal("prompt"),
-          id: z.string().min(1),
-          label: z.string().min(1),
-          prompt: z.string().min(1),
-          description: z.string().min(1).optional(),
-        }),
-        z.object({
-          type: z.literal("event"),
-          id: z.string().min(1),
-          label: z.string().min(1),
-          event: z.string().min(1),
-          description: z.string().min(1).optional(),
-        }),
-      ]),
-    )
-    .min(1),
-});
-
-const storedChatCardsSchema = z.array(
-  z.discriminatedUnion("kind", [
-    storedAttachmentCardSchema,
-    storedSourcesCardSchema,
-    storedActionsCardSchema,
-  ]),
-);
 
 type PermissionResolver = (request: Request) => Promise<"anchor" | "public">;
 type ConversationService = InterfacePluginContext["conversations"];
@@ -159,45 +68,25 @@ function getStoredMessageAttachments(
   createdAt: string;
   source?: { kind: string; id: string } | undefined;
 }> {
-  const parsedMetadata = parseStoredMessageMetadata(metadata);
-  const parsedAttachments = storedChatAttachmentsSchema.safeParse(
-    parsedMetadata?.["attachments"],
-  );
-  if (!parsedAttachments.success) return [];
-
-  return parsedAttachments.data.map((attachment) => ({
-    kind: attachment.kind,
-    filename: attachment.filename,
-    mediaType: attachment.mediaType,
-    sizeBytes: attachment.sizeBytes ?? 0,
-    createdAt,
-    ...(attachment.source !== undefined && { source: attachment.source }),
-  }));
+  return getSharedStoredMessageAttachments(metadata)
+    .filter((attachment) => attachment.kind === "text")
+    .map((attachment) => ({
+      kind: "text" as const,
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      sizeBytes: attachment.sizeBytes ?? 0,
+      createdAt,
+      ...(attachment.source !== undefined && { source: attachment.source }),
+    }));
 }
 
 function getStoredMessageCards(metadata: unknown): StructuredChatCard[] {
   const parsedMetadata = parseStoredMessageMetadata(metadata);
-  const parsedCards = storedChatCardsSchema.safeParse(
-    parsedMetadata?.["cards"],
-  );
-  if (!parsedCards.success) return [];
-  return parsedCards.data;
-}
+  const cards = parsedMetadata?.["cards"];
+  if (!Array.isArray(cards)) return [];
 
-export function parseStoredMessageMetadata(
-  metadata: unknown,
-): Record<string, unknown> | null {
-  if (typeof metadata === "string") {
-    try {
-      const parsed = JSON.parse(metadata) as unknown;
-      return isRecord(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  return isRecord(metadata) ? metadata : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return cards
+    .map((card) => StructuredChatCardSchema.safeParse(card))
+    .filter((result) => result.success)
+    .map((result) => result.data);
 }

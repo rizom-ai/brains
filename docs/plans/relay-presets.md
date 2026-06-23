@@ -135,7 +135,7 @@ into relay once they land:
 | **shared-space trust**                                        | `core`                       | shipped resolver: configured team spaces grant collaborator/trusted access before full runtime users |
 | **entity action policy**                                      | `core`                       | shipped: collaborator mutations constrained by entity type and action through central policy layer   |
 | **multi-user + permissions** ([plan](./multi-user.md))        | `core`                       | defining feature for a team brain — users, roles, audit trail                                        |
-| **Chat SDK migration** ([plan](./chat-interface-sdk.md))      | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                                                              |
+| **Chat SDK migration**                                        | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                                                              |
 | **AT Protocol phases 1-2** ([plan](./atproto-integration.md)) | `default`                    | outbound publishing — teams push knowledge to decentralized feed                                     |
 | **AT Protocol phases 3-6**                                    | `full`                       | inbound ingestion, cross-brain feeds, ambient federation                                             |
 | **agents phase 2** (ATProto firehose)                         | `core`                       | auto-discover peer brains — `agents` is already registered in `core`                                 |

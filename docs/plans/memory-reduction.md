@@ -224,10 +224,10 @@ Phase 4 (structural — only if target not met)
 
 After deploying alpha.46 (which fixed an unbounded `Promise.all` in skill replace-all that was OOM-looping yeehaa.io), steady-state RSS across two brains:
 
-| Brain | Entities (rough) | Resident | per-entity overhead |
-| --- | --- | --- | --- |
-| mylittlephoney | ~30-50 | 363 MB | ~7-12 MB |
-| yeehaa.io | ~270 | 1.04-1.61 GB | ~4 MB |
+| Brain          | Entities (rough) | Resident     | per-entity overhead |
+| -------------- | ---------------- | ------------ | ------------------- |
+| mylittlephoney | ~30-50           | 363 MB       | ~7-12 MB            |
+| yeehaa.io      | ~270             | 1.04-1.61 GB | ~4 MB               |
 
 **Implication:** the current plan targets the ~860MB baseline (registries, templates, eager plugins, AI SDK). It does **not** address the dataset-proportional component. With the rough fit `RSS ≈ 200-300 MB baseline + ~3 MB/entity`, scaling to 1000 entities projects ~3 GB; to 5000 entities, ~15 GB. Steady-state alone exceeds the 7.6 GB Hetzner box well before 5000 entities.
 
@@ -266,4 +266,4 @@ Bulk embedding inserts and FTS index updates should commit in chunks (e.g., 50 a
 
 Add a test that builds a brain with N synthetic entities (e.g., 500, 1000) and asserts steady-state RSS stays under a threshold per entity. Catches regressions before they hit prod.
 
-**Expected savings:** the goal isn't a fixed MB number; it's bounding the *slope* of `MB per entity` to a known constant, ideally well under 1 MB/entity steady-state and under a defined transient ceiling during sync/derivation.
+**Expected savings:** the goal isn't a fixed MB number; it's bounding the _slope_ of `MB per entity` to a known constant, ideally well under 1 MB/entity steady-state and under a defined transient ceiling during sync/derivation.

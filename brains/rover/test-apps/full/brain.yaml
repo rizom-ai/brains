@@ -2,10 +2,28 @@ brain: rover
 preset: full
 domain: alex.example.com
 
+add:
+  - chat
+remove:
+  - discord
+
+permissions:
+  rules:
+    - pattern: "discord:1442828818493735015"
+      level: anchor
+    - pattern: "discord:*"
+      level: public
+
 plugins:
   playbooks:
     triggers:
       first-anchor-web-chat: true
+  chat:
+    adapters:
+      discord:
+        botToken: ${DISCORD_BOT_TOKEN}
+        publicKey: ${DISCORD_PUBLIC_KEY}
+        applicationId: ${DISCORD_APPLICATION_ID}
   directory-sync:
     seedContentPath: ../../eval-content-full
     autoSync: true

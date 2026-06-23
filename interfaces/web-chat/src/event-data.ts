@@ -1,7 +1,7 @@
 import type {
   JobContext,
   JobProgressEvent,
-  ToolActivityEvent,
+  ToolStatusUpdate,
 } from "@brains/plugins";
 
 interface WebChatProgressData {
@@ -14,7 +14,11 @@ interface WebChatProgressData {
 }
 
 interface WebChatToolStatusData {
-  status: "tool-invoking" | "tool-completed" | "tool-failed";
+  status:
+    | "tool-running"
+    | "tool-completed"
+    | "tool-awaiting-approval"
+    | "tool-failed";
   toolName: string;
   message: string;
   error?: string;
@@ -39,28 +43,34 @@ export function toProgressData(event: JobProgressEvent): WebChatProgressData {
 }
 
 export function toToolStatusData(
-  event: ToolActivityEvent,
+  update: ToolStatusUpdate,
 ): WebChatToolStatusData {
-  const toolLabel = formatToolLabel(event.toolName);
-  switch (event.type) {
-    case "tool:invoking":
+  const toolLabel = formatToolLabel(update.toolName);
+  switch (update.state) {
+    case "running":
       return {
-        status: "tool-invoking",
-        toolName: event.toolName,
+        status: "tool-running",
+        toolName: update.toolName,
         message: `Using ${toolLabel}…`,
       };
-    case "tool:completed":
+    case "completed":
       return {
         status: "tool-completed",
-        toolName: event.toolName,
+        toolName: update.toolName,
         message: `Finished ${toolLabel}.`,
       };
-    case "tool:failed":
+    case "awaiting-approval":
+      return {
+        status: "tool-awaiting-approval",
+        toolName: update.toolName,
+        message: `${capitalize(toolLabel)} is awaiting approval.`,
+      };
+    case "failed":
       return {
         status: "tool-failed",
-        toolName: event.toolName,
+        toolName: update.toolName,
         message: `${capitalize(toolLabel)} failed.`,
-        ...(event.error !== undefined && { error: event.error }),
+        ...(update.error !== undefined && { error: update.error }),
       };
   }
 }

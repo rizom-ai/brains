@@ -3,6 +3,7 @@ import { defineBrain, type PluginConfig } from "@brains/app";
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
+import { ChatInterface } from "@brains/chat";
 import { WebserverInterface } from "@brains/webserver";
 import { WebChatInterface } from "@brains/web-chat";
 import { A2AInterface } from "@brains/a2a";
@@ -126,6 +127,7 @@ export default defineBrain({
 
   evalDisable: [
     "discord",
+    "chat",
     "webserver",
     "web-chat",
     "mcp",
@@ -249,6 +251,7 @@ export default defineBrain({
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
     ["discord", DiscordInterface, (): PluginConfig => ({})],
+    ["chat", ChatInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
